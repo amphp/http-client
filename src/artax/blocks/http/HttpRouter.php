@@ -38,7 +38,7 @@ namespace artax\blocks\http {
         $obj = $this->deps->make($controller, $customArgs);
         return $obj($this->matcher->getArgs());
       } else {
-        throw new \artax\exceptions\NotFoundException;
+        throw new \artax\exceptions\RequestNotFoundException;
       }
     }
   }
