@@ -1,0 +1,46 @@
+<phpunit bootstrap="./test/bootstrap.php" colors="true">
+  
+  <testsuites>
+    <testsuite name="Core">
+      <directory>./test/src/artax/exceptions</directory>
+      <directory>./test/src/artax</directory>
+    </testsuite>
+  </testsuites>
+  
+	<filter>
+	  <blacklist>
+      <!-- Prevent vfsStream output in our code coverage reports -->
+      <directory>/usr/share/pear/vfsStream</directory>
+      <directory>./src/vendors</directory>
+    </blacklist>
+    
+    <whitelist addUncoveredFilesFromWhitelist="true">
+      <!-- Report code coverage for everything in our /src/artax directory -->
+      <directory>./src/artax</directory>
+      <exclude>
+        <!-- Exclude Interfaces from code coverage -->
+        <directory suffix="Interface.php">./src/artax</directory>
+      </exclude>
+    </whitelist>
+  </filter>
+
+	<logging>
+		<log
+		  type="coverage-html"
+		  target="./docs/coverage"
+		  charset="UTF-8"
+			yui="true"
+			lowUpperBound="35"
+			highLowerBound="70"
+			showUncoveredFiles="true"
+		/>
+		
+		<log
+		  type="coverage-text"
+		  target="php://stdout"
+		  lowUpperBound="35"
+			highLowerBound="70"
+		/>
+		
+	</logging>
+</phpunit>

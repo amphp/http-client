@@ -1,0 +1,17 @@
+# ignore specific test.php file
+test.php
+test/watch
+test/coverage
+
+
+# don't sync examples with repository
+examples
+
+# don't sync html documentation with repository
+docs
+
+# ignore testing webroot directory
+webroot
+
+# ignore pre-commit file for now
+pre-commit.php
