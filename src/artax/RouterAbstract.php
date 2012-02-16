@@ -34,7 +34,7 @@ namespace artax {
     /**
      * 
      */
-    public function __construct(ProviderInterface $deps, MatcherInterface $matcher)
+    public function __construct(DepProvider $deps, MatcherInterface $matcher)
     {
       $this->deps    = $deps;
       $this->matcher = $matcher;

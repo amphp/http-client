@@ -26,10 +26,9 @@ namespace artax\blocks\http {
     /**
      * Add HTTP headers to send on response execution
      * 
-     * @param string $name  The name of the header
-     * @param string $value The header value
+     * @param string $headerStr  The header string to send
      */
-    public function addHeader($name, $value);
+    public function addHeader($headerStr);
     
     /**
      * Getter method for object's $headers array

@@ -5,8 +5,8 @@
  *
  * PHP version 5.4
  *
- * @category Artax
- * @package  Core
+ * @category artax
+ * @package  core
  * @author   Daniel Lowrey <rdlowrey@gmail.com>
  */
 namespace artax {
@@ -20,21 +20,21 @@ namespace artax {
    * @package  core
    * @author   Daniel Lowrey <rdlowrey@gmail.com>
    */
-  class Handlers implements HandlersInterface
+  abstract class HandlersAbstract implements HandlersInterface
   {
-    use UsesConfigTrait;
+    /**
+     * @var bool
+     */
+    protected $debug = FALSE;
     
     /**
-     * Initializes the Artax exception/shutdown handler methods
+     * Turn debug flag on or off
      * 
-     * @return void
+     * @param bool $val
      */
-    public function __construct(Config $config=NULL)
+    public function setDebug($val)
     {
-      $this->config = $config;
-      
-      set_exception_handler([$this, 'exHandler']);
-      register_shutdown_function([$this, 'shutdown']);
+      $this->debug = (bool) $val;
     }
     
     /**
@@ -43,7 +43,6 @@ namespace artax {
      * @param \Exception $e Exception object
      *
      * @return void
-     * @see Handlers::unexpectedError
      */
     public function exHandler(\Exception $e)
     {
@@ -65,42 +64,6 @@ namespace artax {
     {
       if ($e = $this->fatalErrorOccurred()) {
         $this->unexpectedError($e);
-      }
-    }
-    
-    /**
-     * What to do if a requested resource could not be found
-     *
-     * @return void
-     * @throws exceptions\ScriptHaltException Ends script execution
-     */
-    public function notFound()
-    {
-      if ($this->config && $this->config->exists('custom404Handler')) {
-        $f = $this->config->get('custom404Handler');
-        $f();
-      } else {
-        echo  PHP_EOL . '404 NOT FOUND' . PHP_EOL . PHP_EOL;
-      }
-    }
-
-    /**
-     * Handle undexpected internal errors
-     *
-     * @param \Exception $e Exception
-     * @param Request    $r Artax Request object
-     *
-     * @return void;
-     */
-    public function unexpectedError(\Exception $e=NULL)
-    {
-      if ($this->config && $this->config->exists('custom500Handler')) {
-        $f = $this->config->get('custom500Handler');
-        $f();
-      } else {
-        echo PHP_EOL;
-        echo $e->getMessage() .' in '. $e->getFile() .' on line '. $e->getLine();
-        echo PHP_EOL;
       }
     }
 

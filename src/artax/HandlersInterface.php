@@ -35,5 +35,11 @@ namespace artax {
      * @return void
      */
     public function shutdown();
+    
+    public function notFound();
+    
+    public function unexpectedError(\Exception $e);
+    
+    public function setDebug($val);
   }
 }

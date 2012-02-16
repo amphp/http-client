@@ -32,9 +32,9 @@ namespace artax {
     protected $config;
     
     /**
-     * @var Handlers
+     * @var DotNotation
      */
-    protected $handlers;
+    protected $dotNotation;
     
     /**
      * @var RouteList
@@ -42,40 +42,34 @@ namespace artax {
     protected $routes;
     
     /**
-     * @var Bucket
-     */
-    protected $bucket;
-    
-    /**
      * @var ProviderInterface
      */
-    protected $deps;
+    protected $depProvider;
     
     /**
      * Constructor injects object dependencies
      * 
-     * @param ConfigLoader       $configLoader
-     * @param ConfigInterface    $config
-     * @param HandlersInterface  $handlers
-     * @param RoutesList         $routes
-     * @param Bucket             $bucket
+     * @param ConfigLoader $configLoader
+     * @param Config       $config
+     * @param DotNotation  $dotNotation
+     * @param RoutesList   $routes
+     * @param DepProvider  $depProvider
      * 
      * @return void
      */
     public function __construct(
       ConfigLoader $configLoader,
       Config $config,
-      HandlersInterface $handlers,
+      DotNotation $dotNotation,
       RouteList $routes,
-      Bucket $bucket,
-      ProviderInterface $deps=NULL)
+      DepProvider $depProvider
+    )
     {
       $this->configLoader = $configLoader;
       $this->config       = $config;
-      $this->handlers     = $handlers;
+      $this->dotNotation  = $dotNotation;
       $this->routes       = $routes;
-      $this->bucket       = $bucket;
-      $this->deps         = $deps;
+      $this->depProvider  = $depProvider;
     }
     
     /**
@@ -104,17 +98,115 @@ namespace artax {
     }
     
     /**
-     * Load app configuration
+     * Load app configuration directives
      * 
      * @return Bootstrapper Object instance for method chaining
      */
     public function initConfig()
     {
       $configArr = $this->configLoader->getConfigArr();
-      $this->config->load($configArr);
-      $this->handlers->setConfig($this->config);
-      $this->bucket->set('ax.sys.config', $this->config);
-      $this->bucket->set('ax.sys.handlers', $this->handlers);
+      $this->config->load($configArr, TRUE);
+      
+      if ($this->config['debug']) {
+        ini_set('display_errors', TRUE);
+      } else {
+        error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
+        ini_set('display_errors', FALSE);
+      }
+      return $this;
+    }
+    
+    /**
+     * Load optional lib bundles
+     * 
+     * @return Bootstrapper Object instance for method chaining
+     */
+    public function loadBundles()
+    {
+      if ($this->config['httpBundle']) {
+        require AX_SYSTEM_DIR . '/src/artax/blocks/views/ViewInterface.php';
+        require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpMatcher.php';
+        require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpRouter.php';
+        require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpRequest.php';
+        require AX_SYSTEM_DIR . '/src/artax/blocks/http/BucketInterface.php';
+        require AX_SYSTEM_DIR . '/src/artax/blocks/http/BucketAbstract.php';
+        require AX_SYSTEM_DIR . '/src/artax/blocks/http/ServerBucket.php';
+        require AX_SYSTEM_DIR . '/src/artax/blocks/http/HeaderBucket.php';
+        require AX_SYSTEM_DIR . '/src/artax/blocks/http/ParamBucket.php';
+        require AX_SYSTEM_DIR . '/src/artax/blocks/http/CookieBucket.php';
+        require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpControllerInterface.php';
+        require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpControllerAbstract.php';
+        require AX_SYSTEM_DIR . '/src/artax/ResponseInterface.php';
+        require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpResponseInterface.php';
+        require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpResponse.php';
+      }
+      if ($this->config['cliBundle']) {
+        // load cli libs
+      }
+      return $this;
+    }
+    
+    /**
+     * Registers Artax class loader and any other specified namespace loaders
+     * 
+     * @return Bootstrapper Object instance for method chaining
+     */
+    public function initClassAutoloaders()
+    {
+      if ($this->config->exists('autoloader')) {
+        $loader = $this->dotNotation->parse($this->config['autoloader']);
+      } else {
+        $msg = 'No autoloader specified';
+        throw new exceptions\ConfigException($msg);
+      }
+      
+      (new $loader('artax', AX_SYSTEM_DIR.'/src'))->register();
+      
+      if ($this->config->exists('namespaces')) {
+        foreach ($this->config['namespaces'] as $ns => $path) {
+          (new $loader($ns, $path))->register();
+        }
+      }
+      return $this;
+    }
+    
+    /**
+     * Load specified dependencies
+     * 
+     * @return Bootstrapper Object instance for method chaining
+     */
+    public function initDepProvider()
+    {
+      if (isset($this->config['deps']) && $d = $this->config['deps']) {
+        $depsArr = is_array($d)
+          ? $d
+          : $this->configLoader->load($d)->getConfigArr();
+        $this->depProvider->load($depsArr);
+      }
+      return $this;
+    }
+    
+    /**
+     * Initialize NotFound and UnexpectedError Handlers
+     * 
+     * The dot-notation class name is retrieved from the config property and
+     * instantiated using the dependency provider.
+     * 
+     * @return Bootstrapper Object instance for method chaining
+     * @throws exceptions\UnexpectedValueException On invalid handler class
+     */
+    public function initHandlers()
+    {
+      $handlers = $this->depProvider->make($this->config['handlers']);
+      
+      if ($handlers instanceof HandlersInterface) {
+        set_exception_handler([$handlers, 'exHandler']);
+        register_shutdown_function([$handlers, 'shutdown']);
+      } else {
+        $msg = 'Handlers class must implement artax\HandlersInterface: ' .
+          get_class($handlers) . ' provided';
+        throw new exceptions\UnexpectedValueException($msg);
+      }
       return $this;
     }
     
@@ -129,31 +221,26 @@ namespace artax {
         $routesArr = is_array($r) ? $r : $this->configLoader->load($r)->getConfigArr();
         $this->routes->addAllFromArr($routesArr);
       }
-      $this->bucket->set('ax.sys.routes', $this->routes);
       return $this;
     }
     
     /**
-     * Load specified dependencies
+     * Generate, route and execute the request
      * 
-     * @return Bootstrapper Object instance for method chaining
+     * @return void
      */
-    public function initdeps()
+    public function doRequest()
     {
-      if (isset($this->config['deps']) && $d = $this->config['deps']) {
-        $depsArr = is_array($d) ? $d : $this->configLoader->load($d)->getConfigArr();
-        $this->deps->load($depsArr);
-      }
-      $this->bucket->set('ax.sys.deps', $this->deps);
-      return $this;
-    }
-    
-    /**
-     * 
-     */
-    public function getBucket()
-    {
-      return $this->bucket;
+      $matcher    = $this->depProvider->make($this->config['matcher'],
+        ['routeList'=>$this->routes]);
+      
+      $router     = $this->depProvider->make($this->config['router'],
+        ['deps'=>$this->depProvider, 'matcher'=>$matcher]);
+      
+      $request    = $this->depProvider->make($this->config['request']);
+      $controller = $router->dispatch($request);
+      $response   = $controller->getResponse();
+      $response->exec();
     }
   }
 }

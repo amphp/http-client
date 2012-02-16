@@ -39,28 +39,14 @@ namespace artax {
         'debug'       => TRUE,
         'httpBundle'  => TRUE,
         'cliBundle'   => FALSE,
+        'autoloader'  => 'artax.ClassLoader',
         'handlers'    => 'artax.blocks.http.HttpHandlers',
-        'router'      => 'artax.blocks.http.HttpRouter',
         'matcher'     => 'artax.blocks.http.HttpMatcher',
+        'router'      => 'artax.blocks.http.HttpRouter',
         'request'     => 'artax.blocks.http.HttpRequest'
       ];
       $params = $params ? array_merge($defaults, $params) : $defaults;
       $this->load($params);
-    }
-    
-    /**
-     * Loads an array of configuration parameters
-     * 
-     * Overrides parent method to overwrite existing parameter values by default.
-     * 
-     * @param array $params     An array of configuration key/value parameters
-     * 
-     * @return Config Object instance for method chaining
-     */
-    public function load(Array $params, $overwrite=TRUE)
-    {
-      parent::load($params, $overwrite);
-      return $this;
     }
     
     /**
@@ -82,7 +68,7 @@ namespace artax {
      * The bootstrapper will set PHP's error reporting level based on the
      * debug value.
      * 
-     * @param bool $val Debug flag
+     * @param bool $val         A boolean debug flag
      * 
      * @return void
      */
@@ -94,7 +80,7 @@ namespace artax {
     /**
      * Setter function for httpBundle directive
      * 
-     * @param bool $val Flag specifying if HTTP libs should be loaded on boot
+     * @param bool $val         Flag specifying if HTTP libs should load on boot
      * 
      * @return void
      */

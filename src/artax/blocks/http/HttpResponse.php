@@ -3,7 +3,7 @@
 /**
  * Artax HttpResponse Class File
  * 
- * PHP version 5.3
+ * PHP version 5.4
  * 
  * @category   artax
  * @package    blocks
@@ -62,7 +62,7 @@ namespace artax\blocks\http {
      * 
      * @param string $body Response body text
      * 
-     * @return Response Current object instance for method chaining
+     * @return HttpResponse Current object instance for method chaining
      */
     public function setBody($body)
     {
@@ -83,14 +83,13 @@ namespace artax\blocks\http {
     /**
      * Add HTTP headers to send on response execution
      * 
-     * @param string $name  The name of the header
-     * @param string $value The header value
+     * @param string $headerStr  The header string to send
      * 
      * @return void
      */
-    public function addHeader($name, $value)
+    public function addHeader($headerStr)
     {
-      $this->headers[$name] = $value;
+      $this->headers[] = $headerStr;
     }
     
     /**
@@ -110,8 +109,8 @@ namespace artax\blocks\http {
      */
     protected function sendHeaders()
     {
-      foreach ($this->headers as $name => $value) {
-        header("$name: $value");
+      foreach ($this->headers as $header) {
+        header("$header");
       }
     }
     

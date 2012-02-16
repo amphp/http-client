@@ -24,7 +24,7 @@
  * 
  * ### MULTIPLE CONFIGURATION ENVIRONMENTS
  * 
- * If not defined, the `AX_CONFIG_FILE` constant will be set as so:
+ * If not defined, the `AX_CONFIG_FILE` constant will default to the following:
  * 
  * ```php
  * if ( ! defined('AX_CONFIG_FILE')) {
@@ -88,7 +88,12 @@ ini_set('html_errors', FALSE);
  */
 
 
+// Exceptions that could be thrown before the autoloader is registered
+require AX_SYSTEM_DIR . '/src/artax/exceptions/Exception.php';
+require AX_SYSTEM_DIR . '/src/artax/exceptions/ErrorException.php';
+require AX_SYSTEM_DIR . '/src/artax/exceptions/UnexpectedValueException.php';
 
+// Core libs
 require AX_SYSTEM_DIR . '/src/artax/Bootstrapper.php';
 require AX_SYSTEM_DIR . '/src/artax/BucketInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/BucketArrayAccessTrait.php';
@@ -96,9 +101,7 @@ require AX_SYSTEM_DIR . '/src/artax/Bucket.php';
 require AX_SYSTEM_DIR . '/src/artax/BucketSettersTrait.php';
 require AX_SYSTEM_DIR . '/src/artax/Config.php';
 require AX_SYSTEM_DIR . '/src/artax/ConfigLoader.php';
-require AX_SYSTEM_DIR . '/src/artax/UsesConfigTrait.php';
 require AX_SYSTEM_DIR . '/src/artax/HandlersInterface.php';
-require AX_SYSTEM_DIR . '/src/artax/Handlers.php';
 require AX_SYSTEM_DIR . '/src/artax/RouteInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/Route.php';
 require AX_SYSTEM_DIR . '/src/artax/RouteList.php';
@@ -111,44 +114,38 @@ require AX_SYSTEM_DIR . '/src/artax/RequestInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/RouterInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/RouterAbstract.php';
 
-// HTTP stuff
-require AX_SYSTEM_DIR . '/src/artax/blocks/views/ViewInterface.php';
-require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpMatcher.php';
-require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpRouter.php';
-require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpRequest.php';
-require AX_SYSTEM_DIR . '/src/artax/blocks/http/BucketInterface.php';
-require AX_SYSTEM_DIR . '/src/artax/blocks/http/BucketAbstract.php';
-require AX_SYSTEM_DIR . '/src/artax/blocks/http/ServerBucket.php';
-require AX_SYSTEM_DIR . '/src/artax/blocks/http/HeaderBucket.php';
-require AX_SYSTEM_DIR . '/src/artax/blocks/http/ParamBucket.php';
-require AX_SYSTEM_DIR . '/src/artax/blocks/http/CookieBucket.php';
-require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpControllerInterface.php';
-require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpControllerAbstract.php';
-require AX_SYSTEM_DIR . '/src/artax/ResponseInterface.php';
-require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpResponseInterface.php';
-require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpResponse.php';
+// Class autoloader -- required last to ensure we don't accidentally autoload
+require AX_SYSTEM_DIR . '/src/artax/ClassLoader.php';
 
-require AX_SYSTEM_DIR . '/src/vendors/SplClassLoader.php';
 
 /*
  * --------------------------------------------------------------------
- * BOOT WITHOUT CLUTTERING THE GLOBAL NAMESPACE
+ * BOOT & GENERATE REQUEST/RESPONSE
  * --------------------------------------------------------------------
  */
 
-// Initialize Artax class autoloader
-(new \SplClassLoader('artax', AX_SYSTEM_DIR.'/src'))->register();
 
-// Instantiate Bootstrapper to load artax container
-$ax = (new artax\Bootstrapper(
+// Instantiate the Bootstrapper class and generate a request/response
+(new artax\Bootstrapper(
   new artax\ConfigLoader(AX_CONFIG_FILE),
   new artax\Config,
-  new artax\Handlers,
+  new artax\DotNotation,
   new artax\RouteList,
-  new artax\Bucket,
   new artax\DepProvider(new artax\DotNotation)
 ))->initErrHandler()
   ->initConfig()
+  ->loadBundles()
+  ->initClassAutoloaders()
+  ->initDepProvider()
+  ->initHandlers()
   ->initRoutes()
-  ->initdeps()
-  ->getBucket();
+  ->doRequest();
+  
+  
+  
+  
+  
+  
+  
+  
+  
