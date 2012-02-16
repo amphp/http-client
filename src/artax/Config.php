@@ -58,8 +58,7 @@ namespace artax {
      */
     protected function filterBool($val)
     {
-      $val = filter_var($val, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
-      return (bool) $val;
+      return filter_var($val, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
     }
     
     /**
