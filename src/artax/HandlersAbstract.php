@@ -28,16 +28,6 @@ namespace artax {
     protected $debug = FALSE;
     
     /**
-     * Turn debug flag on or off
-     * 
-     * @param bool $val
-     */
-    public function setDebug($val)
-    {
-      $this->debug = (bool) $val;
-    }
-    
-    /**
      * The "last chance" handler for uncaught exceptions
      *
      * @param \Exception $e Exception object
@@ -57,8 +47,7 @@ namespace artax {
      * Handle unexpected fatal errors
      *
      * @return void
-     * @uses Handler::fatalErrorOccurred
-     * @uses Handler::unexpectedError
+     * @uses HandlersAbstract::fatalErrorOccurred
      */
     public function shutdown()
     {
@@ -76,7 +65,6 @@ namespace artax {
      * 
      * @return mixed bool(FALSE) if none/non-fatal error -or- RuntimeException if
      *               last error occurence was fatal.
-     * @used-by Handler::shutdown
      */
     protected function fatalErrorOccurred()
     {
@@ -103,6 +91,26 @@ namespace artax {
         return new exceptions\RuntimeException($msg);
       }
       return FALSE;
+    }
+    
+    /**
+     * Turn debug flag on or off
+     * 
+     * @param bool $val
+     */
+    public function setDebug($val)
+    {
+      $this->debug = (bool) $val;
+    }
+    
+    /**
+     * Getter method for debug property
+     * 
+     * @return bool Returns value of the object's debug flag
+     */
+    public function getDebug()
+    {
+      return $this->debug;
     }
   }
 }
