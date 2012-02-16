@@ -27,7 +27,11 @@ namespace artax {
     protected $dotNotation;
     
     /**
+     * Initializes DotNotation object dependency
      * 
+     * @param DotNotation $dotNotation A DotNotation object for class name parsing
+     * 
+     * @return void
      */
     public function __construct(DotNotation $dotNotation)
     {
