@@ -27,23 +27,35 @@ namespace artax {
     use BucketSettersTrait;
     
     /**
+     * Initializes default configuration directive values
      * 
+     * @param array $params     An array of configuration key/value parameters
+     * 
+     * @return void
      */
     public function __construct(Array $params=NULL)
     {
       $defaults = [
-        'debug'             => TRUE,
-        'timezone'          => 'GMT',
-        'custom404Handler'  => NULL,
-        'custom500Handler'  => NULL,
-        'httpSupport'       => TRUE
+        'debug'       => TRUE,
+        'httpBundle'  => TRUE,
+        'cliBundle'   => FALSE,
+        'handlers'    => 'artax.blocks.http.HttpHandlers',
+        'router'      => 'artax.blocks.http.HttpRouter',
+        'matcher'     => 'artax.blocks.http.HttpMatcher',
+        'request'     => 'artax.blocks.http.HttpRequest'
       ];
       $params = $params ? array_merge($defaults, $params) : $defaults;
       $this->load($params);
     }
     
     /**
+     * Loads an array of configuration parameters
      * 
+     * Overrides parent method to overwrite existing parameter values by default.
+     * 
+     * @param array $params     An array of configuration key/value parameters
+     * 
+     * @return Config Object instance for method chaining
      */
     public function load(Array $params, $overwrite=TRUE)
     {
@@ -52,9 +64,23 @@ namespace artax {
     }
     
     /**
+     * Filters boolean values
+     * 
+     * @param bool $val         Boolean value flag
+     * 
+     * @return bool Returns filtered boolean value
+     */
+    protected function filterBool($val)
+    {
+      $val = filter_var($val, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+      return (bool) $val;
+    }
+    
+    /**
      * Setter function for debug directive
      * 
-     * PHP Error reporting level is also set based on this value.
+     * The bootstrapper will set PHP's error reporting level based on the
+     * debug value.
      * 
      * @param bool $val Debug flag
      * 
@@ -62,98 +88,31 @@ namespace artax {
      */
     protected function setDebug($val)
     {
-      $val = filter_var($val, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
-      $this->params['debug'] = (bool)$val;
-      
-      if ($val) {
-        ini_set('display_errors', TRUE);
-      } else {
-        error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
-        ini_set('display_errors', FALSE);
-      }
+      $this->params['debug'] = $this->filterBool($val);
     }
     
     /**
-     * Setter function for debug directive
+     * Setter function for httpBundle directive
      * 
-     * PHP Error reporting level is also set based on this value.
-     * 
-     * @param bool $val Debug flag
+     * @param bool $val Flag specifying if HTTP libs should be loaded on boot
      * 
      * @return void
      */
-    protected function setHttpSupport($val)
+    protected function setHttpBundle($val)
     {
-      $val = filter_var($val, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
-      $this->params['httpSupport'] = (bool) $val;
+      $this->params['httpBundle'] = $this->filterBool($val);
     }
     
     /**
-     * Setter method for object's $timezone directive
+     * Setter function for cliBundle directive
      * 
-     * If no value is specified the function defaults to GMT.
-     * 
-     * **IMPORTANT:** This setter cannot override the `date.timezone` setting
-     * if it exists in php.ini
-     * 
-     * @param string $tz PHP timezone abbreviation
-     * 
-     * @return Object instance for method chaining
-     * @throws exceptions\InvalidArgumentException On invalid timezone
-     */
-    protected function setTimezone($tz)
-    {
-      $tz = NULL === $tz ? 'GMT' : $tz;
-      try {
-        date_default_timezone_set($tz);
-        $this->params['timezone'] = $tz;
-      } catch (exceptions\ErrorException $e) {
-        // detect error message resulting from invalid timezone
-        if (stristr($e->getMessage(), 'is invalid in')) {
-          $msg = "Invalid timezone identifier ($tz) specified";
-          throw new exceptions\InvalidArgumentException($msg);
-        }
-      }
-    }
-    
-    /**
-     * Setter method for custom_404_handler directive
-     * 
-     * @param callback $val Callback function
+     * @param bool $val Flag specifying if CLI libs should be loaded on boot
      * 
      * @return void
      */
-    protected function setCustom404Handler($val=NULL)
+    protected function setCliBundle($val)
     {
-      if (NULL !== $val) {
-        $val = is_string($val) ? self::dotNamespaceTrans($val) : $val;
-        if (is_callable($val)) {
-          $this->params['custom404Handler'] = $val;
-        } else {
-          $msg = 'Invalid 404 handler: handler must be callable';
-          throw new exceptions\InvalidArgumentException($msg);
-        }
-      }
-    }
-    
-    /**
-     * Setter function for custom_500_handler directive
-     * 
-     * @param callback $val Callback function
-     * 
-     * @return void
-     */
-    protected function setCustom500Handler($val=NULL)
-    {
-      if (NULL !== $val) {
-        $val = is_string($val) ? self::dotNamespaceTrans($val) : $val;
-        if (is_callable($val)) {
-          $this->params['custom500Handler'] = $val;
-        } else {
-          $msg = 'Invalid 500 handler: handler must be callable';
-          throw new exceptions\InvalidArgumentException($msg);
-        }
-      }
+      $this->params['cliBundle'] = $this->filterBool($val);
     }
   }
 }
