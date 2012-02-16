@@ -114,7 +114,7 @@ require AX_SYSTEM_DIR . '/src/artax/RequestInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/RouterInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/RouterAbstract.php';
 
-// Class autoloader -- required last to ensure we don't accidentally autoload
+// Class autoloader -- required last to avoid accidentally autoloading core libs
 require AX_SYSTEM_DIR . '/src/artax/ClassLoader.php';
 
 
@@ -140,12 +140,3 @@ require AX_SYSTEM_DIR . '/src/artax/ClassLoader.php';
   ->initHandlers()
   ->initRoutes()
   ->doRequest();
-  
-  
-  
-  
-  
-  
-  
-  
-  
