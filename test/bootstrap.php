@@ -17,9 +17,8 @@ define('ARTAX_APP_PATH', ARTAX_DIR);
  * --------------------------------------------------------------------
  */
  
-require ARTAX_DIR . '/src/vendors/SplClassLoader.php';
-$artaxLoader = new SplClassLoader('artax', ARTAX_DIR . '/src');
-$artaxLoader->register();
+require ARTAX_DIR . '/src/artax/ClassLoader.php';
+(new artax\ClassLoader('artax', ARTAX_DIR . '/src'))->register();
 
 
 /*
