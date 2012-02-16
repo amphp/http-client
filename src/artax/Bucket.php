@@ -15,6 +15,10 @@ namespace artax {
   /**
    * Bucket Class
    * 
+   * Buckets are general purpose collection objects. The class implements
+   * ArrayAccess and Iterator interfaces to allow easy array-type access to
+   * stored properties.
+   * 
    * @category artax
    * @package  core
    * @author   Daniel Lowrey <rdlowrey@gmail.com>
@@ -32,17 +36,9 @@ namespace artax {
     /**
      * Load a pre-existing array of container parameters
      * 
-     * Note that if any parameters have the same name as parameters that already
-     * exist in the container, the old values will be overwritten with those
-     * specified in the new array.
-     * 
-     * If the optional `$useSetters` flag is set to `TRUE` the loader will
-     * 
      * @param array $params     Bucket storage array
      * 
      * @return Object instance for method chaining
-     * @throws exceptions\InvalidArgumentException On empty or non-string `$id`
-     *                                             param key
      */
     public function load(Array $params, $overwrite=FALSE)
     {
@@ -54,39 +50,7 @@ namespace artax {
     }
     
     /**
-     * Registers a dependency with the container
-     * 
-     * If the optional `$useSetters` property is set to `TRUE` this method will
-     * use concrete setter methods to assign container params where applicable.
-     * A check is made to see if a callable concrete setter method exists for
-     * the specified container parameter. If so, the setter method is used to
-     * store the parameter in place of simple assignment to the `$params` array.
-     * Note that both `method_exists` AND `is_callable` are required to determine
-     * a setter's existence due to the magic `__call` method's ability to create
-     * magic getter and setter methods. Of course, this behavior is only relevant
-     * in child classes specifying custom setter methods. There is no need for
-     * `$useSetters` when dealing with direct instances of the Bucket class.
-     * 
-     * By convention, CamelCasing of custom setter method names is enforced. 
-     * This means that the setter method for a property named "myProperty" must 
-     * capitalize the first character of the desired property:
-     * 
-     *     $myProp = $container->setMyProperty() // correct
-     *     $myProp = $container->setmyProperty() // not invoked for myProp param
-     * 
-     * Of course, if your property name starts with an uppercase letter (weird),
-     * the setter name should already be correct. 
-     * 
-     * IMPORTANT: Note that it is incumbent upon the setter method to store the
-     * param value in the protected `Bucket::$params` holder. This should be 
-     * done via simple assignment as attempting to use the `Bucket::store` 
-     * method inside a setter method while the `$useSetters` flag is enabled 
-     * will result in an infinite loop:
-     * 
-     *     $this->params['myProp'] = 'value';
-     * 
-     * Be careful if using `Bucket::store` inside your setter methods that
-     * you don't cause an infinite loop by using `$useSetters=TRUE`.
+     * Registers a parameter for storage in the bucket
      * 
      * @param string $id         Param identifier name
      * @param mixed  $param      Specified parameter value
