@@ -35,7 +35,7 @@ autonomy when feasible;
 The framework provides a basic outline for structuring PHP applications in a web
 environment. It aims to do this without:
 
-* Specify the type of models or views to implement;
+* Specifying the type of models or views to implement;
 * Forcing a new vernacular on its users: if you're a good PHP dev, you'll still
 be good with **Artax** ... if not, well, maybe you should purchase Adobe Dreamweaver;
 * Adding unnecessary processing or memory overhead to what you're actually
