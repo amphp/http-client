@@ -5,8 +5,8 @@
  * 
  * PHP version 5.3
  * 
- * @category Artax
- * @package  Exceptions
+ * @category artax
+ * @package  exceptions
  * @author   Daniel Lowrey <rdlowrey@gmail.com>
  */
 
@@ -22,9 +22,9 @@ namespace artax\exceptions {
    * (for days in a week), you could throw a DomainException. This is because
    * the value is outside the "domain" for day numbers in a week.
    * 
-   * @category Artax
-   * @packageExceptions
-   * @author Daniel Lowrey <rdlowrey@gmail.com>
+   * @category artax
+   * @package  exceptions
+   * @author   Daniel Lowrey <rdlowrey@gmail.com>
    */
   class DomainException extends \DomainException implements Exception
   {

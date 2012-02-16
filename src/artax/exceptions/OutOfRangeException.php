@@ -5,8 +5,8 @@
  * 
  * PHP version 5.3
  * 
- * @category Artax
- * @package  Exceptions
+ * @category artax
+ * @package  exceptions
  * @author   Daniel Lowrey <rdlowrey@gmail.com>
  */
 
@@ -18,9 +18,9 @@ namespace artax\exceptions {
    * This is the same as OutOfBoundsException, but this should be used for
    * normal arrays which are indexed by number, not by key.
    * 
-   * @category Artax
-   * @packageExceptions
-   * @author Daniel Lowrey <rdlowrey@gmail.com>
+   * @category artax
+   * @package  exceptions
+   * @author   Daniel Lowrey <rdlowrey@gmail.com>
    */
   class OutOfRangeException extends \OutOfBoundsException implements Exception
   {

@@ -5,8 +5,8 @@
  * 
  * PHP version 5.3
  * 
- * @category Artax
- * @package  Exceptions
+ * @category artax
+ * @package  exceptions
  * @author   Daniel Lowrey <rdlowrey@gmail.com>
  */
 
@@ -21,8 +21,8 @@ namespace artax\exceptions {
    * functions ignore this exception type and its use allows for testing "die"
    * functionality using try/catch blocks.
    * 
-   * @category Artax
-   * @package  Exceptions
+   * @category artax
+   * @package  exceptions
    * @author   Daniel Lowrey <rdlowrey@gmail.com>
    */
   class ScriptHaltException extends \Exception implements Exception

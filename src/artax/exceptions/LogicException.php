@@ -5,8 +5,8 @@
  * 
  * PHP version 5.3
  * 
- * @category Artax
- * @package  Exceptions
+ * @category artax
+ * @package  exceptions
  * @author   Daniel Lowrey <rdlowrey@gmail.com>
  */
 
@@ -15,8 +15,8 @@ namespace artax\exceptions {
   /**
    * Exception that represents error in the program logic
    * 
-   * @category Artax
-   * @package  Exceptions
+   * @category artax
+   * @package  exceptions
    * @author   Daniel Lowrey <rdlowrey@gmail.com>
    */
   class LogicException extends \LogicException implements Exception

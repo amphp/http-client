@@ -5,8 +5,8 @@
  * 
  * PHP version 5.3
  * 
- * @category Artax
- * @package  Exceptions
+ * @category artax
+ * @package  exceptions
  * @author   Daniel Lowrey <rdlowrey@gmail.com>
  */
 
@@ -23,9 +23,9 @@ namespace artax\exceptions {
    * You may wish to check when implementing whether or not the offset being
    * read is a number or not, and throw an OutOfRangeException instead.
    * 
-   * @category Artax
-  * @packageExceptions
-   * @author Daniel Lowrey <rdlowrey@gmail.com>
+   * @category artax
+  * @package   exceptions
+   * @author   Daniel Lowrey <rdlowrey@gmail.com>
    */
   class OutOfBoundsException extends \OutOfBoundsException implements Exception
   {
