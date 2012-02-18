@@ -48,18 +48,19 @@ namespace artax {
      */
     public function make($type, Array $custom=[])
     {
-      $specd = [];
-      if (isset($this->params[$type])) {
-        foreach ($this->params[$type] as $key =>$val) {
-          $specd[$key] = $this->dotNotation->parse($val);
-        }
-      }
+      $specd = empty($this->params[$type]) ? [] : $this->params[$type];
       $class = $this->dotNotation->parse($type);
       return $this->getInjectedInstance($class, $specd, $custom);
     }
     
     /**
      * Return an instantiated object based on specified and custom dependencies
+     * 
+     * The dot notation class names specified in the config file are necessary
+     * when a class constructor's method signature specifies an abstract class
+     * or interface. When this occurs, reflection alone cannot allow dependency
+     * instantiation. As a result, we need to manually specify the name of the
+     * appropriate class to load for such instances.
      * 
      * @param string $class  A fully qualified and namespaced class name
      * @param array  $specd  An associative array of fully qualified dependency
@@ -80,9 +81,9 @@ namespace artax {
         if (isset($custom[$key])) {
           $deps[$key] = $custom[$key];
         } elseif (isset($specd[$key])) {
-          $deps[$key] = new $specd[$key];
+          $deps[$key] = $this->make($specd[$key]);
         } else {
-          $deps[$key] = new $val;
+          $deps[$key] = $this->make($val);
         }
       }
       
