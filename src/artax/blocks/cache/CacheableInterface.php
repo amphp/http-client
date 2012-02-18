@@ -26,11 +26,11 @@ namespace artax\blocks\cache {
     /**
      * Load an object from the cache
      */
-    protected function loadFromCache();
+    public function loadFromCache();
     
     /**
      * Store an object in the cache
      */
-    protected function storeInCache();
+    public function storeInCache();
   }
 }
