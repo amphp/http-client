@@ -135,6 +135,7 @@ require AX_SYSTEM_DIR . '/src/artax/ClassLoader.php';
 ))->initErrHandler()
   ->initConfig()
   ->loadBundles()
+  ->loadAutoRequires()
   ->initClassAutoloaders()
   ->initDepProvider()
   ->initHandlers()

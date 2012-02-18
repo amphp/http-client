@@ -123,7 +123,12 @@ namespace artax {
      */
     public function loadBundles()
     {
-      if ($this->config['httpBundle']) {
+      if ( ! empty($this->config['cacheBundle'])) {
+        require AX_SYSTEM_DIR . '/src/artax/blocks/cache/CacheDriverInterface.php';
+        require AX_SYSTEM_DIR . '/src/artax/blocks/cache/CacheableInterface.php';
+      }
+      
+      if ( ! empty($this->config['httpBundle'])) {
         require AX_SYSTEM_DIR . '/src/artax/blocks/views/ViewInterface.php';
         require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpMatcher.php';
         require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpRouter.php';
@@ -140,7 +145,7 @@ namespace artax {
         require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpResponseInterface.php';
         require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpResponse.php';
       }
-      if ($this->config['cliBundle']) {
+      if ( ! empty($this->config['cliBundle'])) {
         // load cli libs
       }
       return $this;
@@ -153,11 +158,11 @@ namespace artax {
      */
     public function initClassAutoloaders()
     {
-      if ($this->config->exists('autoloader')) {
+      if ( ! empty($this->config['autoloader'])) {
         $loader = $this->dotNotation->parse($this->config['autoloader']);
       } else {
-        $msg = 'No autoloader specified';
-        throw new exceptions\ConfigException($msg);
+        $msg = 'No class autoloader specified';
+        throw new exceptions\UnexpectedValueException($msg);
       }
       
       (new $loader('artax', AX_SYSTEM_DIR.'/src'))->register();
@@ -165,6 +170,19 @@ namespace artax {
       if ($this->config->exists('namespaces')) {
         foreach ($this->config['namespaces'] as $ns => $path) {
           (new $loader($ns, $path))->register();
+        }
+      }
+      return $this;
+    }
+    
+    /**
+     * 
+     */
+    public function loadAutoRequires()
+    {
+      if ( ! empty($this->config['autoRequire'])) {
+        foreach ($this->config['autoRequire'] as $file) {
+          require $file;
         }
       }
       return $this;
@@ -200,6 +218,7 @@ namespace artax {
       $handlers = $this->depProvider->make($this->config['handlers']);
       
       if ($handlers instanceof HandlersInterface) {
+        $handlers->setDebug($this->config['debug']);
         set_exception_handler([$handlers, 'exHandler']);
         register_shutdown_function([$handlers, 'shutdown']);
       } else {
@@ -241,6 +260,24 @@ namespace artax {
       $controller = $router->dispatch($request);
       $response   = $controller->getResponse();
       $response->exec();
+    }
+    
+    /**
+     * Exposes magic getter methods for object properties
+     * 
+     * @param string $prop Object property name
+     * 
+     * @return mixed Returns the value of the requested property if it exists
+     * @throws exceptions\OutOfBoundsException On non-existent property request
+     */
+    public function __get($prop)
+    {
+      if (property_exists($this, $prop)) {
+        return $this->$prop;
+      } else {
+        $msg = "Invalid property: artax\Bootstrapper::\$$prop does not exist";
+        throw new exceptions\OutOfBoundsException($msg);
+      }
     }
   }
 }
