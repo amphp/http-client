@@ -23,12 +23,17 @@ namespace artax\blocks\views {
   interface ViewInterface
   {
     /**
+     * Setter method for template name/path
+     * 
+     * @param string $tpl The template to use for rendering
+     */
+    public function setTemplate($tpl);
+    
+    /**
      * Template variable setter method
      * 
      * @param string $name Template variable name
      * @param mixed  $var  Template variable contents
-     * 
-     * @return mixed
      */
     public function setVar($name, $var);
     
@@ -36,22 +41,16 @@ namespace artax\blocks\views {
      * Template variable getter method
      * 
      * @param string $name Template variable name
-     * 
-     * @return mixed Template variable contents
      */
     public function getVar($name);
     
     /**
      * Fetch rendered template without outputting
-     * 
-     * @return string
      */
     public function render();
     
     /**
      * Send rendered template output to STDOUT
-     * 
-     * @return void
      */
     public function output();
   }
