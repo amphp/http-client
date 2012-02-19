@@ -29,6 +29,7 @@ namespace artax\blocks\http {
      * @param \artax\RequestInterface $request The request object to match
      * 
      * @return mixed Returns the return executed controller
+     * @throws \artax\exceptions\RequestNotFoundException If no route is matched
      */
     public function dispatch(\artax\RequestInterface $request)
     {
