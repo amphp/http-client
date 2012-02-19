@@ -52,7 +52,9 @@ namespace artax {
      * Creates a new <tt>SplClassLoader</tt> that loads classes of the
      * specified namespace.
      * 
-     * @param string $ns The namespace to use.
+     * @param string $ns          The namespace to use
+     * @param string $includePath The path to use when searching for this
+     *                            namespace's class files
      */
     public function __construct($ns = NULL, $includePath = NULL)
     {
@@ -141,23 +143,29 @@ namespace artax {
     }
     
     /**
-     * Loads the given class or interface.
+     * Loads the given class, trait or interface
      * 
      * @param string $className The name of the class to load.
      * @return void
      */
     public function loadClass($className)
     {
-      if (null === $this->namespace || $this->namespace.$this->nsSeparator === substr($className, 0, strlen($this->namespace.$this->nsSeparator))) {
-        $fileName = '';
+      $nsMatch = $this->namespace . $this->nsSeparator;
+      
+      if (NULL === $this->namespace
+        || $nsMatch === substr($className, 0, strlen($nsMatch))) {
+        
+        $ds        = DIRECTORY_SEPARATOR;
+        $fileName  = '';
         $namespace = '';
-        if (false !== ($lastNsPos = strripos($className, $this->nsSeparator))) {
+        
+        if (FALSE !== ($lastNsPos = strripos($className, $this->nsSeparator))) {
           $namespace = substr($className, 0, $lastNsPos);
           $className = substr($className, $lastNsPos + 1);
-          $fileName = str_replace($this->nsSeparator, DIRECTORY_SEPARATOR, $namespace) . DIRECTORY_SEPARATOR;
+          $fileName = str_replace($this->nsSeparator, $ds, $namespace) . $ds;
         }
-        $fileName .= str_replace('_', DIRECTORY_SEPARATOR, $className) . $this->ext;
-        require ($this->includePath !== null ? $this->includePath . DIRECTORY_SEPARATOR : '') . $fileName;
+        $fileName .= str_replace('_', $ds, $className) . $this->ext;
+        require ($this->includePath !== NULL ? $this->includePath . $ds : '') . $fileName;
       }
     }
   }
