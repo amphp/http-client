@@ -55,6 +55,7 @@ require 'vfsStream/vfsStream.php';
 $structure = array(
   'conf' => array(
     'config.php' => '<?php $cfg=["debug"=>1]; ?>',
+    'config_no_debug.php' => '<?php $cfg=["debug"=>FALSE]; ?>',
     'invalid_config.php'=>'<?php $cfg = "not an array"; ?>'
   ),
   'controllers' => array('Level1'=>array('Level2'=>array())),
