@@ -22,6 +22,12 @@ namespace artax {
   class ConfigLoader
   {
     /**
+     * Configuration file path
+     * @var string
+     */
+    protected $configFile;
+    
+    /**
      * Configuration settings array
      * @var array
      */
@@ -40,21 +46,18 @@ namespace artax {
      * @todo Add loader methods for YAML/JSON/XML
      */
     public function __construct($configFile) {
-      if (NULL !== $configFile) {
-        $this->load($configFile);
-      }
+      $this->configFile = $configFile;
     }
     
     /**
      * Load specified configuration file
      * 
-     * @param string $configFile Path to app configuration file
-     * 
      * @return Object instance for method chaining
      * @throws exceptions\ConfigException On unreadable config file
      */
-    public function load($configFile)
+    public function load()
     {
+      $configFile = $this->configFile;
       /*
       $cachedArr = $this->loadFromCache($configFile);
       if (FALSE !== $cachedArr) {
@@ -67,7 +70,7 @@ namespace artax {
         $type = $fileInfo->file($configFile);
       } catch (exceptions\ErrorException $e) {
         $msg = "Config file could not be read: $configFile";
-        throw new exceptions\ConfigException($msg);
+        throw new exceptions\UnexpectedValueException($msg);
       }
       
       switch ($type) {
@@ -76,7 +79,7 @@ namespace artax {
           break;
         default:
           $msg = "Invalid config file type: $type";
-          throw new exceptions\ConfigException($msg);
+          throw new exceptions\UnexpectedValueException($msg);
       }
       
       //$this->storeInCache($configFile, $cfg);
@@ -96,6 +99,15 @@ namespace artax {
     {
       require $configFile;
       return $cfg;
+    }
+    
+    /**
+     * 
+     */
+    public function setConfigFile($configFile)
+    {
+      $this->configFile = $configFile;
+      return $this;
     }
     
     /**
