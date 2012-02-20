@@ -168,6 +168,7 @@ namespace artax {
       
       if ($this->config->exists('namespaces')) {
         foreach ($this->config['namespaces'] as $ns => $path) {
+          $ns = empty($ns) ? NULL : $ns;
           (new $loader($ns, $path))->register();
         }
       }
