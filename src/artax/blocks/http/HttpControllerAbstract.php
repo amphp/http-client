@@ -56,11 +56,6 @@ namespace artax\blocks\http {
     }
     
     /**
-     * The controller's "work" method
-     */
-    abstract protected function exec();
-    
-    /**
      * Getter method for $response object property
      * 
      * @return HttpResponseInterface Returns an HttpResponse object

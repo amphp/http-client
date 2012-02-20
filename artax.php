@@ -101,7 +101,11 @@ require AX_SYSTEM_DIR . '/src/artax/Bucket.php';
 require AX_SYSTEM_DIR . '/src/artax/BucketSettersTrait.php';
 require AX_SYSTEM_DIR . '/src/artax/Config.php';
 require AX_SYSTEM_DIR . '/src/artax/ConfigLoader.php';
-require AX_SYSTEM_DIR . '/src/artax/HandlersInterface.php';
+require AX_SYSTEM_DIR . '/src/artax/ControllerInterface.php';
+require AX_SYSTEM_DIR . '/src/artax/ExControllerInterface.php';
+require AX_SYSTEM_DIR . '/src/artax/ExControllerTrait.php';
+require AX_SYSTEM_DIR . '/src/artax/HandlerInterface.php';
+require AX_SYSTEM_DIR . '/src/artax/Handler.php';
 require AX_SYSTEM_DIR . '/src/artax/RouteInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/Route.php';
 require AX_SYSTEM_DIR . '/src/artax/RouteList.php';
@@ -138,6 +142,6 @@ require AX_SYSTEM_DIR . '/src/artax/ClassLoader.php';
   ->loadAutoRequires()
   ->initClassAutoloaders()
   ->initDepProvider()
-  ->initHandlers()
+  ->initHandler()
   ->initRoutes()
   ->doRequest();

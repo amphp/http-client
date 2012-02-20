@@ -14,32 +14,47 @@ namespace artax {
   /**
    * Artax Handler Class
    *
-   * Provides exception and shutdown handling functionality
+   * Provides unexpected exception and fatal error handling functionality
    *
    * @category artax
    * @package  core
    * @author   Daniel Lowrey <rdlowrey@gmail.com>
    */
-  abstract class HandlersAbstract implements HandlersInterface
+  class Handler implements HandlerInterface
   {
     /**
-     * @var bool
+     * @var ControllerInterface
      */
-    protected $debug = FALSE;
+    protected $exController;
+    
+    /**
+     * Assigns controller object to display unexpected exceptions and fatal errors
+     * 
+     * @param ExControllerInterface $exController The controller to use in
+     *                                            representing the issue to the
+     *                                            client if an unexpected
+     *                                            exception or fatal error occurs
+     */
+    public function __construct(ExControllerInterface $exController)
+    {
+      $this->exController = $exController;
+    }
     
     /**
      * The "last chance" handler for uncaught exceptions
-     *
+     * 
+     * If the built-in ScriptHaltException is thrown the exception handler
+     * will execute silently to allow script execution to end.
+     * 
      * @param \Exception $e Exception object
      *
      * @return void
      */
     public function exHandler(\Exception $e)
     {
-      if ($e instanceof exceptions\RequestNotFoundException) {
-        $this->notFound();
-      } elseif ( ! $e instanceof exceptions\ScriptHaltException) {
-        $this->unexpectedError($e);
+      if ( ! $e instanceof exceptions\ScriptHaltException) {
+        $this->exController->setException($e);
+        $this->exController()->exec();
       }
     }
 
@@ -52,7 +67,8 @@ namespace artax {
     public function shutdown()
     {
       if ($e = $this->getFatalErrException()) {
-        $this->unexpectedError($e);
+        $this->exController->setException($e);
+        $this->exController()->exec();
       }
     }
 
@@ -98,26 +114,6 @@ namespace artax {
     protected function lastError()
     {
       return error_get_last();
-    }
-    
-    /**
-     * Turn debug flag on or off
-     * 
-     * @param bool $val
-     */
-    public function setDebug($val)
-    {
-      $this->debug = (bool) $val;
-    }
-    
-    /**
-     * Getter method for debug property
-     * 
-     * @return bool Returns value of the object's debug flag
-     */
-    public function getDebug()
-    {
-      return $this->debug;
     }
   }
 }

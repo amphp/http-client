@@ -104,14 +104,14 @@ namespace artax {
      */
     public function initConfig()
     {
-      $configArr = $this->configLoader->getConfigArr();
+      $configArr = $this->configLoader->load()->getConfigArr();
       $this->config->load($configArr, TRUE);
       
-      if ($this->config['debug']) {
-        ini_set('display_errors', TRUE);
-      } else {
+      if (empty($this->config['debug'])) {
         error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
         ini_set('display_errors', FALSE);
+      } else {
+        ini_set('display_errors', TRUE);
       }
       return $this;
     }
@@ -145,6 +145,7 @@ namespace artax {
         require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpResponseInterface.php';
         require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpResponse.php';
       }
+      
       if ( ! empty($this->config['cliBundle'])) {
         // load cli libs
       }
@@ -213,19 +214,16 @@ namespace artax {
      * @return Bootstrapper Object instance for method chaining
      * @throws exceptions\UnexpectedValueException On invalid handler class
      */
-    public function initHandlers()
+    public function initHandler()
     {
-      $handlers = $this->depProvider->make($this->config['handlers']);
+      $exController = $this->depProvider->make($this->config['exController']);
+      $exController->setDebug($this->config['debug']);
+      $handler = $this->depProvider->make('artax.Handler',
+        ['exController'=>$exController]);
       
-      if ($handlers instanceof HandlersInterface) {
-        $handlers->setDebug($this->config['debug']);
-        set_exception_handler([$handlers, 'exHandler']);
-        register_shutdown_function([$handlers, 'shutdown']);
-      } else {
-        $msg = 'Handlers class must implement artax\HandlersInterface: ' .
-          get_class($handlers) . ' provided';
-        throw new exceptions\UnexpectedValueException($msg);
-      }
+      set_exception_handler([$handler, 'exHandler']);
+      register_shutdown_function([$handler, 'shutdown']);
+      
       return $this;
     }
     
@@ -250,15 +248,22 @@ namespace artax {
      */
     public function doRequest()
     {
-      $matcher    = $this->depProvider->make($this->config['matcher'],
+      $matcher = $this->depProvider->make($this->config['matcher'],
         ['routeList'=>$this->routes]);
       
-      $router     = $this->depProvider->make($this->config['router'],
+      $router  = $this->depProvider->make($this->config['router'],
         ['deps'=>$this->depProvider, 'matcher'=>$matcher]);
       
-      $request    = $this->depProvider->make($this->config['request']);
-      $controller = $router->dispatch($request);
-      $response   = $controller->getResponse();
+      $request = $this->depProvider->make($this->config['request']);
+      
+      try {
+        $controller = $router->dispatch($request);
+      } catch (exceptions\RequestNotFoundException $e) {
+        $controller = $this->depProvider->make($this->config['notFoundController'],
+          ['request'=>$request])->exec();
+      }
+      
+      $response = $controller->getResponse();
       $response->exec();
     }
     
