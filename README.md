@@ -6,8 +6,8 @@ even think about trying to use it in its current state.
 
 ### BACKGROUND
 
-In 2006 Rasmus Lerdorf, the creator of PHP, lamented the ubiquity of sprawling,
-monolithic PHP frameworks in a somewhat divisive [blog post](http://toys.lerdorf.com/archives/38-The-no-framework-PHP-MVC-framework.html):
+In 2006 Rasmus Lerdorf, the creator of PHP, [lamented the ubiquity of sprawling,
+monolithic PHP frameworks](http://toys.lerdorf.com/archives/38-The-no-framework-PHP-MVC-framework.html):
 
 > _"Nothing is going to build your application for you, no matter what it promises.
 You are going to have to build it yourself ... Clean separation of your views,
