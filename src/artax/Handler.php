@@ -54,7 +54,7 @@ namespace artax {
     {
       if ( ! $e instanceof exceptions\ScriptHaltException) {
         $this->exController->setException($e);
-        $this->exController()->exec();
+        $this->exController->exec()->getResponse()->exec();
       }
     }
 
@@ -68,7 +68,7 @@ namespace artax {
     {
       if ($e = $this->getFatalErrException()) {
         $this->exController->setException($e);
-        $this->exController()->exec();
+        $this->exController->exec()->getResponse()->exec();
       }
     }
 

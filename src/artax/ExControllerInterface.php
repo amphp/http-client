@@ -30,5 +30,10 @@ namespace artax {
      * Specify if full debug message should be shown for unexpected exceptions
      */
     public function setDebug($val);
+    
+    /**
+     * Getter method for $response object property
+     */
+    public function getResponse();
   }
 }
