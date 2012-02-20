@@ -1,7 +1,7 @@
 <?php
 
 /**
- * ControllerInterface File
+ * ExControllerInterface File
  * 
  * PHP version 5.4
  * 
@@ -13,13 +13,13 @@
 namespace artax {
 
   /**
-   * ControllerInterface
+   * ExControllerInterface
    * 
    * @category   artax
    * @package    core
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
-  interface ExControllerInterface extends ControllerInterface
+  interface ExControllerInterface extends ResponseControllerInterface
   {
     /**
      * Specify the exception that was thrown to cause controller invocation
@@ -30,10 +30,5 @@ namespace artax {
      * Specify if full debug message should be shown for unexpected exceptions
      */
     public function setDebug($val);
-    
-    /**
-     * Getter method for $response object property
-     */
-    public function getResponse();
   }
 }

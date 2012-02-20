@@ -102,6 +102,7 @@ require AX_SYSTEM_DIR . '/src/artax/BucketSettersTrait.php';
 require AX_SYSTEM_DIR . '/src/artax/Config.php';
 require AX_SYSTEM_DIR . '/src/artax/ConfigLoader.php';
 require AX_SYSTEM_DIR . '/src/artax/ControllerInterface.php';
+require AX_SYSTEM_DIR . '/src/artax/ResponseControllerInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/ExControllerInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/ExControllerTrait.php';
 require AX_SYSTEM_DIR . '/src/artax/HandlerInterface.php';

@@ -139,7 +139,6 @@ namespace artax {
         require AX_SYSTEM_DIR . '/src/artax/blocks/http/HeaderBucket.php';
         require AX_SYSTEM_DIR . '/src/artax/blocks/http/ParamBucket.php';
         require AX_SYSTEM_DIR . '/src/artax/blocks/http/CookieBucket.php';
-        require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpControllerInterface.php';
         require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpControllerAbstract.php';
         require AX_SYSTEM_DIR . '/src/artax/ResponseInterface.php';
         require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpResponseInterface.php';

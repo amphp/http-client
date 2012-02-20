@@ -21,7 +21,7 @@ namespace artax\blocks\http {
    * @subpackage http
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
-  abstract class HttpControllerAbstract implements HttpControllerInterface
+  abstract class HttpControllerAbstract implements \artax\ResponseControllerInterface
   {
     /**
      * @var \artax\blocks\views\ViewInterface
