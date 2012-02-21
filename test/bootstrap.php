@@ -8,8 +8,8 @@ ini_set('memory_limit', '1024M');
  * --------------------------------------------------------------------
  */
 
-define('ARTAX_DIR', dirname(dirname(realpath(__FILE__))));
-define('ARTAX_APP_PATH', ARTAX_DIR);
+define('AX_SYSTEM_DIR', dirname(dirname(realpath(__FILE__))));
+define('AX_APP_PATH', AX_SYSTEM_DIR);
 
 /*
  * --------------------------------------------------------------------
@@ -17,8 +17,8 @@ define('ARTAX_APP_PATH', ARTAX_DIR);
  * --------------------------------------------------------------------
  */
  
-require ARTAX_DIR . '/src/artax/ClassLoader.php';
-(new artax\ClassLoader('artax', ARTAX_DIR . '/src'))->register();
+require AX_SYSTEM_DIR . '/src/artax/ClassLoader.php';
+(new artax\ClassLoader('artax', AX_SYSTEM_DIR . '/src'))->register();
 
 
 /*

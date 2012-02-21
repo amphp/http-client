@@ -62,7 +62,7 @@ namespace artax {
      * Handle unexpected fatal errors
      *
      * @return void
-     * @uses HandlersAbstract::getFatalErrException
+     * @uses Handler::getFatalErrException
      */
     public function shutdown()
     {
