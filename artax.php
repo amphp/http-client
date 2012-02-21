@@ -94,6 +94,7 @@ require AX_SYSTEM_DIR . '/src/artax/exceptions/ErrorException.php';
 require AX_SYSTEM_DIR . '/src/artax/exceptions/UnexpectedValueException.php';
 
 // Core libs
+require AX_SYSTEM_DIR . '/src/artax/ErrorHandler.php';
 require AX_SYSTEM_DIR . '/src/artax/Bootstrapper.php';
 require AX_SYSTEM_DIR . '/src/artax/BucketInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/BucketArrayAccessTrait.php';
@@ -136,9 +137,10 @@ require AX_SYSTEM_DIR . '/src/artax/ClassLoader.php';
   new artax\ConfigLoader(AX_CONFIG_FILE),
   new artax\Config,
   new artax\DotNotation,
+  new artax\ErrorHandler,
   new artax\RouteList,
   new artax\DepProvider(new artax\DotNotation)
-))->initErrHandler()
+))->initErrorHandler()
   ->initConfig()
   ->loadBundles()
   ->loadAutoRequires()

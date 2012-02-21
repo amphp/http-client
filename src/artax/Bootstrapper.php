@@ -37,6 +37,11 @@ namespace artax {
     protected $dotNotation;
     
     /**
+     * @var ErrorHandler
+     */
+    protected $errorHandler;
+    
+    /**
      * @var RouteList
      */
     protected $routes;
@@ -52,6 +57,7 @@ namespace artax {
      * @param ConfigLoader $configLoader
      * @param Config       $config
      * @param DotNotation  $dotNotation
+     * @param ErrorHandler $errorHandler
      * @param RoutesList   $routes
      * @param DepProvider  $depProvider
      * 
@@ -61,6 +67,7 @@ namespace artax {
       ConfigLoader $configLoader,
       Config $config,
       DotNotation $dotNotation,
+      ErrorHandler $errorHandler,
       RouteList $routes,
       DepProvider $depProvider
     )
@@ -68,6 +75,7 @@ namespace artax {
       $this->configLoader = $configLoader;
       $this->config       = $config;
       $this->dotNotation  = $dotNotation;
+      $this->errorHandler = $errorHandler;
       $this->routes       = $routes;
       $this->depProvider  = $depProvider;
     }
@@ -77,23 +85,9 @@ namespace artax {
      * 
      * @return void
      */
-    public function initErrHandler()
+    public function initErrorHandler()
     {
-      set_error_handler(function($errno, $errstr, $errfile, $errline) {
-        $levels = [
-          E_WARNING           => 'Warning',
-          E_NOTICE            => 'Notice',
-          E_USER_ERROR        => 'User Error',
-          E_USER_WARNING      => 'User Warning',
-          E_USER_NOTICE       => 'User Notice',
-          E_STRICT            => 'Runtime Notice',
-          E_RECOVERABLE_ERROR => 'Catchable Fatal Error',
-          E_DEPRECATED        => 'Deprecated Notice',
-          E_USER_DEPRECATED   => 'User Deprecated Notice'
-        ];
-        $msg = $levels[$errno] . ": $errstr in $errfile on line $errline";
-        throw new exceptions\ErrorException($msg);
-      });
+      set_error_handler([$this->errorHandler, 'handle']);
       return $this;
     }
     
