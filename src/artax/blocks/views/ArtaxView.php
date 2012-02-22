@@ -63,10 +63,15 @@ namespace artax\blocks\views {
     {
       ob_start();
       extract($this->params);
-      require $this->template;
-      $rendered = ob_get_contents();
-      ob_end_clean();
-      return $rendered;
+      try {
+        require $this->template;
+        $rendered = ob_get_contents();
+        ob_end_clean();
+        return $rendered;
+      } catch (\Exception $e) {
+        ob_end_clean();
+        throw $e;
+      }
     }
     
     /**
