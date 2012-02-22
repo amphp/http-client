@@ -85,9 +85,11 @@ namespace artax {
         return FALSE;
       } else {
         $this->controller = $route->getController();
-        if ($constraints = $route->getConstraints()) {
+        $constraints = $route->getConstraints();
+        
+        if ($constraints) {
           $arr = array_intersect_key($match, $constraints);
-          $this->args = array_values($arr)[0];
+          $this->args = array_values($arr);
         }
         return TRUE;
       }
