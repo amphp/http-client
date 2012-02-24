@@ -47,6 +47,27 @@ class DepProviderTest extends PHPUnit_Framework_TestCase
     $injected = $dp->make('TestNeedsDep');
     $this->assertEquals($injected, new TestNeedsDep(new SpecdTestDependency));
   }
+  
+  /**
+   * @depends testBeginsEmpty
+   * @covers artax\DepProvider::make
+   * @covers artax\DepProvider::getInjectedInstance
+   */
+  public function testMakeReturnsSharedInstanceIfSpecified($dp)
+  {
+    $dp->set('TestNeedsDep', ['testDep' => 'TestDependency']);
+    $dp->set('TestDependency', ['_shared' => TRUE]);
+    $injected = $dp->make('TestNeedsDep');
+    $injected->testDep->testProp = 'something else';
+    
+    $injected2 = $dp->make('TestNeedsDep');
+    $this->assertEquals('something else', $injected2->testDep->testProp);
+    
+    $dp->remove('TestNeedsDep');
+    
+    $injected3 = $dp->make('TestNeedsDep');
+    $this->assertEquals('something else', $injected3->testDep->testProp);
+  }
 }
 
 class TestDependency

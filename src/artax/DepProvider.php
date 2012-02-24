@@ -22,6 +22,11 @@ namespace artax {
   class DepProvider extends Bucket implements ProviderInterface
   {
     /**
+     * @var array
+     */
+    protected $shared;
+    
+    /**
      * @var DotNotation
      */
     protected $dotNotation;
@@ -48,9 +53,15 @@ namespace artax {
      */
     public function make($type, Array $custom=[])
     {
-      $specd = empty($this->params[$type]) ? [] : $this->params[$type];
-      $class = $this->dotNotation->parse($type);
-      return $this->getInjectedInstance($class, $specd, $custom);
+      $shared = (isset($this->params[$type]['_shared'])
+        && TRUE === $this->params[$type]['_shared']);
+      
+      if ($shared && isset($this->shared[$type])) {
+        return $this->shared[$type];
+      } else {
+        $specd = empty($this->params[$type]) ? [] : $this->params[$type];
+        return $this->getInjectedInstance($type, $specd, $custom, $shared);
+      }
     }
     
     /**
@@ -68,14 +79,17 @@ namespace artax {
      * @param array  $custom An associative array of specific dependency objects
      *                       to use for object instantiation instead of new
      *                       dependency instances
+     * @param bool   $shared 
      * 
      * @return mixed A dependency-injected object
      */
-    protected function getInjectedInstance($class, Array $specd, Array $custom)
+    protected function getInjectedInstance($type, Array $specd, Array $custom,
+      $shared)
     {
-      $refl = new \ReflectionClass($class);
-      $args = $this->parseConstructorArgs($refl);
-      $deps = [];
+      $class = $this->dotNotation->parse($type);
+      $refl  = new \ReflectionClass($class);
+      $args  = $this->parseConstructorArgs($refl);
+      $deps  = [];
       
       foreach ($args as $key => $val) {
         if (isset($custom[$key])) {
@@ -87,7 +101,12 @@ namespace artax {
         }
       }
       
-      return $refl->newInstanceArgs($deps);
+      $obj = $refl->newInstanceArgs($deps);
+      if ($shared) {
+        $this->shared[$type] = $obj;
+      }
+      
+      return $obj;
     }
     
     /**
@@ -103,7 +122,7 @@ namespace artax {
       $p = '/Parameter\s#\d+\s\[\s<(?:optional|required)>\s([^\s]+)\s\$([^\s]+)\s\]/';
       if (preg_match_all($p, $refl->getConstructor(), $matches, PREG_SET_ORDER)) {
         foreach ($matches as $m) {
-          $args[$m[2]] = $m[1];
+          $args[$m[2]] = $this->dotNotation->parse($m[1], TRUE);
         }
       }
       return $args;
