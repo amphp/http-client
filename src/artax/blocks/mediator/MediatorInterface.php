@@ -5,19 +5,21 @@
  * 
  * PHP version 5.4
  * 
- * @category Artax
- * @package  Core
- * @author   Daniel Lowrey <rdlowrey@gmail.com>
+ * @category   artax
+ * @package    blocks
+ * @subpackage mediator
+ * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace artax {
+namespace artax\blocks\mediator {
   
   /**
    * MediatorInterface Interface
    * 
-   * @category Artax
-   * @package  Core
-   * @author   Daniel Lowrey <rdlowrey@gmail.com>
+   * @category   artax
+   * @package    blocks
+   * @subpackage mediator
+   * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
   interface MediatorInterface
   {

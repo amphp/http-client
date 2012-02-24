@@ -4,13 +4,13 @@ class MediatorTest extends PHPUnit_Framework_TestCase
 {  
   public function testListenersIsEmptyOnInstantiation()
   {
-    $m = new artax\Mediator;
+    $m = new artax\blocks\mediator\Mediator;
     $this->assertEquals([], $m->all());
   }
   
   /**
-   * @covers artax\Mediator::__construct
-   * @covers artax\Mediator::all
+   * @covers artax\blocks\mediator\Mediator::__construct
+   * @covers artax\blocks\mediator\Mediator::all
    */
   public function testConstructorAddsPassedListeners()
   {
@@ -19,7 +19,7 @@ class MediatorTest extends PHPUnit_Framework_TestCase
       ['test.event1', function() { return 42; }]
     ];
     
-    $m = new artax\Mediator($listeners);
+    $m = new artax\blocks\mediator\Mediator($listeners);
     
     $expected = [
       'test.event1' => [
@@ -32,12 +32,12 @@ class MediatorTest extends PHPUnit_Framework_TestCase
   }
   
   /**
-   * @covers artax\Mediator::push
-   * @covers artax\Mediator::last
+   * @covers artax\blocks\mediator\Mediator::push
+   * @covers artax\blocks\mediator\Mediator::last
    */
   public function testPushAddsEventListener()
   {
-    $m = new artax\Mediator;
+    $m = new artax\blocks\mediator\Mediator;
     $listeners = $m->push('test.event1', function() { return TRUE; });
     $this->assertEquals(1, $listeners);
     
@@ -48,12 +48,12 @@ class MediatorTest extends PHPUnit_Framework_TestCase
   }
   
   /**
-   * @covers artax\Mediator::unshift
-   * @covers artax\Mediator::first
+   * @covers artax\blocks\mediator\Mediator::unshift
+   * @covers artax\blocks\mediator\Mediator::first
    */
   public function testUnshiftAddsEventListener()
   {
-    $m = new artax\Mediator;
+    $m = new artax\blocks\mediator\Mediator;
     $listeners = $m->push('test.event1', function() { return TRUE; });
     $this->assertEquals(1, $listeners);
     
@@ -64,26 +64,26 @@ class MediatorTest extends PHPUnit_Framework_TestCase
   }
   
   /**
-   * @covers artax\Mediator::first
+   * @covers artax\blocks\mediator\Mediator::first
    */
   public function testFirstReturnsNullIfNoListenersMatch()
   {
-    $m = new artax\Mediator;
+    $m = new artax\blocks\mediator\Mediator;
     $this->assertEquals(NULL, $m->first('test.event1'));
   }
   
   /**
-   * @covers artax\Mediator::last
+   * @covers artax\blocks\mediator\Mediator::last
    */
   public function testLastReturnsNullIfNoListenersMatch()
   {
-    $m = new artax\Mediator;
+    $m = new artax\blocks\mediator\Mediator;
     $this->assertEquals(NULL, $m->last('test.event1'));
   }
   
   /**
    * @depends testPushAddsEventListener
-   * @covers  artax\Mediator::count
+   * @covers  artax\blocks\mediator\Mediator::count
    */
   public function testCountReturnsNumberOfListenersForSpecifiedEvent($m)
   {
@@ -92,7 +92,7 @@ class MediatorTest extends PHPUnit_Framework_TestCase
   
   /**
    * @depends testPushAddsEventListener
-   * @covers  artax\Mediator::keys
+   * @covers  artax\blocks\mediator\Mediator::keys
    */
   public function testKeysReturnsArrayOfListenedForEvents($m)
   {
@@ -103,7 +103,7 @@ class MediatorTest extends PHPUnit_Framework_TestCase
   
   /**
    * @depends testKeysReturnsArrayOfListenedForEvents
-   * @covers  artax\Mediator::clear
+   * @covers  artax\blocks\mediator\Mediator::clear
    */
   public function testClearRemovesAllListenersAndListenedForEvents($m)
   {
@@ -116,7 +116,7 @@ class MediatorTest extends PHPUnit_Framework_TestCase
   
   /**
    * @depends testKeysReturnsArrayOfListenedForEvents
-   * @covers  artax\Mediator::pop
+   * @covers  artax\blocks\mediator\Mediator::pop
    */
   public function testPopRemovesLastListenerForSpecifiedEvent($m)
   {
@@ -130,7 +130,7 @@ class MediatorTest extends PHPUnit_Framework_TestCase
   
   /**
    * @depends testKeysReturnsArrayOfListenedForEvents
-   * @covers  artax\Mediator::pop
+   * @covers  artax\blocks\mediator\Mediator::pop
    */
   public function testPopReturnsNullIfNoEventsMatchSpecifiedEvent($m)
   {
@@ -140,7 +140,7 @@ class MediatorTest extends PHPUnit_Framework_TestCase
   
   /**
    * @depends testKeysReturnsArrayOfListenedForEvents
-   * @covers  artax\Mediator::shift
+   * @covers  artax\blocks\mediator\Mediator::shift
    */
   public function testShiftRemovesFirstListenerForSpecifiedEvent($m)
   {
@@ -154,7 +154,7 @@ class MediatorTest extends PHPUnit_Framework_TestCase
   
   /**
    * @depends testKeysReturnsArrayOfListenedForEvents
-   * @covers  artax\Mediator::shift
+   * @covers  artax\blocks\mediator\Mediator::shift
    */
   public function testShiftReturnsNullIfNoEventsMatchSpecifiedEvent($m)
   {
@@ -163,11 +163,11 @@ class MediatorTest extends PHPUnit_Framework_TestCase
   }
   
   /**
-   * @covers  artax\Mediator::unshift
+   * @covers  artax\blocks\mediator\Mediator::unshift
    */
   public function testUnshiftCreatesEventHolderIfNotExists()
   {
-    $m = new artax\Mediator;
+    $m = new artax\blocks\mediator\Mediator;
     $listeners = $m->push('test.event1', function() { return TRUE; });
     $this->assertEquals(1, $listeners);
     
@@ -177,12 +177,12 @@ class MediatorTest extends PHPUnit_Framework_TestCase
   }
   
   /**
-   * @covers  artax\Mediator::notify
-   * @covers  artax\Mediator::all
+   * @covers  artax\blocks\mediator\Mediator::notify
+   * @covers  artax\blocks\mediator\Mediator::all
    */
   public function testNotifyDistributesMessagesToListeners()
   {
-    $m = new artax\Mediator;
+    $m = new artax\blocks\mediator\Mediator;
     $this->assertEquals(0, $m->notify('no.listeners.event'));
     
     $listeners = $m->push('test.event1', function() { return TRUE; });
@@ -199,11 +199,11 @@ class MediatorTest extends PHPUnit_Framework_TestCase
   }
   
   /**
-   * @covers  artax\Mediator::all
+   * @covers  artax\blocks\mediator\Mediator::all
    */
   public function testAllReturnsEventSpecificListIfSpecified()
   {
-    $m = new artax\Mediator;
+    $m = new artax\blocks\mediator\Mediator;
     $listener  = function() { return TRUE; };
     $listeners = $m->push('test.event1', $listener);
     
