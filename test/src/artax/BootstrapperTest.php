@@ -14,8 +14,10 @@ class BootstrapperTest extends PHPUnit_Framework_TestCase
     $handler     = new artax\ErrorHandler;
     $routes      = new artax\RouteList;
     $dp          = new artax\DepProvider(new artax\DotNotation);
+    $mediator    = new artax\blocks\mediator\Mediator;
       
-    $b = new artax\Bootstrapper($loader, $config, $dotNotation, $handler, $routes, $dp);
+    $b = new artax\Bootstrapper($loader, $config, $dotNotation, $handler,
+      $routes, $dp, $mediator);
     
     $this->assertEquals($loader, $b->configLoader);
     $this->assertEquals($config, $b->config);

@@ -52,6 +52,11 @@ namespace artax {
     protected $depProvider;
     
     /**
+     * @var blocks\mediator\Mediator
+     */
+    protected $mediator;
+    
+    /**
      * Constructor injects object dependencies
      * 
      * @param ConfigLoader $configLoader
@@ -60,6 +65,7 @@ namespace artax {
      * @param ErrorHandler $errorHandler
      * @param RoutesList   $routes
      * @param DepProvider  $depProvider
+     * @param blocks\mediator\Mediator $mediator
      * 
      * @return void
      */
@@ -69,7 +75,8 @@ namespace artax {
       DotNotation $dotNotation,
       ErrorHandler $errorHandler,
       RouteList $routes,
-      DepProvider $depProvider
+      DepProvider $depProvider,
+      blocks\mediator\Mediator $mediator
     )
     {
       $this->configLoader = $configLoader;
@@ -78,6 +85,24 @@ namespace artax {
       $this->errorHandler = $errorHandler;
       $this->routes       = $routes;
       $this->depProvider  = $depProvider;
+      $this->mediator     = $mediator;
+    }
+    
+    /**
+     * 
+     */
+    public function boot()
+    {
+      $this->initErrorHandler()
+           ->initConfig()
+           ->loadBundles()
+           ->loadAutoRequires()
+           ->initClassAutoloaders()
+           ->initDepProvider()
+           ->initHandler()
+           ->initRoutes()
+           ->initMediator()
+           ->doRequest();
     }
     
     /**
@@ -235,6 +260,22 @@ namespace artax {
     }
     
     /**
+     * Load mediator
+     * 
+     * @return Bootstrapper Object instance for method chaining
+     */
+    public function initMediator()
+    {
+      $listeners = isset($this->config['listeners'])
+        ? $this->config['listeners']
+        : [];
+      foreach ($listeners as $listener) {
+        $this->mediator->push($listener[0], $listener[1]);
+      }
+      return $this;
+    }
+    
+    /**
      * Generate, route and execute the request
      * 
      * @return void
@@ -244,16 +285,20 @@ namespace artax {
       $matcher = $this->depProvider->make($this->config['matcher'],
         ['routeList'=>$this->routes]);
       
-      $router  = $this->depProvider->make($this->config['router'],
-        ['deps'=>$this->depProvider, 'matcher'=>$matcher]);
+      $router = $this->depProvider->make($this->config['router'], [
+        'deps'     => $this->depProvider,
+        'matcher'  => $matcher,
+        'mediator' => $this->mediator
+      ]);
       
       $request = $this->depProvider->make($this->config['request']);
       
       try {
         $controller = $router->dispatch($request);
       } catch (exceptions\RequestNotFoundException $e) {
-        $controller = $this->depProvider->make($this->config['notFoundController'],
-          ['request'=>$request])->exec();
+        $controller = $this->depProvider->make($this->config['notFoundController'], [
+          'mediator' =>$this->mediator, 'request' =>$request
+        ])->exec();
       }
       
       $response = $controller->getResponse();

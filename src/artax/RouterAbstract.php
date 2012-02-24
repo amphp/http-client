@@ -32,12 +32,22 @@ namespace artax {
     protected $matcher;
     
     /**
+     * @var blocks\mediator\MediatorInterface
+     */
+    protected $mediator;
+    
+    /**
      * 
      */
-    public function __construct(DepProvider $deps, MatcherInterface $matcher)
+    public function __construct(
+      DepProvider $deps,
+      MatcherInterface $matcher,
+      blocks\mediator\MediatorInterface $mediator
+    )
     {
-      $this->deps    = $deps;
-      $this->matcher = $matcher;
+      $this->deps     = $deps;
+      $this->matcher  = $matcher;
+      $this->mediator = $mediator;
     }
   }
 }

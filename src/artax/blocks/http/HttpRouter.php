@@ -35,7 +35,7 @@ namespace artax\blocks\http {
     {
       if ($this->matcher->match($request)) {
         $controller = $this->matcher->getController();
-        $customArgs = ['request'=>$request];
+        $customArgs = ['request'=>$request, 'mediator'=>$this->mediator];
         $obj = $this->deps->make($controller, $customArgs);
         return $obj->exec($this->matcher->getArgs());
       } else {

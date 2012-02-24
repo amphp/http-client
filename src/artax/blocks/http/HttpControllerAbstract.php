@@ -24,6 +24,11 @@ namespace artax\blocks\http {
   abstract class HttpControllerAbstract implements \artax\ResponseControllerInterface
   {
     /**
+     * @var \artax\blocks\mediator\MediatorInterface
+     */
+    protected $mediator;
+    
+    /**
      * @var \artax\blocks\views\ViewInterface
      */
     protected $request;
@@ -41,15 +46,18 @@ namespace artax\blocks\http {
     /**
      * Inject dependencies
      * 
+     * @param \artax\blocks\mediator\MediatorInterface $mediator Mediator object
      * @param \artax\RequestInterface           $request  Request object
      * @param \artax\blocks\views\ViewInterface $view     View object
      * @param HttpResponseInterface             $response Response object
      */
     public function __construct(
+      \artax\blocks\mediator\MediatorInterface $mediator,
       \artax\RequestInterface $request,
       \artax\blocks\views\ViewInterface $view,
       HttpResponseInterface $response)
     {
+      $this->mediator = $mediator;
       $this->request  = $request;
       $this->view     = $view;
       $this->response = $response;

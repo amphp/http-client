@@ -9,7 +9,8 @@ class RouterAbstractTest extends PHPUnit_Framework_TestCase
   {
     $dp = new artax\DepProvider(new artax\DotNotation);
     $m  = new artax\Matcher(new artax\RouteList);
-    $c  = new RouterAbstractTestClass($dp, $m);
+    $md = new artax\blocks\mediator\Mediator;
+    $c  = new RouterAbstractTestClass($dp, $m, $md);
     $this->assertEquals($dp, $c->getDeps());
     $this->assertEquals($m, $c->getMatcher());
   }

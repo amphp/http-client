@@ -120,6 +120,8 @@ require AX_SYSTEM_DIR . '/src/artax/RequestInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/RouterInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/RouterAbstract.php';
 require AX_SYSTEM_DIR . '/src/artax/ResponseInterface.php';
+require AX_SYSTEM_DIR . '/src/artax/blocks/mediator/MediatorInterface.php';
+require AX_SYSTEM_DIR . '/src/artax/blocks/mediator/Mediator.php';
 
 // Class autoloader -- required last to avoid accidentally autoloading core libs
 require AX_SYSTEM_DIR . '/src/artax/ClassLoader.php';
@@ -139,13 +141,6 @@ require AX_SYSTEM_DIR . '/src/artax/ClassLoader.php';
   new artax\DotNotation,
   new artax\ErrorHandler,
   new artax\RouteList,
-  new artax\DepProvider(new artax\DotNotation)
-))->initErrorHandler()
-  ->initConfig()
-  ->loadBundles()
-  ->loadAutoRequires()
-  ->initClassAutoloaders()
-  ->initDepProvider()
-  ->initHandler()
-  ->initRoutes()
-  ->doRequest();
+  new artax\DepProvider(new artax\DotNotation),
+  new artax\blocks\mediator\Mediator
+))->boot();
