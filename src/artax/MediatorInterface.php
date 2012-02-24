@@ -29,7 +29,7 @@ namespace artax {
     public function notify($eventName);
     
     /**
-     * Connect a `$listener` to the end of the `$eventName` event queue
+     * Connect a `$listener` to the back of the `$eventName` queue
      * 
      * @param string $eventName Event identifier name
      * @param mixed  $listener  Event listener
@@ -37,7 +37,7 @@ namespace artax {
     public function push($eventName, Callable $listener);
     
     /**
-     * Connect a `$listener` to the start of the `$eventName` event queue
+     * Connect a `$listener` to the front of the `$eventName` queue
      * 
      * @param string $eventName Event identifier name
      * @param mixed  $listener  Event listener
