@@ -2,15 +2,18 @@
 
 class DepProviderTest extends PHPUnit_Framework_TestCase
 {
-  public function testBeginsEmpty()
+  /**
+   * @covers artax\DepProvider::__construct
+   */
+  public function testConstructorAssignsDotNotationPropertyIfPassed()
   {
-    $dp = new artax\DepProvider(new artax\DotNotation);
+    $dp = new DepProviderCoverageTest(new artax\DotNotation);
     $this->assertEmpty($dp->all());
     return $dp;
   }
   
   /**
-   * @depends testBeginsEmpty
+   * @depends testConstructorAssignsDotNotationPropertyIfPassed
    * @covers artax\DepProvider::make
    * @covers artax\DepProvider::getInjectedInstance
    * @covers artax\DepProvider::parseConstructorArgs
@@ -22,7 +25,7 @@ class DepProviderTest extends PHPUnit_Framework_TestCase
   }
   
   /**
-   * @depends testBeginsEmpty
+   * @depends testConstructorAssignsDotNotationPropertyIfPassed
    * @covers artax\DepProvider::make
    * @covers artax\DepProvider::getInjectedInstance
    */
@@ -36,7 +39,7 @@ class DepProviderTest extends PHPUnit_Framework_TestCase
   }
   
   /**
-   * @depends testBeginsEmpty
+   * @depends testConstructorAssignsDotNotationPropertyIfPassed
    * @covers artax\DepProvider::make
    * @covers artax\DepProvider::getInjectedInstance
    */
@@ -49,7 +52,7 @@ class DepProviderTest extends PHPUnit_Framework_TestCase
   }
   
   /**
-   * @depends testBeginsEmpty
+   * @depends testConstructorAssignsDotNotationPropertyIfPassed
    * @covers artax\DepProvider::make
    * @covers artax\DepProvider::getInjectedInstance
    */
@@ -68,6 +71,43 @@ class DepProviderTest extends PHPUnit_Framework_TestCase
     $injected3 = $dp->make('TestNeedsDep');
     $this->assertEquals('something else', $injected3->testDep->testProp);
   }
+  
+  /**
+   * @depends testConstructorAssignsDotNotationPropertyIfPassed
+   * @covers artax\DepProvider::setSharedDep
+   */
+  public function testSetSharedDepStoresDependencyInSharedPropertyArray($dp)
+  {
+    $testDep = new TestDependency;
+    $testDep->testProp = 'shared value';
+    $dp->setSharedDep('TestDependency', $testDep);
+    $this->assertEquals($testDep, $dp->make('TestDependency'));
+    return $dp;
+  }
+  
+  /**
+   * @depends testConstructorAssignsDotNotationPropertyIfPassed
+   * @covers artax\DepProvider::setSharedDep
+   * @expectedException artax\exceptions\InvalidArgumentException
+   */
+  public function testSetSharedDepThrowsExceptionOnInstanceTypeMismatch($dp)
+  {
+    $dp->setSharedDep('TestDependency', new stdClass);
+  }
+  
+  /**
+   * @depends testSetSharedDepStoresDependencyInSharedPropertyArray
+   * @covers artax\DepProvider::clearSharedDep
+   */
+  public function testClearSharedDepRemovesCachedDependencyFromSharedArray($dp)
+  {
+    $dp->clearSharedDep('TestDependency');
+    $this->assertEquals(new TestDependency, $dp->make('TestDependency'));
+  }
+}
+
+class DepProviderCoverageTest extends artax\DepProvider
+{
 }
 
 class TestDependency

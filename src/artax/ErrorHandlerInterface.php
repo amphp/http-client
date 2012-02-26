@@ -1,7 +1,7 @@
 <?php
 
 /**
- * RouterInterface Interface File
+ * ErrorHandlerInterface
  * 
  * PHP version 5.4
  * 
@@ -9,21 +9,21 @@
  * @package    core
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
- 
+
 namespace artax {
 
   /**
-   * RouterInterface
+   * ErrorHandlerInterface
    * 
    * @category   artax
    * @package    core
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
-  interface RouterInterface
+  interface ErrorHandlerInterface
   {
     /**
-     * Loads the appropriate controller for the specified request
+     * Method to handle raised PHP errors
      */
-    public function dispatch();
+    public function handle($errno, $errstr, $errfile, $errline);
   }
 }

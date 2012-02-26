@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Artax HandlerInterface File
+ * Artax FatalHandlerInterface File
  *
  * PHP version 5.4
  *
@@ -12,7 +12,7 @@
 namespace artax {
 
   /**
-   * Artax HandlerInterface
+   * Artax FatalHandlerInterface
    *
    * Provides exception and shutdown handling functionality
    *
@@ -20,7 +20,7 @@ namespace artax {
    * @package  core
    * @author   Daniel Lowrey <rdlowrey@gmail.com>
    */
-  interface HandlerInterface
+  interface FatalHandlerInterface
   {
     /**
      * The last chance handler for uncaught exceptions
@@ -35,5 +35,12 @@ namespace artax {
      * @return void
      */
     public function shutdown();
+    
+    /**
+     * Assign the controller to use for uncaught exceptions
+     * 
+     * @param ExControllerInterface $exController Controller object
+     */
+    public function setExController(ExControllerInterface $exController);
   }
 }

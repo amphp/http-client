@@ -26,20 +26,18 @@ namespace artax\blocks\http {
     /**
      * Loads, executes and returns the controller for the specified request
      * 
-     * @param \artax\RequestInterface $request The request object to match
-     * 
      * @return mixed Returns the return executed controller
-     * @throws \artax\exceptions\RequestNotFoundException If no route is matched
+     * @notifies ax.request.not_found
      */
-    public function dispatch(\artax\RequestInterface $request)
+    public function dispatch()
     {
-      if ($this->matcher->match($request)) {
+      if ($this->matcher->match($this->request, $this->routeList)) {
         $controller = $this->matcher->getController();
-        $customArgs = ['request'=>$request, 'mediator'=>$this->mediator];
-        $obj = $this->deps->make($controller, $customArgs);
+        $obj = $this->deps->make($controller);
         return $obj->exec($this->matcher->getArgs());
       } else {
-        throw new \artax\exceptions\RequestNotFoundException;
+        $this->notify('ax.http_router.request_not_found');
+        return NULL;
       }
     }
   }

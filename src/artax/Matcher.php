@@ -22,11 +22,6 @@ namespace artax {
   class Matcher implements MatcherInterface
   {
     /**
-     * @var RouteList
-     */
-    protected $routeList;
-    
-    /**
      * Route-matched controller name
      * @var string
      */
@@ -41,27 +36,26 @@ namespace artax {
     /**
      * 
      */
-    public function __construct(RouteList $routeList)
+    public function __construct()
     {
       $this->args = [];
-      $this->routeList = $routeList;
     }
     
     /**
      * Find a match for the requested resource target
      * 
+     * @param RequestInterface $request   The Request object to match
+     * @param RouteList        $routeList The list of routes to match against
      * @return bool Returns `TRUE` if a matching controller was found or `FALSE`
      *              if no match was located.
      */
-    public function match(RequestInterface $request)
+    public function match(RequestInterface $request, RouteList $routeList)
     {
       $match = FALSE;
-      if ($this->routeList) {
-        foreach ($this->routeList as $route) {
-          if ($this->matchRoute($request, $route)) {
-            $match = TRUE;
-            break;
-          }
+      foreach ($routeList as $route) {
+        if ($this->matchRoute($request, $route)) {
+          $match = TRUE;
+          break;
         }
       }
       return $match;

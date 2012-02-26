@@ -94,8 +94,11 @@ require AX_SYSTEM_DIR . '/src/artax/exceptions/ErrorException.php';
 require AX_SYSTEM_DIR . '/src/artax/exceptions/UnexpectedValueException.php';
 
 // Core libs
+require AX_SYSTEM_DIR . '/src/artax/NotifierInterface.php';
+require AX_SYSTEM_DIR . '/src/artax/NotifierTrait.php';
+require AX_SYSTEM_DIR . '/src/artax/ErrorHandlerInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/ErrorHandler.php';
-require AX_SYSTEM_DIR . '/src/artax/Bootstrapper.php';
+require AX_SYSTEM_DIR . '/src/artax/App.php';
 require AX_SYSTEM_DIR . '/src/artax/BucketInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/BucketArrayAccessTrait.php';
 require AX_SYSTEM_DIR . '/src/artax/Bucket.php';
@@ -106,8 +109,8 @@ require AX_SYSTEM_DIR . '/src/artax/ControllerInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/ResponseControllerInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/ExControllerInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/ExControllerTrait.php';
-require AX_SYSTEM_DIR . '/src/artax/HandlerInterface.php';
-require AX_SYSTEM_DIR . '/src/artax/Handler.php';
+require AX_SYSTEM_DIR . '/src/artax/FatalHandlerInterface.php';
+require AX_SYSTEM_DIR . '/src/artax/FatalHandler.php';
 require AX_SYSTEM_DIR . '/src/artax/RouteInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/Route.php';
 require AX_SYSTEM_DIR . '/src/artax/RouteList.php';
@@ -120,11 +123,14 @@ require AX_SYSTEM_DIR . '/src/artax/RequestInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/RouterInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/RouterAbstract.php';
 require AX_SYSTEM_DIR . '/src/artax/ResponseInterface.php';
-require AX_SYSTEM_DIR . '/src/artax/blocks/mediator/MediatorInterface.php';
-require AX_SYSTEM_DIR . '/src/artax/blocks/mediator/Mediator.php';
+require AX_SYSTEM_DIR . '/src/artax/MediatorInterface.php';
+require AX_SYSTEM_DIR . '/src/artax/Mediator.php';
 
 // Class autoloader -- required last to avoid accidentally autoloading core libs
+require AX_SYSTEM_DIR . '/src/artax/ClassLoaderInterface.php';
+require AX_SYSTEM_DIR . '/src/artax/ClassLoaderAbstract.php';
 require AX_SYSTEM_DIR . '/src/artax/ClassLoader.php';
+require AX_SYSTEM_DIR . '/src/artax/ClassLoaderFactory.php';
 
 
 /*
@@ -134,13 +140,14 @@ require AX_SYSTEM_DIR . '/src/artax/ClassLoader.php';
  */
 
 
-// Instantiate the Bootstrapper class and generate a request/response
-(new artax\Bootstrapper(
+// Boot the application
+$artax = (new artax\App(
   new artax\ConfigLoader(AX_CONFIG_FILE),
   new artax\Config,
-  new artax\DotNotation,
   new artax\ErrorHandler,
-  new artax\RouteList,
+  new artax\FatalHandler,
+  new artax\ClassLoaderFactory,
   new artax\DepProvider(new artax\DotNotation),
-  new artax\blocks\mediator\Mediator
+  new artax\Mediator,
+  new artax\RouteList
 ))->boot();

@@ -12,7 +12,7 @@ namespace artax {
     /**
      * @var bool
      */
-    protected $debug;
+    protected $debug = FALSE;
     
     /**
      * Specify the exception that was thrown to cause controller invocation
@@ -38,16 +38,6 @@ namespace artax {
     {
       $this->debug = (bool) $val;
       return $this;
-    }
-    
-    /**
-     * Getter method for debug property
-     * 
-     * @return bool Returns value of the object's debug flag
-     */
-    public function getDebug()
-    {
-      return $this->debug;
     }
   }
 }

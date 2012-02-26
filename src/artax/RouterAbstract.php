@@ -19,8 +19,10 @@ namespace artax {
    * @package    core
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
-  abstract class RouterAbstract implements RouterInterface
+  abstract class RouterAbstract implements RouterInterface, NotifierInterface
   {
+    use NotifierTrait;
+    
     /**
      * @var ProviderInterface
      */
@@ -32,22 +34,30 @@ namespace artax {
     protected $matcher;
     
     /**
-     * @var blocks\mediator\MediatorInterface
+     * @var RouteList
      */
-    protected $mediator;
+    protected $routeList;
     
+    /**
+     * @var RequestInterface
+     */
+    protected $request;
     /**
      * 
      */
     public function __construct(
       DepProvider $deps,
       MatcherInterface $matcher,
-      blocks\mediator\MediatorInterface $mediator
+      MediatorInterface $mediator,
+      RouteList $routeList,
+      RequestInterface $request
     )
     {
-      $this->deps     = $deps;
-      $this->matcher  = $matcher;
-      $this->mediator = $mediator;
+      $this->deps      = $deps;
+      $this->matcher   = $matcher;
+      $this->mediator  = $mediator;
+      $this->routeList = $routeList;
+      $this->request   = $request;
     }
   }
 }

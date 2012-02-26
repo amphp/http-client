@@ -124,6 +124,13 @@ namespace artax\blocks\http {
         ->detectTime();
     }
     
+    public function getAddress()
+    {
+      $addr = "$this->protocol://$this->host" . $this->uri;
+      $addr.= $this->queryString ? "?$this->queryString" : '';
+      return $addr;
+    }
+    
     /**
      * Returns the requested target (the REQUEST_URI for HTTP requests)
      * 

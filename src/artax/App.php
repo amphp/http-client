@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Artax BootStrapper Class File
+ * Artax App Class File
  * 
  * PHP version 5.4
  * 
@@ -13,14 +13,16 @@
 namespace artax {
   
   /**
-   * Bootstrapper Class
+   * Artax Application Class
    * 
    * @category artax
    * @package  core
    * @author   Daniel Lowrey <rdlowrey@gmail.com>
    */
-  class BootStrapper
+  class App implements NotifierInterface
   {
+    use NotifierTrait;
+    
     /**
      * @var ConfigLoader
      */
@@ -32,14 +34,19 @@ namespace artax {
     protected $config;
     
     /**
-     * @var DotNotation
-     */
-    protected $dotNotation;
-    
-    /**
-     * @var ErrorHandler
+     * @var ErrorHandlerInterface
      */
     protected $errorHandler;
+    
+    /**
+     * @var FatalHandlerInterface
+     */
+    protected $fatalHandler;
+    
+    /**
+     * @var ClassLoaderFactory
+     */
+    protected $clFactory;
     
     /**
      * @var RouteList
@@ -52,40 +59,54 @@ namespace artax {
     protected $depProvider;
     
     /**
-     * @var blocks\mediator\Mediator
+     * @var array
      */
-    protected $mediator;
+    protected $bootSteps;
     
     /**
      * Constructor injects object dependencies
      * 
      * @param ConfigLoader $configLoader
      * @param Config       $config
-     * @param DotNotation  $dotNotation
      * @param ErrorHandler $errorHandler
-     * @param RoutesList   $routes
+     * @param FatalHandler $fatalHandler
      * @param DepProvider  $depProvider
-     * @param blocks\mediator\Mediator $mediator
+     * @param Mediator     $mediator
+     * @param RoutesList   $routes
      * 
      * @return void
      */
     public function __construct(
       ConfigLoader $configLoader,
       Config $config,
-      DotNotation $dotNotation,
-      ErrorHandler $errorHandler,
-      RouteList $routes,
+      ErrorHandlerInterface $errorHandler,
+      FatalHandlerInterface $fatalHandler,
+      ClassLoaderFactory $clFactory,
       DepProvider $depProvider,
-      blocks\mediator\Mediator $mediator
+      Mediator $mediator,
+      RouteList $routes
     )
     {
+      $this->errorHandler = $errorHandler;
+      $this->fatalHandler = $fatalHandler;
       $this->configLoader = $configLoader;
       $this->config       = $config;
-      $this->dotNotation  = $dotNotation;
-      $this->errorHandler = $errorHandler;
-      $this->routes       = $routes;
       $this->depProvider  = $depProvider;
+      $this->clFactory    = $clFactory;
       $this->mediator     = $mediator;
+      $this->routes       = $routes;
+      
+      $this->bootSteps = [
+        'initErrorHandler',
+        'initFatalHandler',
+        'initConfig',
+        'loadBundles',
+        'loadAutoRequires',
+        'initClassAutoloaders',
+        'initDepProvider',
+        'initMediator',
+        'initRoutes'
+      ];
     }
     
     /**
@@ -93,16 +114,10 @@ namespace artax {
      */
     public function boot()
     {
-      $this->initErrorHandler()
-           ->initConfig()
-           ->loadBundles()
-           ->loadAutoRequires()
-           ->initClassAutoloaders()
-           ->initDepProvider()
-           ->initHandler()
-           ->initRoutes()
-           ->initMediator()
-           ->doRequest();
+      foreach ($this->bootSteps as $step) {
+        $this->$step();
+      }
+      $this->notify('ax.boot.complete');
     }
     
     /**
@@ -113,13 +128,26 @@ namespace artax {
     public function initErrorHandler()
     {
       set_error_handler([$this->errorHandler, 'handle']);
-      return $this;
+    }
+    
+    /**
+     * Initialize exception/shutdown handler
+     * 
+     * The dot-notation class name is retrieved from the config property and
+     * instantiated using the dependency provider.
+     * 
+     * @return void
+     */
+    public function initFatalHandler()
+    {
+      set_exception_handler([$this->fatalHandler, 'exHandler']);
+      register_shutdown_function([$this->fatalHandler, 'shutdown']);
     }
     
     /**
      * Load app configuration directives
      * 
-     * @return Bootstrapper Object instance for method chaining
+     * @return void
      */
     public function initConfig()
     {
@@ -131,14 +159,14 @@ namespace artax {
         ini_set('display_errors', FALSE);
       } else {
         ini_set('display_errors', TRUE);
+        $this->fatalHandler->setDebug(TRUE);
       }
-      return $this;
     }
     
     /**
      * Load optional lib bundles
      * 
-     * @return Bootstrapper Object instance for method chaining
+     * @return void
      */
     public function loadBundles()
     {
@@ -166,51 +194,48 @@ namespace artax {
       if ( ! empty($this->config['cliBundle'])) {
         // load cli libs
       }
-      return $this;
     }
     
     /**
      * Registers Artax class loader and any other specified namespace loaders
      * 
-     * @return Bootstrapper Object instance for method chaining
+     * @return void
      */
     public function initClassAutoloaders()
     {
-      if ( ! empty($this->config['autoloader'])) {
-        $loader = $this->dotNotation->parse($this->config['autoloader']);
-      } else {
-        $msg = 'No class autoloader specified';
-        throw new exceptions\UnexpectedValueException($msg);
-      }
+      $type = empty($this->config['classLoader'])
+        ? 'standard'
+        : $this->config['classLoader'];
       
-      (new $loader('artax', AX_SYSTEM_DIR.'/src'))->register();
+      $this->clFactory->make($type, 'artax')
+           ->setIncludePath(AX_SYSTEM_DIR.'/src')
+           ->register();
       
-      if ($this->config->exists('namespaces')) {
+      if (isset($this->config['namespaces'])) {
         foreach ($this->config['namespaces'] as $ns => $path) {
-          $ns = empty($ns) ? NULL : $ns;
-          (new $loader($ns, $path))->register();
+           $this->clFactory->make($type, $ns)->setIncludePath($path)->register();
         }
       }
-      return $this;
     }
     
     /**
+     * Require a user-specified list of includes
      * 
+     * @return void
      */
     public function loadAutoRequires()
     {
-      if ( ! empty($this->config['autoRequire'])) {
+      if (isset($this->config['autoRequire'])) {
         foreach ($this->config['autoRequire'] as $file) {
           require $file;
         }
       }
-      return $this;
     }
     
     /**
      * Load specified dependencies
      * 
-     * @return Bootstrapper Object instance for method chaining
+     * @return void
      */
     public function initDepProvider()
     {
@@ -220,93 +245,50 @@ namespace artax {
           : $this->configLoader->load($d)->getConfigArr();
         $this->depProvider->load($depsArr);
       }
-      return $this;
+      $this->depProvider->setSharedDep('artax.DepProvider', $this->depProvider);
     }
     
     /**
-     * Initialize NotFound and UnexpectedError Handlers
+     * Load mediator and specified event listeners
      * 
-     * The dot-notation class name is retrieved from the config property and
-     * instantiated using the dependency provider.
-     * 
-     * @return Bootstrapper Object instance for method chaining
-     * @throws exceptions\UnexpectedValueException On invalid handler class
-     */
-    public function initHandler()
-    {
-      $exController = $this->depProvider->make($this->config['exController']);
-      $exController->setDebug($this->config['debug']);
-      $handler = $this->depProvider->make('artax.Handler',
-        ['exController'=>$exController]);
-      
-      set_exception_handler([$handler, 'exHandler']);
-      register_shutdown_function([$handler, 'shutdown']);
-      
-      return $this;
-    }
-    
-    /**
-     * Load config routes
-     * 
-     * @return Bootstrapper Object instance for method chaining
-     */
-    public function initRoutes()
-    {
-      if (isset($this->config['routes']) && $r = $this->config['routes']) {
-        $routesArr = is_array($r) ? $r : $this->configLoader->load($r)->getConfigArr();
-        $this->routes->addAllFromArr($routesArr);
-      }
-      return $this;
-    }
-    
-    /**
-     * Load mediator
-     * 
-     * @return Bootstrapper Object instance for method chaining
+     * @return void
      */
     public function initMediator()
     {
       $listeners = isset($this->config['listeners'])
         ? $this->config['listeners']
         : [];
-      foreach ($listeners as $listener) {
-        $this->mediator->push($listener[0], $listener[1]);
+      
+      if ($listeners) {
+        foreach ($listeners as $listener) {
+          $lambda = \Closure::bind($listener[1], $this);
+          $this->mediator->push($listener[0], $lambda);
+        }
       }
-      return $this;
+      $this->depProvider->setSharedDep('artax.Mediator', $this->mediator);
+      $this->notify('ax.boot.listeners_loaded');
     }
     
     /**
-     * Generate, route and execute the request
+     * Load config routes
      * 
      * @return void
      */
-    public function doRequest()
+    public function initRoutes()
     {
-      $matcher = $this->depProvider->make($this->config['matcher'],
-        ['routeList'=>$this->routes]);
-      
-      $router = $this->depProvider->make($this->config['router'], [
-        'deps'     => $this->depProvider,
-        'matcher'  => $matcher,
-        'mediator' => $this->mediator
-      ]);
-      
-      $request = $this->depProvider->make($this->config['request']);
-      
-      try {
-        $controller = $router->dispatch($request);
-      } catch (exceptions\RequestNotFoundException $e) {
-        $controller = $this->depProvider->make($this->config['notFoundController'], [
-          'mediator' =>$this->mediator, 'request' =>$request
-        ])->exec();
+      if (isset($this->config['routes'])) {
+        $routes    = $this->config['routes'];
+        $routesArr = is_array($routes)
+          ? $routes
+          : $this->configLoader->setConfigFile($routes)->load()->getConfigArr();
+        $this->routes->addAllFromArr($routesArr);
       }
-      
-      $response = $controller->getResponse();
-      $response->exec();
+      $this->depProvider->setSharedDep('artax.RouteList', $this->routes);
+      $this->notify('ax.boot.routes_loaded');
     }
     
     /**
-     * Exposes magic getter methods for object properties
+     * Exposes magic access to protected/private object properties
      * 
      * @param string $prop Object property name
      * 
@@ -318,7 +300,7 @@ namespace artax {
       if (property_exists($this, $prop)) {
         return $this->$prop;
       } else {
-        $msg = "Invalid property: artax\Bootstrapper::\$$prop does not exist";
+        $msg = "Invalid property: artax\App::\$$prop does not exist";
         throw new exceptions\OutOfBoundsException($msg);
       }
     }

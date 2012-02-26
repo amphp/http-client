@@ -45,8 +45,10 @@ namespace artax {
      * @return void
      * @todo Add loader methods for YAML/JSON/XML
      */
-    public function __construct($configFile) {
-      $this->configFile = $configFile;
+    public function __construct($configFile=NULL) {
+      if (NULL !== $configFile) {
+        $this->configFile = $configFile;
+      }
     }
     
     /**

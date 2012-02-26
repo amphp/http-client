@@ -22,7 +22,7 @@ namespace artax {
    * @package  core
    * @author   Daniel Lowrey <rdlowrey@gmail.com>
    */
-  class ErrorHandler
+  class ErrorHandler implements ErrorHandlerInterface
   {
     /**
      * Throw exceptions when PHP errors are raised

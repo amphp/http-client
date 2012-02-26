@@ -47,9 +47,9 @@ class MatcherTest extends PHPUnit_Framework_TestCase
       'route2' => ['/widgets/<id>', 'MatcherTestController.show', ['id'=>'\d+']]
     ];
     $routes  = (new artax\RouteList)->addAllFromArr($routeArr);
-    $matcher = new artax\Matcher($routes);
+    $matcher = new artax\Matcher;
     
-    $this->assertTrue($matcher->match($request));
+    $this->assertTrue($matcher->match($request, $routes));
     $this->assertEquals('MatcherTestController.all', $matcher->getController());
     
     $_SERVER['REQUEST_URI'] = '/widgets/42';

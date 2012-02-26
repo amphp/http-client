@@ -6,19 +6,17 @@
  * PHP version 5.4
  * 
  * @category   artax
- * @package    blocks
- * @subpackage mediator
+ * @package    core
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace artax\blocks\mediator {
+namespace artax {
   
   /**
    * Mediator Class
    * 
    * @category   artax
-   * @package    blocks
-   * @subpackage mediator
+   * @package    core
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
   class Mediator implements MediatorInterface

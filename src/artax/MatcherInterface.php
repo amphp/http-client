@@ -24,11 +24,12 @@ namespace artax {
     /**
      * Does the request match a route from the supplied route list?
      * 
-     * @param RequestInterface $request The request object to match
+     * @param RequestInterface $request   The request object to match
+     * @param RouteList        $routeList The list of routes to match against
      * 
      * @return bool Returns `TRUE` on match or `FALSE` if no match
      */
-    public function match(RequestInterface $request);
+    public function match(RequestInterface $request, RouteList $routeList);
     
     /**
      * Retrieve the matched route's dot-notation controller string

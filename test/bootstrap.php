@@ -16,7 +16,9 @@ define('AX_APP_PATH', AX_SYSTEM_DIR);
  * REGISTER ARTAX CLASS AUTOLOADER
  * --------------------------------------------------------------------
  */
- 
+
+require AX_SYSTEM_DIR . '/src/artax/ClassLoaderInterface.php';
+require AX_SYSTEM_DIR . '/src/artax/ClassLoaderAbstract.php'; 
 require AX_SYSTEM_DIR . '/src/artax/ClassLoader.php';
 (new artax\ClassLoader('artax', AX_SYSTEM_DIR . '/src'))->register();
 

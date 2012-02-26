@@ -41,107 +41,8 @@ namespace artax {
    * @author   Fabien Potencier <fabien.potencier@symfony-project.org>
    * @author   Daniel Lowrey <rdlowrey@gmail.com>
    */
-  class ClassLoader
+  class ClassLoader extends ClassLoaderAbstract
   {
-    protected $ext = '.php';
-    protected $namespace;
-    protected $includePath;
-    protected $nsSeparator = '\\';
-    
-    /**
-     * Creates a new <tt>SplClassLoader</tt> that loads classes of the
-     * specified namespace.
-     * 
-     * @param string $ns          The namespace to use
-     * @param string $includePath The path to use when searching for this
-     *                            namespace's class files
-     */
-    public function __construct($ns = NULL, $includePath = NULL)
-    {
-      $this->namespace   = $ns;
-      $this->includePath = $includePath;
-    }
-    
-    /**
-     * Sets the namespace separator used by classes using this class loader.
-     * 
-     * @param string $sep The separator to use.
-     */
-    public function setNsSeparator($sep)
-    {
-      $this->nsSeparator = $sep;
-    }
-    
-    /**
-     * Gets the namespace seperator used by classes using this class loader.
-     *
-     * @return void
-     */
-    public function getNsSeparator()
-    {
-      return $this->nsSeparator;
-    }
-    
-    /**
-     * Sets the base include path for all class files using this class loader.
-     * 
-     * @param string $includePath
-     */
-    public function setIncludePath($includePath)
-    {
-      $this->includePath = $includePath;
-    }
-    
-    /**
-     * Gets the base include path for all class files using this class loader.
-     *
-     * @return string $includePath
-     */
-    public function getIncludePath()
-    {
-      return $this->includePath;
-    }
-    
-    /**
-     * Sets the file extension of class files using this class loader.
-     * 
-     * @param string $ext
-     */
-    public function setExt($ext)
-    {
-      $this->ext = $ext;
-    }
-    
-    /**
-     * Gets the file extension of class files using this class loader.
-     *
-     * @return string $ext
-     */
-    public function getExt()
-    {
-      return $this->ext;
-    }
-    
-    /**
-     * Installs this class loader on the SPL autoload stack.
-     * 
-     * @return void
-     */
-    public function register()
-    {
-      spl_autoload_register(array($this, 'loadClass'));
-    }
-    
-    /**
-     * Uninstalls this class loader from the SPL autoloader stack.
-     * 
-     * @return void
-     */
-    public function unregister()
-    {
-      spl_autoload_unregister(array($this, 'loadClass'));
-    }
-    
     /**
      * Loads the given class, trait or interface
      * 
@@ -162,10 +63,12 @@ namespace artax {
         if (FALSE !== ($lastNsPos = strripos($className, $this->nsSeparator))) {
           $namespace = substr($className, 0, $lastNsPos);
           $className = substr($className, $lastNsPos + 1);
-          $fileName = str_replace($this->nsSeparator, $ds, $namespace) . $ds;
+          $fileName  = str_replace($this->nsSeparator, $ds, $namespace) . $ds;
         }
         $fileName .= str_replace('_', $ds, $className) . $this->ext;
-        require ($this->includePath !== NULL ? $this->includePath . $ds : '') . $fileName;
+        $path = NULL !== $this->includePath ? $this->includePath . $ds : '';
+        
+        require $path . $fileName;
       }
     }
   }

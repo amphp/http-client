@@ -22,14 +22,14 @@ namespace artax {
   class DepProvider extends Bucket implements ProviderInterface
   {
     /**
-     * @var array
-     */
-    protected $shared;
-    
-    /**
      * @var DotNotation
      */
     protected $dotNotation;
+    
+    /**
+     * @var array
+     */
+    protected $shared;
     
     /**
      * Initializes DotNotation object dependency
@@ -40,7 +40,44 @@ namespace artax {
      */
     public function __construct(DotNotation $dotNotation)
     {
+      $this->shared = [];
       $this->dotNotation = $dotNotation;
+    }
+    
+    /**
+     * Store a shared dependency
+     * 
+     * @param string $type     The dot-notated class name
+     * @param mixed  $instance The shared dependency instance
+     * 
+     * @return DepProvider Returns object instance for method chaining
+     * @throws exceptions\InvalidArgumentException If instance arg doesn't match
+     *                                             specified type
+     */
+    public function setSharedDep($type, $instance)
+    {
+      $cls = $this->dotNotation->parse($type);
+      if ( ! $instance instanceof $cls) {
+        $msg = "Expected $cls instance: " . get_class($instance) . ' received';
+        throw new exceptions\InvalidArgumentException($msg);
+      }
+      $this->shared[$type] = $instance;
+      return $this;
+    }
+    
+    /**
+     * Clear a shared dependency
+     * 
+     * @param string $type     The dot-notated class name
+     * 
+     * @return DepProvider Returns object instance for method chaining
+     */
+    public function clearSharedDep($type)
+    {
+      if (isset($this->shared[$type])) {
+        unset($this->shared[$type]);
+      }
+      return $this;
     }
     
     /**

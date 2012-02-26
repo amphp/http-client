@@ -21,12 +21,13 @@ primary inspiration for **Artax**.
 
 ### WHAT IT DOES
 
+* Allows both event-driven and linear cause/effect application design;
+* Lazy-loads dependencies and controllers;
+* Integrates simple, built-in dependency injection;
 * Routes HTTP requests by address and optional HTTP request method allowing
 user-friendly, resource-oriented RESTful applications;
-* Lazy-loads application controllers;
-* Integrates simple built-in dependency injection;
 * Eschews the use of `static` entirely in favor of maximum testability and 
-complete API transparency;
+full API transparency;
 * Implements convention over configuration when practical and allows developer
 autonomy when feasible;
 * Makes all of your wildest dreams come true -- especially the ones about unicorns.

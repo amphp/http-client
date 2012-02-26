@@ -37,13 +37,13 @@ namespace artax {
     {
       $defaults = [
         'debug'       => TRUE,
-        'httpBundle'  => TRUE,
+        'cacheBundle' => TRUE,
         'cliBundle'   => FALSE,
-        'autoloader'  => 'artax.ClassLoader',
-        'handlers'    => 'artax.blocks.http.HttpHandlers',
-        'matcher'     => 'artax.blocks.http.HttpMatcher',
-        'router'      => 'artax.blocks.http.HttpRouter',
-        'request'     => 'artax.blocks.http.HttpRequest'
+        'httpBundle'  => TRUE,
+        'classLoader' => 'standard',
+        'namespaces'  => [],
+        'autoRequire' => [],
+        
       ];
       $params = $params ? array_merge($defaults, $params) : $defaults;
       $this->load($params);
