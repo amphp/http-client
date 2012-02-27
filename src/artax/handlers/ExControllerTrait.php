@@ -1,7 +1,28 @@
 <?php
 
-namespace artax {
+/**
+ * ExControllerTrait File
+ * 
+ * PHP version 5.4
+ * 
+ * @category   artax
+ * @package    core
+ * @subpackage handlers
+ * @author     Daniel Lowrey <rdlowrey@gmail.com>
+ */
+
+namespace artax\handlers {
   
+  /**
+   * ExControllerTrait
+   * 
+   * Provides functionality required by the ExControllerInterface.
+   * 
+   * @category   artax
+   * @package    core
+   * @subpackage handlers
+   * @author     Daniel Lowrey <rdlowrey@gmail.com>
+   */
   trait ExControllerTrait
   {
     /**

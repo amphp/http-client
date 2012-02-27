@@ -34,12 +34,12 @@ namespace artax {
     protected $config;
     
     /**
-     * @var ErrorHandlerInterface
+     * @var handlers\ErrorHandlerInterface
      */
     protected $errorHandler;
     
     /**
-     * @var FatalHandlerInterface
+     * @var handlers\FatalHandlerInterface
      */
     protected $fatalHandler;
     
@@ -68,8 +68,8 @@ namespace artax {
      * 
      * @param ConfigLoader $configLoader
      * @param Config       $config
-     * @param ErrorHandler $errorHandler
-     * @param FatalHandler $fatalHandler
+     * @param handlers\ErrorHandler $errorHandler
+     * @param handlers\FatalHandler $fatalHandler
      * @param DepProvider  $depProvider
      * @param events\Mediator     $mediator
      * @param routing\RouteList   $routes
@@ -79,8 +79,8 @@ namespace artax {
     public function __construct(
       ConfigLoader $configLoader,
       Config $config,
-      ErrorHandlerInterface $errorHandler,
-      FatalHandlerInterface $fatalHandler,
+      handlers\ErrorHandlerInterface $errorHandler,
+      handlers\FatalHandlerInterface $fatalHandler,
       ClassLoaderFactory $clFactory,
       DepProvider $depProvider,
       events\Mediator $mediator,

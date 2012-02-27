@@ -3,7 +3,7 @@
 class ExControllerTraitTest extends PHPUnit_Framework_TestCase
 {
   /**
-   * @covers artax\ExControllerTrait::setException
+   * @covers artax\handlers\ExControllerTrait::setException
    */
   public function testSetExceptionAssignsProperty()
   {
@@ -14,7 +14,7 @@ class ExControllerTraitTest extends PHPUnit_Framework_TestCase
   }
   
   /**
-   * @covers artax\ExControllerTrait::setDebug
+   * @covers artax\handlers\ExControllerTrait::setDebug
    */
   public function testSetDebugAssignsProperty()
   {
@@ -26,7 +26,7 @@ class ExControllerTraitTest extends PHPUnit_Framework_TestCase
 
 class ExControllerTraitImplementationClass
 {
-  use artax\ExControllerTrait;
+  use artax\handlers\ExControllerTrait;
   
   public function getDebug()
   {

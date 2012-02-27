@@ -7,19 +7,21 @@
  * 
  * @category   artax
  * @package    core
+ * @subpackage handlers
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace artax {
+namespace artax\handlers {
 
   /**
    * ExControllerInterface
    * 
    * @category   artax
    * @package    core
+   * @subpackage handlers
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
-  interface ExControllerInterface extends ResponseControllerInterface
+  interface ExControllerInterface extends \artax\ResponseControllerInterface
   {
     /**
      * Specify the exception that was thrown to cause controller invocation

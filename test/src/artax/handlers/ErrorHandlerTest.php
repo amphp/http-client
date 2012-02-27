@@ -3,23 +3,23 @@
 class ErrorHandlerTest extends PHPUnit_Framework_TestCase
 {
   /**
-   * @covers artax\ErrorHandler::handle
+   * @covers artax\handlers\ErrorHandler::handle
    * @expectedException artax\exceptions\ErrorException
    */
   public function testHandlerThrowsErrorException()
   {
-    $obj = new artax\ErrorHandler;
+    $obj = new artax\handlers\ErrorHandler;
     $obj->handle(E_NOTICE, 'test notice message', 'testFile.php', 42);
   }
   
   /**
-   * @covers artax\ErrorHandler::handle
+   * @covers artax\handlers\ErrorHandler::handle
    */
   public function testHandlerReturnsExpectedMessage()
   {
     $msg   = 'Notice: test notice message in testFile.php on line 42';
     $exMsg = '';
-    $obj   = new artax\ErrorHandler;
+    $obj   = new artax\handlers\ErrorHandler;
     try {
       $obj->handle(E_NOTICE, 'test notice message', 'testFile.php', 42);
     } catch (artax\exceptions\ErrorException $e) {
@@ -28,18 +28,3 @@ class ErrorHandlerTest extends PHPUnit_Framework_TestCase
     $this->assertEquals($msg, $exMsg);
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

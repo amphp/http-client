@@ -7,16 +7,18 @@
  * 
  * @category   artax
  * @package    core
+ * @subpackage handlers
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace artax {
+namespace artax\handlers {
 
   /**
    * ErrorHandlerInterface
    * 
    * @category   artax
    * @package    core
+   * @subpackage handlers
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
   interface ErrorHandlerInterface

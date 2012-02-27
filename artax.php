@@ -94,13 +94,22 @@ require AX_SYSTEM_DIR . '/src/artax/exceptions/ErrorException.php';
 require AX_SYSTEM_DIR . '/src/artax/exceptions/UnexpectedValueException.php';
 
 // Core libs
+
 require AX_SYSTEM_DIR . '/src/artax/events/NotifierInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/events/NotifierTrait.php';
 require AX_SYSTEM_DIR . '/src/artax/events/MediatorInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/events/Mediator.php';
 
-require AX_SYSTEM_DIR . '/src/artax/ErrorHandlerInterface.php';
-require AX_SYSTEM_DIR . '/src/artax/ErrorHandler.php';
+require AX_SYSTEM_DIR . '/src/artax/ControllerInterface.php';
+require AX_SYSTEM_DIR . '/src/artax/ResponseControllerInterface.php';
+
+require AX_SYSTEM_DIR . '/src/artax/handlers/ErrorHandlerInterface.php';
+require AX_SYSTEM_DIR . '/src/artax/handlers/ErrorHandler.php';
+require AX_SYSTEM_DIR . '/src/artax/handlers/ExControllerInterface.php';
+require AX_SYSTEM_DIR . '/src/artax/handlers/ExControllerTrait.php';
+require AX_SYSTEM_DIR . '/src/artax/handlers/FatalHandlerInterface.php';
+require AX_SYSTEM_DIR . '/src/artax/handlers/FatalHandler.php';
+
 require AX_SYSTEM_DIR . '/src/artax/App.php';
 require AX_SYSTEM_DIR . '/src/artax/BucketInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/BucketArrayAccessTrait.php';
@@ -108,12 +117,6 @@ require AX_SYSTEM_DIR . '/src/artax/Bucket.php';
 require AX_SYSTEM_DIR . '/src/artax/BucketSettersTrait.php';
 require AX_SYSTEM_DIR . '/src/artax/Config.php';
 require AX_SYSTEM_DIR . '/src/artax/ConfigLoader.php';
-require AX_SYSTEM_DIR . '/src/artax/ControllerInterface.php';
-require AX_SYSTEM_DIR . '/src/artax/ResponseControllerInterface.php';
-require AX_SYSTEM_DIR . '/src/artax/ExControllerInterface.php';
-require AX_SYSTEM_DIR . '/src/artax/ExControllerTrait.php';
-require AX_SYSTEM_DIR . '/src/artax/FatalHandlerInterface.php';
-require AX_SYSTEM_DIR . '/src/artax/FatalHandler.php';
 
 require AX_SYSTEM_DIR . '/src/artax/routing/RequestInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/routing/RouteInterface.php';
@@ -145,8 +148,8 @@ require AX_SYSTEM_DIR . '/src/artax/ClassLoaderFactory.php';
 $artax = (new artax\App(
   new artax\ConfigLoader(AX_CONFIG_FILE),
   new artax\Config,
-  new artax\ErrorHandler,
-  new artax\FatalHandler,
+  new artax\handlers\ErrorHandler,
+  new artax\handlers\FatalHandler,
   new artax\ClassLoaderFactory,
   new artax\DepProvider(new artax\DotNotation),
   new artax\events\Mediator,

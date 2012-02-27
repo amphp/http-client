@@ -5,22 +5,23 @@
  * 
  * PHP version 5.4
  * 
- * @category artax
- * @package  core
- * @author   Daniel Lowrey <rdlowrey@gmail.com>
+ * @category   artax
+ * @package    core
+ * @subpackage handlers
+ * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace artax {
+namespace artax\handlers {
   
   /**
    * ErrorHandler Class
    * 
-   * Exposes `handle` method to deal with raised PHP errors. All PHP errors
-   * result in an `exceptions\ErrorException` exception being thrown.
+   * All PHP errors result in a `exceptions\ErrorException` exception.
    * 
-   * @category artax
-   * @package  core
-   * @author   Daniel Lowrey <rdlowrey@gmail.com>
+   * @category   artax
+   * @package    core
+   * @subpackage handlers
+   * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
   class ErrorHandler implements ErrorHandlerInterface
   {
@@ -28,7 +29,7 @@ namespace artax {
      * Throw exceptions when PHP errors are raised
      * 
      * @return void
-     * @throws exceptions\ErrorException On PHP error occurrence
+     * @throws \artax\exceptions\ErrorException On raised PHP error
      */
     public function handle($errno, $errstr, $errfile, $errline)
     {
@@ -44,7 +45,7 @@ namespace artax {
         E_USER_DEPRECATED   => 'User Deprecated Notice'
       ];
       $msg = $levels[$errno] . ": $errstr in $errfile on line $errline";
-      throw new exceptions\ErrorException($msg);
+      throw new \artax\exceptions\ErrorException($msg);
     }
   }
 }

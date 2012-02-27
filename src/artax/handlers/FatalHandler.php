@@ -5,20 +5,22 @@
  *
  * PHP version 5.4
  *
- * @category artax
- * @package  core
- * @author   Daniel Lowrey <rdlowrey@gmail.com>
+ * @category   artax
+ * @package    core
+ * @subpackage handlers
+ * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-namespace artax {
+namespace artax\handlers {
 
   /**
-   * Artax FatalHandler Class
+   * FatalHandler Class
    *
    * Provides unexpected exception and fatal error handling functionality.
    *
-   * @category artax
-   * @package  core
-   * @author   Daniel Lowrey <rdlowrey@gmail.com>
+   * @category   artax
+   * @package    core
+   * @subpackage handlers
+   * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
   class FatalHandler implements FatalHandlerInterface
   {
@@ -89,7 +91,7 @@ namespace artax {
      *               raised was fatal.
      * @used-by FatalHandler::shutdown
      */
-    public function getFatalErrException()
+    protected function getFatalErrException()
     {
       $ex  = NULL;
       $err = $this->lastError();
@@ -106,20 +108,9 @@ namespace artax {
       if (isset($fatals[$err['type']])) {
         $msg = $fatals[$err['type']] . ': ' . $err['message'] . ' in ';
         $msg.= $err['file'] . ' on line ' . $err['line'];
-        $ex = new exceptions\ErrorException($msg);
+        $ex = new \artax\exceptions\ErrorException($msg);
       }
       return $ex;
-    }
-    
-    /**
-     * Get an array representation of the most recently raised PHP error
-     * 
-     * @return array Returns an associative error representation array
-     * @used-by FatalHandler::getFatalErrException
-     */
-    protected function lastError()
-    {
-      return error_get_last();
     }
     
     /**
@@ -149,6 +140,17 @@ namespace artax {
       $exController->setDebug($this->debug);
       $this->exController = $exController;
       return $this;
+    }
+    
+    /**
+     * Get an array representation of the most recently raised PHP error
+     * 
+     * @return array Returns an associative error representation array
+     * @used-by FatalHandler::getFatalErrException
+     */
+    protected function lastError()
+    {
+      return error_get_last();
     }
     
     /**
