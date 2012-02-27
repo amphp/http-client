@@ -120,8 +120,6 @@ require AX_SYSTEM_DIR . '/src/artax/ProviderInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/DotNotation.php';
 require AX_SYSTEM_DIR . '/src/artax/DepProvider.php';
 require AX_SYSTEM_DIR . '/src/artax/RequestInterface.php';
-require AX_SYSTEM_DIR . '/src/artax/RouterInterface.php';
-require AX_SYSTEM_DIR . '/src/artax/RouterAbstract.php';
 require AX_SYSTEM_DIR . '/src/artax/ResponseInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/MediatorInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/Mediator.php';
