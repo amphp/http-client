@@ -154,13 +154,15 @@ namespace artax {
       $configArr = $this->configLoader->load()->getConfigArr();
       $this->config->load($configArr, TRUE);
       
-      if (empty($this->config['debug'])) {
+      $debug = $this->config['debug'];
+      
+      if ( ! $debug) {
         error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
         ini_set('display_errors', FALSE);
       } else {
         ini_set('display_errors', TRUE);
-        $this->fatalHandler->setDebug(TRUE);
       }
+      $this->fatalHandler->setDebug($debug);
     }
     
     /**
