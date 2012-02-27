@@ -178,7 +178,7 @@ namespace artax {
       }
       
       if ( ! empty($this->config['httpBundle'])) {
-        require AX_SYSTEM_DIR . '/src/artax/blocks/views/ViewInterface.php';
+        require AX_SYSTEM_DIR . '/src/artax/views/ViewInterface.php';
         require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpMatcher.php';
         require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpRequest.php';
         require AX_SYSTEM_DIR . '/src/artax/blocks/http/BucketInterface.php';

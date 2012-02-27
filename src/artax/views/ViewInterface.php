@@ -3,20 +3,21 @@
 /**
  * Artax ViewInterface File
  * 
- * PHP version 5.3
+ * PHP version 5.4
  * 
- * @package    blocks
+ * @category   artax
+ * @package    core
  * @subpackage views
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace artax\blocks\views {
+namespace artax\views {
   
   /**
    * ViewInterface
    * 
    * @category   artax
-   * @package    blocks
+   * @package    core
    * @subpackage views
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
@@ -33,7 +34,7 @@ namespace artax\blocks\views {
      * Template variable setter method
      * 
      * @param string $name Template variable name
-     * @param mixed  $var  Template variable contents
+     * @param mixed  $var  Template variable value
      */
     public function setVar($name, $var);
     
@@ -45,14 +46,13 @@ namespace artax\blocks\views {
     public function getVar($name);
     
     /**
-     * Fetch rendered template without outputting
+     * Fetch rendered template without outputting to client
      */
     public function render();
     
     /**
-     * Send rendered template output to STDOUT
+     * Output the rendered template
      */
     public function output();
   }
-
 }

@@ -54,15 +54,19 @@ error_reporting(E_ALL);
  */
 
 require 'vfsStream/vfsStream.php';
-$structure = array(
-  'conf' => array(
+$structure = [
+  'conf' => [
     'config.php' => '<?php $cfg=["debug"=>1]; ?>',
     'config_no_debug.php' => '<?php $cfg=["debug"=>FALSE]; ?>',
     'invalid_config.php'=>'<?php $cfg = "not an array"; ?>'
-  ),
-  'controllers' => array('Level1'=>array('Level2'=>array())),
-  'src'         => array('Class.php'=>'<?php ?>')
-);
+  ],
+  'controllers' => ['Level1' => ['Level2'=>[]]],
+  'src'         => ['Class.php' => '<?php ?>'],
+  'views'       => [
+    'my_template.php'  => 'Template value: <?php echo $myVar; ?>',
+    'bad_template.php' => 'Template value: <?php echo $badVar; ?>'
+  ]
+];
 vfsStreamWrapper::register();
 vfsStream::setup('myapp', NULL, $structure);
 

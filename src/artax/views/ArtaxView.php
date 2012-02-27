@@ -6,18 +6,18 @@
  * PHP version 5.4
  * 
  * @category   artax
- * @package    blocks
+ * @package    core
  * @subpackage views
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace artax\blocks\views {
+namespace artax\views {
   
   /**
    * ArtaxView Class
    * 
    * @category   artax
-   * @package    blocks
+   * @package    core
    * @subpackage views
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
@@ -33,9 +33,9 @@ namespace artax\blocks\views {
      * Assign a variable to the template
      * 
      * @param string $name Variable name
-     * @param mixed  $var  Variable contents
+     * @param mixed  $var  Variable value
      * 
-     * @return \artax\Views\Smarty Object instance for method chaining
+     * @return ArtaxView Object instance for method chaining
      */
     public function setVar($name, $var)
     {
@@ -47,7 +47,7 @@ namespace artax\blocks\views {
      * 
      * @param string $name Variable name
      * 
-     * @return mixed Variable contents
+     * @return mixed Variable value
      */
     public function getVar($name)
     {
@@ -89,7 +89,7 @@ namespace artax\blocks\views {
      * 
      * @param string $tpl Template path (relative to SMARTY_TPL_DIR)
      * 
-     * @return \artax\Views\Smarty Object instance for method chaining
+     * @return ArtaxView Object instance for method chaining
      */
     public function setTemplate($tpl)
     {

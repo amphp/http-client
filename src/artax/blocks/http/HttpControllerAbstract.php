@@ -31,7 +31,7 @@ namespace artax\blocks\http {
     protected $request;
     
     /**
-     * @var \artax\RequestInterface
+     * @var \artax\views\ViewInterface
      */
     protected $view;
     
@@ -43,15 +43,15 @@ namespace artax\blocks\http {
     /**
      * Inject dependencies
      * 
-     * @param \artax\MediatorInterface          $mediator Mediator object
-     * @param \artax\RequestInterface           $request  Request object
-     * @param \artax\blocks\views\ViewInterface $view     View object
-     * @param HttpResponseInterface             $response Response object
+     * @param \artax\MediatorInterface   $mediator Mediator object
+     * @param \artax\RequestInterface    $request  Request object
+     * @param \artax\views\ViewInterface $view     View object
+     * @param HttpResponseInterface      $response Response object
      */
     public function __construct(
       \artax\MediatorInterface $mediator,
       \artax\RequestInterface $request,
-      \artax\blocks\views\ViewInterface $view,
+      \artax\views\ViewInterface $view,
       HttpResponseInterface $response)
     {
       $this->mediator = $mediator;
