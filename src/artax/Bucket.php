@@ -34,14 +34,27 @@ namespace artax {
     protected $params;
     
     /**
+     * @var array
+     */
+    protected $defaults=[];
+    
+    /**
      * Load a pre-existing array of container parameters
      * 
      * @param array $params     Bucket storage array
+     * @param bool  $overwrite  Flag specifying if existing params should be
+     *                          overwritten
      * 
      * @return Object instance for method chaining
      */
     public function load(Array $params, $overwrite=FALSE)
     {
+      if ($this->defaults) {
+        foreach ($this->defaults as $key => $val) {
+          $params[$key] = isset($params[$key]) ? $params[$key] : $val;
+        }
+      }
+      
       $method = $overwrite ? 'set' : 'add';
       foreach ($params as $key => $val) {
         $this->$method($key, $val);
