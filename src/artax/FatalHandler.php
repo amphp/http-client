@@ -52,10 +52,7 @@ namespace artax {
       } else {
         try {
           $this->exController->setException($e);
-          $controller = $this->exController->exec();
-          if ($controller->responseRequired()) {
-            $controller->getResponse()->exec();
-          }
+          $this->exController->exec()->getResponse()->exec();
         } catch (\Exception $e) {
           echo $this->defaultHandlerMsg($e);
         }
