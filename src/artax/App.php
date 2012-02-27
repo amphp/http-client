@@ -212,7 +212,8 @@ namespace artax {
       
       if (isset($this->config['namespaces'])) {
         foreach ($this->config['namespaces'] as $ns => $path) {
-           $this->clFactory->make($type, $ns)->setIncludePath($path)->register();
+          $ns = $ns ?: NULL;
+          $this->clFactory->make($type, $ns)->setIncludePath($path)->register();
         }
       }
     }
