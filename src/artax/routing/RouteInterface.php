@@ -7,16 +7,18 @@
  * 
  * @category   artax
  * @package    core
+ * @subpackage routing
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace artax {
+namespace artax\routing {
   
   /**
    * RouteInterface
    * 
    * @category   artax
    * @package    core
+   * @subpackage routing
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
   interface RouteInterface

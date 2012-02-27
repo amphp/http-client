@@ -7,16 +7,18 @@
  * 
  * @category   artax
  * @package    core
+ * @subpackage routing
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace artax {
+namespace artax\routing {
   
   /**
    * Matcher Class
    * 
    * @category   artax
    * @package    core
+   * @subpackage routing
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
   class Matcher implements MatcherInterface
@@ -28,18 +30,10 @@ namespace artax {
     protected $controller;
     
     /**
-     * Ordered array of route-matched arguments
+     * Ordered array of arguments from a matched route
      * @var array
      */
-    protected $args;
-    
-    /**
-     * 
-     */
-    public function __construct()
-    {
-      $this->args = [];
-    }
+    protected $args = [];
     
     /**
      * Find a match for the requested resource target

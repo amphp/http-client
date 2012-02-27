@@ -3,46 +3,46 @@
 class RouteListTest extends PHPUnit_Framework_TestCase
 {
   /**
-   * @covers            artax\RouteList::addAll
+   * @covers            artax\routing\RouteList::addAll
    * @expectedException artax\exceptions\InvalidArgumentException
    */
   public function testAddAllThrowsExceptionOnNonRouteListParameter()
   {
-    $rl = new artax\RouteList;
+    $rl = new artax\routing\RouteList;
     $rl->addAll(new \SplObjectStorage);
   }
   
   /**
-   * @covers            artax\RouteList::attach
+   * @covers            artax\routing\RouteList::attach
    * @expectedException artax\exceptions\InvalidArgumentException
    */
   public function testAttachThrowsExceptionOnNonRouteInterfaceParameter()
   {
-    $rl = new artax\RouteList;
+    $rl = new artax\routing\RouteList;
     $rl->attach(new stdClass);
   }
   
   /**
-   * @covers            artax\RouteList::attach
+   * @covers            artax\routing\RouteList::attach
    * @expectedException artax\exceptions\InvalidArgumentException
    * @exceptionMessage  attach() expects a string $data parameter:
    */
   public function testAttachThrowsExceptionOnNonStringDataParameter()
   {
-    $rl = new artax\RouteList;
-    $route = new artax\Route('controller_name', 'rt_controller/param1');
+    $rl = new artax\routing\RouteList;
+    $route = new artax\routing\Route('controller_name', 'rt_controller/param1');
     $rl->attach($route, new stdClass);
   }
   
   /**
-   * @covers artax\RouteList::addAll
+   * @covers artax\routing\RouteList::addAll
    */
   public function testAddAllAttachesRouteListParameter()
   {
-    $rl1 = new artax\RouteList;
-    $rl2 = new artax\RouteList;
+    $rl1 = new artax\routing\RouteList;
+    $rl2 = new artax\routing\RouteList;
     
-    $route = new artax\Route('controller_name', 'rt_controller/rt_action/param1');
+    $route = new artax\routing\Route('controller_name', 'rt_controller/rt_action/param1');
     $rl2->attach($route);
     
     $rl1->addAll($rl2);
@@ -51,25 +51,25 @@ class RouteListTest extends PHPUnit_Framework_TestCase
   }
   
   /**
-   * @covers artax\RouteList::attach
+   * @covers artax\routing\RouteList::attach
    */
   public function testAttachReturnsTrueOnAddOrFalseOnInvalidRouteParameter()
   {
-    $rl = new artax\RouteList;
-    $route = new artax\Route('/test', function() { return 1; });
+    $rl = new artax\routing\RouteList;
+    $route = new artax\routing\Route('/test', function() { return 1; });
     $rl->attach($route);
     
     $this->assertTrue($rl->contains($route));
   }
   
   /**
-   * @covers            artax\RouteList::addAllFromArr
-   * @covers            artax\RouteList::addFromArr
-   * @covers            artax\RouteList::find
+   * @covers            artax\routing\RouteList::addAllFromArr
+   * @covers            artax\routing\RouteList::addFromArr
+   * @covers            artax\routing\RouteList::find
    */
   public function testAddAllFromArrLoadsArrayRouteParameters()
   {
-    $rl = new artax\RouteList;
+    $rl = new artax\routing\RouteList;
     
     $routeArr = [
       'route1' => ['widgets/<id>', 'Class',      ['id' => '\d+']],
@@ -87,32 +87,12 @@ class RouteListTest extends PHPUnit_Framework_TestCase
   }
   
   /**
-   * @covers            artax\RouteList::find
+   * @covers            artax\routing\RouteList::find
    */
   public function testFindReturnsFalseOnNonExistentDataKey()
   {
-    $rl = new artax\RouteList;    
+    $rl = new artax\routing\RouteList;    
     $route = $rl->find('routeTest');
     $this->assertFalse($route);
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

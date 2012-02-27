@@ -16,8 +16,8 @@ class MatcherTest extends PHPUnit_Framework_TestCase
   
   public function testBeginsEmpty()
   {
-    $routes  = new artax\RouteList;
-    $matcher = new artax\Matcher($routes);
+    $routes  = new artax\routing\RouteList;
+    $matcher = new artax\routing\Matcher($routes);
     $this->assertEquals(NULL, $matcher->getController());
     $this->assertEquals([], $matcher->getArgs());
     return $matcher;
@@ -25,18 +25,18 @@ class MatcherTest extends PHPUnit_Framework_TestCase
   
   /**
    * @depends testBeginsEmpty
-   * @covers artax\Matcher::match
+   * @covers artax\routing\Matcher::match
    */
   public function testMatchReturnsFalseWhenRouteListIsEmptyOrNoMatchExists($matcher)
   {
     $request = new artax\blocks\http\HttpRequest;
-    $routes  = new artax\RouteList;
+    $routes  = new artax\routing\RouteList;
     $this->assertFalse($matcher->match($request, $routes));
   }
   
   /**
-   * @covers artax\Matcher::match
-   * @covers artax\Matcher::matchRoute
+   * @covers artax\routing\Matcher::match
+   * @covers artax\routing\Matcher::matchRoute
    */
   public function testMatchReturnsTrueOnRouteListMatch()
   {
@@ -46,8 +46,8 @@ class MatcherTest extends PHPUnit_Framework_TestCase
       'route1' => ['/widgets',      'MatcherTestController.all'],
       'route2' => ['/widgets/<id>', 'MatcherTestController.show', ['id'=>'\d+']]
     ];
-    $routes  = (new artax\RouteList)->addAllFromArr($routeArr);
-    $matcher = new artax\Matcher;
+    $routes  = (new artax\routing\RouteList)->addAllFromArr($routeArr);
+    $matcher = new artax\routing\Matcher;
     
     $this->assertTrue($matcher->match($request, $routes));
     $this->assertEquals('MatcherTestController.all', $matcher->getController());

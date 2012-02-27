@@ -3,90 +3,75 @@
 class RouteTest extends PHPUnit_Framework_TestCase
 {
   /**
-   * @covers artax\Route::getConstraints
-   * @covers artax\Route::__construct
+   * @covers artax\routing\Route::getConstraints
+   * @covers artax\routing\Route::__construct
    */
   public function testGetConstraintsReturnsConstraintsProperty()
   {
-    $r = new artax\Route('/route', 'Controller');
+    $r = new artax\routing\Route('/route', 'Controller');
     $this->assertEquals([], $r->getConstraints());
     
-    $r = new artax\Route('/route', 'Controller', ['_method'=>'GET']);
+    $r = new artax\routing\Route('/route', 'Controller', ['_method'=>'GET']);
     $this->assertEquals(['_method'=>'GET'], $r->getConstraints());
   }
   
   /**
-   * @covers artax\Route::getAlias
-   * @covers artax\Route::__construct
+   * @covers artax\routing\Route::getAlias
+   * @covers artax\routing\Route::__construct
    */
   public function testGetAliasReturnsPropertyValue()
   {
-    $r = new artax\Route('/route', 'Controller');
+    $r = new artax\routing\Route('/route', 'Controller');
     $this->assertEquals('/route', $r->getAlias());
   }
   
   /**
-   * @covers artax\Route::getController
+   * @covers artax\routing\Route::getController
    */
   public function testGetControllerReturnsControllerProperty()
   {
-    $r = new artax\Route('/route', 'Controller');
+    $r = new artax\routing\Route('/route', 'Controller');
     $this->assertEquals('Controller', $r->getController());
   }
   
   /**
-   * @covers artax\Route::getPattern
-   * @covers artax\Route::buildPattern
-   * @covers artax\Route::compile
+   * @covers artax\routing\Route::getPattern
+   * @covers artax\routing\Route::buildPattern
+   * @covers artax\routing\Route::compile
    */
   public function testGetPatternProperty()
   {
-    $r = new artax\Route('/route', 'Controller');
+    $r = new artax\routing\Route('/route', 'Controller');
     $expected = '#^/route$#u';
     $this->assertEquals($expected, $r->getPattern());
   }
   
   /**
-   * @covers artax\Route::buildPattern
-   * @covers artax\Route::compile
+   * @covers artax\routing\Route::buildPattern
+   * @covers artax\routing\Route::compile
    */
   public function testCompiledPatternSpecifiesRouteVariables()
   {
-    $r = new artax\Route('/route/<id>', 'Controller', ['id'=>'\d+']);
+    $r = new artax\routing\Route('/route/<id>', 'Controller', ['id'=>'\d+']);
     $expected = '#^/route/(?P<id>\d+)$#u';
     $this->assertEquals($expected, $r->getPattern());
   }
   
   /**
-   * @covers artax\Route::buildPattern
+   * @covers artax\routing\Route::buildPattern
    * @expectedException artax\exceptions\InvalidArgumentException
    */
   public function testPatternBuilderThrowsExceptionOnDuplicateVariable()
   {
-    $r = new artax\Route('/route/<id>/<id>', 'Controller', ['id'=>'\d+']);
+    $r = new artax\routing\Route('/route/<id>/<id>', 'Controller', ['id'=>'\d+']);
   }
   
   /**
-   * @covers artax\Route::buildPattern
+   * @covers artax\routing\Route::buildPattern
    * @expectedException artax\exceptions\InvalidArgumentException
    */
   public function testPatternBuilderThrowsExceptionOnMissingVariableConstraint()
   {
-    $r = new artax\Route('/route/<id>', 'Controller', ['test'=>'\d+']);
+    $r = new artax\routing\Route('/route/<id>', 'Controller', ['test'=>'\d+']);
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

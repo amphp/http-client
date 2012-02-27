@@ -111,15 +111,17 @@ require AX_SYSTEM_DIR . '/src/artax/ExControllerInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/ExControllerTrait.php';
 require AX_SYSTEM_DIR . '/src/artax/FatalHandlerInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/FatalHandler.php';
-require AX_SYSTEM_DIR . '/src/artax/RouteInterface.php';
-require AX_SYSTEM_DIR . '/src/artax/Route.php';
-require AX_SYSTEM_DIR . '/src/artax/RouteList.php';
-require AX_SYSTEM_DIR . '/src/artax/MatcherInterface.php';
-require AX_SYSTEM_DIR . '/src/artax/Matcher.php';
+
+require AX_SYSTEM_DIR . '/src/artax/routing/RequestInterface.php';
+require AX_SYSTEM_DIR . '/src/artax/routing/RouteInterface.php';
+require AX_SYSTEM_DIR . '/src/artax/routing/Route.php';
+require AX_SYSTEM_DIR . '/src/artax/routing/RouteList.php';
+require AX_SYSTEM_DIR . '/src/artax/routing/MatcherInterface.php';
+require AX_SYSTEM_DIR . '/src/artax/routing/Matcher.php';
+
 require AX_SYSTEM_DIR . '/src/artax/ProviderInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/DotNotation.php';
 require AX_SYSTEM_DIR . '/src/artax/DepProvider.php';
-require AX_SYSTEM_DIR . '/src/artax/RequestInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/ResponseInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/MediatorInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/Mediator.php';
@@ -147,5 +149,5 @@ $artax = (new artax\App(
   new artax\ClassLoaderFactory,
   new artax\DepProvider(new artax\DotNotation),
   new artax\Mediator,
-  new artax\RouteList
+  new artax\routing\RouteList
 ))->boot();

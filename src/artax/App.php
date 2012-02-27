@@ -49,7 +49,7 @@ namespace artax {
     protected $clFactory;
     
     /**
-     * @var RouteList
+     * @var routing\RouteList
      */
     protected $routes;
     
@@ -72,7 +72,7 @@ namespace artax {
      * @param FatalHandler $fatalHandler
      * @param DepProvider  $depProvider
      * @param Mediator     $mediator
-     * @param RoutesList   $routes
+     * @param routing\RouteList   $routes
      * 
      * @return void
      */
@@ -84,7 +84,7 @@ namespace artax {
       ClassLoaderFactory $clFactory,
       DepProvider $depProvider,
       Mediator $mediator,
-      RouteList $routes
+      routing\RouteList $routes
     )
     {
       $this->errorHandler = $errorHandler;
@@ -180,6 +180,7 @@ namespace artax {
       if ( ! empty($this->config['httpBundle'])) {
         require AX_SYSTEM_DIR . '/src/artax/views/ViewInterface.php';
         require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpMatcher.php';
+        require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpRequestInterface.php';
         require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpRequest.php';
         require AX_SYSTEM_DIR . '/src/artax/blocks/http/BucketInterface.php';
         require AX_SYSTEM_DIR . '/src/artax/blocks/http/BucketAbstract.php';
@@ -285,7 +286,7 @@ namespace artax {
           : $this->configLoader->setConfigFile($routes)->load()->getConfigArr();
         $this->routes->addAllFromArr($routesArr);
       }
-      $this->depProvider->setSharedDep('artax.RouteList', $this->routes);
+      $this->depProvider->setSharedDep('artax.routing.RouteList', $this->routes);
       $this->notify('ax.boot.routes_loaded');
     }
     

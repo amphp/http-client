@@ -3,20 +3,22 @@
 /**
  * RouteList Class File
  * 
- * PHP version 5.3
+ * PHP version 5.4
  * 
  * @category   artax
  * @package    core
+ * @subpackage routing
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
  
-namespace artax {
+namespace artax\routing {
 
   /**
    * RouteList Class
    * 
    * @category   artax
    * @package    core
+   * @subpackage routing
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
   class RouteList extends \SplObjectStorage
@@ -32,22 +34,20 @@ namespace artax {
      * @param mixed $data Data to associate with the object
      * 
      * @return bool TRUE on successful add -or- FALSE if add failed
-     * @throws exceptions\InvalidArgumentException If not passed a Route object
+     * @throws \artax\exceptions\InvalidArgumentException If not passed a Route object
      */
     public function attach($route, $data=NULL)
     {
       if ( ! $route instanceof RouteInterface) {
         $msg = 'attach() expects an instance of RouteInterface: ' . 
           get_class($route) . ' specified';
-        throw new exceptions\InvalidArgumentException($msg);
+        throw new \artax\exceptions\InvalidArgumentException($msg);
       }
-      
       if (NULL !== $data && ! is_string($data)) {
         $msg = 'attach() expects a string $data parameter: ' .gettype($data) .
           ' specified';
-        throw new exceptions\InvalidArgumentException($msg);
+        throw new \artax\exceptions\InvalidArgumentException($msg);
       }
-      
       parent::attach($route, $data);
     }
     
@@ -57,14 +57,14 @@ namespace artax {
      * @param RouteList $storage RouteList object
      * 
      * @return void
-     * @throws exceptions\InvalidArgumentException If not passed a RouteList object
+     * @throws \artax\exceptions\InvalidArgumentException If not passed a RouteList object
      */
     public function addAll($object)
     {
       if ( ! $object instanceof RouteList) {
         $msg = 'addAll() expects an instance of RouteList: ' . 
           get_class($object) . ' specified';
-        throw new exceptions\InvalidArgumentException($msg);
+        throw new \artax\exceptions\InvalidArgumentException($msg);
       }
       parent::addAll($object);
     }

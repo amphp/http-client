@@ -21,7 +21,7 @@ namespace artax\blocks\http {
    * @subpackage http
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
-  class HttpRequest implements \artax\RequestInterface
+  class HttpRequest implements HttpRequestInterface
   {
     /**
      * Bucket of server vars generated for the request

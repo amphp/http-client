@@ -1,22 +1,24 @@
 <?php
 
 /**
- * Artax Route Class File
+ * Route Class File
  * 
  * PHP version 5.4
  * 
  * @category   artax
  * @package    core
+ * @subpackage routing
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace artax {
+namespace artax\routing {
   
   /**
    * Route Class
    * 
    * @category   artax
    * @package    core
+   * @subpackage routing
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
   class Route implements RouteInterface
@@ -53,11 +55,11 @@ namespace artax {
      * 
      * @param string $alias       Route alias to attempt to match
      * @param string $controller  Controller to instantiate on route alias match
-     * @param string $method      Controller method to invoke on route alias match
      * @param array  $constraints Array of regex pattern constraints for parameter
      *                            capture groups
      * 
      * @return void
+     * @uses Route::buildPattern
      */
     public function __construct($alias, $controller, Array $constraints=[])
     {
@@ -74,6 +76,9 @@ namespace artax {
      * @param array  $constraints An array of named capture argument constraints
      * 
      * @return void
+     * @throws \artax\exceptions\InvalidArgumentException On invalid route specification
+     * @used-by Route::buildPattern
+     * @uses    Route::buildPattern
      */
     protected function buildPattern($alias, $constraints)
     {
@@ -83,14 +88,14 @@ namespace artax {
           if (isset($constraints[$m[1]])) {
             if (in_array($m[1], $argNames)) {
               $msg = 'Duplicate route arguments not supported: <'.$m[1].'>';
-              throw new exceptions\InvalidArgumentException($msg);
+              throw new \artax\exceptions\InvalidArgumentException($msg);
             }
             $repl = '(?P<'.$m[1].'>'.$constraints[$m[1]].')';
             $alias = str_replace('<'.$m[1].'>', $repl, $alias);
             $argNames[] = $m[1];
           } else {
             $msg = 'Named route argument requires matching constraint: <'.$m[1].'>';
-            throw new exceptions\InvalidArgumentException($msg);
+            throw new \artax\exceptions\InvalidArgumentException($msg);
           }
         }
       }
@@ -103,6 +108,7 @@ namespace artax {
      * @param string $alias Request route alias
      * 
      * @return string Returns a regular expression pattern for route matching
+     * @used-by Route::buildPattern
      */
     protected function compile($alias)
     {

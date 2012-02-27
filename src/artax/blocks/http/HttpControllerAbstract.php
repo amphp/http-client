@@ -44,13 +44,13 @@ namespace artax\blocks\http {
      * Inject dependencies
      * 
      * @param \artax\MediatorInterface   $mediator Mediator object
-     * @param \artax\RequestInterface    $request  Request object
+     * @param HttpRequestInterface    $request  Request object
      * @param \artax\views\ViewInterface $view     View object
      * @param HttpResponseInterface      $response Response object
      */
     public function __construct(
       \artax\MediatorInterface $mediator,
-      \artax\RequestInterface $request,
+      HttpRequestInterface $request,
       \artax\views\ViewInterface $view,
       HttpResponseInterface $response)
     {
