@@ -51,14 +51,12 @@ namespace artax {
      */
     public function match(RequestInterface $request, RouteList $routeList)
     {
-      $match = FALSE;
       foreach ($routeList as $route) {
         if ($this->matchRoute($request, $route)) {
-          $match = TRUE;
-          break;
+          return TRUE;
         }
       }
-      return $match;
+      return FALSE;
     }
     
     /**
