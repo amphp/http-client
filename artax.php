@@ -94,8 +94,11 @@ require AX_SYSTEM_DIR . '/src/artax/exceptions/ErrorException.php';
 require AX_SYSTEM_DIR . '/src/artax/exceptions/UnexpectedValueException.php';
 
 // Core libs
-require AX_SYSTEM_DIR . '/src/artax/NotifierInterface.php';
-require AX_SYSTEM_DIR . '/src/artax/NotifierTrait.php';
+require AX_SYSTEM_DIR . '/src/artax/events/NotifierInterface.php';
+require AX_SYSTEM_DIR . '/src/artax/events/NotifierTrait.php';
+require AX_SYSTEM_DIR . '/src/artax/events/MediatorInterface.php';
+require AX_SYSTEM_DIR . '/src/artax/events/Mediator.php';
+
 require AX_SYSTEM_DIR . '/src/artax/ErrorHandlerInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/ErrorHandler.php';
 require AX_SYSTEM_DIR . '/src/artax/App.php';
@@ -123,8 +126,6 @@ require AX_SYSTEM_DIR . '/src/artax/ProviderInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/DotNotation.php';
 require AX_SYSTEM_DIR . '/src/artax/DepProvider.php';
 require AX_SYSTEM_DIR . '/src/artax/ResponseInterface.php';
-require AX_SYSTEM_DIR . '/src/artax/MediatorInterface.php';
-require AX_SYSTEM_DIR . '/src/artax/Mediator.php';
 
 // Class autoloader -- required last to avoid accidentally autoloading core libs
 require AX_SYSTEM_DIR . '/src/artax/ClassLoaderInterface.php';
@@ -148,6 +149,6 @@ $artax = (new artax\App(
   new artax\FatalHandler,
   new artax\ClassLoaderFactory,
   new artax\DepProvider(new artax\DotNotation),
-  new artax\Mediator,
+  new artax\events\Mediator,
   new artax\routing\RouteList
 ))->boot();

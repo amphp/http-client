@@ -1,16 +1,17 @@
 <?php
 
 /**
- * Artax NotifierInterface Interface File
+ * NotifierInterface File
  * 
  * PHP version 5.4
  * 
  * @category   artax
  * @package    core
+ * @subpackage events
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace artax {
+namespace artax\events {
   
   /**
    * NotifierInterface
@@ -20,6 +21,7 @@ namespace artax {
    * 
    * @category   artax
    * @package    core
+   * @subpackage events
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
   interface NotifierInterface

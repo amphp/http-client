@@ -7,10 +7,11 @@
  * 
  * @category   artax
  * @package    core
+ * @subpackage events
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace artax {
+namespace artax\events {
   
   /**
    * NotifierTrait
@@ -19,6 +20,7 @@ namespace artax {
    * 
    * @category   artax
    * @package    core
+   * @subpackage events
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
   trait NotifierTrait

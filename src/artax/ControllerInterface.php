@@ -19,7 +19,7 @@ namespace artax {
    * @package    core
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
-  interface ControllerInterface extends NotifierInterface
+  interface ControllerInterface extends events\NotifierInterface
   {
     /**
      * The controller's "work" method

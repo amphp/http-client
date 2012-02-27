@@ -3,7 +3,7 @@
 class NotifierTraitTest extends PHPUnit_Framework_TestCase
 {
   /**
-   * @covers artax\NotifierTrait::notify
+   * @covers artax\events\NotifierTrait::notify
    */
   public function testNotifySendsMessageToMediatorIfSet()
   {
@@ -17,7 +17,7 @@ class NotifierTraitTest extends PHPUnit_Framework_TestCase
   }
   
   /**
-   * @covers artax\NotifierTrait::notify
+   * @covers artax\events\NotifierTrait::notify
    */
   public function testNotifySendsObjectInstanceOnNullDataParameter()
   {
@@ -31,7 +31,7 @@ class NotifierTraitTest extends PHPUnit_Framework_TestCase
   }
   
   /**
-   * @covers artax\NotifierTrait::notify
+   * @covers artax\events\NotifierTrait::notify
    */
   public function testNotifyDoesNothingIfMediatorIsNull()
   {      
@@ -48,7 +48,7 @@ class MockMediatorBecausePHPUnitChokesOnCallableTypehint
 
 class NotifierTraitImplementationClass
 {
-  use artax\NotifierTrait;
+  use artax\events\NotifierTrait;
   
   public function __construct($mediator=NULL)
   {

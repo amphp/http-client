@@ -19,9 +19,9 @@ namespace artax {
    * @package  core
    * @author   Daniel Lowrey <rdlowrey@gmail.com>
    */
-  class App implements NotifierInterface
+  class App implements events\NotifierInterface
   {
-    use NotifierTrait;
+    use events\NotifierTrait;
     
     /**
      * @var ConfigLoader
@@ -71,7 +71,7 @@ namespace artax {
      * @param ErrorHandler $errorHandler
      * @param FatalHandler $fatalHandler
      * @param DepProvider  $depProvider
-     * @param Mediator     $mediator
+     * @param events\Mediator     $mediator
      * @param routing\RouteList   $routes
      * 
      * @return void
@@ -83,7 +83,7 @@ namespace artax {
       FatalHandlerInterface $fatalHandler,
       ClassLoaderFactory $clFactory,
       DepProvider $depProvider,
-      Mediator $mediator,
+      events\Mediator $mediator,
       routing\RouteList $routes
     )
     {
@@ -268,7 +268,7 @@ namespace artax {
           $this->mediator->push($listener[0], $lambda);
         }
       }
-      $this->depProvider->setSharedDep('artax.Mediator', $this->mediator);
+      $this->depProvider->setSharedDep('artax.events.Mediator', $this->mediator);
       $this->notify('ax.boot.listeners_loaded');
     }
     

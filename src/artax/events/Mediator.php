@@ -7,22 +7,23 @@
  * 
  * @category   artax
  * @package    core
+ * @subpackage events
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace artax {
+namespace artax\events {
   
   /**
    * Mediator Class
    * 
    * @category   artax
    * @package    core
+   * @subpackage events
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
   class Mediator implements MediatorInterface
   {
     /**
-     * Array matching events to listeners
      * @var array
      */
     protected $listeners;

@@ -23,7 +23,7 @@ namespace artax\blocks\http {
    */
   abstract class HttpControllerAbstract implements \artax\ResponseControllerInterface
   {
-    use \artax\NotifierTrait;
+    use \artax\events\NotifierTrait;
     
     /**
      * @var \artax\blocks\views\ViewInterface
@@ -43,13 +43,13 @@ namespace artax\blocks\http {
     /**
      * Inject dependencies
      * 
-     * @param \artax\MediatorInterface   $mediator Mediator object
+     * @param \artax\events\MediatorInterface   $mediator Mediator object
      * @param HttpRequestInterface    $request  Request object
      * @param \artax\views\ViewInterface $view     View object
      * @param HttpResponseInterface      $response Response object
      */
     public function __construct(
-      \artax\MediatorInterface $mediator,
+      \artax\events\MediatorInterface $mediator,
       HttpRequestInterface $request,
       \artax\views\ViewInterface $view,
       HttpResponseInterface $response)
