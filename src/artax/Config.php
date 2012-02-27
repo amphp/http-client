@@ -33,19 +33,17 @@ namespace artax {
      * 
      * @return void
      */
-    public function __construct(Array $params=NULL)
+    public function __construct(Array $params=[])
     {
-      $defaults = [
-        'debug'       => TRUE,
+      $this->defaults = [
+        'debug'       => FALSE,
         'cacheBundle' => TRUE,
         'cliBundle'   => FALSE,
         'httpBundle'  => TRUE,
         'classLoader' => 'standard',
         'namespaces'  => [],
-        'autoRequire' => [],
-        
+        'autoRequire' => []
       ];
-      $params = $params ? array_merge($defaults, $params) : $defaults;
       $this->load($params);
     }
     
@@ -58,7 +56,7 @@ namespace artax {
      */
     protected function filterBool($val)
     {
-      return filter_var($val, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+      return (bool) filter_var($val, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
     }
     
     /**
