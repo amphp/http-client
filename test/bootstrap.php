@@ -21,6 +21,9 @@ require AX_SYSTEM_DIR . '/src/artax/ClassLoaderInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/ClassLoaderAbstract.php'; 
 require AX_SYSTEM_DIR . '/src/artax/ClassLoader.php';
 (new artax\ClassLoader('artax', AX_SYSTEM_DIR . '/src'))->register();
+(new artax\ClassLoader(NULL, AX_SYSTEM_DIR . '/src'))->register();
+
+require __DIR__ . '/MagicTestGetTrait.php';
 
 
 /*

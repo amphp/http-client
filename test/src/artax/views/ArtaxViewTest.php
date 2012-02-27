@@ -90,13 +90,5 @@ class ArtaxViewTest extends PHPUnit_Framework_TestCase
 
 class ArtaxViewTestImplementation extends artax\views\ArtaxView
 {
-  public function __get($prop)
-  {
-    if (property_exists($this, $prop)) {
-      return $this->$prop;
-    } else {
-      $msg = 'Invalid property: ' . __CLASS__ . "::\$$prop does not exist";
-      throw new OutOfBoundsException($msg);
-    }
-  }
+  use MagicTestGetTrait;
 }
