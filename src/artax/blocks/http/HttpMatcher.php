@@ -24,6 +24,21 @@ namespace artax\blocks\http {
   class HttpMatcher extends \artax\routing\Matcher
   {
     /**
+     * Injects request and route list dependencies
+     * 
+     * @param HttpRequest      $request   The Request object to match
+     * @param RouteList        $routeList The list of routes to match against
+     * 
+     * @return void
+     */
+    public function __construct(
+      HttpRequest $request,
+      \artax\routing\RouteList $routeList)
+    {
+      parent::__construct($request, $routeList);
+    }
+    
+    /**
      * Extends parent to allow HTTP method route constraint
      * 
      * @param \artax\routing\RequestInterface $request The request to match

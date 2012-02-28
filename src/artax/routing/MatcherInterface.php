@@ -24,12 +24,9 @@ namespace artax\routing {
   interface MatcherInterface
   {
     /**
-     * Does the request match a route from the supplied route list?
-     * 
-     * @param RequestInterface $request   The request object to match
-     * @param RouteList        $routeList The list of routes to match against
+     * Does the request match a route from the route list?
      */
-    public function match(RequestInterface $request, RouteList $routeList);
+    public function match();
     
     /**
      * Retrieve the matched route's dot-notation controller string
