@@ -28,10 +28,15 @@ namespace artax\handlers {
     /**
      * Throw exceptions when PHP errors are raised
      * 
+     * @param int    $errNo   The PHP error constant raised
+     * @param string $errStr  The resulting PHP error message
+     * @param string $errFile The file where the PHP error originated
+     * @param int    $errLine The line in which the error occurred
+     * 
      * @return void
      * @throws \artax\exceptions\ErrorException On raised PHP error
      */
-    public function handle($errno, $errstr, $errfile, $errline)
+    public function handle($errNo, $errStr, $errFile, $errLine)
     {
       $levels = [
         E_WARNING           => 'Warning',
@@ -44,7 +49,7 @@ namespace artax\handlers {
         E_DEPRECATED        => 'Deprecated Notice',
         E_USER_DEPRECATED   => 'User Deprecated Notice'
       ];
-      $msg = $levels[$errno] . ": $errstr in $errfile on line $errline";
+      $msg = $levels[$errNo] . ": $errStr in $errFile on line $errLine";
       throw new \artax\exceptions\ErrorException($msg);
     }
   }

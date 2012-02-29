@@ -29,6 +29,8 @@ namespace artax\blocks\http {
     /**
      * Auto-detect SERVER vars and populate associated bucket params
      * 
+     * @param array $_server An optional SERVER value array
+     * 
      * @return Object instance for method chaining
      */
     public function detect($_server=NULL) {

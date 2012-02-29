@@ -29,6 +29,8 @@ namespace artax\blocks\http {
     /**
      * Auto-detect HTTP headers and populate associated bucket params
      * 
+     * @param array $_server An optional SERVER value array
+     * 
      * @return Object instance for method chaining
      */
     public function detect($_server=NULL) {
@@ -40,6 +42,8 @@ namespace artax\blocks\http {
     
     /**
      * Generate associative array of submitted HTTP request headers
+     * 
+     * @param array $_server An optional SERVER value array
      * 
      * @return array Returns a key=>value array of submitted HTTP request headers
      */
@@ -65,15 +69,21 @@ namespace artax\blocks\http {
     }
     
     /**
+     * Retrieve a list of headers using the native apache function if available
      * 
+     * @return array Returns an array of header values
      */
     protected function nativeHeaderGet()
     {
       return function_exists('getallheaders') ? getallheaders() : [];
     }
     
-    /*
-     *
+    /**
+     * Format header names
+     * 
+     * @param string $name An unformatted header name string
+     * 
+     * @return array Returns an array of header values
      */
     protected function formatHeaderNames($name)
     {

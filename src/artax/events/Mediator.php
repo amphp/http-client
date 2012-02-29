@@ -24,6 +24,7 @@ namespace artax\events {
   class Mediator implements MediatorInterface
   {
     /**
+     * An array of event listeners
      * @var array
      */
     protected $listeners;
@@ -36,7 +37,7 @@ namespace artax\events {
      * 
      * @return void
      */
-    public function __construct(Array $listeners=[])
+    public function __construct(array $listeners=[])
     {
       $this->listeners = [];
       if ($listeners) {
@@ -85,7 +86,6 @@ namespace artax\events {
      * Remove the first `$listener` from the start of the `$eventName` event queue
      * 
      * @param string $eventName Event identifier name to listen for
-     * @param mixed  $listener  Event listener
      * 
      * @return mixed Callable listener on success or `NULL` if no listeners
      *               were found for the specified event
@@ -102,7 +102,6 @@ namespace artax\events {
      * Remove the last `$listener` from the end of the `$eventName` event queue
      * 
      * @param string $eventName Event identifier name to listen for
-     * @param mixed  $listener  Event listener
      * 
      * @return mixed Callable listener on success or `NULL` if no listeners
      *               were found for the specified event

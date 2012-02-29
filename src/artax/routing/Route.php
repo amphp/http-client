@@ -61,7 +61,7 @@ namespace artax\routing {
      * @return void
      * @uses Route::buildPattern
      */
-    public function __construct($alias, $controller, Array $constraints=[])
+    public function __construct($alias, $controller, array $constraints=[])
     {
       $this->alias       = $alias;
       $this->controller  = $controller;

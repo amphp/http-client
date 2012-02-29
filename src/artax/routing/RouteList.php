@@ -30,8 +30,8 @@ namespace artax\routing {
      * hasn't already been added. The Route object must also specify both
      * alias and target properties to be added to the list.
      * 
-     * @param Route $r    Route object
-     * @param mixed $data Data to associate with the object
+     * @param Route $route Route object
+     * @param mixed $data  Data to associate with the object
      * 
      * @return bool TRUE on successful add -or- FALSE if add failed
      * @throws \artax\exceptions\InvalidArgumentException If not passed a Route object
@@ -54,19 +54,20 @@ namespace artax\routing {
     /**
      * Overloads the parent addAll function to prevent non-Route entries
      * 
-     * @param RouteList $storage RouteList object
+     * @param RouteList $obj RouteList object
      * 
      * @return void
      * @throws \artax\exceptions\InvalidArgumentException If not passed a RouteList object
      */
-    public function addAll($object)
+    public function addAll($obj)
     {
-      if ( ! $object instanceof RouteList) {
-        $msg = 'addAll() expects an instance of RouteList: ' . 
-          get_class($object) . ' specified';
+      $expected = __CLASS__;
+      if ( ! $obj instanceof $expected) {
+        $msg = "RouteList::addAll expects an instance of $expected: " . 
+          get_class($obj) . ' specified';
         throw new \artax\exceptions\InvalidArgumentException($msg);
       }
-      parent::addAll($object);
+      parent::addAll($obj);
     }
     
     /**
@@ -78,7 +79,7 @@ namespace artax\routing {
      * @throws exceptions\ErrorException On invalid array structure
      * @throws exceptions\InvalidArgumentException On invalid route values
      */
-    public function addAllFromArr(Array $arr)
+    public function addAllFromArr(array $arr)
     {
       foreach (array_keys($arr) as $key) {
         $this->addFromArr($arr[$key], $key);
@@ -99,7 +100,7 @@ namespace artax\routing {
      * @return RouteList Object instance for method chaining
      * @throws exceptions\InvalidArgumentException On invalid route values
      */
-    public function addFromArr(Array $arr, $data=NULL)
+    public function addFromArr(array $arr, $data=NULL)
     {
       $arr[2] = isset($arr[2]) ? $arr[2] : [];
       $route  = new Route($arr[0], $arr[1], $arr[2]);

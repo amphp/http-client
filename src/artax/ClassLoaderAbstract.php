@@ -33,9 +33,28 @@ namespace artax {
    */
   abstract class ClassLoaderAbstract implements ClassLoaderInterface
   {
+    /**
+     * The expected file extension for class files
+     * @var string
+     */
     protected $ext = '.php';
+    
+    /**
+     * The namespace for which this loader imports classes
+     * @var string
+     */
     protected $namespace;
+    
+    /**
+     * The the path where classes of this namespace reside
+     * @var string
+     */
     protected $includePath;
+    
+    /**
+     * The namespace separator naming convention used for class filenames
+     * @var string
+     */
     protected $nsSeparator = '\\';
     
     /**
@@ -45,6 +64,8 @@ namespace artax {
      * @param string $ns          The namespace to use
      * @param string $includePath The path to use when searching for this
      *                            namespace's class files
+     * 
+     * @return void
      */
     public function __construct($ns = NULL, $includePath = NULL)
     {
@@ -53,7 +74,9 @@ namespace artax {
     }
     
     /**
+     * Getter method for protected $namespace property
      * 
+     * @return string Returns loader namespace
      */
     public function getNamespace()
     {
@@ -64,6 +87,8 @@ namespace artax {
      * Sets the namespace separator used by classes using this class loader.
      * 
      * @param string $sep The separator to use.
+     * 
+     * @return ClassLoaderAbstract Returns object instance for method chaining/
      */
     public function setNsSeparator($sep)
     {
@@ -84,7 +109,9 @@ namespace artax {
     /**
      * Sets the base include path for all class files using this class loader.
      * 
-     * @param string $includePath
+     * @param string $includePath The class file include path for this loader
+     * 
+     * @return ClassLoaderAbstract Returns object instance for method chaining.
      */
     public function setIncludePath($includePath)
     {
@@ -95,7 +122,7 @@ namespace artax {
     /**
      * Gets the base include path for all class files using this class loader.
      *
-     * @return string $includePath
+     * @return string Returns class file include path for this loader
      */
     public function getIncludePath()
     {
@@ -106,6 +133,8 @@ namespace artax {
      * Sets the file extension of class files using this class loader.
      * 
      * @param string $ext
+     * 
+     * @return ClassLoaderAbstract Returns object instance for method chaining.
      */
     public function setExt($ext)
     {
@@ -116,7 +145,7 @@ namespace artax {
     /**
      * Gets the file extension of class files using this class loader.
      *
-     * @return string $ext
+     * @return string Returns loaders protected $ext property
      */
     public function getExt()
     {

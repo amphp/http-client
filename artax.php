@@ -128,7 +128,6 @@ require AX_SYSTEM_DIR . '/src/artax/DotNotation.php';
 require AX_SYSTEM_DIR . '/src/artax/DepProvider.php';
 require AX_SYSTEM_DIR . '/src/artax/ResponseInterface.php';
 
-// Class autoloader -- required last to avoid accidentally autoloading core libs
 require AX_SYSTEM_DIR . '/src/artax/ClassLoaderInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/ClassLoaderAbstract.php';
 require AX_SYSTEM_DIR . '/src/artax/ClassLoader.php';

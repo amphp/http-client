@@ -33,6 +33,8 @@ namespace artax\blocks\http {
      * Only key=>value pairs passed via HTTP GET and HTTP POST are detected.
      * COOKIE values are ignored as they are stored in a separate bucket.
      * 
+     * @param array $_cookie A COOKIE parameter array
+     * 
      * @return Object instance for method chaining
      */
     public function detect($_cookie=NULL) {

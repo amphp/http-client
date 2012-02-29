@@ -24,11 +24,13 @@ namespace artax\routing {
   class Matcher implements MatcherInterface
   {
     /**
+     * The request object for which to find a route match
      * @var RequestInterface
      */
     protected $request;
     
     /**
+     * The list of routes to match the request against
      * @var RouteList
      */
     protected $routeList;

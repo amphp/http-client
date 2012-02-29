@@ -23,7 +23,10 @@ namespace artax {
   {
     /**
      * Factory method for object instantiation
+     * 
+     * @param string $type   A DotNotation string class name
+     * @param array  $custom A key/value array specifying custom dependency objects
      */
-    public function make($type, Array $custom);
+    public function make($type, array $custom);
   }
 }

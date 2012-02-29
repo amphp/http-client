@@ -27,8 +27,8 @@ namespace artax {
     /**
      * Enforces setter methods when storing parameter keys
      * 
-     * @param string $id         Param identifier name
-     * @param mixed  $param      Specified parameter value
+     * @param string $key      Param identifier name
+     * @param mixed  $val      Specified parameter value
      * 
      * @return Bucket Object instance for method chaining
      */

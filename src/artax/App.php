@@ -24,41 +24,49 @@ namespace artax {
     use events\NotifierTrait;
     
     /**
+     * Loader object for config files
      * @var ConfigLoader
      */
     protected $configLoader;
     
     /**
+     * The app config directive bucket
      * @var ConfigInterface
      */
     protected $config;
     
     /**
+     * The PHP error handler class
      * @var handlers\ErrorHandlerInterface
      */
     protected $errorHandler;
     
     /**
+     * The fatal error handling class
      * @var handlers\FatalHandlerInterface
      */
     protected $fatalHandler;
     
     /**
+     * A factory for building class loaders
      * @var ClassLoaderFactory
      */
     protected $clFactory;
     
     /**
-     * @var routing\RouteList
-     */
-    protected $routes;
-    
-    /**
+     * The app dependency provider
      * @var ProviderInterface
      */
     protected $depProvider;
     
     /**
+     * A list of request routes to match against
+     * @var routing\RouteList
+     */
+    protected $routes;
+    
+    /**
+     * An ordered list of class boot methods to execute
      * @var array
      */
     protected $bootSteps;
@@ -66,13 +74,14 @@ namespace artax {
     /**
      * Constructor injects object dependencies
      * 
-     * @param ConfigLoader $configLoader
-     * @param Config       $config
-     * @param handlers\ErrorHandler $errorHandler
-     * @param handlers\FatalHandler $fatalHandler
-     * @param DepProvider  $depProvider
-     * @param events\Mediator     $mediator
-     * @param routing\RouteList   $routes
+     * @param ConfigLoader          $configLoader Loader object for config files
+     * @param Config                $config       The app config directive bucket
+     * @param ErrorHandlerInterface $errorHandler The PHP error handler class
+     * @param FatalHandlerInterface $fatalHandler The fatal error handling class
+     * @param ClassLoaderFactory    $clFactory    A factory for building class loaders
+     * @param DepProvider           $depProvider  The app dependency provider
+     * @param Mediator              $mediator     An event mediator object
+     * @param RouteList             $routes       A list of request routes to match
      * 
      * @return void
      */
@@ -110,6 +119,9 @@ namespace artax {
     }
     
     /**
+     * Executes the application boot process
+     * 
+     * @return void
      * @notifies ax.boot_complete|\artax\App
      */
     public function boot()
@@ -158,9 +170,9 @@ namespace artax {
       
       if ( ! $debug) {
         error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
-        //ini_set('display_errors', FALSE);
+        ini_set('display_errors', FALSE);
       } else {
-        //ini_set('display_errors', TRUE);
+        ini_set('display_errors', TRUE);
       }
       $this->fatalHandler->setDebug($debug);
     }

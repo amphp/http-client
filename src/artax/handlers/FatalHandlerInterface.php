@@ -27,7 +27,7 @@ namespace artax\handlers {
     /**
      * The last chance handler for uncaught exceptions
      *
-     * @param \Exception $e Exception object
+     * @param Exception $e Exception object
      */
     public function exHandler(\Exception $e);
 

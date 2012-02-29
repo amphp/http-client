@@ -50,7 +50,6 @@ namespace artax\events {
      * Remove the first `$listener` from the start of the `$eventName` event queue
      * 
      * @param string $eventName Event identifier name
-     * @param mixed  $listener  Event listener
      */
     public function shift($eventName);
     
@@ -58,7 +57,6 @@ namespace artax\events {
      * Remove the last `$listener` from the end of the `$eventName` event queue
      * 
      * @param string $eventName Event identifier name
-     * @param mixed  $listener  Event listener
      */
     public function pop($eventName);
     
@@ -83,11 +81,15 @@ namespace artax\events {
     
     /**
      * Retrieve the first event listener in the queue for the specified event
+     * 
+     * @param string $eventName Event identifier name
      */
     public function first($eventName);
     
     /**
      * Retrieve the last event listener in the queue for the specified event
+     * 
+     * @param string $eventName Event identifier name
      */
     public function last($eventName);
     

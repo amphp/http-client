@@ -29,8 +29,11 @@ namespace artax\blocks\http {
   {
     /**
      * Overload parent constructor so we can use two superglobals
+     * 
+     * @param array $_get  GET parameter array
+     * @param array $_post POST parameter array
      */
-    public function __construct(Array $_get=NULL, Array $_post=NULL)
+    public function __construct(array $_get=NULL, array $_post=NULL)
     {
       $this->detect($_get, $_post);
     }

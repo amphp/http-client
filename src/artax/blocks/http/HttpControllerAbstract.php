@@ -26,16 +26,19 @@ namespace artax\blocks\http {
     use \artax\events\NotifierTrait;
     
     /**
-     * @var \artax\blocks\views\ViewInterface
+     * The HTTP request object to be controlled
+     * @var HttpRequestInterface
      */
     protected $request;
     
     /**
+     * The view object to populate in response
      * @var \artax\views\ViewInterface
      */
     protected $view;
     
     /**
+     * The response object used to return the populated view object to the client
      * @var HttpResponseInterface
      */
     protected $response;
@@ -43,10 +46,10 @@ namespace artax\blocks\http {
     /**
      * Inject dependencies
      * 
-     * @param \artax\events\MediatorInterface   $mediator Mediator object
-     * @param HttpRequestInterface    $request  Request object
-     * @param \artax\views\ViewInterface $view     View object
-     * @param HttpResponseInterface      $response Response object
+     * @param MediatorInterface     $mediator Mediator object
+     * @param HttpRequestInterface  $request  Request object
+     * @param ViewInterface         $view     View object
+     * @param HttpResponseInterface $response Response object
      */
     public function __construct(
       \artax\events\MediatorInterface $mediator,
@@ -68,15 +71,6 @@ namespace artax\blocks\http {
     public function getResponse()
     {
       return $this->response;
-    }
-    
-    /**
-     * Magic invocation method to execute the controller's work method
-     */
-    public function __invoke()
-    {
-      call_user_func_array([$this, 'exec'], func_get_args());
-      return $this;
     }
   }
 }

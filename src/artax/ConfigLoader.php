@@ -3,10 +3,10 @@
 /**
  * Artax ConfigLoader Class File
  * 
- * PHP version 5.3
+ * PHP version 5.4
  * 
- * @category Artax
- * @package  Core
+ * @category artax
+ * @package  core
  * @author   Daniel Lowrey <rdlowrey@gmail.com>
  */
 
@@ -15,9 +15,10 @@ namespace artax {
   /**
    * Artax ConfigLoader class
    * 
-   * @category Artax
-   * @package  Core
+   * @category artax
+   * @package  core
    * @author   Daniel Lowrey <rdlowrey@gmail.com>
+   * @todo     Add loader methods for YAML/JSON/XML
    */
   class ConfigLoader
   {
@@ -34,21 +35,16 @@ namespace artax {
     protected $configArr;
     
     /**
-     * Constructor
-     * 
-     * Currently the only file type supported is php. The `$type` parameter is
-     * included with the intention of adding support for other type parsers for
-     * JSON, XML, YAML, etc. in the future.
+     * Setter method for config file property
      * 
      * @param string $configFile Path to app configuration file
      * 
-     * @return void
-     * @todo Add loader methods for YAML/JSON/XML
+     * @return ConfigLoader Returns object instance for method chaining.
      */
-    public function __construct($configFile=NULL) {
-      if (NULL !== $configFile) {
-        $this->configFile = $configFile;
-      }
+    public function setConfigFile($configFile)
+    {
+      $this->configFile = $configFile;
+      return $this;
     }
     
     /**
@@ -60,19 +56,14 @@ namespace artax {
     public function load()
     {
       $configFile = $this->configFile;
-      /*
-      $cachedArr = $this->loadFromCache($configFile);
-      if (FALSE !== $cachedArr) {
-        $this->configArr = $cachedArr;
-        return $this;
-      }      
-      */
+      
       $fileInfo = new \Finfo(FILEINFO_MIME_TYPE);      
       try {
         $type = $fileInfo->file($configFile);
-      } catch (exceptions\ErrorException $e) {
+      } catch (\artax\exceptions\ErrorException $e) {
+        $configFile !== NULL ? $configFile : 'NULL';
         $msg = "Config file could not be read: $configFile";
-        throw new exceptions\UnexpectedValueException($msg);
+        throw new \artax\exceptions\UnexpectedValueException($msg);
       }
       
       switch ($type) {
@@ -81,10 +72,8 @@ namespace artax {
           break;
         default:
           $msg = "Invalid config file type: $type";
-          throw new exceptions\UnexpectedValueException($msg);
+          throw new \artax\exceptions\UnexpectedValueException($msg);
       }
-      
-      //$this->storeInCache($configFile, $cfg);
       $this->configArr = $cfg;
       
       return $this;
@@ -93,9 +82,10 @@ namespace artax {
     /**
      * Load configuration directly from a PHP config file
      * 
-     * @return array $cfg Returns the `$cfg` array from the specified config
-     *                    file. If `$cfg` is invalid or nonexistent an empty
-     *                    array is returned.
+     * @param string $configFile The filepath to the config file
+     * 
+     * @return array Returns the `$cfg` array from the specified config file. If
+     *               `$cfg` is invalid or nonexistent an empty array is returned.
      */
     protected function loadPhpConfig($configFile)
     {
@@ -104,18 +94,9 @@ namespace artax {
     }
     
     /**
-     * 
-     */
-    public function setConfigFile($configFile)
-    {
-      $this->configFile = $configFile;
-      return $this;
-    }
-    
-    /**
      * Getter method for protected `$configArr` property
      * 
-     * @return array Array of config directives
+     * @return array Returns an array of loaded configuration values
      */
     public function getConfigArr()
     {

@@ -33,7 +33,7 @@ namespace artax {
      * 
      * @return void
      */
-    public function __construct(Array $params=[])
+    public function __construct(array $params=[])
     {
       $this->defaults = [
         'debug'       => FALSE,

@@ -29,10 +29,10 @@ namespace artax\blocks\http {
      * @param array $superglobal An associative array of superglobal values
      * 
      * @return void
-     * @throws exceptions\InvalidArgumentException On empty or non-string `$id`
-     *                                             param key
+     * @throws artax\exceptions\InvalidArgumentException On empty or non-string `$id`
+     *                                                   param key
      */
-    public function __construct(Array $superglobal=NULL)
+    public function __construct(array $superglobal=NULL)
     {
       $this->detect($superglobal);
     }

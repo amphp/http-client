@@ -28,6 +28,7 @@ namespace artax\handlers {
     use \artax\events\NotifierTrait;
     
     /**
+     * Flag specifying if full debug output should be shown when problems arise
      * @var bool
      */
     protected $debug = TRUE;
@@ -43,7 +44,7 @@ namespace artax\handlers {
      * Note that the shutdown handler will still be invoked after handling of an
      * uncaught exception.
      * 
-     * @param \Exception $e Exception object
+     * @param Exception $e Exception object
      *
      * @return void
      * @uses FatalHandler::setException
@@ -114,7 +115,7 @@ namespace artax\handlers {
      * in the boot process. The event mediator is then injected once event all
      * listeners are loaded from the app configuration settings.
      * 
-     * @param \artax\events\Mediator $mediator An event mediator object instance
+     * @param Mediator $mediator An event mediator object instance
      * 
      * @return FatalHandler Returns object instance for method chaining.
      */
@@ -172,7 +173,7 @@ namespace artax\handlers {
     /**
      * Default exception message if no custom handling controller specified
      * 
-     * @param \Exception $e An uncaught exception object
+     * @param Exception $e An uncaught exception object
      * 
      * @return string Returns a message appropriate to the object's debug setting
      */

@@ -26,7 +26,7 @@ namespace artax {
      * 
      * @param array $params    An array of key-value container parameters
      */
-    public function load(Array $params);
+    public function load(array $params);
     
     /**
      * Store a named parameter in the bucket

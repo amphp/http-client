@@ -24,11 +24,13 @@ namespace artax\blocks\cache {
   class FileCacheDriver implements CacheDriverInterface
   {
     /**
+     * The directory where cache files are stored
      * @var string
      */
     protected $cacheDir;
     
     /**
+     * The number of seconds until the cache entry becomes stale
      * @var int
      */ 
     protected $cacheTtl;
@@ -119,6 +121,7 @@ namespace artax\blocks\cache {
      * Determine if the specified identifier exists in the cache
      * 
      * @param string $id         Cached entity identifier
+     * @param int    $ttl        Time to live in seconds
      * 
      * @return bool Returns **TRUE** on success or **FALSE** on failure.
      * @throws exceptions\UnexpectedValueException If cache directory not specified

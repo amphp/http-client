@@ -24,7 +24,9 @@ namespace artax\blocks\session {
   class SessionBucket extends \artax\Bucket
   {
     /**
+     * Constructor
      * 
+     * @return void
      */
     public function __construct()
     {

@@ -34,6 +34,7 @@ namespace artax {
     protected $params;
     
     /**
+     * An array of default bucket values
      * @var array
      */
     protected $defaults=[];
@@ -47,7 +48,7 @@ namespace artax {
      * 
      * @return Object instance for method chaining
      */
-    public function load(Array $params, $overwrite=FALSE)
+    public function load(array $params, $overwrite=FALSE)
     {
       if ($this->defaults) {
         foreach ($this->defaults as $key => $val) {
@@ -65,8 +66,8 @@ namespace artax {
     /**
      * Registers a parameter for storage in the bucket
      * 
-     * @param string $id         Param identifier name
-     * @param mixed  $param      Specified parameter value
+     * @param string $key        Param identifier name
+     * @param mixed  $val        Specified parameter value
      * 
      * @return Object instance for method chaining
      */

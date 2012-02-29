@@ -19,16 +19,11 @@ namespace artax {
    * @package    core
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
-  interface ControllerInterface extends events\NotifierInterface
+  interface ControllerInterface extends \artax\events\NotifierInterface
   {
     /**
      * The controller's "work" method
      */
     public function exec();
-    
-    /**
-     * A magic invocation method to execute the controller's work method
-     */
-    public function __invoke();
   }
 }

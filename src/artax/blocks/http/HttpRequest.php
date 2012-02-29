@@ -102,10 +102,17 @@ namespace artax\blocks\http {
     protected $time;
     
     /**
+     * Constructor
      * 
+     * @param array $server ...
+     * @param array $get    ...
+     * @param array $post   ...
+     * @param array $cookie ...
+     * 
+     * @return void
      */
-    public function __construct(Array $server=NULL, Array $get=NULL, Array $post=NULL,
-      Array $cookie=NULL)
+    public function __construct(array $server=NULL, array $get=NULL, array $post=NULL,
+      array $cookie=NULL)
     {
       $this->server  = new ServerBucket($server);
       $this->headers = new HeaderBucket($server);
@@ -124,6 +131,11 @@ namespace artax\blocks\http {
         ->detectTime();
     }
     
+    /**
+     * Convenience getter method for the full request URI
+     * 
+     * @return string Returns the full request URI string
+     */
     public function getAddress()
     {
       $addr = "$this->protocol://$this->host" . $this->uri;

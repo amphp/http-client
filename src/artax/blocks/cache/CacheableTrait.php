@@ -24,16 +24,16 @@ namespace artax\blocks\cache {
   trait CacheableTrait
   {
     /**
-     * Caching mechanism driver
-     * @var DriverInterface
-     */
-    protected $cacheDriver;
-    
-    /**
      * Distinguishes stored objects of the same class in the cache
      * @var string
      */
     protected $cachePrefix = '';
+    
+    /**
+     * Caching mechanism driver
+     * @var DriverInterface
+     */
+    protected $cacheDriver;
     
     /**
      * Generated cache identifier hash
@@ -44,20 +44,20 @@ namespace artax\blocks\cache {
     /**
      * Retrieve object from the cache if available
      * 
-     * @return mixed Returns FALSE if no entity matched in cache or if no cache
+     * @return mixed Returns NULL if no entity matched in cache or if no cache
      *               driver dependency exists
      */
     protected function loadFromCache()
     {
       if ( ! $this->cacheDriver) {
-        return FALSE;
+        return NULL;
       } else {
-        $hash = $this->cacheHash ? $this->cacheHash : $this->cacheHash();
+        $hash = $this->cacheHash ?: $this->cacheHash();
         if ($this->cacheDriver->exists($hash)) {
           return $this->cacheDriver->fetch($hash);
         }
       }
-      return FALSE;
+      return NULL;
     }
     
     /**
@@ -70,7 +70,7 @@ namespace artax\blocks\cache {
       if ( ! $this->cacheDriver) {
         return FALSE;
       } else {
-        $hash = $this->cacheHash ? $this->cacheHash : $this->cacheHash();
+        $hash = $this->cacheHash ?: $this->cacheHash();
         $this->cacheDriver->store($hash, $this);
         return TRUE;
       }

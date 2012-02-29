@@ -41,8 +41,8 @@ namespace artax\blocks\http {
     /**
      * Extends parent to allow HTTP method route constraint
      * 
-     * @param \artax\routing\RequestInterface $request The request to match
-     * @param \artax\routing\RouteInterface   $route   The route to match against
+     * @param RequestInterface $request The request to match
+     * @param RouteInterface   $route   The route to match against
      * 
      * @return bool Returns `TRUE` on match or `FALSE` if no match
      */

@@ -22,11 +22,13 @@ namespace artax {
   class DepProvider extends Bucket implements ProviderInterface
   {
     /**
+     * A DotNotation object for parsing dot-notation class names
      * @var DotNotation
      */
     protected $dotNotation;
     
     /**
+     * An array of stored "singleton" dependencies
      * @var array
      */
     protected $shared;
@@ -88,7 +90,7 @@ namespace artax {
      * 
      * @return mixed A dependency-injected object
      */
-    public function make($type, Array $custom=[])
+    public function make($type, array $custom=[])
     {
       $shared = (isset($this->params[$type]['_shared'])
         && TRUE === $this->params[$type]['_shared']);
@@ -110,7 +112,7 @@ namespace artax {
      * instantiation. As a result, we need to manually specify the name of the
      * appropriate class to load for such instances.
      * 
-     * @param string $class  A fully qualified and namespaced class name
+     * @param string $type   A fully qualified and namespaced class name
      * @param array  $specd  An associative array of fully qualified dependency
      *                       class names needed for object instantiation
      * @param array  $custom An associative array of specific dependency objects
@@ -120,7 +122,7 @@ namespace artax {
      * 
      * @return mixed A dependency-injected object
      */
-    protected function getInjectedInstance($type, Array $specd, Array $custom,
+    protected function getInjectedInstance($type, array $specd, array $custom,
       $shared)
     {
       $class = $this->dotNotation->parse($type);
@@ -149,9 +151,9 @@ namespace artax {
     /**
      * Parses a key/value array of argument names and types from a constructor
      * 
-     * @param \ReflectionClass $refl A reflection class instance
+     * @param ReflectionClass $refl A reflection class instance
      * 
-     * @return Returns a key/value array of argument
+     * @return array Returns a key/value array of constructor arguments
      */
     protected function parseConstructorArgs(\ReflectionClass $refl)
     {
