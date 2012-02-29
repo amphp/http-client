@@ -37,8 +37,7 @@ namespace artax {
     {
       $this->defaults = [
         'debug'       => FALSE,
-        'cacheBundle' => TRUE,
-        'cliBundle'   => FALSE,
+        'cacheBundle' => FALSE,
         'httpBundle'  => TRUE,
         'classLoader' => 'standard',
         'namespaces'  => [],
@@ -56,7 +55,8 @@ namespace artax {
      */
     protected function filterBool($val)
     {
-      return (bool) filter_var($val, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+      $var = filter_var($val, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+      return (bool) $var;
     }
     
     /**
@@ -84,18 +84,6 @@ namespace artax {
     protected function setHttpBundle($val)
     {
       $this->params['httpBundle'] = $this->filterBool($val);
-    }
-    
-    /**
-     * Setter function for cliBundle directive
-     * 
-     * @param bool $val Flag specifying if CLI libs should be loaded on boot
-     * 
-     * @return void
-     */
-    protected function setCliBundle($val)
-    {
-      $this->params['cliBundle'] = $this->filterBool($val);
     }
   }
 }

@@ -13,14 +13,13 @@ class ConfigTest extends PHPUnit_Framework_TestCase
   public function testConstructorInitializesParamDefaults()
   {
     $c = new ConfigTestExt();
-    $this->assertEquals(TRUE, $c->get('debug'));
+    $this->assertEquals(FALSE, $c->get('debug'));
   }
   
   /**
    * @covers artax\Config::filterBool
    * @covers artax\Config::setDebug
    * @covers artax\Config::setHttpBundle
-   * @covers artax\Config::setCliBundle
    */
   public function testFilterBoolSanitizesBoolInput()
   {
@@ -28,7 +27,6 @@ class ConfigTest extends PHPUnit_Framework_TestCase
     $c = new ConfigTestExt($params);
     $this->assertEquals(FALSE, $c->get('debug'));
     $this->assertEquals(FALSE, $c->get('httpBundle'));
-    $this->assertEquals(TRUE, $c->get('cliBundle'));
   }
 }
 
