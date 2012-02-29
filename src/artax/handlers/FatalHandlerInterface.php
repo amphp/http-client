@@ -37,12 +37,5 @@ namespace artax\handlers {
      * @return void
      */
     public function shutdown();
-    
-    /**
-     * Assign the controller to use for uncaught exceptions
-     * 
-     * @param ExControllerInterface $exController Controller object
-     */
-    public function setExController(ExControllerInterface $exController);
   }
 }

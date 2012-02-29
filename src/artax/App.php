@@ -110,14 +110,14 @@ namespace artax {
     }
     
     /**
-     * 
+     * @notifies ax.boot_complete|\artax\App
      */
     public function boot()
     {
       foreach ($this->bootSteps as $step) {
         $this->$step();
       }
-      $this->notify('ax.boot.complete');
+      $this->notify('ax.boot_complete');
     }
     
     /**
@@ -158,9 +158,9 @@ namespace artax {
       
       if ( ! $debug) {
         error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
-        ini_set('display_errors', FALSE);
+        //ini_set('display_errors', FALSE);
       } else {
-        ini_set('display_errors', TRUE);
+        //ini_set('display_errors', TRUE);
       }
       $this->fatalHandler->setDebug($debug);
     }
@@ -191,10 +191,6 @@ namespace artax {
         require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpControllerAbstract.php';
         require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpResponseInterface.php';
         require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpResponse.php';
-      }
-      
-      if ( ! empty($this->config['cliBundle'])) {
-        // load cli libs
       }
     }
     
@@ -248,7 +244,7 @@ namespace artax {
           : $this->configLoader->load($d)->getConfigArr();
         $this->depProvider->load($depsArr);
       }
-      $this->depProvider->setSharedDep('artax.DepProvider', $this->depProvider);
+      $this->depProvider->setSharedDep('artax.Config', $this->config);
     }
     
     /**
@@ -269,7 +265,7 @@ namespace artax {
         }
       }
       $this->depProvider->setSharedDep('artax.events.Mediator', $this->mediator);
-      $this->notify('ax.boot.listeners_loaded');
+      $this->fatalHandler->setMediator($this->mediator);
     }
     
     /**
@@ -287,7 +283,6 @@ namespace artax {
         $this->routes->addAllFromArr($routesArr);
       }
       $this->depProvider->setSharedDep('artax.routing.RouteList', $this->routes);
-      $this->notify('ax.boot.routes_loaded');
     }
     
     /**

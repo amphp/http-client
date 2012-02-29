@@ -6,7 +6,6 @@ class FatalHandlerTest extends PHPUnit_Framework_TestCase
   {
     $obj = new FatalHandlerTestImplementation;
     $this->assertTrue($obj->debug);
-    $this->assertNull($obj->exController);
     return $obj;
   }
   
@@ -18,18 +17,6 @@ class FatalHandlerTest extends PHPUnit_Framework_TestCase
   {
     $obj->setDebug(FALSE);
     $this->assertFalse($obj->debug);
-    return $obj;
-  }
-  
-  /**
-   * @depends testSetDebugAssignsPropertyValue
-   * @covers  artax\handlers\FatalHandler::setExController
-   */
-  public function testSetExControllerAssignsPropertyValue($obj)
-  {
-    $obj->setDebug(TRUE);
-    $obj->setExController(new ExControllerImplementation);
-    $this->assertTrue($obj->exController->debug);
     return $obj;
   }
   
@@ -46,13 +33,11 @@ class FatalHandlerTest extends PHPUnit_Framework_TestCase
       'file'    => '/path/to/file.php',
       'line'    => 42
     ];
-    $stub = $this->getMock('FatalHandlerTestImplementation', ['exHandler', 'lastError']);
+    $stub = $this->getMock('FatalHandlerTestImplementation',
+      ['exHandler', 'lastError', 'defaultHandlerMsg']);
     $stub->expects($this->any())
          ->method('lastError')
          ->will($this->returnValue($lastErr));
-    $stub->shutdown();
-    
-    $stub = $this->getMock('FatalHandlerTestImplementation', ['exHandler']);
     $stub->shutdown();
   }
   
@@ -72,105 +57,100 @@ class FatalHandlerTest extends PHPUnit_Framework_TestCase
   }
   
   /**
-   * @covers artax\handlers\FatalHandler::exHandler
+   * @covers artax\handlers\FatalHandler::setMediator
    */
-  public function testExHandlerDisplaysDefaultMessageIfNotCustomControllerSpecified()
+  public function testSetMediatorAssignsPassedProperty()
   {
-    $stub = $this->getMock('FatalHandlerTestImplementation', ['defaultHandlerMsg']);
-    $stub->expects($this->any())
-         ->method('defaultHandlerMsg')
-         ->will($this->returnValue('stub string'));
-         
-    ob_start();
-    $stub->exHandler(new \Exception('test'));
-    $output = ob_get_contents();
-    ob_end_clean();
-    
-    $this->assertEquals('stub string', $output);
+    $med = new artax\events\Mediator;
+    $obj = new FatalHandlerTestImplementation;
+    $obj->setMediator($med);
+    $this->assertEquals($med, $obj->mediator);
   }
   
   /**
-   * @depends testSetExControllerAssignsPropertyValue
+   * @covers artax\handlers\FatalHandler::lastError
+   */
+  public function testLastErrorReturnsNullOnNoFatalPHPError()
+  {
+    $obj = new FatalHandlerTestImplementation;
+    $this->assertEquals(NULL, $obj->getFatalErrException());
+  }
+  
+  /**
+   * @covers artax\handlers\FatalHandler::shutdown
+   */
+  public function testShutdownNotifiesListenersIfMediatorExists()
+  {
+    $medStub = $this->getMock('artax\events\Mediator', ['all', 'keys']);
+    $obj = $this->getMock('FatalHandlerTestImplementation', ['getFatalErrException']);
+    $obj->expects($this->once())
+        ->method('getFatalErrException')
+        ->will($this->returnValue(NULL));
+
+    $obj->setMediator($medStub);
+    
+    $obj->shutdown();
+  }
+  
+  /**
    * @covers artax\handlers\FatalHandler::exHandler
    */
-  public function testExHandlerInvokesCustomControllerIfSpecified($obj)
-  { 
-    ob_start();
-    $obj->exHandler(new \Exception('test'));
-    $output = ob_get_contents();
-    ob_end_clean();
-    
-    $this->assertEquals('test', $output);
-    
-    $obj->setExController(new ExControllerImplementation2);
-    ob_start();
-    $obj->exHandler(new \Exception('test'));
-    ob_end_clean();
+  public function testExHandlerReturnsQuietlyOnPurposefulScriptHalt()
+  {
+    $obj = new artax\handlers\FatalHandler();
+    $this->assertEquals(NULL, $obj->exHandler(new artax\exceptions\ScriptHaltException));
+  }
+  
+  /**
+   * @covers artax\handlers\FatalHandler::exHandler
+   */
+  public function testExHandlerOutputsDefaultMessageIfNoMediatorExists()
+  {
+    $stub = $this->getMock('artax\handlers\FatalHandler', ['defaultHandlerMsg']);
+    $stub->expects($this->once())
+         ->method('defaultHandlerMsg')
+         ->with($this->equalTo(new Exception))
+         ->will($this->returnValue(NULL));
+    $stub->exHandler(new Exception);
+  }
+  
+  /**
+   * @covers artax\handlers\FatalHandler::exHandler
+   */
+  public function testExHandlerNotifiesMediatorOnUncaughtException()
+  {
+    $e = new Exception;
+    $stub = $this->getMock('artax\handlers\FatalHandler', ['notify']);
+    $stub->expects($this->once())
+         ->method('notify')
+         ->with($this->equalTo('ax.uncaught_exception'), $this->equalTo($e));
+    $stub->setMediator(new artax\events\Mediator);
+    $stub->exHandler($e);
+  }
+  
+  /**
+   * @covers artax\handlers\FatalHandler::exHandler
+   */
+  public function testExHandlerFallsBackToDefaultMessageOnNotifyException()
+  {
+    $e = new Exception;
+    $stub = $this->getMock('artax\handlers\FatalHandler',
+      ['notify', 'defaultHandlerMsg']);
+    $stub->expects($this->once())
+         ->method('notify')
+         ->will($this->throwException($e));
+    $stub->expects($this->once())
+         ->method('defaultHandlerMsg')
+         ->with($this->equalTo($e))
+         ->will($this->returnValue(NULL));
+    $stub->setMediator(new artax\events\Mediator);
+    $stub->exHandler($e);
   }
 }
-
-
 
 
 
 class FatalHandlerTestImplementation extends artax\handlers\FatalHandler
 {
   use MagicTestGetTrait;
-}
-
-class ExControllerImplementation implements artax\handlers\ExControllerInterface
-{
-  use
-    artax\handlers\ExControllerTrait,
-    MagicTestGetTrait;
-  
-  protected $response;
-  
-  public function __construct()
-  {
-    $this->response = new ExControllerResponseImplementation;
-  }
-  
-  public function notify($eventName)
-  {
-  }
-  
-  public function getResponse()
-  {
-    return $this->response;
-  }
-  
-  public function exec()
-  {
-    return $this;
-  }
-  
-  public function __invoke()
-  {
-    call_user_func_array([$this, 'exec'], func_get_args());
-  }
-}
-
-class ExControllerImplementation2 extends ExControllerImplementation
-{
-  public function __construct()
-  {
-    $this->response = new ExControllerResponseExceptionImplementation;
-  }
-}
-
-class ExControllerResponseImplementation
-{
-  public function exec()
-  {
-    echo 'test';
-  }
-}
-
-class ExControllerResponseExceptionImplementation
-{
-  public function exec()
-  {
-    throw new Exception('test');
-  }
 }

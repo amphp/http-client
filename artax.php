@@ -105,8 +105,6 @@ require AX_SYSTEM_DIR . '/src/artax/ResponseControllerInterface.php';
 
 require AX_SYSTEM_DIR . '/src/artax/handlers/ErrorHandlerInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/handlers/ErrorHandler.php';
-require AX_SYSTEM_DIR . '/src/artax/handlers/ExControllerInterface.php';
-require AX_SYSTEM_DIR . '/src/artax/handlers/ExControllerTrait.php';
 require AX_SYSTEM_DIR . '/src/artax/handlers/FatalHandlerInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/handlers/FatalHandler.php';
 
@@ -146,7 +144,7 @@ require AX_SYSTEM_DIR . '/src/artax/ClassLoaderFactory.php';
 
 // Boot the application
 $artax = (new artax\App(
-  new artax\ConfigLoader(AX_CONFIG_FILE),
+  (new artax\ConfigLoader)->setConfigFile(AX_CONFIG_FILE),
   new artax\Config,
   new artax\handlers\ErrorHandler,
   new artax\handlers\FatalHandler,

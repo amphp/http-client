@@ -22,61 +22,106 @@ namespace artax\handlers {
    * @subpackage handlers
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
-  class FatalHandler implements FatalHandlerInterface
+  class FatalHandler implements FatalHandlerInterface,
+    \artax\events\NotifierInterface
   {
+    use \artax\events\NotifierTrait;
+    
     /**
      * @var bool
      */
     protected $debug = TRUE;
     
     /**
-     * @var ExControllerInterface
-     */
-    protected $exController;
-    
-    /**
      * The "last chance" handler for uncaught exceptions 
      * 
-     * If a custom exception handling controller throws an exception, the class
-     * will fall back to the default exception display. It is imperative that your
+     * If a custom exception handling listener throws an exception, the class
+     * will fall back to the default exception display. It is important that your
      * custom exception handling controller prevents any exceptions it may throw
      * from bubbling up the stack.
+     * 
+     * Note that the shutdown handler will still be invoked after handling of an
+     * uncaught exception.
      * 
      * @param \Exception $e Exception object
      *
      * @return void
      * @uses FatalHandler::setException
+     * @notifies ax.uncaught_exception|\Exception $e
      */
     public function exHandler(\Exception $e)
     {
-      if (NULL === $this->exController) {
-        echo $this->defaultHandlerMsg($e);
-      } else {
+      if ($e instanceof \artax\exceptions\ScriptHaltException) {
+        return;
+      } elseif (NULL !== $this->mediator) {
         try {
-          $this->exController->setException($e);
-          $this->exController->exec()->getResponse()->exec();
+          $this->notify('ax.uncaught_exception', $e);
         } catch (\Exception $e) {
           echo $this->defaultHandlerMsg($e);
         }
+      } else {
+        echo $this->defaultHandlerMsg($e);
       }
     }
 
     /**
-     * Handle unexpected fatal errors
+     * Handle unexpected fatal errors and/or notify listeners of shutdown
      * 
      * If script shutdown was caused by a fatal PHP error, the error is used to 
      * generate a corresponding `ErrorException` object which is then passed to
      * `FatalHandler::exHandler` for handling.
      * 
+     * The mediator is notified on shutdown so that any interested
+     * listeners can act appropriately. If an event listener invoked by this
+     * notification throws an uncaught exception it will not be handled and
+     * script execution will cease immediately without sending further output.
+     * 
      * @return void
      * @uses FatalHandler::getFatalErrException
      * @uses FatalHandler::exHandler
+     * @notifies ax.shutdown|\artax\handlers\FatalHandler
      */
     public function shutdown()
     {
       if ($e = $this->getFatalErrException()) {
         $this->exHandler($e);
+      } elseif (NULL !== $this->mediator) {
+        try {
+          $this->notify('ax.shutdown');
+        } catch (\Exception $e) {
+        }
       }
+    }
+    
+    /**
+     * Setter method for protected `$debug` property
+     * 
+     * @param bool $debug Debug flag
+     * 
+     * @return FatalHandler Returns object instance for method chaining
+     */
+    public function setDebug($debug)
+    {
+      $this->debug = (bool) $debug;
+      return $this;
+    }
+    
+    /**
+     * Setter injection method for protected $mediator property (NotifierTrait)
+     * 
+     * Setter injection is used over constructor injection here because we want
+     * to implement the class exception and shutdown handlers as early as possible
+     * in the boot process. The event mediator is then injected once event all
+     * listeners are loaded from the app configuration settings.
+     * 
+     * @param \artax\events\Mediator $mediator An event mediator object instance
+     * 
+     * @return FatalHandler Returns object instance for method chaining.
+     */
+    public function setMediator(\artax\events\Mediator $mediator)
+    {
+      $this->mediator = $mediator;
+      return $this;
     }
 
     /**
@@ -91,7 +136,7 @@ namespace artax\handlers {
      *               raised was fatal.
      * @used-by FatalHandler::shutdown
      */
-    protected function getFatalErrException()
+    public function getFatalErrException()
     {
       $ex  = NULL;
       $err = $this->lastError();
@@ -111,35 +156,6 @@ namespace artax\handlers {
         $ex = new \artax\exceptions\ErrorException($msg);
       }
       return $ex;
-    }
-    
-    /**
-     * Setter method for protected `$debug` property
-     * 
-     * @param bool $debug Debug flag
-     * 
-     * @return FatalHandler Returns object instance for method chaining
-     */
-    public function setDebug($debug)
-    {
-      $this->debug = (bool) $debug;
-      return $this;
-    }
-    
-    /**
-     * Assign controller to handle uncaught exceptions and fatal errors
-     * 
-     * @param ExControllerInterface $exController A controller that handles
-     *                                            unexpected exceptions and
-     *                                            fatal error occurs.
-     * 
-     * @return FatalHandler Returns object instance for method chaining
-     */
-    public function setExController(ExControllerInterface $exController)
-    {
-      $exController->setDebug($this->debug);
-      $this->exController = $exController;
-      return $this;
     }
     
     /**
