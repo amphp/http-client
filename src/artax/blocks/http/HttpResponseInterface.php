@@ -21,7 +21,7 @@ namespace artax\blocks\http {
    * @subpackage http
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
-  interface HttpResponseInterface extends \artax\ResponseInterface
+  interface HttpResponseInterface extends \artax\controllers\ResponseInterface
   {
     /**
      * Add HTTP headers to send on response execution
@@ -34,5 +34,10 @@ namespace artax\blocks\http {
      * Getter method for object's $headers array
      */
     public function getHeaders();
+    
+    /**
+     * Sends all headers to the client
+     */
+    public function sendHeaders();
   }
 }

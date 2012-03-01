@@ -1,29 +1,31 @@
 <?php
 
 /**
- * ResponseControllerInterface File
+ * ControllerInterface File
  * 
  * PHP version 5.4
  * 
  * @category   artax
  * @package    core
+ * @subpackage controllers
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace artax {
+namespace artax\controllers {
 
   /**
-   * ResponseControllerInterface
+   * ControllerInterface
    * 
    * @category   artax
    * @package    core
+   * @subpackage controllers
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
-  interface ResponseControllerInterface extends ControllerInterface
+  interface ControllerInterface
   {
     /**
-     * Getter method for $response object property
+     * The controller's "work" method
      */
-    public function getResponse();
+    public function exec();
   }
 }

@@ -100,8 +100,10 @@ require AX_SYSTEM_DIR . '/src/artax/events/NotifierTrait.php';
 require AX_SYSTEM_DIR . '/src/artax/events/MediatorInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/events/Mediator.php';
 
-require AX_SYSTEM_DIR . '/src/artax/ControllerInterface.php';
-require AX_SYSTEM_DIR . '/src/artax/ResponseControllerInterface.php';
+require AX_SYSTEM_DIR . '/src/artax/controllers/ControllerInterface.php';
+require AX_SYSTEM_DIR . '/src/artax/controllers/ResponseControllerInterface.php';
+require AX_SYSTEM_DIR . '/src/artax/controllers/ResponseInterface.php';
+require AX_SYSTEM_DIR . '/src/artax/controllers/Response.php';
 
 require AX_SYSTEM_DIR . '/src/artax/handlers/ErrorHandlerInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/handlers/ErrorHandler.php';
@@ -126,7 +128,6 @@ require AX_SYSTEM_DIR . '/src/artax/routing/Matcher.php';
 require AX_SYSTEM_DIR . '/src/artax/ProviderInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/DotNotation.php';
 require AX_SYSTEM_DIR . '/src/artax/DepProvider.php';
-require AX_SYSTEM_DIR . '/src/artax/ResponseInterface.php';
 
 require AX_SYSTEM_DIR . '/src/artax/ClassLoaderInterface.php';
 require AX_SYSTEM_DIR . '/src/artax/ClassLoaderAbstract.php';

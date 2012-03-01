@@ -21,10 +21,9 @@ namespace artax\blocks\http {
    * @subpackage http
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
-  abstract class HttpControllerAbstract implements \artax\ResponseControllerInterface
+  abstract class HttpControllerAbstract
+    implements \artax\controllers\ResponseControllerInterface
   {
-    use \artax\events\NotifierTrait;
-    
     /**
      * The HTTP request object to be controlled
      * @var HttpRequestInterface
@@ -46,18 +45,15 @@ namespace artax\blocks\http {
     /**
      * Inject dependencies
      * 
-     * @param MediatorInterface     $mediator Mediator object
      * @param HttpRequestInterface  $request  Request object
      * @param ViewInterface         $view     View object
      * @param HttpResponseInterface $response Response object
      */
     public function __construct(
-      \artax\events\MediatorInterface $mediator,
       HttpRequestInterface $request,
       \artax\views\ViewInterface $view,
       HttpResponseInterface $response)
     {
-      $this->mediator = $mediator;
       $this->request  = $request;
       $this->view     = $view;
       $this->response = $response;

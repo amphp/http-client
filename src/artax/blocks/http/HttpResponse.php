@@ -21,63 +21,26 @@ namespace artax\blocks\http {
    * @subpackage http
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
-  class HttpResponse implements HttpResponseInterface
+  class HttpResponse extends \artax\controllers\Response
+    implements HttpResponseInterface
   {
-    /**
-     * The HTTP response body to output to send to the client
-     * @var string
-     */
-    protected $body;
-    
     /**
      * A key/value array of header parameters to send to the client
      * @var array
      */
-    protected $headers;
-    
-    /**
-     * Initializes object properties
-     * 
-     * @return void
-     */
-    public function __construct()
-    {
-      $this->body = '';
-      $this->headers = [];
-    }
+    protected $headers = [];
     
     /**
      * Output the response to the client
      * 
+     * Overrides parent to send headers prior to echoing the response body.
+     * 
      * @return void
      */
-    public function exec()
+    public function output()
     {
       $this->sendHeaders();
       echo $this->body;
-    }
-    
-    /**
-     * Setter method for object's $body property
-     * 
-     * @param string $body Response body text
-     * 
-     * @return HttpResponse Current object instance for method chaining
-     */
-    public function setBody($body)
-    {
-      $this->body = $body;
-      return $this;
-    }
-    
-    /**
-     * Getter method for object's $body property
-     * 
-     * @return string Body text
-     */
-    public function getBody()
-    {
-      return $this->body;
     }
     
     /**
@@ -107,31 +70,11 @@ namespace artax\blocks\http {
      * 
      * @return void
      */
-    protected function sendHeaders()
+    public function sendHeaders()
     {
       foreach ($this->headers as $header) {
         header("$header");
       }
-    }
-    
-    /**
-     * Return the response body when object accessed as a string
-     * 
-     * @return string Body text
-     */
-    public function __toString()
-    {
-      return $this->body;
-    }
-    
-    /**
-     * Allow object invocation to execute the request
-     * 
-     * @return void
-     */
-    public function __invoke()
-    {
-      $this->exec();
     }
   }
 }
