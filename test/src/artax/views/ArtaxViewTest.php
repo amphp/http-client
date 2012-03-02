@@ -5,7 +5,6 @@ class ArtaxViewTest extends PHPUnit_Framework_TestCase
   public function testBeginsEmpty()
   {
     $view = new ArtaxViewTestImplementation;
-    $this->assertEmpty($view->template);
     $this->assertEmpty($view->params);
     return $view;
   }
@@ -35,26 +34,15 @@ class ArtaxViewTest extends PHPUnit_Framework_TestCase
   
   /**
    * @depends testGetVarReturnsTemplatePropertyValue
-   * @covers  artax\views\ArtaxView::setTemplate
-   */
-  public function testSetTemplateAssignsPropertyValue($view)
-  {
-    $tpl = 'vfs://myapp/views/my_template.php';
-    $view->setTemplate($tpl);
-    $this->assertEquals($tpl, $view->template);
-    return $view;
-  }
-  
-  /**
-   * @depends testSetTemplateAssignsPropertyValue
    * @covers  artax\views\ArtaxView::render
    * 
    * Template contents: Template value: <?php echo $myVar; ?>
    */
   public function testRenderGeneratesExpectedOutput($view)
   {
+    $tpl = 'vfs://myapp/views/my_template.php';
     $expected = 'Template value: my value';
-    $this->assertEquals($expected, $view->render());
+    $this->assertEquals($expected, $view->render($tpl));
   }
   
   /**
@@ -65,8 +53,44 @@ class ArtaxViewTest extends PHPUnit_Framework_TestCase
   public function testRenderThrowsExceptionOnError($view)
   {
     $tpl = 'vfs://myapp/views/bad_template.php';
-    $view->setTemplate($tpl);
-    $view->render();
+    $view->render($tpl);
+  }
+  
+  /**
+   * @depends testBeginsEmpty
+   * @covers  artax\views\ArtaxView::render
+   */
+  public function testRenderAssignsTemplatePropertyIfSpecified($view)
+  {
+    $tpl = 'vfs://myapp/views/my_template.php';
+    $myVar = 'my value';
+    $view->setVar('myVar', $myVar);
+    $expected = 'Template value: my value';
+    $this->assertEquals($expected, $view->render($tpl));
+  }
+  
+  /**
+   * @depends testBeginsEmpty
+   * @covers  artax\views\ArtaxView::render
+   */
+  public function testRenderAssignsVarsIfSpecified($view)
+  {
+    $tpl = 'vfs://myapp/views/my_template.php';
+    $myVars = ['myVar' => 'my value', 'myOtherVar' => 'my other value'];
+    $rendered = $view->render($tpl, $myVars);
+    $this->assertEquals($myVars, $view->all());
+  }
+  
+  /**
+   * @depends testBeginsEmpty
+   * @covers  artax\views\ArtaxView::setAll
+   */
+  public function testSetAllAssignsMultipleTplVarsAtOnce($view)
+  {
+    $myVars = ['myVar' => 'my value', 'myOtherVar' => 'my other value'];
+    $returned = $view->setAll($myVars);
+    $this->assertEquals($myVars, $view->all());
+    $this->assertEquals($view, $returned);
   }
   
   /**
@@ -78,10 +102,9 @@ class ArtaxViewTest extends PHPUnit_Framework_TestCase
   public function testOutputEchoesRenderedTemplate($view)
   {
     $tpl = 'vfs://myapp/views/my_template.php';
-    $view->setTemplate($tpl);
     $expected = 'Template value: my value';
     ob_start();
-    $view->output();
+    $view->output($tpl);
     $output = ob_get_contents();
     ob_end_clean();
     $this->assertEquals($expected, $output);

@@ -24,13 +24,6 @@ namespace artax\views {
   interface ViewInterface
   {
     /**
-     * Setter method for template name/path
-     * 
-     * @param string $tpl The template to use for rendering
-     */
-    public function setTemplate($tpl);
-    
-    /**
      * Template variable setter method
      * 
      * @param string $name Template variable name
@@ -46,13 +39,29 @@ namespace artax\views {
     public function getVar($name);
     
     /**
-     * Fetch rendered template without outputting to client
+     * Assign an array of multiple template variables at once
+     * 
+     * @param array  $vars An associative key-value array for mass template
+     *                     variable assignment
      */
-    public function render();
+    public function setAll(array $vars);
     
     /**
-     * Output the rendered template
+     * Fetch rendered template without outputting to client
+     * 
+     * @param string $tpl  The template to render
+     * @param array  $vars An associative key-value array for mass template
+     *                     variable assignment at render time
      */
-    public function output();
+    public function render($tpl, array $vars);
+    
+    /**
+     * Output a rendered template
+     * 
+     * @param string $tpl  The template to display
+     * @param array  $vars An associative key-value array for mass template
+     *                     variable assignment at output time
+     */
+    public function output($tpl, array $vars);
   }
 }
