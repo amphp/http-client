@@ -72,6 +72,12 @@ namespace artax {
     protected $bootSteps;
     
     /**
+     * A list of shared dependencies that span the full application scope
+     * @var array
+     */
+    protected $sharedAppDeps;
+    
+    /**
      * Constructor injects object dependencies
      * 
      * @param ConfigLoader          $configLoader Loader object for config files
@@ -114,7 +120,13 @@ namespace artax {
         'initClassAutoloaders',
         'initDepProvider',
         'initMediator',
-        'initRoutes'
+        'initRoutes',
+        'sharedAppScopeDeps'
+      ];
+      
+      $this->sharedAppDeps = [
+        'artax.Config',
+        'artax.events.Mediator'
       ];
     }
     
@@ -191,18 +203,18 @@ namespace artax {
       
       if ( ! empty($this->config['httpBundle'])) {
         require AX_SYSTEM_DIR . '/src/artax/views/ViewInterface.php';
-        require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpMatcher.php';
-        require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpRequestInterface.php';
-        require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpRequest.php';
-        require AX_SYSTEM_DIR . '/src/artax/blocks/http/BucketInterface.php';
-        require AX_SYSTEM_DIR . '/src/artax/blocks/http/BucketAbstract.php';
-        require AX_SYSTEM_DIR . '/src/artax/blocks/http/ServerBucket.php';
-        require AX_SYSTEM_DIR . '/src/artax/blocks/http/HeaderBucket.php';
-        require AX_SYSTEM_DIR . '/src/artax/blocks/http/ParamBucket.php';
-        require AX_SYSTEM_DIR . '/src/artax/blocks/http/CookieBucket.php';
-        require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpControllerAbstract.php';
-        require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpResponseInterface.php';
-        require AX_SYSTEM_DIR . '/src/artax/blocks/http/HttpResponse.php';
+        require AX_SYSTEM_DIR . '/src/artax/http/HttpMatcher.php';
+        require AX_SYSTEM_DIR . '/src/artax/http/HttpRequestInterface.php';
+        require AX_SYSTEM_DIR . '/src/artax/http/HttpRequest.php';
+        require AX_SYSTEM_DIR . '/src/artax/http/BucketInterface.php';
+        require AX_SYSTEM_DIR . '/src/artax/http/BucketAbstract.php';
+        require AX_SYSTEM_DIR . '/src/artax/http/ServerBucket.php';
+        require AX_SYSTEM_DIR . '/src/artax/http/HeaderBucket.php';
+        require AX_SYSTEM_DIR . '/src/artax/http/ParamBucket.php';
+        require AX_SYSTEM_DIR . '/src/artax/http/CookieBucket.php';
+        require AX_SYSTEM_DIR . '/src/artax/http/HttpControllerAbstract.php';
+        require AX_SYSTEM_DIR . '/src/artax/http/HttpResponseInterface.php';
+        require AX_SYSTEM_DIR . '/src/artax/http/HttpResponse.php';
       }
     }
     
@@ -244,7 +256,7 @@ namespace artax {
     }
     
     /**
-     * Load specified dependencies
+     * Load dependencies and shares application-scoped dependencies
      * 
      * @return void
      */
@@ -254,9 +266,12 @@ namespace artax {
         $depsArr = is_array($d)
           ? $d
           : $this->configLoader->load($d)->getConfigArr();
+
         $this->depProvider->load($depsArr);
       }
-      $this->depProvider->setSharedDep('artax.Config', $this->config);
+      foreach ($this->sharedAppDeps as $sad) {
+        $this->depProvider->set($sad, ['_shared' => TRUE]);
+      }
     }
     
     /**
@@ -276,7 +291,6 @@ namespace artax {
           $this->mediator->push($listener[0], $lambda);
         }
       }
-      $this->depProvider->setSharedDep('artax.events.Mediator', $this->mediator);
       $this->fatalHandler->setMediator($this->mediator);
     }
     
@@ -294,6 +308,17 @@ namespace artax {
           : $this->configLoader->setConfigFile($routes)->load()->getConfigArr();
         $this->routes->addAllFromArr($routesArr);
       }
+    }
+    
+    /**
+     * Store shared application scope dependencies in depProvider instance
+     * 
+     * @return void
+     */
+    public function sharedAppScopeDeps()
+    {
+      $this->depProvider->setSharedDep('artax.Config', $this->config);
+      $this->depProvider->setSharedDep('artax.events.Mediator', $this->mediator);
       $this->depProvider->setSharedDep('artax.routing.RouteList', $this->routes);
     }
     
