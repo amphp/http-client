@@ -10,10 +10,19 @@ class ConfigTest extends PHPUnit_Framework_TestCase
   /**
    * @covers artax\Config::__construct
    */
-  public function testConstructorInitializesParamDefaults()
+  public function testBeginsEmpty()
   {
     $c = new ConfigTestCoverageImplementation;
-    $this->assertEquals(FALSE, $c->get('debug'));
+    $defaults = [
+      'debug'       => FALSE,
+      'httpBundle'  => FALSE,
+      'classLoader' => 'standard',
+      'namespaces'  => [],
+      'autoRequire' => [],
+      'deps'        => [],
+      'listeners'   => []
+    ];
+    $this->assertEquals($defaults, $c->defaults);
   }
   
   /**
@@ -24,7 +33,7 @@ class ConfigTest extends PHPUnit_Framework_TestCase
   public function testFilterBoolSanitizesBoolInput()
   {
     $params = ['debug'=>0, 'httpBundle'=>'Off', 'cliBundle'=> 'on'];
-    $c = new ConfigTestCoverageImplementation($params);
+    $c = (new ConfigTestCoverageImplementation())->load($params);    
     $this->assertEquals(FALSE, $c->get('debug'));
     $this->assertEquals(FALSE, $c->get('httpBundle'));
   }
@@ -32,4 +41,5 @@ class ConfigTest extends PHPUnit_Framework_TestCase
 
 class ConfigTestCoverageImplementation extends artax\Config
 {
+  use MagicTestGetTrait;
 }

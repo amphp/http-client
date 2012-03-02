@@ -29,21 +29,19 @@ namespace artax {
     /**
      * Initializes default configuration directive values
      * 
-     * @param array $params     An array of configuration key/value parameters
-     * 
      * @return void
      */
-    public function __construct(array $params=[])
+    public function __construct()
     {
       $this->defaults = [
         'debug'       => FALSE,
-        'cacheBundle' => FALSE,
-        'httpBundle'  => TRUE,
+        'httpBundle'  => FALSE,
         'classLoader' => 'standard',
         'namespaces'  => [],
-        'autoRequire' => []
+        'autoRequire' => [],
+        'deps'        => [],
+        'listeners'   => []
       ];
-      $this->load($params);
     }
     
     /**
