@@ -2,6 +2,25 @@
 
 class BucketTest extends PHPUnit_Framework_TestCase
 {
+  public function testBeginsEmpty()
+  {
+    $bucket = new artax\Bucket;
+    $this->assertEmpty($bucket->all());
+  }
+  
+  /**
+   * @covers artax\Bucket::load
+   */
+  public function testLoadAssignsChildClassDefaultsIfSpecified()
+  {
+    $bucket = new BucketDefaultsTestClass;
+    $defaults = $bucket->defaults;
+    $this->assertEmpty($bucket->all());
+    $bucket->load([]);
+    $this->assertEquals($defaults, $bucket->all());
+  }
+  
+    
   /**
    * @covers artax\Bucket::all
    * @covers artax\Bucket::clear
@@ -183,4 +202,17 @@ class BucketTest extends PHPUnit_Framework_TestCase
     $this->assertEquals(['testProp','testProp2'], $c->keys());
   }
   
+}
+
+class BucketDefaultsTestClass extends artax\Bucket
+{
+  use MagicTestGetTrait;
+  
+  public function __construct()
+  {
+    $this->defaults = [
+      'param1' => 'val1',
+      'param2' => 'val2'
+    ];
+  }
 }
