@@ -11,7 +11,7 @@
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace artax\blocks\http {
+namespace artax\http {
 
   /**
    * BucketAbstract Class

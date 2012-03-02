@@ -35,182 +35,182 @@ class HttpRequestTest extends PHPUnit_Framework_TestCase
   }
   
   /**
-   * @covers \artax\blocks\http\HttpRequest::__get
+   * @covers \artax\http\HttpRequest::__get
    * @expectedException artax\exceptions\OutOfBoundsException
    */
   public function testMagicGetThrowsExceptionOnInvalidProperty()
   {
-    $r = new artax\blocks\http\HttpRequest;
+    $r = new artax\http\HttpRequest;
     $x = $r->bad_prop_name;
   }
   
   /**
-   * @covers \artax\blocks\http\HttpRequest::__get
+   * @covers \artax\http\HttpRequest::__get
    */
   public function testMagicGetReturnsValueForValidProperty()
   {
-    $r = new artax\blocks\http\HttpRequest;
+    $r = new artax\http\HttpRequest;
     $this->assertEquals(1327719048, $r->server['REQUEST_TIME']);
   }
   
   /**
-   * @covers            artax\blocks\http\HttpRequest::detectMethod
-   * @expectedException artax\blocks\http\HTTPException
+   * @covers            artax\http\HttpRequest::detectMethod
+   * @expectedException artax\http\HTTPException
    * @exceptionMessage  Cannot detect method: No valid SERVER key exists
    */
   public function testDetectMethodThrowsExceptionOnMissingServerVal()
   {
     unset($_SERVER['REQUEST_METHOD']);
-    $r = new artax\blocks\http\HttpRequest;
+    $r = new artax\http\HttpRequest;
   }
   
   /**
-   * @covers            artax\blocks\http\HttpRequest::detectMethod
+   * @covers            artax\http\HttpRequest::detectMethod
    */
   public function testDetectMethodParsesServerVal()
   {
     $_SERVER['REQUEST_METHOD'] = 'POST';
-    $r = new artax\blocks\http\HttpRequest;
+    $r = new artax\http\HttpRequest;
     $this->assertEquals('POST', $r->method);
   }
   
   /**
-   * @covers            artax\blocks\http\HttpRequest::detectProtocol
-   * @covers            \artax\blocks\http\HttpRequest::__construct
-   * @covers            \artax\blocks\http\BucketAbstract::__construct
+   * @covers            artax\http\HttpRequest::detectProtocol
+   * @covers            \artax\http\HttpRequest::__construct
+   * @covers            \artax\http\BucketAbstract::__construct
    */
   public function testDetectProtocolParsesServerVal()
   {
     $_SERVER['HTTPS'] = 'On';
-    $r = new artax\blocks\http\HttpRequest;
+    $r = new artax\http\HttpRequest;
     $this->assertEquals('https', $r->protocol);
     
     unset($_SERVER['HTTPS']);
-    $r = new artax\blocks\http\HttpRequest;
+    $r = new artax\http\HttpRequest;
     $this->assertEquals('http', $r->protocol);
   }
   
   /**
-   * @covers            artax\blocks\http\HttpRequest::detectHost
-   * @expectedException artax\blocks\http\HTTPException
+   * @covers            artax\http\HttpRequest::detectHost
+   * @expectedException artax\http\HTTPException
    * @exceptionMessage  Cannot detect host: No "Host" header exists
    */
   public function testDetectHostThrowsExceptionOnMissingServerVal()
   {
     unset($_SERVER['HTTP_HOST']);
-    $r = new artax\blocks\http\HttpRequest;
+    $r = new artax\http\HttpRequest;
   }
   
   /**
-   * @covers            artax\blocks\http\HttpRequest::detectHost
+   * @covers            artax\http\HttpRequest::detectHost
    */
   public function testDetectHostParsesServerVal()
   {
     $_SERVER['HTTP_HOST'] = 'artax';
-    $r = new artax\blocks\http\HttpRequest;
+    $r = new artax\http\HttpRequest;
     $this->assertEquals('artax', $r->host);
   }
   
   /**
-   * @covers            artax\blocks\http\HttpRequest::detectUri
-   * @expectedException artax\blocks\http\HTTPException
+   * @covers            artax\http\HttpRequest::detectUri
+   * @expectedException artax\http\HTTPException
    * @exceptionMessage  Cannot detect target: No valid SERVER URI keys exist
    */
   public function testDetectUriThrowsExceptionOnMissingServerVal()
   {
     unset($_SERVER['REQUEST_URI']);
     unset($_SERVER['REDIRECT_URL']);
-    $r = new artax\blocks\http\HttpRequest;
+    $r = new artax\http\HttpRequest;
   }
   
   /**
-   * @covers            artax\blocks\http\HttpRequest::detectUri
+   * @covers            artax\http\HttpRequest::detectUri
    */
   public function testDetectUriParsesServerVal()
   {
     $_SERVER['REQUEST_URI'] = '/test.php?qvar=test';
-    $r = new artax\blocks\http\HttpRequest;
+    $r = new artax\http\HttpRequest;
     $this->assertEquals('/test.php', $r->uri);
     
     $_SERVER['REQUEST_URI'] = '/';
-    $r = new artax\blocks\http\HttpRequest;
+    $r = new artax\http\HttpRequest;
     $this->assertEquals('/', $r->uri);
     
     unset($_SERVER['REQUEST_URI']);
     $_SERVER['REDIRECT_URL'] = '/';
-    $r = new artax\blocks\http\HttpRequest;
+    $r = new artax\http\HttpRequest;
     $this->assertEquals('/', $r->uri);
   }
   
   /**
-   * @covers            artax\blocks\http\HttpRequest::detectQueryString
+   * @covers            artax\http\HttpRequest::detectQueryString
    */
   public function testDetectQueryStringParsesServerVal()
   {
     $_SERVER['QUERY_STRING'] = 'test=1';
-    $r = new artax\blocks\http\HttpRequest;
+    $r = new artax\http\HttpRequest;
     $this->assertEquals('test=1', $r->queryString);
     
     unset($_SERVER['QUERY_STRING']);
-    $r = new artax\blocks\http\HttpRequest;
+    $r = new artax\http\HttpRequest;
     $this->assertEquals('', $r->queryString);
   }
   
   /**
-   * @covers            artax\blocks\http\HttpRequest::detectAddress
+   * @covers            artax\http\HttpRequest::detectAddress
    */
   public function testDetectAddressParsesServerVal()
   {
-    $r = new artax\blocks\http\HttpRequest;
+    $r = new artax\http\HttpRequest;
     $this->assertEquals('http://artax/', $r->address);
   }
   
   /**
-   * @covers            artax\blocks\http\HttpRequest::detectBody
+   * @covers            artax\http\HttpRequest::detectBody
    */
   public function testDetectBodyParsesServerVal()
   {
-    $r = new artax\blocks\http\HttpRequest;
+    $r = new artax\http\HttpRequest;
     $this->assertEquals('', $r->body);
   }
   
   /**
-   * @covers            artax\blocks\http\HttpRequest::detectIsAjax
+   * @covers            artax\http\HttpRequest::detectIsAjax
    */
   public function testDetectIsAjaxParsesServerVal()
   {
     $_SERVER['HTTP_X_REQUESTED_WITH'] = 'xmlHttpRequest';
-    $r = new artax\blocks\http\HttpRequest;
+    $r = new artax\http\HttpRequest;
     $this->assertEquals(TRUE, $r->isAjax);
     
     unset($_SERVER['HTTP_X_REQUESTED_WITH']);
-    $r = new artax\blocks\http\HttpRequest;
+    $r = new artax\http\HttpRequest;
     $this->assertEquals(FALSE, $r->isAjax);
   }
   
   /**
-   * @covers            artax\blocks\http\HttpRequest::detectClientIP
+   * @covers            artax\http\HttpRequest::detectClientIP
    */
   public function testDetectClientIPParsesServerVal()
   {
     $_SERVER['HTTP_X_FORWARDED_FOR'] = '127.0.0.3';
     $_SERVER['HTTP_CLIENT_IP'] = '127.0.0.2';
     $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
-    $r = new artax\blocks\http\HttpRequest;
+    $r = new artax\http\HttpRequest;
     $this->assertEquals('127.0.0.3', $r->clientIP);
     
     unset($_SERVER['HTTP_X_FORWARDED_FOR']);
-    $r = new artax\blocks\http\HttpRequest;
+    $r = new artax\http\HttpRequest;
     $this->assertEquals('127.0.0.2', $r->clientIP);
     
     unset($_SERVER['HTTP_CLIENT_IP']);
-    $r = new artax\blocks\http\HttpRequest;
+    $r = new artax\http\HttpRequest;
     $this->assertEquals('127.0.0.1', $r->clientIP);
   }
   
   /**
-   * @covers            artax\blocks\http\HttpRequest::detectClientIP
-   * @expectedException artax\blocks\http\HTTPException
+   * @covers            artax\http\HttpRequest::detectClientIP
+   * @expectedException artax\http\HTTPException
    * @exceptionMessage  Cannot detect client IP: No valid SERVER keys exist
    */
   public function testDetectClientIPThrowsExceptionOnParseFailure()
@@ -218,30 +218,30 @@ class HttpRequestTest extends PHPUnit_Framework_TestCase
     unset($_SERVER['HTTP_X_FORWARDED_FOR']);
     unset($_SERVER['HTTP_CLIENT_IP']);
     unset($_SERVER['REMOTE_ADDR']);
-    $r = new artax\blocks\http\HttpRequest;
+    $r = new artax\http\HttpRequest;
     $this->assertEquals('127.0.0.3', $r->clientIP);
   }
   
   /**
-   * @covers            artax\blocks\http\HttpRequest::detectTime
+   * @covers            artax\http\HttpRequest::detectTime
    */
   public function testDetectTimeParsesServerValOrReturnsNullIfMissing()
   {
     $expected = new \DateTime(date(\DateTime::ISO8601, 1327719048));
-    $r = new artax\blocks\http\HttpRequest;
+    $r = new artax\http\HttpRequest;
     $this->assertEquals($expected, $r->time);
     
     unset($_SERVER['REQUEST_TIME']);
-    $r = new artax\blocks\http\HttpRequest;
+    $r = new artax\http\HttpRequest;
     $this->assertEquals(NULL, $r->time);
   }
   
   /**
-   * @covers            artax\blocks\http\HttpRequest::getTarget
+   * @covers            artax\http\HttpRequest::getTarget
    */
   public function testGetTargetReturnsPropertyValue()
   {
-    $r = new artax\blocks\http\HttpRequest;
+    $r = new artax\http\HttpRequest;
     $this->assertEquals('/', $r->getTarget());
   }
 }

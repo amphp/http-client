@@ -3,26 +3,26 @@
 class HeaderBucketTest extends PHPUnit_Framework_TestCase
 {
   /**
-   * @covers artax\blocks\http\BucketAbstract::__construct
+   * @covers artax\http\BucketAbstract::__construct
    */
   public function testIsInitiallyEmpty()
   {
-    $hb = new artax\blocks\http\HeaderBucket;
+    $hb = new artax\http\HeaderBucket;
     $this->assertAttributeEmpty('params', $hb);
   }
   
   /**
-   * @covers artax\blocks\http\HeaderBucket::detect
-   * @covers artax\blocks\http\HeaderBucket::getRequestHeaders
-   * @covers artax\blocks\http\HeaderBucket::formatHeaderNames
-   * @covers artax\blocks\http\HeaderBucket::nativeHeaderGet
+   * @covers artax\http\HeaderBucket::detect
+   * @covers artax\http\HeaderBucket::getRequestHeaders
+   * @covers artax\http\HeaderBucket::formatHeaderNames
+   * @covers artax\http\HeaderBucket::nativeHeaderGet
    */
   public function testDetectAutoLoadsBucketParams()
   {
     $_SERVER['HTTP_TEST_HEADER'] = 'test';
     $_SERVER['CONTENT_TYPE']     = 'text/html';
     $_SERVER['CONTENT_LENGTH']   = 100;
-    $hb = (new artax\blocks\http\HeaderBucket())->detect();
+    $hb = (new artax\http\HeaderBucket())->detect();
     
     $this->assertEquals('test', $hb['Test-Header']);
     $this->assertEquals('text/html', $hb['Content-Type']);
@@ -34,12 +34,12 @@ class HeaderBucketTest extends PHPUnit_Framework_TestCase
   }
   
   /**
-   * @covers artax\blocks\http\HeaderBucket::getRequestHeaders
-   * @covers artax\blocks\http\HeaderBucket::nativeHeaderGet
+   * @covers artax\http\HeaderBucket::getRequestHeaders
+   * @covers artax\http\HeaderBucket::nativeHeaderGet
    */
   public function testDetectNativelyRetrievesHeadersIfAvailable()
   {
-    $mock = $this->getMock('artax\blocks\http\HeaderBucket', ['nativeHeaderGet']);
+    $mock = $this->getMock('artax\http\HeaderBucket', ['nativeHeaderGet']);
     $mock->expects($this->once())
          ->method('nativeHeaderGet')
          ->will($this->returnValue(['Test-Header'=>'test']));

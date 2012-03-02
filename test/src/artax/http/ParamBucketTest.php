@@ -3,12 +3,12 @@
 class ParamBucketTest extends PHPUnit_Framework_TestCase
 {
   /**
-   * @covers artax\blocks\http\ParamBucket::detect
-   * @covers artax\blocks\http\ParamBucket::__construct
+   * @covers artax\http\ParamBucket::detect
+   * @covers artax\http\ParamBucket::__construct
    */
   public function testDetectMergesGETandPOSTSuperglobals()
   {
-    $pb = new artax\blocks\http\ParamBucket;
+    $pb = new artax\http\ParamBucket;
     
     $this->assertEquals([], $pb->all());
     
