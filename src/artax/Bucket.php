@@ -48,11 +48,13 @@ namespace artax {
      * 
      * @return Object instance for method chaining
      */
-    public function load(array $params, $overwrite=FALSE)
+    public function load(array $params=[], $overwrite=FALSE)
     {
       if ($this->defaults) {
         foreach ($this->defaults as $key => $val) {
-          $params[$key] = isset($params[$key]) ? $params[$key] : $val;
+          if ( ! isset($this->params[$key]) && ! isset($params[$key])) {
+            $params[$key] = $val;
+          }
         }
       }
       
