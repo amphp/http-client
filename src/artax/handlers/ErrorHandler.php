@@ -16,7 +16,7 @@ namespace artax\handlers {
   /**
    * ErrorHandler Class
    * 
-   * All PHP errors result in a `exceptions\ErrorException` exception.
+   * All PHP errors result in a `ErrorException` exception.
    * 
    * @category   artax
    * @package    core
@@ -34,7 +34,7 @@ namespace artax\handlers {
      * @param int    $errLine The line in which the error occurred
      * 
      * @return void
-     * @throws \artax\exceptions\ErrorException On raised PHP error
+     * @throws ErrorException On raised PHP error
      */
     public function handle($errNo, $errStr, $errFile, $errLine)
     {
@@ -50,7 +50,7 @@ namespace artax\handlers {
         E_USER_DEPRECATED   => 'User Deprecated Notice'
       ];
       $msg = $levels[$errNo] . ": $errStr in $errFile on line $errLine";
-      throw new \artax\exceptions\ErrorException($msg);
+      throw new \ErrorException($msg);
     }
   }
 }

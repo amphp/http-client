@@ -88,7 +88,7 @@ class DepProviderTest extends PHPUnit_Framework_TestCase
   /**
    * @depends testConstructorAssignsDotNotationPropertyIfPassed
    * @covers artax\DepProvider::setSharedDep
-   * @expectedException artax\exceptions\InvalidArgumentException
+   * @expectedException InvalidArgumentException
    */
   public function testSetSharedDepThrowsExceptionOnInstanceTypeMismatch($dp)
   {

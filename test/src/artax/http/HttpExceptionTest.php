@@ -9,7 +9,7 @@ class HttpExceptionTest extends PHPUnit_Framework_TestCase
   public function testHttpExceptionIsArtaxException()
   {
     $e = new artax\http\HttpException();
-    $this->assertInstanceOf('artax\exceptions\Exception', $e);
+    $this->assertInstanceOf('artax\exceptions\ExceptionInterface', $e);
   }
 }
 

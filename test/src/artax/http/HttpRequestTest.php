@@ -36,7 +36,7 @@ class HttpRequestTest extends PHPUnit_Framework_TestCase
   
   /**
    * @covers \artax\http\HttpRequest::__get
-   * @expectedException artax\exceptions\OutOfBoundsException
+   * @expectedException OutOfBoundsException
    */
   public function testMagicGetThrowsExceptionOnInvalidProperty()
   {

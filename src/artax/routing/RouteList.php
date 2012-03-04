@@ -34,19 +34,19 @@ namespace artax\routing {
      * @param mixed $data  Data to associate with the object
      * 
      * @return bool TRUE on successful add -or- FALSE if add failed
-     * @throws \artax\exceptions\InvalidArgumentException If not passed a Route object
+     * @throws \InvalidArgumentException If not passed a Route object
      */
     public function attach($route, $data=NULL)
     {
       if ( ! $route instanceof RouteInterface) {
         $msg = 'attach() expects an instance of RouteInterface: ' . 
           get_class($route) . ' specified';
-        throw new \artax\exceptions\InvalidArgumentException($msg);
+        throw new \InvalidArgumentException($msg);
       }
       if (NULL !== $data && ! is_string($data)) {
         $msg = 'attach() expects a string $data parameter: ' .gettype($data) .
           ' specified';
-        throw new \artax\exceptions\InvalidArgumentException($msg);
+        throw new \InvalidArgumentException($msg);
       }
       parent::attach($route, $data);
     }
@@ -57,7 +57,7 @@ namespace artax\routing {
      * @param RouteList $obj RouteList object
      * 
      * @return void
-     * @throws \artax\exceptions\InvalidArgumentException If not passed a RouteList object
+     * @throws \InvalidArgumentException If not passed a RouteList object
      */
     public function addAll($obj)
     {
@@ -65,7 +65,7 @@ namespace artax\routing {
       if ( ! $obj instanceof $expected) {
         $msg = "RouteList::addAll expects an instance of $expected: " . 
           get_class($obj) . ' specified';
-        throw new \artax\exceptions\InvalidArgumentException($msg);
+        throw new \InvalidArgumentException($msg);
       }
       parent::addAll($obj);
     }
@@ -76,8 +76,8 @@ namespace artax\routing {
      * @param array $arr A structured array of route values
      * 
      * @return RouteList Object instance for method chaining
-     * @throws exceptions\ErrorException On invalid array structure
-     * @throws exceptions\InvalidArgumentException On invalid route values
+     * @throws \ErrorException On invalid array structure
+     * @throws \InvalidArgumentException On invalid route values
      */
     public function addAllFromArr(array $arr)
     {
@@ -98,7 +98,7 @@ namespace artax\routing {
      * @param string $data An optional route name string for reverse routing
      * 
      * @return RouteList Object instance for method chaining
-     * @throws exceptions\InvalidArgumentException On invalid route values
+     * @throws \InvalidArgumentException On invalid route values
      */
     public function addFromArr(array $arr, $data=NULL)
     {

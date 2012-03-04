@@ -4,7 +4,7 @@ class RouteListTest extends PHPUnit_Framework_TestCase
 {
   /**
    * @covers            artax\routing\RouteList::addAll
-   * @expectedException artax\exceptions\InvalidArgumentException
+   * @expectedException InvalidArgumentException
    */
   public function testAddAllThrowsExceptionOnNonRouteListParameter()
   {
@@ -14,7 +14,7 @@ class RouteListTest extends PHPUnit_Framework_TestCase
   
   /**
    * @covers            artax\routing\RouteList::attach
-   * @expectedException artax\exceptions\InvalidArgumentException
+   * @expectedException InvalidArgumentException
    */
   public function testAttachThrowsExceptionOnNonRouteInterfaceParameter()
   {
@@ -24,7 +24,7 @@ class RouteListTest extends PHPUnit_Framework_TestCase
   
   /**
    * @covers            artax\routing\RouteList::attach
-   * @expectedException artax\exceptions\InvalidArgumentException
+   * @expectedException InvalidArgumentException
    * @exceptionMessage  attach() expects a string $data parameter:
    */
   public function testAttachThrowsExceptionOnNonStringDataParameter()

@@ -51,7 +51,7 @@ namespace artax {
      * Load specified configuration file
      * 
      * @return Object instance for method chaining
-     * @throws exceptions\ConfigException On unreadable config file
+     * @throws \UnexpectedValueException On unreadable config file
      */
     public function load()
     {
@@ -60,19 +60,19 @@ namespace artax {
       $fileInfo = new \Finfo(FILEINFO_MIME_TYPE);      
       try {
         $type = $fileInfo->file($configFile);
-      } catch (\artax\exceptions\ErrorException $e) {
+      } catch (\ErrorException $e) {
         $configFile !== NULL ? $configFile : 'NULL';
         $msg = "Config file could not be read: $configFile";
-        throw new \artax\exceptions\UnexpectedValueException($msg);
+        throw new \UnexpectedValueException($msg);
       }
       
       switch ($type) {
-        case 'text/x-php':
-          $cfg = $this->loadPhpConfig($configFile);
-          break;
-        default:
-          $msg = "Invalid config file type: $type";
-          throw new \artax\exceptions\UnexpectedValueException($msg);
+      case 'text/x-php':
+        $cfg = $this->loadNative($configFile);
+        break;
+      default:
+        $msg = "Invalid config file type: $type";
+        throw new \UnexpectedValueException($msg);
       }
       $this->configArr = $cfg;
       
@@ -87,7 +87,7 @@ namespace artax {
      * @return array Returns the `$cfg` array from the specified config file. If
      *               `$cfg` is invalid or nonexistent an empty array is returned.
      */
-    protected function loadPhpConfig($configFile)
+    protected function loadNative($configFile)
     {
       require $configFile;
       return $cfg;

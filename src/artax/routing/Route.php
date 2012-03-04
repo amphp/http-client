@@ -76,7 +76,7 @@ namespace artax\routing {
      * @param array  $constraints An array of named capture argument constraints
      * 
      * @return void
-     * @throws \artax\exceptions\InvalidArgumentException On invalid route specification
+     * @throws InvalidArgumentException On invalid route specification
      * @used-by Route::buildPattern
      * @uses    Route::buildPattern
      */
@@ -88,14 +88,14 @@ namespace artax\routing {
           if (isset($constraints[$m[1]])) {
             if (in_array($m[1], $argNames)) {
               $msg = 'Duplicate route arguments not supported: <'.$m[1].'>';
-              throw new \artax\exceptions\InvalidArgumentException($msg);
+              throw new \InvalidArgumentException($msg);
             }
             $repl = '(?P<'.$m[1].'>'.$constraints[$m[1]].')';
             $alias = str_replace('<'.$m[1].'>', $repl, $alias);
             $argNames[] = $m[1];
           } else {
             $msg = 'Named route argument requires matching constraint: <'.$m[1].'>';
-            throw new \artax\exceptions\InvalidArgumentException($msg);
+            throw new \InvalidArgumentException($msg);
           }
         }
       }

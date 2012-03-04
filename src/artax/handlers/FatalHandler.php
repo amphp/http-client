@@ -129,8 +129,8 @@ namespace artax\handlers {
      * Determine if the last triggered PHP error was fatal
      * 
      * If the last occuring error during script execution was fatal the function
-     * returns an `artax\exceptions\ErrorException` object representing the error
-     * so it can be handled by `FatalHandler::exHandler`.
+     * returns an `ErrorException` object representing the error so it can be
+     * handled by `FatalHandler::exHandler`.
      * 
      * @return mixed Returns NULL if no error occurred or a non-fatal error was 
      *               raised. An ErrorException is returned if the last error
@@ -154,7 +154,7 @@ namespace artax\handlers {
       if (isset($fatals[$err['type']])) {
         $msg = $fatals[$err['type']] . ': ' . $err['message'] . ' in ';
         $msg.= $err['file'] . ' on line ' . $err['line'];
-        $ex = new \artax\exceptions\ErrorException($msg);
+        $ex = new \ErrorException($msg);
       }
       return $ex;
     }

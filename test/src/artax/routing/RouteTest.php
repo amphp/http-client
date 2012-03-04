@@ -59,7 +59,7 @@ class RouteTest extends PHPUnit_Framework_TestCase
   
   /**
    * @covers artax\routing\Route::buildPattern
-   * @expectedException artax\exceptions\InvalidArgumentException
+   * @expectedException InvalidArgumentException
    */
   public function testPatternBuilderThrowsExceptionOnDuplicateVariable()
   {
@@ -68,7 +68,7 @@ class RouteTest extends PHPUnit_Framework_TestCase
   
   /**
    * @covers artax\routing\Route::buildPattern
-   * @expectedException artax\exceptions\InvalidArgumentException
+   * @expectedException InvalidArgumentException
    */
   public function testPatternBuilderThrowsExceptionOnMissingVariableConstraint()
   {

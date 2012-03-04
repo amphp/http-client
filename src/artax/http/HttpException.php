@@ -3,7 +3,7 @@
 /**
  * Artax HttpException File
  * 
- * PHP version 5.3
+ * PHP version 5.4
  * 
  * @category   artax
  * @package    blocks
@@ -21,7 +21,8 @@ namespace artax\http {
    * @subpackage http
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
-  class HttpException extends \Exception implements \artax\exceptions\Exception
+  class HttpException extends \Exception
+    implements \artax\exceptions\ExceptionInterface
   {
   }
 }

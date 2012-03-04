@@ -87,12 +87,6 @@ ini_set('html_errors', FALSE);
  * --------------------------------------------------------------------
  */
 
-
-// Exceptions that could be thrown before the autoloader is registered
-require AX_SYSTEM_DIR . '/src/artax/exceptions/Exception.php';
-require AX_SYSTEM_DIR . '/src/artax/exceptions/ErrorException.php';
-require AX_SYSTEM_DIR . '/src/artax/exceptions/UnexpectedValueException.php';
-
 // Core libs
 
 require AX_SYSTEM_DIR . '/src/artax/events/NotifierInterface.php';

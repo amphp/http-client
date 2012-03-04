@@ -45,7 +45,7 @@ set_error_handler(function($errno, $errstr, $errfile, $errline) {
     E_USER_DEPRECATED   => 'User Deprecated Notice'
   ];
   $msg = $levels[$errno] . ": $errstr in $errfile on line $errline";
-  throw new \artax\exceptions\ErrorException($msg);
+  throw new \ErrorException($msg);
 });
 
 error_reporting(E_ALL);

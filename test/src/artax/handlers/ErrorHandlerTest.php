@@ -4,7 +4,7 @@ class ErrorHandlerTest extends PHPUnit_Framework_TestCase
 {
   /**
    * @covers artax\handlers\ErrorHandler::handle
-   * @expectedException artax\exceptions\ErrorException
+   * @expectedException ErrorException
    */
   public function testHandlerThrowsErrorException()
   {
@@ -22,7 +22,7 @@ class ErrorHandlerTest extends PHPUnit_Framework_TestCase
     $obj   = new artax\handlers\ErrorHandler;
     try {
       $obj->handle(E_NOTICE, 'test notice message', 'testFile.php', 42);
-    } catch (artax\exceptions\ErrorException $e) {
+    } catch (ErrorException $e) {
       $exMsg = $e->getMessage();
     }
     $this->assertEquals($msg, $exMsg);

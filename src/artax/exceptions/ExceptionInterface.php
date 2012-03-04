@@ -1,9 +1,9 @@
 <?php
-
+  
 /**
- * Artax RuntimeException File
+ * Artax ExceptionInterface File
  * 
- * PHP version 5.3
+ * PHP version 5
  * 
  * @category artax
  * @package  exceptions
@@ -11,16 +11,17 @@
  */
 
 namespace artax\exceptions {
-
+  
   /**
-   * Exception thrown for errors that are only detectable at runtime
+   * Generic Artax Exception interface
    * 
    * @category artax
    * @package  exceptions
    * @author   Daniel Lowrey <rdlowrey@gmail.com>
    */
-  class RuntimeException extends \RuntimeException implements Exception
+  interface ExceptionInterface
   {
   }
   
 }
+

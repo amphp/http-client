@@ -364,7 +364,7 @@ namespace artax\http {
      * @param string $prop Object property name
      * 
      * @return mixed Returns value for requested property
-     * @throws \artax\exceptions\OutOfBoundsException On inaccessible property name
+     * @throws OutOfBoundsException On inaccessible property name
      */
     public function __get($prop)
     {
@@ -372,7 +372,7 @@ namespace artax\http {
         return $this->$prop;
       }
       $msg = 'Invalid property: ' . get_class($this) . "::\$$prop does not exist";
-      throw new \artax\exceptions\OutOfBoundsException($msg);
+      throw new \OutOfBoundsException($msg);
     }
   }
 }

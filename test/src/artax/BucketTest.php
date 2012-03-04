@@ -48,7 +48,7 @@ class BucketTest extends PHPUnit_Framework_TestCase
   
   /**
    * @covers artax\Bucket::get
-   * @expectedException artax\exceptions\OutOfBoundsException
+   * @expectedException OutOfBoundsException
    */
   public function testGetThrowsExceptionOnInvalidParameter()
   {

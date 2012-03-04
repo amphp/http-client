@@ -16,7 +16,7 @@ class MatcherTest extends PHPUnit_Framework_TestCase
   
   public function testBeginsEmpty()
   {
-    $request = new artax\blocks\http\HttpRequest;
+    $request = new artax\http\HttpRequest;
     $routes  = new artax\routing\RouteList;
     $matcher = new artax\routing\Matcher($request, $routes);
     
@@ -47,7 +47,7 @@ class MatcherTest extends PHPUnit_Framework_TestCase
       'route2' => ['/widgets/<id>', 'MatcherTestController.show', ['id'=>'\d+']]
     ];
     $routes  = (new artax\routing\RouteList)->addAllFromArr($routeArr);
-    $request  = new artax\blocks\http\HttpRequest;
+    $request  = new artax\http\HttpRequest;
     $matcher = new artax\routing\Matcher($request, $routes);
     
     $this->assertTrue($matcher->match());
@@ -55,7 +55,7 @@ class MatcherTest extends PHPUnit_Framework_TestCase
     
     $_SERVER['REQUEST_URI'] = '/widgets/42';
     
-    $request = new artax\blocks\http\HttpRequest;
+    $request = new artax\http\HttpRequest;
     $matcher = new artax\routing\Matcher($request, $routes);
     
     $this->assertTrue($matcher->match());

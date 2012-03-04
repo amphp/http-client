@@ -34,6 +34,12 @@ namespace artax {
     protected $shared;
     
     /**
+     * A hash mapping dot notation class names to constructor method signatures
+     * @var array
+     */
+    protected $constructorSigCache;
+    
+    /**
      * Initializes DotNotation object dependency
      * 
      * @param DotNotation $dotNotation A DotNotation object for class name parsing
@@ -43,6 +49,7 @@ namespace artax {
     public function __construct(DotNotation $dotNotation)
     {
       $this->shared = [];
+      $this->constructorSigCache = [];
       $this->dotNotation = $dotNotation;
     }
     
@@ -53,7 +60,7 @@ namespace artax {
      * @param mixed  $instance The shared dependency instance
      * 
      * @return DepProvider Returns object instance for method chaining
-     * @throws exceptions\InvalidArgumentException If instance arg doesn't match
+     * @throws \InvalidArgumentException If instance arg doesn't match
      *                                             specified type
      */
     public function setSharedDep($type, $instance)
@@ -61,7 +68,7 @@ namespace artax {
       $cls = $this->dotNotation->parse($type);
       if ( ! $instance instanceof $cls) {
         $msg = "Expected $cls instance: " . get_class($instance) . ' received';
-        throw new exceptions\InvalidArgumentException($msg);
+        throw new \InvalidArgumentException($msg);
       }
       $this->shared[$type] = $instance;
       return $this;
@@ -97,10 +104,16 @@ namespace artax {
       
       if ($shared && isset($this->shared[$type])) {
         return $this->shared[$type];
-      } else {
-        $specd = empty($this->params[$type]) ? [] : $this->params[$type];
-        return $this->getInjectedInstance($type, $specd, $custom, $shared);
       }
+      
+      $specd = empty($this->params[$type]) ? [] : $this->params[$type];
+      $obj   = $this->getInjectedInstance($type, $specd, $custom);
+      
+      if ($shared) {
+        $this->shared[$type] = $obj;
+      }
+      
+      return $obj;
     }
     
     /**
@@ -118,16 +131,21 @@ namespace artax {
      * @param array  $custom An associative array of specific dependency objects
      *                       to use for object instantiation instead of new
      *                       dependency instances
-     * @param bool   $shared 
      * 
      * @return mixed A dependency-injected object
      */
-    protected function getInjectedInstance($type, array $specd, array $custom,
-      $shared)
+    protected function getInjectedInstance($type, array $specd, array $custom)
     {
       $class = $this->dotNotation->parse($type);
       $refl  = new \ReflectionClass($class);
-      $args  = $this->parseConstructorArgs($refl);
+      
+      if (isset($this->constructorSigCache[$type])) {
+        $args = $this->constructorSigCache[$type];
+      } else {
+        $args = $this->parseConstructorArgs($refl);
+        $this->constructorSigCache[$type] = $args;
+      }
+      
       $deps  = [];
       
       foreach ($args as $key => $val) {
@@ -139,11 +157,7 @@ namespace artax {
           $deps[$key] = $this->make($val);
         }
       }
-      
       $obj = $refl->newInstanceArgs($deps);
-      if ($shared) {
-        $this->shared[$type] = $obj;
-      }
       
       return $obj;
     }

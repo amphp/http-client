@@ -48,7 +48,7 @@ class ArtaxViewTest extends PHPUnit_Framework_TestCase
   /**
    * @depends testGetVarReturnsTemplatePropertyValue
    * @covers  artax\views\ArtaxView::render
-   * @expectedException artax\exceptions\ErrorException
+   * @expectedException ErrorException
    */
   public function testRenderThrowsExceptionOnError($view)
   {

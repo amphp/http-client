@@ -101,7 +101,7 @@ namespace artax {
      * @param string $key      Param identifier
      * 
      * @return mixed Returns the value of the specified config directive
-     * @throws exceptions\OutOfBoundsException On invalid config parameter key
+     * @throws OutOfBoundsException On invalid config parameter key
      */
     public function get($key)
     {
@@ -109,7 +109,7 @@ namespace artax {
         return $this->params[$key];
       }
       $msg = "The specified parameter does not exist: $key";
-      throw new exceptions\OutOfBoundsException($msg);
+      throw new \OutOfBoundsException($msg);
     }
     
     /**
