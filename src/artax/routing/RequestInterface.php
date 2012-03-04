@@ -24,7 +24,10 @@ namespace artax\routing {
   interface RequestInterface
   {
     /**
-     * Retrieve a request object's routable target (URI)
+     * Retrieve a request object's routable target
+     * 
+     * For an HTTP request, the target would be the REQUEST_URI. CLI applications
+     * may not require routing; however, the facility is provided nonetheless.
      */
     public function getTarget();
   }
