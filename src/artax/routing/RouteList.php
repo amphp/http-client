@@ -34,7 +34,7 @@ namespace artax\routing {
      * @param mixed $data  Data to associate with the object
      * 
      * @return bool TRUE on successful add -or- FALSE if add failed
-     * @throws \InvalidArgumentException If not passed a Route object
+     * @throws InvalidArgumentException If not passed a Route object
      */
     public function attach($route, $data=NULL)
     {
@@ -57,7 +57,7 @@ namespace artax\routing {
      * @param RouteList $obj RouteList object
      * 
      * @return void
-     * @throws \InvalidArgumentException If not passed a RouteList object
+     * @throws InvalidArgumentException If not passed a RouteList object
      */
     public function addAll($obj)
     {
@@ -76,8 +76,8 @@ namespace artax\routing {
      * @param array $arr A structured array of route values
      * 
      * @return RouteList Object instance for method chaining
-     * @throws \ErrorException On invalid array structure
-     * @throws \InvalidArgumentException On invalid route values
+     * @throws ErrorException On invalid array structure
+     * @throws InvalidArgumentException On invalid route values
      */
     public function addAllFromArr(array $arr)
     {
@@ -98,7 +98,7 @@ namespace artax\routing {
      * @param string $data An optional route name string for reverse routing
      * 
      * @return RouteList Object instance for method chaining
-     * @throws \InvalidArgumentException On invalid route values
+     * @throws InvalidArgumentException On invalid route values
      */
     public function addFromArr(array $arr, $data=NULL)
     {
