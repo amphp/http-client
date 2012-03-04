@@ -20,7 +20,8 @@ class ConfigTest extends PHPUnit_Framework_TestCase
       'namespaces'  => [],
       'autoRequire' => [],
       'deps'        => [],
-      'listeners'   => []
+      'listeners'   => [],
+      'routes'      => []
     ];
     $this->assertEquals($defaults, $c->defaults);
   }

@@ -40,8 +40,10 @@ namespace artax {
         'namespaces'  => [],
         'autoRequire' => [],
         'deps'        => [],
-        'listeners'   => []
+        'listeners'   => [],
+        'routes'      => []
       ];
+      $this->load();
     }
     
     /**
