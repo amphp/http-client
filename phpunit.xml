@@ -1,13 +1,6 @@
 <phpunit bootstrap="./test/bootstrap.php" colors="true">
   
-  <testsuites>
-    <testsuite name="Core">
-      <directory>./test/src/artax/exceptions</directory>
-      <directory>./test/src/artax</directory>
-    </testsuite>
-  </testsuites>
-  
-	<filter>
+  <filter>
 	  <blacklist>
       <!-- Prevent vfsStream output in our code coverage reports -->
       <directory>/usr/share/pear/vfsStream</directory>
@@ -20,6 +13,8 @@
       <exclude>
         <!-- Exclude Interfaces from code coverage -->
         <directory suffix="Interface.php">./src/artax</directory>
+        <!-- Exclude non-core block libs -->
+        <directory>./src/artax/blocks</directory>
       </exclude>
     </whitelist>
   </filter>

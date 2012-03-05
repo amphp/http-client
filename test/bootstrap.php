@@ -1,27 +1,15 @@
 <?php
 
+error_reporting(E_ALL);
 ini_set('memory_limit', '1024M');
-
-/*
- * --------------------------------------------------------------------
- * DEFINE ARTAX DIRECTORY CONSTANTS
- * --------------------------------------------------------------------
- */
-
 define('AX_SYSTEM_DIR', dirname(dirname(realpath(__FILE__))));
 define('AX_APP_PATH', AX_SYSTEM_DIR);
 
-/*
- * --------------------------------------------------------------------
- * REGISTER ARTAX CLASS AUTOLOADER
- * --------------------------------------------------------------------
+/**
+ * Use PSR-0 autoloader for required test libs
  */
-
-require AX_SYSTEM_DIR . '/src/artax/ClassLoaderInterface.php';
-require AX_SYSTEM_DIR . '/src/artax/ClassLoaderAbstract.php'; 
-require AX_SYSTEM_DIR . '/src/artax/ClassLoader.php';
-(new artax\ClassLoader('artax', AX_SYSTEM_DIR . '/src'))->register();
-(new artax\ClassLoader(NULL, AX_SYSTEM_DIR . '/src'))->register();
+require AX_SYSTEM_DIR . '/test/SplClassLoader.php';
+(new SplClassLoader('artax', AX_SYSTEM_DIR . '/src'))->register();
 
 require __DIR__ . '/MagicTestGetTrait.php';
 
@@ -47,8 +35,6 @@ set_error_handler(function($errno, $errstr, $errfile, $errline) {
   $msg = $levels[$errno] . ": $errstr in $errfile on line $errline";
   throw new \ErrorException($msg);
 });
-
-error_reporting(E_ALL);
 
 /*
  * --------------------------------------------------------------------
