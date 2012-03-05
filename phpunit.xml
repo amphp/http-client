@@ -1,5 +1,11 @@
 <phpunit bootstrap="./test/bootstrap.php" colors="true">
   
+  <testsuites>
+    <testsuite name="core">
+      <directory>./test/src/artax</directory>
+    </testsuite>
+  </testsuites>
+  
   <filter>
 	  <blacklist>
       <!-- Prevent vfsStream output in our code coverage reports -->
