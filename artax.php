@@ -134,9 +134,8 @@ require AX_SYSTEM_DIR . '/src/artax/ClassLoaderFactory.php';
  * BOOT & GENERATE REQUEST/RESPONSE
  * --------------------------------------------------------------------
  */
+ 
 
-
-// Boot the application
 $artax = (new artax\App(
   (new artax\ConfigLoader)->setConfigFile(AX_CONFIG_FILE),
   new artax\Config,
@@ -144,6 +143,5 @@ $artax = (new artax\App(
   new artax\handlers\FatalHandler,
   new artax\ClassLoaderFactory,
   new artax\DepProvider(new artax\DotNotation),
-  new artax\events\Mediator,
-  new artax\routing\RouteList
+  new artax\events\Mediator
 ))->boot();

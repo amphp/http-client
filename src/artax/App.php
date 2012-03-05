@@ -60,12 +60,6 @@ namespace artax {
     protected $depProvider;
     
     /**
-     * A list of request routes to match against
-     * @var routing\RouteList
-     */
-    protected $routes;
-    
-    /**
      * An ordered list of class boot methods to execute
      * @var array
      */
@@ -87,7 +81,6 @@ namespace artax {
      * @param ClassLoaderFactory    $clFactory    A factory for building class loaders
      * @param DepProvider           $depProvider  The app dependency provider
      * @param Mediator              $mediator     An event mediator object
-     * @param RouteList             $routes       A list of request routes to match
      * 
      * @return void
      */
@@ -98,8 +91,7 @@ namespace artax {
       handlers\FatalHandlerInterface $fatalHandler,
       ClassLoaderFactory $clFactory,
       DepProvider $depProvider,
-      events\Mediator $mediator,
-      routing\RouteList $routes
+      events\Mediator $mediator
     )
     {
       $this->errorHandler = $errorHandler;
@@ -109,7 +101,6 @@ namespace artax {
       $this->depProvider  = $depProvider;
       $this->clFactory    = $clFactory;
       $this->mediator     = $mediator;
-      $this->routes       = $routes;
       
       $this->bootSteps = [
         'initErrorHandler',
@@ -119,8 +110,7 @@ namespace artax {
         'loadAutoRequires',
         'initClassAutoloaders',
         'initDepProvider',
-        'initMediator',
-        'initRoutes',
+        'initListeners',
         'sharedAppScopeDeps'
       ];
       
@@ -196,11 +186,6 @@ namespace artax {
      */
     public function loadBundles()
     {
-      if ( ! empty($this->config['cacheBundle'])) {
-        require AX_SYSTEM_DIR . '/src/artax/blocks/cache/CacheDriverInterface.php';
-        require AX_SYSTEM_DIR . '/src/artax/blocks/cache/CacheableInterface.php';
-      }
-      
       if ( ! empty($this->config['httpBundle'])) {
         require AX_SYSTEM_DIR . '/src/artax/views/ViewInterface.php';
         require AX_SYSTEM_DIR . '/src/artax/http/HttpMatcher.php';
@@ -225,16 +210,14 @@ namespace artax {
      */
     public function initClassAutoloaders()
     {
-      $type = empty($this->config['classLoader'])
-        ? 'standard'
-        : $this->config['classLoader'];
-      
-      $this->clFactory->make($type, 'artax')
+      $this->clFactory->make($this->config['classLoader'], 'artax')
            ->setIncludePath(AX_SYSTEM_DIR.'/src')
            ->register();
       
-      if (isset($this->config['namespaces'])) {
-        foreach ($this->config['namespaces'] as $ns => $path) {
+      $type = $this->config->get('classLoader');
+      
+      if ($namespaces = $this->config->get('namespaces')) {
+        foreach ($namespaces as $ns => $path) {
           $ns = $ns ?: NULL;
           $this->clFactory->make($type, $ns)->setIncludePath($path)->register();
         }
@@ -248,25 +231,25 @@ namespace artax {
      */
     public function loadAutoRequires()
     {
-      if (isset($this->config['autoRequire'])) {
-        foreach ($this->config['autoRequire'] as $file) {
+      if ($autoRequires = $this->config->get('autoRequire')) {
+        foreach ($autoRequires as $file) {
           require $file;
         }
       }
     }
     
     /**
-     * Load dependencies and shares application-scoped dependencies
+     * Load dependencies and share application-scoped dependencies
      * 
      * @return void
      */
     public function initDepProvider()
     {
-      if (isset($this->config['deps']) && $d = $this->config['deps']) {
-        $depsArr = is_array($d)
-          ? $d
+      if ($deps = $this->config->get('deps')) {
+        $depsArr = is_array($deps)
+          ? $deps
           : $this->configLoader->load($d)->getConfigArr();
-
+          
         $this->depProvider->load($depsArr);
       }
       foreach ($this->sharedAppDeps as $sad) {
@@ -279,35 +262,19 @@ namespace artax {
      * 
      * @return void
      */
-    public function initMediator()
+    public function initListeners()
     {
-      $listeners = isset($this->config['listeners'])
-        ? $this->config['listeners']
-        : [];
-      
-      if ($listeners) {
+      if ($listeners = $this->config->get('listeners')) {
+        $listenersArr = is_array($listeners)
+          ? $listeners
+          : $this->configLoader->setConfigFile($listeners)->load()->getConfigArr();
+          
         foreach ($listeners as $listener) {
           $lambda = \Closure::bind($listener[1], $this);
           $this->mediator->push($listener[0], $lambda);
         }
       }
       $this->fatalHandler->setMediator($this->mediator);
-    }
-    
-    /**
-     * Load config routes
-     * 
-     * @return void
-     */
-    public function initRoutes()
-    {
-      if (isset($this->config['routes'])) {
-        $routes    = $this->config['routes'];
-        $routesArr = is_array($routes)
-          ? $routes
-          : $this->configLoader->setConfigFile($routes)->load()->getConfigArr();
-        $this->routes->addAllFromArr($routesArr);
-      }
     }
     
     /**
@@ -319,7 +286,6 @@ namespace artax {
     {
       $this->depProvider->setSharedDep('artax.Config', $this->config);
       $this->depProvider->setSharedDep('artax.events.Mediator', $this->mediator);
-      $this->depProvider->setSharedDep('artax.routing.RouteList', $this->routes);
     }
     
     /**
@@ -328,7 +294,7 @@ namespace artax {
      * @param string $prop Object property name
      * 
      * @return mixed Returns the value of the requested property if it exists
-     * @throws exceptions\OutOfBoundsException On non-existent property request
+     * @throws OutOfBoundsException On non-existent property request
      */
     public function __get($prop)
     {
@@ -336,7 +302,7 @@ namespace artax {
         return $this->$prop;
       } else {
         $msg = "Invalid property: artax\App::\$$prop does not exist";
-        throw new exceptions\OutOfBoundsException($msg);
+        throw new \OutOfBoundsException($msg);
       }
     }
   }
