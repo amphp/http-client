@@ -36,10 +36,11 @@ namespace artax\handlers {
     /**
      * The "last chance" handler for uncaught exceptions 
      * 
-     * If a custom exception handling listener throws an exception, the class
-     * will fall back to the default exception display. It is important that your
-     * custom exception handling controller prevents any exceptions it may throw
-     * from bubbling up the stack.
+     * If the object has been injected with an active Mediator, the exception
+     * will be emitted to any attached event listeners. If not, the default
+     * handler message will be output. It is important that any events listening
+     * for uncaught exceptions prevent any of their own thrown exceptions from
+     * bubbling up the stack, otherwise the default message will be displayed.
      * 
      * Note that the shutdown handler will still be invoked after handling of an
      * uncaught exception.
