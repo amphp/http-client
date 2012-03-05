@@ -108,12 +108,14 @@ namespace artax\handlers {
     }
     
     /**
-     * Setter injection method for protected $mediator property (NotifierTrait)
+     * Setter injection method for protected $mediator property
      * 
      * Setter injection is used over constructor injection here because we want
      * to implement the class exception and shutdown handlers as early as possible
      * in the boot process. The event mediator is then injected once event all
      * listeners are loaded from the app configuration settings.
+     * 
+     * The mediator property is provided by the usage of NotifierTrait.
      * 
      * @param Mediator $mediator An event mediator object instance
      * 
@@ -162,6 +164,9 @@ namespace artax\handlers {
     /**
      * Get an array representation of the most recently raised PHP error
      * 
+     * This method exists primarily for testing purposes to allow mocking
+     * of its behavior.
+     * 
      * @return array Returns an associative error representation array
      * @used-by FatalHandler::getFatalErrException
      */
@@ -181,7 +186,7 @@ namespace artax\handlers {
     {
       return $this->debug
         ? (string) $e
-        : "Yikes. There's an internal error and we're working to fix it.";
+        : 'Yikes. There\'s an internal error and we\'re working to fix it.';
     }
   }
 }
