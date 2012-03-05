@@ -1,39 +1,29 @@
 <?php
 
 class MediatorTest extends PHPUnit_Framework_TestCase
-{  
-  public function testListenersIsEmptyOnInstantiation()
+{
+  public function testBeginsEmpty()
   {
-    $m = new artax\events\Mediator;
+    $m = new MediatorTestImplementationClass;
     $this->assertEquals([], $m->all());
+    return $m;
   }
   
   /**
-   * @covers artax\events\Mediator::__construct
-   * @covers artax\events\Mediator::all
+   * @depends testBeginsEmpty
+   * @covers artax\events\Mediator::setRebinder
    */
-  public function testConstructorAddsPassedListeners()
+  public function testSetRebinderAssignsProperty($m)
   {
-    $listeners = [
-      ['test.event1', function() { return TRUE; }],
-      ['test.event1', function() { return 42; }]
-    ];
-    
-    $m = new artax\events\Mediator($listeners);
-    
-    $expected = [
-      'test.event1' => [
-        $listeners[0][1],
-        $listeners[1][1]
-      ]
-    ];
-    
-    $this->assertEquals($expected, $m->all());
+    $lambda = function() { return 42; };
+    $m->setRebinder($lambda);
+    $this->assertEquals($lambda, $m->rebinder);
   }
   
   /**
    * @covers artax\events\Mediator::push
    * @covers artax\events\Mediator::last
+   * @covers artax\events\Mediator::rebind
    */
   public function testPushAddsEventListener()
   {
@@ -211,7 +201,10 @@ class MediatorTest extends PHPUnit_Framework_TestCase
   }
 }
 
-
+class MediatorTestImplementationClass extends artax\events\Mediator
+{
+  use MagicTestGetTrait;
+}
 
 
 

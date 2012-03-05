@@ -27,25 +27,13 @@ namespace artax\events {
      * An array of event listeners
      * @var array
      */
-    protected $listeners;
+    protected $listeners = [];
     
     /**
-     * Class constructor
-     * 
-     * @param array $listeners An optional array of listeners to populate the 
-     *                         object upon instantiation.
-     * 
-     * @return void
+     * An optional closure to rebind pushed listeners to the artax App instance
+     * @var Closure
      */
-    public function __construct(array $listeners=[])
-    {
-      $this->listeners = [];
-      if ($listeners) {
-        foreach ($listeners as $listener) {
-          $this->push($listener[0], $listener[1]);
-        }
-      }
-    }
+    protected $rebinder;
     
     /**
      * Connect a `$listener` to end of the `$eventName` event queue
@@ -54,9 +42,14 @@ namespace artax\events {
      * @param mixed  $listener  Callable event listener
      * 
      * @return Returns the number of listeners in the queue for the specified event
+     * @uses Mediator::rebind
      */
-    public function push($eventName, Callable $listener)
+    public function push($eventName, callable $listener)
     {
+      if ($listener instanceof \Closure) {
+        $listener = $this->rebind($listener);
+      }
+            
       if ( ! isset($this->listeners[$eventName])) {
         $this->listeners[$eventName]   = [];
         $this->listeners[$eventName][] = $listener;
@@ -74,8 +67,12 @@ namespace artax\events {
      * 
      * @return int Returns the new number of listeners for the specified event.
      */
-    public function unshift($eventName, Callable $listener)
+    public function unshift($eventName, callable $listener)
     {
+      if ($listener instanceof \Closure) {
+        $listener = $this->rebind($listener);
+      }
+      
       if ( ! isset($this->listeners[$eventName])) {
         $this->listeners[$eventName]   = [];
       }
@@ -232,6 +229,32 @@ namespace artax\events {
         }
       }
       return $execCount;
+    }
+    
+    /**
+     * Set a closure that all event listeners will be passed to for rebinding
+     * 
+     * @param Closure $lambda
+     * 
+     * @return Mediator Returns object instance for method chaining
+     */
+    public function setRebinder(\Closure $lambda)
+    {
+      $this->rebinder = $lambda;
+      return $this;
+    }
+    
+    /**
+     * Rebind listeners if a rebinder Closure exists
+     * 
+     * @param Closure $listener Callable event listener
+     * 
+     * @return Closure Returns the rebinded Closure event listener
+     * @used-by Mediator::push
+     */
+    protected function rebind(\Closure $lambda)
+    {
+      return $this->rebinder ? call_user_func($this->rebinder, $lambda) : $lambda;
     }
   }
 }
