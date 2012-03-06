@@ -51,7 +51,7 @@ namespace artax {
      * A factory for building class loaders
      * @var ClassLoaderFactory
      */
-    protected $clFactory;
+    protected $clsLoaderFactory;
     
     /**
      * The app dependency provider
@@ -78,7 +78,7 @@ namespace artax {
      * @param Config                $config       The app config directive bucket
      * @param ErrorHandlerInterface $errorHandler The PHP error handler class
      * @param FatalHandlerInterface $fatalHandler The fatal error handling class
-     * @param ClassLoaderFactory    $clFactory    A factory for building class loaders
+     * @param ClassLoaderFactory    $clsLoaderFactory A factory for building class loaders
      * @param DepProvider           $depProvider  The app dependency provider
      * @param Mediator              $mediator     An event mediator object
      * 
@@ -89,71 +89,53 @@ namespace artax {
       Config $config,
       handlers\ErrorHandlerInterface $errorHandler,
       handlers\FatalHandlerInterface $fatalHandler,
-      ClassLoaderFactory $clFactory,
+      ClassLoaderFactory $clsLoaderFactory,
       DepProvider $depProvider,
       events\Mediator $mediator
     )
     {
-      $this->errorHandler = $errorHandler;
-      $this->fatalHandler = $fatalHandler;
-      $this->configLoader = $configLoader;
-      $this->config       = $config;
-      $this->depProvider  = $depProvider;
-      $this->clFactory    = $clFactory;
-      $this->mediator     = $mediator;
+      $this->errorHandler     = $errorHandler;
+      $this->fatalHandler     = $fatalHandler;
+      $this->configLoader     = $configLoader;
+      $this->config           = $config;
+      $this->depProvider      = $depProvider;
+      $this->clsLoaderFactory = $clsLoaderFactory;
+      $this->mediator         = $mediator;
       
       $this->bootSteps = [
-        'initErrorHandler',
-        'initFatalHandler',
+        'registerHandlers',
         'initConfig',
         'loadBundles',
         'loadAutoRequires',
         'initClassAutoloaders',
         'initDepProvider',
-        'initListeners',
-        'sharedAppScopeDeps'
-      ];
-      
-      $this->sharedAppDeps = [
-        'artax.Config',
-        'artax.events.Mediator'
+        'initEvents'
       ];
     }
     
     /**
-     * Executes the application boot process
+     * Boot the application
      * 
      * @return void
      * @notifies ax.boot_complete|\artax\App
      */
     public function boot()
     {
-      foreach ($this->bootSteps as $step) {
+      while ($step = array_shift($this->bootSteps)) {
         $this->$step();
       }
       $this->notify('ax.boot_complete');
+      return $this;
     }
     
     /**
-     * Initialize an error handler to throw exceptions on PHP errors
+     * Register error, exception and shutdown handlers
      * 
      * @return void
      */
-    public function initErrorHandler()
+    protected function registerHandlers()
     {
       set_error_handler([$this->errorHandler, 'handle']);
-    }
-    
-    /**
-     * Initialize exception/shutdown handler
-     * 
-     * The dot-notation class name is retrieved from the config property and
-     * instantiated using the dependency provider.
-     * 
-     * @return void
-     */
-    public function initFatalHandler()
-    {
       set_exception_handler([$this->fatalHandler, 'exHandler']);
       register_shutdown_function([$this->fatalHandler, 'shutdown']);
     }
@@ -163,20 +145,18 @@ namespace artax {
      * 
      * @return void
      */
-    public function initConfig()
+    protected function initConfig()
     {
       $configArr = $this->configLoader->load()->getConfigArr();
       $this->config->load($configArr, TRUE);
       
-      $debug = $this->config['debug'];
-      
-      if ( ! $debug) {
+      if ( ! $this->config['debug']) {
         error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
         ini_set('display_errors', FALSE);
       } else {
         ini_set('display_errors', TRUE);
       }
-      $this->fatalHandler->setDebug($debug);
+      $this->fatalHandler->setDebug($this->config['debug']);
     }
     
     /**
@@ -184,7 +164,7 @@ namespace artax {
      * 
      * @return void
      */
-    public function loadBundles()
+    protected function loadBundles()
     {
       if ( ! empty($this->config['httpBundle'])) {
         require AX_SYSTEM_DIR . '/src/artax/views/ViewInterface.php';
@@ -208,9 +188,9 @@ namespace artax {
      * 
      * @return void
      */
-    public function initClassAutoloaders()
+    protected function initClassAutoloaders()
     {
-      $this->clFactory->make($this->config['classLoader'], 'artax')
+      $this->clsLoaderFactory->make($this->config['classLoader'], 'artax')
            ->setIncludePath(AX_SYSTEM_DIR.'/src')
            ->register();
       
@@ -219,7 +199,7 @@ namespace artax {
       if ($namespaces = $this->config->get('namespaces')) {
         foreach ($namespaces as $ns => $path) {
           $ns = $ns ?: NULL;
-          $this->clFactory->make($type, $ns)->setIncludePath($path)->register();
+          $this->clsLoaderFactory->make($type, $ns)->setIncludePath($path)->register();
         }
       }
     }
@@ -229,7 +209,7 @@ namespace artax {
      * 
      * @return void
      */
-    public function loadAutoRequires()
+    protected function loadAutoRequires()
     {
       if ($autoRequires = $this->config->get('autoRequire')) {
         foreach ($autoRequires as $file) {
@@ -243,49 +223,47 @@ namespace artax {
      * 
      * @return void
      */
-    public function initDepProvider()
+    protected function initDepProvider()
     {
       if ($deps = $this->config->get('deps')) {
-        $depsArr = is_array($deps)
-          ? $deps
-          : $this->configLoader->load($d)->getConfigArr();
-          
-        $this->depProvider->load($depsArr);
+        $this->depProvider->load($deps);
       }
-      foreach ($this->sharedAppDeps as $sad) {
-        $this->depProvider->set($sad, ['_shared' => TRUE]);
-      }
-    }
-    
-    /**
-     * Load mediator and specified event listeners
-     * 
-     * @return void
-     */
-    public function initListeners()
-    {
-      if ($listeners = $this->config->get('listeners')) {
-        $listenersArr = is_array($listeners)
-          ? $listeners
-          : $this->configLoader->setConfigFile($listeners)->load()->getConfigArr();
-          
-        foreach ($listeners as $listener) {
-          $lambda = \Closure::bind($listener[1], $this);
-          $this->mediator->push($listener[0], $lambda);
-        }
-      }
-      $this->fatalHandler->setMediator($this->mediator);
-    }
-    
-    /**
-     * Store shared application scope dependencies in depProvider instance
-     * 
-     * @return void
-     */
-    public function sharedAppScopeDeps()
-    {
+      
+      $this->depProvider->set('artax.DepProvider', ['_shared' => TRUE]);
+      $this->depProvider->set('artax.Config', ['_shared' => TRUE]);
+      $this->depProvider->set('artax.events.Mediator', ['_shared' => TRUE]);
+      
+      $this->depProvider->setSharedDep('artax.DepProvider', $this->depProvider);
       $this->depProvider->setSharedDep('artax.Config', $this->config);
       $this->depProvider->setSharedDep('artax.events.Mediator', $this->mediator);
+    }
+    
+    /**
+     * Load specified event listeners and inject Mediator
+     * 
+     * The mediator object is injected with a Closure that rebinds each new
+     * listener to the App object instance. This grants listeners public scope
+     * access via `$this` to application-scope dependencies.
+     * 
+     * Additionally, the `App::$fatalHandler` is injected with the newly populated
+     * Mediator to allow handling exceptions and shutdowns with chainable event
+     * listeners.
+     * 
+     * @return void
+     */
+    protected function initEvents()
+    {
+      $this->mediator->setRebinder(function($lambda){
+        return \Closure::bind($lambda, $this);
+      });
+      
+      if ($listeners = $this->config->get('listeners')) {
+        foreach ($listeners as $listener) {
+          $this->mediator->push($listener[0], $listener[1]);
+        }
+      }
+      
+      $this->fatalHandler->setMediator($this->mediator);
     }
     
     /**
