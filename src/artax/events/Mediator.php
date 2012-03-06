@@ -11,18 +11,18 @@
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace artax\events {
-  
-  /**
-   * Mediator Class
-   * 
-   * @category   artax
-   * @package    core
-   * @subpackage events
-   * @author     Daniel Lowrey <rdlowrey@gmail.com>
-   */
-  class Mediator implements MediatorInterface
-  {
+namespace artax\events;
+
+/**
+ * Mediator Class
+ * 
+ * @category   artax
+ * @package    core
+ * @subpackage events
+ * @author     Daniel Lowrey <rdlowrey@gmail.com>
+ */
+class Mediator implements MediatorInterface
+{
     /**
      * An array of event listeners
      * @var array
@@ -47,17 +47,17 @@ namespace artax\events {
      */
     public function push($eventName, callable $listener)
     {
-      if ($listener instanceof \Closure) {
-        $listener = $this->rebind($listener);
-      }
-            
-      if ( ! isset($this->listeners[$eventName])) {
-        $this->listeners[$eventName]   = [];
-        $this->listeners[$eventName][] = $listener;
-        return 1;
-      } else {
+        if ($listener instanceof \Closure) {
+            $listener = $this->rebind($listener);
+        }
+              
+        if ( ! isset($this->listeners[$eventName])) {
+            $this->listeners[$eventName]   = [];
+            $this->listeners[$eventName][] = $listener;
+            return 1;
+        }
+        
         return array_push($this->listeners[$eventName], $listener);
-      }
     }
     
     /**
@@ -72,14 +72,14 @@ namespace artax\events {
      */
     public function unshift($eventName, callable $listener)
     {
-      if ($listener instanceof \Closure) {
-        $listener = $this->rebind($listener);
-      }
-      
-      if ( ! isset($this->listeners[$eventName])) {
-        $this->listeners[$eventName]   = [];
-      }
-      return array_unshift($this->listeners[$eventName], $listener);
+        if ($listener instanceof \Closure) {
+            $listener = $this->rebind($listener);
+        }
+        
+        if ( ! isset($this->listeners[$eventName])) {
+            $this->listeners[$eventName]   = [];
+        }
+        return array_unshift($this->listeners[$eventName], $listener);
     }
     
     /**
@@ -92,10 +92,10 @@ namespace artax\events {
      */
     public function shift($eventName)
     {
-      if (isset($this->listeners[$eventName])) {
-        return array_shift($this->listeners[$eventName]);
-      }
-      return NULL;
+        if (isset($this->listeners[$eventName])) {
+            return array_shift($this->listeners[$eventName]);
+        }
+        return NULL;
     }
     
     /**
@@ -108,17 +108,18 @@ namespace artax\events {
      */
     public function pop($eventName)
     {
-      if (isset($this->listeners[$eventName])) {
-        return array_pop($this->listeners[$eventName]);
-      }
-      return NULL;
+        if (isset($this->listeners[$eventName])) {
+            return array_pop($this->listeners[$eventName]);
+        }
+        return NULL;
     }
     
     /**
-     * Clear all listeners from the `$eventName` event queue
+     * Clear all listeners from the specified event queue
      * 
-     * Clears all listeners for the specified event. If an empty value is passed
-     * for the `$eventName`, all listeners for all events will be cleared.
+     * Clears all listeners for the specified event. If an empty parameter value
+     * is passed for the `$eventName`, all listeners will be cleared from all
+     * events.
      * 
      * @param string $eventName Event identifier name
      * 
@@ -126,11 +127,11 @@ namespace artax\events {
      */
     public function clear($eventName=NULL)
     {
-      if ($eventName && isset($this->listeners[$eventName])) {
-        unset($this->listeners[$eventName]);
-      } else {
-        $this->listeners = [];
-      }
+        if ($eventName && isset($this->listeners[$eventName])) {
+            unset($this->listeners[$eventName]);
+        } else {
+            $this->listeners = [];
+        }
     }
     
     /**
@@ -138,13 +139,13 @@ namespace artax\events {
      * 
      * @param string $eventName Event identifier name
      * 
-     * @return int Returns a count of listeners in the queue for the specified event
+     * @return int Returns a count of queued listeners for the specified event
      */
     public function count($eventName)
     {
-      return isset($this->listeners[$eventName])
-        ? count($this->listeners[$eventName])
-        : 0;
+        return isset($this->listeners[$eventName])
+            ? count($this->listeners[$eventName])
+            : 0;
     }
     
     /**
@@ -154,24 +155,23 @@ namespace artax\events {
      */
     public function keys()
     {
-      return array_keys($this->listeners);
+        return array_keys($this->listeners);
     }
     
     /**
      * Retrieve a list of all event listeners in the queue
      * 
-     * @param string $eventName An optional event name to filter returned listeners
-     *                          to a specific event name.
+     * @param string $eventName An optional event name to filter returned
+     *                          listeners by event.
      * 
      * @return array Returns an array of all event listeners
      */
     public function all($eventName=NULL)
     {
-      if ($eventName && isset($this->listeners[$eventName])) {
-        return $this->listeners[$eventName];
-      } else {
+        if ($eventName && isset($this->listeners[$eventName])) {
+            return $this->listeners[$eventName];
+        }
         return $this->listeners;
-      }
     }
     
     /**
@@ -184,10 +184,11 @@ namespace artax\events {
      */
     public function first($eventName)
     {
-      if (isset($this->listeners[$eventName][0])) {
-        return $this->listeners[$eventName][0];
-      }
-      return NULL;
+        if (isset($this->listeners[$eventName][0])) {
+            return $this->listeners[$eventName][0];
+        }
+        
+        return NULL;
     }
     
     /**
@@ -200,16 +201,17 @@ namespace artax\events {
      */
     public function last($eventName)
     {
-      if (isset($this->listeners[$eventName])
-        && $count = count($this->listeners[$eventName])) {
-        return $this->listeners[$eventName][$count-1];
-      } else {
+        if (isset($this->listeners[$eventName])
+            && $count = count($this->listeners[$eventName])) {
+          
+            return $this->listeners[$eventName][$count-1];
+        }
+        
         return NULL;
-      }
     }
     
     /**
-     * Notify listeners that the `$eventName` event has occurred
+     * Notify listeners that an event has occurred
      * 
      * Listeners are treated as a queue in which the first registered listener
      * executes first, continuing down the queue until a listener returns `FALSE`
@@ -222,16 +224,18 @@ namespace artax\events {
      */
     public function notify($eventName, $data=NULL)
     {
-      $execCount = 0;
-      if (isset($this->listeners[$eventName])) {
-        foreach ($this->listeners[$eventName] as $callable) {
-          ++$execCount;
-          if ($callable($data) === FALSE) {
-            return $execCount;
-          }
+        $execCount = 0;
+        
+        if (isset($this->listeners[$eventName])) {
+            foreach ($this->listeners[$eventName] as $callable) {
+                ++$execCount;
+                if ($callable($data) === FALSE) {
+                    return $execCount;
+                }
+            }
         }
-      }
-      return $execCount;
+        
+        return $execCount;
     }
     
     /**
@@ -243,14 +247,14 @@ namespace artax\events {
      */
     public function setRebinder(\Closure $lambda)
     {
-      $this->rebinder = $lambda;
-      return $this;
+        $this->rebinder = $lambda;
+        return $this;
     }
     
     /**
      * Rebinds the specified listener if a rebinder Closure exists
      * 
-     * @param Closure $listener The event listener to rebind
+     * @param Closure $lambda The event listener to rebind
      * 
      * @return Closure Returns the rebound Closure event listener
      * @used-by Mediator::push
@@ -258,7 +262,8 @@ namespace artax\events {
      */
     protected function rebind(\Closure $lambda)
     {
-      return $this->rebinder ? call_user_func($this->rebinder, $lambda) : $lambda;
+        return $this->rebinder
+            ? call_user_func($this->rebinder, $lambda)
+            : $lambda;
     }
-  }
 }

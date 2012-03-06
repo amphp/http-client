@@ -11,18 +11,18 @@
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace artax\events {
+namespace artax\events;
   
-  /**
-   * MediatorInterface
-   * 
-   * @category   artax
-   * @package    core
-   * @subpackage events
-   * @author     Daniel Lowrey <rdlowrey@gmail.com>
-   */
-  interface MediatorInterface
-  {
+/**
+ * MediatorInterface
+ * 
+ * @category   artax
+ * @package    core
+ * @subpackage events
+ * @author     Daniel Lowrey <rdlowrey@gmail.com>
+ */
+interface MediatorInterface
+{
     /**
      * Notify listeners that the event `$eventName` has occurred
      * 
@@ -97,5 +97,4 @@ namespace artax\events {
      * Retrieve a list of all listened-for events in the queue
      */
     public function keys();
-  }
 }

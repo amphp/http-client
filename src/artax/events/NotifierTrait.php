@@ -11,23 +11,28 @@
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace artax\events {
+namespace artax\events;
   
-  /**
-   * NotifierTrait
-   * 
-   * Specifies functionality for implementing the NotifierInterface.
-   * 
-   * @category   artax
-   * @package    core
-   * @subpackage events
-   * @author     Daniel Lowrey <rdlowrey@gmail.com>
-   */
-  trait NotifierTrait
-  {
+/**
+ * NotifierTrait
+ * 
+ * Specifies functionality for implementing the NotifierInterface. Classes can
+ * use this trait to easily interact with an event mediator instance.
+ * 
+ * @category   artax
+ * @package    core
+ * @subpackage events
+ * @author     Daniel Lowrey <rdlowrey@gmail.com>
+ */
+trait NotifierTrait
+{
     /**
-     * An Mediator object instance
-     * @var Mediator
+     * A Mediator object instance
+     * 
+     * This property should be specifically injected into the class using the 
+     * trait via the class constructor or a relevant setter method.
+     * 
+     * @var MediatorInterface
      */
     protected $mediator;
     
@@ -35,17 +40,16 @@ namespace artax\events {
      * Notify the mediator of an event occurrence
      * 
      * If no data parameter is passed the current object instance will be sent
-     * as the notification data parameter.
+     * to the mediator as the notification data parameter.
      * 
      * @param string $eventName The event name
      * @param mixed  $data      Data to send with the notification
      */
     public function notify($eventName, $data=NULL)
     {
-      $data = NULL === $data ? $this : $data;
-      return  NULL === $this->mediator
-        ? NULL
-        : $this->mediator->notify($eventName, $data);
+        $data = NULL === $data ? $this : $data;
+        return  NULL === $this->mediator
+            ? NULL
+            : $this->mediator->notify($eventName, $data);
     }
-  }
 }
