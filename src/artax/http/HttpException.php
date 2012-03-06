@@ -21,8 +21,7 @@ namespace artax\http {
    * @subpackage http
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
-  class HttpException extends \Exception
-    implements \artax\exceptions\ExceptionInterface
+  class HttpException extends \RuntimeException
   {
   }
 }
