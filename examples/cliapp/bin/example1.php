@@ -5,7 +5,7 @@
  * Example CLI application 1
  * 
  * This example demonstrates storing all the event listeners in the configuration
- * file. The config file specifies a listener for the "ax.boot_complete" event
+ * file. The config file specifies a listener for the "app.ready" event
  * so the appropriate events are invoked with no additional code in this binary
  * file.
  * 

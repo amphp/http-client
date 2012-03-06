@@ -16,11 +16,11 @@ $cfg['namespaces'] = [
 // specify event listeners
 $cfg['listeners'] = [
   
-  ['ax.shutdown', function() {
-    echo PHP_EOL . '... ax.shutdown ...' . PHP_EOL . PHP_EOL;
+  ['app.shutdown', function() {
+    echo PHP_EOL . '... app.shutdown ...' . PHP_EOL . PHP_EOL;
   }],
   
-  ['ax.uncaught_exception', function(\Exception $e) {
+  ['app.exception', function(\Exception $e) {
     $handler = $this->depProvider->make('controllers.ExHandler');
     $handler->setDebug($this->config['debug']);
     $handler->setException($e);
@@ -28,8 +28,8 @@ $cfg['listeners'] = [
     return FALSE;
   }],
   
-  ['ax.boot_complete', function() {
-    echo PHP_EOL . '... ax.boot_complete ...' . PHP_EOL;
+  ['app.ready', function() {
+    echo PHP_EOL . '... app.ready ...' . PHP_EOL;
     throw new Exception('Something that breaks the application');
   }],
 ];

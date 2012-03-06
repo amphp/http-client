@@ -8,9 +8,9 @@
  * exceptions as events that can be mediated. Like example1.php, we store
  * our event listeners in the configuration (config2.php) file.
  * 
- * We've registered an event listener to fire on the "ax.boot_complete" event
+ * We've registered an event listener to fire on the "app.ready" event
  * that does nothing but throw a new exception. When this happens, the
- * "ax.uncaught_exception" event, for which we've specified a listener, fires
+ * "app.exception" event, for which we've specified a listener, fires
  * to handle the exception.
  * 
  * Also note that, like exceptions, shutdown is an event that can be mediated

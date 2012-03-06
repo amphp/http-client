@@ -49,7 +49,7 @@ namespace artax\handlers {
      *
      * @return void
      * @uses FatalHandler::setException
-     * @notifies ax.uncaught_exception|\Exception $e
+     * @notifies app.exception|\Exception $e
      */
     public function exHandler(\Exception $e)
     {
@@ -57,7 +57,7 @@ namespace artax\handlers {
         return;
       } elseif (NULL !== $this->mediator) {
         try {
-          $this->notify('ax.uncaught_exception', $e);
+          $this->notify('app.exception', $e);
         } catch (\Exception $e) {
           echo $this->defaultHandlerMsg($e);
         }
@@ -81,7 +81,7 @@ namespace artax\handlers {
      * @return void
      * @uses FatalHandler::getFatalErrException
      * @uses FatalHandler::exHandler
-     * @notifies ax.shutdown|\artax\handlers\FatalHandler
+     * @notifies app.shutdown|\artax\handlers\FatalHandler
      */
     public function shutdown()
     {
@@ -89,7 +89,7 @@ namespace artax\handlers {
         $this->exHandler($e);
       } elseif (NULL !== $this->mediator) {
         try {
-          $this->notify('ax.shutdown');
+          $this->notify('app.shutdown');
         } catch (\Exception $e) {
         }
       }

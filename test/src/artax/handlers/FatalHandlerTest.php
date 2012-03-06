@@ -123,7 +123,7 @@ class FatalHandlerTest extends PHPUnit_Framework_TestCase
     $stub = $this->getMock('artax\handlers\FatalHandler', ['notify']);
     $stub->expects($this->once())
          ->method('notify')
-         ->with($this->equalTo('ax.uncaught_exception'), $this->equalTo($e));
+         ->with($this->equalTo('app.exception'), $this->equalTo($e));
     $stub->setMediator(new artax\events\Mediator);
     $stub->exHandler($e);
   }

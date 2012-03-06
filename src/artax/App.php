@@ -117,14 +117,14 @@ namespace artax {
      * Boot the application
      * 
      * @return void
-     * @notifies ax.boot_complete|\artax\App
+     * @notifies app.ready|\artax\App
      */
     public function boot()
     {
       while ($step = array_shift($this->bootSteps)) {
         $this->$step();
       }
-      $this->notify('ax.boot_complete');
+      $this->notify('app.ready');
       return $this;
     }
     
