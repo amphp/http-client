@@ -30,7 +30,7 @@ namespace artax\events {
     protected $listeners = [];
     
     /**
-     * An optional closure to rebind pushed listeners to the artax App instance
+     * An optional closure to rebind Closure listener `$this` scope
      * @var Closure
      */
     protected $rebinder;
@@ -41,7 +41,8 @@ namespace artax\events {
      * @param string $eventName Event identifier name to listen for
      * @param mixed  $listener  Callable event listener
      * 
-     * @return Returns the number of listeners in the queue for the specified event
+     * @return int Returns the new number of listeners in the queue for the
+     *             specified event.
      * @uses Mediator::rebind
      */
     public function push($eventName, callable $listener)
@@ -60,12 +61,14 @@ namespace artax\events {
     }
     
     /**
-     * Connect a `$listener` to the beginning of the `$eventName` event queue
+     * Connect a `$listener` to the front of the `$eventName` event queue
      * 
      * @param string $eventName Event identifier name to listen for
      * @param mixed  $listener  Event listener
      * 
-     * @return int Returns the new number of listeners for the specified event.
+     * @return int Returns the new number of listeners in the queue for the
+     *             specified event.
+     * @uses Mediator::rebind
      */
     public function unshift($eventName, callable $listener)
     {
@@ -80,12 +83,12 @@ namespace artax\events {
     }
     
     /**
-     * Remove the first `$listener` from the start of the `$eventName` event queue
+     * Remove the first listener from the front of the `$eventName` event queue
      * 
      * @param string $eventName Event identifier name to listen for
      * 
-     * @return mixed Callable listener on success or `NULL` if no listeners
-     *               were found for the specified event
+     * @return mixed Returns shifted listener on success or `NULL` if no listeners
+     *               were found for the specified event.
      */
     public function shift($eventName)
     {
@@ -96,12 +99,12 @@ namespace artax\events {
     }
     
     /**
-     * Remove the last `$listener` from the end of the `$eventName` event queue
+     * Remove the last listener from the end of the `$eventName` event queue
      * 
      * @param string $eventName Event identifier name to listen for
      * 
-     * @return mixed Callable listener on success or `NULL` if no listeners
-     *               were found for the specified event
+     * @return mixed Returns popped listener on success or `NULL` if no listeners
+     *               were found for the specified event.
      */
     public function pop($eventName)
     {
@@ -160,7 +163,7 @@ namespace artax\events {
      * @param string $eventName An optional event name to filter returned listeners
      *                          to a specific event name.
      * 
-     * @return array Returns an array of all event listeneres
+     * @return array Returns an array of all event listeners
      */
     public function all($eventName=NULL)
     {
@@ -215,7 +218,7 @@ namespace artax\events {
      * @param string $eventName Event identifier name
      * @param string $data      Optional data to pass to listeners
      * 
-     * @return int Count of listeners invoked as a result of notification
+     * @return int Returns a count of listeners invoked for the notified event
      */
     public function notify($eventName, $data=NULL)
     {
@@ -232,7 +235,7 @@ namespace artax\events {
     }
     
     /**
-     * Set a closure that all event listeners will be passed to for rebinding
+     * Set a closure used to rebind applicable listeners when they're attached
      * 
      * @param Closure $lambda
      * 
@@ -245,12 +248,13 @@ namespace artax\events {
     }
     
     /**
-     * Rebind listeners if a rebinder Closure exists
+     * Rebinds the specified listener if a rebinder Closure exists
      * 
-     * @param Closure $listener Callable event listener
+     * @param Closure $listener The event listener to rebind
      * 
-     * @return Closure Returns the rebinded Closure event listener
+     * @return Closure Returns the rebound Closure event listener
      * @used-by Mediator::push
+     * @used-by Mediator::unshift
      */
     protected function rebind(\Closure $lambda)
     {

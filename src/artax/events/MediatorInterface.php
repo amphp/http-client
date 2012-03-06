@@ -31,7 +31,7 @@ namespace artax\events {
     public function notify($eventName);
     
     /**
-     * Connect a `$listener` to the back of the `$eventName` queue
+     * Connect a `$listener` to the end of the `$eventName` queue
      * 
      * @param string $eventName Event identifier name
      * @param mixed  $listener  Event listener
@@ -47,7 +47,7 @@ namespace artax\events {
     public function unshift($eventName, Callable $listener);
     
     /**
-     * Remove the first `$listener` from the start of the `$eventName` event queue
+     * Remove the first `$listener` from the front of the `$eventName` event queue
      * 
      * @param string $eventName Event identifier name
      */

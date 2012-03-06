@@ -26,7 +26,7 @@ namespace artax\events {
   trait NotifierTrait
   {
     /**
-     * An instance of the \artax\events\Mediator object
+     * An Mediator object instance
      * @var Mediator
      */
     protected $mediator;

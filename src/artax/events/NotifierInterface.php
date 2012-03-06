@@ -16,8 +16,8 @@ namespace artax\events {
   /**
    * NotifierInterface
    * 
-   * Defines an interface that objects must implement to communicate with the
-   * core event mediator.
+   * Defines an interface that objects can implement for communicating with the
+   * event mediator.
    * 
    * @category   artax
    * @package    core
