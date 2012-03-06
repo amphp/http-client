@@ -49,11 +49,11 @@
 
 
 if ( ! defined('PHP_VERSION_ID') || PHP_VERSION_ID < 50400) {
-  die('Artax requires PHP 5.4 or higher' . PHP_EOL);
+    die('Artax requires PHP 5.4 or higher' . PHP_EOL);
 }
 
 if ( ! defined('AX_APP_PATH')) {
-  die('AX_APP_PATH constant must be specified prior to initialization' . PHP_EOL);
+    die('AX_APP_PATH constant must be specified prior to initialization' . PHP_EOL);
 }
 
 // By convention Artax lib paths are resolved with a leading slash relative to 
@@ -65,7 +65,7 @@ define('AX_SYSTEM_DIR', __DIR__ === '/' ? '' : __DIR__);
 // Allow specification of a custom config file path. If not specified, the
 // location defaults to AX_APP_PATH/conf/config.php
 if ( ! defined('AX_CONFIG_FILE')) {
-  define('AX_CONFIG_FILE', AX_APP_PATH . '/conf/config.php');
+    define('AX_CONFIG_FILE', AX_APP_PATH . '/conf/config.php');
 }
 
 
@@ -137,11 +137,11 @@ require AX_SYSTEM_DIR . '/src/artax/ClassLoaderFactory.php';
  
 
 $artax = (new artax\App(
-  (new artax\ConfigLoader)->setConfigFile(AX_CONFIG_FILE),
-  new artax\Config,
-  new artax\handlers\ErrorHandler,
-  new artax\handlers\FatalHandler,
-  new artax\ClassLoaderFactory,
-  new artax\DepProvider(new artax\DotNotation),
-  new artax\events\Mediator
+    (new artax\ConfigLoader)->setConfigFile(AX_CONFIG_FILE),
+    new artax\Config,
+    new artax\handlers\ErrorHandler,
+    new artax\handlers\FatalHandler,
+    new artax\ClassLoaderFactory,
+    new artax\DepProvider(new artax\DotNotation),
+    new artax\events\Mediator
 ))->boot();
