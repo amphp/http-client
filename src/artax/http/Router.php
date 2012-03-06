@@ -12,6 +12,11 @@
  */
 
 namespace artax\http {
+    
+    use artax\routing\Matcher;
+    use artax\routing\RequestInterface;
+    use artax\routing\RouteInterface;
+    use artax\routing\RouteList;
 
     /**
      * Route Router Class
@@ -21,7 +26,7 @@ namespace artax\http {
      * @subpackage http
      * @author     Daniel Lowrey <rdlowrey@gmail.com>
      */
-    class Router extends \artax\routing\Matcher {
+    class Router extends Matcher {
 
         /**
          * Injects request and route list dependencies
@@ -33,7 +38,7 @@ namespace artax\http {
          */
         public function __construct(
             HttpRequest $request,
-            \artax\routing\RouteList $routeList)
+            RouteList $routeList)
         {
             parent::__construct($request, $routeList);
         }
@@ -47,8 +52,8 @@ namespace artax\http {
          * @return bool Returns `TRUE` on match or `FALSE` if no match
          */
         protected function matchRoute(
-            \artax\routing\RequestInterface $request,
-            \artax\routing\RouteInterface $route)
+            RequestInterface $request,
+            RouteInterface $route)
         {
             $constraints = $route->getConstraints();
             $httpMethod = $request->getMethod();
