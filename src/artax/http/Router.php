@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Artax Route HttpMatcher Class File
+ * Artax Route Router Class File
  * 
  * PHP version 5.4
  * 
@@ -14,14 +14,14 @@
 namespace artax\http {
 
     /**
-     * Route HttpMatcher Class
+     * Route Router Class
      * 
      * @category   artax
      * @package    blocks
      * @subpackage http
      * @author     Daniel Lowrey <rdlowrey@gmail.com>
      */
-    class HttpMatcher extends \artax\routing\Matcher {
+    class Router extends \artax\routing\Matcher {
 
         /**
          * Injects request and route list dependencies
