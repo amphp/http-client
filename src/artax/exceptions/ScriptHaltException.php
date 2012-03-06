@@ -26,7 +26,7 @@ namespace artax\exceptions {
    * @subpackage exceptions
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
-  class ScriptHaltException extends \Exception implements ExceptionInterface
+  class ScriptHaltException extends \RuntimeException
   {
   }  
 }
