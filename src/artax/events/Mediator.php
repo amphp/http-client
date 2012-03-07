@@ -9,6 +9,7 @@
  * @package    core
  * @subpackage events
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
+ * @author     Levi Morrison
  */
 
 namespace artax\events;
@@ -20,6 +21,7 @@ namespace artax\events;
  * @package    core
  * @subpackage events
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
+ * @author     Levi Morrison
  */
 class Mediator implements MediatorInterface
 {
@@ -55,31 +57,39 @@ class Mediator implements MediatorInterface
      * @throws LogicException when $listener is not an array or Traversable, or 
      *         if it is not callable.
      */
-    public function push($eventName, $listener, $rebind=TRUE)
+    public function push($eventName, $listener, $rebind = TRUE)
     {
-
-        if (is_array($listener) || $listener instanceof Traversable) {
+        if (is_array($listener)
+            || $listener instanceof \Traversable
+            || $listener instanceof \StdClass)
+        {
             foreach ($listener as $listenerItem) {
-                $this->push($eventName, $listener, $rebind);
+                $this->push($eventName, $listenerItem, $rebind);
             }
-        } elseif (!is_callable($listener)) {
-            throw new InvalidArgumentException(
-                'Argument 2 for' . get_class($this)
+            return $this->count($eventName);
+            
+        } elseif ( ! $eventName) {
+            throw new \InvalidArgumentException(
+                'Argument 1 for ' . get_class($this)
+                . '::push must not be empty'
+            );
+        } elseif ( ! is_callable($listener)) {
+            throw new \InvalidArgumentException(
+                'Argument 2 for ' . get_class($this)
                 . '::push must be an array, Traversable, or callable'
             );
-        }
+        } else {
 
-        if ($rebind && $listener instanceof \Closure && $this->rebindObj) {
-            $listener = $listener->bindTo($this->rebindObj);
+            if ($rebind && $listener instanceof \Closure && $this->rebindObj) {
+                $listener = $listener->bindTo($this->rebindObj);
+            }
+            if ( ! isset($this->listeners[$eventName])) {
+                $this->listeners[$eventName]   = [];
+                $this->listeners[$eventName][] = $listener;
+                return 1;
+            }
+            return array_push($this->listeners[$eventName], $listener);
         }
-              
-        if ( ! isset($this->listeners[$eventName])) {
-            $this->listeners[$eventName]   = [];
-            $this->listeners[$eventName][] = $listener;
-            return 1;
-        }
-        
-        return array_push($this->listeners[$eventName], $listener);
     }
 
     /**
@@ -89,25 +99,27 @@ class Mediator implements MediatorInterface
      * @param array|Traversable|StdClass     The variable to loop through.
      * @param bool   $rebind    Closure rebinding flag
 
-     * @return void
+     * @return int Returns the total number of listeners added across all event
+     *             queues as a result of the method call.
      *
-     * @throws LogicException when $iterable is not an array, Traversable, or
-     *         StdClass.
+     * @throws InvalidArgumentException when $iterable is not an array, Traversable,
+     *         or StdClass instance.
      */
     public function pushAll($iterable, $rebind = TRUE) {
-        if (!(is_array($iterable) 
-            || $iterable instanceof Traversable
-            || $iterable instanceof StdClass) 
+        if ( ! (is_array($iterable) 
+            || $iterable instanceof \Traversable
+            || $iterable instanceof \StdClass))
         {
-            throw new InvalidArgumentException(
-                'Argument passed to pushAll was not an array, Traversable, nor StdClass'
+            throw new \InvalidArgumentException(
+                'Argument passed to pushAll was not an array, Traversable, '
+                . 'nor StdClass'
             );
         }
-
+        $addedListenerCount = 0;
         foreach ($iterable as $event => $value) {
-            $this->push($event, $value, $rebind);
+            $addedListenerCount += $this->push($event, $value, $rebind);
         }
-
+        return $addedListenerCount;
     }
     
     /**
@@ -123,7 +135,7 @@ class Mediator implements MediatorInterface
      * @return int Returns the new number of listeners in the queue for the
      *             specified event.
      */
-    public function unshift($eventName, callable $listener, $rebind=TRUE)
+    public function unshift($eventName, callable $listener, $rebind = TRUE)
     {
         if ($rebind && $listener instanceof \Closure && $this->rebindObj) {
             $listener = $listener->bindTo($this->rebindObj);
@@ -178,7 +190,7 @@ class Mediator implements MediatorInterface
      * 
      * @return void
      */
-    public function clear($eventName=NULL)
+    public function clear($eventName = NULL)
     {
         if ($eventName && isset($this->listeners[$eventName])) {
             unset($this->listeners[$eventName]);
@@ -273,7 +285,7 @@ class Mediator implements MediatorInterface
      * 
      * @return int Returns a count of listeners invoked for the notified event
      */
-    public function notify($eventName, $data=NULL)
+    public function notify($eventName, $data = NULL)
     {
         $execCount = 0;
         

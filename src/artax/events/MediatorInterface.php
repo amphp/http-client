@@ -31,12 +31,21 @@ interface MediatorInterface
     public function notify($eventName);
     
     /**
+     * Iterates through the items in the order they are traversed, adding them
+     * to the event queue found in the key.
+     *
+     * @param mixed $iterable The variable to loop through and add listeners
+     * @param bool  $rebind   Closure rebinding flag
+     */
+    public function pushAll($iterable, $rebind);
+    
+    /**
      * Connect a `$listener` to the end of the `$eventName` queue
      * 
      * @param string $eventName Event identifier name
      * @param mixed  $listener  Event listener
      */
-    public function push($eventName, callable $listener, $rebind);
+    public function push($eventName, $listener, $rebind);
     
     /**
      * Connect a `$listener` to the front of the `$eventName` queue
