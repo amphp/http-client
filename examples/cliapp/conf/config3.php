@@ -6,8 +6,8 @@ $cfg['debug'] = TRUE;
 
 $cfg['listeners'] = [
   
-  ['app.shutdown', function() {
-    echo PHP_EOL . '... app.shutdown ...' . PHP_EOL . PHP_EOL;
+  ['app.tearDown', function() {
+    echo PHP_EOL . '... app.tearDown ...' . PHP_EOL . PHP_EOL;
   }],
   
   ['app.exception', function(\Exception $e) {

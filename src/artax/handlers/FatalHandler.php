@@ -81,7 +81,7 @@ namespace artax\handlers {
      * @return void
      * @uses FatalHandler::getFatalErrException
      * @uses FatalHandler::exHandler
-     * @notifies app.shutdown|\artax\handlers\FatalHandler
+     * @notifies app.tearDown|\artax\handlers\FatalHandler
      */
     public function shutdown()
     {
@@ -89,7 +89,7 @@ namespace artax\handlers {
         $this->exHandler($e);
       } elseif (NULL !== $this->mediator) {
         try {
-          $this->notify('app.shutdown');
+          $this->notify('app.tearDown');
         } catch (\Exception $e) {
         }
       }
