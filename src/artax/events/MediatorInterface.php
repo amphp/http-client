@@ -36,7 +36,7 @@ interface MediatorInterface
      * @param string $eventName Event identifier name
      * @param mixed  $listener  Event listener
      */
-    public function push($eventName, Callable $listener);
+    public function push($eventName, callable $listener, $rebind);
     
     /**
      * Connect a `$listener` to the front of the `$eventName` queue
@@ -44,7 +44,7 @@ interface MediatorInterface
      * @param string $eventName Event identifier name
      * @param mixed  $listener  Event listener
      */
-    public function unshift($eventName, Callable $listener);
+    public function unshift($eventName, callable $listener, $rebind);
     
     /**
      * Remove the first `$listener` from the front of the `$eventName` event queue
@@ -75,9 +75,9 @@ interface MediatorInterface
     public function count($eventName);
     
     /**
-     * Retrieve a list of all event listeners in the queue
+     * Retrieve a list of all event listeners in the queue for an event
      */
-    public function all();
+    public function all($eventName);
     
     /**
      * Retrieve the first event listener in the queue for the specified event

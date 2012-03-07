@@ -30,25 +30,32 @@ class Mediator implements MediatorInterface
     protected $listeners = [];
     
     /**
-     * An optional closure to rebind Closure listener `$this` scope
-     * @var Closure
+     * An optional object to which Closure listeners should bind `$this` references
+     * @var mixed
      */
-    protected $rebinder;
+    protected $rebindObj;
     
     /**
-     * Connect a `$listener` to end of the `$eventName` event queue
+     * Connect a `$listener` to the end of the `$eventName` event queue
+     * 
+     * If the specified listener is an instance of Closure and the `$rebind`
+     * parameter is set to TRUE (default), the method will rebind the listener
+     * to the scope of the object referenced by the `Mediator::$rebindObj` (if the
+     * property is initialized). Specifying the `$rebind` parameter as `FALSE`
+     * allows Closure listeners to specify their own `$this` binding prior to 
+     * being attached to the mediator and maintain said reference once attached.
      * 
      * @param string $eventName Event identifier name to listen for
      * @param mixed  $listener  Callable event listener
+     * @param bool   $rebind    Closure rebinding flag
      * 
      * @return int Returns the new number of listeners in the queue for the
      *             specified event.
-     * @uses Mediator::rebind
      */
-    public function push($eventName, callable $listener)
+    public function push($eventName, callable $listener, $rebind=TRUE)
     {
-        if ($listener instanceof \Closure) {
-            $listener = $this->rebind($listener);
+        if ($rebind && $listener instanceof \Closure && $this->rebindObj) {
+            $listener = $listener->bindTo($this->rebindObj);
         }
               
         if ( ! isset($this->listeners[$eventName])) {
@@ -61,19 +68,22 @@ class Mediator implements MediatorInterface
     }
     
     /**
-     * Connect a `$listener` to the front of the `$eventName` event queue
+     * Connect an event listener to the front of the `$eventName` event queue
+     * 
+     * The `Mediator::unshift` method utilizes the `$rebind` parameter in the
+     * same way as `Mediator::push`.
      * 
      * @param string $eventName Event identifier name to listen for
      * @param mixed  $listener  Event listener
+     * @param bool   $rebind    Closure rebinding flag
      * 
      * @return int Returns the new number of listeners in the queue for the
      *             specified event.
-     * @uses Mediator::rebind
      */
-    public function unshift($eventName, callable $listener)
+    public function unshift($eventName, callable $listener, $rebind=TRUE)
     {
-        if ($listener instanceof \Closure) {
-            $listener = $this->rebind($listener);
+        if ($rebind && $listener instanceof \Closure && $this->rebindObj) {
+            $listener = $listener->bindTo($this->rebindObj);
         }
         
         if ( ! isset($this->listeners[$eventName])) {
@@ -159,19 +169,17 @@ class Mediator implements MediatorInterface
     }
     
     /**
-     * Retrieve a list of all event listeners in the queue
+     * Retrieve a list of all listeners queued for the specified event
      * 
-     * @param string $eventName An optional event name to filter returned
-     *                          listeners by event.
+     * @param string $eventName The event for which listeners should be returned
      * 
-     * @return array Returns an array of all event listeners
+     * @return array Returns an array of queued listeners for the specified event
      */
-    public function all($eventName=NULL)
+    public function all($eventName)
     {
-        if ($eventName && isset($this->listeners[$eventName])) {
-            return $this->listeners[$eventName];
-        }
-        return $this->listeners;
+        return $eventName && isset($this->listeners[$eventName])
+            ? $this->listeners[$eventName]
+            : NULL;
     }
     
     /**
@@ -239,31 +247,21 @@ class Mediator implements MediatorInterface
     }
     
     /**
-     * Set a closure used to rebind applicable listeners when they're attached
+     * Specify an object to which Closure listeners should be rebound
      * 
-     * @param Closure $lambda
+     * @param mixed $obj
      * 
      * @return Mediator Returns object instance for method chaining
+     * @throws InvalidArgumentException If passed a non-object parameter
      */
-    public function setRebinder(\Closure $lambda)
+    public function setRebindObj($obj)
     {
-        $this->rebinder = $lambda;
+        if ( ! is_object($obj)) {
+            $msg = 'Mediator::setRebindObj requires an object parameter: ' .
+                gettype($obj) . ' specified';
+            throw new \InvalidArgumentException($msg);
+        }
+        $this->rebindObj = $obj;
         return $this;
-    }
-    
-    /**
-     * Rebinds the specified listener if a rebinder Closure exists
-     * 
-     * @param Closure $lambda The event listener to rebind
-     * 
-     * @return Closure Returns the rebound Closure event listener
-     * @used-by Mediator::push
-     * @used-by Mediator::unshift
-     */
-    protected function rebind(\Closure $lambda)
-    {
-        return $this->rebinder
-            ? call_user_func($this->rebinder, $lambda)
-            : $lambda;
     }
 }

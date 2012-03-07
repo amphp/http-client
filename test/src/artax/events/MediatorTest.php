@@ -5,27 +5,38 @@ class MediatorTest extends PHPUnit_Framework_TestCase
   public function testBeginsEmpty()
   {
     $m = new MediatorTestImplementationClass;
-    $this->assertEquals([], $m->all());
+    $this->assertEquals([], $m->listeners);
     return $m;
   }
   
   /**
    * @depends testBeginsEmpty
-   * @covers artax\events\Mediator::setRebinder
+   * @covers artax\events\Mediator::setRebindObj
    */
-  public function testSetRebinderAssignsProperty($m)
+  public function testSetRebindObjAssignsProperty($m)
   {
-    $lambda = function() { return 42; };
-    $m->setRebinder($lambda);
-    $this->assertEquals($lambda, $m->rebinder);
+    $obj = new StdClass;
+    $m->setRebindObj($obj);
+    $this->assertEquals($obj, $m->rebindObj);
+  }
+  
+  /**
+   * @depends testBeginsEmpty
+   * @covers artax\events\Mediator::setRebindObj
+   * @expectedException InvalidArgumentException
+   */
+  public function testSetRebindObjThrowsExceptionOnInvalidProperty($m)
+  {
+    $notAnObject = "This was supposed to be an object. You're a moron. Maybe you" .
+        " should consider working with Ruby on Rails instead.";
+    $m->setRebindObj($notAnObject);
   }
   
   /**
    * @covers artax\events\Mediator::push
    * @covers artax\events\Mediator::last
-   * @covers artax\events\Mediator::rebind
    */
-  public function testPushAddsEventListener()
+  public function testPushAddsEventListenerAndReturnsCount()
   {
     $m = new artax\events\Mediator;
     $listeners = $m->push('test.event1', function() { return TRUE; });
@@ -38,10 +49,45 @@ class MediatorTest extends PHPUnit_Framework_TestCase
   }
   
   /**
+   * @covers artax\events\Mediator::push
+   */
+  public function testPushRebindsClosureListener()
+  {
+    $rebindObj = new stdClass;
+    $rebindObj->prop = 42;
+    
+    $m = new MediatorTestImplementationClass;
+    $m->setRebindObj($rebindObj);
+    $listeners = $m->push('test.42', function() { return $this->prop; });
+    $this->assertEquals(1, $listeners);
+    
+    $listener = $m->pop('test.42');
+    $this->assertEquals(42, $listener());
+    
+    return $m;
+  }
+  
+  /**
+   * @depends testPushRebindsClosureListener
+   * @covers artax\events\Mediator::unshift
+   */
+  public function testUnshiftRebindsClosureListener($m)
+  {
+    $this->assertEquals(0, $m->count('test.42'));
+    $listeners = $m->unshift('test.42', function() { return $this->prop; });
+    $this->assertEquals(1, $listeners);
+    
+    $listener = $m->pop('test.42');
+    $this->assertEquals(42, $listener());
+    
+    return $m;
+  }
+  
+  /**
    * @covers artax\events\Mediator::unshift
    * @covers artax\events\Mediator::first
    */
-  public function testUnshiftAddsEventListener()
+  public function testUnshiftAddsEventListenerAndReturnsCount()
   {
     $m = new artax\events\Mediator;
     $listeners = $m->push('test.event1', function() { return TRUE; });
@@ -72,7 +118,7 @@ class MediatorTest extends PHPUnit_Framework_TestCase
   }
   
   /**
-   * @depends testPushAddsEventListener
+   * @depends testPushAddsEventListenerAndReturnsCount
    * @covers  artax\events\Mediator::count
    */
   public function testCountReturnsNumberOfListenersForSpecifiedEvent($m)
@@ -81,7 +127,7 @@ class MediatorTest extends PHPUnit_Framework_TestCase
   }
   
   /**
-   * @depends testPushAddsEventListener
+   * @depends testPushAddsEventListenerAndReturnsCount
    * @covers  artax\events\Mediator::keys
    */
   public function testKeysReturnsArrayOfListenedForEvents($m)
