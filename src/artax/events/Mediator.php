@@ -51,9 +51,24 @@ class Mediator implements MediatorInterface
      * 
      * @return int Returns the new number of listeners in the queue for the
      *             specified event.
+     *
+     * @throws LogicException when $listener is not an array or Traversable, or 
+     *         if it is not callable.
      */
-    public function push($eventName, callable $listener, $rebind=TRUE)
+    public function push($eventName, $listener, $rebind=TRUE)
     {
+
+        if (is_array($listener) || $listener instanceof Traversable) {
+            foreach ($listener as $listenerItem) {
+                $this->push($eventName, $listener, $rebind);
+            }
+        } elseif (!is_callable($listener)) {
+            throw new InvalidArgumentException(
+                'Argument 2 for' . get_class($this)
+                . '::push must be an array, Traversable, or callable'
+            );
+        }
+
         if ($rebind && $listener instanceof \Closure && $this->rebindObj) {
             $listener = $listener->bindTo($this->rebindObj);
         }
@@ -65,6 +80,34 @@ class Mediator implements MediatorInterface
         }
         
         return array_push($this->listeners[$eventName], $listener);
+    }
+
+    /**
+     * Iterates through the items in the order they are traversed, adding them
+     * to the event queue found in the key.
+     *
+     * @param array|Traversable|StdClass     The variable to loop through.
+     * @param bool   $rebind    Closure rebinding flag
+
+     * @return void
+     *
+     * @throws LogicException when $iterable is not an array, Traversable, or
+     *         StdClass.
+     */
+    public function pushAll($iterable, $rebind = TRUE) {
+        if (!(is_array($iterable) 
+            || $iterable instanceof Traversable
+            || $iterable instanceof StdClass) 
+        {
+            throw new InvalidArgumentException(
+                'Argument passed to pushAll was not an array, Traversable, nor StdClass'
+            );
+        }
+
+        foreach ($iterable as $event => $value) {
+            $this->push($event, $value, $rebind);
+        }
+
     }
     
     /**
