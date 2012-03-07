@@ -68,11 +68,6 @@ class Mediator implements MediatorInterface
             }
             return $this->count($eventName);
             
-        } elseif ( ! $eventName) {
-            throw new \InvalidArgumentException(
-                'Argument 1 for ' . get_class($this)
-                . '::push must not be empty'
-            );
         } elseif ( ! is_callable($listener)) {
             throw new \InvalidArgumentException(
                 'Argument 2 for ' . get_class($this)

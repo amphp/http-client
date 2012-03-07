@@ -130,20 +130,6 @@ class MediatorTest extends PHPUnit_Framework_TestCase
   }
   
   /**
-   * @covers artax\events\Mediator::push
-   * @expectedException InvalidArgumentException
-   */
-  public function testPushThrowsExceptionOnNestedUnspecifiedEventName()
-  {
-      $m = new MediatorTestImplementationClass;
-      $cnt = $m->pushAll([
-          'app.ready'=>function(){},
-          'app.anything'=>function(){},
-          function(){}
-      ]);
-  }
-  
-  /**
    * @depends testPushRebindsClosureListener
    * @covers artax\events\Mediator::unshift
    */
