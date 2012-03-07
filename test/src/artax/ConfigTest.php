@@ -15,10 +15,7 @@ class ConfigTest extends PHPUnit_Framework_TestCase
     $c = new ConfigTestCoverageImplementation;
     $defaults = [
       'debug'       => FALSE,
-      'httpBundle'  => FALSE,
       'classLoader' => 'standard',
-      'namespaces'  => [],
-      'autoRequire' => [],
       'deps'        => [],
       'listeners'   => [],
       'routes'      => []
@@ -29,14 +26,12 @@ class ConfigTest extends PHPUnit_Framework_TestCase
   /**
    * @covers artax\Config::filterBool
    * @covers artax\Config::setDebug
-   * @covers artax\Config::setHttpBundle
    */
   public function testFilterBoolSanitizesBoolInput()
   {
-    $params = ['debug'=>0, 'httpBundle'=>'Off', 'cliBundle'=> 'on'];
+    $params = ['debug'=>0];
     $c = (new ConfigTestCoverageImplementation())->load($params);    
     $this->assertEquals(FALSE, $c->get('debug'));
-    $this->assertEquals(FALSE, $c->get('httpBundle'));
   }
 }
 

@@ -136,7 +136,7 @@ require AX_SYSTEM_DIR . '/src/artax/ClassLoaderFactory.php';
  */
  
 
-$artax = (new artax\App(
+$artax = new artax\App(
     (new artax\ConfigLoader)->setConfigFile(AX_CONFIG_FILE),
     new artax\Config,
     new artax\handlers\ErrorHandler,
@@ -144,4 +144,6 @@ $artax = (new artax\App(
     new artax\ClassLoaderFactory,
     new artax\DepProvider(new artax\DotNotation),
     new artax\events\Mediator
-))->boot();
+);
+$artax->boot();
+$artax->notify('app.ready');

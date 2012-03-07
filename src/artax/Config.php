@@ -35,10 +35,7 @@ namespace artax {
     {
       $this->defaults = [
         'debug'       => FALSE,
-        'httpBundle'  => FALSE,
         'classLoader' => 'standard',
-        'namespaces'  => [],
-        'autoRequire' => [],
         'deps'        => [],
         'listeners'   => [],
         'routes'      => []
@@ -72,18 +69,6 @@ namespace artax {
     protected function setDebug($val)
     {
       $this->params['debug'] = $this->filterBool($val);
-    }
-    
-    /**
-     * Setter function for httpBundle directive
-     * 
-     * @param bool $val         Flag specifying if HTTP libs should load on boot
-     * 
-     * @return void
-     */
-    protected function setHttpBundle($val)
-    {
-      $this->params['httpBundle'] = $this->filterBool($val);
     }
   }
 }

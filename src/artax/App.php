@@ -105,9 +105,7 @@ namespace artax {
       $this->bootSteps = [
         'registerHandlers',
         'initConfig',
-        'loadBundles',
-        'loadAutoRequires',
-        'initClassAutoloaders',
+        'initClassAutoloader',
         'initDepProvider',
         'initEvents'
       ];
@@ -115,6 +113,9 @@ namespace artax {
     
     /**
      * Boot the application
+     * 
+     * Once all boot steps are completed, the `app.setup` event fires to notify
+     * any user-specified "setup" listeners.
      * 
      * @return void
      * @notifies app.ready|\artax\App
@@ -124,7 +125,7 @@ namespace artax {
       while ($step = array_shift($this->bootSteps)) {
         $this->$step();
       }
-      $this->notify('app.ready');
+      $this->notify('app.setUp');
       return $this;
     }
     
@@ -160,62 +161,15 @@ namespace artax {
     }
     
     /**
-     * Load optional lib bundles
-     * 
-     * @return void
-     */
-    protected function loadBundles()
-    {
-      if ( ! empty($this->config['httpBundle'])) {
-        require AX_SYSTEM_DIR . '/src/artax/views/ViewInterface.php';
-        require AX_SYSTEM_DIR . '/src/artax/http/HttpMatcher.php';
-        require AX_SYSTEM_DIR . '/src/artax/http/HttpRequestInterface.php';
-        require AX_SYSTEM_DIR . '/src/artax/http/HttpRequest.php';
-        require AX_SYSTEM_DIR . '/src/artax/http/BucketInterface.php';
-        require AX_SYSTEM_DIR . '/src/artax/http/BucketAbstract.php';
-        require AX_SYSTEM_DIR . '/src/artax/http/ServerBucket.php';
-        require AX_SYSTEM_DIR . '/src/artax/http/HeaderBucket.php';
-        require AX_SYSTEM_DIR . '/src/artax/http/ParamBucket.php';
-        require AX_SYSTEM_DIR . '/src/artax/http/CookieBucket.php';
-        require AX_SYSTEM_DIR . '/src/artax/http/HttpControllerAbstract.php';
-        require AX_SYSTEM_DIR . '/src/artax/http/HttpResponseInterface.php';
-        require AX_SYSTEM_DIR . '/src/artax/http/HttpResponse.php';
-      }
-    }
-    
-    /**
      * Registers Artax class loader and any other specified namespace loaders
      * 
      * @return void
      */
-    protected function initClassAutoloaders()
+    protected function initClassAutoloader()
     {
       $this->clsLoaderFactory->make($this->config['classLoader'], 'artax')
            ->setIncludePath(AX_SYSTEM_DIR.'/src')
            ->register();
-      
-      $type = $this->config->get('classLoader');
-      
-      if ($namespaces = $this->config->get('namespaces')) {
-        foreach ($namespaces as $ns => $path) {
-          $ns = $ns ?: NULL;
-          $this->clsLoaderFactory->make($type, $ns)->setIncludePath($path)->register();
-        }
-      }
-    }
-    
-    /**
-     * Require a user-specified list of includes
-     * 
-     * @return void
-     */
-    protected function loadAutoRequires()
-    {
-      if ($autoRequires = $this->config->get('autoRequire')) {
-        foreach ($autoRequires as $file) {
-          require $file;
-        }
-      }
     }
     
     /**
@@ -249,14 +203,15 @@ namespace artax {
      * Mediator to allow handling exceptions and shutdowns with chainable event
      * listeners.
      * 
+     * Once all config listeners are loaded, a listener is attached to the end
+     * of the `app.setUp` queue to fire the `app.ready` event.
+     * 
      * @return void
      */
     protected function initEvents()
     {
-      $this->mediator->setRebinder(function($lambda){
-        return \Closure::bind($lambda, $this);
-      });
-      
+      $this->mediator->setRebindObj($this);
+            
       if ($listeners = $this->config->get('listeners')) {
         foreach ($listeners as $listener) {
           $this->mediator->push($listener[0], $listener[1]);
