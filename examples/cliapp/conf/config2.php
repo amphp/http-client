@@ -5,13 +5,6 @@ $cfg = [];
 // application-wide debug output flag
 $cfg['debug'] = FALSE;
 
-// don't load HTTP app libs during boot
-$cfg['httpBundle'] = FALSE;
-
-// specify namespace paths for class autoloaders
-$cfg['namespaces'] = [
-  '' => AX_APP_PATH . '/src'
-];
 
 // specify event listeners
 $cfg['listeners'] = [
