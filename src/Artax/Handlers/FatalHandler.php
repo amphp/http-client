@@ -6,32 +6,49 @@
  * PHP version 5.4
  *
  * @category   Artax
- * @package    core
- * @subpackage handlers
+ * @package    Core
+ * @subpackage Handlers
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-namespace Artax\Handlers {
+namespace Artax\Handlers;
 
-  /**
-   * FatalHandler Class
-   *
-   * Provides unexpected exception and fatal error handling functionality.
-   *
-   * @category   Artax
-   * @package    core
-   * @subpackage handlers
-   * @author     Daniel Lowrey <rdlowrey@gmail.com>
-   */
-  class FatalHandler implements FatalHandlerInterface,
-    \Artax\Events\NotifierInterface
-  {
+/**
+ * FatalHandler Class
+ *
+ * Provides unexpected exception and fatal error handling functionality.
+ * 
+ * The FatalHandler needs access to the Mediator to enable event-managed
+ * handling for fatal shutdowns and uncaught exceptions (app.exception) and
+ * normal shutdown events (app.tearDown).
+ * 
+ * @category   Artax
+ * @package    Core
+ * @subpackage Handlers
+ * @author     Daniel Lowrey <rdlowrey@gmail.com>
+ */
+class FatalHandler implements FatalHandlerInterface, \Artax\Events\NotifierInterface
+{
     use \Artax\Events\NotifierTrait;
     
     /**
      * Flag specifying if full debug output should be shown when problems arise
      * @var bool
      */
-    protected $debug = TRUE;
+    protected $debug;
+    
+    /**
+     * Specify debug output flag and register exception/shutdown handlers
+     * 
+     * @param bool $debug A boolean debug output flag
+     * 
+     * @return void
+     */
+    public function __construct($debug)
+    {
+        $this->debug = (bool) $debug;
+        set_exception_handler([$this, 'exHandler']);
+        register_shutdown_function([$this, 'shutdown']);
+    }
     
     /**
      * The "last chance" handler for uncaught exceptions 
@@ -53,17 +70,17 @@ namespace Artax\Handlers {
      */
     public function exHandler(\Exception $e)
     {
-      if ($e instanceof \Artax\Exceptions\ScriptHaltException) {
-        return;
-      } elseif (NULL !== $this->mediator) {
-        try {
-          $this->notify('app.exception', $e);
-        } catch (\Exception $e) {
-          echo $this->defaultHandlerMsg($e);
+        if ($e instanceof \Artax\Exceptions\ScriptHaltException) {
+            return;
+        } elseif (NULL !== $this->mediator) {
+            try {
+                $this->notify('exception', $e);
+            } catch (\Exception $e) {
+                echo $this->defaultHandlerMsg($e);
+            }
+        } else {
+            echo $this->defaultHandlerMsg($e);
         }
-      } else {
-        echo $this->defaultHandlerMsg($e);
-      }
     }
 
     /**
@@ -85,27 +102,13 @@ namespace Artax\Handlers {
      */
     public function shutdown()
     {
-      if ($e = $this->getFatalErrException()) {
-        $this->exHandler($e);
-      } elseif (NULL !== $this->mediator) {
-        try {
-          $this->notify('app.tearDown');
-        } catch (\Exception $e) {
+        if ($e = $this->getFatalErrException()) {
+            $this->exHandler($e);
+        } elseif (NULL !== $this->mediator) {
+            try {
+                $this->notify('tearDown');
+            } catch (\Exception $e) {}
         }
-      }
-    }
-    
-    /**
-     * Setter method for protected `$debug` property
-     * 
-     * @param bool $debug Debug flag
-     * 
-     * @return FatalHandler Returns object instance for method chaining
-     */
-    public function setDebug($debug)
-    {
-      $this->debug = (bool) $debug;
-      return $this;
     }
     
     /**
@@ -124,8 +127,8 @@ namespace Artax\Handlers {
      */
     public function setMediator(\Artax\Events\Mediator $mediator)
     {
-      $this->mediator = $mediator;
-      return $this;
+        $this->mediator = $mediator;
+        return $this;
     }
 
     /**
@@ -142,24 +145,24 @@ namespace Artax\Handlers {
      */
     public function getFatalErrException()
     {
-      $ex  = NULL;
-      $err = $this->lastError();
+        $ex  = NULL;
+        $err = $this->lastError();
+        
+        $fatals = [
+            E_ERROR           => 'Fatal Error',
+            E_PARSE           => 'Parse Error',
+            E_CORE_ERROR      => 'Core Error',
+            E_CORE_WARNING    => 'Core Warning',
+            E_COMPILE_ERROR   => 'Compile Error',
+            E_COMPILE_WARNING => 'Compile Warning'
+        ];
       
-      $fatals = [
-        E_ERROR           => 'Fatal Error',
-        E_PARSE           => 'Parse Error',
-        E_CORE_ERROR      => 'Core Error',
-        E_CORE_WARNING    => 'Core Warning',
-        E_COMPILE_ERROR   => 'Compile Error',
-        E_COMPILE_WARNING => 'Compile Warning'
-      ];
-      
-      if (isset($fatals[$err['type']])) {
-        $msg = $fatals[$err['type']] . ': ' . $err['message'] . ' in ';
-        $msg.= $err['file'] . ' on line ' . $err['line'];
-        $ex = new \ErrorException($msg);
-      }
-      return $ex;
+        if (isset($fatals[$err['type']])) {
+            $msg = $fatals[$err['type']] . ': ' . $err['message'] . ' in ';
+            $msg.= $err['file'] . ' on line ' . $err['line'];
+            $ex = new \ErrorException($msg);
+        }
+        return $ex;
     }
     
     /**
@@ -173,7 +176,7 @@ namespace Artax\Handlers {
      */
     protected function lastError()
     {
-      return error_get_last();
+        return error_get_last();
     }
     
     /**
@@ -185,9 +188,8 @@ namespace Artax\Handlers {
      */
     protected function defaultHandlerMsg(\Exception $e)
     {
-      return $this->debug
-        ? (string) $e
-        : 'Yikes. There\'s an internal error and we\'re working to fix it.';
+        return $this->debug
+            ? (string) $e
+            : "Yikes. There's an internal error and we're working to fix it.";
     }
-  }
 }

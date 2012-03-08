@@ -24,6 +24,11 @@ namespace Artax\Handlers {
   interface ErrorHandlerInterface
   {
     /**
+     * Register the ErrorHandler
+     */
+    public function register();
+    
+    /**
      * Method to handle raised PHP errors
      * 
      * @param int    $errNo   The PHP error constant raised
