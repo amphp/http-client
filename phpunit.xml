@@ -2,7 +2,7 @@
   
   <testsuites>
     <testsuite name="core">
-      <directory>./test/src/artax</directory>
+      <directory>./test/src/Artax</directory>
     </testsuite>
   </testsuites>
   
@@ -14,13 +14,13 @@
     </blacklist>
     
     <whitelist addUncoveredFilesFromWhitelist="true">
-      <!-- Report code coverage for everything in our /src/artax directory -->
-      <directory>./src/artax</directory>
+      <!-- Report code coverage for everything in our /src/Artax directory -->
+      <directory>./src/Artax</directory>
       <exclude>
         <!-- Exclude Interfaces from code coverage -->
-        <directory suffix="Interface.php">./src/artax</directory>
+        <directory suffix="Interface.php">./src/Artax</directory>
         <!-- Exclude non-core block libs -->
-        <directory>./src/artax/blocks</directory>
+        <directory>./src/Artax/blocks</directory>
       </exclude>
     </whitelist>
   </filter>

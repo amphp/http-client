@@ -9,7 +9,7 @@ define('AX_APP_PATH', AX_SYSTEM_DIR);
  * Use PSR-0 autoloader for required test libs
  */
 require AX_SYSTEM_DIR . '/test/SplClassLoader.php';
-(new SplClassLoader('artax', AX_SYSTEM_DIR . '/src'))->register();
+(new SplClassLoader('Artax', AX_SYSTEM_DIR . '/src'))->register();
 
 require __DIR__ . '/MagicTestGetTrait.php';
 

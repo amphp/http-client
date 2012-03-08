@@ -15,7 +15,7 @@ $cfg['listeners'] = [
   ['app.exception', function(\Exception $e) {
     $handler = $this->depProvider->make('controllers.ExHandler');
     $handler->setException($e)->exec()->getResponse()->output();
-    throw new artax\exceptions\ScriptHaltException;
+    throw new Artax\Exceptions\ScriptHaltException;
   }],
   
   ['app.ready', function() {

@@ -9,12 +9,12 @@ namespace controllers {
    * controllers.
    */
   abstract class ControllerAbstract
-    implements \artax\controllers\ResponseControllerInterface,
-      \artax\events\NotifierInterface
+    implements \Artax\Controllers\ResponseControllerInterface,
+      \Artax\Events\NotifierInterface
   {
     use
-      \artax\events\NotifierTrait,
-      \artax\controllers\ResponseControllerTrait;
+      \Artax\Events\NotifierTrait,
+      \Artax\Controllers\ResponseControllerTrait;
     
     /**
      * Class constructor
@@ -25,8 +25,8 @@ namespace controllers {
      * @return void
      */
     public function __construct(
-      \artax\events\Mediator $mediator,
-      \artax\controllers\Response $response
+      \Artax\Events\Mediator $mediator,
+      \Artax\Controllers\Response $response
     )
     {
       $this->mediator = $mediator;
