@@ -1,10 +1,15 @@
+
+> DISCLAIMER: Everything in this repository is in constant flux, so don't draw any
+long-term conclusions about how things are currently written. It's all very
+experimental; we're constantly trying and rejecting new solutions to old problems.
+
 ### WHAT IS IT?
 
 **Artax** is a _lightweight_ micro-framework for creating PHP applications for
 web and command line environments. It's me finally getting around to the nebulous
 refactoring of my dev toolkit that we all dream about but never get around to.
-I'm doing lots of work on it at present, so it's not at all stable. Any use at
-this time should be considered highly experimental.
+It's not at all stable and any attempt at using any of the code here should be
+considered highly experimental.
 
 ### BACKGROUND
 
