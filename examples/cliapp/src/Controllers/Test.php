@@ -1,6 +1,6 @@
 <?php
 
-namespace controllers {
+namespace Controllers {
   
   /**
    * The base controller from which all other controllers inherit
@@ -15,7 +15,7 @@ namespace controllers {
      */
     public function exec()
     {
-      $this->response->set('Output sent by controllers\Test');
+      $this->response->set('Output sent by Controllers\Test');
       return $this;
     }
   }

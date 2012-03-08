@@ -1,6 +1,6 @@
 <?php
 
-namespace controllers {
+namespace Controllers {
   
   /**
    * The base controller from which all other controllers inherit

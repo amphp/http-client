@@ -37,7 +37,7 @@ $moreListeners = [
     $this->notify('last_event');
   }],
   ['last_event', function() {
-    $controller = $this->depProvider->make('controllers.Test');
+    $controller = $this->depProvider->make('Controllers.Test');
     $controller->exec()->getResponse()->output();
   }]
 ];

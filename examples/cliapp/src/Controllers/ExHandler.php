@@ -1,6 +1,6 @@
 <?php
 
-namespace controllers {
+namespace Controllers {
   
   class ExHandler extends ControllerAbstract
   {

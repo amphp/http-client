@@ -28,7 +28,7 @@ $artax->mediator->push('intermission', function() {
 
 
 // Manually instantiate our test controller injecting the necessary dependencies
-$cntrl = new controllers\Test($artax->mediator, new \Artax\Controllers\Response);
+$cntrl = new Controllers\Test($artax->mediator, new \Artax\Controllers\Response);
 $cntrl->exec()->getResponse()->output();
 
 
@@ -37,7 +37,7 @@ $cntrl->notify('intermission');
 
 
 // Now lets do the same thing using the dependency provider ...
-$cntrl = $artax->depProvider->make('controllers.Test');
+$cntrl = $artax->depProvider->make('Controllers.Test');
 $cntrl->exec()->getResponse()->output();
 
 
