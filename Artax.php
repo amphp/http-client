@@ -89,7 +89,7 @@ require AX_SYSTEM_DIR . '/src/Artax/Bootstrapper.php';
  * --------------------------------------------------------------------
  */
 
-$axMed = (new Artax\Bootstrapper(
-    new Artax\Handlers\FatalHandler(AX_DEBUG_FLAG),
+$artax = (new Artax\Bootstrapper(
+    (new Artax\Handlers\FatalHandler(AX_DEBUG_FLAG))->register(),
     new Artax\Events\Mediator
 ))->boot();
