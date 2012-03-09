@@ -6,8 +6,7 @@
  * PHP version 5.4
  * 
  * @category   Artax
- * @package    core
- * @subpackage events
+ * @package    Events
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  * @author     Levi Morrison
  */
@@ -18,8 +17,7 @@ namespace Artax\Events;
  * Mediator Class
  * 
  * @category   Artax
- * @package    core
- * @subpackage events
+ * @package    Events
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  * @author     Levi Morrison
  */
@@ -32,39 +30,25 @@ class Mediator implements MediatorInterface
     protected $listeners = [];
     
     /**
-     * An optional object to which Closure listeners should bind `$this` references
-     * @var mixed
-     */
-    protected $rebindObj;
-    
-    /**
-     * Connect a `$listener` to the end of the `$eventName` event queue
-     * 
-     * If the specified listener is an instance of Closure and the `$rebind`
-     * parameter is set to TRUE (default), the method will rebind the listener
-     * to the scope of the object referenced by the `Mediator::$rebindObj` (if the
-     * property is initialized). Specifying the `$rebind` parameter as `FALSE`
-     * allows Closure listeners to specify their own `$this` binding prior to 
-     * being attached to the mediator and maintain said reference once attached.
+     * Connect a listener to the end of the specified event queue
      * 
      * @param string $eventName Event identifier name to listen for
      * @param mixed  $listener  Callable event listener
-     * @param bool   $rebind    Closure rebinding flag
      * 
      * @return int Returns the new number of listeners in the queue for the
      *             specified event.
-     *
+     * 
      * @throws LogicException when $listener is not an array or Traversable, or 
      *         if it is not callable.
      */
-    public function push($eventName, $listener, $rebind = TRUE)
+    public function push($eventName, $listener)
     {
         if (is_array($listener)
             || $listener instanceof \Traversable
             || $listener instanceof \StdClass)
         {
             foreach ($listener as $listenerItem) {
-                $this->push($eventName, $listenerItem, $rebind);
+                $this->push($eventName, $listenerItem);
             }
             return $this->count($eventName);
             
@@ -74,10 +58,6 @@ class Mediator implements MediatorInterface
                 . '::push must be an array, Traversable, or callable'
             );
         } else {
-
-            if ($rebind && $listener instanceof \Closure && $this->rebindObj) {
-                $listener = $listener->bindTo($this->rebindObj);
-            }
             if ( ! isset($this->listeners[$eventName])) {
                 $this->listeners[$eventName]   = [];
                 $this->listeners[$eventName][] = $listener;
@@ -92,15 +72,14 @@ class Mediator implements MediatorInterface
      * to the event queue found in the key.
      *
      * @param array|Traversable|StdClass     The variable to loop through.
-     * @param bool   $rebind    Closure rebinding flag
-
+     * 
      * @return int Returns the total number of listeners added across all event
      *             queues as a result of the method call.
      *
      * @throws InvalidArgumentException when $iterable is not an array, Traversable,
      *         or StdClass instance.
      */
-    public function pushAll($iterable, $rebind = TRUE) {
+    public function pushAll($iterable) {
         if ( ! (is_array($iterable) 
             || $iterable instanceof \Traversable
             || $iterable instanceof \StdClass))
@@ -112,7 +91,7 @@ class Mediator implements MediatorInterface
         }
         $addedListenerCount = 0;
         foreach ($iterable as $event => $value) {
-            $addedListenerCount += $this->push($event, $value, $rebind);
+            $addedListenerCount += $this->push($event, $value);
         }
         return $addedListenerCount;
     }
@@ -120,22 +99,14 @@ class Mediator implements MediatorInterface
     /**
      * Connect an event listener to the front of the `$eventName` event queue
      * 
-     * The `Mediator::unshift` method utilizes the `$rebind` parameter in the
-     * same way as `Mediator::push`.
-     * 
      * @param string $eventName Event identifier name to listen for
      * @param mixed  $listener  Event listener
-     * @param bool   $rebind    Closure rebinding flag
      * 
      * @return int Returns the new number of listeners in the queue for the
      *             specified event.
      */
-    public function unshift($eventName, callable $listener, $rebind = TRUE)
+    public function unshift($eventName, callable $listener)
     {
-        if ($rebind && $listener instanceof \Closure && $this->rebindObj) {
-            $listener = $listener->bindTo($this->rebindObj);
-        }
-        
         if ( ! isset($this->listeners[$eventName])) {
             $this->listeners[$eventName]   = [];
         }

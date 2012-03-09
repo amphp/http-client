@@ -6,8 +6,7 @@
  * PHP version 5.4
  * 
  * @category   Artax
- * @package    core
- * @subpackage events
+ * @package    Events
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
@@ -20,8 +19,7 @@ namespace Artax\Events;
  * event mediator.
  * 
  * @category   Artax
- * @package    core
- * @subpackage events
+ * @package    Events
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 interface NotifierInterface

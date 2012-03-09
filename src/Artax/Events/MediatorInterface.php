@@ -6,8 +6,7 @@
  * PHP version 5.4
  * 
  * @category   Artax
- * @package    core
- * @subpackage events
+ * @package    Events
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
@@ -17,8 +16,7 @@ namespace Artax\Events;
  * MediatorInterface
  * 
  * @category   Artax
- * @package    core
- * @subpackage events
+ * @package    Events
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 interface MediatorInterface
@@ -35,9 +33,8 @@ interface MediatorInterface
      * to the event queue found in the key.
      *
      * @param mixed $iterable The variable to loop through and add listeners
-     * @param bool  $rebind   Closure rebinding flag
      */
-    public function pushAll($iterable, $rebind);
+    public function pushAll($iterable);
     
     /**
      * Connect a `$listener` to the end of the `$eventName` queue
@@ -45,7 +42,7 @@ interface MediatorInterface
      * @param string $eventName Event identifier name
      * @param mixed  $listener  Event listener
      */
-    public function push($eventName, $listener, $rebind);
+    public function push($eventName, $listener);
     
     /**
      * Connect a `$listener` to the front of the `$eventName` queue
@@ -53,7 +50,7 @@ interface MediatorInterface
      * @param string $eventName Event identifier name
      * @param mixed  $listener  Event listener
      */
-    public function unshift($eventName, callable $listener, $rebind);
+    public function unshift($eventName, callable $listener);
     
     /**
      * Remove the first `$listener` from the front of the `$eventName` event queue
