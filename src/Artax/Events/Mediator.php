@@ -266,23 +266,4 @@ class Mediator implements MediatorInterface
         
         return $execCount;
     }
-    
-    /**
-     * Specify an object to which Closure listeners should be rebound
-     * 
-     * @param mixed $obj
-     * 
-     * @return Mediator Returns object instance for method chaining
-     * @throws InvalidArgumentException If passed a non-object parameter
-     */
-    public function setRebindObj($obj)
-    {
-        if ( ! is_object($obj)) {
-            $msg = 'Mediator::setRebindObj requires an object parameter: ' .
-                gettype($obj) . ' specified';
-            throw new \InvalidArgumentException($msg);
-        }
-        $this->rebindObj = $obj;
-        return $this;
-    }
 }
