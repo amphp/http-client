@@ -10,29 +10,6 @@ class MediatorTest extends PHPUnit_Framework_TestCase
   }
   
   /**
-   * @depends testBeginsEmpty
-   * @covers Artax\Events\Mediator::setRebindObj
-   */
-  public function testSetRebindObjAssignsProperty($m)
-  {
-      $obj = new StdClass;
-      $m->setRebindObj($obj);
-      $this->assertEquals($obj, $m->rebindObj);
-  }
-  
-  /**
-   * @depends testBeginsEmpty
-   * @covers Artax\Events\Mediator::setRebindObj
-   * @expectedException InvalidArgumentException
-   */
-  public function testSetRebindObjThrowsExceptionOnInvalidProperty($m)
-  {
-      $notAnObject = "This was supposed to be an object. You're a moron. "
-          .  "Maybe you should consider working with Ruby on Rails instead.";
-      $m->setRebindObj($notAnObject);
-  }
-  
-  /**
    * @covers Artax\Events\Mediator::push
    * @expectedException InvalidArgumentException
    */
@@ -59,25 +36,6 @@ class MediatorTest extends PHPUnit_Framework_TestCase
       $listeners = $m->push('test.event1', function() { return 42; });
       $this->assertEquals(2, $listeners);
       $this->assertEquals(function() { return 42; }, $m->last('test.event1'));
-      return $m;
-  }
-  
-  /**
-   * @covers Artax\Events\Mediator::push
-   */
-  public function testPushRebindsClosureListener()
-  {
-      $rebindObj = new stdClass;
-      $rebindObj->prop = 42;
-      
-      $m = new MediatorTestImplementationClass;
-      $m->setRebindObj($rebindObj);
-      $listeners = $m->push('test.42', function() { return $this->prop; });
-      $this->assertEquals(1, $listeners);
-      
-      $listener = $m->pop('test.42');
-      $this->assertEquals(42, $listener());
-      
       return $m;
   }
   
@@ -127,22 +85,6 @@ class MediatorTest extends PHPUnit_Framework_TestCase
       $this->assertEquals(4, $cnt);
       $this->assertEquals(1, $m->count('app.ready'));
       $this->assertEquals(3, $m->count('app.anything'));
-  }
-  
-  /**
-   * @depends testPushRebindsClosureListener
-   * @covers Artax\Events\Mediator::unshift
-   */
-  public function testUnshiftRebindsClosureListener($m)
-  {
-      $this->assertEquals(0, $m->count('test.42'));
-      $listeners = $m->unshift('test.42', function() { return $this->prop; });
-      $this->assertEquals(1, $listeners);
-      
-      $listener = $m->pop('test.42');
-      $this->assertEquals(42, $listener());
-      
-      return $m;
   }
   
   /**

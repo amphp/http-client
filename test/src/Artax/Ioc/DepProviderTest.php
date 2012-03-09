@@ -3,20 +3,20 @@
 class DepProviderTest extends PHPUnit_Framework_TestCase
 {
   /**
-   * @covers Artax\DepProvider::__construct
+   * @covers Artax\Ioc\DepProvider::__construct
    */
   public function testConstructorAssignsDotNotationPropertyIfPassed()
   {
-    $dp = new DepProviderCoverageTest(new Artax\DotNotation);
+    $dp = new DepProviderCoverageTest(new Artax\Ioc\DotNotation);
     $this->assertEmpty($dp->all());
     return $dp;
   }
   
   /**
    * @depends testConstructorAssignsDotNotationPropertyIfPassed
-   * @covers Artax\DepProvider::make
-   * @covers Artax\DepProvider::getInjectedInstance
-   * @covers Artax\DepProvider::parseConstructorArgs
+   * @covers Artax\Ioc\DepProvider::make
+   * @covers Artax\Ioc\DepProvider::getInjectedInstance
+   * @covers Artax\Ioc\DepProvider::parseConstructorArgs
    */
   public function testMakeReturnsInjectedFromReflection($dp)
   {
@@ -26,8 +26,8 @@ class DepProviderTest extends PHPUnit_Framework_TestCase
   
   /**
    * @depends testConstructorAssignsDotNotationPropertyIfPassed
-   * @covers Artax\DepProvider::make
-   * @covers Artax\DepProvider::getInjectedInstance
+   * @covers Artax\Ioc\DepProvider::make
+   * @covers Artax\Ioc\DepProvider::getInjectedInstance
    */
   public function testMakeReturnsCustomObjectValsIfPassed($dp)
   {
@@ -40,8 +40,8 @@ class DepProviderTest extends PHPUnit_Framework_TestCase
   
   /**
    * @depends testConstructorAssignsDotNotationPropertyIfPassed
-   * @covers Artax\DepProvider::make
-   * @covers Artax\DepProvider::getInjectedInstance
+   * @covers Artax\Ioc\DepProvider::make
+   * @covers Artax\Ioc\DepProvider::getInjectedInstance
    */
   public function testMakeReturnsInjectedUsingBucketSpecifiedClassNames($dp)
   {
@@ -53,8 +53,8 @@ class DepProviderTest extends PHPUnit_Framework_TestCase
   
   /**
    * @depends testConstructorAssignsDotNotationPropertyIfPassed
-   * @covers Artax\DepProvider::make
-   * @covers Artax\DepProvider::getInjectedInstance
+   * @covers Artax\Ioc\DepProvider::make
+   * @covers Artax\Ioc\DepProvider::getInjectedInstance
    */
   public function testMakeReturnsSharedInstanceIfSpecified($dp)
   {
@@ -73,31 +73,8 @@ class DepProviderTest extends PHPUnit_Framework_TestCase
   }
   
   /**
-   * @depends testConstructorAssignsDotNotationPropertyIfPassed
-   * @covers Artax\DepProvider::setSharedDep
-   */
-  public function testSetSharedDepStoresDependencyInSharedPropertyArray($dp)
-  {
-    $testDep = new TestDependency;
-    $testDep->testProp = 'shared value';
-    $dp->setSharedDep('TestDependency', $testDep);
-    $this->assertEquals($testDep, $dp->make('TestDependency'));
-    return $dp;
-  }
-  
-  /**
-   * @depends testConstructorAssignsDotNotationPropertyIfPassed
-   * @covers Artax\DepProvider::setSharedDep
-   * @expectedException InvalidArgumentException
-   */
-  public function testSetSharedDepThrowsExceptionOnInstanceTypeMismatch($dp)
-  {
-    $dp->setSharedDep('TestDependency', new stdClass);
-  }
-  
-  /**
    * @depends testSetSharedDepStoresDependencyInSharedPropertyArray
-   * @covers Artax\DepProvider::clearSharedDep
+   * @covers Artax\Ioc\DepProvider::clearSharedDep
    */
   public function testClearSharedDepRemovesCachedDependencyFromSharedArray($dp)
   {
@@ -106,7 +83,7 @@ class DepProviderTest extends PHPUnit_Framework_TestCase
   }
 }
 
-class DepProviderCoverageTest extends Artax\DepProvider
+class DepProviderCoverageTest extends Artax\Ioc\DepProvider
 {
 }
 
