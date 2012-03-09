@@ -57,14 +57,14 @@ class ErrorHandler implements ErrorHandlerInterface
      * Saying, "I don't need to handle this potential situation because it's a
      * very remote possibility," is how space shuttles blow up.
      * 
-     * Setting `display_errors = Off` is not sufficient to prevent raw output
-     * in the event of a fatal `E_ERROR`. Instead, we must also use the error
-     * reporting function to prevent such displays as specified in the code
-     * below. It's important to note that when employing this method there
-     * should also be an appropriate shutdown function registered to collect
-     * information regarding the `E_ERROR` that was raised. Otherwise the script
-     * will simply terminate and you'll have no inkling as to why. The built-in
-     * `Artax\Handlers\FatalHandler` class accomplishes this for you.
+     * The php.ini `display_errors = Off` is not sufficient to prevent raw output
+     * in the event of a fatal `E_ERROR`. Instead, we must also use `error_reporting`
+     * to prevent such displays as specified in the code below. It's important 
+     * to note that when employing this method there should also be an appropriate
+     * shutdown function registered to collect information regarding the `E_ERROR`
+     * that was raised. Otherwise the script will simply terminate and you'll 
+     * have no inkling as to why. The built-in `Artax\Handlers\FatalHandler` 
+     * class accomplishes this for you.
      * 
      * So, this documentation exists for the edification of any passersby and
      * to prevent someone from coming along and editing the arguments to the
