@@ -67,10 +67,10 @@ require AX_SYSTEM_DIR . '/src/Artax/Events/NotifierInterface.php';
 require AX_SYSTEM_DIR . '/src/Artax/Events/NotifierTrait.php';
 require AX_SYSTEM_DIR . '/src/Artax/Events/MediatorInterface.php';
 require AX_SYSTEM_DIR . '/src/Artax/Events/Mediator.php';
-require AX_SYSTEM_DIR . '/src/Artax/Handlers/ErrorHandlerInterface.php';
-require AX_SYSTEM_DIR . '/src/Artax/Handlers/ErrorHandler.php';
-require AX_SYSTEM_DIR . '/src/Artax/Handlers/FatalHandlerInterface.php';
-require AX_SYSTEM_DIR . '/src/Artax/Handlers/FatalHandler.php';
+require AX_SYSTEM_DIR . '/src/Artax/Handlers/ErrorsInterface.php';
+require AX_SYSTEM_DIR . '/src/Artax/Handlers/Errors.php';
+require AX_SYSTEM_DIR . '/src/Artax/Handlers/TerminationInterface.php';
+require AX_SYSTEM_DIR . '/src/Artax/Handlers/Termination.php';
 require AX_SYSTEM_DIR . '/src/Artax/Bootstrapper.php';
 
 
@@ -80,7 +80,7 @@ require AX_SYSTEM_DIR . '/src/Artax/Bootstrapper.php';
  * --------------------------------------------------------------------
  */
  
-(new Artax\Handlers\ErrorHandler(AX_DEBUG_FLAG))->register();
+(new Artax\Handlers\Errors(AX_DEBUG_FLAG))->register();
 
 
 /*
@@ -90,6 +90,6 @@ require AX_SYSTEM_DIR . '/src/Artax/Bootstrapper.php';
  */
 
 $artax = (new Artax\Bootstrapper(
-    (new Artax\Handlers\FatalHandler(AX_DEBUG_FLAG))->register(),
+    (new Artax\Handlers\Termination(AX_DEBUG_FLAG))->register(),
     new Artax\Events\Mediator
 ))->boot();

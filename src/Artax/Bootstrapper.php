@@ -19,7 +19,7 @@ namespace Artax;
  * instance into the framework's fatal error handler without cluttering the
  * global namespace.
  * 
- * The FatalHandler needs access to the Mediator to enable event-managed
+ * The Termination needs access to the Mediator to enable event-managed
  * handling for fatal shutdowns and uncaught exceptions (app.exception) and
  * normal shutdown events (app.tearDown).
  * 
@@ -30,10 +30,10 @@ namespace Artax;
 class Bootstrapper
 {
     /**
-     * An instance of Artax\Handlers\FatalHandler
-     * @var FatalHandler
+     * An Termination (fatal or normal) Handler
+     * @var Termination
      */
-    protected $fatalHandler;
+    protected $termination;
     
     /**
      * An event mediator instance
@@ -44,21 +44,21 @@ class Bootstrapper
     /**
      * Constructor injects object dependencies
      * 
-     * @param FatalHandler $fh  The FatalHandlerInstance
-     * @param Mediator     $med An event mediator object
+     * @param Termination $term The TerminationInstance
+     * @param Mediator    $med  An event mediator object
      * 
      * @return void
      */
-    public function __construct(Handlers\FatalHandler $fh, Events\Mediator $med)
+    public function __construct(Handlers\Termination $term, Events\Mediator $med)
     {
-        $this->fatalHandler = $fh;
-        $this->mediator     = $med;
+        $this->termination = $term;
+        $this->mediator    = $med;
     }
     
     /**
      * Boot the event management "framework"
      * 
-     * The only function served here is to inject the FatalHandler instance
+     * The only function served here is to inject the Termination instance
      * with the Mediator to allow event-managed handling of uncaught exceptions
      * and E_FATAL errors that can't be handled by the ErrorHandler.
      * 
@@ -68,7 +68,7 @@ class Bootstrapper
      */
     public function boot()
     {
-        $this->fatalHandler->setMediator($this->mediator);
+        $this->termination->setMediator($this->mediator);
         return $this->mediator;
     }
 }

@@ -17,7 +17,7 @@ namespace Artax\Exceptions;
  * 
  * This exception makes testing code much simpler. Instead of calling `die`
  * or `exit` directly, methods can throw a `ScriptHaltException` which is
- * an easily testable outcome. The built-in Artax FatalHandler will exit
+ * an easily testable outcome. The built-in Artax Termination will exit
  * quietly in the event of an uncaught `ScriptHaltException`.
  * 
  * @category   Artax

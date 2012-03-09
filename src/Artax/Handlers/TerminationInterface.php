@@ -1,28 +1,26 @@
 <?php
 
 /**
- * Artax FatalHandlerInterface File
+ * Artax TerminationInterface File
  *
  * PHP version 5.4
  *
  * @category   Artax
- * @package    core
- * @subpackage handlers
+ * @package    Handlers
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 namespace Artax\Handlers {
 
   /**
-   * FatalHandlerInterface
+   * TerminationInterface
    *
    * Provides an interface for uncaught exception and shutdown handling.
    *
    * @category   Artax
-   * @package    core
-   * @subpackage handlers
+   * @package    Handlers
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
-  interface FatalHandlerInterface
+  interface TerminationInterface
   {
     /**
      * Register the custom exception and shutdown handler functions

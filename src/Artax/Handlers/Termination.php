@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Artax FatalHandler Class File
+ * Artax Termination Class File
  *
  * PHP version 5.4
  *
@@ -12,19 +12,21 @@
 namespace Artax\Handlers;
 
 /**
- * FatalHandler Class
+ * Termination Class
  *
  * Provides unexpected exception and fatal error handling functionality.
  * 
- * The FatalHandler needs access to the Mediator to enable event-managed
- * handling for fatal shutdowns and uncaught exceptions (app.exception) and
- * normal shutdown events (app.tearDown).
+ * The Termination needs access to the Mediator to enable event-managed
+ * handling for fatal shutdowns and uncaught exceptions (sysevent: exception) 
+ * and normal shutdown events (sysevent: shutdown). We use setter injection to
+ * provide a mediator so that we can enable the fatal error handling capabilities
+ * as early as possible during the boot process.
  * 
  * @category   Artax
  * @package    Handlers
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-class FatalHandler implements FatalHandlerInterface, \Artax\Events\NotifierInterface
+class Termination implements TerminationInterface, \Artax\Events\NotifierInterface
 {
     use \Artax\Events\NotifierTrait;
     
@@ -49,7 +51,7 @@ class FatalHandler implements FatalHandlerInterface, \Artax\Events\NotifierInter
     /**
      * Register the custom exception and shutdown handlers
      * 
-     * @return FatalHandler Returns object instance for method chaining.
+     * @return Termination Returns object instance for method chaining.
      */
     public function register()
     {
@@ -73,7 +75,7 @@ class FatalHandler implements FatalHandlerInterface, \Artax\Events\NotifierInter
      * @param Exception $e Exception object
      *
      * @return void
-     * @uses FatalHandler::setException
+     * @uses Termination::setException
      * @notifies exception(\Exception $e)
      */
     public function exHandler(\Exception $e)
@@ -96,7 +98,7 @@ class FatalHandler implements FatalHandlerInterface, \Artax\Events\NotifierInter
      * 
      * If script shutdown was caused by a fatal PHP error, the error is used to 
      * generate a corresponding `ErrorException` object which is then passed to
-     * `FatalHandler::exHandler` for handling.
+     * `Termination::exHandler` for handling.
      * 
      * The mediator is notified on shutdown so that any interested
      * listeners can act appropriately. If an event listener invoked by this
@@ -104,9 +106,9 @@ class FatalHandler implements FatalHandlerInterface, \Artax\Events\NotifierInter
      * script execution will cease immediately without sending further output.
      * 
      * @return void
-     * @uses FatalHandler::getFatalErrException
-     * @uses FatalHandler::exHandler
-     * @notifies shutdown(\Artax\Handlers\FatalHandler)
+     * @uses Termination::getFatalErrException
+     * @uses Termination::exHandler
+     * @notifies shutdown(\Artax\Handlers\Termination)
      */
     public function shutdown()
     {
@@ -131,7 +133,7 @@ class FatalHandler implements FatalHandlerInterface, \Artax\Events\NotifierInter
      * 
      * @param Mediator $mediator An event mediator object instance
      * 
-     * @return FatalHandler Returns object instance for method chaining.
+     * @return Termination Returns object instance for method chaining.
      */
     public function setMediator(\Artax\Events\Mediator $mediator)
     {
@@ -144,12 +146,12 @@ class FatalHandler implements FatalHandlerInterface, \Artax\Events\NotifierInter
      * 
      * If the last occuring error during script execution was fatal the function
      * returns an `ErrorException` object representing the error so it can be
-     * handled by `FatalHandler::exHandler`.
+     * handled by `Termination::exHandler`.
      * 
      * @return mixed Returns NULL if no error occurred or a non-fatal error was 
      *               raised. An ErrorException is returned if the last error
      *               raised was fatal.
-     * @used-by FatalHandler::shutdown
+     * @used-by Termination::shutdown
      */
     public function getFatalErrException()
     {
@@ -180,7 +182,7 @@ class FatalHandler implements FatalHandlerInterface, \Artax\Events\NotifierInter
      * of its behavior.
      * 
      * @return array Returns an associative error representation array
-     * @used-by FatalHandler::getFatalErrException
+     * @used-by Termination::getFatalErrException
      */
     protected function lastError()
     {

@@ -21,7 +21,7 @@ namespace Artax\Handlers;
  * @package    Handlers
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-class ErrorHandler implements ErrorHandlerInterface
+class Errors implements ErrorsInterface
 {
     /**
      * A boolean debug-level flag
@@ -63,7 +63,7 @@ class ErrorHandler implements ErrorHandlerInterface
      * to note that when employing this method there should also be an appropriate
      * shutdown function registered to collect information regarding the `E_ERROR`
      * that was raised. Otherwise the script will simply terminate and you'll 
-     * have no inkling as to why. The built-in `Artax\Handlers\FatalHandler` 
+     * have no inkling as to why. The built-in `Artax\Handlers\Termination` 
      * class accomplishes this for you.
      * 
      * So, this documentation exists for the edification of any passersby and

@@ -10,17 +10,17 @@
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace Artax\Handlers {
+namespace Artax\Handlers;
 
-  /**
-   * ErrorHandlerInterface
-   * 
-   * @category   Artax
-   * @package    Handlers
-   * @author     Daniel Lowrey <rdlowrey@gmail.com>
-   */
-  interface ErrorHandlerInterface
-  {
+/**
+ * ErrorHandlerInterface
+ * 
+ * @category   Artax
+ * @package    Handlers
+ * @author     Daniel Lowrey <rdlowrey@gmail.com>
+ */
+interface ErrorsInterface
+{
     /**
      * Register the custom error handler function
      */
@@ -35,5 +35,4 @@ namespace Artax\Handlers {
      * @param int    $errLine The line in which the error occurred
      */
     public function handle($errNo, $errStr, $errFile, $errLine);
-  }
 }
