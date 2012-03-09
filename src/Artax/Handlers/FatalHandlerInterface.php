@@ -25,6 +25,11 @@ namespace Artax\Handlers {
   interface FatalHandlerInterface
   {
     /**
+     * Register the custom exception and shutdown handler functions
+     */
+    public function register();
+    
+    /**
      * The last chance handler for uncaught exceptions
      *
      * @param Exception $e Exception object

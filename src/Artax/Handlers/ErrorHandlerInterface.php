@@ -6,8 +6,7 @@
  * PHP version 5.4
  * 
  * @category   Artax
- * @package    core
- * @subpackage handlers
+ * @package    Handlers
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
@@ -17,14 +16,13 @@ namespace Artax\Handlers {
    * ErrorHandlerInterface
    * 
    * @category   Artax
-   * @package    core
-   * @subpackage handlers
+   * @package    Handlers
    * @author     Daniel Lowrey <rdlowrey@gmail.com>
    */
   interface ErrorHandlerInterface
   {
     /**
-     * Register the ErrorHandler
+     * Register the custom error handler function
      */
     public function register();
     

@@ -6,8 +6,7 @@
  * PHP version 5.4
  *
  * @category   Artax
- * @package    Core
- * @subpackage Handlers
+ * @package    Handlers
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 namespace Artax\Handlers;
@@ -22,8 +21,7 @@ namespace Artax\Handlers;
  * normal shutdown events (app.tearDown).
  * 
  * @category   Artax
- * @package    Core
- * @subpackage Handlers
+ * @package    Handlers
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 class FatalHandler implements FatalHandlerInterface, \Artax\Events\NotifierInterface
@@ -46,8 +44,18 @@ class FatalHandler implements FatalHandlerInterface, \Artax\Events\NotifierInter
     public function __construct($debug)
     {
         $this->debug = (bool) $debug;
+    }
+    
+    /**
+     * Register the custom exception and shutdown handlers
+     * 
+     * @return FatalHandler Returns object instance for method chaining.
+     */
+    public function register()
+    {
         set_exception_handler([$this, 'exHandler']);
         register_shutdown_function([$this, 'shutdown']);
+        return $this;
     }
     
     /**
@@ -66,13 +74,13 @@ class FatalHandler implements FatalHandlerInterface, \Artax\Events\NotifierInter
      *
      * @return void
      * @uses FatalHandler::setException
-     * @notifies app.exception|\Exception $e
+     * @notifies exception(\Exception $e)
      */
     public function exHandler(\Exception $e)
     {
         if ($e instanceof \Artax\Exceptions\ScriptHaltException) {
             return;
-        } elseif (NULL !== $this->mediator) {
+        } elseif (NULL !== $this->mediator && $this->mediator->count('exception')) {
             try {
                 $this->notify('exception', $e);
             } catch (\Exception $e) {
@@ -98,7 +106,7 @@ class FatalHandler implements FatalHandlerInterface, \Artax\Events\NotifierInter
      * @return void
      * @uses FatalHandler::getFatalErrException
      * @uses FatalHandler::exHandler
-     * @notifies app.tearDown|\Artax\Handlers\FatalHandler
+     * @notifies shutdown(\Artax\Handlers\FatalHandler)
      */
     public function shutdown()
     {
@@ -106,7 +114,7 @@ class FatalHandler implements FatalHandlerInterface, \Artax\Events\NotifierInter
             $this->exHandler($e);
         } elseif (NULL !== $this->mediator) {
             try {
-                $this->notify('tearDown');
+                $this->notify('shutdown');
             } catch (\Exception $e) {}
         }
     }
@@ -189,7 +197,8 @@ class FatalHandler implements FatalHandlerInterface, \Artax\Events\NotifierInter
     protected function defaultHandlerMsg(\Exception $e)
     {
         return $this->debug
-            ? (string) $e
-            : "Yikes. There's an internal error and we're working to fix it.";
+            ? (string) $e . PHP_EOL
+            : "Well this is embarrassing ... It seems we've encountered an "
+                ."internal error. We're working to get it fixed." . PHP_EOL;
     }
 }
