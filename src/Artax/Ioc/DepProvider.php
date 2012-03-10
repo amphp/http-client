@@ -19,7 +19,7 @@ namespace Artax\Ioc;
  * @package  Ioc
  * @author   Daniel Lowrey <rdlowrey@gmail.com>
  */
-class DepProvider extends Bucket implements ProviderInterface
+class DepProvider extends \Artax\Bucket implements ProviderInterface
 {
     /**
      * A DotNotation object for parsing dot-notation class names
@@ -63,9 +63,8 @@ class DepProvider extends Bucket implements ProviderInterface
      */
     public function make($type, array $custom=[])
     {
-        $shared = (isset($this->params[$type]['_shared'])
-            && TRUE === $this->params[$type]['_shared']);
-      
+        $shared = !empty($this->params[$type]['_shared']);
+         
         if ($shared && isset($this->shared[$type])) {
             return $this->shared[$type];
         }
