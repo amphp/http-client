@@ -24,7 +24,6 @@ class BootstrapperTest extends PHPUnit_Framework_TestCase
     public function testBootInjectsMediatorIntoTermHandlerAndReturnsMediator($boot)
     {
         $this->assertEquals($boot->mediator, $boot->boot());
-        $this->assertEquals($term->mediator, $boot->mediator);
     }
       
 }
