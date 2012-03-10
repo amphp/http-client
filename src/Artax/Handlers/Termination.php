@@ -84,7 +84,9 @@ class Termination implements TerminationInterface, \Artax\Events\NotifierInterfa
             return;
         } elseif (NULL !== $this->mediator && $this->mediator->count('exception')) {
             try {
-                $this->notify('exception', $e);
+                $this->notify('exception', $e, $this->debug);
+            } catch (\Artax\Exceptions\ScriptHaltException $e) {
+                return;
             } catch (\Exception $e) {
                 echo $this->defaultHandlerMsg($e);
             }
@@ -97,7 +99,7 @@ class Termination implements TerminationInterface, \Artax\Events\NotifierInterfa
      * Handle unexpected fatal errors and/or notify listeners of shutdown
      * 
      * If script shutdown was caused by a fatal PHP error, the error is used to 
-     * generate a corresponding `ErrorException` object which is then passed to
+     * generate a corresponding `FatalErrorException` object which is then passed to
      * `Termination::exHandler` for handling.
      * 
      * The mediator is notified on shutdown so that any interested
@@ -106,18 +108,22 @@ class Termination implements TerminationInterface, \Artax\Events\NotifierInterfa
      * script execution will cease immediately without sending further output.
      * 
      * @return void
-     * @uses Termination::getFatalErrException
+     * @uses Termination::getFatalErrorException
      * @uses Termination::exHandler
      * @notifies shutdown(\Artax\Handlers\Termination)
      */
     public function shutdown()
     {
-        if ($e = $this->getFatalErrException()) {
+        if ($e = $this->getFatalErrorException()) {
             $this->exHandler($e);
         } elseif (NULL !== $this->mediator) {
             try {
                 $this->notify('shutdown');
-            } catch (\Exception $e) {}
+            } catch (\Artax\Exceptions\ScriptHaltException $e) {
+                return;
+            } catch (\Exception $e) {
+                echo $this->defaultHandlerMsg($e);
+            }
         }
     }
     
@@ -153,7 +159,7 @@ class Termination implements TerminationInterface, \Artax\Events\NotifierInterfa
      *               raised was fatal.
      * @used-by Termination::shutdown
      */
-    public function getFatalErrException()
+    public function getFatalErrorException()
     {
         $ex  = NULL;
         $err = $this->lastError();
@@ -170,7 +176,7 @@ class Termination implements TerminationInterface, \Artax\Events\NotifierInterfa
         if (isset($fatals[$err['type']])) {
             $msg = $fatals[$err['type']] . ': ' . $err['message'] . ' in ';
             $msg.= $err['file'] . ' on line ' . $err['line'];
-            $ex = new \ErrorException($msg);
+            $ex  = new \Artax\Exceptions\FatalErrorException($msg);
         }
         return $ex;
     }
@@ -182,7 +188,7 @@ class Termination implements TerminationInterface, \Artax\Events\NotifierInterfa
      * of its behavior.
      * 
      * @return array Returns an associative error representation array
-     * @used-by Termination::getFatalErrException
+     * @used-by Termination::getFatalErrorException
      */
     protected function lastError()
     {
@@ -194,15 +200,11 @@ class Termination implements TerminationInterface, \Artax\Events\NotifierInterfa
      * 
      * @param Exception $e An uncaught exception object
      * 
-     * @return string Returns a message appropriate to the object's debug setting
+     * @return string Returns a debug message if appropriate or NULL if the 
+     *                application debug flag is turned off.
      */
     protected function defaultHandlerMsg(\Exception $e)
     {
-        if ($this->debug) {
-            return (string) $e;
-        } else {
-            return "Well this is embarrassing ... It seems we've encountered "
-                ."an internal error. We're working to get it fixed.";
-        }
+        return $this->debug ? (string) $e : NULL;
     }
 }

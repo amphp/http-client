@@ -23,7 +23,7 @@ class TerminationTest extends PHPUnit_Framework_TestCase
     public function testRegisterReturnsInstanceForChaining()
     {
         $t = $this->getMock('Artax\Handlers\Termination',
-            ['exHandler', 'shutdown', 'setMediator', 'getFatalErrException', 'lastError', 'defaultHandlerMsg'],
+            ['exHandler', 'shutdown', 'setMediator', 'getFatalErrorException', 'lastError', 'defaultHandlerMsg'],
             [FALSE]
         );
         
@@ -33,7 +33,7 @@ class TerminationTest extends PHPUnit_Framework_TestCase
     
     /**
      * @covers Artax\Handlers\Termination::shutdown
-     * @covers Artax\Handlers\Termination::getFatalErrException
+     * @covers Artax\Handlers\Termination::getFatalErrorException
      * @covers Artax\Handlers\Termination::lastError
      */
     public function testShutdownInvokesExHandlerOnFatalError()
@@ -64,9 +64,7 @@ class TerminationTest extends PHPUnit_Framework_TestCase
         $obj->exHandler(new \Exception('test'));
         $output = ob_get_contents();
         ob_end_clean();
-        $expected = "Well this is embarrassing ... It seems we've encountered an"
-                    ." internal error. We're working to get it fixed.";
-        $this->assertEquals($expected, $output);
+        $this->assertEquals(NULL, $output);
         
         $obj = new TerminationTestImplementation(TRUE);
         ob_start();
@@ -97,7 +95,7 @@ class TerminationTest extends PHPUnit_Framework_TestCase
     public function testLastErrorReturnsNullOnNoFatalPHPError()
     {
         $obj = new TerminationTestImplementation;
-        $this->assertEquals(NULL, $obj->getFatalErrException());
+        $this->assertEquals(NULL, $obj->getFatalErrorException());
     }
     
     /**
@@ -106,9 +104,9 @@ class TerminationTest extends PHPUnit_Framework_TestCase
     public function testShutdownNotifiesListenersIfMediatorExists()
     {
         $medStub = $this->getMock('Artax\Events\Mediator', ['all', 'keys']);
-        $obj = $this->getMock('TerminationTestImplementation', ['getFatalErrException']);
+        $obj = $this->getMock('TerminationTestImplementation', ['getFatalErrorException']);
         $obj->expects($this->once())
-            ->method('getFatalErrException')
+            ->method('getFatalErrorException')
             ->will($this->returnValue(NULL));
 
         $obj->setMediator($medStub);        
