@@ -43,9 +43,9 @@ class Mediator implements MediatorInterface
      */
     public function push($eventName, $listener)
     {
-        if (is_array($listener)
-            || $listener instanceof \Traversable
-            || $listener instanceof \StdClass)
+        if ($listener instanceof \StdClass
+            || is_array($listener)
+            || $listener instanceof \Traversable)
         {
             foreach ($listener as $listenerItem) {
                 $this->push($eventName, $listenerItem);
@@ -80,9 +80,9 @@ class Mediator implements MediatorInterface
      *         or StdClass instance.
      */
     public function pushAll($iterable) {
-        if ( ! (is_array($iterable) 
-            || $iterable instanceof \Traversable
-            || $iterable instanceof \StdClass))
+        if (!($iterable instanceof \StdClass
+            || is_array($iterable)
+            || $iterable instanceof \Traversable))
         {
             throw new \InvalidArgumentException(
                 'Argument passed to pushAll was not an array, Traversable, '
@@ -158,7 +158,7 @@ class Mediator implements MediatorInterface
      */
     public function clear($eventName = NULL)
     {
-        if ($eventName && isset($this->listeners[$eventName])) {
+        if (NULL !== $eventName && isset($this->listeners[$eventName])) {
             unset($this->listeners[$eventName]);
         } else {
             $this->listeners = [];
@@ -198,9 +198,7 @@ class Mediator implements MediatorInterface
      */
     public function all($eventName)
     {
-        return $eventName && isset($this->listeners[$eventName])
-            ? $this->listeners[$eventName]
-            : NULL;
+        return $this->count($eventName) ? $this->listeners[$eventName] : NULL;
     }
     
     /**
@@ -213,11 +211,7 @@ class Mediator implements MediatorInterface
      */
     public function first($eventName)
     {
-        if (isset($this->listeners[$eventName][0])) {
-            return $this->listeners[$eventName][0];
-        }
-        
-        return NULL;
+        return $this->count($eventName) ? $this->listeners[$eventName][0] : NULL;
     }
     
     /**
@@ -230,13 +224,9 @@ class Mediator implements MediatorInterface
      */
     public function last($eventName)
     {
-        if (isset($this->listeners[$eventName])
-            && $count = count($this->listeners[$eventName])) {
-          
-            return $this->listeners[$eventName][$count-1];
-        }
-        
-        return NULL;
+        return ($c = $this->count($eventName))
+            ? $this->listeners[$eventName][$c-1]
+            : NULL;
     }
     
     /**
@@ -253,17 +243,13 @@ class Mediator implements MediatorInterface
      */
     public function notify($eventName, $data = NULL)
     {
-        $execCount = 0;
-        
-        if (isset($this->listeners[$eventName])) {
-            foreach ($this->listeners[$eventName] as $callable) {
-                ++$execCount;
-                if ($callable($data) === FALSE) {
-                    return $execCount;
+        if ($c = $this->count($eventName)) {
+            for ($i = 0; $i < $c; $i++) {
+                if ($this->listeners[$eventName][$i]($data) === FALSE) {
+                    return $i + 1;
                 }
             }
         }
-        
-        return $execCount;
+        return $c;
     }
 }
