@@ -22,11 +22,11 @@ namespace Artax\Events;
 interface MediatorInterface
 {
     /**
-     * Notify listeners that the event `$eventName` has occurred
+     * Notify listeners that the specified event has occurred
      * 
-     * @param string $eventName Event identifier name
+     * @param string $event The event that occurred
      */
-    public function notify($eventName);
+    public function notify($event);
     
     /**
      * Iterates through the items in the order they are traversed, adding them

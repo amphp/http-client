@@ -6,8 +6,7 @@
  * PHP version 5.4
  * 
  * @category   Artax
- * @package    core
- * @subpackage events
+ * @package    Events
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
@@ -20,8 +19,7 @@ namespace Artax\Events;
  * use this trait to easily interact with an event mediator instance.
  * 
  * @category   Artax
- * @package    core
- * @subpackage events
+ * @package    Events
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 trait NotifierTrait
@@ -39,17 +37,22 @@ trait NotifierTrait
     /**
      * Notify the mediator of an event occurrence
      * 
-     * If no data parameter is passed the current object instance will be sent
-     * to the mediator as the notification data parameter.
+     * If no data arguments are passed the current object instance will be sent
+     * to the mediator as the sole notification data parameter.
      * 
-     * @param string $eventName The event name
-     * @param mixed  $data      Data to send with the notification
+     * @param string $event The event that occurred
+     * 
+     * @return int Returns the number of listeners invoked for the event.
      */
-    public function notify($eventName, $data=NULL)
+    public function notify($event)
     {
-        $data = NULL === $data ? $this : $data;
-        return  NULL === $this->mediator
-            ? NULL
-            : $this->mediator->notify($eventName, $data);
+        if (NULL !== $this->mediator) {
+            if (func_num_args() == 1) {
+                return $this->mediator->notify($event, $this);
+            } else {
+                $args = func_get_args();
+                return call_user_func_array([$this->mediator, 'notify'], $args);
+            }
+        }
     }
 }

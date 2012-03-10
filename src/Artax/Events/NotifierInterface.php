@@ -27,7 +27,7 @@ interface NotifierInterface
     /**
      * Notify the mediator of an event occurrence
      * 
-     * @param string $eventName The event name
+     * @param string $event The event that occurred
      */
-    public function notify($eventName);
+    public function notify($event);
 }

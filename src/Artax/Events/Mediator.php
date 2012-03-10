@@ -236,16 +236,24 @@ class Mediator implements MediatorInterface
      * executes first, continuing down the queue until a listener returns `FALSE`
      * or the end of the queue is reached.
      * 
-     * @param string $eventName Event identifier name
-     * @param string $data      Optional data to pass to listeners
+     * @param string $event The event that occurred
      * 
      * @return int Returns a count of listeners invoked for the notified event
      */
-    public function notify($eventName, $data = NULL)
+    public function notify($event)
     {
-        if ($c = $this->count($eventName)) {
-            for ($i = 0; $i < $c; $i++) {
-                if ($this->listeners[$eventName][$i]($data) === FALSE) {
+        if ($c = $this->count($event)) {
+            if (func_num_args() == 1) {
+                $args = NULL;
+            } else {
+                $args = func_get_args();
+                array_shift($args);
+            }
+            for ($i=0; $i<$c; $i++) {
+                $exec = $args
+                    ? call_user_func_array($this->listeners[$event][$i], $args)
+                    : $this->listeners[$event][$i]();
+                if ($exec === FALSE) {
                     return $i + 1;
                 }
             }

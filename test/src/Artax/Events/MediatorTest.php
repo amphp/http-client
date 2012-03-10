@@ -227,17 +227,12 @@ class MediatorTest extends PHPUnit_Framework_TestCase
         $m = new Artax\Events\Mediator;
         $this->assertEquals(0, $m->notify('no.listeners.event'));
         
-        $listeners = $m->push('test.event1', function() { return TRUE; });
+        $m->push('test.event1', function() { return TRUE; });
         $this->assertEquals(1, $m->notify('test.event1'));
-        
-        
-        $listeners = $m->unshift('test.event2', function($x) {
-            return isset($x) ? 42*$x : 42;
-        });
         
         $m->push('test.event2', function() { return FALSE; });
         $m->push('test.event2', function() { return TRUE; });
-        $this->assertEquals(2, $m->notify('test.event2'));
+        $this->assertEquals(1, $m->notify('test.event2'));
     }
     
     /**

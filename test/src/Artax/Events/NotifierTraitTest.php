@@ -41,7 +41,7 @@ class NotifierTraitTest extends PHPUnit_Framework_TestCase
 
 class MockMediatorBecausePHPUnitChokesOnCallableTypehint
 {
-  public function notify($eventName, $data=NULL)
+  public function notify($event)
   {
   }
 }
