@@ -43,7 +43,7 @@ class Termination implements TerminationInterface, \Artax\Events\NotifierInterfa
      * 
      * @return void
      */
-    public function __construct($debug)
+    public function __construct($debug = TRUE)
     {
         $this->debug = (bool) $debug;
     }
@@ -198,9 +198,11 @@ class Termination implements TerminationInterface, \Artax\Events\NotifierInterfa
      */
     protected function defaultHandlerMsg(\Exception $e)
     {
-        return $this->debug
-            ? (string) $e . PHP_EOL
-            : "Well this is embarrassing ... It seems we've encountered an "
-                ."internal error. We're working to get it fixed." . PHP_EOL;
+        if ($this->debug) {
+            return (string) $e;
+        } else {
+            return "Well this is embarrassing ... It seems we've encountered "
+                ."an internal error. We're working to get it fixed.";
+        }
     }
 }
