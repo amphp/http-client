@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-define('AX_DEBUG_FLAG', FALSE); // optional -- defaults to TRUE if not defined
+define('AX_DEBUG_FLAG', TRUE); // optional -- defaults to TRUE if not defined
 require '/path/to/artax/bootstrap/Artax.php';
 // --- END FRAMEWORK SETUP
 
@@ -14,10 +14,10 @@ require '/path/to/artax/bootstrap/Artax.php';
  * try cycling the AX_DEBUG_FLAG at the top to see how that affects the output
  * when no listeners are specified.
  */
-//throw new \Exception('test exception message');
+throw new \Exception('test exception message');
 
 /**
- * Un-comment the code below to see what happens when no listeners are specified
+ * Comment out the above throw to see what happens when no listeners are specified
  * for the system "shutdown" event and a fatal E_ERROR is raised. Then, try
  * cycling the AX_DEBUG_FLAG at the top to see how that affects the output.
  * 
