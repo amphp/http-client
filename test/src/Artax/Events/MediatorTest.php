@@ -66,6 +66,13 @@ class MediatorTest extends PHPUnit_Framework_TestCase
         $scTraversable->test_event = [function(){}, function(){}];
         $m->push('test_event', $scTraversable);
         $this->assertEquals(6, $m->count('test_event'));
+        
+        $m->push('test_event', [
+            function(){},
+            'key'=>function(){},
+            ['lazy.class1', 'lazy.class2'=>'lazy.class2']
+        ]);
+        $this->assertEquals(10, $m->count('test_event'));
     }
   
     /**
