@@ -1,8 +1,9 @@
 ### WHAT IS IT?
 
-**Artax** is a lightweight scaffold for creating PHP applications. It's
-not a framework, though you could use it in that manner if you were
-so-inclined.
+**Artax** is a lightweight scaffold for creating evented PHP applications. At 222
+lines of testable code (as of v0.1), it's not a framework, though you could use 
+it in that manner if you were so-inclined. You might call it a nano-framework.
+Yeah, a nano-framework! Take that, micro-framework people.
 
 ### INSTALLATION
 
@@ -44,7 +45,6 @@ still allowing cowboy-coders to use closure like a boss for function-based code;
 Artax provides a basic background for structuring PHP applications. It aims
 to do this without:
 
-* Shoving specific or proprietary model and view implementations down your throat;
 * Adding unnecessary processing or memory overhead to what you're actually
 trying to accomplish;
 * Limiting developers to 'lowest common denominator' language features: **Artax**
