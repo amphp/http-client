@@ -21,6 +21,11 @@ namespace Artax\Exceptions;
  * uncaught exception was of the standard variety or the result of a fatal
  * runtime error.
  * 
+ * This exception should never be thrown manually as it will make the system
+ * think a fatal runtime error has occured. If purposeful script termination
+ * mimicking normal shutdown is desired, the `ScriptHaltException` should be
+ * used instead.
+ * 
  * @category   Artax
  * @package    Exceptions
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
