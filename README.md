@@ -1,8 +1,18 @@
 ### WHAT IS IT?
 
 **Artax** is a lightweight scaffold for creating PHP applications. It's
-not a framework, though you could use it in that manner (sort of) if you were
+not a framework, though you could use it in that manner if you were
 so-inclined.
+
+### INSTALLATION
+
+Download the package and require the bootstrap at the top of your PHP files.
+Yep, that's it:
+
+```
+define('AX_DEBUG', TRUE); // optional -- defaults to FALSE if not defined
+require '/hard/path/to/bootstrap/file/Artax.php';
+```
 
 ### BACKGROUND
 
