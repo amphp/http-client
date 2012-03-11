@@ -22,26 +22,3 @@ class DotNotationTest extends PHPUnit_Framework_TestCase
     $this->assertEquals('Namespace.ClassName', $dn->parse($dotStr, TRUE));
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

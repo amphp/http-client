@@ -15,6 +15,8 @@ namespace Artax\Events;
 /**
  * MediatorInterface
  * 
+ * Specifies the public facing interface for Mediator objects.
+ * 
  * @category   Artax
  * @package    Events
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
@@ -50,7 +52,7 @@ interface MediatorInterface
      * @param string $eventName Event identifier name
      * @param mixed  $listener  Event listener
      */
-    public function unshift($eventName, callable $listener);
+    public function unshift($eventName, $listener);
     
     /**
      * Remove the first `$listener` from the front of the `$eventName` event queue

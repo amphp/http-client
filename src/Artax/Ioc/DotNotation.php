@@ -18,7 +18,7 @@ namespace Artax\Ioc {
    * The class is used to transfrom dot-notation class names between valid
    * PHP style and the DotNotation style:
    * 
-   * `Namespace.ClassName` to `\Namespace\ClassName`
+   * `Namespace.ClassName` <---> `\Namespace\ClassName`
    * 
    * @category   Artax
    * @package    Ioc
@@ -28,6 +28,10 @@ namespace Artax\Ioc {
   {
     /**
      * Parses namespaced class names to and from dot notation.
+     * 
+     * If the `$reverse` parameter is set to a non-falsy value the function will
+     * reverse-parse the specified string from a valid PHP format into the
+     * dot-notation format.
      * 
      * @param string $dotStr  The dot-notation string to parse
      * @param bool   $reverse Parse a standard class name to dot notation

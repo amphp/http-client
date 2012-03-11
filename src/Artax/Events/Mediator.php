@@ -8,7 +8,6 @@
  * @category   Artax
  * @package    Events
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
- * @author     Levi Morrison
  */
 
 namespace Artax\Events;
@@ -16,10 +15,54 @@ namespace Artax\Events;
 /**
  * Mediator Class
  * 
+ * The Mediator class acts as a central transit hub for all application events.
+ * 
+ * The Artax Mediator exposes a simple interface for attaching a chain of listeners
+ * to a managed event queue. You can attach any valid PHP callable to an event
+ * queue for processing or specify a DotNotation string to utilize the Mediator's
+ * built-in lazy-loading functionality.
+ * 
+ * A simple example:
+ * 
+ * ```php
+ * $mediator = new Artax\Events\Mediator;
+ * $mediator->push('my_event_name', function() {
+ *     echo 'My first mediated event!' . PHP_EOL;
+ * });
+ * $mediator->push('my_event_name', function() {
+ *     echo 'Event #2' . PHP_EOL;
+ * });
+ * $mediator->notify('my_event_name');
+ * ```
+ * 
+ * The above code will output the following:
+ * 
+ * ```
+ * My first mediated event!
+ * Event #2
+ * ```
+ * 
+ * This simple example demonstrates the First-In-First-Out (FIFO) behavior of the
+ * `Mediator::notify` method. As you can see, event listeners are invoked 
+ * according to their position in the queue for any notified event. Since we pushed
+ * the "My first mediated event!" listener first, it's the first listener executed
+ * when the object is notified of the `my_event_name` event.
+ * 
+ * Of course, we can cheat and allow listeners to jump to the front of the queue
+ * using `Mediator::unshift`:
+ * 
+ * ```php
+ * $mediator->unshift('my_event_name', function() {
+ *     echo 'Sneaky listener #3 jumped to the front!' . PHP_EOL;
+ * });
+ * ```
+ * 
+ * For advanced mediator usage, check out the wiki entry over at github:
+ * https://github.com/rdlowrey/Artax/wiki/Event-Management
+ * 
  * @category   Artax
  * @package    Events
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
- * @author     Levi Morrison
  */
 class Mediator implements MediatorInterface
 {
@@ -27,13 +70,36 @@ class Mediator implements MediatorInterface
      * An array of event listeners
      * @var array
      */
-    protected $listeners = [];
+    protected $listeners;
+    
+    /**
+     * Dependency provider for listener lazy-loading
+     * @var Provider
+     */
+    protected $deps;
+    
+    /**
+     * Injects dependency provider for lazy-loading object listeners
+     * 
+     * If no dependency provider is specified, a factory is used to create one.
+     * 
+     * @param Artax\Ioc\Provider $deps A dependency provider instance for
+     *                                    lazy-loading object listeners
+     * 
+     * @return void
+     */
+    public function __construct(\Artax\Ioc\Provider $deps = NULL)
+    {
+        $this->deps = $deps ?: (new \Artax\Ioc\ProviderFactory)->make();
+        $this->listeners = [];
+    }
     
     /**
      * Connect a listener to the end of the specified event queue
      * 
      * @param string $eventName Event identifier name to listen for
-     * @param mixed  $listener  Callable event listener
+     * @param mixed  $listener  The event listener. Must be a valid callable or
+     *                          a dot-notation class name
      * 
      * @return int Returns the new number of listeners in the queue for the
      *             specified event.
@@ -52,10 +118,10 @@ class Mediator implements MediatorInterface
             }
             return $this->count($eventName);
             
-        } elseif ( ! is_callable($listener)) {
+        } elseif (!(is_callable($listener) || is_string($listener))) {
             throw new \InvalidArgumentException(
                 'Argument 2 for ' . get_class($this)
-                . '::push must be an array, Traversable, or callable'
+                . '::push must be a valid callable or dot-notation string'
             );
         } else {
             if ( ! isset($this->listeners[$eventName])) {
@@ -66,12 +132,12 @@ class Mediator implements MediatorInterface
             return array_push($this->listeners[$eventName], $listener);
         }
     }
-
+    
     /**
      * Iterates through the items in the order they are traversed, adding them
      * to the event queue found in the key.
      *
-     * @param array|Traversable|StdClass     The variable to loop through.
+     * @param mixed The variable to loop through: array|Traversable|StdClass
      * 
      * @return int Returns the total number of listeners added across all event
      *             queues as a result of the method call.
@@ -85,8 +151,8 @@ class Mediator implements MediatorInterface
             || $iterable instanceof \Traversable))
         {
             throw new \InvalidArgumentException(
-                'Argument passed to pushAll was not an array, Traversable, '
-                . 'nor StdClass'
+                'Argument 1 passed to addAll must be an array, Traversable '
+                . 'or StdClass instance'
             );
         }
         $addedListenerCount = 0;
@@ -97,24 +163,32 @@ class Mediator implements MediatorInterface
     }
     
     /**
-     * Connect an event listener to the front of the `$eventName` event queue
+     * Connect an event listener to the front of the specified event queue
      * 
      * @param string $eventName Event identifier name to listen for
-     * @param mixed  $listener  Event listener
+     * @param mixed  $listener  The event listener. Must be a valid callable or
+     *                          a dot-notation class name
      * 
      * @return int Returns the new number of listeners in the queue for the
      *             specified event.
      */
-    public function unshift($eventName, callable $listener)
+    public function unshift($eventName, $listener)
     {
-        if ( ! isset($this->listeners[$eventName])) {
-            $this->listeners[$eventName]   = [];
+        if (!(is_callable($listener) || is_string($listener))) {
+            throw new \InvalidArgumentException(
+                'Argument 2 for ' . get_class($this)
+                . '::unshift must be a valid callable or dot-notation string'
+            );
+        } else {
+            if ( ! isset($this->listeners[$eventName])) {
+                $this->listeners[$eventName] = [];
+            }
+            return array_unshift($this->listeners[$eventName], $listener);
         }
-        return array_unshift($this->listeners[$eventName], $listener);
     }
     
     /**
-     * Remove the first listener from the front of the `$eventName` event queue
+     * Remove the first listener from the front of the specified event queue
      * 
      * @param string $eventName Event identifier name to listen for
      * 
@@ -130,7 +204,7 @@ class Mediator implements MediatorInterface
     }
     
     /**
-     * Remove the last listener from the end of the `$eventName` event queue
+     * Remove the last listener from the end of the specified event queue
      * 
      * @param string $eventName Event identifier name to listen for
      * 
@@ -243,17 +317,20 @@ class Mediator implements MediatorInterface
     public function notify($event)
     {
         if ($c = $this->count($event)) {
-            if (func_num_args() == 1) {
+            if (1 == func_num_args()) {
                 $args = NULL;
             } else {
                 $args = func_get_args();
                 array_shift($args);
             }
             for ($i=0; $i<$c; $i++) {
-                $exec = $args
-                    ? call_user_func_array($this->listeners[$event][$i], $args)
-                    : $this->listeners[$event][$i]();
-                if ($exec === FALSE) {
+                if (is_string($this->listeners[$event][$i])) {
+                    $func = $this->deps->make($this->listeners[$event][$i]);
+                } else {
+                    $func = $this->listeners[$event][$i];
+                }
+                $result = $args ? call_user_func_array($func, $args) : $func();
+                if ($result === FALSE) {
                     return $i + 1;
                 }
             }

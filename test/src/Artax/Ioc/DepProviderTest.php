@@ -1,107 +1,128 @@
 <?php
 
-class DepProviderTest extends PHPUnit_Framework_TestCase
+class ProviderTest extends PHPUnit_Framework_TestCase
 {
-  /**
-   * @covers Artax\Ioc\DepProvider::__construct
-   */
-  public function testConstructorAssignsDotNotationPropertyIfPassed()
-  {
-    $dp = new DepProviderCoverageTest(new Artax\Ioc\DotNotation);
-    $this->assertEmpty($dp->all());
-    return $dp;
-  }
-  
-  /**
-   * @depends testConstructorAssignsDotNotationPropertyIfPassed
-   * @covers Artax\Ioc\DepProvider::make
-   * @covers Artax\Ioc\DepProvider::getInjectedInstance
-   * @covers Artax\Ioc\DepProvider::parseConstructorArgs
-   */
-  public function testMakeReturnsInjectedFromReflection($dp)
-  {
-    $injected = $dp->make('TestNeedsDep');
-    $this->assertEquals($injected, new TestNeedsDep(new TestDependency));
-  }
-  
-  /**
-   * @depends testConstructorAssignsDotNotationPropertyIfPassed
-   * @covers Artax\Ioc\DepProvider::make
-   * @covers Artax\Ioc\DepProvider::getInjectedInstance
-   */
-  public function testMakeReturnsCustomObjectValsIfPassed($dp)
-  {
-    $dep = new TestDependency;
-    $dep->testProp = 'something';
-    $custom   = ['testDep'=>$dep];
-    $injected = $dp->make('TestNeedsDep', $custom);
-    $this->assertEquals($injected->testDep, $dep);
-  }
-  
-  /**
-   * @depends testConstructorAssignsDotNotationPropertyIfPassed
-   * @covers Artax\Ioc\DepProvider::make
-   * @covers Artax\Ioc\DepProvider::getInjectedInstance
-   */
-  public function testMakeReturnsInjectedUsingBucketSpecifiedClassNames($dp)
-  {
-    $specdVals = ['testDep'=>'SpecdTestDependency'];
-    $dp->set('TestNeedsDep', $specdVals);
-    $injected = $dp->make('TestNeedsDep');
-    $this->assertEquals($injected, new TestNeedsDep(new SpecdTestDependency));
-  }
-  
-  /**
-   * @depends testConstructorAssignsDotNotationPropertyIfPassed
-   * @covers Artax\Ioc\DepProvider::make
-   * @covers Artax\Ioc\DepProvider::getInjectedInstance
-   */
-  public function testMakeReturnsSharedInstanceIfSpecified($dp)
-  {
-    $dp->set('TestNeedsDep', ['testDep' => 'TestDependency']);
-    $dp->set('TestDependency', ['_shared' => TRUE]);
-    $injected = $dp->make('TestNeedsDep');
-    $injected->testDep->testProp = 'something else';
+    /**
+     * @covers Artax\Ioc\Provider::__construct
+     */
+    public function testConstructorAssignsDotNotationPropertyIfPassed()
+    {
+        $dp = new ProviderCoverageTest(new Artax\Ioc\DotNotation);
+        $this->assertEmpty($dp->params);
+        return $dp;
+    }
     
-    $injected2 = $dp->make('TestNeedsDep');
-    $this->assertEquals('something else', $injected2->testDep->testProp);
+    /**
+     * @depends testConstructorAssignsDotNotationPropertyIfPassed
+     * @covers Artax\Ioc\Provider::make
+     * @covers Artax\Ioc\Provider::getInjectedInstance
+     * @covers Artax\Ioc\Provider::parseConstructorArgs
+     */
+    public function testMakeReturnsInjectedFromReflection($dp)
+    {
+        $injected = $dp->make('TestNeedsDep');
+        $this->assertEquals($injected, new TestNeedsDep(new TestDependency));
+    }
     
-    $dp->remove('TestNeedsDep');
+    /**
+     * @depends testConstructorAssignsDotNotationPropertyIfPassed
+     * @covers Artax\Ioc\Provider::make
+     * @covers Artax\Ioc\Provider::getInjectedInstance
+     */
+    public function testMakeReturnsInjectedUsingSpecifiedClassNames($dp)
+    {
+        $specdVals = ['testDep'=>'SpecdTestDependency'];
+        $dp->add('TestNeedsDep', $specdVals);
+        $injected = $dp->make('TestNeedsDep');
+        $this->assertEquals($injected, new TestNeedsDep(new SpecdTestDependency));
+    }
     
-    $injected3 = $dp->make('TestNeedsDep');
-    $this->assertEquals('something else', $injected3->testDep->testProp);
-  }
-  
-  /**
-   * @depends testSetSharedDepStoresDependencyInSharedPropertyArray
-   * @covers Artax\Ioc\DepProvider::clearSharedDep
-   */
-  public function testClearSharedDepRemovesCachedDependencyFromSharedArray($dp)
-  {
-    $dp->clearSharedDep('TestDependency');
-    $this->assertEquals(new TestDependency, $dp->make('TestDependency'));
-  }
+    /**
+     * @depends testConstructorAssignsDotNotationPropertyIfPassed
+     * @covers Artax\Ioc\Provider::make
+     * @covers Artax\Ioc\Provider::getInjectedInstance
+     */
+    public function testMakeReturnsSharedInstanceIfSpecified($dp)
+    {
+        $dp->add('TestNeedsDep', ['testDep' => 'TestDependency']);
+        $dp->add('TestDependency', ['_shared' => TRUE]);
+        $injected = $dp->make('TestNeedsDep');
+        $injected->testDep->testProp = 'something else';
+        
+        $injected2 = $dp->make('TestNeedsDep');
+        $this->assertEquals('something else', $injected2->testDep->testProp);
+    }
+    
+    /**
+     * @depends testConstructorAssignsDotNotationPropertyIfPassed
+     * @covers Artax\Ioc\Provider::add
+     */
+    public function testAddAssignsPassedDefinition($dp)
+    {
+        $dp->add('TestNeedsDep', ['testDep' => 'TestDependency']);
+        $dp->add('TestDependency', ['_shared' => TRUE]);
+        $this->assertEquals($dp->params['TestNeedsDep'], ['testDep'=>'TestDependency']);
+        $this->assertEquals($dp->params['TestDependency'], ['_shared' => TRUE]);
+    }
+    
+    /**
+     * @depends testConstructorAssignsDotNotationPropertyIfPassed
+     * @covers Artax\Ioc\Provider::add
+     * @expectedException InvalidArgumentException
+     */
+    public function testAddThrowsExceptionOnInvalidDefinition($dp)
+    {
+        $dp->add('TestNeedsDep', 1);
+    }
+    
+    /**
+     * @depends testConstructorAssignsDotNotationPropertyIfPassed
+     * @covers Artax\Ioc\Provider::addAll
+     * @expectedException InvalidArgumentException
+     */
+    public function testAddAllThrowsExceptionOnInvalidIterable($dp)
+    {
+        $dp->addAll(1);
+    }
+    
+    /**
+     * @depends testConstructorAssignsDotNotationPropertyIfPassed
+     * @covers Artax\Ioc\Provider::addAll
+     */
+    public function testAddAllAssignsPassedDefinitionsAndReturnsAddedCount($dp)
+    {
+        $depList = new StdClass;
+        $depList->TestNeedsDep = ['testDep' => 'TestDependency'];
+        $depList->TestDependency = ['_shared' => TRUE];
+        
+        $this->assertEquals(2, $dp->addAll($depList));
+        $this->assertEquals(['testDep' => 'TestDependency'],
+            $dp->params['TestNeedsDep']
+        );
+        $this->assertEquals(['_shared'=>TRUE], $dp->params['TestDependency']);
+    }
 }
 
-class DepProviderCoverageTest extends Artax\Ioc\DepProvider
+class ProviderCoverageTest extends Artax\Ioc\Provider
 {
+    use MagicTestGetTrait;
 }
 
 class TestDependency
 {
-  public $testProp = 'testVal';
+    public $testProp = 'testVal';
 }
 
 class SpecdTestDependency extends TestDependency
 {
-  public $testProp = 'testVal';
+    public $testProp = 'testVal';
 }
 
 class TestNeedsDep
 {
-  public $testDep;
-  public function __construct(TestDependency $testDep)
-  {
-    $this->testDep = $testDep;
-  }
+    public $testDep;
+    public function __construct(TestDependency $testDep)
+    {
+        $this->testDep = $testDep;
+    }
 }

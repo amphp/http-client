@@ -15,6 +15,8 @@ namespace Artax\Ioc;
 /**
  * ProviderInterface
  * 
+ * Specifies a front-facing interface for dependency providers.
+ * 
  * @category Artax
  * @package  Ioc
  * @author   Daniel Lowrey <rdlowrey@gmail.com>
@@ -24,8 +26,7 @@ interface ProviderInterface
     /**
      * Factory method for object instantiation
      * 
-     * @param string $type   A DotNotation string class name
-     * @param array  $custom A key/value array specifying custom dependencies
+     * @param string $dotStr A dot-notation class name
      */
-    public function make($type, array $custom);
+    public function make($dotStr);
 }
