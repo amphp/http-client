@@ -15,6 +15,8 @@ namespace Artax\Handlers;
 /**
  * ErrorHandlerInterface
  * 
+ * Provides an interface for specifying custom error handlers.
+ * 
  * @category   Artax
  * @package    Handlers
  * @author     Daniel Lowrey <rdlowrey@gmail.com>

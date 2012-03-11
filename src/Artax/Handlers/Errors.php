@@ -15,7 +15,10 @@ namespace Artax\Handlers;
 /**
  * ErrorHandler Class
  * 
- * All PHP errors result in a `ErrorException` exception.
+ * Defines a custom error handling function to throw an `ErrorException` on any
+ * raised PHP error (except fatals, of course). Fatal errors cannot be handled
+ * by custom error handlers and are dealt with at the shutdown level by the
+ * `Termination` handler class.
  * 
  * @category   Artax
  * @package    Handlers
@@ -46,16 +49,7 @@ class Errors implements ErrorsInterface
      * 
      * It may seem counter-intuitive to disable reporting of `E_ERROR` output
      * at any time. However, a fatal error is always fatal, regardless of
-     * whether it is reported or not. You're never suppressing it. What this
-     * method does is prevent the information from being output to the end-user
-     * if the application-wide debug flag is set to `FALSE`. Obviously, in
-     * production environments it's prudent to hide any potential fatal error 
-     * output from the end user. Just because it's unlikely that you'll get an 
-     * `E_ERROR` in a production environment doesn't mean we shouldn't account
-     * for this scenario.
-     * 
-     * Saying, "I don't need to handle this potential situation because it's a
-     * very remote possibility," is how space shuttles blow up.
+     * whether it is reported or not. You can't actually suppress it.
      * 
      * The php.ini `display_errors = Off` is not sufficient to prevent raw output
      * in the event of a fatal `E_ERROR`. Instead, we must also use `error_reporting`
@@ -65,6 +59,14 @@ class Errors implements ErrorsInterface
      * that was raised. Otherwise the script will simply terminate and you'll 
      * have no inkling as to why. The built-in `Artax\Handlers\Termination` 
      * class accomplishes this for you.
+     * 
+     * Obviously, in production environments it's always prudent to hide any 
+     * potential fatal error  output from the end user. Just because it's 
+     * unlikely that you'll get an `E_ERROR` in a production environment doesn't
+     * mean we shouldn't account for this scenario.
+     * 
+     * Saying, "I don't need to handle a potential situation because it's a
+     * very remote possibility," is how space shuttles blow up.
      * 
      * So, this documentation exists for the edification of any passersby and
      * to prevent someone from coming along and editing the arguments to the

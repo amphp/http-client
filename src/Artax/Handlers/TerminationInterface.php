@@ -32,7 +32,7 @@ namespace Artax\Handlers {
      *
      * @param Exception $e Exception object
      */
-    public function exHandler(\Exception $e);
+    public function exception(\Exception $e);
 
     /**
      * Handle unexpected fatal errors

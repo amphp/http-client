@@ -16,11 +16,29 @@ namespace Artax\Handlers;
  *
  * Provides unexpected exception and fatal error handling functionality.
  * 
- * The Termination needs access to the Mediator to enable event-managed
- * handling for fatal shutdowns and uncaught exceptions (sysevent: exception) 
- * and normal shutdown events (sysevent: shutdown). We use setter injection to
- * provide a mediator so that we can enable the fatal error handling capabilities
- * as early as possible during the boot process.
+ * The Termination handler uses the event Mediator to enable event-managed
+ * handling for fatal shutdowns and uncaught exceptions as well as normal
+ * shutdown events.
+ * 
+ * If you're a seasoned PHP developer you'll be used to specifying your own 
+ * custom exception handler and shutdown functions via `set_exception_handler`
+ * and `register_shutdown_function`. Artax negates the need for manually setting
+ * these handlers and instead provides a single unified error handling event. All
+ * PHP errors (subject to error reporting levels), uncaught exceptions and fatal
+ * runtime errors trigger the system `exception` event.
+ * 
+ * The system `shutdown` event works in the same manner: simply add listeners
+ * for the `shutdown` event to perform any actions you would otherwise accomplish
+ * by registering custom shutdown handlers in PHP.
+ * 
+ * Note that you aren't required to specify any exception or shutdown listeners.
+ * If you don't specify any listeners for these events, Artax will still act in 
+ * a manner appropriate to the application-wide debug flag. If in debug mode, an
+ * uncaught exception or fatal error will result in the standard error traceback.
+ * If not, output will simply cease and execution will quietly terminate.
+ * 
+ * For more detailed information check out the relevant wiki page over on github:
+ * https://github.com/rdlowrey/Artax/wiki/Error-Management
  * 
  * @category   Artax
  * @package    Handlers
@@ -43,9 +61,10 @@ class Termination implements TerminationInterface, \Artax\Events\NotifierInterfa
      * 
      * @return void
      */
-    public function __construct($debug = TRUE)
+    public function __construct(\Artax\Events\MediatorInterface $mediator, $debug)
     {
-        $this->debug = (bool) $debug;
+        $this->mediator = $mediator;
+        $this->debug    = (bool) $debug;
     }
     
     /**
@@ -55,7 +74,7 @@ class Termination implements TerminationInterface, \Artax\Events\NotifierInterfa
      */
     public function register()
     {
-        set_exception_handler([$this, 'exHandler']);
+        set_exception_handler([$this, 'exception']);
         register_shutdown_function([$this, 'shutdown']);
         return $this;
     }
@@ -78,7 +97,7 @@ class Termination implements TerminationInterface, \Artax\Events\NotifierInterfa
      * @uses Termination::setException
      * @notifies exception(\Exception $e)
      */
-    public function exHandler(\Exception $e)
+    public function exception(\Exception $e)
     {
         if ($e instanceof \Artax\Exceptions\ScriptHaltException) {
             return;
@@ -100,7 +119,7 @@ class Termination implements TerminationInterface, \Artax\Events\NotifierInterfa
      * 
      * If script shutdown was caused by a fatal PHP error, the error is used to 
      * generate a corresponding `FatalErrorException` object which is then passed to
-     * `Termination::exHandler` for handling.
+     * `Termination::exception` for handling.
      * 
      * The mediator is notified on shutdown so that any interested
      * listeners can act appropriately. If an event listener invoked by this
@@ -109,13 +128,13 @@ class Termination implements TerminationInterface, \Artax\Events\NotifierInterfa
      * 
      * @return void
      * @uses Termination::getFatalErrorException
-     * @uses Termination::exHandler
+     * @uses Termination::exception
      * @notifies shutdown(\Artax\Handlers\Termination)
      */
     public function shutdown()
     {
         if ($e = $this->getFatalErrorException()) {
-            $this->exHandler($e);
+            $this->exception($e);
         } elseif (NULL !== $this->mediator) {
             try {
                 $this->notify('shutdown');
@@ -126,33 +145,13 @@ class Termination implements TerminationInterface, \Artax\Events\NotifierInterfa
             }
         }
     }
-    
-    /**
-     * Setter injection method for protected $mediator property
-     * 
-     * Setter injection is used over constructor injection here because we want
-     * to implement the class exception and shutdown handlers as early as possible
-     * in the boot process. The event mediator is then injected once event all
-     * listeners are loaded from the app configuration settings.
-     * 
-     * The mediator property is provided by the usage of NotifierTrait.
-     * 
-     * @param Mediator $mediator An event mediator object instance
-     * 
-     * @return Termination Returns object instance for method chaining.
-     */
-    public function setMediator(\Artax\Events\Mediator $mediator)
-    {
-        $this->mediator = $mediator;
-        return $this;
-    }
 
     /**
      * Determine if the last triggered PHP error was fatal
      * 
      * If the last occuring error during script execution was fatal the function
      * returns an `ErrorException` object representing the error so it can be
-     * handled by `Termination::exHandler`.
+     * handled by `Termination::exception`.
      * 
      * @return mixed Returns NULL if no error occurred or a non-fatal error was 
      *               raised. An ErrorException is returned if the last error
