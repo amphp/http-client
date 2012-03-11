@@ -1,10 +1,9 @@
 #!/usr/bin/php
 <?php
 
-define('AX_DEBUG_FLAG', TRUE); // optional -- defaults to TRUE if not defined
-//require '/path/to/artax/bootstrap/Artax.php';
-require '/mnt/data/dev/php/artax/Artax.php';
-// --- END FRAMEWORK SETUP
+define('AX_DEBUG', TRUE); // optional -- defaults to FALSE if not defined
+require dirname(dirname(dirname(__DIR__))) . '/Artax.php'; // hard path to bootstrap
+// --- END ARTAX SETUP
 
 
 
