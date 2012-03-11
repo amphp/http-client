@@ -19,8 +19,6 @@
       <exclude>
         <!-- Exclude Interfaces from code coverage -->
         <directory suffix="Interface.php">./src/Artax</directory>
-        <!-- Exclude non-core block libs -->
-        <directory>./src/Artax/blocks</directory>
       </exclude>
     </whitelist>
   </filter>
