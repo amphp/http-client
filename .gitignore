@@ -1,13 +1,9 @@
-# ignore specific test.php file
+# ignore specific files
 test.php
 test/watch
-
-
-# don't sync web app examples with repository just yet
-examples/myapp
 
 # don't sync html documentation with repository
 docs
 
-# ignore pre-commit hook file for now
+# ignore pre-commit hook file
 pre-commit.php
