@@ -12,30 +12,34 @@
 namespace Artax\Handlers;
 
 /**
- * Termination Class
+ * Termination Event Hander Class
  *
- * Provides unexpected exception and fatal error handling functionality.
- * 
- * The Termination handler uses the event Mediator to enable event-managed
- * handling for fatal shutdowns and uncaught exceptions as well as normal
- * shutdown events.
+ * The Termination handler uses the event Mediator to enable unified, evented
+ * handling for PHP errors, fatal shutdowns and uncaught exceptions as well as
+ * normal shutdown events.
  * 
  * If you're a seasoned PHP developer you'll be used to specifying your own 
  * custom exception handler and shutdown functions via `set_exception_handler`
  * and `register_shutdown_function`. Artax negates the need for manually setting
- * these handlers and instead provides a single unified error handling event. All
- * PHP errors (subject to error reporting levels), uncaught exceptions and fatal
- * runtime errors trigger the system `exception` event.
+ * these handlers and instead provides a single unified error handling event:
+ * the system `exception` event.
+ * 
+ * All PHP errors (subject to error reporting levels), uncaught exceptions and 
+ * fatal runtime errors trigger the `exception` event.
  * 
  * The system `shutdown` event works in the same manner: simply add listeners
  * for the `shutdown` event to perform any actions you would otherwise accomplish
- * by registering custom shutdown handlers in PHP.
+ * by registering custom shutdown handlers in PHP. Any `shutdown` listeners
+ * will be invoked after each and every script execution regardless of the
+ * reason for script termination. This includes user aborts in web applications
+ * (i.e. the Stop button).
  * 
  * Note that you aren't required to specify any exception or shutdown listeners.
  * If you don't specify any listeners for these events, Artax will still act in 
- * a manner appropriate to the application-wide debug flag. If in debug mode, an
- * uncaught exception or fatal error will result in the standard error traceback.
- * If not, output will simply cease and execution will quietly terminate.
+ * a manner appropriate to the application-wide debug flag. When "debug" is turned
+ * on, uncaught exceptions (and fatal runtime errors) will result in the standard
+ * error traceback. When debugging is off, output will cease and execution will 
+ * quietly terminate.
  * 
  * For more detailed information check out the relevant wiki page over on github:
  * https://github.com/rdlowrey/Artax/wiki/Error-Management
@@ -82,26 +86,36 @@ class Termination implements TerminationInterface, \Artax\Events\NotifierInterfa
     /**
      * The "last chance" handler for uncaught exceptions 
      * 
-     * If the object has been injected with an active Mediator, the exception
-     * will be emitted to any attached event listeners. If not, the default
-     * handler message will be output. It is important that any events listening
-     * for uncaught exceptions prevent any of their own thrown exceptions from
-     * bubbling up the stack, otherwise the default message will be displayed.
+     * All uncaught exceptions result in a system `exception` event. If no
+     * listeners have been attached for this event the default handler message
+     * is output according to the application-wide debug flag. It's important 
+     * that any events listening for uncaught exceptions do not allow any
+     * exceptions of their own to bubble up the stack, otherwise the default 
+     * message will be displayed.
      * 
-     * Note that the shutdown handler will still be invoked after handling of an
-     * uncaught exception.
+     * Note that the system `shutdown` event always fires regardless of whether
+     * or not an `exception` event was triggered.
      * 
      * @param Exception $e Exception object
      *
      * @return void
      * @uses Termination::setException
-     * @notifies exception(\Exception $e)
+     * @notifies exception(\Exception $e, bool $debug)
      */
     public function exception(\Exception $e)
     {
         if ($e instanceof \Artax\Exceptions\ScriptHaltException) {
             return;
-        } elseif (NULL !== $this->mediator && $this->mediator->count('exception')) {
+        } elseif ($e instanceof \Artax\Exceptions\FatalErrorException) {
+            try {
+                $this->notify('exception', $e, $this->debug);
+                $this->notify('shutdown');
+            } catch (\Artax\Exceptions\ScriptHaltException $e) {
+                return;
+            } catch (\Exception $e) {
+                echo $this->defaultHandlerMsg($e);
+            }
+        } elseif ($this->mediator->count('exception')) {
             try {
                 $this->notify('exception', $e, $this->debug);
             } catch (\Artax\Exceptions\ScriptHaltException $e) {
@@ -118,24 +132,24 @@ class Termination implements TerminationInterface, \Artax\Events\NotifierInterfa
      * Handle unexpected fatal errors and/or notify listeners of shutdown
      * 
      * If script shutdown was caused by a fatal PHP error, the error is used to 
-     * generate a corresponding `FatalErrorException` object which is then passed to
-     * `Termination::exception` for handling.
+     * generate a corresponding `FatalErrorException` object which is then passed
+     * to `Termination::exception` for handling.
      * 
      * The mediator is notified on shutdown so that any interested
-     * listeners can act appropriately. If an event listener invoked by this
-     * notification throws an uncaught exception it will not be handled and
-     * script execution will cease immediately without sending further output.
+     * listeners can act appropriately. If an event listener invoked by the
+     * system `shutdown` event throws an uncaught exception it will not be handled
+     * and script execution will cease immediately without sending further output.
      * 
      * @return void
      * @uses Termination::getFatalErrorException
      * @uses Termination::exception
-     * @notifies shutdown(\Artax\Handlers\Termination)
+     * @notifies shutdown()
      */
     public function shutdown()
     {
         if ($e = $this->getFatalErrorException()) {
             $this->exception($e);
-        } elseif (NULL !== $this->mediator) {
+        } else {
             try {
                 $this->notify('shutdown');
             } catch (\Artax\Exceptions\ScriptHaltException $e) {

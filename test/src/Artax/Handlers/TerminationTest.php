@@ -235,8 +235,7 @@ class TerminationTest extends PHPUnit_Framework_TestCase
      */
     public function testShutdownFallsBackToDefaultOnNotifyException()
     {
-        $dp  = new Artax\Ioc\Provider(new Artax\Ioc\DotNotation);
-        $med = new Artax\Events\Mediator($dp);
+        $med = new Artax\Events\Mediator();
         $stub = $this->getMock('Artax\Handlers\Termination',
             ['notify', 'defaultHandlerMsg'], [$med, TRUE]
         );
@@ -252,6 +251,69 @@ class TerminationTest extends PHPUnit_Framework_TestCase
         
         $this->expectOutputString('test exception output');
         $stub->shutdown();
+    }
+    
+    /**
+     * @covers Artax\Handlers\Termination::exception
+     */
+    public function testExHandlerNotifiesShutdownEventOnFatalRuntimeError()
+    {
+        $med = new Artax\Events\Mediator();
+        $stub = $this->getMock('Artax\Handlers\Termination',
+            ['notify'], [$med, TRUE]
+        );
+        $stub->expects($this->exactly(2))
+             ->method('notify')
+             ->will($this->returnValue(NULL));
+             
+        // We have to push listeners otherwise notify won't be called
+        $med->push('exception', function(){});
+        $med->push('shutdown', function(){});
+        $stub->exception(new Artax\Exceptions\FatalErrorException);
+    }
+    
+    /**
+     * @covers Artax\Handlers\Termination::exception
+     */
+    public function testExHandlerFallsBackToDefaultOnNotifyException()
+    {
+        $med = new Artax\Events\Mediator();
+        $stub = $this->getMock('Artax\Handlers\Termination',
+            ['notify', 'defaultHandlerMsg'], [$med, TRUE]
+        );
+        $stub->expects($this->atLeastOnce())
+             ->method('notify')
+             ->will($this->throwException(new Exception('test exception output')));
+        $stub->expects($this->once())
+             ->method('defaultHandlerMsg')
+             ->will($this->returnValue('test exception output'));
+             
+        // We have to push listeners otherwise notify won't be called
+        $med->push('exception', function(){});
+        $med->push('shutdown', function(){});
+        
+        
+        $this->expectOutputString('test exception output');
+        $stub->exception(new Artax\Exceptions\FatalErrorException);
+    }
+    
+    /**
+     * @covers Artax\Handlers\Termination::exception
+     */
+    public function testExHandlerExitsOnNotifyScriptHaltException()
+    {
+        $med = new Artax\Events\Mediator();
+        $stub = $this->getMock('Artax\Handlers\Termination',
+            ['notify'], [$med, TRUE]
+        );
+        $stub->expects($this->atLeastOnce())
+             ->method('notify')
+             ->will($this->throwException(new Artax\Exceptions\ScriptHaltException));
+             
+        // We have to push listeners otherwise notify won't be called
+        $med->push('exception', function(){});
+        $med->push('shutdown', function(){});
+        $this->assertNull($stub->exception(new Artax\Exceptions\FatalErrorException));
     }
 }
 
