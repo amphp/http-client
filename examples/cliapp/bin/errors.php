@@ -5,7 +5,7 @@ define('AX_DEBUG', TRUE); // optional -- defaults to FALSE if not defined
 require dirname(dirname(dirname(__DIR__))) . '/Artax.php'; // hard path to bootstrap
 // --- END ARTAX SETUP
 
-/*
+
 $artax->pushAll([
     'exception' => [
         function(Exception $e, $debug) {
@@ -27,7 +27,7 @@ $artax->pushAll([
         }
     ]
 ]);
-*/
+
 
 
 /**
@@ -51,3 +51,9 @@ $data = '';
 while(1) {
     $data .= str_repeat('#', PHP_INT_MAX);
 }
+
+/**
+ * Finally, you can comment out both error causing sections to see how the 
+ * shutdown handlers are called on their own after normal script termination.
+ */
+
