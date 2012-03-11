@@ -4,6 +4,15 @@
 not a framework, though you could use it in that manner (sort of) if you were
 so-inclined.
 
+### INSTALLATION
+
+Download the package and require the bootstrap file. That's it:
+
+```
+define('AX_DEBUG', TRUE); // optional -- defaults to FALSE if not defined
+require '/hard/path/to/bootstrap/file/Artax.php';
+```
+
 ### BACKGROUND
 
 In 2006 Rasmus Lerdorf, the creator of PHP, [lamented the ubiquity of sprawling,
