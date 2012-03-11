@@ -30,9 +30,14 @@ namespace Artax\Handlers;
  * The system `shutdown` event works in the same manner: simply add listeners
  * for the `shutdown` event to perform any actions you would otherwise accomplish
  * by registering custom shutdown handlers in PHP. Any `shutdown` listeners
- * will be invoked after each and every script execution regardless of the
- * reason for script termination. This includes user aborts in web applications
- * (i.e. the Stop button).
+ * will be invoked *after* script execution terminates regardless of whether or
+ * not execution ended because of a fatal runtime error or uncaught exception.
+ * This means that in web applications your shutdown handlers will still be
+ * called following user aborts in web applications (i.e. the Stop button).
+ * 
+ * Currently, Artax cannot invoke shutdown listeners when CLI process control 
+ * actions interrupt script execution. Stay tuned, though; support for this 
+ * behavior is planned for upcoming releases.
  * 
  * Note that you aren't required to specify any exception or shutdown listeners.
  * If you don't specify any listeners for these events, Artax will still act in 
