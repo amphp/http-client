@@ -1,6 +1,7 @@
 # ignore specific files
 test.php
 test/watch
+.gitignore
 
 # don't sync html documentation with repository
 docs
