@@ -128,6 +128,16 @@ namespace Artax\Ioc;
  * var_dump($myObj instanceof MyClass); // true
  * ```
  * 
+ * Custom injection definitions can also be specified using a specific instance
+ * of the requisite class, so the following would work in the same manner as
+ * above:
+ * 
+ * ```php
+ * $provider->define('MyClass', [new DepClass]);
+ * $myObj = $provider->make('MyClass');
+ * var_dump($myObj instanceof MyClass); // true
+ * ```
+ * 
  * @category Artax
  * @package  Ioc
  * @author   Daniel Lowrey <rdlowrey@gmail.com>
@@ -391,7 +401,7 @@ class Provider implements ProviderInterface, \ArrayAccess
         $deps = [];
         
         for ($i=0; $i<count($args); $i++) {
-                
+        
             if (!isset($def[$i])) {
                 throw new \InvalidArgumentException(
                     'Invalid injection definition: no argument defined for '

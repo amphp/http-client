@@ -13,8 +13,6 @@
 namespace Artax\Ioc;
   
 /**
- * ProviderInterface
- * 
  * Specifies a front-facing interface for dependency providers.
  * 
  * @category Artax

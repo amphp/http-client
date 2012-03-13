@@ -12,9 +12,7 @@
 namespace Artax\Handlers {
 
   /**
-   * TerminationInterface
-   *
-   * Provides an interface for uncaught exception and shutdown handling.
+   * Specifies an interface for uncaught exception and shutdown handlers
    *
    * @category   Artax
    * @package    Handlers

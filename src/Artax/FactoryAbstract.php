@@ -13,9 +13,16 @@
 namespace Artax;
 
 /**
- * FactoryAbstract Class
- * 
  * An abstract factory class specifying a non-static factory method.
+ * 
+ * Prior to PHP 5.4's introduction of constructor dereferencing, static factory
+ * methods were sometimes desirable in order to manufacture an object without
+ * cluttering the global namespace. This can now be done without the use of
+ * `static`, so we use a concrete instantiation for factories:
+ * 
+ * ```php
+ * new MyClass((new MyClassFactory)->make());
+ * ```
  * 
  * @category   Artax
  * @package    Core

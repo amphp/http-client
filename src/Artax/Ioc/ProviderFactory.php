@@ -13,8 +13,6 @@
 namespace Artax\Ioc;
 
 /**
- * ProviderFactory Class
- * 
  * A factory class to provision Provider dependency containers.
  * 
  * `Provider` instances require access to the parsing functionality in

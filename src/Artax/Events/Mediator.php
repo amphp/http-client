@@ -17,10 +17,14 @@ namespace Artax\Events;
  * 
  * The Mediator class acts as a central transit hub for all application events.
  * 
- * The Artax Mediator exposes a simple interface for attaching a chain of listeners
+ * The Mediator exposes a simple interface for attaching a chain of listeners
  * to a managed event queue. You can attach any valid PHP callable to an event
- * queue for processing or specify a DotNotation string to utilize the Mediator's
- * built-in lazy-loading functionality.
+ * queue with the following two exceptions:
+ * 
+ * 1. Global function name strings cannot be passed as listeners.
+ * 2. Static class method strings (`MyClass::myMethod`) may not be used as 
+ * listeners. This prohibition also applies to specifying a static PHP callback using
+ * the array syntax as follows: `['MyClass', 'myStaticMethod']`.
  * 
  * A simple example:
  * 
@@ -44,9 +48,9 @@ namespace Artax\Events;
  * 
  * This simple example demonstrates the First-In-First-Out (FIFO) behavior of the
  * `Mediator::notify` method. As you can see, event listeners are invoked 
- * according to their position in the queue for any notified event. Since we pushed
- * the "My first mediated event!" listener first, it's the first listener executed
- * when the object is notified of the `my_event_name` event.
+ * according to their position in the queue. Since we pushed the "My first mediated
+ * event!" listener first, it's the first listener executed when the object is 
+ * notified of the `my_event_name` event.
  * 
  * Of course, we can cheat and allow listeners to jump to the front of the queue
  * using `Mediator::unshift`:
@@ -57,8 +61,11 @@ namespace Artax\Events;
  * });
  * ```
  * 
- * For advanced mediator usage, check out the wiki entry over at github:
+ * For advanced mediator usage including lazy-loading class event listeners,
+ * check out the relevant wiki entries on github:
+ * 
  * https://github.com/rdlowrey/Artax/wiki/Event-Management
+ * https://github.com/rdlowrey/Artax/wiki/Advanced-Events
  * 
  * @category   Artax
  * @package    Events
@@ -202,7 +209,26 @@ class Mediator implements MediatorInterface
     /**
      * Iterates through the items in the order they are traversed, adding them
      * to the event queue found in the key.
-     *
+     * 
+     * Lazy-loading via string class names makes determining what kind of 
+     * listener was specified a bit complicated, so we utilize some simplifying
+     * assumptions:
+     * 
+     * * Any string specified as a listener is always assumed to be a dot-notation
+     * class name for lazy-loading. This assumption prevents us from accepting
+     * string names of global functions and static class methods as listeners.
+     * This also prevents static methods from being specified using the array
+     * callback style `['MyClass', 'myStaticMethod']` as this construction can't
+     * be differentiated from two lazy listeners.
+     * 
+     * * In order to lazy-load class listeners whose constructors don't specify
+     * concrete class names we need a way to pass along dependency definitions
+     * along with the dot-notation strings. For this we use a simple array. The
+     * issue then becomes differentiating in a list of multiple listeners passed
+     * to `Mediator::pushAll` whether an array is a PHP callback or a string
+     * class name with a matching injection definition array. This is achieved
+     * with a string of checks in an `elseif` control structure.
+     * 
      * @param mixed The variable to loop through: array|Traversable|StdClass
      * 
      * @return int Returns the total number of listeners added across all event

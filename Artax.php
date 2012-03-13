@@ -22,7 +22,10 @@
  * environments should turn debug mode on **before** including the bootstrap
  * file like so:
  * 
- * `define('AX_DEBUG', TRUE)`;
+ * ```php
+ * define('AX_DEBUG', TRUE)`;
+ * require '/hard/path/to/Artax.php'
+ * ```
  * 
  * Examples to get you started are available in the {%ARTAX_DIRECTORY%}/examples
  * directory.
