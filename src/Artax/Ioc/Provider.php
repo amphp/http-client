@@ -180,19 +180,18 @@ class Provider implements ProviderInterface, \ArrayAccess
      * Defines custom instantiation parameters for the specified class
      * 
      * @param string $dotStr     The relevant dot-notation class name
-     * @param mixed  $definition An array, StdClass or ArrayAccess instance
+     * @param mixed  $definition An array or ArrayAccess instance specifying an
+     *                           ordered list of custom dot-notation class names
+     *                           or an instance of the necessary 
      * 
      * @return Provider Returns object instance for method chaining
      */
     public function define($dotStr, $definition)
     {
-        if (!($definition instanceof \StdClass
-            || is_array($definition)
-            || $definition instanceof \ArrayAccess))
-        {
+        if (!($definition instanceof \ArrayAccess || is_array($definition)) {
             throw new \InvalidArgumentException(
                 'Argument 2 passed to ' . get_class($this) . '::add must be an '
-                .'array, StdClass or implement ArrayAccess'
+                .'array or implement ArrayAccess'
             );
         }
         
@@ -214,7 +213,10 @@ class Provider implements ProviderInterface, \ArrayAccess
      */
     public function defineAll($iterable)
     {
-        if (!(is_array($iterable) || $iterable instanceof \Traversable)) {
+        if (!(is_array($iterable)
+            || $iterable instanceof \StdClass
+            || $iterable instanceof \Traversable)
+        ) {
             throw new \InvalidArgumentException(
                 'Argument 1 passed to addAll must be an array, StdClass or '
                 .'implement Traversable '
