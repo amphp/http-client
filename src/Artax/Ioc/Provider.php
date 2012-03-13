@@ -180,25 +180,15 @@ class Provider implements ProviderInterface, \ArrayAccess
      * Defines custom instantiation parameters for the specified class
      * 
      * @param string $dotStr     The relevant dot-notation class name
-     * @param mixed  $definition An array or ArrayAccess instance specifying an
-     *                           ordered list of custom dot-notation class names
-     *                           or an instance of the necessary 
+     * @param mixed  $definition An array specifying an ordered list of custom
+     *                           dot-notation class names or an instance of the
+     *                           necessary class
      * 
      * @return Provider Returns object instance for method chaining
      */
-    public function define($dotStr, $definition)
+    public function define($dotStr, array $definition)
     {
-        if (!($definition instanceof \ArrayAccess || is_array($definition))) {
-            throw new \InvalidArgumentException(
-                'Argument 2 passed to ' . get_class($this) . '::add must be an '
-                .'array or implement ArrayAccess'
-            );
-        }
-        
-        if (isset($this->shared[$dotStr]) && empty($definition['_shared'])) {
-            unset($this->shared[$dotStr]);
-        }
-        
+        unset($this->shared[$dotStr]);
         $this->definitions[$dotStr] = $definition;
         return $this;
     }
@@ -213,8 +203,8 @@ class Provider implements ProviderInterface, \ArrayAccess
      */
     public function defineAll($iterable)
     {
-        if (!(is_array($iterable)
-            || $iterable instanceof \StdClass
+        if (!($iterable instanceof \StdClass
+            || is_array($iterable)
             || $iterable instanceof \Traversable)
         ) {
             throw new \InvalidArgumentException(
@@ -264,40 +254,40 @@ class Provider implements ProviderInterface, \ArrayAccess
      * or `Provider::refresh` to allow a new instantiation of the shared object.
      * 
      * @param string $dotStr A dot notation class name
-     * @param mixed  $custom An optional array or ArrayAccess instance specifying
-     *                       custom instantiation parameters for this construction
+     * @param array  $custom An optional array specifying custom instantiation 
+     *                       parameters for this construction.
      * 
      * @return mixed A dependency-injected object
      * @throws InvalidArgumentException On invalid custom injection definition
      * @uses Provider::getInjectedInstance
      */
-    public function make($dotStr, $custom = NULL)
+    public function make($dotStr, array $custom = NULL)
     {
         if (isset($this->shared[$dotStr])) {
             return $this->shared[$dotStr];
         }
         
         if (NULL !== $custom) {
-            if (!(is_array($custom) || $custom instanceof \ArrayAccess)) {
-                throw new \InvalidArgumentException(
-                    'Argument 2 passed to ' . get_class($this) . '::make must be'
-                    .'an array or implement ArrayAccess'
-                );
-            }
-            $definition = $custom;
-            
+            $definition = $custom;            
         } elseif (isset($this->definitions[$dotStr])) {
             $definition = $this->definitions[$dotStr];
         } else {
             $definition = NULL;
         }
         
-        $obj = $this->getInjectedInstance($dotStr, $definition);
-        
-        if (!empty($definition['_shared'])) {
-            $this->shared[$dotStr] = $obj;
+        $shared = FALSE;
+        if ($definition
+            && (($shared = array_search('_shared', $definition) !== FALSE))
+        ){
+            unset($definition[$shared]);
+            $definition = array_values($definition);
+            $shared = TRUE;
         }
         
+        $obj = $this->getInjectedInstance($dotStr, $definition);
+        if ($shared) {
+            $this->shared[$dotStr] = $obj;
+        }
         return $obj;
     }
     
@@ -356,11 +346,35 @@ class Provider implements ProviderInterface, \ArrayAccess
     }
     
     /**
+     * Determines if a shared instance of the given class name is currently stored
+     * 
+     * @param string $dotStr The dot-notation class name to refresh
+     * 
+     * @return bool Returns TRUE if a shared instance is stored or FALSE otherwise
+     */
+    public function isShared($dotStr)
+    {
+        return isset($this->shared[$dotStr]);
+    }
+    
+    /**
+     * Determines if an injection definition exists for the given class name
+     * 
+     * @param string $dotStr The dot-notation class name to check against
+     * 
+     * @return bool Returns TRUE if a definition is stored or FALSE otherwise
+     */
+    public function isDefined($dotStr)
+    {
+        return isset($this->definitions[$dotStr]);
+    }
+    
+    /**
      * Return an instantiated object subject to user-specified definitions
      * 
      * @param string $dotStr A dot-notation class name
-     * @param mixed  $def    An array or ArrayAccess implementation specifying
-     *                       dependencies required for object instantiation
+     * @param array  $def    An array specifying dependencies required for
+     *                       object instantiation
      * 
      * @return mixed Returns A dependency-injected object
      * @throws InvalidArgumentException
@@ -390,12 +404,12 @@ class Provider implements ProviderInterface, \ArrayAccess
      * 
      * @param string $class A dot-notation class name
      * @param array  $args  An array of ReflectionParameter objects
-     * @param mixed  $def   An array or ArrayAccess implementation specifying
-     *                      dependencies required for object instantiation
+     * @param array  $def    An array specifying dependencies required for
+     *                       object instantiation
      * 
      * @return array Returns an array of dependency instances to inject
-     * @throws InvalidArgumentException If a provision attempt is made for a
-     *                                  using an invalid injection definition
+     * @throws InvalidArgumentException If a provision attempt is made using
+     *                                  an invalid injection definition
      * @used-by Provider::getInjectedInstance
      */
     protected function getDepsWithDefinition($class, $args, $def)

@@ -25,18 +25,18 @@ interface ProviderInterface
      * Factory method for auto-injecting dependencies upon instantiation
      * 
      * @param string $dotStr A dot-notation class name
-     * @param mixed  $custom An optional array or ArrayAccess instance specifying
-     *                       custom instantiation parameters for this construction
+     * @param mixed  $custom An optional array specifying custom instantiation
+     *                       parameters for this construction
      */
-    public function make($dotStr, $custom);
+    public function make($dotStr, array $custom);
     
     /**
      * Defines custom instantiation parameters for the specified class
      * 
      * @param string $dotStr     The relevant dot-notation class name
-     * @param mixed  $definition An array, StdClass or ArrayAccess instance
+     * @param array  $definition An array specifying custom instantiation params
      */
-    public function define($dotStr, $definition);
+    public function define($dotStr, array $definition);
     
     /**
      * Defines multiple custom instantiation parameters at once
@@ -64,4 +64,18 @@ interface ProviderInterface
      * @param string $dotStr The dot-notation class name to refresh
      */
     public function refresh($dotStr);
+    
+    /**
+     * Determines if a shared instance of the specified class is stored
+     * 
+     * @param string $dotStr The dot-notation class name to refresh
+     */
+    public function isShared($dotStr);
+    
+    /**
+     * Determines if an injection definition exists for the specified class
+     * 
+     * @param string $dotStr The dot-notation class name to refresh
+     */
+    public function isDefined($dotStr);
 }

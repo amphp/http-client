@@ -38,7 +38,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     {
         $dp->removeAll();
         $dp->define('TestNeedsDep', ['TestDependency']);
-        $dp->define('TestDependency', ['_shared' => TRUE]);
+        $dp->define('TestDependency', ['_shared']);
         $injected = $dp->make('TestNeedsDep');
         $injected->testDep->testProp = 'something else';
         
@@ -47,19 +47,6 @@ class ProviderTest extends PHPUnit_Framework_TestCase
         
         $shared = $dp->make('TestDependency');
         $this->assertEquals($injected->testDep, $shared);
-    }
-    
-    /**
-     * @depends testBeginsEmpty
-     * @covers Artax\Ioc\Provider::make
-     * @expectedException InvalidArgumentException
-     * @covers Artax\Ioc\Provider::getDepsWithDefinition
-     */
-    public function testMakeThrowsExceptionOnInvalidDefinition($dp)
-    {
-        $dp->removeAll();
-        $dp->define('TestNeedsDep', ['TestDependency']);
-        $injected = $dp->make('TestNeedsDep', 'badDefinition');
     }
     
     /**
@@ -135,9 +122,9 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     {
         $dp->removeAll();
         $dp->define('TestNeedsDep', ['TestDependency']);
-        $dp->define('TestDependency', ['_shared' => TRUE]);
+        $dp->define('TestDependency', ['_shared']);
         $this->assertEquals($dp->definitions['TestNeedsDep'], ['TestDependency']);
-        $this->assertEquals($dp->definitions['TestDependency'], ['_shared' => TRUE]);
+        $this->assertEquals($dp->definitions['TestDependency'], ['_shared']);
     }
     
     /**
@@ -147,20 +134,10 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     public function testDefineRemovesSharedInstanceIfNewDefinitionIsNotShared($dp)
     {
         $dp->removeAll();
-        $dp->define('TestDependency', ['_shared' => TRUE]);        
+        $dp->define('TestDependency', ['_shared']);        
         $obj = $dp->make('TestDependency');
-        $dp->define('TestDependency', ['_shared' => FALSE]);
+        $dp->define('TestDependency', ['_shared']);
         $this->assertEmpty($dp->shared);
-    }
-    
-    /**
-     * @depends testBeginsEmpty
-     * @covers Artax\Ioc\Provider::define
-     * @expectedException InvalidArgumentException
-     */
-    public function testDefineThrowsExceptionOnInvalidDefinition($dp)
-    {
-        $dp->define('TestNeedsDep', 1);
     }
     
     /**
@@ -182,13 +159,13 @@ class ProviderTest extends PHPUnit_Framework_TestCase
         $dp->removeAll();
         $depList = [];
         $depList['TestNeedsDep'] = ['TestDependency'];
-        $depList['TestDependency'] = ['_shared' => TRUE];
+        $depList['TestDependency'] = ['_shared'];
         
         $this->assertEquals(2, $dp->defineAll($depList));
         $this->assertEquals(['TestDependency'],
             $dp->definitions['TestNeedsDep']
         );
-        $this->assertEquals(['_shared'=>TRUE], $dp->definitions['TestDependency']);
+        $this->assertEquals(['_shared'], $dp->definitions['TestDependency']);
     }
     
     /**
@@ -198,7 +175,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     public function testRemoveClearsDefinitionAndSharedInstanceAndReturnsProvider($dp)
     {
         $dp->removeAll();
-        $dp->define('TestDependency', ['_shared' => TRUE]);
+        $dp->define('TestDependency', ['_shared']);
         $obj = $dp->make('TestDependency');
         $return = $dp->remove('TestDependency');
         $this->assertEmpty($dp->shared);
@@ -213,9 +190,9 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     public function testRemoveAllClearsDefinitionAndSharedInstancesAndReturnsProvider($dp)
     {
         $dp->removeAll();
-        $dp->define('TestDependency', ['_shared' => TRUE]);
+        $dp->define('TestDependency', ['_shared']);
         $obj = $dp->make('TestDependency');
-        $this->assertEquals($dp->definitions['TestDependency'], ['_shared' => TRUE]);
+        $this->assertEquals($dp->definitions['TestDependency'], ['_shared']);
         $this->assertEquals($dp->shared['TestDependency'], $obj);
         
         $return = $dp->removeAll();
@@ -231,13 +208,40 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     public function testRefreshClearsSharedInstancesAndReturnsProvider($dp)
     {
         $dp->removeAll();
-        $dp->define('TestDependency', ['_shared' => TRUE]);
+        $dp->define('TestDependency', ['_shared']);
         $obj = $dp->make('TestDependency');
         $this->assertEquals($dp->shared['TestDependency'], $obj);
         
         $return = $dp->refresh('TestDependency');
         $this->assertEmpty($dp->shared);
         $this->assertEquals($return, $dp);
+    }
+    
+    /**
+     * @depends testBeginsEmpty
+     * @covers Artax\Ioc\Provider::isShared
+     */
+    public function testIsSharedReturnsSharedStatus($dp)
+    {
+        $dp->removeAll();
+        
+        $dp->define('TestDependency', ['_shared']);
+        $this->assertFalse($dp->isShared('TestDependency'));
+        $obj = $dp->make('TestDependency');
+        $this->assertEquals($dp->shared['TestDependency'], $obj);
+        $this->assertTrue($dp->isShared('TestDependency'));
+    }
+    
+    /**
+     * @depends testBeginsEmpty
+     * @covers Artax\Ioc\Provider::isDefined
+     */
+    public function testIsDefinedReturnsDefinedStatus($dp)
+    {
+        $dp->removeAll();
+        $this->assertFalse($dp->isDefined('TestDependency'));
+        $dp->define('TestDependency', ['_shared']);
+        $this->assertTrue($dp->isDefined('TestDependency'));
     }
     
     /**
@@ -251,7 +255,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
         );
         $stub->expects($this->once())
              ->method('define');
-        $stub['TestNeedsDep'] = ['_shared'=>TRUE];
+        $stub['TestNeedsDep'] = ['_shared'];
     }
     
     /**
@@ -265,7 +269,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
         );
         $stub->expects($this->once())
              ->method('remove');
-        $stub['TestNeedsDep'] = ['_shared'=>TRUE];
+        $stub['TestNeedsDep'] = ['_shared'];
         unset($stub['TestNeedsDep']);
     }
     
