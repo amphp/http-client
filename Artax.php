@@ -77,7 +77,7 @@ ini_set('html_errors', FALSE);
  * --------------------------------------------------------------------
  */
 
-require AX_SYSTEM_DIR . '/src/Artax/FactoryAbstract.php';
+require AX_SYSTEM_DIR . '/src/Artax/FactoryInterface.php';
 require AX_SYSTEM_DIR . '/src/Artax/Ioc/ProviderInterface.php';
 require AX_SYSTEM_DIR . '/src/Artax/Ioc/Provider.php';
 require AX_SYSTEM_DIR . '/src/Artax/Ioc/DotNotation.php';
