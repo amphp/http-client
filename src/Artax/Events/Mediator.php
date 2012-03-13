@@ -76,61 +76,127 @@ class Mediator implements MediatorInterface
      * Dependency provider for listener lazy-loading
      * @var Provider
      */
-    protected $deps;
+    protected $provider;
     
     /**
      * Injects dependency provider for lazy-loading object listeners
      * 
      * If no dependency provider is specified, a factory is used to create one.
      * 
-     * @param Artax\Ioc\Provider $deps A dependency provider instance for
+     * @param Artax\Ioc\Provider $provider A dependency provider instance for
      *                                    lazy-loading object listeners
      * 
      * @return void
      */
-    public function __construct(\Artax\Ioc\Provider $deps = NULL)
+    public function __construct(\Artax\Ioc\Provider $provider = NULL)
     {
-        $this->deps = $deps ?: (new \Artax\Ioc\ProviderFactory)->make();
         $this->listeners = [];
+        $this->provider  = $provider ?: (new \Artax\Ioc\ProviderFactory)->make();
     }
     
     /**
      * Connect a listener to the end of the specified event queue
      * 
+     * To enable listener lazy-loading, all string listeners are assumed to be 
+     * dot-notation class names and will be instantiated using the dependency
+     * provider. This has one major ramification:
+     * 
+     * > **IMPORTANT:** global function names and static class methods cannot
+     * be attached as event listeners.
+     * 
+     * From the standpoint of object-orientation this is actually a positive in 
+     * that it discourages problematic design strategies.
+     * 
      * @param string $eventName Event identifier name to listen for
      * @param mixed  $listener  The event listener. Must be a valid callable or
      *                          a dot-notation class name
+     * @param mixed  $lazyDef   An optional array or ArrayAccess specifying a
+     *                          custom injection definition for lazy-loading
+     *                          a string dot-notation listener
      * 
      * @return int Returns the new number of listeners in the queue for the
      *             specified event.
      * 
-     * @throws LogicException when $listener is not an array or Traversable, or 
-     *         if it is not callable.
+     * @throws LogicException On non-callable, non-string $listener parameter
+     * @uses Mediator::attach
      */
-    public function push($eventName, $listener)
+    public function push($eventName, $listener, $lazyDef = NULL)
     {
-        if ($listener instanceof \StdClass
-            || is_array($listener)
-            || $listener instanceof \Traversable)
-        {
-            foreach ($listener as $listenerItem) {
-                $this->push($eventName, $listenerItem);
-            }
-            return $this->count($eventName);
-            
-        } elseif (!(is_callable($listener) || is_string($listener))) {
+        $isString = is_string($listener);
+        
+        if (!($isString || is_callable($listener))) {
             throw new \InvalidArgumentException(
-                'Argument 2 for ' . get_class($this)
-                . '::push must be a valid callable or dot-notation string'
+                'Argument 2 for ' . get_class($this) .'::push must be a valid '
+                .'callable or dot-notation string'
             );
-        } else {
-            if ( ! isset($this->listeners[$eventName])) {
-                $this->listeners[$eventName]   = [];
-                $this->listeners[$eventName][] = $listener;
-                return 1;
-            }
-            return array_push($this->listeners[$eventName], $listener);
         }
+        if (NULL !== $lazyDef
+            && !($lazyDef instanceof \ArrayAccess || is_array($lazyDef))
+        ) {
+            throw new \InvalidArgumentException(
+                'Argument 3 for ' . get_class($this) .'::push must be an array '
+                .'or object that implements ArrayAccess'
+            );
+        }
+        
+        $listener = $isString && NULL !== $lazyDef
+            ? [$listener, $lazyDef]
+            : $listener;
+        
+        if ( ! isset($this->listeners[$eventName])) {
+            $this->listeners[$eventName]   = [];
+            $this->listeners[$eventName][] = $listener;
+            return 1;
+        }
+        return array_push($this->listeners[$eventName], $listener);
+    }
+    
+    /**
+     * Connect an event listener to the front of the specified event queue
+     * 
+     * This function behaves in exactly the same manner as `Mediator::push` with
+     * the exception being that `Mediator::unshift` attaches listeners to the
+     * front of the specified event queue.
+     * 
+     * @param string $eventName Event identifier name to listen for
+     * @param mixed  $listener  The event listener. Must be a valid callable or
+     *                          a dot-notation class name
+     * @param mixed  $lazyDef   An optional array or ArrayAccess specifying a
+     *                          custom injection definition for lazy-loading
+     *                          a string dot-notation listener
+     * 
+     * @return int Returns the new number of listeners in the queue for the
+     *             specified event.
+     */
+    public function unshift($eventName, $listener, $lazyDef = NULL)
+    {
+        $isString = is_string($listener);
+        
+        if (!($isString || is_callable($listener))) {
+            throw new \InvalidArgumentException(
+                'Argument 2 for ' . get_class($this) .'::push must be a valid '
+                .'callable or dot-notation string'
+            );
+        }
+        if (NULL !== $lazyDef
+            && !($lazyDef instanceof \ArrayAccess || is_array($lazyDef))
+        ) {
+            throw new \InvalidArgumentException(
+                'Argument 3 for ' . get_class($this) .'::push must be an array '
+                .'or object that implements ArrayAccess'
+            );
+        }
+        
+        $listener = $isString && NULL !== $lazyDef
+            ? [$listener, $lazyDef]
+            : $listener;
+        
+        if ( ! isset($this->listeners[$eventName])) {
+            $this->listeners[$eventName]   = [];
+            $this->listeners[$eventName][] = $listener;
+            return 1;
+        }
+        return array_unshift($this->listeners[$eventName], $listener);
     }
     
     /**
@@ -151,44 +217,40 @@ class Mediator implements MediatorInterface
             || $iterable instanceof \Traversable))
         {
             throw new \InvalidArgumentException(
-                'Argument 1 passed to addAll must be an array, Traversable '
-                . 'or StdClass instance'
+                'Argument 1 passed to '.get_class($this).'::pushAll must be an '
+                .'array, StdClass or object implementing Traversable'
             );
         }
-        $addedListenerCount = 0;
-        foreach ($iterable as $event => $value) {
-            $addedListenerCount += $this->push($event, $value);
-        }
-        return $addedListenerCount;
-    }
-    
-    /**
-     * Connect an event listener to the front of the specified event queue
-     * 
-     * @param string $eventName Event identifier name to listen for
-     * @param mixed  $listener  The event listener. Must be a valid callable or
-     *                          a dot-notation class name
-     * 
-     * @return int Returns the new number of listeners in the queue for the
-     *             specified event.
-     */
-    public function unshift($eventName, $listener)
-    {
-        if (!(is_callable($listener) || is_string($listener))) {
-            throw new \InvalidArgumentException(
-                'Argument 2 for ' . get_class($this)
-                . '::unshift must be a valid callable or dot-notation string'
-            );
-        } else {
-            if ( ! isset($this->listeners[$eventName])) {
-                $this->listeners[$eventName] = [];
+        $added = 0;
+        foreach ($iterable as $event => $val) {
+            $isArr = is_array($val);
+            if (!$isArr || is_callable($val)) {
+                $this->push($event, $val);
+                ++$added;
+                continue;
+            } elseif (isset($val[0])
+                && isset($val[1])
+                && count($val) === 2
+                && is_string($val[0])
+                && is_array($val[1])
+                && !is_callable($val[1])
+            ) {
+                // should be a dot-string class with an injection definition
+                $this->push($event, $val[0], $val[1]);
+                ++$added;
+            } else {
+                // we have to assume it's a list of listeners at this point
+                foreach ($val as $listener) {
+                    $this->push($event, $listener);
+                    ++$added;
+                }
             }
-            return array_unshift($this->listeners[$eventName], $listener);
         }
+        return $added;
     }
     
     /**
-     * Remove the first listener from the front of the specified event queue
+     * Remove a listener from the front of the specified event queue
      * 
      * @param string $eventName Event identifier name to listen for
      * 
@@ -269,6 +331,7 @@ class Mediator implements MediatorInterface
      * @param string $eventName The event for which listeners should be returned
      * 
      * @return array Returns an array of queued listeners for the specified event
+     *               or NULL if no listeners are registered for the event.
      */
     public function all($eventName)
     {
@@ -298,7 +361,7 @@ class Mediator implements MediatorInterface
      */
     public function last($eventName)
     {
-        return ($c = $this->count($eventName))
+        return ($count = $this->count($eventName))
             ? $this->listeners[$eventName][$c-1]
             : NULL;
     }
@@ -306,9 +369,14 @@ class Mediator implements MediatorInterface
     /**
      * Notify listeners that an event has occurred
      * 
-     * Listeners are treated as a queue in which the first registered listener
-     * executes first, continuing down the queue until a listener returns `FALSE`
-     * or the end of the queue is reached.
+     * Listeners act as a queue and are invoked in order until a listener in the
+     * chain returns `FALSE` or the end of the queue is reached.
+     * 
+     * To differentiate between dot-notation strings with injection definitions
+     * and valid PHP callback arrays we check the second array element. All
+     * lazy listeners are stored inside an array alongside an injection definition
+     * array (possibly empty). Meanwhile, valid PHP array callbacks will never 
+     * store an array as their second data parameter.
      * 
      * @param string $event The event that occurred
      * 
@@ -316,25 +384,32 @@ class Mediator implements MediatorInterface
      */
     public function notify($event)
     {
-        if ($c = $this->count($event)) {
+        if ($count = $this->count($event)) {
             if (1 == func_num_args()) {
                 $args = NULL;
             } else {
                 $args = func_get_args();
                 array_shift($args);
             }
-            for ($i=0; $i<$c; $i++) {
+            for ($i=0; $i<$count; $i++) {
                 if (is_string($this->listeners[$event][$i])) {
-                    $func = $this->deps->make($this->listeners[$event][$i]);
+                    $func = $this->provider->make($this->listeners[$event][$i]);
+                } elseif ((is_array($this->listeners[$event][$i])
+                    && isset($this->listeners[$event][$i][1])
+                    && is_array($this->listeners[$event][$i][1]))
+                ) {
+                    $func = $this->provider->make($this->listeners[$event][$i][0],
+                        $this->listeners[$event][$i][1]
+                    );
                 } else {
                     $func = $this->listeners[$event][$i];
-                }
+                }                
                 $result = $args ? call_user_func_array($func, $args) : $func();
                 if ($result === FALSE) {
-                    return $i + 1;
+                    return $i+1;
                 }
             }
         }
-        return $c;
+        return $count;
     }
 }
