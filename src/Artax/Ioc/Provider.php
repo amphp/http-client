@@ -188,7 +188,7 @@ class Provider implements ProviderInterface, \ArrayAccess
      */
     public function define($dotStr, $definition)
     {
-        if (!($definition instanceof \ArrayAccess || is_array($definition)) {
+        if (!($definition instanceof \ArrayAccess || is_array($definition))) {
             throw new \InvalidArgumentException(
                 'Argument 2 passed to ' . get_class($this) . '::add must be an '
                 .'array or implement ArrayAccess'
