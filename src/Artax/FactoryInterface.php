@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Artax FactoryAbstract Class File
+ * Artax FactoryInterface Class File
  * 
  * PHP version 5.4
  * 
@@ -13,16 +13,16 @@
 namespace Artax;
 
 /**
- * An abstract factory class specifying a non-static factory method.
+ * Factory interface for non-static factories
  * 
  * @category   Artax
  * @package    Core
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-abstract class FactoryAbstract
+interface FactoryInterface
 {
     /**
      * Factory method for object instantiation
      */
-    abstract public function make();
+    public function make();
 }

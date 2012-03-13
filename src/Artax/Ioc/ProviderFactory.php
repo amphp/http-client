@@ -23,7 +23,7 @@ namespace Artax\Ioc;
  * @package    Ioc
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-class ProviderFactory extends \Artax\FactoryAbstract
+class ProviderFactory implements \Artax\FactoryInterface
 {
     /**
      * Factory method to instantiate an injected Provider
