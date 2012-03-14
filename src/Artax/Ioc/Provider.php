@@ -370,6 +370,19 @@ class Provider implements ProviderInterface, \ArrayAccess
     }
     
     /**
+     * Stores a shared instance for the specified dot-notation string
+     * 
+     * @param string $dotStr The dot-notation class name to check against
+     * 
+     * @return Provider Returns object instance for method chaining
+     */
+    public function share($dotStr, $val)
+    {
+        $this->shared[$dotStr] = $val;
+        return $this;
+    }
+    
+    /**
      * Return an instantiated object subject to user-specified definitions
      * 
      * @param string $dotStr A dot-notation class name

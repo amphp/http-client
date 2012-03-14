@@ -107,6 +107,7 @@ require AX_SYSTEM_DIR . '/src/Artax/Handlers/Termination.php';
 
 $axDeps = new Artax\Ioc\Provider(new Artax\Ioc\DotNotation);
 $artax  = new Artax\Events\Mediator($axDeps);
+$axDeps->share('Artax.Events.Mediator', $artax);
 
 /*
  * --------------------------------------------------------------------
