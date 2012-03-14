@@ -81,8 +81,6 @@ require AX_SYSTEM_DIR . '/src/Artax/FactoryInterface.php';
 require AX_SYSTEM_DIR . '/src/Artax/Ioc/ProviderInterface.php';
 require AX_SYSTEM_DIR . '/src/Artax/Ioc/Provider.php';
 require AX_SYSTEM_DIR . '/src/Artax/Ioc/DotNotation.php';
-require AX_SYSTEM_DIR . '/src/Artax/Events/NotifierInterface.php';
-require AX_SYSTEM_DIR . '/src/Artax/Events/NotifierTrait.php';
 require AX_SYSTEM_DIR . '/src/Artax/Events/MediatorInterface.php';
 require AX_SYSTEM_DIR . '/src/Artax/Events/Mediator.php';
 require AX_SYSTEM_DIR . '/src/Artax/Exceptions/FatalErrorException.php';

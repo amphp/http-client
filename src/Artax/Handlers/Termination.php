@@ -53,10 +53,8 @@ namespace Artax\Handlers;
  * @package    Handlers
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-class Termination implements TerminationInterface, \Artax\Events\NotifierInterface
+class Termination implements TerminationInterface
 {
-    use \Artax\Events\NotifierTrait;
-    
     /**
      * Flag specifying if full debug output should be shown when problems arise
      * @var bool
@@ -113,8 +111,8 @@ class Termination implements TerminationInterface, \Artax\Events\NotifierInterfa
             return;
         } elseif ($e instanceof \Artax\Exceptions\FatalErrorException) {
             try {
-                $this->notify('exception', $e, $this->debug);
-                $this->notify('shutdown');
+                $this->mediator->notify('exception', $e, $this->debug);
+                $this->mediator->notify('shutdown');
             } catch (\Artax\Exceptions\ScriptHaltException $e) {
                 return;
             } catch (\Exception $e) {
@@ -122,7 +120,7 @@ class Termination implements TerminationInterface, \Artax\Events\NotifierInterfa
             }
         } elseif ($this->mediator->count('exception')) {
             try {
-                $this->notify('exception', $e, $this->debug);
+                $this->mediator->notify('exception', $e, $this->debug);
             } catch (\Artax\Exceptions\ScriptHaltException $e) {
                 return;
             } catch (\Exception $e) {
@@ -156,7 +154,7 @@ class Termination implements TerminationInterface, \Artax\Events\NotifierInterfa
             $this->exception($e);
         } else {
             try {
-                $this->notify('shutdown');
+                $this->mediator->notify('shutdown');
             } catch (\Artax\Exceptions\ScriptHaltException $e) {
                 return;
             } catch (\Exception $e) {

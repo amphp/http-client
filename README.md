@@ -1,7 +1,7 @@
 ### WHAT IS IT?
 
 **Artax** is a lightweight scaffold for creating evented PHP applications. At 
-~320 lines of testable code (100% covered), it's not a framework,
+~300 lines of testable code (100% covered), it's not a framework,
 though you could use it in that manner if you were so-inclined.
 
 ### REQUIREMENTS
@@ -11,7 +11,6 @@ prior to 5.4:
 
 * Short array syntax
 * Array and constructor dereferencing
-* Traits
 
 ### INSTALLATION
 
