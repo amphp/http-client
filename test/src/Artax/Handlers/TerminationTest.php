@@ -3,19 +3,11 @@
 class TerminationTest extends PHPUnit_Framework_TestCase
 {
     /**
-     * 
-     */
-    protected function getProvider()
-    {
-        return new Artax\Ioc\Provider(new Artax\Ioc\DotNotation);
-    }
-    
-    /**
      * @covers Artax\Handlers\Termination::__construct
      */
     public function testConstructorInitializesDependencies()
     {
-        $dp  = $this->getProvider();
+        $dp  = new Artax\Ioc\Provider;
         $med = $this->getMock('Artax\Events\Mediator', NULL, [$dp]);
         $obj = new TerminationTestImplementation($med, TRUE);
         $this->assertTrue($obj->debug);
@@ -27,7 +19,7 @@ class TerminationTest extends PHPUnit_Framework_TestCase
      */
     public function testRegisterReturnsInstanceForChaining()
     {
-        $dp  = $this->getProvider();
+        $dp = new Artax\Ioc\Provider;
         $med = $this->getMock('Artax\Events\Mediator', NULL, [$dp]);
         $t = $this->getMock('Artax\Handlers\Termination',
             ['exception', 'shutdown', 'setMediator', 'getFatalErrorException', 'lastError', 'defaultHandlerMsg'],
@@ -52,7 +44,7 @@ class TerminationTest extends PHPUnit_Framework_TestCase
             'line'    => 42
         ];
         
-        $dp  = $this->getProvider();
+        $dp = new Artax\Ioc\Provider;
         $med = $this->getMock('Artax\Events\Mediator', NULL, [$dp]);
         $stub = $this->getMock(
             'TerminationTestImplementation',
@@ -70,7 +62,7 @@ class TerminationTest extends PHPUnit_Framework_TestCase
      */
     public function testDefaultHandlerMsgReturnsExpectedString()
     {
-        $dp  = $this->getProvider();
+        $dp = new Artax\Ioc\Provider;
         $med = $this->getMock('Artax\Events\Mediator', NULL, [$dp]);
         $obj = new TerminationTestImplementation($med, FALSE);
         ob_start();
@@ -96,7 +88,7 @@ class TerminationTest extends PHPUnit_Framework_TestCase
      */
     public function testLastErrorReturnsNullOnNoFatalPHPError()
     {
-        $dp  = $this->getProvider();
+        $dp = new Artax\Ioc\Provider;
         $med = $this->getMock('Artax\Events\Mediator', NULL, [$dp]);
         $obj = new TerminationTestImplementation($med, TRUE);
         $this->assertEquals(NULL, $obj->getFatalErrorException());
@@ -108,7 +100,7 @@ class TerminationTest extends PHPUnit_Framework_TestCase
     public function testShutdownNotifiesListenersIfMediatorExists()
     {
         $medStub = $this->getMock(
-            'Artax\Events\Mediator', ['all', 'keys'], [$this->getProvider()]
+            'Artax\Events\Mediator', ['all', 'keys'], [new Artax\Ioc\Provider]
         );
         $obj = $this->getMock('TerminationTestImplementation',
             ['getFatalErrorException'], [$medStub, TRUE]
@@ -124,8 +116,9 @@ class TerminationTest extends PHPUnit_Framework_TestCase
      */
     public function testExHandlerReturnsQuietlyOnPurposefulScriptHalt()
     {
-        $dp  = $this->getProvider();
-        $med = $this->getMock('Artax\Events\Mediator', NULL, [$dp]);
+        $med = $this->getMock('Artax\Events\Mediator', ['notify'],
+            [new Artax\Ioc\Provider]
+        );
         $obj = new Artax\Handlers\Termination($med, TRUE);
         $this->assertNull($obj->exception(new Artax\Exceptions\ScriptHaltException));
     }
@@ -135,8 +128,9 @@ class TerminationTest extends PHPUnit_Framework_TestCase
      */
     public function testExHandlerOutputsDefaultMessageIfNoMediatorExists()
     {
-        $dp  = $this->getProvider();
-        $med = $this->getMock('Artax\Events\Mediator', NULL, [$dp]);
+        $med = $this->getMock('Artax\Events\Mediator', ['notify'],
+            [new Artax\Ioc\Provider]
+        );
         $stub = $this->getMock('Artax\Handlers\Termination',
             ['defaultHandlerMsg'], [$med, TRUE]
         );
@@ -152,8 +146,9 @@ class TerminationTest extends PHPUnit_Framework_TestCase
      */
     public function testExHandlerNotifiesMediatorOnUncaughtException()
     {
-        $dp  = $this->getProvider();
-        $med = $this->getMock('Artax\Events\Mediator', ['notify'], [$dp]);
+        $med = $this->getMock('Artax\Events\Mediator', ['notify'],
+            [new Artax\Ioc\Provider]
+        );
         $stub = $this->getMock('Artax\Handlers\Termination',
             NULL, [$med, TRUE]
         );
@@ -174,8 +169,9 @@ class TerminationTest extends PHPUnit_Framework_TestCase
      */
     public function testExHandlerFallsBackToDefaultMessageOnNotifyException()
     {
-        $dp  = new Artax\Ioc\Provider(new Artax\Ioc\DotNotation);
-        $med = $this->getMock('Artax\Events\Mediator', ['notify'], [$dp]);
+        $med = $this->getMock('Artax\Events\Mediator', ['notify'],
+            [new Artax\Ioc\Provider]
+        );
         $med->expects($this->once())
              ->method('notify')
              ->will($this->throwException(new Exception));
@@ -200,8 +196,9 @@ class TerminationTest extends PHPUnit_Framework_TestCase
     {
         $e = new Artax\Exceptions\ScriptHaltException;
         
-        $dp  = new Artax\Ioc\Provider(new Artax\Ioc\DotNotation);
-        $med = $this->getMock('Artax\Events\Mediator', ['notify'], [$dp]);
+        $med = $this->getMock('Artax\Events\Mediator', ['notify'],
+            [new Artax\Ioc\Provider]
+        );
         $stub = $this->getMock('Artax\Handlers\Termination',
             ['notify'], [$med, TRUE]
         );
@@ -219,8 +216,9 @@ class TerminationTest extends PHPUnit_Framework_TestCase
      */
     public function testShutdownReturnsImmediatelyOnNotifyScriptHaltException()
     {
-        $dp  = new Artax\Ioc\Provider(new Artax\Ioc\DotNotation);
-        $med = $this->getMock('Artax\Events\Mediator', ['notify'], [$dp]);
+        $med = $this->getMock('Artax\Events\Mediator', ['notify'],
+            [new Artax\Ioc\Provider]
+        );
         $stub = $this->getMock('Artax\Handlers\Termination', NULL, [$med, TRUE]);
         $med->expects($this->once())
              ->method('notify')
@@ -236,7 +234,9 @@ class TerminationTest extends PHPUnit_Framework_TestCase
      */
     public function testShutdownFallsBackToDefaultOnNotifyException()
     {
-        $med = $this->getMock('Artax\Events\Mediator', ['notify']);
+        $med = $this->getMock('Artax\Events\Mediator', ['notify'],
+            [new Artax\Ioc\Provider]
+        );
         $stub = $this->getMock('Artax\Handlers\Termination',
             ['defaultHandlerMsg'], [$med, TRUE]
         );
@@ -259,7 +259,9 @@ class TerminationTest extends PHPUnit_Framework_TestCase
      */
     public function testExHandlerNotifiesShutdownEventOnFatalRuntimeError()
     {
-        $med = $this->getMock('Artax\Events\Mediator', ['notify']);
+        $med = $this->getMock('Artax\Events\Mediator', ['notify'],
+            [new Artax\Ioc\Provider]
+        );
         $stub = $this->getMock('Artax\Handlers\Termination',
             NULL, [$med, TRUE]
         );
@@ -278,7 +280,9 @@ class TerminationTest extends PHPUnit_Framework_TestCase
      */
     public function testExHandlerFallsBackToDefaultOnNotifyException()
     {
-        $med = $this->getMock('Artax\Events\Mediator', ['notify']);
+        $med = $this->getMock('Artax\Events\Mediator', ['notify'],
+            [new Artax\Ioc\Provider]
+        );
         $stub = $this->getMock('Artax\Handlers\Termination',
             ['defaultHandlerMsg'], [$med, TRUE]
         );
@@ -303,7 +307,9 @@ class TerminationTest extends PHPUnit_Framework_TestCase
      */
     public function testExHandlerExitsOnNotifyScriptHaltException()
     {
-        $med = $this->getMock('Artax\Events\Mediator', ['notify']);
+        $med = $this->getMock('Artax\Events\Mediator', ['notify'], 
+            [new Artax\Ioc\Provider]
+        );
         $stub = $this->getMock('Artax\Handlers\Termination',
             NULL, [$med, TRUE]
         );

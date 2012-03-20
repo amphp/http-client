@@ -24,19 +24,19 @@ interface ProviderInterface
     /**
      * Factory method for auto-injecting dependencies upon instantiation
      * 
-     * @param string $dotStr A dot-notation class name
+     * @param string $class  Class name
      * @param mixed  $custom An optional array specifying custom instantiation
      *                       parameters for this construction
      */
-    public function make($dotStr, array $custom);
+    public function make($class, array $custom);
     
     /**
      * Defines custom instantiation parameters for the specified class
      * 
-     * @param string $dotStr     The relevant dot-notation class name
+     * @param string $class      Class name
      * @param array  $definition An array specifying custom instantiation params
      */
-    public function define($dotStr, array $definition);
+    public function define($class, array $definition);
     
     /**
      * Defines multiple custom instantiation parameters at once
@@ -49,9 +49,9 @@ interface ProviderInterface
     /**
      * Clear the injection definition for the specified class
      * 
-     * @param string $dotStr A dot-notation class name
+     * @param string $class Class name
      */
-    public function remove($dotStr);
+    public function remove($class);
     
     /**
      * Clear all injection definitions from the container
@@ -61,21 +61,21 @@ interface ProviderInterface
     /**
      * Forces re-instantiation of a shared class the next time it is requested
      * 
-     * @param string $dotStr The dot-notation class name to refresh
+     * @param string $class Class name
      */
-    public function refresh($dotStr);
+    public function refresh($class);
     
     /**
      * Determines if a shared instance of the specified class is stored
      * 
-     * @param string $dotStr The dot-notation class name to refresh
+     * @param string $class Class name
      */
-    public function isShared($dotStr);
+    public function isShared($class);
     
     /**
      * Determines if an injection definition exists for the specified class
      * 
-     * @param string $dotStr The dot-notation class name to refresh
+     * @param string $class Class name
      */
-    public function isDefined($dotStr);
+    public function isDefined($class);
 }

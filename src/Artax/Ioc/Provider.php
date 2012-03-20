@@ -18,21 +18,6 @@ namespace Artax\Ioc;
  * The Provider is a dependency injection container existing specifically to
  * enable lazy instantiation of event listeners.
  * 
- * The provider expects dependency definitions and operations dealing with these
- * definitions to use the dot-notation format to represent fully qualified PHP
- * class names. Some examples of dot-notation class names and how the Provider
- * will parse them:
- * 
- * ```php
- * Namespace.ClassName         --> \Namespace\ClassName
- * MyClass                     --> \MyClass
- * MyNamespace.Package.MyClass --> \MyNamespace\Package\MyClass
- * ```
- * 
- * As you can see, this format simply replaces standard backslash namespace 
- * separators with a dot (.) character. All dot-notation class names are 
- * resolved relative to the root namespace, so a leading dot is unnecessary.
- * 
  * ### BASIC PROVISIONING
  * 
  * ##### No Dependencies
@@ -43,7 +28,7 @@ namespace Artax\Ioc;
  * 
  * ```php
  * $obj1 = new Namespace\MyClass;
- * $obj2 = $provider->make('Namespace.MyClass');
+ * $obj2 = $provider->make('Namespace\MyClass');
  * var_dump($obj1 === $obj2); // true
  * ```
  * 
@@ -98,8 +83,8 @@ namespace Artax\Ioc;
  * 
  * ##### Non-Concrete Dependencies
  * 
- * The Provider allows you to define the dot-notation class names it should use to
- * provision objects with non-concrete method signatures. Consider:
+ * The Provider allows you to define the class names it should use to provision
+ * objects with non-concrete method signatures. Consider:
  * 
  *  ```php
  * interface DepInterface
@@ -145,51 +130,30 @@ namespace Artax\Ioc;
 class Provider implements ProviderInterface, \ArrayAccess
 {
     /**
-     * A DotNotation object for parsing dot-notation class names
-     * @var DotNotation
-     */
-    protected $dotNotation;
-    
-    /**
      * An array of custom class instantiation parameters
      * @var array
      */
-    protected $definitions;
+    protected $definitions = [];
     
     /**
      * An array of dependencies shared across the lifetime of the container
      * @var array
      */
-    protected $shared;
-    
-    /**
-     * Initializes DotNotation object dependency
-     * 
-     * @param DotNotation $dotNotation A DotNotation object for class name parsing
-     * 
-     * @return void
-     */
-    public function __construct(DotNotation $dotNotation)
-    {
-        $this->definitions  = [];
-        $this->shared       = [];
-        $this->dotNotation  = $dotNotation;
-    }
+    protected $shared = [];
     
     /**
      * Defines custom instantiation parameters for the specified class
      * 
-     * @param string $dotStr     The relevant dot-notation class name
+     * @param string $class      Class name
      * @param mixed  $definition An array specifying an ordered list of custom
-     *                           dot-notation class names or an instance of the
-     *                           necessary class
+     *                           class names or an instance of the necessary class
      * 
      * @return Provider Returns object instance for method chaining
      */
-    public function define($dotStr, array $definition)
+    public function define($class, array $definition)
     {
-        unset($this->shared[$dotStr]);
-        $this->definitions[$dotStr] = $definition;
+        unset($this->shared[$class]);
+        $this->definitions[$class] = $definition;
         return $this;
     }
     
@@ -214,8 +178,8 @@ class Provider implements ProviderInterface, \ArrayAccess
         }
         
         $added = 0;
-        foreach ($iterable as $dotStr => $definition) {
-            $this->define($dotStr, $definition);
+        foreach ($iterable as $class => $definition) {
+            $this->define($class, $definition);
             ++$added;
         }
         return $added;
@@ -245,15 +209,14 @@ class Provider implements ProviderInterface, \ArrayAccess
      * ```
      * 
      * you will actually be given a reference to the same class you created in
-     * the original invocation where you specified the dot-string class name
-     * as shared.
+     * the original invocation where you specified the class as shared.
      * 
      * It is important to note that once an object is shared it will NOT accept
      * custom instantiation definitions. If you need customized instantiation
      * parameters for a shared instance you'll need to first call `Provider::remove`
      * or `Provider::refresh` to allow a new instantiation of the shared object.
      * 
-     * @param string $dotStr A dot notation class name
+     * @param string $class  Class name
      * @param array  $custom An optional array specifying custom instantiation 
      *                       parameters for this construction.
      * 
@@ -261,16 +224,16 @@ class Provider implements ProviderInterface, \ArrayAccess
      * @throws InvalidArgumentException On invalid custom injection definition
      * @uses Provider::getInjectedInstance
      */
-    public function make($dotStr, array $custom = NULL)
+    public function make($class, array $custom = NULL)
     {
-        if (isset($this->shared[$dotStr])) {
-            return $this->shared[$dotStr];
+        if (isset($this->shared[$class])) {
+            return $this->shared[$class];
         }
         
         if (NULL !== $custom) {
             $definition = $custom;            
-        } elseif (isset($this->definitions[$dotStr])) {
-            $definition = $this->definitions[$dotStr];
+        } elseif (isset($this->definitions[$class])) {
+            $definition = $this->definitions[$class];
         } else {
             $definition = NULL;
         }
@@ -284,9 +247,9 @@ class Provider implements ProviderInterface, \ArrayAccess
             $shared = TRUE;
         }
         
-        $obj = $this->getInjectedInstance($dotStr, $definition);
+        $obj = $this->getInjectedInstance($class, $definition);
         if ($shared) {
-            $this->shared[$dotStr] = $obj;
+            $this->shared[$class] = $obj;
         }
         return $obj;
     }
@@ -297,17 +260,17 @@ class Provider implements ProviderInterface, \ArrayAccess
      * Note that this operation will also remove any shared instances of the
      * specified class.
      * 
-     * @param string $dotStr A dot-notation class name
+     * @param string $class Class name
      * 
      * @return Provider Returns object instance for method chaining.
      */
-    public function remove($dotStr)
+    public function remove($class)
     {
-        if (isset($this->definitions[$dotStr])) {
-            unset($this->definitions[$dotStr]);
+        if (isset($this->definitions[$class])) {
+            unset($this->definitions[$class]);
         }
-        if (isset($this->shared[$dotStr])) {
-            unset($this->shared[$dotStr]);
+        if (isset($this->shared[$class])) {
+            unset($this->shared[$class]);
         }
         return $this;
     }
@@ -333,14 +296,14 @@ class Provider implements ProviderInterface, \ArrayAccess
      * instance from the shared cache so that it will be recreated the next time
      * a provision request is made.
      * 
-     * @param string $dotStr The dot-notation class name to refresh
+     * @param string $class Class name
      * 
      * @return Provider Returns object instance for method chaining.
      */
-    public function refresh($dotStr)
+    public function refresh($class)
     {
-        if (isset($this->shared[$dotStr])) {
-            unset($this->shared[$dotStr]);
+        if (isset($this->shared[$class])) {
+            unset($this->shared[$class]);
         }
         return $this;
     }
@@ -348,53 +311,62 @@ class Provider implements ProviderInterface, \ArrayAccess
     /**
      * Determines if a shared instance of the given class name is currently stored
      * 
-     * @param string $dotStr The dot-notation class name to refresh
+     * @param string $class Class name
      * 
      * @return bool Returns TRUE if a shared instance is stored or FALSE otherwise
      */
-    public function isShared($dotStr)
+    public function isShared($class)
     {
-        return isset($this->shared[$dotStr]);
+        return isset($this->shared[$class]);
     }
     
     /**
      * Determines if an injection definition exists for the given class name
      * 
-     * @param string $dotStr The dot-notation class name to check against
+     * @param string $class Class name
      * 
      * @return bool Returns TRUE if a definition is stored or FALSE otherwise
      */
-    public function isDefined($dotStr)
+    public function isDefined($class)
     {
-        return isset($this->definitions[$dotStr]);
+        return isset($this->definitions[$class]);
     }
     
     /**
-     * Stores a shared instance for the specified dot-notation string
+     * Stores a shared instance for the specified class
      * 
-     * @param string $dotStr The dot-notation class name to check against
+     * @param string $class Class name
+     * @param mixed  $obj   An instance of the specified class
      * 
      * @return Provider Returns object instance for method chaining
+     * @throws InvalidArgumentException If passed object is not an instance of
+     *                                  the specified class
      */
-    public function share($dotStr, $val)
+    public function share($class, $obj)
     {
-        $this->shared[$dotStr] = $val;
+        if (!$obj instanceof $class) {
+            $type = is_object($obj) ? get_class($obj) : gettype($obj);
+            throw new \InvalidArgumentException(
+                'Object at '.get_class($this).'::share Argument 2 must be an '
+                ."instance of $class: $type provided"
+            );
+        }
+        $this->shared[$class] = $obj;
         return $this;
     }
     
     /**
      * Return an instantiated object subject to user-specified definitions
      * 
-     * @param string $dotStr A dot-notation class name
-     * @param array  $def    An array specifying dependencies required for
-     *                       object instantiation
+     * @param string $class Class name
+     * @param array  $def   An array specifying dependencies required for
+     *                      object instantiation
      * 
      * @return mixed Returns A dependency-injected object
      * @throws InvalidArgumentException
      */
-    protected function getInjectedInstance($dotStr, $def)
+    protected function getInjectedInstance($class, $def)
     {
-        $class = $this->dotNotation->parse($dotStr);
         $refl  = new \ReflectionClass($class);
         $ctor  = $refl->getConstructor();
         
@@ -415,10 +387,10 @@ class Provider implements ProviderInterface, \ArrayAccess
     /**
      * Generate dependencies for a class using an injection definition
      * 
-     * @param string $class A dot-notation class name
+     * @param string $class Class name
      * @param array  $args  An array of ReflectionParameter objects
-     * @param array  $def    An array specifying dependencies required for
-     *                       object instantiation
+     * @param array  $def   An array specifying dependencies required for
+     *                      object instantiation
      * 
      * @return array Returns an array of dependency instances to inject
      * @throws InvalidArgumentException If a provision attempt is made using
@@ -467,7 +439,7 @@ class Provider implements ProviderInterface, \ArrayAccess
     /**
      * Generate dependencies for a class without an injection definition
      * 
-     * @param string $class A dot-notation class name
+     * @param string $class Class name
      * @param array  $args  An array of ReflectionParameter objects
      * 
      * @return array Returns an array of dependency instances to inject
@@ -486,9 +458,8 @@ class Provider implements ProviderInterface, \ArrayAccess
                     .'for argument' . $i+1
                 );
             } else {
-                $dotStr = $this->dotNotation->parse($param->name, TRUE);
-                $deps[] = isset($this->shared[$dotStr])
-                    ? $this->shared[$dotStr]
+                $deps[] = isset($this->shared[$class])
+                    ? $this->shared[$class]
                     : new $param->name;
             }
         }
@@ -498,7 +469,7 @@ class Provider implements ProviderInterface, \ArrayAccess
     /**
      * Implements ArrayAccess interface to add injection definitions
      * 
-     * @param string $offset Dot-notation string class name
+     * @param string $offset Class name
      * @param mixed $value  An array, StdClass or ArrayAccess instance
      * 
      * @return void
@@ -512,7 +483,7 @@ class Provider implements ProviderInterface, \ArrayAccess
     /**
      * Implements ArrayAccess interface to determine if a definition exists
      * 
-     * @param string $offset Dot-notation string class name
+     * @param string $offset Class name
      * 
      * @return bool Returns TRUE if a definition exists or FALSE if not.
      */
@@ -524,7 +495,7 @@ class Provider implements ProviderInterface, \ArrayAccess
     /**
      * Implements ArrayAccess interface to remove a specified definition
      * 
-     * @param string $offset Dot-notation string class name
+     * @param string $offset Class name
      * 
      * @return void
      * @uses Provider::remove
@@ -537,7 +508,7 @@ class Provider implements ProviderInterface, \ArrayAccess
     /**
      * Implements ArrayAccess interface to retrieve a specified definition
      * 
-     * @param string $offset Dot-notation string class name
+     * @param string $offset Class name
      * 
      * @return mixed An array, StdClass or ArrayAccess instance
      */

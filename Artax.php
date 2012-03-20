@@ -77,11 +77,8 @@ ini_set('html_errors', FALSE);
  * --------------------------------------------------------------------
  */
 
-require AX_SYSTEM_DIR . '/src/Artax/FactoryInterface.php';
 require AX_SYSTEM_DIR . '/src/Artax/Ioc/ProviderInterface.php';
 require AX_SYSTEM_DIR . '/src/Artax/Ioc/Provider.php';
-require AX_SYSTEM_DIR . '/src/Artax/Ioc/ProviderFactory.php';
-require AX_SYSTEM_DIR . '/src/Artax/Ioc/DotNotation.php';
 require AX_SYSTEM_DIR . '/src/Artax/Events/MediatorInterface.php';
 require AX_SYSTEM_DIR . '/src/Artax/Events/Mediator.php';
 require AX_SYSTEM_DIR . '/src/Artax/Exceptions/FatalErrorException.php';
@@ -107,7 +104,7 @@ require AX_SYSTEM_DIR . '/src/Artax/Handlers/Termination.php';
 
 $axDeps = new Artax\Ioc\Provider(new Artax\Ioc\DotNotation);
 $artax  = new Artax\Events\Mediator($axDeps);
-$axDeps->share('Artax.Events.Mediator', $artax);
+$axDeps->share('Artax\Events\Mediator', $artax);
 
 /*
  * --------------------------------------------------------------------

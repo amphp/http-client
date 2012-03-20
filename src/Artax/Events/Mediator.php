@@ -77,7 +77,7 @@ class Mediator implements MediatorInterface
      * An array of event listeners
      * @var array
      */
-    protected $listeners;
+    protected $listeners = [];
     
     /**
      * Dependency provider for listener lazy-loading
@@ -91,22 +91,21 @@ class Mediator implements MediatorInterface
      * If no dependency provider is specified, a factory is used to create one.
      * 
      * @param Artax\Ioc\Provider $provider A dependency provider instance for
-     *                                    lazy-loading object listeners
+     *                                     lazy-loading object listeners
      * 
      * @return void
      */
-    public function __construct(\Artax\Ioc\Provider $provider = NULL)
+    public function __construct(\Artax\Ioc\Provider $provider)
     {
-        $this->listeners = [];
-        $this->provider  = $provider ?: (new \Artax\Ioc\ProviderFactory)->make();
+        $this->provider = $provider;
     }
     
     /**
      * Connect a listener to the end of the specified event queue
      * 
      * To enable listener lazy-loading, all string listeners are assumed to be 
-     * dot-notation class names and will be instantiated using the dependency
-     * provider. This has one major ramification:
+     * class names and will be instantiated using the dependency provider. This
+     * has one major ramification:
      * 
      * > **IMPORTANT:** global function names and static class methods cannot
      * be attached as event listeners.
@@ -116,10 +115,10 @@ class Mediator implements MediatorInterface
      * 
      * @param string $eventName Event identifier name to listen for
      * @param mixed  $listener  The event listener. Must be a valid callable or
-     *                          a dot-notation class name
+     *                          a string class name
      * @param mixed  $lazyDef   An optional array or ArrayAccess specifying a
      *                          custom injection definition for lazy-loading
-     *                          a string dot-notation listener
+     *                          a string class name listener
      * 
      * @return int Returns the new number of listeners in the queue for the
      *             specified event.
@@ -134,7 +133,7 @@ class Mediator implements MediatorInterface
         if (!($isString || is_callable($listener))) {
             throw new \InvalidArgumentException(
                 'Argument 2 for ' . get_class($this) .'::push must be a valid '
-                .'callable or dot-notation string'
+                .'callable or string class name'
             );
         }
         if (NULL !== $lazyDef
@@ -167,10 +166,10 @@ class Mediator implements MediatorInterface
      * 
      * @param string $eventName Event identifier name to listen for
      * @param mixed  $listener  The event listener. Must be a valid callable or
-     *                          a dot-notation class name
+     *                          a string class name
      * @param mixed  $lazyDef   An optional array or ArrayAccess specifying a
      *                          custom injection definition for lazy-loading
-     *                          a string dot-notation listener
+     *                          a string class name listener
      * 
      * @return int Returns the new number of listeners in the queue for the
      *             specified event.
@@ -182,7 +181,7 @@ class Mediator implements MediatorInterface
         if (!($isString || is_callable($listener))) {
             throw new \InvalidArgumentException(
                 'Argument 2 for ' . get_class($this) .'::push must be a valid '
-                .'callable or dot-notation string'
+                .'callable or string clas name'
             );
         }
         if (NULL !== $lazyDef
@@ -214,7 +213,7 @@ class Mediator implements MediatorInterface
      * listener was specified a bit complicated, so we utilize some simplifying
      * assumptions:
      * 
-     * * Any string specified as a listener is always assumed to be a dot-notation
+     * * Any string specified as a listener is always assumed to be a string
      * class name for lazy-loading. This assumption prevents us from accepting
      * string names of global functions and static class methods as listeners.
      * This also prevents static methods from being specified using the array
@@ -223,7 +222,7 @@ class Mediator implements MediatorInterface
      * 
      * * In order to lazy-load class listeners whose constructors don't specify
      * concrete class names we need a way to pass along dependency definitions
-     * along with the dot-notation strings. For this we use a simple array. The
+     * along with the class name strings. For this we use a simple array. The
      * issue then becomes differentiating in a list of multiple listeners passed
      * to `Mediator::pushAll` whether an array is a PHP callback or a string
      * class name with a matching injection definition array. This is achieved
@@ -261,7 +260,7 @@ class Mediator implements MediatorInterface
                 && is_array($val[1])
                 && !is_callable($val[1])
             ) {
-                // should be a dot-string class with an injection definition
+                // should be a class name with an injection definition
                 $this->push($event, $val[0], $val[1]);
                 ++$added;
             } else {
@@ -398,7 +397,7 @@ class Mediator implements MediatorInterface
      * Listeners act as a queue and are invoked in order until a listener in the
      * chain returns `FALSE` or the end of the queue is reached.
      * 
-     * To differentiate between dot-notation strings with injection definitions
+     * To differentiate between string class names with injection definitions
      * and valid PHP callback arrays we check the second array element. All
      * lazy listeners are stored inside an array alongside an injection definition
      * array (possibly empty). Meanwhile, valid PHP array callbacks will never 

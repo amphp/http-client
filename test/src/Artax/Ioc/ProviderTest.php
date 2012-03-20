@@ -2,16 +2,11 @@
 
 class ProviderTest extends PHPUnit_Framework_TestCase
 {
-    /**
-     * @covers Artax\Ioc\Provider::__construct
-     */
     public function testBeginsEmpty()
     {
-        $dn = new Artax\Ioc\DotNotation;
-        $dp = new ProviderCoverageTest($dn);
+        $dp = new ProviderCoverageTest;
         $this->assertEquals([], $dp->definitions);
         $this->assertEquals([], $dp->shared);
-        $this->assertEquals($dn, $dp->dotNotation);
         return $dp;
     }
     
@@ -250,9 +245,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
      */
     public function testOffsetSetCallsDefine($dp)
     {
-        $stub = $this->getMock('Artax\Ioc\Provider', ['define'],
-            [new Artax\Ioc\DotNotation]
-        );
+        $stub = $this->getMock('Artax\Ioc\Provider', ['define']);
         $stub->expects($this->once())
              ->method('define');
         $stub['TestNeedsDep'] = ['_shared'];
@@ -264,9 +257,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
      */
     public function testOffsetUnsetCallsRemove($dp)
     {
-        $stub = $this->getMock('Artax\Ioc\Provider', ['remove'],
-            [new Artax\Ioc\DotNotation]
-        );
+        $stub = $this->getMock('Artax\Ioc\Provider', ['remove']);
         $stub->expects($this->once())
              ->method('remove');
         $stub['TestNeedsDep'] = ['_shared'];
@@ -308,6 +299,17 @@ class ProviderTest extends PHPUnit_Framework_TestCase
         $return = $dp->share('StdClass', $testShare);
         $this->assertEquals($testShare, $dp->shared['StdClass']);
         $this->assertEquals($dp, $return);
+    }
+    
+    /**
+     * @depends testBeginsEmpty
+     * @covers Artax\Ioc\Provider::share
+     * @expectedException InvalidArgumentException
+     */
+    public function testShareThrowsExceptionOnInvalidArgument($dp)
+    {
+        $testShare = new StdClass;
+        $dp->share('Artax\Events\Mediator', $testShare);
     }
 }
 
