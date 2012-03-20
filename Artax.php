@@ -117,3 +117,9 @@ $axDeps->share('Artax.Events.Mediator', $artax);
  
 (new Artax\Handlers\Termination($artax, AX_DEBUG))->register();
 
+if ('cli' === PHP_SAPI && function_exists('pcntl_signal')) {
+    require AX_SYSTEM_DIR . '/src/Artax/Exceptions/PcntlInterruptException.php';
+    require AX_SYSTEM_DIR . '/src/Artax/Handlers/PcntlInterrupt.php';
+    (new Artax\Handlers\PcntlInterrupt)->register();
+}
+
