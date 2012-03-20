@@ -296,6 +296,19 @@ class ProviderTest extends PHPUnit_Framework_TestCase
         $obj = $dp->make('TestNeedsDep');
         $this->assertEquals($dp->definitions['TestNeedsDep'], $dp['TestNeedsDep']);
     }
+    
+    /**
+     * @depends testBeginsEmpty
+     * @covers Artax\Ioc\Provider::share
+     */
+    public function testShareStoresSharedDependencyAndReturnsChainableInstance($dp)
+    {
+        $dp->removeAll();
+        $testShare = new StdClass;
+        $return = $dp->share('StdClass', $testShare);
+        $this->assertEquals($testShare, $dp->shared['StdClass']);
+        $this->assertEquals($dp, $return);
+    }
 }
 
 class ProviderCoverageTest extends Artax\Ioc\Provider
