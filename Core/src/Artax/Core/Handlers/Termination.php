@@ -66,6 +66,12 @@ class Termination implements TerminationInterface
     protected $debug;
     
     /**
+     * An event mediator instance
+     * @var Mediator
+     */
+    protected $mediator;
+    
+    /**
      * Specify debug output flag and register exception/shutdown handlers
      * 
      * @param bool $debug A boolean debug output flag
