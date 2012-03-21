@@ -1,0 +1,3 @@
+[submodule "Http"]
+	path = Http
+	url = git@github.com:rdlowrey/Artax-HTTP.git
