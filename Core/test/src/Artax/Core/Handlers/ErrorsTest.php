@@ -2,35 +2,16 @@
 
 class ErrorsTest extends PHPUnit_Framework_TestCase
 {
-    use UsesErrorExceptionsTrait;
-    
-    public function setUp()
-    {
-        $this->setUpErrorHandler();
-    }
-    
-    public function tearDown()
-    {
-        $this->tearDownErrorHandler();
-    }
-    
-    /**
-     * @covers Artax\Core\Handlers\Errors::handle
-     * @expectedException ErrorException
-     */
-    public function testHandleThrowsErrorException()
-    {
-        $obj = new Artax\Core\Handlers\Errors;
-        $obj->handle(E_NOTICE, 'test notice message', 'testFile.php', 42);
-    }
-    
     /**
      * @covers Artax\Core\Handlers\Errors::__construct
      */
-    public function testConstructorInitializesDebugProperty()
+    public function testConstructorInitializesDependencies()
     {
-        $obj = new ErrorsTestImplementation(FALSE);
-        $this->assertFalse($obj->debug);
+        $dp  = new Artax\Core\Ioc\Provider;
+        $med = $this->getMock('Artax\Core\Events\Mediator', NULL, [$dp]);
+        $obj = new ErrorsTestImplementation($med, TRUE);
+        $this->assertTrue($obj->debug);
+        $this->assertEquals($med, $obj->mediator);
     }
     
     /**
@@ -38,27 +19,32 @@ class ErrorsTest extends PHPUnit_Framework_TestCase
      */
     public function testRegisterReturnsObjectInstance()
     {
-        $eh = $this->getMock('Artax\Core\Handlers\Errors', ['handle']);
+        $dp  = new Artax\Core\Ioc\Provider;
+        $med = $this->getMock('Artax\Core\Events\Mediator', NULL, [$dp]);
+        
+        $eh = $this->getMock('Artax\Core\Handlers\Errors', ['handle'], [$med, FALSE]);
         $this->assertEquals($eh->register(), $eh);
         
-        $eh = $this->getMock('Artax\Core\Handlers\Errors', ['handle'], [FALSE]);
+        $eh = $this->getMock('Artax\Core\Handlers\Errors', ['handle'], [$med, TRUE]);
         $this->assertEquals($eh->register(), $eh);
     }
     
     /**
      * @covers Artax\Core\Handlers\Errors::handle
      */
-    public function testHandlerReturnsExpectedMessage()
+    public function testHandlerNotifiesMediatorOnError()
     {
-        $msg     = 'Notice: test notice message in testFile.php on line 42';
-        $exMsg = '';
-        $obj     = new Artax\Core\Handlers\Errors;
-        try {
-            $obj->handle(E_NOTICE, 'test notice message', 'testFile.php', 42);
-        } catch (ErrorException $e) {
-            $exMsg = $e->getMessage();
-        }
-        $this->assertEquals($msg, $exMsg);
+        $msg = 'Notice: test notice message in testFile.php on line 42';
+        $ex = new ErrorException($msg, E_NOTICE);
+        
+        $dp  = new Artax\Core\Ioc\Provider;
+        $med = $this->getMock('Artax\Core\Events\Mediator', ['notify'], [$dp]);
+        $med->expects($this->once())
+            ->method('notify')
+            ->with('error', $ex, TRUE);
+        
+        $eh = new Artax\Core\Handlers\Errors($med, TRUE);
+        $eh->handle(E_NOTICE, 'test notice message', 'testFile.php', 42);
     }
 }
 

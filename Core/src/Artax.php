@@ -61,14 +61,11 @@ if (!defined('AX_DEBUG')) {
 // setting `ARTAX_DIR` to an empty string if it's equal to the root directory.
 define('AX_SYSTEM_DIR', __DIR__ === '/' ? '' : __DIR__);
 
-/*
- * --------------------------------------------------------------------
- * EASE BOOT DEBUGGING: ERROR REPORTING SETTINGS CHANGED IN A BIT
- * --------------------------------------------------------------------
- */
-
-ini_set('display_errors', TRUE);
+// All errors are reported, even in production (but not displayed). The Artax 
+// error handler will broadcast an `error` event whenever a PHP error occurs and
+// you can set up a listener to determine how you want to handle the error.
 error_reporting(E_ALL);
+ini_set('display_errors', TRUE);
 ini_set('html_errors', FALSE);
 
 /*
@@ -76,12 +73,6 @@ ini_set('html_errors', FALSE);
  * LOAD REQUIRED ARTAX LIBS
  * --------------------------------------------------------------------
  */
-
-spl_autoload_register(function($class) {
-    if (0 === strpos($class, 'Artax\\')) {
-        require AX_SYSTEM_DIR . '/' . substr($class, 6) . '.php';
-    }
-});
 
 require AX_SYSTEM_DIR . '/Core/Ioc/ProviderInterface.php';
 require AX_SYSTEM_DIR . '/Core/Ioc/Provider.php';
@@ -96,15 +87,7 @@ require AX_SYSTEM_DIR . '/Core/Handlers/Termination.php';
 
 /*
  * --------------------------------------------------------------------
- * REGISTER CUSTOM ERROR HANDLER
- * --------------------------------------------------------------------
- */
- 
-(new Artax\Core\Handlers\Errors(AX_DEBUG))->register();
-
-/*
- * --------------------------------------------------------------------
- * BOOT THE EVENT MEDIATOR AND DEPENDENCY PROVIDER
+ * BOOT THE EVENT MEDIATOR & DEPENDENCY CONTAINER
  * --------------------------------------------------------------------
  */
 
@@ -114,11 +97,12 @@ $axDeps->share('Artax\Core\Events\Mediator', $artax);
 
 /*
  * --------------------------------------------------------------------
- * REGISTER TERMINATION HANDLERS
+ * REGISTER ERROR & TERMINATION HANDLERS
  * --------------------------------------------------------------------
  */
  
 (new Artax\Core\Handlers\Termination($artax, AX_DEBUG))->register();
+(new Artax\Core\Handlers\Errors($artax, AX_DEBUG))->register();
 
 if ('cli' === PHP_SAPI && function_exists('pcntl_signal')) {
     require AX_SYSTEM_DIR . '/Core/Handlers/PcntlInterruptException.php';

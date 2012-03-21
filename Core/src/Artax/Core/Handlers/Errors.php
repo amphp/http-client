@@ -12,15 +12,15 @@
  */
 
 namespace Artax\Core\Handlers;
-use ErrorException;
+use ErrorException,
+    Artax\Core\Events\MediatorInterface;
 
 /**
  * ErrorHandler Class
  * 
- * Defines a custom error handling function to throw an `ErrorException` on any
+ * Defines a custom error handling function notify event listeners upon any
  * raised PHP error (except fatals, of course). Fatal errors cannot be handled
- * by custom error handlers and are dealt with at the shutdown level by the
- * `Termination` handler class.
+ * by custom error handlers and are handled by the `Termination` class.
  * 
  * @category   Artax
  * @package    Core
@@ -35,16 +35,23 @@ class Errors implements ErrorsInterface
      */
     protected $debug;
     
+     /**
+     * An event mediator instance
+     * @var Mediator
+     */
+    protected $mediator;
+    
     /**
-     * Initialize error reporting settings and register the error handler
+     * Specify debug output flag and register exception/shutdown handlers
      * 
-     * @param bool $debug Determines system-wide error reporting levels
+     * @param bool $debug A boolean debug output flag
      * 
      * @return void
      */
-    public function __construct($debug = TRUE)
+    public function __construct(MediatorInterface $mediator, $debug)
     {
-        $this->debug = (bool) $debug;
+        $this->mediator = $mediator;
+        $this->debug    = (bool) $debug;
     }
     
     /**
@@ -81,41 +88,50 @@ class Errors implements ErrorsInterface
     public function register()
     {
         if (!$this->debug) {
-            error_reporting(E_ALL & ~ E_ERROR & ~E_DEPRECATED & ~E_STRICT);
             ini_set('display_errors', FALSE);
-        } else {
-            // error_reporting(E_ALL) is set in the Artax.php bootstrap file
-            ini_set('display_errors', TRUE);
         }
         set_error_handler([$this, 'handle']);
+        error_reporting(E_ALL & ~ E_ERROR);
         return $this;
     }
     
     /**
-     * Throw exceptions when PHP errors are raised
+     * Send an event when PHP errors are raised
      * 
-     * @param int    $errNo   The PHP error constant raised
+     * In the event a PHP error is raised, the handler creates a new ErrorException
+     * object with a summary message and integer code matching the value of the
+     * raised error's constant. Listeners can choose what to do, if anything,
+     * with the generated exception object.
+     * 
+     * Because all errors are reported but not displayed, the error event allows
+     * you to silently log low-priority errors such as E_DEPRECATED and E_STRICT
+     * as needed in production environments. Generally, listeners can simply throw
+     * the ErrorException object for higher-priority errors passed to `error`
+     * event listeners.
+     * 
+     * @param int    $errNo   The PHP error constant
      * @param string $errStr  The resulting PHP error message
      * @param string $errFile The file where the PHP error originated
      * @param int    $errLine The line in which the error occurred
      * 
      * @return void
-     * @throws ErrorException On raised PHP error
+     * @notifies error(ErrorException, bool)
      */
     public function handle($errNo, $errStr, $errFile, $errLine)
     {
         $levels = [
-          E_WARNING           => 'Warning',
-          E_NOTICE            => 'Notice',
-          E_USER_ERROR        => 'User Error',
-          E_USER_WARNING      => 'User Warning',
-          E_USER_NOTICE       => 'User Notice',
-          E_STRICT            => 'Runtime Notice',
-          E_RECOVERABLE_ERROR => 'Catchable Fatal Error',
-          E_DEPRECATED        => 'Deprecated Notice',
-          E_USER_DEPRECATED   => 'User Deprecated Notice'
+            E_WARNING           => 'Warning',
+            E_NOTICE            => 'Notice',
+            E_USER_ERROR        => 'User Error',
+            E_USER_WARNING      => 'User Warning',
+            E_USER_NOTICE       => 'User Notice',
+            E_STRICT            => 'Runtime Notice',
+            E_RECOVERABLE_ERROR => 'Catchable Fatal Error',
+            E_DEPRECATED        => 'Deprecated Notice',
+            E_USER_DEPRECATED   => 'User Deprecated Notice'
         ];
         $msg = $levels[$errNo] . ": $errStr in $errFile on line $errLine";
-        throw new ErrorException($msg);
+        $e   = new ErrorException($msg, $errNo);
+        $this->mediator->notify('error', $e, $this->debug);
     }
 }
