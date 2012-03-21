@@ -10,7 +10,7 @@
  * @subpackage Handlers
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-namespace Artax\Core\Handlers;
+namespace Artax\Handlers;
 
 /**
  * Handles Termination From Process Control Interrupts

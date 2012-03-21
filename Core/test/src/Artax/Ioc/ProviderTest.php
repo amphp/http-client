@@ -12,10 +12,10 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testBeginsEmpty
-     * @covers Artax\Core\Ioc\Provider::make
-     * @covers Artax\Core\Ioc\Provider::getInjectedInstance
-     * @covers Artax\Core\Ioc\Provider::getDepsSansDefinition
-     * @covers Artax\Core\Ioc\Provider::getDepsWithDefinition
+     * @covers Artax\Ioc\Provider::make
+     * @covers Artax\Ioc\Provider::getInjectedInstance
+     * @covers Artax\Ioc\Provider::getDepsSansDefinition
+     * @covers Artax\Ioc\Provider::getDepsWithDefinition
      */
     public function testMakeInjectsSimpleConcreteDeps($dp)
     {
@@ -25,9 +25,9 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testBeginsEmpty
-     * @covers Artax\Core\Ioc\Provider::make
-     * @covers Artax\Core\Ioc\Provider::getInjectedInstance
-     * @covers Artax\Core\Ioc\Provider::getDepsWithDefinition
+     * @covers Artax\Ioc\Provider::make
+     * @covers Artax\Ioc\Provider::getInjectedInstance
+     * @covers Artax\Ioc\Provider::getDepsWithDefinition
      */
     public function testMakeReturnsSharedInstanceIfSpecified($dp)
     {
@@ -46,9 +46,9 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testBeginsEmpty
-     * @covers Artax\Core\Ioc\Provider::make
-     * @covers Artax\Core\Ioc\Provider::getDepsSansDefinition
-     * @covers Artax\Core\Ioc\Provider::getDepsWithDefinition
+     * @covers Artax\Ioc\Provider::make
+     * @covers Artax\Ioc\Provider::getDepsSansDefinition
+     * @covers Artax\Ioc\Provider::getDepsWithDefinition
      * @expectedException InvalidArgumentException
      */
     public function testMakeThrowsExceptionOnConstructorMissingTypehintsSansDefinitions($dp)
@@ -59,9 +59,9 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testBeginsEmpty
-     * @covers Artax\Core\Ioc\Provider::make
-     * @covers Artax\Core\Ioc\Provider::getInjectedInstance
-     * @covers Artax\Core\Ioc\Provider::getDepsWithDefinition
+     * @covers Artax\Ioc\Provider::make
+     * @covers Artax\Ioc\Provider::getInjectedInstance
+     * @covers Artax\Ioc\Provider::getDepsWithDefinition
      * @expectedException InvalidArgumentException
      */
     public function testMakeThrowsExceptionOnMissingDefinitionParams($dp)
@@ -72,9 +72,9 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testBeginsEmpty
-     * @covers Artax\Core\Ioc\Provider::make
-     * @covers Artax\Core\Ioc\Provider::getInjectedInstance
-     * @covers Artax\Core\Ioc\Provider::getDepsWithDefinition
+     * @covers Artax\Ioc\Provider::make
+     * @covers Artax\Ioc\Provider::getInjectedInstance
+     * @covers Artax\Ioc\Provider::getDepsWithDefinition
      * @expectedException InvalidArgumentException
      */
     public function testMakeThrowsExceptionOnDefinitionParamOfIncorrectType($dp)
@@ -85,9 +85,9 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testBeginsEmpty
-     * @covers Artax\Core\Ioc\Provider::make
-     * @covers Artax\Core\Ioc\Provider::getInjectedInstance
-     * @covers Artax\Core\Ioc\Provider::getDepsWithDefinition
+     * @covers Artax\Ioc\Provider::make
+     * @covers Artax\Ioc\Provider::getInjectedInstance
+     * @covers Artax\Ioc\Provider::getDepsWithDefinition
      */
     public function testMakeUsesInstanceDefinitionParamIfSpecified($dp)
     {
@@ -97,9 +97,9 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testBeginsEmpty
-     * @covers Artax\Core\Ioc\Provider::make
-     * @covers Artax\Core\Ioc\Provider::getInjectedInstance
-     * @covers Artax\Core\Ioc\Provider::getDepsWithDefinition
+     * @covers Artax\Ioc\Provider::make
+     * @covers Artax\Ioc\Provider::getInjectedInstance
+     * @covers Artax\Ioc\Provider::getDepsWithDefinition
      */
     public function testMakeUsesCustomDefinitionIfSpecified($dp)
     {
@@ -111,7 +111,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testBeginsEmpty
-     * @covers Artax\Core\Ioc\Provider::define
+     * @covers Artax\Ioc\Provider::define
      */
     public function testDefineAssignsPassedDefinition($dp)
     {
@@ -124,7 +124,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testBeginsEmpty
-     * @covers Artax\Core\Ioc\Provider::define
+     * @covers Artax\Ioc\Provider::define
      */
     public function testDefineRemovesSharedInstanceIfNewDefinitionIsNotShared($dp)
     {
@@ -137,7 +137,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testBeginsEmpty
-     * @covers Artax\Core\Ioc\Provider::defineAll
+     * @covers Artax\Ioc\Provider::defineAll
      * @expectedException InvalidArgumentException
      */
     public function testDefineAllThrowsExceptionOnInvalidIterable($dp)
@@ -147,7 +147,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testBeginsEmpty
-     * @covers Artax\Core\Ioc\Provider::defineAll
+     * @covers Artax\Ioc\Provider::defineAll
      */
     public function testDefineAllAssignsPassedDefinitionsAndReturnsAddedCount($dp)
     {
@@ -165,7 +165,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testBeginsEmpty
-     * @covers Artax\Core\Ioc\Provider::remove
+     * @covers Artax\Ioc\Provider::remove
      */
     public function testRemoveClearsDefinitionAndSharedInstanceAndReturnsProvider($dp)
     {
@@ -180,7 +180,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testBeginsEmpty
-     * @covers Artax\Core\Ioc\Provider::removeAll
+     * @covers Artax\Ioc\Provider::removeAll
      */
     public function testRemoveAllClearsDefinitionAndSharedInstancesAndReturnsProvider($dp)
     {
@@ -198,7 +198,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testBeginsEmpty
-     * @covers Artax\Core\Ioc\Provider::refresh
+     * @covers Artax\Ioc\Provider::refresh
      */
     public function testRefreshClearsSharedInstancesAndReturnsProvider($dp)
     {
@@ -214,7 +214,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testBeginsEmpty
-     * @covers Artax\Core\Ioc\Provider::isShared
+     * @covers Artax\Ioc\Provider::isShared
      */
     public function testIsSharedReturnsSharedStatus($dp)
     {
@@ -229,7 +229,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testBeginsEmpty
-     * @covers Artax\Core\Ioc\Provider::isDefined
+     * @covers Artax\Ioc\Provider::isDefined
      */
     public function testIsDefinedReturnsDefinedStatus($dp)
     {
@@ -241,11 +241,11 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testBeginsEmpty
-     * @covers Artax\Core\Ioc\Provider::offsetSet
+     * @covers Artax\Ioc\Provider::offsetSet
      */
     public function testOffsetSetCallsDefine($dp)
     {
-        $stub = $this->getMock('Artax\Core\Ioc\Provider', ['define']);
+        $stub = $this->getMock('Artax\Ioc\Provider', ['define']);
         $stub->expects($this->once())
              ->method('define');
         $stub['TestNeedsDep'] = ['_shared'];
@@ -253,11 +253,11 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testBeginsEmpty
-     * @covers Artax\Core\Ioc\Provider::offsetUnset
+     * @covers Artax\Ioc\Provider::offsetUnset
      */
     public function testOffsetUnsetCallsRemove($dp)
     {
-        $stub = $this->getMock('Artax\Core\Ioc\Provider', ['remove']);
+        $stub = $this->getMock('Artax\Ioc\Provider', ['remove']);
         $stub->expects($this->once())
              ->method('remove');
         $stub['TestNeedsDep'] = ['_shared'];
@@ -266,7 +266,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testBeginsEmpty
-     * @covers Artax\Core\Ioc\Provider::offsetExists
+     * @covers Artax\Ioc\Provider::offsetExists
      */
     public function testOffsetExistsReturnsExpected($dp)
     {
@@ -278,7 +278,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testBeginsEmpty
-     * @covers Artax\Core\Ioc\Provider::offsetGet
+     * @covers Artax\Ioc\Provider::offsetGet
      */
     public function testOffsetGetReturnsExpected($dp)
     {
@@ -290,7 +290,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testBeginsEmpty
-     * @covers Artax\Core\Ioc\Provider::share
+     * @covers Artax\Ioc\Provider::share
      */
     public function testShareStoresSharedDependencyAndReturnsChainableInstance($dp)
     {
@@ -303,17 +303,17 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testBeginsEmpty
-     * @covers Artax\Core\Ioc\Provider::share
+     * @covers Artax\Ioc\Provider::share
      * @expectedException InvalidArgumentException
      */
     public function testShareThrowsExceptionOnInvalidArgument($dp)
     {
         $testShare = new StdClass;
-        $dp->share('Artax\Core\Events\Mediator', $testShare);
+        $dp->share('Artax\Events\Mediator', $testShare);
     }
 }
 
-class ProviderCoverageTest extends Artax\Core\Ioc\Provider
+class ProviderCoverageTest extends Artax\Ioc\Provider
 {
     use MagicTestGetTrait;
 }

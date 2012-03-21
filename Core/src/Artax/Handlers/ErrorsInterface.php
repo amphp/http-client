@@ -11,7 +11,7 @@
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace Artax\Core\Handlers;
+namespace Artax\Handlers;
 
 /**
  * Provides an interface for specifying custom error handlers.

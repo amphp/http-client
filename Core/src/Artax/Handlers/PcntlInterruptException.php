@@ -11,7 +11,7 @@
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace Artax\Core\Handlers;
+namespace Artax\Handlers;
 
 /**
  * Exception thrown when termination is requested via PCNTL

@@ -11,9 +11,9 @@
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace Artax\Core\Handlers;
+namespace Artax\Handlers;
 use ErrorException,
-    Artax\Core\Events\MediatorInterface;
+    Artax\Events\MediatorInterface;
 
 /**
  * ErrorHandler Class
@@ -67,7 +67,7 @@ class Errors implements ErrorsInterface
      * to note that when employing this method there should also be an appropriate
      * shutdown function registered to collect information regarding the `E_ERROR`
      * that was raised. Otherwise the script will simply terminate and you'll 
-     * have no inkling as to why. The built-in `Artax\Core\Handlers\Termination` 
+     * have no inkling as to why. The built-in `Artax\Handlers\Termination` 
      * class accomplishes this for you.
      * 
      * Obviously, in production environments it's always prudent to hide any 

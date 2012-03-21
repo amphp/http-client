@@ -11,7 +11,7 @@
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace Artax\Core\Ioc;
+namespace Artax\Ioc;
   
 /**
  * Specifies a front-facing interface for dependency providers.

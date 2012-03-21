@@ -11,7 +11,7 @@
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace Artax\Core\Events;
+namespace Artax\Events;
   
 /**
  * MediatorInterface

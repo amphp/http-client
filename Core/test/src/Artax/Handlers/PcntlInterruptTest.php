@@ -3,7 +3,7 @@
 class PcntlInterruptTest extends PHPUnit_Framework_TestCase
 {
     /**
-     * @covers Artax\Core\Handlers\PcntlInterrupt::__construct
+     * @covers Artax\Handlers\PcntlInterrupt::__construct
      */
     public function testBeginsEmpty()
     {
@@ -18,7 +18,7 @@ class PcntlInterruptTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers Artax\Core\Handlers\PcntlInterrupt::register
+     * @covers Artax\Handlers\PcntlInterrupt::register
      */
     public function testRegisterAssignsSignalHandlers()
     {
@@ -27,8 +27,8 @@ class PcntlInterruptTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers Artax\Core\Handlers\PcntlInterrupt::handle
-     * @expectedException Artax\Core\Handlers\PcntlInterruptException
+     * @covers Artax\Handlers\PcntlInterrupt::handle
+     * @expectedException Artax\Handlers\PcntlInterruptException
      */
     public function testHandleThrowsExceptionWhenCalled()
     {
@@ -37,7 +37,7 @@ class PcntlInterruptTest extends PHPUnit_Framework_TestCase
     }
 }
 
-class PcntlInterruptImplementationClass extends Artax\Core\Handlers\PcntlInterrupt
+class PcntlInterruptImplementationClass extends Artax\Handlers\PcntlInterrupt
 {
     use MagicTestGetTrait;
 }

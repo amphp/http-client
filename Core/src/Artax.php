@@ -63,7 +63,7 @@ define('AX_SYSTEM_DIR', __DIR__ === '/' ? '' : __DIR__);
 
 // All errors are reported, even in production (but not displayed). The Artax 
 // error handler will broadcast an `error` event whenever a PHP error occurs and
-// you can set up a listener to determine how you want to handle the error.
+// you can set up listeners to determine how you want to handle the error.
 error_reporting(E_ALL);
 ini_set('display_errors', TRUE);
 ini_set('html_errors', FALSE);
@@ -74,16 +74,16 @@ ini_set('html_errors', FALSE);
  * --------------------------------------------------------------------
  */
 
-require AX_SYSTEM_DIR . '/Core/Ioc/ProviderInterface.php';
-require AX_SYSTEM_DIR . '/Core/Ioc/Provider.php';
-require AX_SYSTEM_DIR . '/Core/Events/MediatorInterface.php';
-require AX_SYSTEM_DIR . '/Core/Events/Mediator.php';
-require AX_SYSTEM_DIR . '/Core/Handlers/FatalErrorException.php';
-require AX_SYSTEM_DIR . '/Core/Handlers/ScriptHaltException.php';
-require AX_SYSTEM_DIR . '/Core/Handlers/ErrorsInterface.php';
-require AX_SYSTEM_DIR . '/Core/Handlers/Errors.php';
-require AX_SYSTEM_DIR . '/Core/Handlers/TerminationInterface.php';
-require AX_SYSTEM_DIR . '/Core/Handlers/Termination.php';
+require AX_SYSTEM_DIR . '/Ioc/ProviderInterface.php';
+require AX_SYSTEM_DIR . '/Ioc/Provider.php';
+require AX_SYSTEM_DIR . '/Events/MediatorInterface.php';
+require AX_SYSTEM_DIR . '/Events/Mediator.php';
+require AX_SYSTEM_DIR . '/Handlers/FatalErrorException.php';
+require AX_SYSTEM_DIR . '/Handlers/ScriptHaltException.php';
+require AX_SYSTEM_DIR . '/Handlers/ErrorsInterface.php';
+require AX_SYSTEM_DIR . '/Handlers/Errors.php';
+require AX_SYSTEM_DIR . '/Handlers/TerminationInterface.php';
+require AX_SYSTEM_DIR . '/Handlers/Termination.php';
 
 /*
  * --------------------------------------------------------------------
@@ -91,9 +91,9 @@ require AX_SYSTEM_DIR . '/Core/Handlers/Termination.php';
  * --------------------------------------------------------------------
  */
 
-$axDeps = new Artax\Core\Ioc\Provider;
-$artax  = new Artax\Core\Events\Mediator($axDeps);
-$axDeps->share('Artax\Core\Events\Mediator', $artax);
+$axDeps = new Artax\Ioc\Provider;
+$artax  = new Artax\Events\Mediator($axDeps);
+$axDeps->share('Artax\Events\Mediator', $artax);
 
 /*
  * --------------------------------------------------------------------
@@ -101,12 +101,12 @@ $axDeps->share('Artax\Core\Events\Mediator', $artax);
  * --------------------------------------------------------------------
  */
  
-(new Artax\Core\Handlers\Termination($artax, AX_DEBUG))->register();
-(new Artax\Core\Handlers\Errors($artax, AX_DEBUG))->register();
+(new Artax\Handlers\Termination($artax, AX_DEBUG))->register();
+(new Artax\Handlers\Errors($artax, AX_DEBUG))->register();
 
 if ('cli' === PHP_SAPI && function_exists('pcntl_signal')) {
-    require AX_SYSTEM_DIR . '/Core/Handlers/PcntlInterruptException.php';
-    require AX_SYSTEM_DIR . '/Core/Handlers/PcntlInterrupt.php';
-    (new Artax\Core\Handlers\PcntlInterrupt)->register();
+    require AX_SYSTEM_DIR . '/Handlers/PcntlInterruptException.php';
+    require AX_SYSTEM_DIR . '/Handlers/PcntlInterrupt.php';
+    (new Artax\Handlers\PcntlInterrupt)->register();
 }
 

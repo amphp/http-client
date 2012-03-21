@@ -11,9 +11,9 @@
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace Artax\Core\Events;
+namespace Artax\Events;
 
-use Artax\Core\Ioc\Provider,
+use Artax\Ioc\Provider,
     InvalidArgumentException,
     ArrayAccess,
     Traversable,
@@ -36,7 +36,7 @@ use Artax\Core\Ioc\Provider,
  * A simple example:
  * 
  * ```php
- * $mediator = new Artax\Core\Events\Mediator;
+ * $mediator = new Artax\Events\Mediator;
  * $mediator->push('my_event_name', function() {
  *     echo 'My first mediated event!' . PHP_EOL;
  * });
@@ -98,7 +98,7 @@ class Mediator implements MediatorInterface
      * 
      * If no dependency provider is specified, a factory is used to create one.
      * 
-     * @param Artax\Core\Ioc\Provider $provider A dependency provider instance for
+     * @param Artax\Ioc\Provider $provider A dependency provider instance for
      *                                     lazy-loading object listeners
      * 
      * @return void

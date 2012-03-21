@@ -10,8 +10,8 @@
  * @subpackage Handlers
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-namespace Artax\Core\Handlers;
-use Artax\Core\Events\MediatorInterface,
+namespace Artax\Handlers;
+use Artax\Events\MediatorInterface,
     Exception;
 
 /**

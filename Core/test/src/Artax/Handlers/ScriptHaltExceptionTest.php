@@ -3,11 +3,11 @@
 class ScriptHaltExceptionTest extends PHPUnit_Framework_TestCase
 {
   /**
-   * @covers Artax\Core\Handlers\ScriptHaltException
+   * @covers Artax\Handlers\ScriptHaltException
    */
   public function testScriptHaltExceptionIsRuntimeException()
   {
-    $e = new Artax\Core\Handlers\ScriptHaltException();
+    $e = new Artax\Handlers\ScriptHaltException();
     $this->assertInstanceOf('RuntimeException', $e);
   }
 }

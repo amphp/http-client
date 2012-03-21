@@ -11,7 +11,7 @@
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace Artax\Core\Handlers;
+namespace Artax\Handlers;
 
 /**
  * Internal exception used when a fatal E_ERROR terminates script execution
