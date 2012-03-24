@@ -1,3 +1,6 @@
 [submodule "Http"]
 	path = Http
 	url = git@github.com:rdlowrey/Artax-HTTP.git
+[submodule "Log"]
+	path = Log
+	url = git@github.com:rdlowrey/Artax-Log.git
