@@ -41,7 +41,7 @@
 
 /*
  * --------------------------------------------------------------------
- * CHECK CONSTANTS & DEFINE AX_SYSTEM_DIR
+ * CHECK CONSTANTS & DEFINE AX_SYSDIR
  * --------------------------------------------------------------------
  */
 
@@ -55,15 +55,12 @@ if (!defined('AX_DEBUG')) {
     define('AX_DEBUG', FALSE);
 }
 
-// By convention Artax lib paths are resolved with a leading slash relative to 
-// directory constants. Meanwhile, the `__DIR__` magic constant will return `/`
-// if the directory is root. We avoid problems when using the root directory by
-// setting `ARTAX_DIR` to an empty string if it's equal to the root directory.
-define('AX_SYSTEM_DIR', __DIR__ === '/' ? '' : __DIR__);
+define('AX_SYSDIR', dirname(__DIR__));
+
 
 // All errors are reported, even in production (but not displayed). The Artax 
-// error handler will broadcast an `error` event whenever a PHP error occurs and
-// you can set up listeners to determine how you want to handle the error.
+// error handler will broadcast an `error` event whenever a PHP error occurs
+// and you can set up listeners to determine how you want to handle the error.
 error_reporting(E_ALL);
 ini_set('display_errors', TRUE);
 ini_set('html_errors', FALSE);
@@ -74,16 +71,16 @@ ini_set('html_errors', FALSE);
  * --------------------------------------------------------------------
  */
 
-require AX_SYSTEM_DIR . '/Ioc/ProviderInterface.php';
-require AX_SYSTEM_DIR . '/Ioc/Provider.php';
-require AX_SYSTEM_DIR . '/Events/MediatorInterface.php';
-require AX_SYSTEM_DIR . '/Events/Mediator.php';
-require AX_SYSTEM_DIR . '/Handlers/FatalErrorException.php';
-require AX_SYSTEM_DIR . '/Handlers/ScriptHaltException.php';
-require AX_SYSTEM_DIR . '/Handlers/ErrorsInterface.php';
-require AX_SYSTEM_DIR . '/Handlers/Errors.php';
-require AX_SYSTEM_DIR . '/Handlers/TerminationInterface.php';
-require AX_SYSTEM_DIR . '/Handlers/Termination.php';
+require AX_SYSDIR . '/Core/src/Artax/Ioc/ProviderInterface.php';
+require AX_SYSDIR . '/Core/src/Artax/Ioc/Provider.php';
+require AX_SYSDIR . '/Core/src/Artax/Events/MediatorInterface.php';
+require AX_SYSDIR . '/Core/src/Artax/Events/Mediator.php';
+require AX_SYSDIR . '/Core/src/Artax/Handlers/FatalErrorException.php';
+require AX_SYSDIR . '/Core/src/Artax/Handlers/ScriptHaltException.php';
+require AX_SYSDIR . '/Core/src/Artax/Handlers/ErrorsInterface.php';
+require AX_SYSDIR . '/Core/src/Artax/Handlers/Errors.php';
+require AX_SYSDIR . '/Core/src/Artax/Handlers/TerminationInterface.php';
+require AX_SYSDIR . '/Core/src/Artax/Handlers/Termination.php';
 
 /*
  * --------------------------------------------------------------------
@@ -105,8 +102,23 @@ $axDeps->share('Artax\Events\Mediator', $artax);
 (new Artax\Handlers\Errors($artax, AX_DEBUG))->register();
 
 if ('cli' === PHP_SAPI && function_exists('pcntl_signal')) {
-    require AX_SYSTEM_DIR . '/Handlers/PcntlInterruptException.php';
-    require AX_SYSTEM_DIR . '/Handlers/PcntlInterrupt.php';
+    require AX_SYSDIR . '/Core/src/Artax/Handlers/PcntlInterruptException.php';
+    require AX_SYSDIR . '/Core/src/Artax/Handlers/PcntlInterrupt.php';
     (new Artax\Handlers\PcntlInterrupt)->register();
 }
 
+/*
+ * --------------------------------------------------------------------
+ * REGISTER ARTAX AUTOLOADER
+ * --------------------------------------------------------------------
+ */
+
+spl_autoload_register(function($cls) {
+    if (0 === strpos($cls, 'Artax\\')) {
+        $core = ['Events', 'Handlers', 'Ioc'];
+        $pkg  = explode('\\', $cls)[1];
+        $pkg  = in_array($pkg, $core) ? 'Core' : $pkg;
+        $cls  = str_replace('\\', '/', $cls);        
+        require AX_SYSDIR . "/$pkg/src/$cls.php";
+    }
+});
