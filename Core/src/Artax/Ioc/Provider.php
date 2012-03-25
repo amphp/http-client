@@ -457,7 +457,6 @@ class Provider implements ProviderInterface, ArrayAccess
     protected function getDepsSansDefinition($class, array $args)
     {
         $deps = [];
-        
         for ($i=0; $i<count($args); $i++) {
             if (!$param = $args[$i]->getClass()) {
                 throw new InvalidArgumentException(
@@ -465,11 +464,10 @@ class Provider implements ProviderInterface, ArrayAccess
                     .'for argument' . $i+1
                 );
             } else {
-                $deps[] = isset($this->shared[$class])
-                    ? $this->shared[$class]
-                    : new $param->name;
+                $deps[] = $this->make($param->name);
             }
         }
+        
         return $deps;
     }
     
