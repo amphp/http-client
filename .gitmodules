@@ -1,9 +1,0 @@
-[submodule "Http"]
-	path = Http
-	url = git@github.com:rdlowrey/Artax-Http.git
-[submodule "Log"]
-	path = Log
-	url = git@github.com:rdlowrey/Artax-Log.git
-[submodule "Core"]
-	path = Core
-	url = git://github.com/rdlowrey/Artax-Core.git
