@@ -1,10 +1,13 @@
 ### WHAT IS IT?
 
-**Artax** is a collection of PHP components built around an event-driven
-application scaffold ([Artax-Core][core-repo]). Each individual Artax
-component is a standalone element that can operate independently of the
-other Artax packages.
+**Artax** is a baseline scaffold for creating event-driven PHP 5.4+ applications
 
+### FEATURES
+
+* Mediated [event management][wiki-events] for pluggable applications
+* Built-in [dependency injection][wiki-dic]
+* Lazy-loading of class-based event listeners
+* Unified application [error, exception and shutdown][wiki-errors] event handling
 
 ### PROJECT GOALS
 
@@ -18,10 +21,6 @@ full API transparency;
 organized lambda usage in evented systems;
 * Build all components using [SOLID][solid], readable, documented and 100% 
 unit-tested code.
-
-### REQUIREMENTS
-
-PHP 5.4+
 
 ### WHAT'S WITH THE NAME?
 
@@ -50,6 +49,9 @@ package. There are no "helper" libraries for generating emoticons or HTML
 forms: just a SOLID, readable, documented, unit-tested scaffold for writing
 event-driven and pluggable PHP applications.
 
-[core-repo]: https://github.com/rdlowrey/Artax-Core "Artax-Core"
 [solid]: http://en.wikipedia.org/wiki/SOLID_(object-oriented_design) "S.O.L.I.D."
 [neverending]: http://www.imdb.com/title/tt0088323/ "The NeverEnding Story"
+[wiki-events]: https://github.com/rdlowrey/Artax/wiki/Event-Management
+[wiki-dic]: https://github.com/rdlowrey/Artax/wiki/Dependency-Injection
+[wiki-errors]: https://github.com/rdlowrey/Artax/wiki/Error-Management
+
