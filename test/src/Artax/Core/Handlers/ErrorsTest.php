@@ -35,7 +35,7 @@ class ErrorsTest extends PHPUnit_Framework_TestCase
     public function testHandlerNotifiesMediatorOnError()
     {
         ob_start();
-        $msg = 'Notice: test notice message in testFile.php on line 42';
+        $msg = 'test notice message in testFile.php on line 42';
         $ex = new ErrorException($msg, E_NOTICE);
         
         $dp  = new Artax\Core\Provider;
