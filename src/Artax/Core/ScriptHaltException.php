@@ -7,11 +7,11 @@
  * 
  * @category   Artax
  * @package    Core
- * @subpackage Handlers
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace Artax\Core\Handlers;
+namespace Artax\Core;
+use RuntimeException;
 
 /**
  * Exception purposefully thrown to end script execution
@@ -23,9 +23,8 @@ namespace Artax\Core\Handlers;
  * 
  * @category   Artax
  * @package    Core
- * @subpackage Handlers
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-class ScriptHaltException extends \RuntimeException
+class ScriptHaltException extends RuntimeException
 {
 }

@@ -278,15 +278,20 @@ class Mediator implements MediatorInterface
     public function notify($event)
     {
         if ($count = $this->count($event)) {
+            
             if (1 == func_num_args()) {
                 $args = NULL;
             } else {
                 $args = func_get_args();
                 array_shift($args);
             }
+            
             for ($i=0; $i<$count; $i++) {
+            
                 if (is_string($this->listeners[$event][$i])) {
+                
                     $func = $this->provider->make($this->listeners[$event][$i]);
+                    
                 } elseif ((is_array($this->listeners[$event][$i])
                     && isset($this->listeners[$event][$i][1])
                     && is_array($this->listeners[$event][$i][1]))
@@ -295,14 +300,18 @@ class Mediator implements MediatorInterface
                         $this->listeners[$event][$i][1]
                     );
                 } else {
+                    
                     $func = $this->listeners[$event][$i];
-                }                
+                    
+                }
+                
                 $result = $args ? call_user_func_array($func, $args) : $func();
                 if ($result === FALSE) {
                     return $i+1;
                 }
             }
         }
+        
         return $count;
     }
     

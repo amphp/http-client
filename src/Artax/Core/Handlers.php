@@ -1,23 +1,21 @@
 <?php
 
 /**
- * Artax Termination Class File
+ * Artax Handlers Class File
  *
  * PHP version 5.4
  *
  * @category   Artax
  * @package    Core
- * @subpackage Handlers
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-namespace Artax\Core\Handlers;
-use Artax\Core\MediatorInterface,
-    Exception;
+namespace Artax\Core;
+use Exception, ErrorException;
 
 /**
- * Termination Event Hander Class
+ * Provides error, uncaught exception and shutdown handling
  *
- * The Termination handler uses the event Mediator to enable unified, evented
+ * The Handlers class uses the event Mediator to enable unified, evented
  * handling for PHP errors, fatal shutdowns and uncaught exceptions as well as
  * normal shutdown events.
  * 
@@ -52,48 +50,104 @@ use Artax\Core\MediatorInterface,
  * For more detailed information check out the relevant wiki page over on github:
  * https://github.com/rdlowrey/Artax/wiki/Error-Management
  * 
+ * ### Crazy voodoo to allow extreme edge-case E_ERROR exception handling
+ * 
+ * Dear PHP: you're so awesome. In extreme fatal error scenarios the normal
+ * stack of custom error, exception and shutdown function registrations
+ * is insufficient to treat fatal errors like uncaught exceptions. The 
+ * only known example (at the time of this writing) is a situation in which 
+ * a normal E_NOTICE is tied to an E_ERROR by trying to call a method on
+ * a non-existent variable:
+ * 
+ *     $varThatDoesntExist->imaginaryMethod();
+ * 
+ * The non-existent variable results in an E_NOTICE, which normally wouldn't
+ * be a problem. The issue arises because calling a member function on a
+ * non-object is a fatal E_ERROR. The custom error handler function can't
+ * pull out of the E_NOTICE in time to handle the fatal error like an 
+ * exception for graceful shutdown.
+ * 
  * @category   Artax
  * @package    Core
- * @subpackage Handlers
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-class Termination implements TerminationInterface
+class Handlers implements HandlersInterface
 {
     /**
      * Flag specifying if full debug output should be shown when problems arise
      * @var bool
      */
-    protected $debug;
+    private $debug;
+    
+    /**
+     * Helper flag for extraordinary fatal error conditions
+     * @var bool
+     */
+    private $errChain = FALSE;
     
     /**
      * An event mediator instance
      * @var Mediator
      */
-    protected $mediator;
+    private $mediator;
     
     /**
      * Specify debug output flag and register exception/shutdown handlers
      * 
-     * @param bool $debug A boolean debug output flag
+     * @param bool              $debug    An app-wide boolean debug flag
+     * @param MediatorInterface $mediator An event mediator instance
      * 
      * @return void
      */
-    public function __construct(MediatorInterface $mediator, $debug)
+    public function __construct($debug, MediatorInterface $mediator)
     {
-        $this->mediator = $mediator;
         $this->debug    = (bool) $debug;
+        $this->mediator = $mediator;
     }
     
     /**
-     * Register the custom exception and shutdown handlers
+     * Notify event listeners when PHP errors are raised
      * 
-     * @return Termination Returns object instance for method chaining.
+     * In the event a PHP error is raised, the handler creates an `ErrorException` 
+     * object with a summary message and integer code matching the value of the
+     * raised error's constant. Listeners can choose what to do, if anything,
+     * with the generated exception object.
+     * 
+     * Because all errors are reported, the error event allows you to specify
+     * event listeners that silently log low-priority errors such as 
+     * `E_DEPRECATED` and `E_STRICT` as needed in production environments.
+     * Generally, listeners can simply throw the `ErrorException` object for
+     * higher-priority errors passed to `error` event listeners.
+     * 
+     * When no error event listeners are specified: ALL raw error messages 
+     * are output to the client if DEBUG mode is turned on. If DEBUG mode is
+     * turned off and no error listeners are registered, non-fatal PHP errors
+     * are silently ignored.
+     * 
+     * @param int    $errNo   The PHP error constant
+     * @param string $errStr  The resulting PHP error message
+     * @param string $errFile The file where the PHP error originated
+     * @param int    $errLine The line in which the error occurred
+     * 
+     * @return void
+     * @notifies error(ErrorException, bool)
      */
-    public function register()
+    public function error($errNo, $errStr, $errFile, $errLine)
     {
-        set_exception_handler([$this, 'exception']);
-        register_shutdown_function([$this, 'shutdown']);
-        return $this;
+        $msg = "$errStr in $errFile on line $errLine";
+        $e   = new ErrorException($msg, $errNo);
+        
+        try {
+            $count = $this->mediator->notify('error', $e, $this->debug);
+            if (!$count && $this->debug) {
+                echo $msg;
+            }
+        } catch (Exception $e) {
+            $this->errChain = TRUE;
+            $this->exception($e);
+            $this->shutdown();
+            throw new ScriptHaltException;
+        }
     }
     
     /**
@@ -112,10 +166,10 @@ class Termination implements TerminationInterface
      * @param Exception $e Exception object
      *
      * @return void
-     * @uses Termination::setException
-     * @notifies exception(\Exception $e, bool $debug)
+     * @uses Handlers::setException
+     * @notifies exception(Exception $e, bool $debug)
      */
-    public function exception(\Exception $e)
+    public function exception(Exception $e)
     {
         if ($e instanceof ScriptHaltException) {
             return;
@@ -144,13 +198,26 @@ class Termination implements TerminationInterface
             echo $this->defaultHandlerMsg($e);
         }
     }
+    
+    /**
+     * Register the custom exception and shutdown handlers
+     * 
+     * @return Handlers Returns object instance
+     */
+    public function register()
+    {
+        set_error_handler([$this, 'error']);
+        set_exception_handler([$this, 'exception']);
+        register_shutdown_function([$this, 'shutdown']);
+        return $this;
+    }
 
     /**
      * Handle unexpected fatal errors and/or notify listeners of shutdown
      * 
      * If script shutdown was caused by a fatal PHP error, the error is used to 
      * generate a corresponding `FatalErrorException` object which is then passed
-     * to `Termination::exception` for handling.
+     * to `Handlers::exception` for handling.
      * 
      * The mediator is notified on shutdown so that any interested
      * listeners can act appropriately. If an event listener invoked by the
@@ -158,12 +225,16 @@ class Termination implements TerminationInterface
      * and script execution will cease immediately without sending further output.
      * 
      * @return void
-     * @uses Termination::getFatalErrorException
-     * @uses Termination::exception
+     * @uses Handlers::getFatalErrorException
+     * @uses Handlers::exception
      * @notifies shutdown()
      */
     public function shutdown()
     {
+        if ($this->errChain) {
+            return;
+        }
+        
         if ($e = $this->getFatalErrorException()) {
             $this->exception($e);
         } else {
@@ -182,12 +253,12 @@ class Termination implements TerminationInterface
      * 
      * If the last occuring error during script execution was fatal the function
      * returns an `ErrorException` object representing the error so it can be
-     * handled by `Termination::exception`.
+     * handled by `Handlers::exception`.
      * 
      * @return mixed Returns NULL if no error occurred or a non-fatal error was 
      *               raised. An ErrorException is returned if the last error
      *               raised was fatal.
-     * @used-by Termination::shutdown
+     * @used-by Handlers::shutdown
      */
     public function getFatalErrorException()
     {
@@ -202,7 +273,7 @@ class Termination implements TerminationInterface
             E_COMPILE_ERROR   => 'Compile Error',
             E_COMPILE_WARNING => 'Compile Warning'
         ];
-      
+        
         if (isset($fatals[$err['type']])) {
             $msg = $fatals[$err['type']] . ': ' . $err['message'] . ' in ';
             $msg.= $err['file'] . ' on line ' . $err['line'];
@@ -218,7 +289,7 @@ class Termination implements TerminationInterface
      * of its behavior.
      * 
      * @return array Returns an associative error representation array
-     * @used-by Termination::getFatalErrorException
+     * @used-by Handlers::getFatalErrorException
      */
     protected function lastError()
     {
@@ -233,7 +304,7 @@ class Termination implements TerminationInterface
      * @return string Returns a debug message if appropriate or NULL if the 
      *                application debug flag is turned off.
      */
-    protected function defaultHandlerMsg(\Exception $e)
+    protected function defaultHandlerMsg(Exception $e)
     {
         return $this->debug ? (string) $e : NULL;
     }

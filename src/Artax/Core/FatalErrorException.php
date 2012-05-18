@@ -7,11 +7,11 @@
  * 
  * @category   Artax
  * @package    Core
- * @subpackage Handlers
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace Artax\Core\Handlers;
+namespace Artax\Core;
+use RuntimeException;
 
 /**
  * Internal exception used when a fatal E_ERROR terminates script execution
@@ -29,9 +29,8 @@ namespace Artax\Core\Handlers;
  * 
  * @category   Artax
  * @package    Core
- * @subpackage Handlers
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-class FatalErrorException extends \RuntimeException
+class FatalErrorException extends RuntimeException
 {
 }

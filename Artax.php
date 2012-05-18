@@ -37,6 +37,10 @@
  * @author   Daniel Lowrey <rdlowrey@gmail.com>
  */
 
+use Artax\Core\Provider,
+    Artax\Core\Mediator,
+    Artax\Core\Handlers;
+
 /*
  * --------------------------------------------------------------------
  * CHECK FOR 5.4+ & DEFINE AX_DEBUG/AX_SYSDIR CONSTANTS
@@ -57,21 +61,18 @@ define('AX_SYSDIR', __DIR__);
  * --------------------------------------------------------------------
  * SET ERROR REPORTING LEVELS
  * --------------------------------------------------------------------
- */
-
-/*
- * The `display_errors` directive is always set to FALSE, even in DEBUG
- * mode. The built-in Artax error handler turns all PHP errors into
- * `ErrorException` objects which are passed to listeners assigned to the 
- * system `error` event. It's up to you how to handle these events. If no
- * `error` listeners are attached, PHP errors will simply be ignored. This
- * is not recommended, obviously, and you should specify an event listener 
- * to handle PHP errors. The normal behavior is for error listeners to 
- * simply throw the `ErrorException` object. `error` listeners are also
- * passed a DEBUG flag so that handler behavior can be modified according
- * to the code environment (dev/production).
  * 
- * Why turn off error reporting for E_ERROR?
+ * The built-in Artax error handler turns all PHP errors into
+ * `ErrorException` objects which are passed to listeners assigned to the 
+ * system `error` event. Handling error events is up to you. If no `error`
+ * listeners are attached, PHP errors will simply be ignored. This is not
+ * recommended, obviously, and you should specify an event listener to
+ * handle PHP errors. The normal behavior is for error listeners to simply
+ * throw the `ErrorException` object. `error` listeners are also passed a
+ * DEBUG flag so that handler behavior can be modified according to the 
+ * application environment (dev/production).
+ * 
+ * ### Why is E_ERROR ignored?
  * 
  * It may seem counter-intuitive to disable reporting of `E_ERROR` output
  * at any time. However, a fatal error is always fatal, regardless of
@@ -84,11 +85,12 @@ define('AX_SYSDIR', __DIR__);
  * directive to prevent such displays. Artax transforms the fatal error
  * into a `FatalErrorException` which can be handled like any other uncaught 
  * exception using listeners for the system `exception` event. This allows 
- * you to treat fatals like just another exception in production and display
- * a graceful error message in conjunction with any necessary logging.
+ * you to treat fatals like a run-of-the-mill uncaught exception in production 
+ * and display a graceful error message in conjunction with any necessary 
+ * logging.
  */
 
-ini_set('display_errors', AX_DEBUG);
+ini_set('display_errors', FALSE);
 ini_set('html_errors', FALSE);
 error_reporting(E_ALL & ~ E_ERROR);
 
@@ -103,12 +105,10 @@ require AX_SYSDIR . '/src/Artax/Core/ProviderInterface.php';
 require AX_SYSDIR . '/src/Artax/Core/Provider.php';
 require AX_SYSDIR . '/src/Artax/Core/MediatorInterface.php';
 require AX_SYSDIR . '/src/Artax/Core/Mediator.php';
-require AX_SYSDIR . '/src/Artax/Core/Handlers/FatalErrorException.php';
-require AX_SYSDIR . '/src/Artax/Core/Handlers/ScriptHaltException.php';
-require AX_SYSDIR . '/src/Artax/Core/Handlers/ErrorsInterface.php';
-require AX_SYSDIR . '/src/Artax/Core/Handlers/Errors.php';
-require AX_SYSDIR . '/src/Artax/Core/Handlers/TerminationInterface.php';
-require AX_SYSDIR . '/src/Artax/Core/Handlers/Termination.php';
+require AX_SYSDIR . '/src/Artax/Core/FatalErrorException.php';
+require AX_SYSDIR . '/src/Artax/Core/ScriptHaltException.php';
+require AX_SYSDIR . '/src/Artax/Core/HandlersInterface.php';
+require AX_SYSDIR . '/src/Artax/Core/Handlers.php';
 
 /*
  * --------------------------------------------------------------------
@@ -116,15 +116,16 @@ require AX_SYSDIR . '/src/Artax/Core/Handlers/Termination.php';
  * --------------------------------------------------------------------
  */
 
-$provider = new Artax\Core\Provider;
-$mediator = new Artax\Core\Mediator($provider);
-$provider->share('Artax\Core\Mediator', $mediator);
+$provider = new Provider;
+$mediator = new Mediator($provider);
+$provider->share('Artax\\Core\\Mediator', $mediator);
 
 /*
  * --------------------------------------------------------------------
- * REGISTER ERROR & TERMINATION HANDLERS
+ * REGISTER ERROR, EXCEPTION & SHUTDOWN HANDLERS
  * --------------------------------------------------------------------
  */
 
-(new Artax\Core\Handlers\Errors($mediator, AX_DEBUG))->register();
-(new Artax\Core\Handlers\Termination($mediator, AX_DEBUG))->register();
+(new Handlers(AX_DEBUG, $mediator))->register();
+
+
