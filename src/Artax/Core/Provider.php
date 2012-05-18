@@ -21,125 +21,215 @@ use InvalidArgumentException,
 /**
  * A dependency injection/provider class
  * 
+ * ### What the Provider does
+ * 
  * The Provider is a dependency injection container existing specifically to
- * enable lazy instantiation of event listeners. `Provider::make` automatically
- * instantiates an instance of the given class name using reflection to
+ * enable lazy instantiation of event listeners. `Provider::make` automagically
+ * instantiates an instance of the specified class using reflection to
  * determine the class's constructor parameters. Non-concrete dependencies
- * may also be correctly instantiated using custom injection definitions.
+ * (interfaces, abstract classes )can also be correctly instantiated by 
+ * specifying custom injection definitions.
  * 
  * The `Provider::share` method can be used to "recycle" an instance across 
  * many/all instantiations to allow "Singleton" type access to a resource 
- * without sacrificing the benefits of dependency injection or using "evil"
- * static/global references.
+ * without sacrificing the benefits of dependency injection or using evil
+ * `static` or global references.
  * 
- * The Provider recursively instantiates dependency objects automatically.
- * For example, if class A has a dependency on class B and class B depends
- * on class C, the Provider will first provision an instance of class B
- * with the necessary dependencies in order to provision class A with an
- * instance of B.
+ * The Provider also recursively instantiates dependencies when building a
+ * new object. For example, if class A has a dependency on class B and class
+ * B depends on class C, the Provider will first provision an instance of 
+ * class B with the necessary dependencies in order to provision class A 
+ * with an instance of B.
  * 
- * ### BASIC PROVISIONING
+ * ### Basic provisioning
  * 
- * ##### No Dependencies
+ * - No Dependencies
  * 
  * If a class constructor specifies no dependencies and you don't need to 
  * share an instance there's little point in using the Provider to generate
  * it. However, for the sake of completeness consider that you can do the 
  * following and get equivalent results:
  * 
- * ```php
- * $obj1 = new Namespace\MyClass;
- * $obj2 = $provider->make('Namespace\\MyClass');
- * var_dump($obj1 === $obj2); // true
- * ```
  * 
- * ##### Concrete Typehinted Dependencies
+ *     class MyClass
+ *     {
+ *         public function __construct()
+ *         {
+ *             $this->val = 42;
+ *         } 
+ *     }
+ *     
+ *     $obj1     = new MyClass;
+ *     $obj2     = $provider->make('MyClass');
+ *     
+ *     var_dump($obj2->val == 42); // true
+ *     var_dump($obj1 === $obj2); // true
+ * 
+ * 
+ * - Concrete Typehinted Dependencies
  * 
  * If a class requires only concrete dependencies you can use the Provider to
  * inject it without specifying any injection definitions. So, for example, in
  * the following scenario you can use the Provider to automatically provision
  * `MyClass` with the required `DepClass` instance:
  * 
- * ```php
- * class DepClass
- * {
- * }
  * 
- * class AnotherDep
- * {
- * }
- * 
- * class MyClass
- * {
- *     public $dep1;
- *     public $dep2;
- *     public function __construct(DepClass $dep1, AnotherDep $dep2)
+ *     class DepClass {}
+ *     
+ *     class AnotherDep
  *     {
- *         $this->dep1 = $dep1;
- *         $this->dep2 = $dep2;
+ *         public function __construct(DepClass $dep){}
  *     }
- * }
+ *     
+ *     class MyClass
+ *     {
+ *         public function __construct(DepClass $dep1, AnotherDep $dep2) {
+ *             $this->dep1 = $dep1;
+ *             $this->dep2 = $dep2;
+ *         }
+ *     }
+ *     
+ *     $myObj = $provider->make('MyClass');
+ *     
+ *     var_dump($myObj->dep1 instanceof DepClass); // true
+ *     var_dump($myObj->dep2 instanceof AnotherDep); // true
  * 
- * $myObj = $provider->make('MyClass');
- * var_dump($myObj->dep1 instanceof DepClass); // true
- * var_dump($myObj->dep2 instanceof AnotherDep); // true
- * ```
  * 
  * This method will scale to any number of typehinted class dependencies
  * specified in `__construct` methods.
  * 
- * ###### Scalar Dependencies
+ * - Scalar Dependencies
  * 
  * The design decision was explicitly made to disallow the specification of
- * non-object dependency parameters. Such values are frequently a failure to
- * implement recognized OOP design principles (though not always).
+ * non-object dependency parameters and encourage more object-oriented 
+ * code design.
  * 
  * ### ADVANCED PROVISIONING
  * 
  * The provider cannot instantiate a typehinted abstract class or interface
  * without a bit of help. This is where injection definitions come in.
  * 
- * ##### Non-Concrete Dependencies
+ * - Non-Concrete Dependencies
  * 
  * The Provider allows you to define the class names it should use to provision
- * objects with non-concrete method signatures. Consider:
+ * objects with non-concrete method signatures. To specify a custom
+ * injection definition you must pass `Provider::make` an array mapping the
+ * relevant constructor parameter(s) variable name(s) to the custom class(es) 
+ * that should be instantiated instead. Consider:
  * 
- *  ```php
- * interface DepInterface
- * {
- *     public function doSomething();
- * }
  * 
- * class DepClass implements DepInterface
- * {
- *     public function doSomething()
+ *     interface DepInterface
  *     {
+ *         public function walkOnWater();
  *     }
- * }
- * 
- * class MyClass
- * {
- *     protected $dep;
- *     public function __construct(DepInterface $dep)
+ *     
+ *     interface AnotherInterface
  *     {
- *         $this->dep = $dep;
+ *         public function slayDragons();
  *     }
- * }
+ *     
+ *     class DepClass implements DepInterface
+ *     {
+ *         public function walkOnWater() {}
+ *     }
+ *     
+ *     class AnotherDep implements AnotherInterface
+ *     {
+ *         public function slayDragons() {}
+ *     }
+ *     
+ *     class MyClass
+ *     {
+ *         public function __construct(DepInterface $dep, AnotherInterface $ai) {
+ *             $this->dep = $dep;
+ *             $this->ai  = $ai;
+ *         }
+ *     }
+ *     
+ *     $obj = $provider->make('MyClass', ['dep'=>'DepClass', 'ai'=>'AnotherDep']);
+ *     
+ *     var_dump($obj instanceof MyClass); // true
  * 
- * $provider->define('MyClass', ['DepClass']);
- * $myObj = $provider->make('MyClass');
- * var_dump($myObj instanceof MyClass); // true
- * ```
  * 
  * Custom injection definitions can also be specified using an instance
  * of the requisite class, so the following would work in the same manner as
  * above:
  * 
- * ```php
- * $provider->define('MyClass', [new DepClass]);
- * $myObj = $provider->make('MyClass');
- * var_dump($myObj instanceof MyClass); // true
- * ```
+ *     $provider->define('MyClass', ['dep' => new DepClass, 'ai' => new AnotherDep]);
+ *     $myObj = $provider->make('MyClass');
+ *     var_dump($myObj instanceof MyClass); // true
+ * 
+ * Note that when specifying custom injection definitions you don't have to
+ * specifying a custom value for every constructor parameter. You only need
+ * to specify the parameters you need/want to alter.
+ * 
+ * - Specifying injection definitions ahead of time
+ * 
+ * You can avoid passing custom definitions to `Provider::make` by using
+ * `Provider::define` ahead of time. Consider:
+ * 
+ *     interface AzorAhai
+ *     {
+ *         public function bringLight() {}
+ *     }
+ *     
+ *     class JohnSnow implements AzorAhai
+ *     {
+ *         public function bringLight() {}
+ *     }
+ *     
+ *     class WindsOfWinter
+ *     {
+ *         public function __construct(AzorAhai $azor) {
+ *             $this->azor = $azor;
+ *         }
+ *     }
+ *     
+ *     $provider->define('WindsOfWinter', ['azor' => 'JohnSnow']);
+ *     $wow = $provider->make('WindsOfWinter');
+ *     
+ *     var_dump($wow instanceof WindsOfWinter); // true
+ * 
+ * - Sharing dependencies across the Provider scope
+ * 
+ * When you have objects that should logically be limited to a single 
+ * instance (think loggers or database connections) developers have
+ * traditionally fallen back to unsatisfactory solutions like `static`,
+ * Singletons and `global`. A Provider instance allows you to forego these 
+ * evils and use dependency injection to maintain code testability by sharing
+ * objects. Consider:
+ * 
+ * 
+ *     class Logger
+ *     {
+ *         public $author = 'Bilbo';
+ *     }
+ *     
+ *     class Journey
+ *     {
+ *         public function __construct(Logger $logger) {
+ *             $this->logger = $logger;
+ *         }
+ *     }
+ *     
+ *     class LordOfTheRings
+ *     {
+ *         public function __construct(Journey $journey) {
+ *             $this->journey = $journey;
+ *         }
+ *     }
+ *     
+ *     $oneLoggerToRuleThemAll = new Logger;
+ *     $oneLoggerToRuleThemAll->author = 'Frodo';
+ *     $provider->share('Logger', $oneLoggerToRuleThemAll);
+ *     
+ *     $fellowship = $provider->make('LordOfTheRings');
+ *     var_dump($fellowship->journey->logger->author); // Frodo
+ * 
+ * 
+ * Once an instance is shared it remains shared for all calls to 
+ * `Provider::make` until it is explicitly unshared with `Provider::remove`
+ * or refreshed using `Provider::refresh`.
  * 
  * @category   Artax
  * @package    Core
