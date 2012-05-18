@@ -11,6 +11,7 @@
  */
  
 namespace Artax\Core;
+use LogicException;
 
 /**
  * Exception thrown when the Provider cannot correctly instantiate a class
@@ -31,6 +32,6 @@ namespace Artax\Core;
  * @package    Core
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-class ProviderDefinitionException extends \LogicException
+class ProviderDefinitionException extends LogicException
 {
 }

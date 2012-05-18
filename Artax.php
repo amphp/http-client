@@ -98,6 +98,7 @@ error_reporting(E_ALL & ~ E_ERROR);
  * --------------------------------------------------------------------
  */
 
+require AX_SYSDIR . '/src/Artax/Core/ProviderDefinitionException.php';
 require AX_SYSDIR . '/src/Artax/Core/ProviderInterface.php';
 require AX_SYSDIR . '/src/Artax/Core/Provider.php';
 require AX_SYSDIR . '/src/Artax/Core/MediatorInterface.php';
