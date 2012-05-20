@@ -173,12 +173,40 @@ class Handlers implements HandlersInterface
      * Note that the system `shutdown` event always fires regardless of whether
      * or not an `exception` event was triggered.
      * 
-     * ### IMPORTANT: Note on output buffering
+     * ### IMPORTANT: Note on output buffering and fatal errors
      * 
      * When fatal errors occur in the presence of output buffering (ob_start)
      * PHP immediately flushes the buffer. To avoid this output and allow
      * our handlers to process fatals correctly we prevent this flush by
      * clearing the buffer when a fatal error occurs.
+     * 
+     * ### IMPORTANT: Note on nested fatal errors
+     * 
+     * These handlers manage turning fatal errors into exceptions for event
+     * listeners by leveraging PHP's `register_shutdown_function()`. This
+     * makes error reporting for fatal E_ERRORs redundant and we turn it off.
+     * The only time this is a problem is if an exception event listener
+     * causes a fatal E_ERROR while *handling a fatal error*.
+     * 
+     * Not surprisingly, there's just no way to handle a fatal error that
+     * occurs while handling another fatal error. This can make for debugging
+     * nightmares, but we don't want to enable error reporting for E_ERROR
+     * because end-users could see the raw error output in production. Instead,
+     * when handling fatals we turn fatal error output back on when in debug
+     * mode, allowing us to debug the source of the problem. If debug mode
+     * is turned off, this situation results in an innocuous 500 response
+     * with no output.
+     * 
+     * The one "gotchya" in this scenario is class-based exception listeners.
+     * If a class exception listener cannot be instantiated (using reflection)
+     * because of a fatal error like undefined abstract methods, the problem
+     * is reported by the Reflection API as a `ReflectionException`. If
+     * a class exception listener can't be autoloaded but definitely exists,
+     * the reason is a fatal error somewhere in the exception listener class
+     * file.
+     * 
+     * In summary: MAKE SURE YOUR CLASS EXCEPTION LISTENERS CAN BE INSTANTIATED
+     * WITHOUT RAISING A FATAL E_ERROR.
      * 
      * @param Exception $e Exception object
      *
@@ -189,12 +217,16 @@ class Handlers implements HandlersInterface
     public function exception(Exception $e)
     {
         if (!$this->errChain && ob_get_contents()) {
-            ob_end_clean(); // <-- IMPORTANT: docblock for more info
+            ob_end_clean(); // <-- IMPORTANT: see docblock for info
         }
         
         if ($e instanceof ScriptHaltException) {
             return;
         } elseif ($e instanceof FatalErrorException) {
+            if ($this->debug) {
+                ini_set('display_errors', TRUE); // <-- IMPORTANT: see docblock
+                error_reporting(E_ALL); // <-- IMPORTANT: see docblock
+            }
             try {
                 if (!$this->mediator->notify('exception', $e, $this->debug)
                     && $this->debug
