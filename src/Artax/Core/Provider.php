@@ -569,7 +569,15 @@ class Provider implements ProviderInterface
             } catch (ReflectionException $e) {
                 throw new ProviderDefinitionException(
                     "Provider instantiation failure: $class doesn't exist".
-                    ' and could not be found by any registered autoloaders.'
+                    ' and could not be found by any registered autoloaders. '.
+                    PHP_EOL . PHP_EOL .
+                    'If you continue to receive this message and you\'re '.
+                    'sure the class exists or is autoloadable, the problem '.
+                    'is that the class expresses a fatal error of some kind '.
+                    'e.g. undefined abstract methods. Ensuring the validity '.
+                    'of the requisite class (and any classes it references) '.
+                    'will solve the problem.',
+                    NULL, $e
                 );
             }
             
