@@ -70,10 +70,12 @@ class HandlersTest extends PHPUnit_Framework_TestCase
      * @expectedException Artax\Core\ScriptHaltException
      * @covers Artax\Core\ScriptHaltException
      */
-    public function testErrorChainsOnException()
+    public function testErrorChainsOnExceptionAndClearsBufferedOutput()
     {
         $dp  = new Provider;
         $med = $this->getMock('Artax\Core\Mediator', ['notify'], [$dp]);
+        ob_start();
+        echo 'test';
         $med->expects($this->once())
             ->method('notify')
             ->will($this->throwException(new Exception));

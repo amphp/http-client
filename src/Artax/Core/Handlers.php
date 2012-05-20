@@ -124,6 +124,13 @@ class Handlers implements HandlersInterface
      * turned off and no error listeners are registered, non-fatal PHP errors
      * are silently ignored.
      * 
+     * ### IMPORTANT: Note on output buffering
+     * 
+     * When fatal errors occur in the presence of output buffering (ob_start)
+     * PHP immediately flushes the buffer. To avoid this output and allow
+     * our handlers to process fatals correctly we prevent this flush by
+     * clearing the buffer when a fatal error occurs.
+     * 
      * @param int    $errNo   The PHP error constant
      * @param string $errStr  The resulting PHP error message
      * @param string $errFile The file where the PHP error originated
@@ -143,6 +150,9 @@ class Handlers implements HandlersInterface
                 echo $msg;
             }
         } catch (Exception $e) {
+            if (ob_get_contents()) {
+                ob_end_clean(); // <-- IMPORTANT: docblock for more info
+            }
             $this->errChain = TRUE;
             $this->exception($e);
             $this->shutdown();
@@ -163,6 +173,13 @@ class Handlers implements HandlersInterface
      * Note that the system `shutdown` event always fires regardless of whether
      * or not an `exception` event was triggered.
      * 
+     * ### IMPORTANT: Note on output buffering
+     * 
+     * When fatal errors occur in the presence of output buffering (ob_start)
+     * PHP immediately flushes the buffer. To avoid this output and allow
+     * our handlers to process fatals correctly we prevent this flush by
+     * clearing the buffer when a fatal error occurs.
+     * 
      * @param Exception $e Exception object
      *
      * @return void
@@ -171,6 +188,10 @@ class Handlers implements HandlersInterface
      */
     public function exception(Exception $e)
     {
+        if (!$this->errChain && ob_get_contents()) {
+            ob_end_clean(); // <-- IMPORTANT: docblock for more info
+        }
+        
         if ($e instanceof ScriptHaltException) {
             return;
         } elseif ($e instanceof FatalErrorException) {
