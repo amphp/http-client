@@ -74,8 +74,8 @@ use Exception, ErrorException;
 class Handlers implements HandlersInterface
 {
     /**
-     * Flag specifying if full debug output should be shown when problems arise
-     * @var bool
+     * The application-wide debug level
+     * @var int
      */
     private $debug;
     
@@ -94,14 +94,14 @@ class Handlers implements HandlersInterface
     /**
      * Specify debug output flag and register exception/shutdown handlers
      * 
-     * @param bool              $debug    An app-wide boolean debug flag
+     * @param int               $debug    An app-wide debug run level
      * @param MediatorInterface $mediator An event mediator instance
      * 
      * @return void
      */
     public function __construct($debug, MediatorInterface $mediator)
     {
-        $this->debug    = (bool) $debug;
+        $this->debug    = $debug;
         $this->mediator = $mediator;
     }
     
@@ -124,7 +124,7 @@ class Handlers implements HandlersInterface
      * turned off and no error listeners are registered, non-fatal PHP errors
      * are silently ignored.
      * 
-     * ### IMPORTANT: Note on output buffering
+     * ### (1) IMPORTANT: Note on output buffering
      * 
      * When fatal errors occur in the presence of output buffering (ob_start)
      * PHP immediately flushes the buffer. To avoid this output and allow
@@ -151,7 +151,7 @@ class Handlers implements HandlersInterface
             }
         } catch (Exception $e) {
             if (ob_get_contents()) {
-                ob_end_clean(); // <-- IMPORTANT: docblock for more info
+                ob_end_clean(); // <-- IMPORTANT: see docblock (1) for info
             }
             $this->errChain = TRUE;
             $this->exception($e);
@@ -173,40 +173,40 @@ class Handlers implements HandlersInterface
      * Note that the system `shutdown` event always fires regardless of whether
      * or not an `exception` event was triggered.
      * 
-     * ### IMPORTANT: Note on output buffering and fatal errors
+     * ### (1) IMPORTANT: Note on output buffering and fatal errors
      * 
      * When fatal errors occur in the presence of output buffering (ob_start)
      * PHP immediately flushes the buffer. To avoid this output and allow
      * our handlers to process fatals correctly we prevent this flush by
-     * clearing the buffer when a fatal error occurs.
+     * clearing the buffer when a fatal error occurs. The reason for the
+     * fatal error is already catalogged in the generated exception message,
+     * so any output is superfluous.
      * 
-     * ### IMPORTANT: Note on nested fatal errors
+     * ### (2) IMPORTANT: Note on nested fatal errors
      * 
-     * These handlers manage turning fatal errors into exceptions for event
-     * listeners by leveraging PHP's `register_shutdown_function()`. This
-     * makes error reporting for fatal E_ERRORs redundant and we turn it off.
+     * These handlers turn fatal errors into "uncaught exceptions" so that
+     * exception event listeners can handle them like any other exception.
      * The only time this is a problem is if an exception event listener
-     * causes a fatal E_ERROR while *handling a fatal error*.
+     * causes a fatal E_ERROR *while* it's handling a fatal error.
      * 
      * Not surprisingly, there's just no way to handle a fatal error that
      * occurs while handling another fatal error. This can make for debugging
      * nightmares, but we don't want to enable error reporting for E_ERROR
-     * because end-users could see the raw error output in production. Instead,
-     * when handling fatals we turn fatal error output back on when in debug
-     * mode, allowing us to debug the source of the problem. If debug mode
-     * is turned off, this situation results in an innocuous 500 response
+     * because end-users could see the raw error output. Instead, when
+     * handling fatals we turn fatal error output back on in debug mode,
+     * allowing us to debug the source of the problem. If debug mode is
+     * turned off, this situation results in an innocuous 500 response
      * with no output.
-     * 
-     * The one "gotchya" in this scenario is class-based exception listeners.
-     * If a class exception listener cannot be instantiated (using reflection)
-     * because of a fatal error like undefined abstract methods, the problem
-     * is reported by the Reflection API as a `ReflectionException`. If
-     * a class exception listener can't be autoloaded but definitely exists,
-     * the reason is a fatal error somewhere in the exception listener class
-     * file.
      * 
      * In summary: MAKE SURE YOUR CLASS EXCEPTION LISTENERS CAN BE INSTANTIATED
      * WITHOUT RAISING A FATAL E_ERROR.
+     * 
+     * If you're having problems debugging an error, switch your application
+     * into debug mode 2, i.e. `define('AX_DEBUG', 2);` before including
+     * the Artax bootstrap file. This will result in the most comprehensive
+     * debugging output. Debug level 2 is only necessary in the most extreme 
+     * error situations in which a fatal error is encountered inside the
+     * handler for a previous fatal error.
      * 
      * @param Exception $e Exception object
      *
@@ -216,16 +216,19 @@ class Handlers implements HandlersInterface
      */
     public function exception(Exception $e)
     {
-        if (!$this->errChain && ob_get_contents()) {
-            ob_end_clean(); // <-- IMPORTANT: see docblock for info
+        if (!$this->errChain
+            && !($e instanceof FatalErrorException)
+            && ob_get_contents()
+        ) {
+            ob_clean(); // <-- IMPORTANT: see docblock (1) for info
         }
         
         if ($e instanceof ScriptHaltException) {
             return;
         } elseif ($e instanceof FatalErrorException) {
-            if ($this->debug) {
-                ini_set('display_errors', TRUE); // <-- IMPORTANT: see docblock
-                error_reporting(E_ALL); // <-- IMPORTANT: see docblock
+            if ($this->debug === 1) {
+                ini_set('display_errors', TRUE); // <-- (2) docblock
+                error_reporting(E_ALL); // <-- (2) docblock
             }
             try {
                 if (!$this->mediator->notify('exception', $e, $this->debug)
@@ -289,8 +292,11 @@ class Handlers implements HandlersInterface
         }
         
         if ($e = $this->getFatalErrorException()) {
+        
             $this->exception($e);
+            
         } else {
+        
             try {
                 $this->mediator->notify('shutdown');
             } catch (ScriptHaltException $e) {
@@ -298,6 +304,7 @@ class Handlers implements HandlersInterface
             } catch (Exception $e) {
                 echo $this->defaultHandlerMsg($e);
             }
+            
         }
     }
 
@@ -332,6 +339,7 @@ class Handlers implements HandlersInterface
             $msg.= $err['file'] . ' on line ' . $err['line'];
             $ex  = new FatalErrorException($msg);
         }
+        
         return $ex;
     }
     
