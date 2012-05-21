@@ -90,9 +90,14 @@ define('AX_SYSDIR', __DIR__);
  * logging.
  */
 
-ini_set('display_errors', FALSE);
+ini_set('display_errors', AX_DEBUG);
 ini_set('html_errors', FALSE);
-error_reporting(E_ALL & ~ E_ERROR);
+
+if (AX_DEBUG) {
+    error_reporting(E_ALL);
+} else {
+    error_reporting(E_ALL & ~ E_ERROR);
+}
 
 /*
  * --------------------------------------------------------------------
