@@ -122,7 +122,7 @@ if (AX_DEBUG === 2) {
     error_reporting(E_ALL & ~ E_ERROR);
     ini_set('display_errors', FALSE);
 } else {
-    throw new RuntimeException(
+    throw new DomainException(
         'Invalid DEBUG level: 0, 1 or 2 expected; '.AX_DEBUG.' specified'
     );
 }
