@@ -154,6 +154,7 @@ require AX_SYSDIR . '/src/Artax/Core/Handlers.php';
 $provider = new Provider;
 $mediator = new Mediator($provider);
 $provider->share('Artax\\Core\\Mediator', $mediator);
+$provider->share('Artax\\Core\\Provider', $provider);
 
 /*
  * --------------------------------------------------------------------
