@@ -3,14 +3,14 @@
 /**
  * Artax Provider Class File
  * 
- * PHP version 5.4
+ * PHP version 5.3
  * 
  * @category   Artax
  * @package    Core
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
 
-namespace Artax\Core;
+namespace Artax;
 use InvalidArgumentException,
     ReflectionClass,
     ReflectionException,

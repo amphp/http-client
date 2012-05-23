@@ -1,14 +1,14 @@
 <?php
 
-use Artax\Core\Provider;
+use Artax\Provider;
 
 class ProviderTest extends PHPUnit_Framework_TestCase
 {
     /**
-     * @covers Artax\Core\Provider::make
-     * @covers Artax\Core\Provider::getInjectedInstance
-     * @covers Artax\Core\Provider::getDepsSansDefinition
-     * @covers Artax\Core\Provider::getDepsWithDefinition
+     * @covers Artax\Provider::make
+     * @covers Artax\Provider::getInjectedInstance
+     * @covers Artax\Provider::getDepsSansDefinition
+     * @covers Artax\Provider::getDepsWithDefinition
      */
     public function testMakeInjectsSimpleConcreteDeps()
     {
@@ -19,9 +19,9 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers Artax\Core\Provider::make
-     * @covers Artax\Core\Provider::getInjectedInstance
-     * @covers Artax\Core\Provider::getDepsSansDefinition
+     * @covers Artax\Provider::make
+     * @covers Artax\Provider::getInjectedInstance
+     * @covers Artax\Provider::getDepsSansDefinition
      */
     public function testMakePassesNullIfDefaultAndNoTypehintExists()
     {
@@ -32,9 +32,9 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers Artax\Core\Provider::make
-     * @covers Artax\Core\Provider::getInjectedInstance
-     * @covers Artax\Core\Provider::getDepsWithDefinition
+     * @covers Artax\Provider::make
+     * @covers Artax\Provider::getInjectedInstance
+     * @covers Artax\Provider::getDepsWithDefinition
      */
     public function testMakeReturnsSharedInstanceIfSpecified()
     {
@@ -51,10 +51,10 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers Artax\Core\Provider::make
-     * @covers Artax\Core\Provider::getDepsSansDefinition
-     * @covers Artax\Core\Provider::getDepsWithDefinition
-     * @expectedException Artax\Core\ProviderDefinitionException
+     * @covers Artax\Provider::make
+     * @covers Artax\Provider::getDepsSansDefinition
+     * @covers Artax\Provider::getDepsWithDefinition
+     * @expectedException Artax\ProviderDefinitionException
      */
     public function testMakeThrowsExceptionOnNonNullScalarTypehintSansDefinitions()
     {
@@ -63,9 +63,9 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers Artax\Core\Provider::make
-     * @covers Artax\Core\Provider::getInjectedInstance
-     * @expectedException Artax\Core\ProviderDefinitionException
+     * @covers Artax\Provider::make
+     * @covers Artax\Provider::getInjectedInstance
+     * @expectedException Artax\ProviderDefinitionException
      */
     public function testMakeThrowsExceptionIfProvisioningMissingUnloadableClass()
     {
@@ -74,9 +74,9 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers Artax\Core\Provider::make
-     * @covers Artax\Core\Provider::getInjectedInstance
-     * @covers Artax\Core\Provider::getDepsWithDefinition
+     * @covers Artax\Provider::make
+     * @covers Artax\Provider::getInjectedInstance
+     * @covers Artax\Provider::getDepsWithDefinition
      */
     public function testMakeUsesInstanceDefinitionParamIfSpecified()
     {
@@ -85,9 +85,9 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers Artax\Core\Provider::make
-     * @covers Artax\Core\Provider::getInjectedInstance
-     * @covers Artax\Core\Provider::getDepsWithDefinition
+     * @covers Artax\Provider::make
+     * @covers Artax\Provider::getInjectedInstance
+     * @covers Artax\Provider::getDepsWithDefinition
      */
     public function testMakeUsesCustomDefinitionIfSpecified()
     {
@@ -98,10 +98,10 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers Artax\Core\Provider::make
-     * @covers Artax\Core\Provider::getInjectedInstance
-     * @covers Artax\Core\Provider::getDepsSansDefinition
-     * @expectedException Artax\Core\ProviderDefinitionException
+     * @covers Artax\Provider::make
+     * @covers Artax\Provider::getInjectedInstance
+     * @covers Artax\Provider::getDepsSansDefinition
+     * @expectedException Artax\ProviderDefinitionException
      */
     public function testMakeThrowsExceptionOnScalarDefaultCtorParam()
     {
@@ -110,7 +110,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers Artax\Core\Provider::make
+     * @covers Artax\Provider::make
      */
     public function testMakeStoresShareIfMarkedWithNullInstance()
     {
@@ -121,8 +121,8 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers Artax\Core\Provider::make
-     * @covers Artax\Core\Provider::getDepsWithDefinition
+     * @covers Artax\Provider::make
+     * @covers Artax\Provider::getDepsWithDefinition
      */
     public function testMakeUsesReflectionForUnknownParamsInMultiBuildWithDeps()
     {
@@ -138,9 +138,9 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers Artax\Core\Provider::make
-     * @covers Artax\Core\Provider::getDepsWithDefinition
-     * @expectedException Artax\Core\ProviderDefinitionException
+     * @covers Artax\Provider::make
+     * @covers Artax\Provider::getDepsWithDefinition
+     * @expectedException Artax\ProviderDefinitionException
      */
     public function testThrowsExceptionOnUnknownParamsInMultiBuildWithDeps()
     {
@@ -151,7 +151,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers Artax\Core\Provider::define
+     * @covers Artax\Provider::define
      */
     public function testDefineAssignsPassedDefinition()
     {
@@ -161,7 +161,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers Artax\Core\Provider::defineAll
+     * @covers Artax\Provider::defineAll
      * @expectedException InvalidArgumentException
      */
     public function testDefineAllThrowsExceptionOnInvalidIterable()
@@ -171,7 +171,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers Artax\Core\Provider::defineAll
+     * @covers Artax\Provider::defineAll
      */
     public function testDefineAllAssignsPassedDefinitionsAndReturnsAddedCount()
     {
@@ -184,7 +184,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers Artax\Core\Provider::remove
+     * @covers Artax\Provider::remove
      */
     public function testRemoveClearsDefinitionAndSharedInstanceAndReturnsProvider()
     {
@@ -198,7 +198,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers Artax\Core\Provider::removeAll
+     * @covers Artax\Provider::removeAll
      */
     public function testRemoveAllClearsDefinitionAndSharedInstancesAndReturnsProvider()
     {
@@ -213,7 +213,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers Artax\Core\Provider::refresh
+     * @covers Artax\Provider::refresh
      */
     public function testRefreshClearsSharedInstancesAndReturnsProvider()
     {
@@ -229,7 +229,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers Artax\Core\Provider::isShared
+     * @covers Artax\Provider::isShared
      */
     public function testIsSharedReturnsSharedStatus()
     {
@@ -239,7 +239,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers Artax\Core\Provider::isDefined
+     * @covers Artax\Provider::isDefined
      */
     public function testIsDefinedReturnsDefinedStatus()
     {
@@ -251,7 +251,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers Artax\Core\Provider::share
+     * @covers Artax\Provider::share
      */
     public function testShareStoresSharedDependencyAndReturnsChainableInstance()
     {
@@ -266,23 +266,23 @@ class ProviderTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers Artax\Core\Provider::share
+     * @covers Artax\Provider::share
      */
     public function testShareMarksClassSharedOnNoObjectParameter()
     {
         $dp = new Provider;
-        $this->assertEquals($dp, $dp->share('Artax\\Core\\Mediator'));
-        $this->assertTrue($dp->isShared('Artax\Core\Mediator'));
+        $this->assertEquals($dp, $dp->share('Artax\\Mediator'));
+        $this->assertTrue($dp->isShared('Artax\Mediator'));
     }
     
     /**
-     * @covers Artax\Core\Provider::share
+     * @covers Artax\Provider::share
      * @expectedException InvalidArgumentException
      */
     public function testShareThrowsExceptionOnInvalidArgument()
     {
         $dp = new Provider;
-        $dp->share('Artax\\Core\\Mediator', new StdClass);
+        $dp->share('Artax\\Mediator', new StdClass);
     }
 }
 

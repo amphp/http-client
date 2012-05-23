@@ -3,9 +3,9 @@
 /**
  * Artax Bootstrap File
  * 
- * PHP version 5.4
+ * PHP version 5.3
  * 
- * ### QUICK START
+ * ### Quick Start
  * 
  * You need to do two things to fire up an Artax application:
  * 
@@ -55,18 +55,14 @@
  * @author   Levi Morrison <lm@php.net>
  */
 
-use Artax\Core\Provider,
-    Artax\Core\Mediator,
-    Artax\Core\Handlers;
-
 /*
  * --------------------------------------------------------------------
- * CHECK FOR 5.4+ & DEFINE AX_DEBUG/AX_SYSDIR CONSTANTS
+ * CHECK FOR 5.3+ & DEFINE AX_DEBUG/AX_SYSDIR CONSTANTS
  * --------------------------------------------------------------------
  */
 
-if (!defined('PHP_VERSION_ID') || PHP_VERSION_ID < 50400) {
-    die('Artax requires PHP 5.4 or higher' . PHP_EOL);
+if (!defined('PHP_VERSION_ID') || PHP_VERSION_ID < 50300) {
+    die('Artax requires PHP 5.3 or higher' . PHP_EOL);
 }
 
 define('AX_SYSDIR', __DIR__);
@@ -123,7 +119,7 @@ if (AX_DEBUG === 2) {
     ini_set('display_errors', FALSE);
 } else {
     throw new DomainException(
-        'Invalid DEBUG level: 0, 1 or 2 expected; '.AX_DEBUG.' specified'
+        'Invalid AX_DEBUG: 0, 1 or 2 expected; '. AX_DEBUG .' specified'
     );
 }
 
@@ -135,15 +131,15 @@ ini_set('html_errors', FALSE);
  * --------------------------------------------------------------------
  */
 
-require AX_SYSDIR . '/src/Artax/Core/ProviderDefinitionException.php';
-require AX_SYSDIR . '/src/Artax/Core/ProviderInterface.php';
-require AX_SYSDIR . '/src/Artax/Core/Provider.php';
-require AX_SYSDIR . '/src/Artax/Core/MediatorInterface.php';
-require AX_SYSDIR . '/src/Artax/Core/Mediator.php';
-require AX_SYSDIR . '/src/Artax/Core/FatalErrorException.php';
-require AX_SYSDIR . '/src/Artax/Core/ScriptHaltException.php';
-require AX_SYSDIR . '/src/Artax/Core/HandlersInterface.php';
-require AX_SYSDIR . '/src/Artax/Core/Handlers.php';
+require AX_SYSDIR . '/src/Artax/ProviderDefinitionException.php';
+require AX_SYSDIR . '/src/Artax/ProviderInterface.php';
+require AX_SYSDIR . '/src/Artax/Provider.php';
+require AX_SYSDIR . '/src/Artax/MediatorInterface.php';
+require AX_SYSDIR . '/src/Artax/Mediator.php';
+require AX_SYSDIR . '/src/Artax/FatalErrorException.php';
+require AX_SYSDIR . '/src/Artax/ScriptHaltException.php';
+require AX_SYSDIR . '/src/Artax/HandlersInterface.php';
+require AX_SYSDIR . '/src/Artax/Handlers.php';
 
 /*
  * --------------------------------------------------------------------
@@ -151,10 +147,10 @@ require AX_SYSDIR . '/src/Artax/Core/Handlers.php';
  * --------------------------------------------------------------------
  */
 
-$provider = new Provider;
-$mediator = new Mediator($provider);
-$provider->share('Artax\\Core\\Mediator', $mediator);
-$provider->share('Artax\\Core\\Provider', $provider);
+$provider = new Artax\Provider;
+$mediator = new Artax\Mediator($provider);
+$provider->share('Artax\\Mediator', $mediator);
+$provider->share('Artax\\Provider', $provider);
 
 /*
  * --------------------------------------------------------------------
@@ -162,6 +158,6 @@ $provider->share('Artax\\Core\\Provider', $provider);
  * --------------------------------------------------------------------
  */
 
-$handlers = new Handlers(AX_DEBUG, $mediator);
+$handlers = new Artax\Handlers(AX_DEBUG, $mediator);
 $handlers->register();
 

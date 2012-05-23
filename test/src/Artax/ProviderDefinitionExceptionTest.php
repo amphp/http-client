@@ -3,11 +3,11 @@
 class ProviderDefinitionExceptionTest extends PHPUnit_Framework_TestCase
 {
     /**
-     * @covers Artax\Core\ProviderDefinitionException
+     * @covers Artax\ProviderDefinitionException
      */
     public function testProviderDefinitionExceptionIsLogicException()
     {
-      $e = new Artax\Core\ProviderDefinitionException();
+      $e = new Artax\ProviderDefinitionException();
       $this->assertInstanceOf('LogicException', $e);
     }
 }

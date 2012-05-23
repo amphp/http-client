@@ -3,11 +3,11 @@
 class FatalErrorExceptionTest extends PHPUnit_Framework_TestCase
 {
     /**
-     * @covers Artax\Core\FatalErrorException
+     * @covers Artax\FatalErrorException
      */
     public function testFatalErrorExceptionIsRuntimeException()
     {
-        $e = new Artax\Core\FatalErrorException();
+        $e = new Artax\FatalErrorException();
         $this->assertInstanceOf('RuntimeException', $e);
     }
 }
