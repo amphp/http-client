@@ -1,6 +1,9 @@
 ### WHAT IS IT?
 
-**Artax** is a baseline scaffold for creating event-driven PHP 5.4+ applications
+**Artax** is a baseline scaffold for creating event-driven PHP 5.4+ applications.
+
+*NOTE: Please be aware that interfaces and implementation are subject to
+change until an official version 1.0 is reached.*
 
 ### FEATURES
 
