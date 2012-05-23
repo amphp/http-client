@@ -253,7 +253,7 @@ class Provider implements ProviderInterface
      * A cache of reflected classes and constructor parameters
      * @var array
      */
-    protected $reflCache;
+    protected $reflCache = array();
     
     /**
      * Defines custom instantiation parameters for the specified class
@@ -525,7 +525,7 @@ class Provider implements ProviderInterface
                         $params = NULL;
                     }
                     $this->reflCache[$reflCls->name] = array(
-                        'class'=> $reflCls,'ctor'=> $params
+                        'class' => $reflCls, 'ctor' => $params
                     );
                 }
                 $deps[] = $this->make($reflCls->name);

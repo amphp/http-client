@@ -22,12 +22,3 @@ spl_autoload_register(function($cls) {
     }
 });
 
-
-/*
- * --------------------------------------------------------------------
- * TEST HELPER TRAIT
- * --------------------------------------------------------------------
- */
- 
-require AX_SYSDIR . '/test/MagicTestGetTrait.php';
-

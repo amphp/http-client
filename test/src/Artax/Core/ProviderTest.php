@@ -1,15 +1,9 @@
 <?php
 
+use Artax\Core\Provider;
+
 class ProviderTest extends PHPUnit_Framework_TestCase
 {
-    public function testBeginsEmpty()
-    {
-        $dp = new ProviderCoverageTest;
-        $this->assertEquals([], $dp->definitions);
-        $this->assertEquals([], $dp->shared);
-        return $dp;
-    }
-    
     /**
      * @covers Artax\Core\Provider::make
      * @covers Artax\Core\Provider::getInjectedInstance
@@ -18,18 +12,23 @@ class ProviderTest extends PHPUnit_Framework_TestCase
      */
     public function testMakeInjectsSimpleConcreteDeps()
     {
-        $dp = new ProviderCoverageTest;
+        $dp = new Provider;
         $this->assertEquals(new TestNeedsDep(new TestDependency),
             $dp->make('TestNeedsDep')
         );
-        
-        $this->assertEquals(new AnotherOne(new AnotherTwo),
-            $dp->make('AnotherOne')
-        );
-        
-        $this->assertEquals(new NoDefinitionNullDefault,
-            $dp->make('NoDefinitionNullDefault')
-        );
+    }
+    
+    /**
+     * @covers Artax\Core\Provider::make
+     * @covers Artax\Core\Provider::getInjectedInstance
+     * @covers Artax\Core\Provider::getDepsSansDefinition
+     */
+    public function testMakePassesNullIfDefaultAndNoTypehintExists()
+    {
+        $dp = new Provider;
+        $nullCtorParamObj = $dp->make('NoDefinitionNullDefault');
+        $this->assertEquals(new NoDefinitionNullDefault, $nullCtorParamObj);
+        $this->assertEquals(NULL, $nullCtorParamObj->arg);
     }
     
     /**
@@ -39,17 +38,16 @@ class ProviderTest extends PHPUnit_Framework_TestCase
      */
     public function testMakeReturnsSharedInstanceIfSpecified()
     {
-        $dp = new ProviderCoverageTest;
-        $dp->define('TestNeedsDep', ['TestDependency']);
-        $dp->share('TestDependency');
-        $injected = $dp->make('TestNeedsDep');
+        $dp = new Provider;
+        $dp->define('RequiresInterface', array('dep' => 'DepImplementation'));
+        $dp->share('RequiresInterface');
+        $injected = $dp->make('RequiresInterface');
+        
+        $this->assertEquals('something', $injected->testDep->testProp);
         $injected->testDep->testProp = 'something else';
         
-        $injected2 = $dp->make('TestNeedsDep');
+        $injected2 = $dp->make('RequiresInterface');
         $this->assertEquals('something else', $injected2->testDep->testProp);
-        
-        $shared = $dp->make('TestDependency');
-        $this->assertEquals($injected->testDep, $shared);
     }
     
     /**
@@ -60,7 +58,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
      */
     public function testMakeThrowsExceptionOnNonNullScalarTypehintSansDefinitions()
     {
-        $dp = new ProviderCoverageTest;
+        $dp = new Provider;
         $dp->make('TestClassWithNoCtorTypehints');
     }
     
@@ -71,7 +69,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
      */
     public function testMakeThrowsExceptionIfProvisioningMissingUnloadableClass()
     {
-        $dp = new ProviderCoverageTest;
+        $dp = new Provider;
         $dp->make('ClassThatDoesntExist');
     }
     
@@ -82,8 +80,8 @@ class ProviderTest extends PHPUnit_Framework_TestCase
      */
     public function testMakeUsesInstanceDefinitionParamIfSpecified()
     {
-        $dp = new ProviderCoverageTest;
-        $dp->make('TestMultiDepsNeeded', ['TestDependency', new TestDependency2]);
+        $dp = new Provider;
+        $dp->make('TestMultiDepsNeeded', array('TestDependency', new TestDependency2));
     }
     
     /**
@@ -93,9 +91,9 @@ class ProviderTest extends PHPUnit_Framework_TestCase
      */
     public function testMakeUsesCustomDefinitionIfSpecified()
     {
-        $dp = new ProviderCoverageTest;
-        $dp->define('TestNeedsDep', ['testDep'=>'TestDependency']);
-        $injected = $dp->make('TestNeedsDep', ['testDep'=>'TestDependency2']);
+        $dp = new Provider;
+        $dp->define('TestNeedsDep', array('testDep'=>'TestDependency'));
+        $injected = $dp->make('TestNeedsDep', array('testDep'=>'TestDependency2'));
         $this->assertEquals('testVal2', $injected->testDep->testProp);
     }
     
@@ -107,7 +105,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
      */
     public function testMakeThrowsExceptionOnScalarDefaultCtorParam()
     {
-        $dp = new ProviderCoverageTest;
+        $dp  = new Provider;
         $obj = $dp->make('NoTypehintNullDefaultConstructorClass');
     }
     
@@ -116,7 +114,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase
      */
     public function testMakeStoresShareIfMarkedWithNullInstance()
     {
-        $dp = new ProviderCoverageTest;
+        $dp = new Provider;
         $dp->share('TestDependency');
         $dp->make('TestDependency');
         $this->assertTrue($dp->isShared('TestDependency'));
@@ -128,12 +126,12 @@ class ProviderTest extends PHPUnit_Framework_TestCase
      */
     public function testMakeUsesReflectionForUnknownParamsInMultiBuildWithDeps()
     {
-        $dp  = new ProviderCoverageTest;
-        $obj = $dp->make('TestMultiDepsWithCtor', ['val1'=>'TestDependency']);
+        $dp  = new Provider;
+        $obj = $dp->make('TestMultiDepsWithCtor', array('val1'=>'TestDependency'));
         $this->assertInstanceOf('TestMultiDepsWithCtor', $obj);
         
         $obj = $dp->make('NoTypehintNoDefaultConstructorClass',
-            ['val1'=>'TestDependency']
+            array('val1'=>'TestDependency')
         );
         $this->assertInstanceOf('NoTypehintNoDefaultConstructorClass', $obj);
         $this->assertEquals(NULL, $obj->testParam);
@@ -146,9 +144,9 @@ class ProviderTest extends PHPUnit_Framework_TestCase
      */
     public function testThrowsExceptionOnUnknownParamsInMultiBuildWithDeps()
     {
-        $dp  = new ProviderCoverageTest;
+        $dp  = new Provider;
         $obj = $dp->make('NoTypehintNullDefaultConstructorClass',
-            ['val1'=>'TestDependency']
+            array('val1'=>'TestDependency')
         );
     }
     
@@ -157,167 +155,135 @@ class ProviderTest extends PHPUnit_Framework_TestCase
      */
     public function testDefineAssignsPassedDefinition()
     {
-        $dp  = new ProviderCoverageTest;
-        $dp->define('TestNeedsDep', ['TestDependency']);
-        $dp->define('TestDependency', ['_shared']);
-        $this->assertEquals($dp->definitions['testneedsdep'], ['TestDependency']);
-        $this->assertEquals($dp->definitions['testdependency'], ['_shared']);
+        $dp = new Provider;
+        $dp->define('RequiresInterface', array('dep' => 'DepImplementation'));
+        $this->assertInstanceOf('RequiresInterface', $dp->make('RequiresInterface'));
     }
     
     /**
-     * @covers Artax\Core\Provider::define
-     */
-    public function testDefineRemovesSharedInstanceIfNewDefinitionIsNotShared()
-    {
-        $dp  = new ProviderCoverageTest;
-        $dp->define('TestDependency', ['_shared']);        
-        $obj = $dp->make('TestDependency');
-        $dp->define('TestDependency', ['_shared']);
-        $this->assertEmpty($dp->shared);
-    }
-    
-    /**
-     * @depends testBeginsEmpty
      * @covers Artax\Core\Provider::defineAll
      * @expectedException InvalidArgumentException
      */
-    public function testDefineAllThrowsExceptionOnInvalidIterable($dp)
+    public function testDefineAllThrowsExceptionOnInvalidIterable()
     {
+        $dp = new Provider;
         $dp->defineAll(1);
     }
     
     /**
-     * @depends testBeginsEmpty
      * @covers Artax\Core\Provider::defineAll
      */
-    public function testDefineAllAssignsPassedDefinitionsAndReturnsAddedCount($dp)
+    public function testDefineAllAssignsPassedDefinitionsAndReturnsAddedCount()
     {
-        $dp->removeAll();
-        $depList = [];
-        $depList['TestNeedsDep'] = ['TestDependency'];
-        $depList['TestDependency'] = ['_shared'];
+        $dp = new Provider;
+        $depList = array();
+        $depList['RequiresInterface'] = array('dep' => 'DepImplementation');
         
-        $this->assertEquals(2, $dp->defineAll($depList));
-        $this->assertEquals(['TestDependency'], $dp->definitions['testneedsdep']);
-        $this->assertEquals(['_shared'], $dp->definitions['testdependency']);
+        $this->assertEquals(1, $dp->defineAll($depList));
+        $this->assertInstanceOf('RequiresInterface', $dp->make('RequiresInterface'));
     }
     
     /**
-     * @depends testBeginsEmpty
      * @covers Artax\Core\Provider::remove
      */
-    public function testRemoveClearsDefinitionAndSharedInstanceAndReturnsProvider($dp)
+    public function testRemoveClearsDefinitionAndSharedInstanceAndReturnsProvider()
     {
-        $dp->removeAll();
-        $dp->define('TestDependency', ['_shared']);
+        $dp = new Provider;
+        $dp->share('TestDependency');
         $obj = $dp->make('TestDependency');
         $return = $dp->remove('TestDependency');
-        $this->assertEmpty($dp->shared);
-        $this->assertFalse(isset($dp->definitions['TestDependency']));
+        
+        $this->assertFalse($dp->isShared('TestDependency'));
         $this->assertEquals($return, $dp);
     }
     
     /**
-     * @depends testBeginsEmpty
      * @covers Artax\Core\Provider::removeAll
      */
-    public function testRemoveAllClearsDefinitionAndSharedInstancesAndReturnsProvider($dp)
+    public function testRemoveAllClearsDefinitionAndSharedInstancesAndReturnsProvider()
     {
-        $dp->removeAll();
+        $dp = new Provider;
         $dp->share('TestDependency');
         $obj = $dp->make('TestDependency');
-        $this->assertEquals($dp->shared['testdependency'], $obj);
+        $this->assertTrue($dp->isShared('TestDependency'));
         
         $return = $dp->removeAll();
-        $this->assertEmpty($dp->shared);
-        $this->assertEmpty($dp->definitions);
-        $this->assertEquals($return, $dp);
+        $this->assertFalse($dp->isShared('TestDependency'));
+        $this->assertEquals($dp, $dp->removeAll());
     }
     
     /**
-     * @depends testBeginsEmpty
      * @covers Artax\Core\Provider::refresh
      */
-    public function testRefreshClearsSharedInstancesAndReturnsProvider($dp)
+    public function testRefreshClearsSharedInstancesAndReturnsProvider()
     {
-        $dp->removeAll();
+        $dp = new Provider;
         $dp->share('TestDependency');
         $obj = $dp->make('TestDependency');
-        $this->assertEquals($dp->shared['testdependency'], $obj);
+        $this->assertTrue($dp->isShared('TestDependency'));
+        $obj->testProp = 42;
         
-        $return = $dp->refresh('TestDependency');
-        $this->assertEquals(['testdependency'=>NULL], $dp->shared);
-        $this->assertEquals($return, $dp);
+        $this->assertEquals($dp, $dp->refresh('TestDependency'));
+        $refreshedObj = $dp->make('TestDependency');
+        $this->assertEquals('testVal', $refreshedObj->testProp);
     }
     
     /**
-     * @depends testBeginsEmpty
      * @covers Artax\Core\Provider::isShared
      */
-    public function testIsSharedReturnsSharedStatus($dp)
+    public function testIsSharedReturnsSharedStatus()
     {
-        $dp->removeAll();
-        
+        $dp = new Provider;
         $dp->share('TestDependency');
         $this->assertTrue($dp->isShared('TestDependency'));
     }
     
     /**
-     * @depends testBeginsEmpty
      * @covers Artax\Core\Provider::isDefined
      */
-    public function testIsDefinedReturnsDefinedStatus($dp)
+    public function testIsDefinedReturnsDefinedStatus()
     {
-        $dp->removeAll();
-        $this->assertFalse($dp->isDefined('TestDependency'));
-        $dp->define('TestDependency', ['_shared']);
-        $this->assertTrue($dp->isDefined('testdependency'));
+        $dp = new Provider;
+        $this->assertFalse($dp->isDefined('RequiresInterface'));
+        $dp->define('RequiresInterface', array('dep' => 'DepImplementation'));
+        
+        $this->assertTrue($dp->isDefined('RequiresInterface'));
     }
     
     /**
-     * @depends testBeginsEmpty
      * @covers Artax\Core\Provider::share
      */
-    public function testShareStoresSharedDependencyAndReturnsChainableInstance($dp)
+    public function testShareStoresSharedDependencyAndReturnsChainableInstance()
     {
-        $dp->removeAll();
+        $dp = new Provider;
         $testShare = new StdClass;
+        $testShare->test = 42;
         
-        $clsName = strtolower(get_class($testShare));
+        $this->assertEquals($dp, $dp->share('StdClass', $testShare));
+        $testShare->test = 'test';
+        $this->assertEquals('test', $dp->make('stdclass')->test);
         
-        $return = $dp->share('StdClass', $testShare);
-        $this->assertEquals($testShare, $dp->shared[$clsName]);
-        $this->assertEquals($dp, $return);
     }
     
     /**
-     * @depends testBeginsEmpty
      * @covers Artax\Core\Provider::share
      */
-    public function testShareMarksClassSharedOnNoObjectParameter($dp)
+    public function testShareMarksClassSharedOnNoObjectParameter()
     {
-        $dp->removeAll();
-        $this->assertEquals($dp, $dp->share('Artax\Core\Mediator'));
-        $this->assertEquals(['artax\core\mediator'=>NULL], $dp->shared);
-        $isShared = $dp->isShared('Artax\Core\Mediator');
-        $this->assertTrue($isShared);
+        $dp = new Provider;
+        $this->assertEquals($dp, $dp->share('Artax\\Core\\Mediator'));
+        $this->assertTrue($dp->isShared('Artax\Core\Mediator'));
     }
     
     /**
-     * @depends testBeginsEmpty
      * @covers Artax\Core\Provider::share
      * @expectedException InvalidArgumentException
      */
-    public function testShareThrowsExceptionOnInvalidArgument($dp)
+    public function testShareThrowsExceptionOnInvalidArgument()
     {
-        $testShare = new StdClass;
-        $dp->share('Artax\Core\Mediator', $testShare);
+        $dp = new Provider;
+        $dp->share('Artax\\Core\\Mediator', new StdClass);
     }
-}
-
-class ProviderCoverageTest extends Artax\Core\Provider
-{
-    use MagicTestGetTrait;
 }
 
 class TestDependency
@@ -388,18 +354,25 @@ class NoTypehintNoDefaultConstructorClass
     }
 }
 
-class AnotherOne
+interface DepInterface {}
+class DepImplementation implements DepInterface
 {
-    public function __construct(AnotherTwo $dep)
+    public $testProp = 'something';
+}
+class RequiresInterface
+{
+    public $dep;
+    
+    public function __construct(DepInterface $dep)
     {
+        $this->testDep = $dep;
     }
 }
-
-class AnotherTwo {}
 
 class NoDefinitionNullDefault
 {
     public function __construct($arg = NULL)
     {
+        $this->arg = $arg;
     }
 }
