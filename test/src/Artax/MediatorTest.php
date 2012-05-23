@@ -65,14 +65,18 @@ class MediatorTest extends PHPUnit_Framework_TestCase
     public function testPushAllAddsNestedListenersFromTraversableParameter()
     {
         $m = new Mediator(new Provider);
-        $cnt = $m->pushAll([
+        $cnt = $m->pushAll(array(
             'app.ready' => function(){},
-            'app.event' => [function(){}, function(){}, function(){}],
-            'app.lazy'  => ['dot.notation', ['_shared'=>TRUE]]
-        ]);
-        $this->assertEquals(5, $cnt);
+            'app.event' => array(function(){}, function(){}, function(){}),
+            'app.lazy'  => array('dot.notation'),
+            'lazy.w.def'=> array('MediatorTestNeedsDep',
+                array('testDep' => new MediatorTestDependency))
+        ));
+        $this->assertEquals(6, $cnt);
         $this->assertEquals(1, $m->count('app.ready'));
         $this->assertEquals(3, $m->count('app.event'));
+        $this->assertEquals(1, $m->count('app.lazy'));
+        $this->assertEquals(1, $m->count('lazy.w.def'));
     }
     
     /**
@@ -92,7 +96,7 @@ class MediatorTest extends PHPUnit_Framework_TestCase
     public function testUnshiftAddsEventListenerAndReturnsCount()
     {
         $dp = new Provider(new Artax\DotNotation);
-        $m = new Mediator($dp);
+        $m  = new Mediator($dp);
         $listeners = $m->push('test.event1', function() { return TRUE; });
         $this->assertEquals(1, $listeners);
         
@@ -109,7 +113,7 @@ class MediatorTest extends PHPUnit_Framework_TestCase
     public function testUnshiftThrowsExceptionOnUncallableListener()
     {
         $dp = new Provider(new Artax\DotNotation);
-        $m = new Mediator($dp);
+        $m  = new Mediator($dp);
         $listeners = $m->unshift('test.event1', 1);
     }
     
@@ -119,7 +123,7 @@ class MediatorTest extends PHPUnit_Framework_TestCase
     public function testFirstReturnsNullIfNoListenersMatch()
     {
         $dp = new Provider(new Artax\DotNotation);
-        $m = new Mediator($dp);
+        $m  = new Mediator($dp);
         $this->assertEquals(NULL, $m->first('test.event1'));
     }
     
@@ -129,7 +133,7 @@ class MediatorTest extends PHPUnit_Framework_TestCase
     public function testLastReturnsNullIfNoListenersMatch()
     {
         $dp = new Provider(new Artax\DotNotation);
-        $m = new Mediator($dp);
+        $m  = new Mediator($dp);
         $this->assertEquals(NULL, $m->last('test.event1'));
     }
     
@@ -155,7 +159,8 @@ class MediatorTest extends PHPUnit_Framework_TestCase
         $m = new Mediator(new Provider);
         $m->push('test.event1', function() { return 42; });
         $m->push('test.event2', function() { return 42; });
-        $this->assertEquals(['test.event1', 'test.event2'], $m->keys());
+        $this->assertEquals(array('test.event1', 'test.event2'), $m->keys());
+        
         return $m;
     }
     
@@ -166,10 +171,10 @@ class MediatorTest extends PHPUnit_Framework_TestCase
     public function testClearRemovesAllListenersAndListenedForEvents($m)
     {
         $m->clear('test.event2');
-        $this->assertEquals(['test.event1'], $m->keys());
+        $this->assertEquals(array('test.event1'), $m->keys());
         
         $m->clear();
-        $this->assertEquals([], $m->keys());
+        $this->assertEquals(array(), $m->keys());
     }
     
     /**
@@ -177,7 +182,7 @@ class MediatorTest extends PHPUnit_Framework_TestCase
      */
     public function testPopRemovesLastListenerForSpecifiedEvent()
     {
-        $m = new Mediator(new Provider);
+        $m  = new Mediator(new Provider);
         $f1 = function(){ return 1; };
         $f2 = function(){ return 2; };
         $m->push('test.event1', $f1);
@@ -232,7 +237,7 @@ class MediatorTest extends PHPUnit_Framework_TestCase
         $f2 = function(){ return 2; };
         $this->assertEquals(1, $m->push('test.event1', $f1));
         $this->assertEquals(1, $m->unshift('test.event2', $f2));
-        $this->assertEquals(['test.event1', 'test.event2'], $m->keys());
+        $this->assertEquals(array('test.event1', 'test.event2'), $m->keys());
     }
     
     /**
@@ -264,7 +269,7 @@ class MediatorTest extends PHPUnit_Framework_TestCase
         $f = function() { return TRUE; };
         $m->push('test.event1', $f);
         
-        $this->assertEquals([$f], $m->all('test.event1'));
+        $this->assertEquals(array($f), $m->all('test.event1'));
     }
     
     /**
@@ -284,7 +289,9 @@ class MediatorTest extends PHPUnit_Framework_TestCase
     public function testNotifyUsesProviderForAdvancedLazyListenerLoad()
     {
         $m = new Mediator(new Provider);
-        $m->push('class_listener_event', 'MediatorTestNeedsDep', ['MediatorTestDependency']);
+        $m->push('class_listener_event', 'MediatorTestNeedsDep',
+            array('MediatorTestDependency')
+        );
         $this->expectOutputString('testVal');
         $m->notify('class_listener_event', 'testVal');
     }
@@ -308,13 +315,3 @@ class MediatorTestNeedsDep
         echo $arg1;
     }
 }
-
-
-
-
-
-
-
-
-
-
