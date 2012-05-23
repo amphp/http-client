@@ -146,7 +146,7 @@ use InvalidArgumentException,
  *         }
  *     }
  *     
- *     $obj = $provider->make('MyClass', ['dep'=>'DepClass', 'ai'=>'AnotherDep']);
+ *     $obj = $provider->make('MyClass', array('dep'=>'DepClass', 'ai'=>'AnotherDep'));
  *     
  *     var_dump($obj instanceof MyClass); // true
  * 
@@ -155,7 +155,7 @@ use InvalidArgumentException,
  * of the requisite class, so the following would work in the same manner as
  * above:
  * 
- *     $provider->define('MyClass', ['dep' => new DepClass, 'ai' => new AnotherDep]);
+ *     $provider->define('MyClass', array('dep' => new DepClass, 'ai' => new AnotherDep));
  *     $myObj = $provider->make('MyClass');
  *     var_dump($myObj instanceof MyClass); // true
  * 
@@ -185,7 +185,7 @@ use InvalidArgumentException,
  *         }
  *     }
  *     
- *     $provider->define('WindsOfWinter', ['azor' => 'JohnSnow']);
+ *     $provider->define('WindsOfWinter', array('azor' => 'JohnSnow'));
  *     $wow = $provider->make('WindsOfWinter');
  *     
  *     var_dump($wow instanceof WindsOfWinter); // true
@@ -241,13 +241,13 @@ class Provider implements ProviderInterface
      * An array of custom class instantiation parameters
      * @var array
      */
-    protected $definitions = [];
+    protected $definitions = array();
     
     /**
      * An array of dependencies shared across the lifetime of the container
      * @var array
      */
-    protected $shared = [];
+    protected $shared = array();
     
     /**
      * A cache of reflected classes and constructor parameters
@@ -412,8 +412,8 @@ class Provider implements ProviderInterface
      */
     public function removeAll()
     {
-        $this->definitions = [];
-        $this->shared = [];
+        $this->definitions = array();
+        $this->shared = array();
         return $this;
     }
     
@@ -469,7 +469,7 @@ class Provider implements ProviderInterface
      */
     protected function getDepsSansDefinition($class, array $ctorParams)
     {
-        $deps = [];
+        $deps = array();
         
         for ($i=0; $i<count($ctorParams); $i++) {
             
@@ -506,7 +506,7 @@ class Provider implements ProviderInterface
      */
     protected function getDepsWithDefinition($class, $ctorParams, $def)
     {
-        $deps = [];
+        $deps       = array();
         $paramCount = count($ctorParams);
         
         for ($i=0; $i<$paramCount; $i++) {
@@ -524,9 +524,9 @@ class Provider implements ProviderInterface
                     } else {
                         $params = NULL;
                     }
-                    $this->reflCache[$reflCls->name] = [
+                    $this->reflCache[$reflCls->name] = array(
                         'class'=> $reflCls,'ctor'=> $params
-                    ];
+                    );
                 }
                 $deps[] = $this->make($reflCls->name);
                 
@@ -570,13 +570,9 @@ class Provider implements ProviderInterface
                 throw new ProviderDefinitionException(
                     "Provider instantiation failure: $class doesn't exist".
                     ' and could not be found by any registered autoloaders. '.
-                    PHP_EOL . PHP_EOL .
                     'If you continue to receive this message and you\'re '.
-                    'sure the class exists or is autoloadable, the problem '.
-                    'is that the class expresses a fatal error of some kind '.
-                    'e.g. undefined abstract methods. Ensuring the validity '.
-                    'of the requisite class (and any classes it references) '.
-                    'will solve the problem.',
+                    'sure the class exists or is autoloadable, try switching '.
+                    'to AX_DEBUG level 2 for extended debug output',
                     NULL, $e
                 );
             }
@@ -587,7 +583,7 @@ class Provider implements ProviderInterface
                 $params = NULL;
             }
             
-            $this->reflCache[$class] = ['class' => $refl, 'ctor' => $params];
+            $this->reflCache[$class] = array('class' => $refl, 'ctor' => $params);
         }
         
         if (!$params) {

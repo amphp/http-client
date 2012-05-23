@@ -142,7 +142,7 @@ class Mediator implements MediatorInterface
      * An dictionary mapping events to the relevant listeners
      * @var array
      */
-    private $listeners = [];
+    private $listeners = array();
     
     /**
      * Dependency provider for listener lazy-loading
@@ -203,7 +203,7 @@ class Mediator implements MediatorInterface
         if (NULL !== $eventName && isset($this->listeners[$eventName])) {
             unset($this->listeners[$eventName]);
         } else {
-            $this->listeners = [];
+            $this->listeners = array();
         }
     }
     
@@ -375,11 +375,11 @@ class Mediator implements MediatorInterface
         }
         
         $listener = $isString && NULL !== $lazyDef
-            ? [$listener, $lazyDef]
+            ? array($listener, $lazyDef)
             : $listener;
         
         if ( ! isset($this->listeners[$eventName])) {
-            $this->listeners[$eventName]   = [];
+            $this->listeners[$eventName]   = array();
             $this->listeners[$eventName][] = $listener;
             return 1;
         }
@@ -508,11 +508,11 @@ class Mediator implements MediatorInterface
         }
         
         $listener = $isString && NULL !== $lazyDef
-            ? [$listener, $lazyDef]
+            ? array($listener, $lazyDef)
             : $listener;
         
         if ( ! isset($this->listeners[$eventName])) {
-            $this->listeners[$eventName]   = [];
+            $this->listeners[$eventName]   = array();
             $this->listeners[$eventName][] = $listener;
             return 1;
         }

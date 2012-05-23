@@ -113,13 +113,13 @@ if (!defined('AX_DEBUG')) {
 }
 
 if (AX_DEBUG === 2) {
-    error_reporting(E_ALL);
+    error_reporting(E_ALL | E_STRICT);
     ini_set('display_errors', TRUE);
 } elseif (AX_DEBUG === 1) {
-    error_reporting(E_ALL & ~ E_ERROR);
+    error_reporting((E_ALL | E_STRICT) & ~ E_ERROR);
     ini_set('display_errors', FALSE);
 } elseif (AX_DEBUG === 0) {
-    error_reporting(E_ALL & ~ E_ERROR);
+    error_reporting((E_ALL | E_STRICT) & ~ E_ERROR);
     ini_set('display_errors', FALSE);
 } else {
     throw new DomainException(
@@ -162,5 +162,6 @@ $provider->share('Artax\\Core\\Provider', $provider);
  * --------------------------------------------------------------------
  */
 
-(new Handlers(AX_DEBUG, $mediator))->register();
+$handlers = new Handlers(AX_DEBUG, $mediator);
+$handlers->register();
 

@@ -262,9 +262,9 @@ class Handlers implements HandlersInterface
      */
     public function register()
     {
-        set_error_handler([$this, 'error']);
-        set_exception_handler([$this, 'exception']);
-        register_shutdown_function([$this, 'shutdown']);
+        set_error_handler(array($this, 'error'));
+        set_exception_handler(array($this, 'exception'));
+        register_shutdown_function(array($this, 'shutdown'));
         return $this;
     }
 
@@ -325,14 +325,14 @@ class Handlers implements HandlersInterface
         $ex  = NULL;
         $err = $this->lastError();
         
-        $fatals = [
+        $fatals = array(
             E_ERROR           => 'Fatal Error',
             E_PARSE           => 'Parse Error',
             E_CORE_ERROR      => 'Core Error',
             E_CORE_WARNING    => 'Core Warning',
             E_COMPILE_ERROR   => 'Compile Error',
             E_COMPILE_WARNING => 'Compile Warning'
-        ];
+        );
         
         if (isset($fatals[$err['type']])) {
             $msg = $fatals[$err['type']] . ': ' . $err['message'] . ' in ';

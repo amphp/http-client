@@ -3,32 +3,35 @@
 
 /*
  * --------------------------------------------------------------------
- * BOOT UP THE ARTAX-CORE
+ * Specify debug mode; boot Artax.
  * --------------------------------------------------------------------
  */
 
-define('AX_DEBUG', TRUE); // optional -- defaults to FALSE if not defined
+define('AX_DEBUG', 1); // 0: production, 1: dev, 2: crazy nested fatals debugging
 require dirname(__DIR__) . '/Artax.php'; // hard path to bootstrap file
-
 
 /*
  * --------------------------------------------------------------------
- * SPECIFY LISTENERS FOR ERRORS, EXCEPTIONS & SHUTDOWNS
+ * Specify error, exception and shutdown event listeners.
  * --------------------------------------------------------------------
  */
 
-$mediator->pushAll([
-    'error' => [
-        function(ErrorException $e, $debug) {
-            echo  '---error event listener #1---' . PHP_EOL;
-            if (!$debug && in_array($e->getCode(), [E_STRICT, E_DEPRECATED])) {
-                // log the message in production environments
-            } else {
-                throw $e;
-            }
-        }  
-    ],
-    'exception' => [
+$mediator->push('error', function(ErrorException $e, $debug) {
+    
+    echo  '---error event listener #1---' . PHP_EOL;
+    
+    $code = $e->getCode();
+    
+    if ($debug) {
+        throw $e;
+    }
+    if ($code == E_STRICT || $code == E_DEPRECATED) {
+        // do some logging or just ignore
+    }
+});
+
+$mediator->pushAll(array(
+    'exception' => array(
         function(Exception $e, $debug) {
             $debug = $debug ? 'TRUE' : 'FALSE';
             echo  '---exception event listener #1---' . PHP_EOL;
@@ -38,17 +41,16 @@ $mediator->pushAll([
         function(Exception $e, $debug) {
             echo '---exception event listener #2---' . PHP_EOL;
         }
-    ],
-    'shutdown' => [
+    ),
+    'shutdown' => array(
         function() { 
             echo '---shutdown event listener #1---' . PHP_EOL;
         },
         function() { 
             echo '---shutdown event listener #2---' . PHP_EOL;
         }
-    ]
-]);
-
+    )
+));
 
 /**
  * Notice how a PHP error results in error event listeners being invoked.
@@ -83,7 +85,7 @@ while(1) {
 }
 
 /**
- * Finally, you can comment out both error causing sections to see how the 
- * shutdown handlers are called on their own after normal script termination.
+ * Finally, if you comment out all of the errors above you'll see that shutdown
+ * handlers are called on their own after normal script termination.
  */
 
