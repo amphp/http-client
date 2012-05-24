@@ -34,17 +34,6 @@ time.
 
 ### EPILOGUE
 
-The idea of using someone else's code as the basis for your application
-is often inherently distasteful. Many of us are drawn to programming
-because it affords us the opportunity to do something better or faster than what
-other people have done. We didn't sign up, text-editor in hand, just so we could
-copy and paste Martin Fowler's or Douglas Crockford's or Fabien Potencier's work. At
-the same time, we have to balance our competitive egos with the knowledge that
-time is a scarce resource and sometimes the wheel just doesn't require reinventing.
-Artax attempts to address many of the standard, repetitive boilerplate machinations
-of enterprise-level PHP applications without the bloat and myriad dependencies 
-packaged with many modern frameworks.
-
 If you don't have much experience developing PHP applications, this may not be
 the right tool for you. There is no built-in MVC structure, though it should be
 trivial to implement an evented MVC application on top of the Artax-Core
