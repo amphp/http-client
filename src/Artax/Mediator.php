@@ -8,6 +8,9 @@
  * @category   Artax
  * @package    Core
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
+ * @copyright  ${copyright.msg}
+ * @license    All code subject to the ${license.name}
+ * @version    ${project.version}
  */
 
 namespace Artax;
@@ -127,14 +130,14 @@ use InvalidArgumentException,
  * the chain.
  * 
  * For advanced mediator usage including lazy-loading class event listeners,
- * check out the relevant wiki entries on github:
+ * check out the relevant wiki entry:
  * 
  * https://github.com/rdlowrey/Artax/wiki/Event-Management
- * https://github.com/rdlowrey/Artax/wiki/Advanced-Events
  * 
  * @category   Artax
  * @package    Core
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
+ * @copyright  ${copyright.msg}
  */
 class Mediator implements MediatorInterface
 {

@@ -8,6 +8,9 @@
  * @category   Artax
  * @package    Core
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
+ * @copyright  ${copyright.msg}
+ * @license    All code subject to the ${license.name}
+ * @version    ${project.version}
  */
  
 namespace Artax;
