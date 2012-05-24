@@ -19,6 +19,14 @@
  * the event mediator (`$mediator`) and (optionally) adding dependency definitions
  * (if necessary) to the dependency injection container (`$provider`).
  * 
+ * ### More information
+ * 
+ * Examples to get you started are available in the {%ARTAX_DIR%}/examples
+ * directory. For more detailed discussion checkout the wiki for extended
+ * discussion and examples:
+ * 
+ * https://github.com/rdlowrey/Artax/wiki
+ * 
  * ### Concerning AX_DEBUG levels
  * 
  * Artax applications have three different debug output levels:
@@ -41,18 +49,34 @@
  * can't figure out why your app keeps breaking, try switching into debug 
  * level 2, as this will give your more information about the problem.
  * 
- * ### More information
  * 
- * Examples to get you started are available in the {%ARTAX_DIR%}/examples
- * directory. For more detailed discussion checkout the [github wiki][wiki].
+ * ********
+ * The MIT License (MIT)
  * 
- * [wiki]: https://rdlowrey.github.com/Artax/
+ * Copyright (c) 2012 Daniel Lowrey
  * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is furnished
+ * to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in 
+ * all copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+ * IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+ * ********
  * 
  * @category Artax
  * @package  Core
  * @author   Daniel Lowrey <rdlowrey@gmail.com>
- * @author   Levi Morrison <lm@php.net>
  */
 
 /*
@@ -105,7 +129,7 @@ define('AX_SYSDIR', __DIR__);
  */
 
 if (!defined('AX_DEBUG')) {
-    define('AX_DEBUG', 1);
+    define('AX_DEBUG', 0);
 }
 
 if (AX_DEBUG === 2) {
@@ -158,6 +182,11 @@ $provider->share('Artax\\Provider', $provider);
  * --------------------------------------------------------------------
  */
 
-$handlers = new Artax\Handlers(AX_DEBUG, $mediator);
-$handlers->register();
+if (PHP_VERSION_ID >= 50400) {
+    (new Artax\Handlers(AX_DEBUG, $mediator))->register();
+} else {
+    $handlers = new Artax\Handlers(AX_DEBUG, $mediator);
+    $handlers->register();
+    unset($handlers);
+}
 
