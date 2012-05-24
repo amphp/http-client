@@ -1,0 +1,33 @@
+<phpunit bootstrap="./bootstrap.php" colors="true">
+    <testsuites>
+        <testsuite name="Core">
+            <directory>./src</directory>
+        </testsuite>
+    </testsuites>
+    <filter>
+        <whitelist addUncoveredFilesFromWhitelist="true">
+            <directory>./src/Artax</directory>
+            <exclude>
+                <directory suffix="Interface.php">./src/Artax</directory>
+            </exclude>
+        </whitelist>
+    </filter>
+    
+    <logging>
+        <!--
+        <log type="coverage-text"
+            target="php://stdout"
+            highLowerBound="85"
+            lowUpperBound="50"
+        />
+        <log type="coverage-html"
+            target="./coverage"
+            charset="UTF-8"
+            highLowerBound="85"
+            lowUpperBound="50"
+            showUncoveredFiles="true"
+            yui="true"
+        />
+        -->
+    </logging>
+</phpunit>
