@@ -134,14 +134,16 @@ ini_set('html_errors', FALSE);
  */
 
 require AX_SYSDIR . '/src/Artax/ProviderDefinitionException.php';
-require AX_SYSDIR . '/src/Artax/ProviderInterface.php';
-require AX_SYSDIR . '/src/Artax/Provider.php';
-require AX_SYSDIR . '/src/Artax/MediatorInterface.php';
-require AX_SYSDIR . '/src/Artax/Mediator.php';
 require AX_SYSDIR . '/src/Artax/FatalErrorException.php';
 require AX_SYSDIR . '/src/Artax/ScriptHaltException.php';
-require AX_SYSDIR . '/src/Artax/HandlersInterface.php';
-require AX_SYSDIR . '/src/Artax/Handlers.php';
+require AX_SYSDIR . '/src/Artax/ReflCacher.php';
+require AX_SYSDIR . '/src/Artax/ReflectionCache.php';
+require AX_SYSDIR . '/src/Artax/InjectionContainer.php';
+require AX_SYSDIR . '/src/Artax/Provider.php';
+require AX_SYSDIR . '/src/Artax/Notifier.php';
+require AX_SYSDIR . '/src/Artax/Mediator.php';
+require AX_SYSDIR . '/src/Artax/UnifiedHandler.php';
+require AX_SYSDIR . '/src/Artax/Handler.php';
 
 /*
  * --------------------------------------------------------------------
@@ -149,10 +151,13 @@ require AX_SYSDIR . '/src/Artax/Handlers.php';
  * --------------------------------------------------------------------
  */
 
-$provider = new Artax\Provider;
-$mediator = new Artax\Mediator($provider);
+$reflCache = new Artax\ReflectionCache;
+$provider  = new Artax\Provider($reflCache);
+$mediator  = new Artax\Mediator($provider);
+
 $provider->share('Artax\\Mediator', $mediator);
 $provider->share('Artax\\Provider', $provider);
+$provider->share('Artax\\ReflectionCache', $reflCache);
 
 /*
  * --------------------------------------------------------------------
@@ -161,9 +166,9 @@ $provider->share('Artax\\Provider', $provider);
  */
 
 if (PHP_VERSION_ID >= 50400) {
-    (new Artax\Handlers(AX_DEBUG, $mediator))->register();
+    (new Artax\Handler(AX_DEBUG, $mediator))->register();
 } else {
-    $handlers = new Artax\Handlers(AX_DEBUG, $mediator);
+    $handlers = new Artax\Handler(AX_DEBUG, $mediator);
     $handlers->register();
     unset($handlers);
 }

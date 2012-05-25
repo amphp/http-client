@@ -139,7 +139,7 @@ use InvalidArgumentException,
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  * @copyright  ${copyright.msg}
  */
-class Mediator implements MediatorInterface
+class Mediator implements Notifier
 {
     /**
      * An dictionary mapping events to the relevant listeners

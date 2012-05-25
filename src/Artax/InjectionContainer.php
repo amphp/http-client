@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Artax ProviderInterface Interface File
+ * Artax InjectionContainer Interface File
  * 
  * PHP version 5.3
  * 
@@ -22,7 +22,7 @@ namespace Artax;
  * @package    Core
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-interface ProviderInterface
+interface InjectionContainer
 {
     /**
      * Factory method for auto-injecting dependencies upon instantiation

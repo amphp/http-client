@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Artax Handlers Class File
+ * Handler Class File
  *
  * PHP version 5.3
  *
@@ -74,7 +74,7 @@ use Exception, ErrorException;
  * @package    Core
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-class Handlers implements HandlersInterface
+class Handler implements UnifiedHandler
 {
     /**
      * The application-wide debug level
@@ -98,11 +98,11 @@ class Handlers implements HandlersInterface
      * Specify debug output flag and register exception/shutdown handlers
      * 
      * @param int               $debug    An app-wide debug run level
-     * @param MediatorInterface $mediator An event mediator instance
+     * @param Notifier $mediator An event mediator instance
      * 
      * @return void
      */
-    public function __construct($debug, MediatorInterface $mediator)
+    public function __construct($debug, Notifier $mediator)
     {
         $this->debug    = $debug;
         $this->mediator = $mediator;

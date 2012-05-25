@@ -238,7 +238,7 @@ use InvalidArgumentException,
  * @package    Core
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-class Provider implements ProviderInterface
+class Provider implements InjectionContainer
 {
     /**
      * An array of custom class instantiation parameters
@@ -253,10 +253,22 @@ class Provider implements ProviderInterface
     protected $shared = array();
     
     /**
-     * A cache of reflected classes and constructor parameters
-     * @var array
+     * A retrieval and caching wrapper for class reflection operations
+     * @var ReflCacher
      */
-    protected $reflCache = array();
+    protected $reflCache;
+    
+    /**
+     * Injects the reflection cacher dependency
+     * 
+     * @param ReflCacher $reflCache An instance of teh ReflCacher interface
+     * 
+     * @return void
+     */
+    public function __construct(ReflCacher $reflCache)
+    {
+        $this->reflCache = $reflCache;
+    }
     
     /**
      * Defines custom instantiation parameters for the specified class
@@ -476,10 +488,8 @@ class Provider implements ProviderInterface
         
         for ($i=0; $i<count($ctorParams); $i++) {
             
-            if ($reflCls = $ctorParams[$i]->getClass()) {
-                
-                $deps[] = $this->make($reflCls->name);
-                
+            if ($typehint = $this->reflCache->getTypehint($ctorParams[$i])) {
+                $deps[] = $this->make($typehint);
             } elseif ($ctorParams[$i]->isDefaultValueAvailable()
                 && NULL === $ctorParams[$i]->getDefaultValue()
             ) {
@@ -487,7 +497,7 @@ class Provider implements ProviderInterface
             } else {
                 throw new ProviderDefinitionException(
                     "Cannot provision $class::__construct: scalar default ".
-                    'values not allowed (argument ' . ($i+1) . ')'
+                    'value not allowed at argument ' . ($i+1)
                 );
             }
         }
@@ -497,7 +507,7 @@ class Provider implements ProviderInterface
     /**
      * Generate dependencies for a class using an injection definition
      * 
-     * @param string $class       A class name
+     * @param string $className   A class name
      * @param array  $ctorParams  An array of ReflectionParameter objects
      * @param array  $def         An array specifying dependencies required
      *                            for object instantiation
@@ -507,31 +517,21 @@ class Provider implements ProviderInterface
      *                                     using an invalid injection definition
      * @used-by Provider::getInjectedInstance
      */
-    protected function getDepsWithDefinition($class, $ctorParams, $def)
+    protected function getDepsWithDefinition($className, $ctorParams, $def)
     {
-        $deps       = array();
-        $paramCount = count($ctorParams);
+        $deps = array();
         
-        for ($i=0; $i<$paramCount; $i++) {
+        for ($i=0; $i<count($ctorParams); $i++) {
             
             if (isset($def[$ctorParams[$i]->name])) {
+                
                 $deps[] = is_string($def[$ctorParams[$i]->name])
                     ? $this->make($def[$ctorParams[$i]->name])
                     : $def[$ctorParams[$i]->name];
                     
-            } elseif ($reflCls = $ctorParams[$i]->getClass()) {
+            } elseif ($typehint = $this->reflCache->getTypehint($ctorParams[$i])) {
                 
-                if (!isset($this->reflCache[$reflCls->name])) {
-                    if ($ctor = $reflCls->getConstructor()) {
-                        $params = $ctor->getParameters();
-                    } else {
-                        $params = NULL;
-                    }
-                    $this->reflCache[$reflCls->name] = array(
-                        'class' => $reflCls, 'ctor' => $params
-                    );
-                }
-                $deps[] = $this->make($reflCls->name);
+                $deps[] = $this->make($typehint);
                 
             } elseif ($ctorParams[$i]->isDefaultValueAvailable()
                 && NULL === $ctorParams[$i]->getDefaultValue()
@@ -539,8 +539,8 @@ class Provider implements ProviderInterface
                 $deps[] = NULL;
             } else {
                 throw new ProviderDefinitionException(
-                    "Cannot provision $class::__construct: argument " . ($i+1) .
-                    ' must specify a class typehint or NULL default value'
+                    "Cannot provision $className::__construct: argument " . 
+                    ($i+1) .' must specify a class typehint or NULL default value'
                 );
             }
         }
@@ -551,9 +551,9 @@ class Provider implements ProviderInterface
     /**
      * Return an instantiated object subject to user-specified definitions
      * 
-     * @param string $class Class name
-     * @param array  $def   An array specifying dependencies required for
-     *                      object instantiation
+     * @param string $className  Class name
+     * @param array  $definition An array specifying dependencies required
+     *                           for object instantiation
      * 
      * @return mixed Returns A dependency-injected object
      * @throws ProviderDefinitionException If the class being provisioned doesn't
@@ -561,42 +561,32 @@ class Provider implements ProviderInterface
      * @uses Provider::getDepsWithDefinition
      * @uses Provider::getDepsSansDefinition
      */
-    protected function getInjectedInstance($class, $def)
+    protected function getInjectedInstance($className, $definition)
     {
-        if (isset($this->reflCache[$class])) {
-            $refl   = $this->reflCache[$class]['class'];
-            $params = $this->reflCache[$class]['ctor'];
-        } else {
-            try {
-                $refl = new ReflectionClass($class);
-            } catch (ReflectionException $e) {
-                throw new ProviderDefinitionException(
-                    "Provider instantiation failure: $class doesn't exist".
-                    ' and could not be found by any registered autoloaders. '.
-                    'If you continue to receive this message and you\'re '.
-                    'sure the class exists or is autoloadable, try switching '.
-                    'to AX_DEBUG level 2 for extended debug output',
-                    NULL, $e
-                );
-            }
-            
-            if ($ctor = $refl->getConstructor()) {
-                $params = $ctor->getParameters();
-            } else {
-                $params = NULL;
-            }
-            
-            $this->reflCache[$class] = array('class' => $refl, 'ctor' => $params);
+        try {
+            $ctorParams = $this->reflCache->getCtorParams($className);
+        } catch (ReflectionException $e) {
+            throw new ProviderDefinitionException(
+                "Provider instantiation failure: $className doesn't exist".
+                ' and could not be found by any registered autoloaders. '.
+                'If you continue to receive this message and you\'re '.
+                'sure the class exists or is autoloadable, try switching '.
+                'to AX_DEBUG level 2 for extended debug output',
+                NULL, $e
+            );
         }
         
-        if (!$params) {
-            return new $class;
+        if (!$ctorParams) {
+            return new $className;
         } else {
-            $deps = (NULL === $def)
-                ? $this->getDepsSansDefinition($class, $params)
-                : $this->getDepsWithDefinition($class, $params, $def);
             
-            return $refl->newInstanceArgs($deps);
+            $deps = (NULL === $definition)
+                ? $this->getDepsSansDefinition($className, $ctorParams)
+                : $this->getDepsWithDefinition($className, $ctorParams, $definition);
+            
+            $reflClass = $this->reflCache->getClass($className);
+            
+            return $reflClass->newInstanceArgs($deps);
         }
     }
 }

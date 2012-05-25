@@ -6,9 +6,12 @@
     </testsuites>
     <filter>
         <whitelist addUncoveredFilesFromWhitelist="true">
-            <directory>./src/Artax</directory>
+            <directory>../src/Artax</directory>
             <exclude>
-                <directory suffix="Interface.php">./src/Artax</directory>
+                <file>../src/Artax/Notifier.php</file>
+                <file>../src/Artax/ReflCacher.php</file>
+                <file>../src/Artax/UnifiedHandler.php</file>
+                <file>../src/Artax/InjectionContainer.php</file>
             </exclude>
         </whitelist>
     </filter>

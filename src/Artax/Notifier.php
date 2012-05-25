@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Artax MediatorInterface File
+ * Notifier Interface File
  * 
  * PHP version 5.3
  * 
@@ -16,15 +16,13 @@
 namespace Artax;
   
 /**
- * MediatorInterface
- * 
- * Specifies the public facing interface for Mediator objects.
+ * Defines the public facing interface for event notifiers.
  * 
  * @category   Artax
  * @package    Core
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-interface MediatorInterface
+interface Notifier
 {
     /**
      * Notify listeners that the specified event has occurred

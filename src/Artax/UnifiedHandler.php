@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Artax HandlersInterface File
+ * UnifiedHandler File
  *
  * PHP version 5.3
  *
@@ -17,13 +17,13 @@ namespace Artax;
 use Exception;
 
 /**
- * Specifies an interface for error, uncaught exception and shutdown handlers
+ * Specifies interface for a unified error, exception and shutdown handler
  *
  * @category   Artax
  * @package    Core
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-interface HandlersInterface
+interface UnifiedHandler
 {
     /**
      * Method to handle raised PHP errors
