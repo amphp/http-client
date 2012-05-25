@@ -10,18 +10,22 @@ PHP 5.3+ ... and a text-editor.
 
 Git (latest stable release):
 
-    $ mkdir artax
-    $ cd artax
-    $ git init
-    $ git pull git@github.com:rdlowrey/Artax.git
+```BASH
+$ mkdir artax
+$ cd artax
+$ git init
+$ git pull git@github.com:rdlowrey/Artax.git
+```
 
 ### Installation
 
 Specify the application-wide debug level and require the Artax.php bootstrap.
 
-    <?php
-    define('AX_DEBUG', 1); // acceptable values: 0, 1, 2
-    require '/hard/path/to/Artax.php';
+```PHP
+<?php
+define('AX_DEBUG', 1); // acceptable values: 0, 1, 2
+require '/hard/path/to/Artax.php';
+```
 
 ### Once the Boot Process Completes
 
