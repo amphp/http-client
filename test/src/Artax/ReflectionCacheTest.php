@@ -57,11 +57,11 @@ class ReflectionCacheTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testGetConstructorCachedReflectionIfAvailable
-     * @covers Artax\ReflectionCache::getCtorParams
+     * @covers Artax\ReflectionCache::getConstructorParameters
      */
     public function testGetCtorParamsRetrievesNewReflectionIfNotCached($rc)
     {
-        $params = $rc->getCtorParams('Test');
+        $params = $rc->getConstructorParameters('Test');
         $this->assertTrue(is_array($params));
         $this->assertInstanceOf('ReflectionParameter', $params[0]);
         
@@ -70,11 +70,11 @@ class ReflectionCacheTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testGetCtorParamsRetrievesNewReflectionIfNotCached
-     * @covers Artax\ReflectionCache::getCtorParams
+     * @covers Artax\ReflectionCache::getConstructorParameters
      */
     public function testGetCtorParamsReturnsNullIfNoConstructorExists($rc)
     {
-        $params = $rc->getCtorParams('Param');
+        $params = $rc->getConstructorParameters('Param');
         $this->assertNull($params);
         
         return $rc;
@@ -82,11 +82,11 @@ class ReflectionCacheTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testGetCtorParamsReturnsNullIfNoConstructorExists
-     * @covers Artax\ReflectionCache::getCtorParams
+     * @covers Artax\ReflectionCache::getConstructorParameters
      */
     public function testGetCtorParamsRetrievesCachedReflectionIfAvailable($rc)
     {
-        $params = $rc->getCtorParams('Test');
+        $params = $rc->getConstructorParameters('Test');
         $p1 = $rc->getConstructor('Test')->getParameters();
         $this->assertTrue(is_array($p1));
         $this->assertEquals($p1[0], $params[0]);
@@ -100,7 +100,7 @@ class ReflectionCacheTest extends PHPUnit_Framework_TestCase
      */
     public function testGetTypehintRetrievesNewClassNameIfNotStoredForParam($rc)
     {
-        $param = $rc->getCtorParams('Test');
+        $param = $rc->getConstructorParameters('Test');
         $typehint = $rc->getTypehint($param[0]);
         $this->assertEquals('Param', $typehint);
         
@@ -113,7 +113,7 @@ class ReflectionCacheTest extends PHPUnit_Framework_TestCase
      */
     public function testGetTypehintFetchesCachedParamTypehintIfAvailable($rc)
     {
-        $param = $rc->getCtorParams('Test');
+        $param = $rc->getConstructorParameters('Test');
         $typehint = $rc->getTypehint($param[0]);
         $this->assertEquals('Param', $typehint);
         

@@ -48,7 +48,7 @@ interface ReflCacher
      * @param string $className The name of the class whose constructor 
      *                          parameters we'd like to retrieve
      */
-    public function getCtorParams($className);
+    public function getConstructorParameters($className);
     
     /**
      * Retrieves the class typehint from a given ReflectionParameter

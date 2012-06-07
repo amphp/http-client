@@ -564,7 +564,7 @@ class Provider implements InjectionContainer
     protected function getInjectedInstance($className, $definition)
     {
         try {
-            $ctorParams = $this->reflCache->getCtorParams($className);
+            $ctorParams = $this->reflCache->getConstructorParameters($className);
         } catch (ReflectionException $e) {
             throw new ProviderDefinitionException(
                 "Provider instantiation failure: $className doesn't exist".

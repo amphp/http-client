@@ -115,7 +115,7 @@ class ReflectionCache implements ReflCacher
      * @return array Returns an array of ReflectionParameter objects or 
      *               NULL if no constructor exists for the class.
      */
-    public function getCtorParams($className)
+    public function getConstructorParameters($className)
     {
         $lowClass = strtolower($className);
         
