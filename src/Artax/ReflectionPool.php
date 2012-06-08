@@ -1,7 +1,7 @@
 <?php
 
 /**
- * ReflectionCache Class File
+ * ReflectionPool Class File
  * 
  * PHP version 5.3
  * 
@@ -23,7 +23,7 @@ use SplObjectStorage,
  * Caches reflection results to minimize reflection performance impact
  * 
  * Computationally, Reflection can be slow(ish) ... so we cache the results.
- * The ReflectionCache class acts as a wrapper to reflection calls. When
+ * The ReflectionPool class acts as a wrapper to reflection calls. When
  * a reflection object is retrieved the class caches the object so that
  * future reflection attempts can reuse the same instance instead of repeating
  * the same (slow) operation multiple times.
@@ -32,7 +32,7 @@ use SplObjectStorage,
  * @package    Core
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-class ReflectionCache implements ReflCacher
+class ReflectionPool implements ReflectionCacher
 {
     /**
      * An array mapping class names reflected class objects
@@ -53,7 +53,7 @@ class ReflectionCache implements ReflCacher
     private $ctorParams = array();
     
     /**
-     * An storage object matching reflection parameters to their typehints
+     * A storage object matching reflection parameters to their typehints
      * @var SplObjectStorage
      */
     private $typehints;

@@ -20,13 +20,13 @@ use SplObjectStorage,
     ReflectionParameter;
 
 /**
- * Defines an interface contract for objects caching class reflection results
+ * Defines an interface contract for caching/pooling reflections
  * 
  * @category   Artax
  * @package    Core
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-interface ReflCacher
+interface ReflectionCacher
 {
     /**
      * Retrieves and caches the ReflectionClass objects

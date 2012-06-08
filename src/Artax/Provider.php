@@ -253,21 +253,21 @@ class Provider implements InjectionContainer
     protected $shared = array();
     
     /**
-     * A retrieval and caching wrapper for class reflection operations
-     * @var ReflCacher
+     * A retrieval and caching wrapper for pooling reflection objects
+     * @var ReflectionCacher
      */
     protected $reflCache;
     
     /**
      * Injects the reflection cacher dependency
      * 
-     * @param ReflCacher $reflCache An instance of teh ReflCacher interface
+     * @param ReflectionCacher $rc A ReflectionCacher interface instance
      * 
      * @return void
      */
-    public function __construct(ReflCacher $reflCache)
+    public function __construct(ReflectionCacher $rc)
     {
-        $this->reflCache = $reflCache;
+        $this->reflCache = $rc;
     }
     
     /**

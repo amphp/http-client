@@ -9,7 +9,7 @@
             <directory>../src/Artax</directory>
             <exclude>
                 <file>../src/Artax/Notifier.php</file>
-                <file>../src/Artax/ReflCacher.php</file>
+                <file>../src/Artax/ReflectionCacher.php</file>
                 <file>../src/Artax/UnifiedHandler.php</file>
                 <file>../src/Artax/InjectionContainer.php</file>
             </exclude>
