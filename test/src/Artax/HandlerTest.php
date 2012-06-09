@@ -4,7 +4,7 @@ use Artax\Provider,
     Artax\FatalErrorException,
     Artax\Handler,
     Artax\ScriptHaltException,
-    Artax\ReflectionPool;
+    Artax\ReflectionCacher;
 
 class HandlerTest extends PHPUnit_Framework_TestCase
 {
@@ -22,8 +22,8 @@ class HandlerTest extends PHPUnit_Framework_TestCase
      */
     public function testBeginsEmpty()
     {
-        $dp  = new Provider(new ReflectionPool);
-        $med = $this->getMock('Artax\Mediator', NULL,  array($dp));
+        $dp  = new Provider(new ReflectionCacher);
+        $med = $this->getMock('Artax\Notifier', NULL,  array($dp));
         $obj = new Handler(1, $med);
     }
     
@@ -32,10 +32,10 @@ class HandlerTest extends PHPUnit_Framework_TestCase
      */
     public function testRegisterReturnsInstanceForChaining()
     {
-        $dp  = new Provider(new ReflectionPool);
-        $med = $this->getMock('Artax\Mediator', NULL,  array($dp));
+        $dp  = new Provider(new ReflectionCacher);
+        $med = $this->getMock('Artax\Notifier', NULL,  array($dp));
         $t = $this->getMock('Artax\Handler', array('exception',
-            'shutdown', 'setMediator', 'getFatalErrorException', 'lastError',
+            'shutdown', 'setNotifier', 'getFatalErrorException', 'lastError',
             'defaultHandlerMsg'
             ),
             array(0, $med)
@@ -47,14 +47,14 @@ class HandlerTest extends PHPUnit_Framework_TestCase
     /**
      * @covers Artax\Handler::error
      */
-    public function testErrorNotifiesMediatorOnError()
+    public function testErrorNotifiesNotifierOnError()
     {
         ob_start();
         $msg = 'test notice message in testFile.php on line 42';
         $ex  = new ErrorException($msg, E_NOTICE);
         
-        $dp  = new Provider(new ReflectionPool);
-        $med = $this->getMock('Artax\Mediator', array('notify'),  array($dp));
+        $dp  = new Provider(new ReflectionCacher);
+        $med = $this->getMock('Artax\Notifier', array('notify'),  array($dp));
         $med->expects($this->once())
             ->method('notify')
             ->with('error', $ex, 1);
@@ -72,8 +72,8 @@ class HandlerTest extends PHPUnit_Framework_TestCase
      */
     public function testErrorChainsOnExceptionAndClearsBufferedOutput()
     {
-        $dp  = new Provider(new ReflectionPool);
-        $med = $this->getMock('Artax\Mediator', array('notify'),  array($dp));
+        $dp  = new Provider(new ReflectionCacher);
+        $med = $this->getMock('Artax\Notifier', array('notify'),  array($dp));
         ob_start();
         echo 'test';
         $med->expects($this->once())
@@ -98,8 +98,8 @@ class HandlerTest extends PHPUnit_Framework_TestCase
             'line'    => 42
         );
         
-        $dp   = new Provider(new ReflectionPool);
-        $med  = $this->getMock('Artax\Mediator', NULL,  array($dp));
+        $dp   = new Provider(new ReflectionCacher);
+        $med  = $this->getMock('Artax\Notifier', NULL,  array($dp));
         $stub = $this->getMock(
             'Artax\Handler',
             array('exception', 'lastError', 'defaultHandlerMsg'),
@@ -116,9 +116,9 @@ class HandlerTest extends PHPUnit_Framework_TestCase
      */
     public function testDefaultHandlerMsgReturnsExpectedString()
     {
-        $dp  = new Provider(new ReflectionPool);
+        $dp  = new Provider(new ReflectionCacher);
         
-        $med = $this->getMock('Artax\Mediator', NULL,  array($dp));
+        $med = $this->getMock('Artax\Notifier', NULL,  array($dp));
         
         $obj = new Handler(0, $med);
         
@@ -145,9 +145,9 @@ class HandlerTest extends PHPUnit_Framework_TestCase
      */
     public function testLastErrorReturnsNullOnNoFatalPHPError()
     {
-        $dp  = new Provider(new ReflectionPool);
+        $dp  = new Provider(new ReflectionCacher);
         
-        $med = $this->getMock('Artax\Mediator', NULL,  array($dp));
+        $med = $this->getMock('Artax\Notifier', NULL,  array($dp));
         $obj = new Handler(1, $med);
         $this->assertEquals(NULL, $obj->getFatalErrorException());
     }
@@ -155,12 +155,12 @@ class HandlerTest extends PHPUnit_Framework_TestCase
     /**
      * @covers Artax\Handler::shutdown
      */
-    public function testShutdownNotifiesListenersIfMediatorExists()
+    public function testShutdownNotifiesListenersIfNotifierExists()
     {
         
         $medStub = $this->getMock(
-            'Artax\Mediator', array('all', 'keys'),
-            array(new Provider(new ReflectionPool))
+            'Artax\Notifier', array('all', 'keys'),
+            array(new Provider(new ReflectionCacher))
         );
         $obj = $this->getMock('Artax\Handler',
             array('getFatalErrorException'), array(1, $medStub)
@@ -177,8 +177,8 @@ class HandlerTest extends PHPUnit_Framework_TestCase
     public function testExHandlerReturnsQuietlyOnPurposefulScriptHalt()
     {
         
-        $med = $this->getMock('Artax\Mediator', array('notify'),
-            array(new Provider(new ReflectionPool))
+        $med = $this->getMock('Artax\Notifier', array('notify'),
+            array(new Provider(new ReflectionCacher))
         );
         $obj = new Handler(1, $med);
         $this->assertNull($obj->exception(new ScriptHaltException));
@@ -189,8 +189,8 @@ class HandlerTest extends PHPUnit_Framework_TestCase
      */
     public function testExHandlerClearsBufferOnFatalException()
     {
-        $med = $this->getMock('Artax\Mediator', array('notify'),
-            array(new Provider(new ReflectionPool))
+        $med = $this->getMock('Artax\Notifier', array('notify'),
+            array(new Provider(new ReflectionCacher))
         );
         $obj = new Handler(1, $med);
         ob_start();
@@ -204,8 +204,8 @@ class HandlerTest extends PHPUnit_Framework_TestCase
      */
     public function testExHandlerChangesErrorReportingOnFatalException()
     {
-        $med = $this->getMock('Artax\Mediator', array('notify'),
-            array(new Provider(new ReflectionPool))
+        $med = $this->getMock('Artax\Notifier', array('notify'),
+            array(new Provider(new ReflectionCacher))
         );
         $obj = new Handler(1, $med);
         ob_start();
@@ -216,11 +216,11 @@ class HandlerTest extends PHPUnit_Framework_TestCase
     /**
      * @covers Artax\Handler::exception
      */
-    public function testExHandlerOutputsDefaultMessageIfNoMediatorExists()
+    public function testExHandlerOutputsDefaultMessageIfNoNotifierExists()
     {
         
-        $med = $this->getMock('Artax\Mediator', array('notify'),
-            array(new Provider(new ReflectionPool))
+        $med = $this->getMock('Artax\Notifier', array('notify'),
+            array(new Provider(new ReflectionCacher))
         );
         $stub = $this->getMock('Artax\Handler',
             array('defaultHandlerMsg'), array(1, $med)
@@ -235,11 +235,11 @@ class HandlerTest extends PHPUnit_Framework_TestCase
     /**
      * @covers Artax\Handler::exception
      */
-    public function testExHandlerNotifiesMediatorOnUncaughtException()
+    public function testExHandlerNotifiesNotifierOnUncaughtException()
     {
         
-        $med = $this->getMock('Artax\Mediator', array('notify'),
-            array(new Provider(new ReflectionPool))
+        $med = $this->getMock('Artax\Notifier', array('notify'),
+            array(new Provider(new ReflectionCacher))
         );
         $stub = $this->getMock('Artax\Handler',
             NULL, array(1, $med)
@@ -262,8 +262,8 @@ class HandlerTest extends PHPUnit_Framework_TestCase
     public function testExHandlerFallsBackToDefaultMessageOnNotifyException()
     {
         
-        $med = $this->getMock('Artax\Mediator', array('notify'),
-            array(new Provider(new ReflectionPool))
+        $med = $this->getMock('Artax\Notifier', array('notify'),
+            array(new Provider(new ReflectionCacher))
         );
         $med->expects($this->once())
              ->method('notify')
@@ -289,8 +289,8 @@ class HandlerTest extends PHPUnit_Framework_TestCase
     {
         $e   = new ScriptHaltException;
         
-        $med = $this->getMock('Artax\Mediator', array('notify'),
-            array(new Provider(new ReflectionPool))
+        $med = $this->getMock('Artax\Notifier', array('notify'),
+            array(new Provider(new ReflectionCacher))
         );
         $stub = $this->getMock('Artax\Handler',
             array('notify'), array(1, $med)
@@ -310,8 +310,8 @@ class HandlerTest extends PHPUnit_Framework_TestCase
     public function testShutdownReturnsImmediatelyOnNotifyScriptHaltException()
     {
         
-        $med = $this->getMock('Artax\Mediator', array('notify'),
-            array(new Provider(new ReflectionPool))
+        $med = $this->getMock('Artax\Notifier', array('notify'),
+            array(new Provider(new ReflectionCacher))
         );
         $stub = $this->getMock('Artax\Handler', NULL, array(1, $med));
         $med->expects($this->once())
@@ -329,8 +329,8 @@ class HandlerTest extends PHPUnit_Framework_TestCase
     public function testShutdownFallsBackToDefaultOnNotifyException()
     {
         
-        $med = $this->getMock('Artax\Mediator', array('notify'),
-            array(new Provider(new ReflectionPool))
+        $med = $this->getMock('Artax\Notifier', array('notify'),
+            array(new Provider(new ReflectionCacher))
         );
         $stub = $this->getMock('Artax\Handler',
             array('defaultHandlerMsg'), array(1, $med)
@@ -356,8 +356,8 @@ class HandlerTest extends PHPUnit_Framework_TestCase
     {
         ob_start();
         
-        $med = $this->getMock('Artax\Mediator', array('notify'),
-            array(new Provider(new ReflectionPool))
+        $med = $this->getMock('Artax\Notifier', array('notify'),
+            array(new Provider(new ReflectionCacher))
         );
         $stub = $this->getMock('Artax\Handler',
             NULL, array(1, $med)
@@ -379,8 +379,8 @@ class HandlerTest extends PHPUnit_Framework_TestCase
     public function testExHandlerFallsBackToDefaultOnNotifyException()
     {
         
-        $med = $this->getMock('Artax\Mediator', array('notify'),
-            array(new Provider(new ReflectionPool))
+        $med = $this->getMock('Artax\Notifier', array('notify'),
+            array(new Provider(new ReflectionCacher))
         );
         $stub = $this->getMock('Artax\Handler',
             array('defaultHandlerMsg'), array(1, $med)
@@ -407,8 +407,8 @@ class HandlerTest extends PHPUnit_Framework_TestCase
     public function testExHandlerExitsOnNotifyScriptHaltException()
     {
         
-        $med = $this->getMock('Artax\Mediator', array('notify'), 
-            array(new Provider(new ReflectionPool))
+        $med = $this->getMock('Artax\Notifier', array('notify'), 
+            array(new Provider(new ReflectionCacher))
         );
         $stub = $this->getMock('Artax\Handler',
             NULL, array(1, $med)

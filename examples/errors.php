@@ -16,7 +16,7 @@ require dirname(__DIR__) . '/Artax.php'; // hard path to bootstrap file
  * --------------------------------------------------------------------
  */
 
-$mediator->push('error', function(ErrorException $e, $debug) {
+$notifier->push('error', function(ErrorException $e, $debug) {
     
     echo  '---error event listener #1---' . PHP_EOL;
     
@@ -30,7 +30,7 @@ $mediator->push('error', function(ErrorException $e, $debug) {
     }
 });
 
-$mediator->pushAll(array(
+$notifier->pushAll(array(
     'exception' => array(
         function(Exception $e, $debug) {
             $debug = $debug ? 'TRUE' : 'FALSE';

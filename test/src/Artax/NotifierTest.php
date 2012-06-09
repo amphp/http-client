@@ -1,44 +1,44 @@
 <?php
 
-use Artax\Mediator,
+use Artax\Notifier,
     Artax\Provider,
-    Artax\ReflectionPool;
+    Artax\ReflectionCacher;
 
-class MediatorTest extends PHPUnit_Framework_TestCase
+class NotifierTest extends PHPUnit_Framework_TestCase
 {
     public function testBeginsEmpty()
     {
-        $m = new Mediator(new Provider(new ReflectionPool));
+        $m = new Notifier(new Provider(new ReflectionCacher));
         return $m;
     }
     
     /**
-     * @covers Artax\Mediator::push
+     * @covers Artax\Notifier::push
      * @expectedException InvalidArgumentException
      */
     public function testPushThrowsExceptionOnUncallableListener()
     {
-        $m = new Mediator(new Provider(new ReflectionPool));
+        $m = new Notifier(new Provider(new ReflectionCacher));
         $listeners = $m->push('test.event1', new StdClass);
     }
     
     /**
-     * @covers Artax\Mediator::push
+     * @covers Artax\Notifier::push
      * @expectedException InvalidArgumentException
      */
     public function testPushThrowsExceptionOnInvalidLazyDef()
     {
-        $m = new Mediator(new Provider(new ReflectionPool));
+        $m = new Notifier(new Provider(new ReflectionCacher));
         $listeners = $m->push('test.event1', 'string', new StdClass);
     }
     
     /**
-     * @covers Artax\Mediator::push
-     * @covers Artax\Mediator::last
+     * @covers Artax\Notifier::push
+     * @covers Artax\Notifier::last
      */
     public function testPushAddsEventListenerAndReturnsCount()
     {
-        $m = new Mediator(new Provider(new ReflectionPool));
+        $m = new Notifier(new Provider(new ReflectionCacher));
         
         $f1 = function(){ return 1; };
         $f2 = function(){ return 2; };
@@ -51,27 +51,27 @@ class MediatorTest extends PHPUnit_Framework_TestCase
     }
   
     /**
-     * @covers Artax\Mediator::pushAll
+     * @covers Artax\Notifier::pushAll
      * @expectedException InvalidArgumentException
      */
     public function testPushAllThrowsExceptionOnNonTraversableParameter()
     {
-        $m = new Mediator(new Provider(new ReflectionPool));
+        $m = new Notifier(new Provider(new ReflectionCacher));
         $m->pushAll('not traversable');
     }
     
     /**
-     * @covers Artax\Mediator::pushAll
+     * @covers Artax\Notifier::pushAll
      */
     public function testPushAllAddsNestedListenersFromTraversableParameter()
     {
-        $m = new Mediator(new Provider(new ReflectionPool));
+        $m = new Notifier(new Provider(new ReflectionCacher));
         $cnt = $m->pushAll(array(
             'app.ready' => function(){},
             'app.event' => array(function(){}, function(){}, function(){}),
             'app.lazy'  => array('dot.notation'),
-            'lazy.w.def'=> array('MediatorTestNeedsDep',
-                array('testDep' => new MediatorTestDependency))
+            'lazy.w.def'=> array('NotifierTestNeedsDep',
+                array('testDep' => new NotifierTestDependency))
         ));
         $this->assertEquals(6, $cnt);
         $this->assertEquals(1, $m->count('app.ready'));
@@ -81,23 +81,23 @@ class MediatorTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers Artax\Mediator::unshift
+     * @covers Artax\Notifier::unshift
      * @expectedException InvalidArgumentException
      */
     public function testUnshiftThrowsExceptionOnInvalidLazyDef()
     {
-        $m = new Mediator(new Provider(new ReflectionPool));
+        $m = new Notifier(new Provider(new ReflectionCacher));
         $listeners = $m->unshift('test.event1', 'string', 1);
     }
     
     /**
-     * @covers Artax\Mediator::unshift
-     * @covers Artax\Mediator::first
+     * @covers Artax\Notifier::unshift
+     * @covers Artax\Notifier::first
      */
     public function testUnshiftAddsEventListenerAndReturnsCount()
     {
-        $dp = new Provider(new ReflectionPool);
-        $m  = new Mediator($dp);
+        $dp = new Provider(new ReflectionCacher);
+        $m  = new Notifier($dp);
         $listeners = $m->push('test.event1', function() { return TRUE; });
         $this->assertEquals(1, $listeners);
         
@@ -108,42 +108,42 @@ class MediatorTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers Artax\Mediator::unshift
+     * @covers Artax\Notifier::unshift
      * @expectedException InvalidArgumentException
      */
     public function testUnshiftThrowsExceptionOnUncallableListener()
     {
-        $dp = new Provider(new ReflectionPool);
-        $m  = new Mediator($dp);
+        $dp = new Provider(new ReflectionCacher);
+        $m  = new Notifier($dp);
         $listeners = $m->unshift('test.event1', 1);
     }
     
     /**
-     * @covers Artax\Mediator::first
+     * @covers Artax\Notifier::first
      */
     public function testFirstReturnsNullIfNoListenersMatch()
     {
-        $dp = new Provider(new ReflectionPool);
-        $m  = new Mediator($dp);
+        $dp = new Provider(new ReflectionCacher);
+        $m  = new Notifier($dp);
         $this->assertEquals(NULL, $m->first('test.event1'));
     }
     
     /**
-     * @covers Artax\Mediator::last
+     * @covers Artax\Notifier::last
      */
     public function testLastReturnsNullIfNoListenersMatch()
     {
-        $dp = new Provider(new ReflectionPool);
-        $m  = new Mediator($dp);
+        $dp = new Provider(new ReflectionCacher);
+        $m  = new Notifier($dp);
         $this->assertEquals(NULL, $m->last('test.event1'));
     }
     
     /**
-     * @covers  Artax\Mediator::count
+     * @covers  Artax\Notifier::count
      */
     public function testCountReturnsNumberOfListenersForSpecifiedEvent()
     {
-        $m = new Mediator(new Provider(new ReflectionPool));
+        $m = new Notifier(new Provider(new ReflectionCacher));
         $f1 = function(){ return 1; };
         $f2 = function(){ return 2; };
         $m->push('test.event1', $f1);
@@ -153,11 +153,11 @@ class MediatorTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers  Artax\Mediator::keys
+     * @covers  Artax\Notifier::keys
      */
     public function testKeysReturnsArrayOfListenedForEvents()
     {
-        $m = new Mediator(new Provider(new ReflectionPool));
+        $m = new Notifier(new Provider(new ReflectionCacher));
         $m->push('test.event1', function() { return 42; });
         $m->push('test.event2', function() { return 42; });
         $this->assertEquals(array('test.event1', 'test.event2'), $m->keys());
@@ -167,7 +167,7 @@ class MediatorTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testKeysReturnsArrayOfListenedForEvents
-     * @covers  Artax\Mediator::clear
+     * @covers  Artax\Notifier::clear
      */
     public function testClearRemovesAllListenersAndListenedForEvents($m)
     {
@@ -179,11 +179,11 @@ class MediatorTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers  Artax\Mediator::pop
+     * @covers  Artax\Notifier::pop
      */
     public function testPopRemovesLastListenerForSpecifiedEvent()
     {
-        $m  = new Mediator(new Provider(new ReflectionPool));
+        $m  = new Notifier(new Provider(new ReflectionCacher));
         $f1 = function(){ return 1; };
         $f2 = function(){ return 2; };
         $m->push('test.event1', $f1);
@@ -195,7 +195,7 @@ class MediatorTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testKeysReturnsArrayOfListenedForEvents
-     * @covers  Artax\Mediator::pop
+     * @covers  Artax\Notifier::pop
      */
     public function testPopReturnsNullIfNoEventsMatchSpecifiedEvent($m)
     {
@@ -204,11 +204,11 @@ class MediatorTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers  Artax\Mediator::shift
+     * @covers  Artax\Notifier::shift
      */
     public function testShiftRemovesFirstListenerForSpecifiedEvent()
     {
-        $m = new Mediator(new Provider(new ReflectionPool));
+        $m = new Notifier(new Provider(new ReflectionCacher));
         $f1 = function(){ return 1; };
         $f2 = function(){ return 2; };
         $m->push('test.event1', $f1);
@@ -220,7 +220,7 @@ class MediatorTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testKeysReturnsArrayOfListenedForEvents
-     * @covers  Artax\Mediator::shift
+     * @covers  Artax\Notifier::shift
      */
     public function testShiftReturnsNullIfNoEventsMatchSpecifiedEvent($m)
     {
@@ -229,11 +229,11 @@ class MediatorTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers  Artax\Mediator::unshift
+     * @covers  Artax\Notifier::unshift
      */
     public function testUnshiftCreatesEventQueueIfNotExists()
     {
-        $m = new Mediator(new Provider(new ReflectionPool));
+        $m = new Notifier(new Provider(new ReflectionCacher));
         $f1 = function(){ return 1; };
         $f2 = function(){ return 2; };
         $this->assertEquals(1, $m->push('test.event1', $f1));
@@ -242,12 +242,12 @@ class MediatorTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers  Artax\Mediator::notify
+     * @covers  Artax\Notifier::notify
      */
     public function testNotifyDistributesMessagesToListeners()
     {
-        $dp = new Provider(new ReflectionPool);
-        $m = new Mediator($dp);
+        $dp = new Provider(new ReflectionCacher);
+        $m = new Notifier($dp);
         $this->assertEquals(0, $m->notify('no.listeners.event'));
         
         $m->push('test.event1', function() { return TRUE; });
@@ -262,11 +262,11 @@ class MediatorTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers  Artax\Mediator::all
+     * @covers  Artax\Notifier::all
      */
     public function testAllReturnsEventSpecificListIfSpecified()
     {
-        $m = new Mediator(new Provider(new ReflectionPool));
+        $m = new Notifier(new Provider(new ReflectionCacher));
         $f = function() { return TRUE; };
         $m->push('test.event1', $f);
         
@@ -274,39 +274,39 @@ class MediatorTest extends PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers  Artax\Mediator::notify
+     * @covers  Artax\Notifier::notify
      */
     public function testNotifyUsesProviderForBasicLazyListenerLoad()
     {
-        $m = new Mediator(new Provider(new ReflectionPool));        
-        $m->push('class_listener_event', 'MediatorTestNeedsDep');
+        $m = new Notifier(new Provider(new ReflectionCacher));        
+        $m->push('class_listener_event', 'NotifierTestNeedsDep');
         $this->expectOutputString('testVal');
         $m->notify('class_listener_event', 'testVal');
     }
     
     /**
-     * @covers  Artax\Mediator::notify
+     * @covers  Artax\Notifier::notify
      */
     public function testNotifyUsesProviderForAdvancedLazyListenerLoad()
     {
-        $m = new Mediator(new Provider(new ReflectionPool));
-        $m->push('class_listener_event', 'MediatorTestNeedsDep',
-            array('MediatorTestDependency')
+        $m = new Notifier(new Provider(new ReflectionCacher));
+        $m->push('class_listener_event', 'NotifierTestNeedsDep',
+            array('NotifierTestDependency')
         );
         $this->expectOutputString('testVal');
         $m->notify('class_listener_event', 'testVal');
     }
 }
 
-class MediatorTestDependency
+class NotifierTestDependency
 {
     public $testProp = 'testVal';
 }
 
-class MediatorTestNeedsDep
+class NotifierTestNeedsDep
 {
     public $testDep;
-    public function __construct(MediatorTestDependency $testDep)
+    public function __construct(NotifierTestDependency $testDep)
     {
         $this->testDep = $testDep;
     }

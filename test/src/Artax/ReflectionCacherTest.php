@@ -1,15 +1,15 @@
 <?php
 
-use Artax\ReflectionPool;
+use Artax\ReflectionCacher;
 
-class ReflectionPoolTest extends PHPUnit_Framework_TestCase
+class ReflectionCacherTest extends PHPUnit_Framework_TestCase
 {
     /**
-     * @covers Artax\ReflectionPool::getClass
+     * @covers Artax\ReflectionCacher::getClass
      */
     public function testGetClassRetrievesNewReflectionIfNotCached()
     {
-        $rc   = new ReflectionPool;
+        $rc   = new ReflectionCacher;
         $refl = $rc->getClass('Test');
         $this->assertInstanceOf('ReflectionClass', $refl);
         return $rc;
@@ -17,12 +17,12 @@ class ReflectionPoolTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testGetClassRetrievesNewReflectionIfNotCached
-     * @covers Artax\ReflectionPool::getClass
+     * @covers Artax\ReflectionCacher::getClass
      */
     public function testGetClassRetrievesCachedReflectionIfAvailable($rc)
     {
         $cached = $rc->getClass('Test');
-        $new    = new ReflectionPool;
+        $new    = new ReflectionCacher;
         
         $this->assertFalse($new === $cached);
         $this->assertTrue($rc->getClass('Test') === $cached);
@@ -31,7 +31,7 @@ class ReflectionPoolTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testGetClassRetrievesCachedReflectionIfAvailable
-     * @covers Artax\ReflectionPool::getConstructor
+     * @covers Artax\ReflectionCacher::getConstructor
      */
     public function testGetConstructorRetrievesNewReflectionIfNotCached($rc)
     {
@@ -42,7 +42,7 @@ class ReflectionPoolTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testGetConstructorRetrievesNewReflectionIfNotCached
-     * @covers Artax\ReflectionPool::getConstructor
+     * @covers Artax\ReflectionCacher::getConstructor
      */
     public function testGetConstructorCachedReflectionIfAvailable($rc)
     {
@@ -57,7 +57,7 @@ class ReflectionPoolTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testGetConstructorCachedReflectionIfAvailable
-     * @covers Artax\ReflectionPool::getConstructorParameters
+     * @covers Artax\ReflectionCacher::getConstructorParameters
      */
     public function testGetCtorParamsRetrievesNewReflectionIfNotCached($rc)
     {
@@ -70,7 +70,7 @@ class ReflectionPoolTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testGetCtorParamsRetrievesNewReflectionIfNotCached
-     * @covers Artax\ReflectionPool::getConstructorParameters
+     * @covers Artax\ReflectionCacher::getConstructorParameters
      */
     public function testGetCtorParamsReturnsNullIfNoConstructorExists($rc)
     {
@@ -82,7 +82,7 @@ class ReflectionPoolTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testGetCtorParamsReturnsNullIfNoConstructorExists
-     * @covers Artax\ReflectionPool::getConstructorParameters
+     * @covers Artax\ReflectionCacher::getConstructorParameters
      */
     public function testGetCtorParamsRetrievesCachedReflectionIfAvailable($rc)
     {
@@ -96,7 +96,7 @@ class ReflectionPoolTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testGetCtorParamsRetrievesCachedReflectionIfAvailable
-     * @covers Artax\ReflectionPool::getTypehint
+     * @covers Artax\ReflectionCacher::getTypehint
      */
     public function testGetTypehintRetrievesNewClassNameIfNotStoredForParam($rc)
     {
@@ -109,7 +109,7 @@ class ReflectionPoolTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testGetTypehintRetrievesNewClassNameIfNotStoredForParam
-     * @covers Artax\ReflectionPool::getTypehint
+     * @covers Artax\ReflectionCacher::getTypehint
      */
     public function testGetTypehintFetchesCachedParamTypehintIfAvailable($rc)
     {
@@ -122,7 +122,7 @@ class ReflectionPoolTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testGetTypehintFetchesCachedParamTypehintIfAvailable
-     * @covers Artax\ReflectionPool::getTypehint
+     * @covers Artax\ReflectionCacher::getTypehint
      */
     public function testGetTypehintStoresNewReflectionClassIfFound($rc)
     {
@@ -137,7 +137,7 @@ class ReflectionPoolTest extends PHPUnit_Framework_TestCase
     
     /**
      * @depends testGetTypehintStoresNewReflectionClassIfFound
-     * @covers Artax\ReflectionPool::getTypehint
+     * @covers Artax\ReflectionCacher::getTypehint
      */
     public function testGetTypehintReturnsNullIfParamHasNoTypehint($rc)
     {

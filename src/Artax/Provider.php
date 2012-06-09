@@ -259,13 +259,13 @@ class Provider implements InjectionContainer
     protected $reflCache;
     
     /**
-     * Injects the reflection cacher dependency
+     * Injects the reflection pool caching dependency
      * 
-     * @param ReflectionCacher $rc A ReflectionCacher interface instance
+     * @param ReflectionPool $rc An instance of the ReflectionPool interface
      * 
      * @return void
      */
-    public function __construct(ReflectionCacher $rc)
+    public function __construct(ReflectionPool $rc)
     {
         $this->reflCache = $rc;
     }

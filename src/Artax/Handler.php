@@ -18,7 +18,7 @@ use Exception, ErrorException;
 /**
  * Provides error, uncaught exception and shutdown handling
  *
- * The Handlers class uses the event Mediator to enable unified, evented
+ * The Handlers class uses an event mediator to enable unified, evented
  * handling for PHP errors, fatal shutdowns and uncaught exceptions as well as
  * normal shutdown events.
  * 
@@ -40,8 +40,7 @@ use Exception, ErrorException;
  * called following user aborts in web applications (i.e. the Stop button).
  * 
  * Currently, Artax cannot invoke shutdown listeners when CLI process control 
- * actions interrupt script execution. Stay tuned, though; support for this 
- * behavior is planned for upcoming releases.
+ * actions interrupt script execution.
  * 
  * Note that you aren't required to specify any exception or shutdown listeners.
  * If you don't specify any listeners for these events, Artax will still act in 
@@ -89,23 +88,23 @@ class Handler implements UnifiedHandler
     private $errChain = FALSE;
     
     /**
-     * An event mediator instance
+     * An instance of the Mediator interface
      * @var Mediator
      */
-    private $mediator;
+    private $notifier;
     
     /**
      * Specify debug output flag and register exception/shutdown handlers
      * 
-     * @param int               $debug    An app-wide debug run level
-     * @param Notifier $mediator An event mediator instance
+     * @param int      $debug    An app-wide debug run level
+     * @param Mediator $notifier An instance of the event Mediator interface
      * 
      * @return void
      */
-    public function __construct($debug, Notifier $mediator)
+    public function __construct($debug, Mediator $notifier)
     {
         $this->debug    = $debug;
-        $this->mediator = $mediator;
+        $this->notifier = $notifier;
     }
     
     /**
@@ -148,7 +147,7 @@ class Handler implements UnifiedHandler
         $e   = new ErrorException($msg, $errNo);
         
         try {
-            $count = $this->mediator->notify('error', $e, $this->debug);
+            $count = $this->notifier->notify('error', $e, $this->debug);
             if (!$count && $this->debug) {
                 echo $msg;
             }
@@ -234,20 +233,20 @@ class Handler implements UnifiedHandler
                 error_reporting(E_ALL); // <-- (2) docblock
             }
             try {
-                if (!$this->mediator->notify('exception', $e, $this->debug)
+                if (!$this->notifier->notify('exception', $e, $this->debug)
                     && $this->debug
                 ) {
                     echo $this->defaultHandlerMsg($e);
                 }
-                $this->mediator->notify('shutdown');
+                $this->notifier->notify('shutdown');
             } catch (ScriptHaltException $e) {
                 return;
             } catch (Exception $e) {
                 echo $this->defaultHandlerMsg($e);
             }
-        } elseif ($this->mediator->count('exception')) {
+        } elseif ($this->notifier->count('exception')) {
             try {
-                $this->mediator->notify('exception', $e, $this->debug);
+                $this->notifier->notify('exception', $e, $this->debug);
             } catch (ScriptHaltException $e) {
                 return;
             } catch (Exception $e) {
@@ -278,7 +277,7 @@ class Handler implements UnifiedHandler
      * generate a corresponding `FatalErrorException` object which is then passed
      * to `Handlers::exception` for handling.
      * 
-     * The mediator is notified on shutdown so that any interested
+     * The notifier is notified on shutdown so that any interested
      * listeners can act appropriately. If an event listener invoked by the
      * system `shutdown` event throws an uncaught exception it will not be handled
      * and script execution will cease immediately without sending further output.
@@ -301,7 +300,7 @@ class Handler implements UnifiedHandler
         } else {
         
             try {
-                $this->mediator->notify('shutdown');
+                $this->notifier->notify('shutdown');
             } catch (ScriptHaltException $e) {
                 return;
             } catch (Exception $e) {
