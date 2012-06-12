@@ -262,6 +262,71 @@ class NotifierTest extends PHPUnit_Framework_TestCase
     }
     
     /**
+     * @covers Artax\Notifier::notify
+     * @covers Artax\Notifier::getNotificationCount
+     * @covers Artax\Notifier::getInvocationCount
+     */
+    public function testNotifyUpdatesInvocationAndNotificationCounts()
+    {
+        $dp = new Provider(new ReflectionCacher);
+        $m = new Notifier($dp);
+        $this->assertEquals(0, $m->notify('no.listeners.event'));
+        
+        $m->push('test.event1', function() { return TRUE; });
+        $this->assertEquals(1, $m->notify('test.event1'));
+        
+        $this->assertEquals(1, $m->getNotificationCount('test.event1'));
+        $this->assertEquals(1, $m->getInvocationCount('test.event1'));
+        
+        $m->push('test.event1', function() { return TRUE; });
+        $m->push('test.event1', function() { return TRUE; });
+        $m->push('test.event1', function() { return TRUE; });
+        $this->assertEquals(4, $m->notify('test.event1'));
+        
+        $this->assertEquals(2, $m->getNotificationCount('test.event1'));
+        $this->assertEquals(5, $m->getInvocationCount('test.event1'));
+        
+        return $m;
+    }
+    
+    /**
+     * @covers Artax\Notifier::getNotificationCount
+     */
+    public function testGetNotificationCountReturnsAggregateCountOnNullEventParam()
+    {
+        $dp = new Provider(new ReflectionCacher);
+        $m = new Notifier($dp);
+        
+        $this->assertEquals(0, $m->notify('test.event1'));
+        $this->assertEquals(0, $m->notify('test.event2'));
+        $this->assertEquals(0, $m->notify('test.event3'));
+        $this->assertEquals(3, $m->getNotificationCount());
+        
+        $this->assertEquals(0, $m->getNotificationCount('nonexistent.event'));
+    }
+    
+    /**
+     * @covers Artax\Notifier::getInvocationCount
+     */
+    public function testGetInvocationCountReturnsAggregateCountOnNullEventParam()
+    {
+        $dp = new Provider(new ReflectionCacher);
+        $m = new Notifier($dp);
+        
+        $m->push('test.event1', function() { return TRUE; });
+        $m->push('test.event1', function() { return TRUE; });
+        $m->push('test.event2', function() { return TRUE; });
+        
+        $this->assertEquals(2, $m->notify('test.event1'));
+        $this->assertEquals(1, $m->notify('test.event2'));
+        $this->assertEquals(2, $m->notify('test.event1'));
+        $this->assertEquals(0, $m->notify('test.event3'));
+        $this->assertEquals(5, $m->getInvocationCount());
+        
+        $this->assertEquals(0, $m->getInvocationCount('nonexistent.event'));
+    }
+    
+    /**
      * @covers  Artax\Notifier::all
      */
     public function testAllReturnsEventSpecificListIfSpecified()

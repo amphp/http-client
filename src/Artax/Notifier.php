@@ -141,11 +141,24 @@ use InvalidArgumentException,
  */
 class Notifier implements Mediator
 {
+    
+    /**
+     * Tracks the number of listener invocations by event
+     * @var array
+     */
+    private $invocationCount = array();
+    
     /**
      * An dictionary mapping events to the relevant listeners
      * @var array
      */
     private $listeners = array();
+    
+    /**
+     * Tracks the number of times each event is broadcast
+     * @var array
+     */
+    private $notificationCount = array();
     
     /**
      * Dependency provider for listener lazy-loading
@@ -238,6 +251,50 @@ class Notifier implements Mediator
     }
     
     /**
+     * Get the total number of listeners that have been invoked for an event
+     * 
+     * @param string $event The name of the event for which an invocation count
+     *                      is requested. If NULL is passed, the total count
+     *                      of listener invocations for all events will be
+     *                      returned. If a non-existent event is requested,
+     *                      zero is returned.
+     * 
+     * @param int Returns the count of all invocations for the given event.
+     */
+    public function getInvocationCount($event = NULL)
+    {
+        if (NULL === $event) {
+            return array_sum($this->invocationCount);
+        } elseif (isset($this->invocationCount[$event])) {
+            return $this->invocationCount[$event];
+        } else {
+            return 0;
+        }
+    }
+    
+    /**
+     * Get the total number of times an event has been broadcast/notified
+     * 
+     * @param string $event The name of the event for which an notification 
+     *                      count is requested. If NULL is passed, the total 
+     *                      count of listener notifications for all events 
+     *                      will be returned. If a non-existent event is 
+     *                      requested, zero is returned.
+     * 
+     * @param int Returns the count of all notifications for the given event.
+     */
+    public function getNotificationCount($event = NULL)
+    {
+        if (NULL === $event) {
+            return array_sum($this->notificationCount);
+        } elseif (isset($this->notificationCount[$event])) {
+            return $this->notificationCount[$event];
+        } else {
+            return 0;
+        }
+    }
+    
+    /**
      * Retrieve a list of all listened-for events in the queue
      * 
      * @return array Returns an array of listened-for events in the queue
@@ -280,6 +337,12 @@ class Notifier implements Mediator
      */
     public function notify($event)
     {
+        if (!isset($this->notificationCount[$event])) {
+            $this->notificationCount[$event] = 0;
+        }
+        
+        ++$this->notificationCount[$event];
+        
         if ($count = $this->count($event)) {
             
             if (1 == func_num_args()) {
@@ -310,10 +373,16 @@ class Notifier implements Mediator
                 
                 $result = $args ? call_user_func_array($func, $args) : $func();
                 if ($result === FALSE) {
-                    return $i+1;
+                    $count = $i+1;
+                    break;
                 }
             }
         }
+        
+        if (!isset($this->invocationCount[$event])) {
+            $this->invocationCount[$event] = 0;
+        }
+        $this->invocationCount[$event] += $count;
         
         return $count;
     }
