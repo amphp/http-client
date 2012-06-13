@@ -295,9 +295,9 @@ class Notifier implements Mediator
     }
     
     /**
-     * Retrieve a list of all listened-for events in the queue
+     * Retrieve a list of all listened-for events
      * 
-     * @return array Returns an array of listened-for events in the queue
+     * @return array Returns an array of listened-for events
      */
     public function keys()
     {
