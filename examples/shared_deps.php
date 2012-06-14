@@ -7,7 +7,7 @@
  * --------------------------------------------------------------------
  */
 
-define('AX_DEBUG', 1);
+define('ATREYU_DEBUG_LEVEL', 1);
 require dirname(__DIR__) . '/Artax.php';
 
 

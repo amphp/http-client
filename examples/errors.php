@@ -7,7 +7,7 @@
  * --------------------------------------------------------------------
  */
 
-define('AX_DEBUG', 1); // 0: production, 1: dev, 2: crazy nested fatals debugging
+define('ATREYU_DEBUG_LEVEL', 1); // 0: production, 1: dev, 2: crazy nested fatals debugging
 require dirname(__DIR__) . '/Artax.php'; // hard path to bootstrap file
 
 /*
@@ -65,7 +65,7 @@ trigger_error('Your mother was a hamster', E_USER_ERROR);
 /**
  * Un-comment the throw line below to see what happens when no listeners are 
  * specified for the system "exception" event and an exception is thrown. Then
- * try cycling the AX_DEBUG flag at the top to see how that affects the output
+ * try cycling the ATREYU_DEBUG_LEVEL flag at the top to see how that affects the output
  * when no listeners are specified. Also try uncommenting the above listener
  * attachment to see how listeners are invoked for an uncaught exception.
  */
@@ -74,7 +74,7 @@ throw new Exception('test exception message');
 /**
  * Comment out the above throw to see what happens when no listeners are specified
  * for the system "shutdown" event and a fatal E_ERROR is raised. Then, try
- * cycling the AX_DEBUG flag as well as uncommenting the listener attachment.
+ * cycling the ATREYU_DEBUG_LEVEL flag as well as uncommenting the listener attachment.
  * 
  * This code will generate a fatal "Allowed memory size ..." E_ERROR.
  */

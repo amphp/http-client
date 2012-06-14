@@ -12,7 +12,7 @@
  * 1. Specify the application-wide debug level;
  * 2. Require the the **Artax.php** bootstrap file.
  * 
- *     define('AX_DEBUG', 1); // acceptable values: 0, 1, 2
+ *     define('ARTAX_DEBUG_LEVEL', 1); // acceptable values: 0, 1, 2
  *     require '/hard/path/to/Artax.php';
  * 
  * That's it. From there it's a simple matter of pushing event listeners onto
@@ -27,13 +27,13 @@
  * 
  * https://github.com/rdlowrey/Artax/wiki
  * 
- * ### Concerning AX_DEBUG levels
+ * ### Concerning ARTAX_DEBUG_LEVEL levels
  * 
  * Artax applications have three different debug output levels:
  * 
- *     - `define('AX_DEBUG', 0); // production`
- *     - `define('AX_DEBUG', 1); // development`
- *     - `define('AX_DEBUG', 2); // debug nested fatal errors in development`
+ *     - `define('ARTAX_DEBUG_LEVEL', 0); // production`
+ *     - `define('ARTAX_DEBUG_LEVEL', 1); // development`
+ *     - `define('ARTAX_DEBUG_LEVEL', 2); // debug nested fatal errors in development`
  * 
  * Production apps should always run in debug level 0. Level 1 results in
  * formatted output that correctly represents exceptions and fatal errors in
@@ -59,7 +59,7 @@
 
 /*
  * --------------------------------------------------------------------
- * CHECK FOR 5.3+ & DEFINE AX_DEBUG/AX_SYSDIR CONSTANTS
+ * CHECK FOR 5.3+ & DEFINE ARTAX_DEBUG_LEVEL/ARTAX_SYSTEM_DIR CONSTANTS
  * --------------------------------------------------------------------
  */
 
@@ -67,7 +67,7 @@ if (!defined('PHP_VERSION_ID') || PHP_VERSION_ID < 50300) {
     die('Artax requires PHP 5.3 or higher' . PHP_EOL);
 }
 
-define('AX_SYSDIR', __DIR__);
+define('ARTAX_SYSTEM_DIR', __DIR__);
 
 /*
  * --------------------------------------------------------------------
@@ -106,22 +106,22 @@ define('AX_SYSDIR', __DIR__);
  * unexpected fatals occur.
  */
 
-if (!defined('AX_DEBUG')) {
-    define('AX_DEBUG', 0);
+if (!defined('ARTAX_DEBUG_LEVEL')) {
+    define('ARTAX_DEBUG_LEVEL', 0);
 }
 
-if (AX_DEBUG === 2) {
+if (ARTAX_DEBUG_LEVEL === 2) {
     error_reporting(E_ALL | E_STRICT);
     ini_set('display_errors', TRUE);
-} elseif (AX_DEBUG === 1) {
+} elseif (ARTAX_DEBUG_LEVEL === 1) {
     error_reporting((E_ALL | E_STRICT) & ~ E_ERROR);
     ini_set('display_errors', FALSE);
-} elseif (AX_DEBUG === 0) {
+} elseif (ARTAX_DEBUG_LEVEL === 0) {
     error_reporting((E_ALL | E_STRICT) & ~ E_ERROR);
     ini_set('display_errors', FALSE);
 } else {
     throw new DomainException(
-        'Invalid AX_DEBUG: 0, 1 or 2 expected; '. AX_DEBUG .' specified'
+        'Invalid ARTAX_DEBUG_LEVEL: '. ARTAX_DEBUG_LEVEL .'; 0, 1 or 2 expected.'
     );
 }
 
@@ -133,17 +133,17 @@ ini_set('html_errors', FALSE);
  * --------------------------------------------------------------------
  */
 
-require AX_SYSDIR . '/src/Artax/ProviderDefinitionException.php';
-require AX_SYSDIR . '/src/Artax/FatalErrorException.php';
-require AX_SYSDIR . '/src/Artax/ScriptHaltException.php';
-require AX_SYSDIR . '/src/Artax/ReflectionPool.php';
-require AX_SYSDIR . '/src/Artax/ReflectionCacher.php';
-require AX_SYSDIR . '/src/Artax/InjectionContainer.php';
-require AX_SYSDIR . '/src/Artax/Provider.php';
-require AX_SYSDIR . '/src/Artax/Mediator.php';
-require AX_SYSDIR . '/src/Artax/Notifier.php';
-require AX_SYSDIR . '/src/Artax/UnifiedHandler.php';
-require AX_SYSDIR . '/src/Artax/Handler.php';
+require ARTAX_SYSTEM_DIR . '/src/Artax/ProviderDefinitionException.php';
+require ARTAX_SYSTEM_DIR . '/src/Artax/FatalErrorException.php';
+require ARTAX_SYSTEM_DIR . '/src/Artax/ScriptHaltException.php';
+require ARTAX_SYSTEM_DIR . '/src/Artax/ReflectionPool.php';
+require ARTAX_SYSTEM_DIR . '/src/Artax/ReflectionCacher.php';
+require ARTAX_SYSTEM_DIR . '/src/Artax/InjectionContainer.php';
+require ARTAX_SYSTEM_DIR . '/src/Artax/Provider.php';
+require ARTAX_SYSTEM_DIR . '/src/Artax/Mediator.php';
+require ARTAX_SYSTEM_DIR . '/src/Artax/Notifier.php';
+require ARTAX_SYSTEM_DIR . '/src/Artax/UnifiedHandler.php';
+require ARTAX_SYSTEM_DIR . '/src/Artax/Handler.php';
 
 /*
  * --------------------------------------------------------------------
@@ -166,9 +166,9 @@ $provider->share('Artax\\ReflectionCacher', $reflCacher);
  */
 
 if (PHP_VERSION_ID >= 50400) {
-    (new Artax\Handler(AX_DEBUG, $notifier))->register();
+    (new Artax\Handler(ARTAX_DEBUG_LEVEL, $notifier))->register();
 } else {
-    $handlers = new Artax\Handler(AX_DEBUG, $notifier);
+    $handlers = new Artax\Handler(ARTAX_DEBUG_LEVEL, $notifier);
     $handlers->register();
     unset($handlers);
 }
