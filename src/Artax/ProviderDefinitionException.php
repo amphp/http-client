@@ -35,6 +35,4 @@ use LogicException;
  * @package    Core
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-class ProviderDefinitionException extends LogicException
-{
-}
+class ProviderDefinitionException extends LogicException {}

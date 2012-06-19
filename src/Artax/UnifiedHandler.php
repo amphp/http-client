@@ -23,8 +23,8 @@ use Exception;
  * @package    Core
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-interface UnifiedHandler
-{
+interface UnifiedHandler {
+    
     /**
      * Method to handle raised PHP errors
      * 
@@ -53,4 +53,5 @@ interface UnifiedHandler
      * @return void
      */
     function shutdown();
+    
 }

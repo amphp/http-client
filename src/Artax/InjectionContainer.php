@@ -22,8 +22,8 @@ namespace Artax;
  * @package    Core
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-interface InjectionContainer
-{
+interface InjectionContainer {
+    
     /**
      * Factory method for auto-injecting dependencies upon instantiation
      * 
@@ -81,4 +81,5 @@ interface InjectionContainer
      * @param string $class Class name
      */
     function isDefined($class);
+    
 }
