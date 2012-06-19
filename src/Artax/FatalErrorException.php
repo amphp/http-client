@@ -3,13 +3,11 @@
 /**
  * Artax FatalErrorException File
  * 
- * PHP version 5.3
- * 
  * @category   Artax
  * @package    Core
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  * @copyright  ${copyright.msg}
- * @license    All code subject to the ${license.name}
+ * @license    ${license.txt}
  * @version    ${project.version}
  */
 
@@ -34,6 +32,4 @@ use RuntimeException;
  * @package    Core
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-class FatalErrorException extends RuntimeException
-{
-}
+class FatalErrorException extends RuntimeException {}

@@ -151,7 +151,7 @@ require ARTAX_SYSTEM_DIR . '/src/Artax/Handler.php';
  * --------------------------------------------------------------------
  */
 
-$reflCacher = new Artax\ReflectionCache;
+$reflCacher = new Artax\ReflectionCacher;
 $provider   = new Artax\Provider($reflCacher);
 $notifier   = new Artax\Notifier($provider);
 

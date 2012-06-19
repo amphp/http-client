@@ -8,10 +8,14 @@
         <whitelist addUncoveredFilesFromWhitelist="true">
             <directory>../src/Artax</directory>
             <exclude>
-                <file>../src/Artax/Notifier.php</file>
-                <file>../src/Artax/ReflectionCacher.php</file>
+                <file>../src/Artax/Mediator.php</file>
+                <file>../src/Artax/ReflectionPool.php</file>
                 <file>../src/Artax/UnifiedHandler.php</file>
                 <file>../src/Artax/InjectionContainer.php</file>
+                <file>../src/Artax/BadListenerException.php</file>
+                <file>../src/Artax/FatalErrorException.php</file>
+                <file>../src/Artax/ScriptHaltException.php</file>
+                <file>../src/Artax/ProviderDefinitionException.php</file>
             </exclude>
         </whitelist>
     </filter>

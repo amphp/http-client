@@ -3,13 +3,11 @@
 /**
  * ReflectionCacher Class File
  * 
- * PHP version 5.3
- * 
  * @category   Artax
  * @package    Core
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  * @copyright  ${copyright.msg}
- * @license    All code subject to the ${license.name}
+ * @license    ${license.txt}
  * @version    ${project.version}
  */
 
@@ -63,7 +61,7 @@ class ReflectionCacher implements ReflectionPool
      * 
      * @param string $className The class we want to reflect
      * 
-     * @return ReflectionMethod Returns the reflected class instance
+     * @return ReflectionClass Returns a reflection class instance
      * @throws ReflectionException If the class can't be found or autoloaded
      */
     public function getClass($className)

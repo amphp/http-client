@@ -3,13 +3,11 @@
 /**
  * Artax ProviderDefinitionException File
  * 
- * PHP version 5.3
- * 
  * @category   Artax
  * @package    Core
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  * @copyright  ${copyright.msg}
- * @license    All code subject to the ${license.name}
+ * @license    ${license.txt}
  * @version    ${project.version}
  */
  
