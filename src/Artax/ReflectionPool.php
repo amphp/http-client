@@ -26,21 +26,21 @@ use SplObjectStorage,
  * @package    Core
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-interface ReflectionPool
-{
+interface ReflectionPool {
+    
     /**
      * Retrieves and caches the ReflectionClass objects
      * 
      * @param string $className The class we want to reflect
      */
-    public function getClass($className);
+    function getClass($className);
     
     /**
      * Retrieves and caches the class's constructor ReflectionMethod
      * 
      * @param string $className The class whose constructor we want to reflect
      */
-    public function getConstructor($className);
+    function getConstructor($className);
     
     /**
      * Retrieves and caches constructor parameters for the given class name
@@ -48,7 +48,7 @@ interface ReflectionPool
      * @param string $className The name of the class whose constructor 
      *                          parameters we'd like to retrieve
      */
-    public function getConstructorParameters($className);
+    function getConstructorParameters($className);
     
     /**
      * Retrieves the class typehint from a given ReflectionParameter
@@ -61,5 +61,6 @@ interface ReflectionPool
      * 
      * @param ReflectionParameter $reflParam a ReflectionParameter object
      */
-    public function getTypehint(ReflectionParameter $reflParam);
+    function getTypehint(ReflectionParameter $reflParam);
+    
 }

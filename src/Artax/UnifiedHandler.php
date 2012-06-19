@@ -33,24 +33,24 @@ interface UnifiedHandler
      * @param string $errFile The file where the PHP error originated
      * @param int    $errLine The line in which the error occurred
      */
-    public function error($errNo, $errStr, $errFile, $errLine);
+    function error($errNo, $errStr, $errFile, $errLine);
     
     /**
      * The last chance handler for uncaught exceptions
      *
      * @param Exception $e Exception object
      */
-    public function exception(Exception $e);
+    function exception(Exception $e);
     
     /**
      * Register the custom error, exception and shutdown handlers
      */
-    public function register();
+    function register();
 
     /**
      * Handle unexpected fatal errors
      *
      * @return void
      */
-    public function shutdown();
+    function shutdown();
 }

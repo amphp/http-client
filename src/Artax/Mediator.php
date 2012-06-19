@@ -16,7 +16,7 @@
 namespace Artax;
   
 /**
- * Defines the public facing interface for event mediators.
+ * Defines the facing interface for event mediators.
  * 
  * @category   Artax
  * @package    Core
@@ -29,7 +29,7 @@ interface Mediator {
      * 
      * @param string $event The event that occurred
      */
-    public function notify($event);
+    function notify($event);
     
     /**
      * Iterates through the items in the order they are traversed, adding them
@@ -37,7 +37,7 @@ interface Mediator {
      *
      * @param mixed $iterable The variable to loop through and add listeners
      */
-    public function pushAll($iterable);
+    function pushAll($iterable);
     
     /**
      * Connect a `$listener` to the end of the `$eventName` queue
@@ -47,7 +47,7 @@ interface Mediator {
      * @param mixed  $lazyDef   Optional lazy injection definition array
      *                          or instance of ArrayAccess
      */
-    public function push($eventName, $listener, $lazyDef);
+    function push($eventName, $listener, $lazyDef);
     
     /**
      * Connect a `$listener` to the front of the `$eventName` queue
@@ -57,58 +57,58 @@ interface Mediator {
      * @param mixed  $lazyDef   Optional lazy injection definition array
      *                          or instance of ArrayAccess
      */
-    public function unshift($eventName, $listener, $lazyDef);
+    function unshift($eventName, $listener, $lazyDef);
     
     /**
      * Remove the first `$listener` from the front of the `$eventName` event queue
      * 
      * @param string $eventName Event identifier name
      */
-    public function shift($eventName);
+    function shift($eventName);
     
     /**
      * Remove the last `$listener` from the end of the `$eventName` event queue
      * 
      * @param string $eventName Event identifier name
      */
-    public function pop($eventName);
+    function pop($eventName);
     
     /**
      * Clear all listeners from the `$eventName` event queue
      * 
      * @param string $eventName Event identifier name
      */
-    public function clear($eventName);
+    function clear($eventName);
     
     /**
      * Retrieve a count of all listeners in the queue for a specific event
      * 
      * @param string $eventName Event identifier name
      */
-    public function count($eventName);
+    function count($eventName);
     
     /**
      * Retrieve a list of all event listeners in the queue for an event
      */
-    public function all($eventName);
+    function all($eventName);
     
     /**
      * Retrieve the first event listener in the queue for the specified event
      * 
      * @param string $eventName Event identifier name
      */
-    public function first($eventName);
+    function first($eventName);
     
     /**
      * Retrieve the last event listener in the queue for the specified event
      * 
      * @param string $eventName Event identifier name
      */
-    public function last($eventName);
+    function last($eventName);
     
     /**
      * Retrieve a list of all listened-for events in the queue
      */
-    public function keys();
+    function keys();
     
 }

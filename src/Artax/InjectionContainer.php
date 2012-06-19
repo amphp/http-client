@@ -31,7 +31,7 @@ interface InjectionContainer
      * @param mixed  $custom An optional array specifying custom instantiation
      *                       parameters for this construction
      */
-    public function make($class, array $custom);
+    function make($class, array $custom);
     
     /**
      * Defines custom instantiation parameters for the specified class
@@ -39,7 +39,7 @@ interface InjectionContainer
      * @param string $class      Class name
      * @param array  $definition An array specifying custom instantiation params
      */
-    public function define($class, array $definition);
+    function define($class, array $definition);
     
     /**
      * Defines multiple custom instantiation parameters at once
@@ -47,38 +47,38 @@ interface InjectionContainer
      * @param mixed $iterable The variable to iterate over: an array, StdClass
      *                        or ArrayAccess instance
      */
-    public function defineAll($iterable);
+    function defineAll($iterable);
     
     /**
      * Clear the injection definition for the specified class
      * 
      * @param string $class Class name
      */
-    public function remove($class);
+    function remove($class);
     
     /**
      * Clear all injection definitions from the container
      */
-    public function removeAll();
+    function removeAll();
     
     /**
      * Forces re-instantiation of a shared class the next time it is requested
      * 
      * @param string $class Class name
      */
-    public function refresh($class);
+    function refresh($class);
     
     /**
      * Determines if a shared instance of the specified class is stored
      * 
      * @param string $class Class name
      */
-    public function isShared($class);
+    function isShared($class);
     
     /**
      * Determines if an injection definition exists for the specified class
      * 
      * @param string $class Class name
      */
-    public function isDefined($class);
+    function isDefined($class);
 }
