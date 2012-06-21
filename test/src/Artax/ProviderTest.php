@@ -320,6 +320,53 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
         $dp = new Provider(new ReflectionCacher);
         $dp->share('Artax\\Mediator', new StdClass);
     }
+    
+    /**
+     * @covers Artax\Provider::setImplementation
+     * @covers Artax\Provider::getImplementation
+     * @covers Artax\Provider::hasImplementation
+     */
+    public function testSetImplementationAssignsValueAndReturnsProviderInstance() {
+        
+        $dp = new Provider(new ReflectionCacher);
+        $this->assertEquals($dp, $dp->setImplementation('DepInterface', 'DepImplementation'));
+        $this->assertTrue($dp->hasImplementation('DepInterface'));
+        $this->assertEquals('DepImplementation', $dp->getImplementation('DepInterface'));
+    }
+    
+    /**
+     * @covers Artax\Provider::clearImplementation
+     * @covers Artax\Provider::hasImplementation
+     */
+    public function testClearImplementationRemovesAssignedValueAndReturnsProviderInstance() {
+        
+        $dp = new Provider(new ReflectionCacher);
+        $dp->setImplementation('DepInterface', 'DepImplementation');
+        $this->assertTrue($dp->hasImplementation('DepInterface'));
+        $dp->clearImplementation('DepInterface');
+        $this->assertFalse($dp->hasImplementation('DepInterface'));
+    }
+    
+    /**
+     * @covers Artax\Provider::getImplementation
+     * @expectedException OutOfBoundsException
+     */
+    public function testGetImplementationThrowsExceptionOnInvalidNonConcreteParam() {
+        
+        $dp = new Provider(new ReflectionCacher);
+        $dp->getImplementation('InterfaceThatIsNotSetWithAnImplementation');
+    }
+    
+    /**
+     * @covers Artax\Provider::make
+     * @covers Artax\Provider::buildNewInstanceArgs
+     */
+    public function testMakeUsesImplementationDefinitionsAsNeeded() {
+        
+        $dp = new Provider(new ReflectionCacher);
+        $dp->setImplementation('DepInterface', 'DepImplementation');
+        $this->assertInstanceOf('RequiresInterface', $dp->make('RequiresInterface'));
+    }
 }
 
 class TestDependency {

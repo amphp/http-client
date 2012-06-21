@@ -13,6 +13,7 @@
 
 namespace Artax;
 use InvalidArgumentException,
+    OutOfBoundsException,
     ReflectionClass,
     ReflectionException,
     ArrayAccess,
@@ -32,6 +33,11 @@ class Provider implements InjectionContainer {
      * @var array
      */
     private $injectionDefinitions = array();
+    
+    /**
+     * @var array
+     */
+    private $nonConcreteimplementations = array();
     
     /**
      * @var array
@@ -172,6 +178,70 @@ class Provider implements InjectionContainer {
     }
     
     /**
+     * Defines an implementation class for all occurrences of a given interface or abstract
+     * 
+     * @param string $nonConcreteType
+     * @param string $className
+     * 
+     * @return Provider Returns current object instance
+     */
+    public function setImplementation($nonConcreteType, $className) {
+        
+        $lowNonConcrete = strtolower($nonConcreteType);
+        $this->nonConcreteimplementations[$lowNonConcrete] = $className;
+        
+        return $this;
+    }
+    
+    /**
+     * Retrive the assigned implementation class for the non-concrete type
+     * 
+     * @param string $nonConcreteType
+     * 
+     * @return string Returns the assigned concrete implementation class
+     * @throws OutOfBoundsException
+     */
+    public function getImplementation($nonConcreteType) {
+    
+        if (!$this->hasImplementation($nonConcreteType)) {
+            throw new OutOfBoundsException(
+                "The non-concrete typehint $nonConcreteType has no assigned implementation"
+            );
+        }
+        
+        $lowNonConcrete = strtolower($nonConcreteType);
+        return $this->nonConcreteimplementations[$lowNonConcrete];
+    }
+    
+    /**
+     * Determines if an implementation definition exists for the non-concrete type
+     * 
+     * @param string $nonConcreteType
+     * 
+     * @return bool
+     */
+    public function hasImplementation($nonConcreteType) {
+        
+        $lowNonConcrete = strtolower($nonConcreteType);
+        return isset($this->nonConcreteimplementations[$lowNonConcrete]);
+    }
+    
+    /**
+     * Clears an existing implementation definition for the non-concrete type
+     * 
+     * @param string $nonConcreteType
+     * 
+     * @return Provider Returns current object instance
+     */
+    public function clearImplementation($nonConcreteType) {
+        
+        $lowNonConcrete = strtolower($nonConcreteType);
+        unset($this->nonConcreteimplementations[$lowNonConcrete]);
+        
+        return $this;
+    }
+    
+    /**
      * Stores a shared instance for the specified class
      * 
      * If an instance of the class is specified, it will be stored and shared
@@ -183,21 +253,21 @@ class Provider implements InjectionContainer {
      * class it's instance will be stored and shared.
      * 
      * @param string $class Name of the class to share
-     * @param mixed  $obj   An instance of the shared class
+     * @param mixed  $instance   An instance of the shared class
      * 
      * @return Provider Returns current object instance
      * @throws InvalidArgumentException
      */
-    public function share($class, $obj = null) {
+    public function share($class, $instance = null) {
     
         $lowClass = strtolower($class);
         
-        if (!$obj) {
+        if (!$instance) {
             $this->sharedClasses[$lowClass] = null;
-        } elseif ($obj instanceof $class) {
-            $this->sharedClasses[$lowClass] = $obj;
+        } elseif ($instance instanceof $class) {
+            $this->sharedClasses[$lowClass] = $instance;
         } else {
-            $type = is_object($obj) ? get_class($obj) : gettype($obj);
+            $type = is_object($instance) ? get_class($instance) : gettype($instance);
             throw new InvalidArgumentException(
                 get_class($this).'::share() argument 2 must be an '
                 ."instance of $class: $type provided"
@@ -313,6 +383,8 @@ class Provider implements InjectionContainer {
             
             if ($typehint && $this->isInstantiable($typehint)) {
                 $instanceArgs[] = $this->make($typehint);
+            } elseif ($typehint && $this->hasImplementation($typehint)) {
+                $instanceArgs[] = $this->make($this->getImplementation($typehint));
             } elseif ($reflectedParam->isDefaultValueAvailable()
                 && null === $reflectedParam->getDefaultValue()
             ) {
@@ -340,4 +412,5 @@ class Provider implements InjectionContainer {
         
         return $this->reflectionPool->getClass($className)->isInstantiable();
     }
+    
 }

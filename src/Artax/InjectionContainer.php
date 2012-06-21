@@ -14,7 +14,7 @@
 namespace Artax;
   
 /**
- * Specifies a front-facing interface for dependency providers.
+ * Specifies a front-facing interface for dependency injection providers
  * 
  * @category   Artax
  * @package    Core
@@ -23,21 +23,20 @@ namespace Artax;
 interface InjectionContainer {
     
     /**
-     * Factory method for auto-injecting dependencies upon instantiation
+     * Auto-injects dependencies for managed class instantiation
      * 
-     * @param string $class  Class name
-     * @param mixed  $custom An optional array specifying custom instantiation
-     *                       parameters for this construction
+     * @param string $class
+     * @param array  $customDefinition
      */
-    function make($class, array $custom);
+    function make($className, array $customDefinition);
     
     /**
      * Defines custom instantiation parameters for the specified class
      * 
-     * @param string $class      Class name
-     * @param array  $definition An array specifying custom instantiation params
+     * @param string $class
+     * @param array  $definition
      */
-    function define($class, array $definition);
+    function define($className, array $definition);
     
     /**
      * Defines multiple custom instantiation parameters at once
@@ -48,36 +47,87 @@ interface InjectionContainer {
     function defineAll($iterable);
     
     /**
-     * Clear the injection definition for the specified class
+     * Determines if an injection definition exists for the specified class
      * 
-     * @param string $class Class name
+     * @param string $className
+     * @return bool
      */
-    function remove($class);
+    function isDefined($className);
     
     /**
-     * Clear all injection definitions from the container
+     * Defines an implementation class for all occurrences of a given interface or abstract
+     * 
+     * @param string $nonConcreteType
+     * @param string $className
+     */
+    function setImplementation($nonConcreteType, $className);
+    
+    /**
+     * Retrieves the assigned implementation for the non-concrete type
+     * 
+     * @param string $nonConcreteType
+     * 
+     * @return string Returns the assigned concrete implementation class
+     */
+    function getImplementation($nonConcreteType);
+    
+    /**
+     * Determines if an implementation definition exists for the non-concrete type
+     * 
+     * @param string $nonConcreteType
+     * 
+     * @return bool
+     */
+    function hasImplementation($nonConcreteType);
+    
+    /**
+     * Clears an existing implementation class for the specified non-concrete type
+     * 
+     * @param string $nonConcreteType
+     */
+    function clearImplementation($nonConcreteType);
+    
+    /**
+     * Clears a previously-defined injection definition
+     * 
+     * @param string $className
+     */
+    function remove($className);
+    
+    /**
+     * Clears all injection definitions from the container
      */
     function removeAll();
     
     /**
+     * Shares an instance of the specified class
+     * 
+     * @param string $className
+     * @param mixed  $instance
+     */
+    function share($className, $instance);
+    
+    /**
+     * Unshares the specified class
+     * 
+     * @param string $className
+     */
+    function unshare($className);
+    
+    /**
+     * Determines if a given class name is marked as shared
+     * 
+     * @param string $className
+     * 
+     * @return bool
+     */
+    function isShared($className);
+    
+    /**
      * Forces re-instantiation of a shared class the next time it is requested
      * 
-     * @param string $class Class name
+     * @param string $className
      */
-    function refresh($class);
-    
-    /**
-     * Determines if a shared instance of the specified class is stored
-     * 
-     * @param string $class Class name
-     */
-    function isShared($class);
-    
-    /**
-     * Determines if an injection definition exists for the specified class
-     * 
-     * @param string $class Class name
-     */
-    function isDefined($class);
+    function refresh($className);
     
 }
