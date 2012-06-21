@@ -71,65 +71,42 @@ use Exception, ErrorException;
  * @package    Core
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-class Handler implements UnifiedHandler
-{
+class Handler implements UnifiedHandler {
+
     /**
-     * The application-wide debug level
      * @var int
      */
-    private $debug;
+    private $debugMode;
     
     /**
-     * Helper flag for extraordinary fatal error conditions
-     * @var bool
-     */
-    private $errChain = FALSE;
-    
-    /**
-     * An instance of the Mediator interface
      * @var Mediator
      */
-    private $notifier;
+    private $mediator;
     
     /**
-     * Specify debug output flag and register exception/shutdown handlers
+     * Helper flag for working around this bug:
+     * https://bugs.php.net/bug.php?id=60909
      * 
-     * @param int      $debug    An app-wide debug run level
-     * @param Mediator $notifier An instance of the event Mediator interface
+     * @var bool
+     */
+    private $errChain = false;
+    
+    /**
+     * Specifies debug mode and injects event mediator
+     * 
+     * @param int      $debugMode An app-wide debug run level
+     * @param Mediator $mediator An instance of the event Mediator interface
      * 
      * @return void
      */
-    public function __construct($debug, Mediator $notifier)
-    {
-        $this->debug    = $debug;
-        $this->notifier = $notifier;
+    public function __construct($debugMode, Mediator $mediator) {
+    
+        $this->debugMode = $debugMode;
+        $this->mediator = $mediator;
     }
     
     /**
-     * Notify event listeners when PHP errors are raised
-     * 
-     * In the event a PHP error is raised, the handler creates an `ErrorException` 
-     * object with a summary message and integer code matching the value of the
-     * raised error's constant. Listeners can choose what to do, if anything,
-     * with the generated exception object.
-     * 
-     * Because all errors are reported, the error event allows you to specify
-     * event listeners that silently log low-priority errors such as 
-     * `E_DEPRECATED` and `E_STRICT` as needed in production environments.
-     * Generally, listeners can simply throw the `ErrorException` object for
-     * higher-priority errors passed to `error` event listeners.
-     * 
-     * When no error event listeners are specified: ALL raw error messages 
-     * are output to the client if DEBUG mode is turned on. If DEBUG mode is
-     * turned off and no error listeners are registered, non-fatal PHP errors
-     * are silently ignored.
-     * 
-     * ### (1) IMPORTANT: Note on output buffering
-     * 
-     * When fatal errors occur in the presence of output buffering (ob_start)
-     * PHP immediately flushes the buffer. To avoid this output and allow
-     * our handlers to process fatals correctly we prevent this flush by
-     * clearing the buffer when a fatal error occurs.
+     * Notifies event listeners when PHP errors are raised
      * 
      * @param int    $errNo   The PHP error constant
      * @param string $errStr  The resulting PHP error message
@@ -139,21 +116,30 @@ class Handler implements UnifiedHandler
      * @return void
      * @notifies error(ErrorException, bool)
      */
-    public function error($errNo, $errStr, $errFile, $errLine)
-    {
+    public function error($errNo, $errStr, $errFile, $errLine) {
+    
         $msg = "$errStr in $errFile on line $errLine";
-        $e   = new ErrorException($msg, $errNo);
+        $e = new ErrorException($msg, $errNo);
         
         try {
-            $count = $this->notifier->notify('error', $e, $this->debug);
-            if (!$count && $this->debug) {
+            $listenerInvocationCount = $this->mediator->notify('error', $e, $this->debugMode);
+            if (!$listenerInvocationCount && $this->debugMode) {
                 echo $msg;
             }
         } catch (Exception $e) {
+            
+            // When fatal errors occur in the presence of output buffering PHP will
+            // immediately flush the buffer. To avoid this output and allow our
+            // handlers to process fatals correctly we prevent this flush by
+            // clearing the buffer when a fatal error occurs.
             if (ob_get_contents()) {
-                ob_end_clean(); // <-- IMPORTANT: see docblock (1) for info
+                ob_end_clean();
             }
-            $this->errChain = TRUE;
+            
+            // Because of the bug listed at  https://bugs.php.net/bug.php?id=60909
+            // we manually call our exception/termination routine when error handling
+            // results in an exception
+            $this->errChain = true;
             $this->exception($e);
             $this->shutdown();
             throw new ScriptHaltException;
@@ -170,159 +156,106 @@ class Handler implements UnifiedHandler
      * exceptions of their own to bubble up the stack, otherwise the default 
      * message will be displayed.
      * 
-     * Note that the system `shutdown` event always fires regardless of whether
-     * or not an `exception` event was triggered.
-     * 
-     * ### (1) IMPORTANT: Note on output buffering and fatal errors
-     * 
-     * When fatal errors occur in the presence of output buffering (ob_start)
-     * PHP immediately flushes the buffer. To avoid this output and allow
-     * our handlers to process fatals correctly we prevent this flush by
-     * clearing the buffer when a fatal error occurs. The reason for the
-     * fatal error is already catalogged in the generated exception message,
-     * so any output is superfluous.
-     * 
-     * ### (2) IMPORTANT: Note on nested fatal errors
-     * 
-     * These handlers turn fatal errors into "uncaught exceptions" so that
-     * exception event listeners can handle them like any other exception.
-     * The only time this is a problem is if an exception event listener
-     * causes a fatal E_ERROR *while* it's handling a fatal error.
-     * 
-     * Not surprisingly, there's just no way to handle a fatal error that
-     * occurs while handling another fatal error. This can make for debugging
-     * nightmares, but we don't want to enable error reporting for E_ERROR
-     * because end-users could see the raw error output. Instead, when
-     * handling fatals we turn fatal error output back on in debug mode,
-     * allowing us to debug the source of the problem. If debug mode is
-     * turned off, this situation results in an innocuous 500 response
-     * with no output.
-     * 
-     * In summary: MAKE SURE YOUR CLASS EXCEPTION LISTENERS CAN BE INSTANTIATED
-     * WITHOUT RAISING A FATAL E_ERROR.
-     * 
-     * If you're having problems debugging an error, switch your application
-     * into debug mode 2, i.e. `define('AX_DEBUG', 2);` before including
-     * the Artax bootstrap file. This will result in the most comprehensive
-     * debugging output. Debug level 2 is only necessary in the most extreme 
-     * error situations in which a fatal error is encountered inside the
-     * handler for a previous fatal error.
-     * 
      * @param Exception $e Exception object
      *
      * @return void
-     * @uses Handlers::setException
-     * @notifies exception(Exception $e, bool $debug)
+     * @notifies exception(Exception $e, bool $debugMode)
      */
-    public function exception(Exception $e)
-    {
-        if (!$this->errChain
-            && !($e instanceof FatalErrorException)
-            && ob_get_contents()
-        ) {
-            ob_clean(); // <-- IMPORTANT: see docblock (1) for info
+    public function exception(Exception $e) {
+        
+        if (!($e instanceof FatalErrorException) && ob_get_contents()) {
+            ob_clean();
         }
         
         if ($e instanceof ScriptHaltException) {
             return;
         } elseif ($e instanceof FatalErrorException) {
-            if ($this->debug === 1) {
-                ini_set('display_errors', TRUE); // <-- (2) docblock
-                error_reporting(E_ALL); // <-- (2) docblock
+            if ($this->debugMode === 1) {
+                ini_set('display_errors', true);
+                error_reporting(E_ALL | E_STRICT);
             }
             try {
-                if (!$this->notifier->notify('exception', $e, $this->debug)
-                    && $this->debug
+                if (!$this->mediator->notify('exception', $e, $this->debugMode)
+                    && $this->debugMode
                 ) {
                     echo $this->defaultHandlerMsg($e);
                 }
-                $this->notifier->notify('shutdown');
+                $this->mediator->notify('shutdown');
             } catch (ScriptHaltException $e) {
                 return;
             } catch (Exception $e) {
                 echo $this->defaultHandlerMsg($e);
             }
-        } elseif ($this->notifier->count('exception')) {
+        } elseif ($this->mediator->count('exception')) {
             try {
-                $this->notifier->notify('exception', $e, $this->debug);
+                ob_start();
+                $this->mediator->notify('exception', $e, $this->debugMode);
+                ob_end_flush();
             } catch (ScriptHaltException $e) {
+                ob_end_flush();
                 return;
             } catch (Exception $e) {
                 echo $this->defaultHandlerMsg($e);
+                ob_end_flush();
             }
         } else {
             echo $this->defaultHandlerMsg($e);
+        }
+    }
+
+    /**
+     * Handle unexpected fatal errors and/or notify listeners of shutdown
+     * 
+     * @return void
+     * @notifies shutdown()
+     */
+    public function shutdown() {
+        
+        // Due to the bug listed at https://bugs.php.net/bug.php?id=60909 this function's
+        // behavior has already been handled if the `errChain` flag is truthy
+        if ($this->errChain) {
+            return;
+        }
+        
+        if ($e = $this->getFatalErrorException()) {
+            $this->exception($e);
+        } else {
+            try {
+                $this->mediator->notify('shutdown');
+            } catch (ScriptHaltException $e) {
+                return;
+            } catch (Exception $e) {
+                echo $this->defaultHandlerMsg($e);
+            }
         }
     }
     
     /**
      * Register the custom exception and shutdown handlers
      * 
-     * @return Handlers Returns object instance
+     * @return Handlers Returns current object instance
      */
-    public function register()
-    {
+    public function register() {
+    
         set_error_handler(array($this, 'error'));
         set_exception_handler(array($this, 'exception'));
         register_shutdown_function(array($this, 'shutdown'));
+        
         return $this;
-    }
-
-    /**
-     * Handle unexpected fatal errors and/or notify listeners of shutdown
-     * 
-     * If script shutdown was caused by a fatal PHP error, the error is used to 
-     * generate a corresponding `FatalErrorException` object which is then passed
-     * to `Handlers::exception` for handling.
-     * 
-     * The notifier is notified on shutdown so that any interested
-     * listeners can act appropriately. If an event listener invoked by the
-     * system `shutdown` event throws an uncaught exception it will not be handled
-     * and script execution will cease immediately without sending further output.
-     * 
-     * @return void
-     * @uses Handlers::getFatalErrorException
-     * @uses Handlers::exception
-     * @notifies shutdown()
-     */
-    public function shutdown()
-    {
-        if ($this->errChain) {
-            return;
-        }
-        
-        if ($e = $this->getFatalErrorException()) {
-        
-            $this->exception($e);
-            
-        } else {
-        
-            try {
-                $this->notifier->notify('shutdown');
-            } catch (ScriptHaltException $e) {
-                return;
-            } catch (Exception $e) {
-                echo $this->defaultHandlerMsg($e);
-            }
-            
-        }
     }
 
     /**
      * Determine if the last triggered PHP error was fatal
      * 
      * If the last occuring error during script execution was fatal the function
-     * returns an `ErrorException` object representing the error so it can be
+     * returns a `FatalErrorException` object representing the error so it can be
      * handled by `Handlers::exception`.
      * 
-     * @return mixed Returns NULL if no error occurred or a non-fatal error was 
-     *               raised. An ErrorException is returned if the last error
-     *               raised was fatal.
-     * @used-by Handlers::shutdown
+     * @return FatalErrorException Returns null if the most recent PHP error wasn't fatal
      */
-    public function getFatalErrorException()
-    {
-        $ex  = NULL;
+    public function getFatalErrorException() {
+        
+        $ex  = null;
         $err = $this->lastError();
         
         $fatals = array(
@@ -350,10 +283,9 @@ class Handler implements UnifiedHandler
      * of its behavior.
      * 
      * @return array Returns an associative error representation array
-     * @used-by Handlers::getFatalErrorException
      */
-    protected function lastError()
-    {
+    protected function lastError() {
+    
         return error_get_last();
     }
     
@@ -362,11 +294,11 @@ class Handler implements UnifiedHandler
      * 
      * @param Exception $e An uncaught exception object
      * 
-     * @return string Returns a debug message if appropriate or NULL if the 
+     * @return string Returns a debug message if appropriate or null if the 
      *                application debug flag is turned off.
      */
-    protected function defaultHandlerMsg(Exception $e)
-    {
-        return $this->debug ? (string) $e : NULL;
+    protected function defaultHandlerMsg(Exception $e) {
+    
+        return $this->debugMode ? (string) $e : null;
     }
 }

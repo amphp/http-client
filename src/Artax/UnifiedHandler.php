@@ -24,6 +24,11 @@ use Exception;
 interface UnifiedHandler {
     
     /**
+     * Register the custom error, exception and shutdown handler functions
+     */
+    function register();
+    
+    /**
      * Method to handle raised PHP errors
      * 
      * @param int    $errNo   The PHP error constant raised
@@ -39,11 +44,6 @@ interface UnifiedHandler {
      * @param Exception $e Exception object
      */
     function exception(Exception $e);
-    
-    /**
-     * Register the custom error, exception and shutdown handlers
-     */
-    function register();
 
     /**
      * Handle unexpected fatal errors
