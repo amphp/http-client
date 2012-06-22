@@ -136,6 +136,7 @@ ini_set('html_errors', FALSE);
 require ARTAX_SYSTEM_DIR . '/src/Artax/ProviderDefinitionException.php';
 require ARTAX_SYSTEM_DIR . '/src/Artax/FatalErrorException.php';
 require ARTAX_SYSTEM_DIR . '/src/Artax/ScriptHaltException.php';
+require ARTAX_SYSTEM_DIR . '/src/Artax/BadListenerException.php';
 require ARTAX_SYSTEM_DIR . '/src/Artax/ReflectionPool.php';
 require ARTAX_SYSTEM_DIR . '/src/Artax/ReflectionCacher.php';
 require ARTAX_SYSTEM_DIR . '/src/Artax/InjectionContainer.php';
