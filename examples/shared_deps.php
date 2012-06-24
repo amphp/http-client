@@ -11,21 +11,20 @@ define('ATREYU_DEBUG_LEVEL', 1);
 require dirname(__DIR__) . '/Artax.php';
 
 
-// Share this PDO instance so all objects created by the $provider provider
-// will reuse it
+// Share this PDO instance so all objects created by the injection container will reuse it
 $pdo = new PDO('sqlite::memory:');
-$provider->share('PDO', $pdo);
+$injectionContainer->share('PDO', $pdo);
 
 // Use the provider to provision a new instance
-$controller1 = $provider->make('ControllerThatNeedsDbConn');
+$controller1 = $injectionContainer->make('ControllerThatNeedsDbConn');
 
 // A custom definition to use only for this instantiation ...
-$controller2 = $provider->make('ControllerThatNeedsDbConn',
+$controller2 = $injectionContainer->make('ControllerThatNeedsDbConn',
     array('pdo'=>new PDO('sqlite::memory:'), 'dep'=>new Dependency)
 );
 
 // And another using our original share ...
-$controller3 = $provider->make('ControllerThatNeedsDbConn');
+$controller3 = $injectionContainer->make('ControllerThatNeedsDbConn');
 
 /**
  * Notice how all the PDO references point to the same memory location except
@@ -39,7 +38,6 @@ var_dump($controller3->getPdo());
 
 
 
-
 /**
  * An example dependency class
  */
@@ -48,19 +46,17 @@ class Dependency {}
 /**
  * An example controller class that needs a PDO instance at instantiation
  */
-class ControllerThatNeedsDbConn
-{
+class ControllerThatNeedsDbConn {
+
     protected $pdo;
     protected $dep;
     
-    public function __construct(PDO $pdo, Dependency $dep)
-    {
+    public function __construct(PDO $pdo, Dependency $dep) {
         $this->pdo = $pdo;
         $this->dep = $dep;
     }
     
-    public function getPdo()
-    {
+    public function getPdo() {
         return $this->pdo;
     }
 }

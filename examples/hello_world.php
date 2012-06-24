@@ -16,5 +16,5 @@ require dirname(__DIR__) . '/Artax.php'; // hard path to bootstrap file
  * --------------------------------------------------------------------
  */
 
-$notifier->push('hello', function(){ echo "Hello, world." . PHP_EOL; });
-$notifier->notify('hello');
+$mediator->push('hello', function(){ echo "Hello, world." . PHP_EOL; });
+$mediator->notify('hello');

@@ -17,7 +17,7 @@
  * 
  * That's it. From there it's a simple matter of pushing event listeners onto
  * the event mediator (`$mediator`) and (optionally) adding dependency definitions
- * (if necessary) to the dependency injection container (`$provider`).
+ * (if necessary) to the dependency injection container (`$injectionContainer`).
  * 
  * ### More information
  * 
@@ -153,12 +153,12 @@ require ARTAX_SYSTEM_DIR . '/src/Artax/Handler.php';
  */
 
 $reflCacher = new Artax\ReflectionCacher;
-$provider   = new Artax\Provider($reflCacher);
-$notifier   = new Artax\Notifier($provider);
+$injectionContainer = new Artax\Provider($reflCacher);
+$mediator = new Artax\Notifier($injectionContainer);
 
-$provider->share('Artax\\Notifier', $notifier);
-$provider->share('Artax\\Provider', $provider);
-$provider->share('Artax\\ReflectionCacher', $reflCacher);
+$injectionContainer->share('Artax\\Notifier', $mediator);
+$injectionContainer->share('Artax\\Provider', $injectionContainer);
+$injectionContainer->share('Artax\\ReflectionCacher', $reflCacher);
 
 /*
  * --------------------------------------------------------------------
@@ -167,9 +167,9 @@ $provider->share('Artax\\ReflectionCacher', $reflCacher);
  */
 
 if (PHP_VERSION_ID >= 50400) {
-    (new Artax\Handler(ARTAX_DEBUG_LEVEL, $notifier))->register();
+    (new Artax\Handler(ARTAX_DEBUG_LEVEL, $mediator))->register();
 } else {
-    $handlers = new Artax\Handler(ARTAX_DEBUG_LEVEL, $notifier);
+    $handlers = new Artax\Handler(ARTAX_DEBUG_LEVEL, $mediator);
     $handlers->register();
     unset($handlers);
 }
