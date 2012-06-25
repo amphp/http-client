@@ -11,7 +11,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Provider::buildNewInstanceArgs
      * @covers Artax\Provider::isInstantiable
      */
-    public function testMakeInjectsSimpleConcreteDeps() {
+    public function testMakeInjectsSimpleConcreteDependency() {
     
         $dp = new Provider(new ReflectionCacher);
         $this->assertEquals(new TestNeedsDep(new TestDependency),
@@ -155,7 +155,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Provider::isInstantiable
      * @expectedException Artax\ProviderDefinitionException
      */
-    public function testThrowsExceptionOnUnknownParamsInMultiBuildWithDeps() {
+    public function testMakeThrowsExceptionOnUnknownParamsInMultiBuildWithDeps() {
     
         $dp  = new Provider(new ReflectionCacher);
         $obj = $dp->make('NoTypehintNullDefaultConstructorClass',
@@ -170,7 +170,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Provider::isInstantiable
      * @expectedException Artax\ProviderDefinitionException
      */
-    public function testThrowsExceptionOnUninstantiableTypehintWithoutDefinition() {
+    public function testMakeThrowsExceptionOnUninstantiableTypehintWithoutDefinition() {
     
         $dp  = new Provider(new ReflectionCacher);
         $obj = $dp->make('RequiresInterface');
@@ -178,12 +178,15 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Provider::define
+     * @covers Artax\Provider::getDefinition
      */
     public function testDefineAssignsPassedDefinition() {
         
         $dp = new Provider(new ReflectionCacher);
-        $dp->define('RequiresInterface', array('dep' => 'DepImplementation'));
+        $definition = array('dep' => 'DepImplementation');
+        $dp->define('RequiresInterface', $definition);
         $this->assertInstanceOf('RequiresInterface', $dp->make('RequiresInterface'));
+        $this->assertEquals($definition, $dp->getDefinition('RequiresInterface'));
     }
     
     /**
@@ -194,6 +197,29 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
         
         $dp = new Provider(new ReflectionCacher);
         $dp->defineAll(1);
+    }
+    
+    /**
+     * @covers Artax\Provider::getDefinition
+     * @expectedException OutOfBoundsException
+     */
+    public function testGetDefinitionThrowsExceptionOnUndefinedClass() {
+        
+        $dp = new Provider(new ReflectionCacher);
+        $dp->getDefinition('ClassThatHasntBeenDefined');
+    }
+    
+    /**
+     * @covers Artax\Provider::clearAllDefinitions
+     */
+    public function testClearAllDefinitionsRemovesDefinitions() {
+        
+        $dp = new Provider(new ReflectionCacher);
+        $this->assertFalse($dp->isDefined('RequiresInterface'));
+        $dp->define('RequiresInterface', array('dep' => 'DepImplementation'));
+        $this->assertTrue($dp->isDefined('RequiresInterface'));
+        $dp->clearAllDefinitions();
+        $this->assertFalse($dp->isDefined('RequiresInterface'));
     }
     
     /**
@@ -210,35 +236,35 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers Artax\Provider::remove
+     * @covers Artax\Provider::clearDefinition
      */
-    public function testRemoveClearsDefinitionAndReturnsProvider() {
+    public function testClearDefinitionRemovesDefinitionAndReturnsNull() {
         
         $dp = new Provider(new ReflectionCacher);
         $dp->define('RequiresInterface', array('dep' => 'DepImplementation'));
         $this->assertTrue($dp->isDefined('RequiresInterface'));
-        $this->assertEquals($dp, $dp->remove('RequiresInterface'));
+        $this->assertEquals(null, $dp->clearDefinition('RequiresInterface'));
         $this->assertFalse($dp->isDefined('RequiresInterface'));
     }
     
     /**
-     * @covers Artax\Provider::removeAll
+     * @covers Artax\Provider::clearAllDefinitions
      */
-    public function testRemoveAllClearsDefinitionAndReturnsProvider() {
+    public function testClearAllDefinitionsRemovesDefinitionAndReturnsNull() {
         
         $dp = new Provider(new ReflectionCacher);
         $dp->define('RequiresInterface', array('dep' => 'DepImplementation'));
         $this->assertTrue($dp->isDefined('RequiresInterface'));
         
-        $return = $dp->removeAll();
-        $this->assertEquals($dp, $dp->removeAll());
+        $return = $dp->clearAllDefinitions();
+        $this->assertEquals(null, $dp->clearAllDefinitions());
         $this->assertFalse($dp->isDefined('RequiresInterface'));
     }
     
     /**
      * @covers Artax\Provider::refresh
      */
-    public function testRefreshClearsSharedInstancesAndReturnsProvider() {
+    public function testRefreshClearsSharedInstanceAndReturnsNull() {
         
         $dp = new Provider(new ReflectionCacher);
         $dp->share('TestDependency');
@@ -246,7 +272,8 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
         $this->assertTrue($dp->isShared('TestDependency'));
         $obj->testProp = 42;
         
-        $this->assertEquals($dp, $dp->refresh('TestDependency'));
+        $this->assertEquals(null, $dp->refresh('TestDependency'));
+        $this->assertTrue($dp->isShared('TestDependency'));
         $refreshedObj = $dp->make('TestDependency');
         $this->assertEquals('testVal', $refreshedObj->testProp);
     }
@@ -254,30 +281,32 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
     /**
      * @covers Artax\Provider::isShared
      */
-    public function testIsSharedReturnsSharedStatus() {
+    public function testIsSharedReturnsBooleanStatus() {
         
         $dp = new Provider(new ReflectionCacher);
         $dp->share('TestDependency');
         $this->assertTrue($dp->isShared('TestDependency'));
+        $dp->unshare('TestDependency');
+        $this->assertFalse($dp->isShared('TestDependency'));
     }
     
     /**
      * @covers Artax\Provider::unshare
      */
-    public function testUnsharedReturnsBool() { 
+    public function testUnshareRemovesSharingAndReturnsNull() { 
     
         $dp = new Provider(new ReflectionCacher);
         $this->assertFalse($dp->isShared('TestDependency'));
         $dp->share('TestDependency');
         $this->assertTrue($dp->isShared('TestDependency'));
-        $this->assertEquals($dp, $dp->unshare('TestDependency'));
+        $this->assertEquals(null, $dp->unshare('TestDependency'));
         $this->assertFalse($dp->isShared('TestDependency'));
     }
     
     /**
      * @covers Artax\Provider::isDefined
      */
-    public function testIsDefinedReturnsDefinedStatus() {
+    public function testIsDefinedReturnsDefinitionStatus() {
     
         $dp = new Provider(new ReflectionCacher);
         $this->assertFalse($dp->isDefined('RequiresInterface'));
@@ -289,13 +318,13 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
     /**
      * @covers Artax\Provider::share
      */
-    public function testShareStoresSharedDependencyAndReturnsChainableInstance() {
+    public function testShareStoresSharedInstanceAndReturnsNull() {
         
         $dp = new Provider(new ReflectionCacher);
         $testShare = new StdClass;
         $testShare->test = 42;
         
-        $this->assertEquals($dp, $dp->share('StdClass', $testShare));
+        $this->assertEquals(null, $dp->share('StdClass', $testShare));
         $testShare->test = 'test';
         $this->assertEquals('test', $dp->make('stdclass')->test);
         
@@ -304,10 +333,10 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
     /**
      * @covers Artax\Provider::share
      */
-    public function testShareMarksClassSharedOnNoObjectParameter() {
+    public function testShareMarksClassSharedOnNullObjectParameter() {
         
         $dp = new Provider(new ReflectionCacher);
-        $this->assertEquals($dp, $dp->share('Artax\\Mediator'));
+        $this->assertEquals(null, $dp->share('Artax\\Mediator'));
         $this->assertTrue($dp->isShared('Artax\Mediator'));
     }
     
@@ -322,36 +351,73 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers Artax\Provider::setImplementation
+     * @covers Artax\Provider::implement
      * @covers Artax\Provider::getImplementation
-     * @covers Artax\Provider::hasImplementation
+     * @covers Artax\Provider::isImplemented
      */
-    public function testSetImplementationAssignsValueAndReturnsProviderInstance() {
+    public function testImplementAssignsValueAndReturnsNull() {
         
         $dp = new Provider(new ReflectionCacher);
-        $this->assertEquals($dp, $dp->setImplementation('DepInterface', 'DepImplementation'));
-        $this->assertTrue($dp->hasImplementation('DepInterface'));
+        $this->assertEquals(null, $dp->implement('DepInterface', 'DepImplementation'));
+        $this->assertTrue($dp->isImplemented('DepInterface'));
         $this->assertEquals('DepImplementation', $dp->getImplementation('DepInterface'));
     }
     
     /**
-     * @covers Artax\Provider::clearImplementation
-     * @covers Artax\Provider::hasImplementation
+     * @covers Artax\Provider::implementAll
+     * @expectedException InvalidArgumentException
      */
-    public function testClearImplementationRemovesAssignedValueAndReturnsProviderInstance() {
+    public function testImplementAllThrowsExceptionOnNonIterableParameter() {
         
         $dp = new Provider(new ReflectionCacher);
-        $dp->setImplementation('DepInterface', 'DepImplementation');
-        $this->assertTrue($dp->hasImplementation('DepInterface'));
-        $dp->clearImplementation('DepInterface');
-        $this->assertFalse($dp->hasImplementation('DepInterface'));
+        $dp->implementAll('not iterable');
+    }
+    
+    /**
+     * @covers Artax\Provider::implementAll
+     */
+    public function testImplementAllAssignsPassedImplementationsAndReturnsAddedCount() {
+        
+        $dp = new Provider(new ReflectionCacher);
+        $implementations = array(
+            'DepInterface' => 'DepImplementation',
+            'AnotherInterface' => 'AnotherImplementation'
+        );
+        
+        $this->assertEquals(2, $dp->implementAll($implementations));
+        $this->assertInstanceOf('RequiresInterface', $dp->make('RequiresInterface'));
+    }
+    
+    /**
+     * @covers Artax\Provider::clearAllImplementations
+     */
+    public function testClearAllImplementationsRemovesImplementations() {
+        
+        $dp = new Provider(new ReflectionCacher);
+        $dp->implement('DepInterface', 'DepImplementation');
+        $this->assertTrue($dp->isImplemented('DepInterface'));
+        $dp->clearAllImplementations();
+        $this->assertFalse($dp->isImplemented('DepInterface'));
+    }
+    
+    /**
+     * @covers Artax\Provider::clearImplementation
+     * @covers Artax\Provider::isImplemented
+     */
+    public function testClearImplementationRemovesAssignedTypeAndReturnsNull() {
+        
+        $dp = new Provider(new ReflectionCacher);
+        $dp->implement('DepInterface', 'DepImplementation');
+        $this->assertTrue($dp->isImplemented('DepInterface'));
+        $this->assertEquals(null, $dp->clearImplementation('DepInterface'));
+        $this->assertFalse($dp->isImplemented('DepInterface'));
     }
     
     /**
      * @covers Artax\Provider::getImplementation
      * @expectedException OutOfBoundsException
      */
-    public function testGetImplementationThrowsExceptionOnInvalidNonConcreteParam() {
+    public function testGetImplementationThrowsExceptionIfSpecifiedImplementationDoesntExist() {
         
         $dp = new Provider(new ReflectionCacher);
         $dp->getImplementation('InterfaceThatIsNotSetWithAnImplementation');
@@ -364,7 +430,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
     public function testMakeUsesImplementationDefinitionsAsNeeded() {
         
         $dp = new Provider(new ReflectionCacher);
-        $dp->setImplementation('DepInterface', 'DepImplementation');
+        $dp->implement('DepInterface', 'DepImplementation');
         $this->assertInstanceOf('RequiresInterface', $dp->make('RequiresInterface'));
     }
 }

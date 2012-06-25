@@ -39,12 +39,13 @@ interface InjectionContainer {
     function define($className, array $definition);
     
     /**
-     * Defines multiple custom instantiation parameters at once
+     * Retrieves the assigned definition for the specified class
      * 
-     * @param mixed $iterable The variable to iterate over: an array, StdClass
-     *                        or ArrayAccess instance
+     * @param string $className
+     * 
+     * @return array
      */
-    function defineAll($iterable);
+    function getDefinition($className);
     
     /**
      * Determines if an injection definition exists for the specified class
@@ -55,12 +56,32 @@ interface InjectionContainer {
     function isDefined($className);
     
     /**
+     * Defines multiple custom instantiation parameters at once
+     * 
+     * @param mixed $iterable The variable to iterate over: an array, StdClass
+     *                        or ArrayAccess instance
+     */
+    function defineAll($iterable);
+    
+    /**
+     * Clears a previously-defined injection definition
+     * 
+     * @param string $className
+     */
+    function clearDefinition($className);
+    
+    /**
+     * Clears all injection definitions from the container
+     */
+    function clearAllDefinitions();
+    
+    /**
      * Defines an implementation class for all occurrences of a given interface or abstract
      * 
      * @param string $nonConcreteType
      * @param string $className
      */
-    function setImplementation($nonConcreteType, $className);
+    function implement($nonConcreteType, $className);
     
     /**
      * Retrieves the assigned implementation for the non-concrete type
@@ -78,7 +99,16 @@ interface InjectionContainer {
      * 
      * @return bool
      */
-    function hasImplementation($nonConcreteType);
+    function isImplemented($nonConcreteType);
+    
+    /**
+     * Defines multiple type implementations at one time
+     * 
+     * @param mixed $iterable The variable to iterate over: an array, StdClass or Traversable
+     * 
+     * @return int Returns the number of implementations stored by the operation.
+     */
+    public function implementAll($iterable);
     
     /**
      * Clears an existing implementation class for the specified non-concrete type
@@ -88,16 +118,9 @@ interface InjectionContainer {
     function clearImplementation($nonConcreteType);
     
     /**
-     * Clears a previously-defined injection definition
-     * 
-     * @param string $className
+     * Clears all existing non-concrete implementations
      */
-    function remove($className);
-    
-    /**
-     * Clears all injection definitions from the container
-     */
-    function removeAll();
+    function clearAllImplementations();
     
     /**
      * Shares an instance of the specified class
@@ -106,13 +129,6 @@ interface InjectionContainer {
      * @param mixed  $instance
      */
     function share($className, $instance);
-    
-    /**
-     * Unshares the specified class
-     * 
-     * @param string $className
-     */
-    function unshare($className);
     
     /**
      * Determines if a given class name is marked as shared
@@ -129,5 +145,12 @@ interface InjectionContainer {
      * @param string $className
      */
     function refresh($className);
+    
+    /**
+     * Unshares the specified class
+     * 
+     * @param string $className
+     */
+    function unshare($className);
     
 }
