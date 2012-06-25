@@ -163,7 +163,7 @@ class Handler implements UnifiedHandler {
      */
     public function exception(Exception $e) {
         
-        if (!($e instanceof FatalErrorException) && ob_get_contents()) {
+        if ($this->errChain && !($e instanceof FatalErrorException) && ob_get_contents()) {
             ob_clean();
         }
         
