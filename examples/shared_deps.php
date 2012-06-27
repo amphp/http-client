@@ -13,18 +13,18 @@ require dirname(__DIR__) . '/Artax.php';
 
 // Share this PDO instance so all objects created by the injection container will reuse it
 $pdo = new PDO('sqlite::memory:');
-$injectionContainer->share('PDO', $pdo);
+$injector->share('PDO', $pdo);
 
 // Use the provider to provision a new instance
-$controller1 = $injectionContainer->make('ControllerThatNeedsDbConn');
+$controller1 = $injector->make('ControllerThatNeedsDbConn');
 
 // A custom definition to use only for this instantiation ...
-$controller2 = $injectionContainer->make('ControllerThatNeedsDbConn',
+$controller2 = $injector->make('ControllerThatNeedsDbConn',
     array('pdo'=>new PDO('sqlite::memory:'), 'dep'=>new Dependency)
 );
 
 // And another using our original share ...
-$controller3 = $injectionContainer->make('ControllerThatNeedsDbConn');
+$controller3 = $injector->make('ControllerThatNeedsDbConn');
 
 /**
  * Notice how all the PDO references point to the same memory location except

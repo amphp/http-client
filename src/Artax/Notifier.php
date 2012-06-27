@@ -53,17 +53,17 @@ class Notifier implements Mediator {
     
     /**
      * Dependency provider for class listener lazy-loading
-     * @var InjectionContainer
+     * @var Injector
      */
-    private $provider;
+    private $injector;
     
     /**
-     * @param InjectionContainer $provider A dependency injection container
+     * @param Injector $injector A dependency injection container
      * @return void
      */
-    public function __construct(InjectionContainer $provider) {
+    public function __construct(Injector $injector) {
     
-        $this->provider = $provider;
+        $this->injector = $injector;
     }
     
     /**
@@ -135,7 +135,7 @@ class Notifier implements Mediator {
      *             specified event.
      * 
      * @throws LogicException On non-callable, non-string $listener parameter
-     * @uses Notifier::attach
+     * @notifies artax.notifier.unshift($eventName, $listener)
      */
     public function push($eventName, $listener, $lazyDef = null) {
         
@@ -234,6 +234,7 @@ class Notifier implements Mediator {
      * 
      * @return int Returns the new number of listeners in the event queue
      * @throws InvalidArgumentException
+     * @notifies artax.notifier.unshift($eventName, $listener)
      */
     public function unshift($eventName, $listener, $lazyDef = null) {
         
@@ -462,12 +463,12 @@ class Notifier implements Mediator {
     private function getCallableListenerFromQueue($eventName, $queuePos) {
         
         if (is_string($this->listeners[$eventName][$queuePos])) {
-            $func = $this->provider->make($this->listeners[$eventName][$queuePos]);
+            $func = $this->injector->make($this->listeners[$eventName][$queuePos]);
         } elseif (is_array($this->listeners[$eventName][$queuePos])
             && isset($this->listeners[$eventName][$queuePos][1])
             && is_array($this->listeners[$eventName][$queuePos][1])
         ) {
-            $func = $this->provider->make($this->listeners[$eventName][$queuePos][0],
+            $func = $this->injector->make($this->listeners[$eventName][$queuePos][0],
                 $this->listeners[$eventName][$queuePos][1]
             );
         } else {

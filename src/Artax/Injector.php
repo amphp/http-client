@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Artax InjectionContainer Interface File
+ * Artax Injector Interface File
  * 
  * @category   Artax
  * @package    Core
@@ -20,7 +20,7 @@ namespace Artax;
  * @package    Core
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-interface InjectionContainer {
+interface Injector {
     
     /**
      * Auto-injects dependencies for managed class instantiation

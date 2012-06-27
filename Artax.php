@@ -17,7 +17,7 @@
  * 
  * That's it. From there it's a simple matter of pushing event listeners onto
  * the event mediator (`$mediator`) and (optionally) adding dependency definitions
- * (if necessary) to the dependency injection container (`$injectionContainer`).
+ * (if necessary) to the dependency injection container (`$injector`).
  * 
  * ### More information
  * 
@@ -139,7 +139,7 @@ require ARTAX_SYSTEM_DIR . '/src/Artax/ScriptHaltException.php';
 require ARTAX_SYSTEM_DIR . '/src/Artax/BadListenerException.php';
 require ARTAX_SYSTEM_DIR . '/src/Artax/ReflectionPool.php';
 require ARTAX_SYSTEM_DIR . '/src/Artax/ReflectionCacher.php';
-require ARTAX_SYSTEM_DIR . '/src/Artax/InjectionContainer.php';
+require ARTAX_SYSTEM_DIR . '/src/Artax/Injector.php';
 require ARTAX_SYSTEM_DIR . '/src/Artax/Provider.php';
 require ARTAX_SYSTEM_DIR . '/src/Artax/Mediator.php';
 require ARTAX_SYSTEM_DIR . '/src/Artax/Notifier.php';
@@ -153,12 +153,13 @@ require ARTAX_SYSTEM_DIR . '/src/Artax/Handler.php';
  */
 
 $reflCacher = new Artax\ReflectionCacher;
-$injectionContainer = new Artax\Provider($reflCacher);
-$mediator = new Artax\Notifier($injectionContainer);
+$injector = new Artax\Provider($reflCacher);
+$mediator = new Artax\Notifier($injector);
 
-$injectionContainer->share('Artax\\Notifier', $mediator);
-$injectionContainer->share('Artax\\Provider', $injectionContainer);
-$injectionContainer->share('Artax\\ReflectionCacher', $reflCacher);
+$injector->share('Artax\\Notifier', $mediator);
+$injector->share('Artax\\Provider', $injector);
+$injector->share('Artax\\ReflectionCacher', $reflCacher);
+
 
 /*
  * --------------------------------------------------------------------

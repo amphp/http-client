@@ -27,7 +27,7 @@ use InvalidArgumentException,
  * @package    Core
  * @author     Daniel Lowrey <rdlowrey@gmail.com>
  */
-class Provider implements InjectionContainer {
+class Provider implements Injector {
     
     /**
      * @var array
