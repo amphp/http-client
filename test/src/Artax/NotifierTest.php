@@ -4,10 +4,9 @@ use Artax\Notifier,
     Artax\Provider,
     Artax\ReflectionCacher;
 
-class NotifierTest extends PHPUnit_Framework_TestCase
-{
-    public function testBeginsEmpty()
-    {
+class NotifierTest extends PHPUnit_Framework_TestCase {
+
+    public function testBeginsEmpty() {
         $m = new Notifier(new Provider(new ReflectionCacher));
         return $m;
     }
@@ -16,8 +15,7 @@ class NotifierTest extends PHPUnit_Framework_TestCase
      * @covers Artax\Notifier::push
      * @expectedException InvalidArgumentException
      */
-    public function testPushThrowsExceptionOnUncallableListener()
-    {
+    public function testPushThrowsExceptionOnUncallableNonStringListener() {
         $m = new Notifier(new Provider(new ReflectionCacher));
         $listeners = $m->push('test.event1', new StdClass);
     }
@@ -26,8 +24,7 @@ class NotifierTest extends PHPUnit_Framework_TestCase
      * @covers Artax\Notifier::push
      * @expectedException InvalidArgumentException
      */
-    public function testPushThrowsExceptionOnInvalidLazyDef()
-    {
+    public function testPushThrowsExceptionOnInvalidLazyDef() {
         $m = new Notifier(new Provider(new ReflectionCacher));
         $listeners = $m->push('test.event1', 'string', new StdClass);
     }
@@ -36,26 +33,38 @@ class NotifierTest extends PHPUnit_Framework_TestCase
      * @covers Artax\Notifier::push
      * @covers Artax\Notifier::last
      */
-    public function testPushAddsEventListenerAndReturnsCount()
-    {
+    public function testPushAddsEventListenerAndReturnsCount() {
         $m = new Notifier(new Provider(new ReflectionCacher));
         
         $f1 = function(){ return 1; };
         $f2 = function(){ return 2; };
         
         $this->assertEquals(1, $m->push('test_event', $f1));
-        $this->assertEquals(2, $m->push('test_event', $f2));        
+        $this->assertEquals(2, $m->push('test_event', $f2));
         $this->assertEquals($f1, $m->shift('test_event'));
         $this->assertEquals($f2, $m->shift('test_event'));
-
+    }
+    
+    /**
+     * @covers Artax\Notifier::push
+     */
+    public function testPushNotifiesListenersWhenInvoked() {
+        $m = new Notifier(new Provider(new ReflectionCacher));
+        
+        $f1 = function(){ return 1; };
+        $m->push('test_event', $f1);
+        $this->assertEquals(1, $m->countNotifications('artax.notifier.push'));
+        
+        $f2 = function(){ return 2; };
+        $m->push('test_event', $f2);
+        $this->assertEquals(2, $m->countNotifications('artax.notifier.push'));
     }
   
     /**
      * @covers Artax\Notifier::pushAll
      * @expectedException InvalidArgumentException
      */
-    public function testPushAllThrowsExceptionOnNonTraversableParameter()
-    {
+    public function testPushAllThrowsExceptionOnNonTraversableParameter() {
         $m = new Notifier(new Provider(new ReflectionCacher));
         $m->pushAll('not traversable');
     }
@@ -63,8 +72,7 @@ class NotifierTest extends PHPUnit_Framework_TestCase
     /**
      * @covers Artax\Notifier::pushAll
      */
-    public function testPushAllAddsNestedListenersFromTraversableParameter()
-    {
+    public function testPushAllAddsNestedListenersFromTraversableParameter() {
         $m = new Notifier(new Provider(new ReflectionCacher));
         $cnt = $m->pushAll(array(
             'app.ready' => function(){},
@@ -84,8 +92,7 @@ class NotifierTest extends PHPUnit_Framework_TestCase
      * @covers Artax\Notifier::unshift
      * @expectedException InvalidArgumentException
      */
-    public function testUnshiftThrowsExceptionOnInvalidLazyDef()
-    {
+    public function testUnshiftThrowsExceptionOnInvalidLazyDef() {
         $m = new Notifier(new Provider(new ReflectionCacher));
         $listeners = $m->unshift('test.event1', 'string', 1);
     }
@@ -94,8 +101,7 @@ class NotifierTest extends PHPUnit_Framework_TestCase
      * @covers Artax\Notifier::unshift
      * @covers Artax\Notifier::first
      */
-    public function testUnshiftAddsEventListenerAndReturnsCount()
-    {
+    public function testUnshiftAddsEventListenerAndReturnsCount() {
         $dp = new Provider(new ReflectionCacher);
         $m  = new Notifier($dp);
         $listeners = $m->push('test.event1', function() { return TRUE; });
@@ -111,18 +117,31 @@ class NotifierTest extends PHPUnit_Framework_TestCase
      * @covers Artax\Notifier::unshift
      * @expectedException InvalidArgumentException
      */
-    public function testUnshiftThrowsExceptionOnUncallableListener()
-    {
+    public function testUnshiftThrowsExceptionOnUncallableNonStringListener() {
         $dp = new Provider(new ReflectionCacher);
         $m  = new Notifier($dp);
         $listeners = $m->unshift('test.event1', 1);
     }
     
     /**
+     * @covers Artax\Notifier::unshift
+     */
+    public function testUnshiftNotifiesListenersWhenInvoked() {
+        $m = new Notifier(new Provider(new ReflectionCacher));
+        
+        $f1 = function(){ return 1; };
+        $m->unshift('test_event', $f1);
+        $this->assertEquals(1, $m->countNotifications('artax.notifier.unshift'));
+        
+        $f2 = function(){ return 2; };
+        $m->unshift('test_event', $f2);
+        $this->assertEquals(2, $m->countNotifications('artax.notifier.unshift'));
+    }
+    
+    /**
      * @covers Artax\Notifier::first
      */
-    public function testFirstReturnsNullIfNoListenersMatch()
-    {
+    public function testFirstReturnsNullIfNoListenersInQueueForSpecifiedEvent() {
         $dp = new Provider(new ReflectionCacher);
         $m  = new Notifier($dp);
         $this->assertEquals(NULL, $m->first('test.event1'));
@@ -131,8 +150,7 @@ class NotifierTest extends PHPUnit_Framework_TestCase
     /**
      * @covers Artax\Notifier::last
      */
-    public function testLastReturnsNullIfNoListenersMatch()
-    {
+    public function testLastReturnsNullIfNoListenersInQueueForSpecifiedEvent() {
         $dp = new Provider(new ReflectionCacher);
         $m  = new Notifier($dp);
         $this->assertEquals(NULL, $m->last('test.event1'));
@@ -141,8 +159,7 @@ class NotifierTest extends PHPUnit_Framework_TestCase
     /**
      * @covers  Artax\Notifier::count
      */
-    public function testCountReturnsNumberOfListenersForSpecifiedEvent()
-    {
+    public function testCountReturnsNumberOfListenersForSpecifiedEvent() {
         $m = new Notifier(new Provider(new ReflectionCacher));
         $f1 = function(){ return 1; };
         $f2 = function(){ return 2; };
@@ -155,8 +172,7 @@ class NotifierTest extends PHPUnit_Framework_TestCase
     /**
      * @covers  Artax\Notifier::keys
      */
-    public function testKeysReturnsArrayOfListenedForEvents()
-    {
+    public function testKeysReturnsArrayOfListenedForEvents() {
         $m = new Notifier(new Provider(new ReflectionCacher));
         $m->push('test.event1', function() { return 42; });
         $m->push('test.event2', function() { return 42; });
@@ -169,8 +185,7 @@ class NotifierTest extends PHPUnit_Framework_TestCase
      * @depends testKeysReturnsArrayOfListenedForEvents
      * @covers  Artax\Notifier::clear
      */
-    public function testClearRemovesAllListenersAndListenedForEvents($m)
-    {
+    public function testClearRemovesAllListenersAndListenedForEvents($m) {
         $m->clear('test.event2');
         $this->assertEquals(array('test.event1'), $m->keys());
         
@@ -181,8 +196,7 @@ class NotifierTest extends PHPUnit_Framework_TestCase
     /**
      * @covers  Artax\Notifier::pop
      */
-    public function testPopRemovesLastListenerForSpecifiedEvent()
-    {
+    public function testPopRemovesLastListenerForSpecifiedEvent() {
         $m  = new Notifier(new Provider(new ReflectionCacher));
         $f1 = function(){ return 1; };
         $f2 = function(){ return 2; };
@@ -197,8 +211,7 @@ class NotifierTest extends PHPUnit_Framework_TestCase
      * @depends testKeysReturnsArrayOfListenedForEvents
      * @covers  Artax\Notifier::pop
      */
-    public function testPopReturnsNullIfNoEventsMatchSpecifiedEvent($m)
-    {
+    public function testPopReturnsNullIfNoEventsMatchSpecifiedEvent($m) {
         $listener = $m->pop('test.eventDoesntExist');
         $this->assertEquals(NULL, $listener);
     }
@@ -206,8 +219,7 @@ class NotifierTest extends PHPUnit_Framework_TestCase
     /**
      * @covers  Artax\Notifier::shift
      */
-    public function testShiftRemovesFirstListenerForSpecifiedEvent()
-    {
+    public function testShiftRemovesFirstListenerForSpecifiedEvent() {
         $m = new Notifier(new Provider(new ReflectionCacher));
         $f1 = function(){ return 1; };
         $f2 = function(){ return 2; };
@@ -222,8 +234,7 @@ class NotifierTest extends PHPUnit_Framework_TestCase
      * @depends testKeysReturnsArrayOfListenedForEvents
      * @covers  Artax\Notifier::shift
      */
-    public function testShiftReturnsNullIfNoEventsMatchSpecifiedEvent($m)
-    {
+    public function testShiftReturnsNullIfNoEventsMatchSpecifiedEvent($m) {
         $listener = $m->shift('test.eventDoesntExist');
         $this->assertEquals(NULL, $listener);
     }
@@ -231,8 +242,7 @@ class NotifierTest extends PHPUnit_Framework_TestCase
     /**
      * @covers Artax\Notifier::unshift
      */
-    public function testUnshiftCreatesEventQueueIfNotExists()
-    {
+    public function testUnshiftCreatesEventQueueIfNotExists() {
         $m = new Notifier(new Provider(new ReflectionCacher));
         $f1 = function(){ return 1; };
         $f2 = function(){ return 2; };
@@ -247,8 +257,7 @@ class NotifierTest extends PHPUnit_Framework_TestCase
      * @covers Artax\Notifier::incrementListenerInvocationCount
      * @covers Artax\Notifier::getCallableListenerFromQueue
      */
-    public function testNotifyDistributesMessagesToListeners()
-    {
+    public function testNotifyDistributesMessagesToListeners() {
         $dp = new Provider(new ReflectionCacher);
         $m = new Notifier($dp);
         $this->assertEquals(0, $m->notify('no.listeners.event'));
@@ -266,14 +275,13 @@ class NotifierTest extends PHPUnit_Framework_TestCase
     
     /**
      * @covers Artax\Notifier::notify
-     * @covers Artax\Notifier::getNotificationCount
-     * @covers Artax\Notifier::getInvocationCount
+     * @covers Artax\Notifier::countNotifications
+     * @covers Artax\Notifier::countInvocations
      * @covers Artax\Notifier::incrementEventBroadcastCount
      * @covers Artax\Notifier::incrementListenerInvocationCount
      * @covers Artax\Notifier::getCallableListenerFromQueue
      */
-    public function testNotifyUpdatesInvocationAndNotificationCounts()
-    {
+    public function testNotifyUpdatesInvocationAndNotificationCounts() {
         $dp = new Provider(new ReflectionCacher);
         $m = new Notifier($dp);
         $this->assertEquals(0, $m->notify('no.listeners.event'));
@@ -281,41 +289,39 @@ class NotifierTest extends PHPUnit_Framework_TestCase
         $m->push('test.event1', function() { return TRUE; });
         $this->assertEquals(1, $m->notify('test.event1'));
         
-        $this->assertEquals(1, $m->getNotificationCount('test.event1'));
-        $this->assertEquals(1, $m->getInvocationCount('test.event1'));
+        $this->assertEquals(1, $m->countNotifications('test.event1'));
+        $this->assertEquals(1, $m->countInvocations('test.event1'));
         
         $m->push('test.event1', function() { return TRUE; });
         $m->push('test.event1', function() { return TRUE; });
         $m->push('test.event1', function() { return TRUE; });
         $this->assertEquals(4, $m->notify('test.event1'));
         
-        $this->assertEquals(2, $m->getNotificationCount('test.event1'));
-        $this->assertEquals(5, $m->getInvocationCount('test.event1'));
+        $this->assertEquals(2, $m->countNotifications('test.event1'));
+        $this->assertEquals(5, $m->countInvocations('test.event1'));
         
         return $m;
     }
     
     /**
-     * @covers Artax\Notifier::getNotificationCount
+     * @covers Artax\Notifier::countNotifications
      */
-    public function testGetNotificationCountReturnsAggregateCountOnNullEventParam()
-    {
+    public function testCountNotificationsReturnsAggregateCountOnNullEventParam() {
         $dp = new Provider(new ReflectionCacher);
         $m = new Notifier($dp);
         
         $this->assertEquals(0, $m->notify('test.event1'));
         $this->assertEquals(0, $m->notify('test.event2'));
         $this->assertEquals(0, $m->notify('test.event3'));
-        $this->assertEquals(3, $m->getNotificationCount());
+        $this->assertEquals(3, $m->countNotifications());
         
-        $this->assertEquals(0, $m->getNotificationCount('nonexistent.event'));
+        $this->assertEquals(0, $m->countNotifications('nonexistent.event'));
     }
     
     /**
-     * @covers Artax\Notifier::getInvocationCount
+     * @covers Artax\Notifier::countInvocations
      */
-    public function testGetInvocationCountReturnsAggregateCountOnNullEventParam()
-    {
+    public function testCountInvocationsReturnsAggregateCountOnNullEventParam() {
         $dp = new Provider(new ReflectionCacher);
         $m = new Notifier($dp);
         
@@ -327,16 +333,15 @@ class NotifierTest extends PHPUnit_Framework_TestCase
         $this->assertEquals(1, $m->notify('test.event2'));
         $this->assertEquals(2, $m->notify('test.event1'));
         $this->assertEquals(0, $m->notify('test.event3'));
-        $this->assertEquals(5, $m->getInvocationCount());
+        $this->assertEquals(5, $m->countInvocations());
         
-        $this->assertEquals(0, $m->getInvocationCount('nonexistent.event'));
+        $this->assertEquals(0, $m->countInvocations('nonexistent.event'));
     }
     
     /**
      * @covers Artax\Notifier::all
      */
-    public function testAllReturnsEventSpecificListIfSpecified()
-    {
+    public function testAllReturnsEventSpecificListIfSpecified() {
         $m = new Notifier(new Provider(new ReflectionCacher));
         $f = function() { return TRUE; };
         $m->push('test.event1', $f);
@@ -350,8 +355,7 @@ class NotifierTest extends PHPUnit_Framework_TestCase
      * @covers Artax\Notifier::incrementListenerInvocationCount
      * @covers Artax\Notifier::getCallableListenerFromQueue
      */
-    public function testNotifyUsesProviderForBasicLazyListenerLoad()
-    {
+    public function testNotifyUsesProviderForBasicLazyListenerLoad() {
         $m = new Notifier(new Provider(new ReflectionCacher));        
         $m->push('class_listener_event', 'NotifierTestNeedsDep');
         $this->expectOutputString('testVal');
@@ -364,8 +368,7 @@ class NotifierTest extends PHPUnit_Framework_TestCase
      * @covers Artax\Notifier::incrementListenerInvocationCount
      * @covers Artax\Notifier::getCallableListenerFromQueue
      */
-    public function testNotifyUsesProviderForAdvancedLazyListenerLoad()
-    {
+    public function testNotifyUsesProviderForAdvancedLazyListenerLoad() {
         $m = new Notifier(new Provider(new ReflectionCacher));
         $m->push('class_listener_event', 'NotifierTestNeedsDep',
             array('NotifierTestDependency')

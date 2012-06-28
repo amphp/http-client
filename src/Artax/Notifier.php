@@ -135,7 +135,7 @@ class Notifier implements Mediator {
      *             specified event.
      * 
      * @throws LogicException On non-callable, non-string $listener parameter
-     * @notifies artax.notifier.unshift($eventName, $listener)
+     * @notifies artax.notifier.push($eventName, $listener)
      */
     public function push($eventName, $listener, $lazyDef = null) {
         
@@ -157,13 +157,17 @@ class Notifier implements Mediator {
         
         $listener = $isString && null !== $lazyDef ? array($listener, $lazyDef) : $listener;
         
-        if ( ! isset($this->listeners[$eventName])) {
+        if (!isset($this->listeners[$eventName])) {
             $this->listeners[$eventName]   = array();
             $this->listeners[$eventName][] = $listener;
-            return 1;
+            $returnVal = 1;
+        } else {
+            $returnVal = array_push($this->listeners[$eventName], $listener);
         }
         
-        return array_push($this->listeners[$eventName], $listener);
+        $this->notify('artax.notifier.push', $eventName, $listener);
+        
+        return $returnVal;
     }
     
     /**
@@ -259,10 +263,14 @@ class Notifier implements Mediator {
         if (!isset($this->listeners[$eventName])) {
             $this->listeners[$eventName] = array();
             $this->listeners[$eventName][] = $listener;
-            return 1;
+            $returnVal = 1;
+        } else {
+            $returnVal = array_unshift($this->listeners[$eventName], $listener);
         }
         
-        return array_unshift($this->listeners[$eventName], $listener);
+        $this->notify('artax.notifier.unshift', $eventName, $listener);
+        
+        return $returnVal;
     }
     
     /**
@@ -389,9 +397,9 @@ class Notifier implements Mediator {
      *                      returned. If a non-existent event is requested,
      *                      zero is returned.
      * 
-     * @param int Returns the count of all invocations for the given event.
+     * @return int Returns the count of all invocations for the given event.
      */
-    public function getInvocationCount($eventName = null) {
+    public function countInvocations($eventName = null) {
         
         if (null === $eventName) {
             return array_sum($this->listenerInvocationCounts);
@@ -411,9 +419,9 @@ class Notifier implements Mediator {
      *                      will be returned. If a non-existent event is 
      *                      requested, zero is returned.
      * 
-     * @param int Returns the count of all notifications for the given event.
+     * @return int Returns the count of all notifications for the given event.
      */
-    public function getNotificationCount($eventName = null) {
+    public function countNotifications($eventName = null) {
     
         if (null === $eventName) {
             return array_sum($this->eventBroadcastCounts);

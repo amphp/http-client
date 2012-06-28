@@ -109,4 +109,22 @@ interface Mediator {
      */
     function keys();
     
+    /**
+     * Get the total number of listeners that have been invoked for an event
+     * 
+     * @param string $eventName
+     * 
+     * @return int Returns total invocation count for the specified event.
+     */
+    function countInvocations($eventName);
+    
+    /**
+     * Get the total number of times an event has been broadcast/notified
+     * 
+     * @param string $eventName
+     * 
+     * @return int Returns total notification count for the specified event.
+     */
+    function countNotifications($eventName);
+    
 }
