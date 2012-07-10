@@ -39,20 +39,16 @@ interface Mediator {
      * 
      * @param string $eventName Event identifier name
      * @param mixed  $listener  Event listener
-     * @param mixed  $lazyDef   Optional lazy injection definition array
-     *                          or instance of ArrayAccess
      */
-    function push($eventName, $listener, $lazyDef);
+    function push($eventName, $listener);
     
     /**
      * Connect a `$listener` to the front of the `$eventName` queue
      * 
      * @param string $eventName Event identifier name
      * @param mixed  $listener  Event listener
-     * @param mixed  $lazyDef   Optional lazy injection definition array
-     *                          or instance of ArrayAccess
      */
-    function unshift($eventName, $listener, $lazyDef);
+    function unshift($eventName, $listener);
     
     /**
      * Remove the first `$listener` from the front of the `$eventName` event queue

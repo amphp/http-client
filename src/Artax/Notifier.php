@@ -30,51 +30,41 @@ use InvalidArgumentException,
 class Notifier implements Mediator {
     
     /**
-     * Tracks the number of times each event is broadcast
-     * @var array
-     */
-    private $eventBroadcastCounts = array();
-    
-    /**
-     * Tracks the number of listener invocations per event
-     * @var array
-     */
-    private $listenerInvocationCounts = array();
-    
-    /**
-     * A dictionary mapping event names to queued listeners
      * @var array
      */
     private $listeners = array();
     
     /**
-     * Dependency provider for class listener lazy-loading
      * @var Injector
      */
     private $injector;
     
     /**
-     * @param Injector $injector A dependency injection container
+     * @var array
+     */
+    private $eventBroadcastCounts = array();
+    
+    /**
+     * @var array
+     */
+    private $listenerInvocationCounts = array();
+    
+    /**
+     * @param Injector $injector
      * @return void
      */
     public function __construct(Injector $injector) {
-    
         $this->injector = $injector;
     }
     
     /**
      * Notify listeners that an event has occurred
      * 
-     * Listeners act as a queue and are invoked in order until a listener in the
-     * chain returns `false` or the end of the queue is reached.
-     * 
-     * @param string $event The event to broadcast
-     * 
+     * @param string $eventName
      * @return int Returns a count of listeners invoked for this event broadcast
      * @throws BadListenerException
      */
     public function notify($eventName) {
-        
         $this->incrementEventBroadcastCount($eventName);
         
         $args = func_get_args();
@@ -85,33 +75,42 @@ class Notifier implements Mediator {
         
         for ($queuePos = 0; $queuePos < $listenerCount; $queuePos++) {
         
-            try {
-                $listener = $this->getCallableListenerFromQueue($eventName, $queuePos);
-            } catch (ProviderDefinitionException $e) {
-                $className = $this->listeners[$eventName][$queuePos];
-                throw new BadListenerException(
-                    "Invalid class listener ($className) specified in the `$eventName` " .
-                    "queue at position $queuePos. Auto-instantiation failed with the " .
-                    'following message: ' . $e->getMessage()
-                );
-            }
-            
-            if (!is_callable($listener) && is_object($listener)) {
-                throw new BadListenerException(
-                    "Invalid listener specified in the `$eventName` queue at position " .
-                    "$queuePos: object of type ".get_class($listener).' is not callable'
-                );
-            }
+            $listener = $this->getCallableListenerFromQueue($eventName, $queuePos);
             
             $this->incrementListenerInvocationCount($eventName);
-            $result = $args ? call_user_func_array($listener, $args) : $listener();
+            
+            $result = $args ? call_user_func_array($listener, $args) : call_user_func($listener);
+            
             ++$invocationCount;
+            
             if (false === $result) {
                 break;
             }
         }
         
         return $invocationCount;
+    }
+    
+    /**
+     * @param string $eventName
+     * @return void
+     */
+    private function incrementEventBroadcastCount($eventName) {
+        if (!isset($this->eventBroadcastCounts[$eventName])) {
+            $this->eventBroadcastCounts[$eventName] = 0;
+        }
+        ++$this->eventBroadcastCounts[$eventName];
+    }
+    
+    /**
+     * @param string $eventName
+     * @return void
+     */
+    private function incrementListenerInvocationCount($eventName) {
+        if (!isset($this->listenerInvocationCounts[$eventName])) {
+            $this->listenerInvocationCounts[$eventName] = 0;
+        }
+        ++$this->listenerInvocationCounts[$eventName];
     }
     
     /**
@@ -124,221 +123,135 @@ class Notifier implements Mediator {
      * 
      * @param string $eventName Event identifier name to listen for
      * @param mixed  $listener  A valid callable or string class name
-     * @param mixed  $lazyDef   An optional array or ArrayAccess specifying a
-     *                          custom injection definition for lazy-loading
      * 
-     * @return int Returns the new number of listeners in the queue for the
-     *             specified event.
+     * @return int Returns the new number of listeners queued for the specified event
      * 
      * @throws LogicException On non-callable, non-string $listener parameter
      * @notifies artax.notifier.push($eventName, $listener)
      */
-    public function push($eventName, $listener, $lazyDef = null) {
-        
-        $isString = is_string($listener);
-        
-        if (!($isString || is_callable($listener))) {
+    public function push($eventName, $listener) {
+        if (is_string($listener) || is_callable($listener)) {
+            
+            $this->notify('artax.notifier.push', $eventName, $listener);
+            $this->listeners[$eventName][] = $listener;
+            
+        } elseif ($listener instanceof Traversable || is_array($listener)) {
+            
+            foreach ($listener as $listenerElement) {
+                $this->push($eventName, $listenerElement);
+            }
+            
+        } else {
+            
             throw new InvalidArgumentException(
                 'Argument 2 passed to ' . get_class($this) .'::push must be a valid ' . 
                 'callable or string class name'
             );
+            
         }
         
-        if (null !== $lazyDef && !($lazyDef instanceof ArrayAccess || is_array($lazyDef))) {
-            throw new InvalidArgumentException(
-                'Argument 3 passed to ' . get_class($this) .'::push must be an array ' .
-                'or object implementing ArrayAccess'
-            );
-        }
-        
-        $listener = $isString && null !== $lazyDef ? array($listener, $lazyDef) : $listener;
-        
-        if (!isset($this->listeners[$eventName])) {
-            $this->listeners[$eventName]   = array();
-            $this->listeners[$eventName][] = $listener;
-            $returnVal = 1;
-        } else {
-            $returnVal = array_push($this->listeners[$eventName], $listener);
-        }
-        
-        $this->notify('artax.notifier.push', $eventName, $listener);
-        
-        return $returnVal;
+        return count($this->listeners[$eventName]);
     }
     
     /**
-     * Iterates through the items in the order they are traversed, adding them
-     * to the event queue found in the key.
+     * Pushes multiple listeners onto the relevant queues
      * 
-     * Lazy-loading via string class names makes determining what kind of 
-     * listener was specified a bit complicated, so we utilize some simplifying
-     * assumptions:
-     * 
-     * @param mixed The variable to loop through: array|Traversable|StdClass
-     * 
-     * @return int Returns the total number of listeners added across all event
-     *             queues as a result of the method call.
-     *
-     * @throws InvalidArgumentException when $iterable is not an array, Traversable,
-     *         or StdClass instance.
+     * @param mixed $iter The variable to loop through: array|Traversable|StdClass
+     * @return void
+     * @throws InvalidArgumentException
      */
-    public function pushAll($iterable) {
-        
-        if (!($iterable instanceof StdClass
-            || $iterable instanceof Traversable
-            || is_array($iterable)
-        )) {
+    public function pushAll($iter) {
+        if (!($iter instanceof StdClass || $iter instanceof Traversable || is_array($iter))) {
             throw new InvalidArgumentException(
                 'Argument 1 passed to '.get_class($this).'::pushAll must be an '
-                .'array, StdClass or object implementing Traversable'
+                .'array, StdClass or Traversable object'
             );
         }
         
-        $added = 0;
-        
-        foreach ($iterable as $event => $val) {
-            $isArr = is_array($val);
-            if (!$isArr || is_callable($val)) {
-                $this->push($event, $val);
-                ++$added;
-                continue;
-            } elseif (isset($val[0])
-                && isset($val[1])
-                && count($val) === 2
-                && is_string($val[0])
-                && is_array($val[1])
-                && !is_callable($val[1])
-            ) {
-                // should be a class name with an injection definition
-                $this->push($event, $val[0], $val[1]);
-                ++$added;
-            } else {
-                // we have to assume it's a list of listeners at this point
-                foreach ($val as $listener) {
-                    $this->push($event, $listener);
-                    ++$added;
-                }
-            }
+        foreach ($iter as $event => $listener) {
+            $this->push($event, $listener);
         }
-        
-        return $added;
     }
     
     /**
      * Attach an event listener to the front of the event queue
      * 
-     * @param string $eventName Event identifier name to listen for
+     * @param string $eventName
      * @param mixed  $listener  A valid callable or string class name
-     * @param mixed  $lazyDef   An optional array or ArrayAccess specifying a
-     *                          custom injection definition for lazy-loading
-     * 
      * @return int Returns the new number of listeners in the event queue
      * @throws InvalidArgumentException
+     * 
      * @notifies artax.notifier.unshift($eventName, $listener)
      */
-    public function unshift($eventName, $listener, $lazyDef = null) {
-        
-        $isString = is_string($listener);
-        
-        if (!($isString || is_callable($listener))) {
+    public function unshift($eventName, $listener) {
+        if (!(is_string($listener) || is_callable($listener))) {
             throw new InvalidArgumentException(
                 'Argument 2 passed to ' . get_class($this) .'::unshift must be a valid ' . 
                 'callable or string class name'
             );
         }
         
-        if (null !== $lazyDef && !($lazyDef instanceof ArrayAccess || is_array($lazyDef))) {
-            throw new InvalidArgumentException(
-                'Argument 3 passed to ' . get_class($this) .'::unshift must be an array ' .
-                'or object implementing ArrayAccess'
-            );
-        }
-        
-        $listener = $isString && null !== $lazyDef ? array($listener, $lazyDef) : $listener;
-        
-        if (!isset($this->listeners[$eventName])) {
-            $this->listeners[$eventName] = array();
-            $this->listeners[$eventName][] = $listener;
-            $returnVal = 1;
-        } else {
-            $returnVal = array_unshift($this->listeners[$eventName], $listener);
-        }
-        
+        $this->listeners[$eventName][] = $listener;
         $this->notify('artax.notifier.unshift', $eventName, $listener);
         
-        return $returnVal;
+        return count($this->listeners[$eventName]);
     }
     
     /**
      * Remove a listener from the front of the specified event queue
      * 
-     * @param string $eventName Event identifier name to listen for
-     * 
-     * @return mixed Returns shifted listener on success or null if no listeners
-     *               were found for the specified event.
+     * @param string $eventName
+     * @return mixed Returns shifted listener or null if no listeners assigned
      */
     public function shift($eventName) {
-        
         if (isset($this->listeners[$eventName])) {
             return array_shift($this->listeners[$eventName]);
+        } else {
+            return null;
         }
-        
-        return null;
     }
     
     /**
      * Remove the last listener from the end of the specified event queue
      * 
-     * @param string $eventName Event identifier name to listen for
-     * 
-     * @return mixed Returns popped listener on success or `null` if no listeners
-     *               were found for the specified event.
+     * @param string $eventName
+     * @return mixed Returns popped listener or null if no listeners assigned
      */
     public function pop($eventName) {
-    
         if (isset($this->listeners[$eventName])) {
             return array_pop($this->listeners[$eventName]);
+        } else {
+            return null;
         }
-        
-        return null;
     }
     
     /**
      * Retrieve a list of all listeners queued for the specified event
      * 
      * @param string $eventName The event for which listeners should be returned
-     * 
      * @return array Returns an array of queued listeners for the specified event
-     *               or null if no listeners are registered for the event.
      */
     public function all($eventName) {
-    
-        return $this->count($eventName) ? $this->listeners[$eventName] : null;
+        return $this->count($eventName) ? $this->listeners[$eventName] : array();
     }
     
     /**
      * Retrieve the first event listener in the queue for the specified event
      * 
-     * @param string $eventName Event identifier name
-     * 
-     * @return callable Returns the first event listener in the queue or `null`
-     *                  if none exist for the specified event.
+     * @param string $eventName
+     * @return mixed Returns the first event listener in the queue or null if none assigned
      */
     public function first($eventName) {
-    
         return $this->count($eventName) ? $this->listeners[$eventName][0] : null;
     }
     
     /**
      * Retrieve the last event listener in the queue for the specified event
      * 
-     * @param string $eventName Event identifier name
-     * 
-     * @return callable Returns the last event listener in the queue or `null`
-     *                  if none exist for the specified event.
+     * @param string $eventName
+     * @return mixed Returns the last event listener in the queue or null if none assigned
      */
     public function last($eventName) {
-    
         return ($count = $this->count($eventName)) ? $this->listeners[$eventName][$c-1] : null;
     }
     
@@ -348,7 +261,6 @@ class Notifier implements Mediator {
      * @return array Returns an array of listened-for events
      */
     public function keys() {
-        
         return array_keys($this->listeners);
     }
     
@@ -356,50 +268,30 @@ class Notifier implements Mediator {
      * Retrieve a count of all listeners in the queue for a specific event
      * 
      * @param string $eventName Event identifier name
-     * 
      * @return int Returns a count of queued listeners for the specified event
      */
     public function count($eventName) {
-        
         return isset($this->listeners[$eventName]) ? count($this->listeners[$eventName]) : 0;
     }
     
     /**
-     * Clear all listeners from the specified event queue
-     * 
-     * Clears all listeners for the specified event. If an empty parameter value
-     * is passed for the `$eventName`, *all* listeners will be cleared for *all*
-     * events.
+     * Clear all listeners for the specified event
      * 
      * @param string $eventName Event name
-     * 
      * @return void
      */
-    public function clear($eventName = null) {
-        
-        if (null !== $eventName && isset($this->listeners[$eventName])) {
-            unset($this->listeners[$eventName]);
-        } else {
-            $this->listeners = array();
-        }
+    public function clear($eventName) {
+        unset($this->listeners[$eventName]);
     }
     
     /**
      * Get the total number of listeners that have been invoked for an event
      * 
-     * @param string $eventName The name of the event for which an invocation count
-     *                      is requested. If null is passed, the total count
-     *                      of listener invocations for all events will be
-     *                      returned. If a non-existent event is requested,
-     *                      zero is returned.
-     * 
+     * @param string $eventName
      * @return int Returns the count of all invocations for the given event.
      */
-    public function countInvocations($eventName = null) {
-        
-        if (null === $eventName) {
-            return array_sum($this->listenerInvocationCounts);
-        } elseif (isset($this->listenerInvocationCounts[$eventName])) {
+    public function countInvocations($eventName) {
+        if (isset($this->listenerInvocationCounts[$eventName])) {
             return $this->listenerInvocationCounts[$eventName];
         } else {
             return 0;
@@ -409,19 +301,11 @@ class Notifier implements Mediator {
     /**
      * Get the total number of times an event has been broadcast/notified
      * 
-     * @param string $eventName The name of the event for which an notification 
-     *                      count is requested. If null is passed, the total 
-     *                      count of listener notifications for all events 
-     *                      will be returned. If a non-existent event is 
-     *                      requested, zero is returned.
-     * 
-     * @return int Returns the count of all notifications for the given event.
+     * @param string $eventName
+     * @return int
      */
-    public function countNotifications($eventName = null) {
-    
-        if (null === $eventName) {
-            return array_sum($this->eventBroadcastCounts);
-        } elseif (isset($this->eventBroadcastCounts[$eventName])) {
+    public function countNotifications($eventName) {
+        if (isset($this->eventBroadcastCounts[$eventName])) {
             return $this->eventBroadcastCounts[$eventName];
         } else {
             return 0;
@@ -430,55 +314,41 @@ class Notifier implements Mediator {
     
     /**
      * @param string $eventName
-     * @return void
-     */
-    private function incrementEventBroadcastCount($eventName) {
-        
-        if (!isset($this->eventBroadcastCounts[$eventName])) {
-            $this->eventBroadcastCounts[$eventName] = 0;
-        }
-        ++$this->eventBroadcastCounts[$eventName];
-    }
-    
-    /**
-     * @param string $eventName
-     * @return void
-     */
-    private function incrementListenerInvocationCount($eventName) {
-        
-        if (!isset($this->listenerInvocationCounts[$eventName])) {
-            $this->listenerInvocationCounts[$eventName] = 0;
-        }
-        ++$this->listenerInvocationCounts[$eventName];
-    }
-    
-    /**
-     * To differentiate between string class names with injection definitions
-     * and valid PHP callback arrays we check the second array element. All
-     * lazy listeners are stored inside an array alongside an injection definition
-     * array (possibly empty). Meanwhile, valid PHP array callbacks will never 
-     * store an array as their second data parameter.
-     * 
-     * @param string $eventName
      * @param int $queuePos
      * @return mixed Returns a callable event listener
-     * @throws ProviderDefinitionException
+     * @throws BadListenerException
      */
     private function getCallableListenerFromQueue($eventName, $queuePos) {
-        
         if (is_string($this->listeners[$eventName][$queuePos])) {
-            $func = $this->injector->make($this->listeners[$eventName][$queuePos]);
-        } elseif (is_array($this->listeners[$eventName][$queuePos])
-            && isset($this->listeners[$eventName][$queuePos][1])
-            && is_array($this->listeners[$eventName][$queuePos][1])
-        ) {
-            $func = $this->injector->make($this->listeners[$eventName][$queuePos][0],
-                $this->listeners[$eventName][$queuePos][1]
-            );
+            
+            $className = $this->listeners[$eventName][$queuePos];
+            
+            try {
+                
+                $listener = $this->injector->make($className);
+                
+            } catch (ProviderDefinitionException $e) {
+                
+                throw new BadListenerException(
+                    "Invalid class listener ($className) specified in the `$eventName` " .
+                    "queue at position $queuePos. Auto-instantiation failed with the " .
+                    'following message: ' . $e->getMessage()
+                );
+            }
+            
+            if (!is_callable($listener)) {
+                throw new BadListenerException(
+                    "Invalid listener specified in the `$eventName` queue at position " .
+                    "$queuePos: object of type ".get_class($listener).' is not callable'
+                );
+            }
+            
+            return $listener;
+            
         } else {
-            $func = $this->listeners[$eventName][$queuePos];
+            
+            return $this->listeners[$eventName][$queuePos];
+            
         }
-        
-        return $func;
     }
 }
