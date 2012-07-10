@@ -1,4 +1,4 @@
-<phpunit bootstrap="./bootstrap.php" colors="true">
+<phpunit bootstrap="./phpunitBootstrap.php" colors="true">
     <testsuites>
         <testsuite name="Core">
             <directory>./src</directory>
@@ -21,12 +21,13 @@
     </filter>
     
     <logging>
-        <!--
+        
         <log type="coverage-text"
             target="php://stdout"
             highLowerBound="85"
             lowUpperBound="50"
         />
+        
         <log type="coverage-html"
             target="./coverage"
             charset="UTF-8"
@@ -35,6 +36,6 @@
             showUncoveredFiles="true"
             yui="true"
         />
-        -->
+        
     </logging>
 </phpunit>
