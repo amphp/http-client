@@ -1,16 +1,13 @@
 <?php
-
 /**
  * Artax Notifier Class File
  * 
- * @category   Artax
- * @package    Core
- * @author     Daniel Lowrey <rdlowrey@gmail.com>
- * @copyright  ${copyright.msg}
- * @license    ${license.txt}
- * @version    ${project.version}
+ * @category    Artax
+ * @package     Core
+ * @author      Daniel Lowrey <rdlowrey@gmail.com>
+ * @license     All code subject to the terms of the LICENSE file in the project root
+ * @version     ${project.version}
  */
-
 namespace Artax;
 
 use InvalidArgumentException,
@@ -26,10 +23,9 @@ use InvalidArgumentException,
  * 
  * https://github.com/rdlowrey/Artax/wiki/Event-Management
  * 
- * @category   Artax
- * @package    Core
- * @author     Daniel Lowrey <rdlowrey@gmail.com>
- * @copyright  ${copyright.msg}
+ * @category    Artax
+ * @package     Core
+ * @author      Daniel Lowrey <rdlowrey@gmail.com>
  */
 class Notifier implements Mediator {
     

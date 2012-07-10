@@ -1,25 +1,23 @@
 <?php
-
 /**
  * UnifiedHandler File
  *
- * @category   Artax
- * @package    Core
- * @author     Daniel Lowrey <rdlowrey@gmail.com>
- * @copyright  ${copyright.msg}
- * @license    ${license.txt}
- * @version    ${project.version}
+ * @category    Artax
+ * @package     Core
+ * @author      Daniel Lowrey <rdlowrey@gmail.com>
+ * @license     All code subject to the terms of the LICENSE file in the project root
+ * @version     ${project.version}
  */
-
 namespace Artax;
+
 use Exception;
 
 /**
  * Specifies interface for a unified error, exception and shutdown handler
  *
- * @category   Artax
- * @package    Core
- * @author     Daniel Lowrey <rdlowrey@gmail.com>
+ * @category    Artax
+ * @package     Core
+ * @author      Daniel Lowrey <rdlowrey@gmail.com>
  */
 interface UnifiedHandler {
     
@@ -51,5 +49,4 @@ interface UnifiedHandler {
      * @return void
      */
     function shutdown();
-    
 }

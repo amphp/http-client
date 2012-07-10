@@ -1,17 +1,17 @@
 <?php
-
 /**
  * Handler Class File
  *
- * @category   Artax
- * @package    Core
- * @author     Daniel Lowrey <rdlowrey@gmail.com>
- * @copyright  ${copyright.msg}
- * @license    ${license.txt}
- * @version    ${project.version}
+ * @category    Artax
+ * @package     Core
+ * @author      Daniel Lowrey <rdlowrey@gmail.com>
+ * @license     All code subject to the terms of the LICENSE file in the project root
+ * @version     ${project.version}
  */
 namespace Artax;
-use Exception, ErrorException;
+
+use Exception,
+    ErrorException;
 
 /**
  * Provides error, uncaught exception and shutdown handling
@@ -67,9 +67,9 @@ use Exception, ErrorException;
  * pull out of the E_NOTICE in time to handle the fatal error like an 
  * exception for graceful shutdown.
  * 
- * @category   Artax
- * @package    Core
- * @author     Daniel Lowrey <rdlowrey@gmail.com>
+ * @category    Artax
+ * @package     Core
+ * @author      Daniel Lowrey <rdlowrey@gmail.com>
  */
 class Handler implements UnifiedHandler {
 

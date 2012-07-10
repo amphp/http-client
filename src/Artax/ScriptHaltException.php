@@ -1,17 +1,15 @@
 <?php
-
 /**
  * Artax ScriptHaltException File
  * 
- * @category   Artax
- * @package    Core
- * @author     Daniel Lowrey <rdlowrey@gmail.com>
- * @copyright  ${copyright.msg}
- * @license    ${license.txt}
- * @version    ${project.version}
+ * @category    Artax
+ * @package     Core
+ * @author      Daniel Lowrey <rdlowrey@gmail.com>
+ * @license     All code subject to the terms of the LICENSE file in the project root
+ * @version     ${project.version}
  */
-
 namespace Artax;
+
 use RuntimeException;
 
 /**
@@ -22,8 +20,8 @@ use RuntimeException;
  * an easily testable outcome. The built-in Artax Termination handler class
  * will exit quietly in the event of an uncaught `ScriptHaltException`.
  * 
- * @category   Artax
- * @package    Core
- * @author     Daniel Lowrey <rdlowrey@gmail.com>
+ * @category    Artax
+ * @package     Core
+ * @author      Daniel Lowrey <rdlowrey@gmail.com>
  */
 class ScriptHaltException extends RuntimeException {}

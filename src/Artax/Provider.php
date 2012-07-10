@@ -1,17 +1,15 @@
 <?php
-
 /**
- * Artax Provider Class File
+ * Provider Class File
  * 
- * @category   Artax
- * @package    Core
- * @author     Daniel Lowrey <rdlowrey@gmail.com>
- * @copyright  ${copyright.msg}
- * @license    ${license.txt}
- * @version    ${project.version}
+ * @category    Artax
+ * @package     Core
+ * @author      Daniel Lowrey <rdlowrey@gmail.com>
+ * @license     All code subject to the terms of the LICENSE file in the project root
+ * @version     ${project.version}
  */
-
 namespace Artax;
+
 use InvalidArgumentException,
     OutOfBoundsException,
     ReflectionClass,
@@ -23,9 +21,9 @@ use InvalidArgumentException,
 /**
  * A dependency injection container
  * 
- * @category   Artax
- * @package    Core
- * @author     Daniel Lowrey <rdlowrey@gmail.com>
+ * @category    Artax
+ * @package     Core
+ * @author      Daniel Lowrey <rdlowrey@gmail.com>
  */
 class Provider implements Injector {
     
@@ -432,5 +430,4 @@ class Provider implements Injector {
     private function isInstantiable($className) {
         return $this->reflectionPool->getClass($className)->isInstantiable();
     }
-    
 }

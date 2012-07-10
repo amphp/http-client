@@ -1,16 +1,13 @@
 <?php
-
 /**
  * ReflectionPool Interface File
  * 
- * @category   Artax
- * @package    Core
- * @author     Daniel Lowrey <rdlowrey@gmail.com>
- * @copyright  ${copyright.msg}
- * @license    ${license.txt}
- * @version    ${project.version}
+ * @category    Artax
+ * @package     Core
+ * @author      Daniel Lowrey <rdlowrey@gmail.com>
+ * @license     All code subject to the terms of the LICENSE file in the project root
+ * @version     ${project.version}
  */
-
 namespace Artax;
 
 use SplObjectStorage,
@@ -20,9 +17,9 @@ use SplObjectStorage,
 /**
  * Defines an interface for pooling reflection objects
  * 
- * @category   Artax
- * @package    Core
- * @author     Daniel Lowrey <rdlowrey@gmail.com>
+ * @category    Artax
+ * @package     Core
+ * @author      Daniel Lowrey <rdlowrey@gmail.com>
  */
 interface ReflectionPool {
     
@@ -60,5 +57,4 @@ interface ReflectionPool {
      * @param ReflectionParameter $reflParam a ReflectionParameter object
      */
     function getTypehint(ReflectionParameter $reflParam);
-    
 }

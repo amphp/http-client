@@ -1,16 +1,13 @@
 <?php
-
 /**
  * ReflectionCacher Class File
  * 
- * @category   Artax
- * @package    Core
- * @author     Daniel Lowrey <rdlowrey@gmail.com>
- * @copyright  ${copyright.msg}
- * @license    ${license.txt}
- * @version    ${project.version}
+ * @category    Artax
+ * @package     Core
+ * @author      Daniel Lowrey <rdlowrey@gmail.com>
+ * @license     All code subject to the terms of the LICENSE file in the project root
+ * @version     ${project.version}
  */
-
 namespace Artax;
 
 use SplObjectStorage,
@@ -26,12 +23,12 @@ use SplObjectStorage,
  * future reflection attempts can reuse the same instance instead of repeating
  * the same slow(ish) operation multiple times.
  * 
- * @category   Artax
- * @package    Core
- * @author     Daniel Lowrey <rdlowrey@gmail.com>
+ * @category    Artax
+ * @package     Core
+ * @author      Daniel Lowrey <rdlowrey@gmail.com>
  */
-class ReflectionCacher implements ReflectionPool
-{
+class ReflectionCacher implements ReflectionPool {
+
     /**
      * An array mapping class names reflected class objects
      * @var array
@@ -64,8 +61,7 @@ class ReflectionCacher implements ReflectionPool
      * @return ReflectionClass Returns a reflection class instance
      * @throws ReflectionException If the class can't be found or autoloaded
      */
-    public function getClass($className)
-    {
+    public function getClass($className) {
         $lowClass = strtolower($className);
         
         if (isset($this->classes[$lowClass])) {
@@ -86,8 +82,7 @@ class ReflectionCacher implements ReflectionPool
      * @return ReflectionMethod Returns the reflected constructor or NULL if
      *                          the specified class has no constructor.
      */
-    public function getConstructor($className)
-    {
+    public function getConstructor($className) {
         $lowClass = strtolower($className);
         
         if (isset($this->constructors[$lowClass])
@@ -113,8 +108,7 @@ class ReflectionCacher implements ReflectionPool
      * @return array Returns an array of ReflectionParameter objects or 
      *               NULL if no constructor exists for the class.
      */
-    public function getConstructorParameters($className)
-    {
+    public function getConstructorParameters($className) {
         $lowClass = strtolower($className);
         
         if (isset($this->ctorParams[$lowClass])
@@ -148,8 +142,7 @@ class ReflectionCacher implements ReflectionPool
      * @return string Returns the typehinted class name of the given parameter
      *                or NULL if none exists.
      */
-    public function getTypehint(ReflectionParameter $reflParam)
-    {
+    public function getTypehint(ReflectionParameter $reflParam) {
         if (!$this->typehints) {
             $this->typehints = new SplObjectStorage;
         }

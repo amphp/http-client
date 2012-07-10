@@ -1,24 +1,21 @@
 <?php
-
 /**
- * Artax Injector Interface File
+ * Injector Interface File
  * 
- * @category   Artax
- * @package    Core
- * @author     Daniel Lowrey <rdlowrey@gmail.com>
- * @copyright  ${copyright.msg}
- * @license    ${license.txt}
- * @version    ${project.version}
+ * @category    Artax
+ * @package     Core
+ * @author      Daniel Lowrey <rdlowrey@gmail.com>
+ * @license     All code subject to the terms of the LICENSE file in the project root
+ * @version     ${project.version}
  */
-
 namespace Artax;
   
 /**
  * Specifies a front-facing interface for dependency injection providers
  * 
- * @category   Artax
- * @package    Core
- * @author     Daniel Lowrey <rdlowrey@gmail.com>
+ * @category    Artax
+ * @package     Core
+ * @author      Daniel Lowrey <rdlowrey@gmail.com>
  */
 interface Injector {
     
@@ -152,5 +149,4 @@ interface Injector {
      * @param string $className
      */
     function unshare($className);
-    
 }

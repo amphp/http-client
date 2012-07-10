@@ -1,17 +1,15 @@
 <?php
-
 /**
  * Artax ProviderDefinitionException File
  * 
- * @category   Artax
- * @package    Core
- * @author     Daniel Lowrey <rdlowrey@gmail.com>
- * @copyright  ${copyright.msg}
- * @license    ${license.txt}
- * @version    ${project.version}
+ * @category    Artax
+ * @package     Core
+ * @author      Daniel Lowrey <rdlowrey@gmail.com>
+ * @license     All code subject to the terms of the LICENSE file in the project root
+ * @version     ${project.version}
  */
- 
 namespace Artax;
+
 use LogicException;
 
 /**
@@ -29,8 +27,8 @@ use LogicException;
  * instantiate a class that doesn't exist or cannot be autoloaded by any
  * registered class loaders.
  * 
- * @category   Artax
- * @package    Core
- * @author     Daniel Lowrey <rdlowrey@gmail.com>
+ * @category    Artax
+ * @package     Core
+ * @author      Daniel Lowrey <rdlowrey@gmail.com>
  */
 class ProviderDefinitionException extends LogicException {}
