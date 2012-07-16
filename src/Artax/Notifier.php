@@ -50,11 +50,152 @@ class Notifier implements Mediator {
     private $listenerInvocationCounts = array();
     
     /**
+     * @var array
+     */
+    private $lastQueueDelta = array();
+    
+    /**
      * @param Injector $injector
      * @return void
      */
     public function __construct(Injector $injector) {
         $this->injector = $injector;
+    }
+    
+    /**
+     * Pushes multiple listeners onto the relevant queues
+     * 
+     * @param mixed $iter The variable to loop through: array|Traversable|StdClass
+     * @return void
+     * @throws InvalidArgumentException
+     */
+    public function pushAll($iter) {
+        if (!($iter instanceof StdClass || $iter instanceof Traversable || is_array($iter))) {
+            throw new InvalidArgumentException(
+                'Argument 1 passed to '.get_class($this).'::pushAll must be an '
+                .'array, StdClass or Traversable object'
+            );
+        }
+        
+        foreach ($iter as $event => $listener) {
+            $this->push($event, $listener);
+        }
+    }
+    
+    /**
+     * Connect a listener to the end of the specified event queue
+     * 
+     * To enable listener lazy-loading, all string listeners are assumed to be 
+     * class names and will be instantiated using the dependency provider. This
+     * means that global function names and static class methods (in string form)
+     * cannot be attached.
+     * 
+     * @param string $eventName Event identifier name to listen for
+     * @param mixed  $listener  A valid callable or string class name
+     * 
+     * @return int Returns the new number of listeners queued for the specified event
+     * 
+     * @throws LogicException On non-callable, non-string $listener parameter
+     */
+    public function push($eventName, $listener) {
+        if (is_string($listener) || is_callable($listener)) {
+            
+            $this->setLastQueueDelta($eventName, 'push');
+            $this->listeners[$eventName][] = $listener;
+            
+        } elseif ($listener instanceof Traversable || is_array($listener)) {
+            
+            foreach ($listener as $listenerElement) {
+                $this->push($eventName, $listenerElement);
+            }
+            
+        } else {
+            
+            throw new InvalidArgumentException(
+                'Argument 2 passed to ' . get_class($this) .'::push must be a valid ' . 
+                'callable or string class name'
+            );
+            
+        }
+        
+        return count($this->listeners[$eventName]);
+    }
+    
+    /**
+     * @param string $eventName
+     * @param string $action
+     */
+    private function setLastQueueDelta($eventName, $action) {
+        $this->lastQueueDelta = array($eventName, $action);
+        $this->notify('__mediator.delta', $this);
+    }
+    
+    /**
+     * Attach an event listener to the front of the event queue
+     * 
+     * @param string $eventName
+     * @param mixed  $listener  A valid callable or string class name
+     * @return int Returns the new number of listeners in the event queue
+     * @throws InvalidArgumentException
+     */
+    public function unshift($eventName, $listener) {
+        if (!(is_string($listener) || is_callable($listener))) {
+            throw new InvalidArgumentException(
+                'Argument 2 passed to ' . get_class($this) .'::unshift must be a valid ' . 
+                'callable or string class name'
+            );
+        }
+        
+        $this->setLastQueueDelta($eventName, 'unshift');
+        if (!isset($this->listeners[$eventName])) {
+            $this->listeners[$eventName] = array();
+        }
+        array_unshift($this->listeners[$eventName], $listener);
+        
+        return count($this->listeners[$eventName]);
+    }
+    
+    /**
+     * Remove a listener from the front of the specified event queue
+     * 
+     * @param string $eventName
+     * @return mixed Returns shifted listener or null if no listeners assigned
+     */
+    public function shift($eventName) {
+        $this->setLastQueueDelta($eventName, 'shift');
+        
+        if (isset($this->listeners[$eventName])) {
+            return array_shift($this->listeners[$eventName]);
+        } else {
+            return null;
+        }
+    }
+    
+    /**
+     * Remove the last listener from the end of the specified event queue
+     * 
+     * @param string $eventName
+     * @return mixed Returns popped listener or null if no listeners assigned
+     */
+    public function pop($eventName) {
+        $this->setLastQueueDelta($eventName, 'pop');
+        
+        if (isset($this->listeners[$eventName])) {
+            return array_pop($this->listeners[$eventName]);
+        } else {
+            return null;
+        }
+    }
+    
+    /**
+     * Clear all listeners for the specified event
+     * 
+     * @param string $eventName Event name
+     * @return void
+     */
+    public function clear($eventName) {
+        $this->setLastQueueDelta($eventName, 'clear');
+        unset($this->listeners[$eventName]);
     }
     
     /**
@@ -114,118 +255,6 @@ class Notifier implements Mediator {
     }
     
     /**
-     * Connect a listener to the end of the specified event queue
-     * 
-     * To enable listener lazy-loading, all string listeners are assumed to be 
-     * class names and will be instantiated using the dependency provider. This
-     * means that global function names and static class methods (in string form)
-     * cannot be attached.
-     * 
-     * @param string $eventName Event identifier name to listen for
-     * @param mixed  $listener  A valid callable or string class name
-     * 
-     * @return int Returns the new number of listeners queued for the specified event
-     * 
-     * @throws LogicException On non-callable, non-string $listener parameter
-     * @notifies artax.notifier.push($eventName, $listener)
-     */
-    public function push($eventName, $listener) {
-        if (is_string($listener) || is_callable($listener)) {
-            
-            $this->notify('artax.notifier.push', $eventName, $listener);
-            $this->listeners[$eventName][] = $listener;
-            
-        } elseif ($listener instanceof Traversable || is_array($listener)) {
-            
-            foreach ($listener as $listenerElement) {
-                $this->push($eventName, $listenerElement);
-            }
-            
-        } else {
-            
-            throw new InvalidArgumentException(
-                'Argument 2 passed to ' . get_class($this) .'::push must be a valid ' . 
-                'callable or string class name'
-            );
-            
-        }
-        
-        return count($this->listeners[$eventName]);
-    }
-    
-    /**
-     * Pushes multiple listeners onto the relevant queues
-     * 
-     * @param mixed $iter The variable to loop through: array|Traversable|StdClass
-     * @return void
-     * @throws InvalidArgumentException
-     */
-    public function pushAll($iter) {
-        if (!($iter instanceof StdClass || $iter instanceof Traversable || is_array($iter))) {
-            throw new InvalidArgumentException(
-                'Argument 1 passed to '.get_class($this).'::pushAll must be an '
-                .'array, StdClass or Traversable object'
-            );
-        }
-        
-        foreach ($iter as $event => $listener) {
-            $this->push($event, $listener);
-        }
-    }
-    
-    /**
-     * Attach an event listener to the front of the event queue
-     * 
-     * @param string $eventName
-     * @param mixed  $listener  A valid callable or string class name
-     * @return int Returns the new number of listeners in the event queue
-     * @throws InvalidArgumentException
-     * 
-     * @notifies artax.notifier.unshift($eventName, $listener)
-     */
-    public function unshift($eventName, $listener) {
-        if (!(is_string($listener) || is_callable($listener))) {
-            throw new InvalidArgumentException(
-                'Argument 2 passed to ' . get_class($this) .'::unshift must be a valid ' . 
-                'callable or string class name'
-            );
-        }
-        
-        $this->listeners[$eventName][] = $listener;
-        $this->notify('artax.notifier.unshift', $eventName, $listener);
-        
-        return count($this->listeners[$eventName]);
-    }
-    
-    /**
-     * Remove a listener from the front of the specified event queue
-     * 
-     * @param string $eventName
-     * @return mixed Returns shifted listener or null if no listeners assigned
-     */
-    public function shift($eventName) {
-        if (isset($this->listeners[$eventName])) {
-            return array_shift($this->listeners[$eventName]);
-        } else {
-            return null;
-        }
-    }
-    
-    /**
-     * Remove the last listener from the end of the specified event queue
-     * 
-     * @param string $eventName
-     * @return mixed Returns popped listener or null if no listeners assigned
-     */
-    public function pop($eventName) {
-        if (isset($this->listeners[$eventName])) {
-            return array_pop($this->listeners[$eventName]);
-        } else {
-            return null;
-        }
-    }
-    
-    /**
      * Retrieve a list of all listeners queued for the specified event
      * 
      * @param string $eventName The event for which listeners should be returned
@@ -275,16 +304,6 @@ class Notifier implements Mediator {
     }
     
     /**
-     * Clear all listeners for the specified event
-     * 
-     * @param string $eventName Event name
-     * @return void
-     */
-    public function clear($eventName) {
-        unset($this->listeners[$eventName]);
-    }
-    
-    /**
      * Get the total number of listeners that have been invoked for an event
      * 
      * @param string $eventName
@@ -310,6 +329,13 @@ class Notifier implements Mediator {
         } else {
             return 0;
         }
+    }
+    
+    /**
+     * @return array
+     */
+    public function getLastQueueDelta() {
+        return $this->lastQueueDelta;
     }
     
     /**

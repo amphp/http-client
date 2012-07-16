@@ -38,17 +38,20 @@ class NotifierTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Notifier::push
+     * @covers Artax\Notifier::setLastQueueDelta
+     * @covers Artax\Notifier::getLastQueueDelta
      */
-    public function testPushNotifiesListenersWhenInvoked() {
+    public function testPushNotifiesDeltaListenersWhenInvoked() {
         $m = new Notifier(new Provider(new ReflectionCacher));
         
-        $f1 = function(){ return 1; };
+        $f1 = function(){ return 'a'; };
         $m->push('test_event', $f1);
-        $this->assertEquals(1, $m->countNotifications('artax.notifier.push'));
+        $this->assertEquals(1, $m->countNotifications('__mediator.delta'));
         
-        $f2 = function(){ return 2; };
+        $f2 = function(){ return 'b'; };
         $m->push('test_event', $f2);
-        $this->assertEquals(2, $m->countNotifications('artax.notifier.push'));
+        $this->assertEquals(2, $m->countNotifications('__mediator.delta'));
+        $this->assertEquals(array('test_event', 'push'), $m->getLastQueueDelta());
     }
     
     /**
@@ -57,8 +60,8 @@ class NotifierTest extends PHPUnit_Framework_TestCase {
     public function testPushRecursesOnIterableListenerParameter() {
         $m = new Notifier(new Provider(new ReflectionCacher));
         
-        $f1 = function(){ return 1; };
-        $f2 = function(){ return 2; };
+        $f1 = function(){ return 'a'; };
+        $f2 = function(){ return 'b'; };
         $m->push('test_event', array($f1, $f2));
         $this->assertEquals(2, $m->count('test_event'));
     }
@@ -116,17 +119,20 @@ class NotifierTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Notifier::unshift
+     * @covers Artax\Notifier::setLastQueueDelta
+     * @covers Artax\Notifier::getLastQueueDelta
      */
-    public function testUnshiftNotifiesListenersWhenInvoked() {
+    public function testUnshiftNotifiesDeltaListenersWhenInvoked() {
         $m = new Notifier(new Provider(new ReflectionCacher));
         
-        $f1 = function(){ return 1; };
+        $f1 = function(){ return 'a'; };
         $m->unshift('test_event', $f1);
-        $this->assertEquals(1, $m->countNotifications('artax.notifier.unshift'));
+        $this->assertEquals(1, $m->countNotifications('__mediator.delta'));
         
-        $f2 = function(){ return 2; };
+        $f2 = function(){ return 'b'; };
         $m->unshift('test_event', $f2);
-        $this->assertEquals(2, $m->countNotifications('artax.notifier.unshift'));
+        $this->assertEquals(2, $m->countNotifications('__mediator.delta'));
+        $this->assertEquals(array('test_event', 'unshift'), $m->getLastQueueDelta());
     }
     
     /**
@@ -186,6 +192,24 @@ class NotifierTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
+     * @covers Artax\Notifier::clear
+     * @covers Artax\Notifier::setLastQueueDelta
+     * @covers Artax\Notifier::getLastQueueDelta
+     */
+    public function testClearNotifiesDeltaListenersWhenInvoked() {
+        $m = new Notifier(new Provider(new ReflectionCacher));
+        
+        $f1 = function(){ return 'a'; };
+        $m->clear('test_event');
+        $this->assertEquals(1, $m->countNotifications('__mediator.delta'));
+        
+        $f2 = function(){ return 'b'; };
+        $m->clear('test_event', $f2);
+        $this->assertEquals(2, $m->countNotifications('__mediator.delta'));
+        $this->assertEquals(array('test_event', 'clear'), $m->getLastQueueDelta());
+    }
+    
+    /**
      * @covers  Artax\Notifier::pop
      */
     public function testPopRemovesLastListenerForSpecifiedEvent() {
@@ -197,6 +221,24 @@ class NotifierTest extends PHPUnit_Framework_TestCase {
         $popped = $m->pop('test.event1');
         $this->assertEquals($f2, $popped);
         $this->assertEquals(1, $m->count('test.event1'));
+    }
+    
+    /**
+     * @covers Artax\Notifier::pop
+     * @covers Artax\Notifier::setLastQueueDelta
+     * @covers Artax\Notifier::getLastQueueDelta
+     */
+    public function testPopNotifiesDeltaListenersWhenInvoked() {
+        $m = new Notifier(new Provider(new ReflectionCacher));
+        
+        $f1 = function(){ return 'a'; };
+        $m->pop('test_event');
+        $this->assertEquals(1, $m->countNotifications('__mediator.delta'));
+        
+        $f2 = function(){ return 'b'; };
+        $m->pop('test_event', $f2);
+        $this->assertEquals(2, $m->countNotifications('__mediator.delta'));
+        $this->assertEquals(array('test_event', 'pop'), $m->getLastQueueDelta());
     }
     
     /**
@@ -220,6 +262,25 @@ class NotifierTest extends PHPUnit_Framework_TestCase {
         $listener = $m->shift('test.event1');
         $this->assertEquals($f1, $listener);
         $this->assertEquals(1, $m->count('test.event1'));
+    }
+    
+    /**
+     * @covers Artax\Notifier::shift
+     * @covers Artax\Notifier::setLastQueueDelta
+     * @covers Artax\Notifier::getLastQueueDelta
+     */
+    public function testShiftNotifiesDeltaListenersWhenInvoked() {
+        $m = new Notifier(new Provider(new ReflectionCacher));
+        
+        $f1 = function(){ return 'a'; };
+        $m->shift('test_event');
+        $this->assertEquals(1, $m->countNotifications('__mediator.delta'));
+        
+        $f2 = function(){ return 'b'; };
+        $m->shift('test_event', $f2);
+        $this->assertEquals(2, $m->countNotifications('__mediator.delta'));
+        
+        $this->assertEquals(array('test_event', 'shift'), $m->getLastQueueDelta());
     }
     
     /**
