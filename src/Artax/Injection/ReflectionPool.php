@@ -1,6 +1,6 @@
 <?php
 /**
- * ReflectionCacher Class File
+ * ReflectionPool Class File
  * 
  * @category    Artax
  * @package     Injection
