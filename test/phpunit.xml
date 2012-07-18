@@ -8,34 +8,56 @@
         <whitelist addUncoveredFilesFromWhitelist="true">
             <directory>../src/Artax</directory>
             <exclude>
-                <file>../src/Artax/Mediator.php</file>
-                <file>../src/Artax/ReflectionPool.php</file>
+                <file>../src/Artax/Events/Mediator.php</file>
+                <file>../src/Artax/Events/BadListenerException.php</file>
+                
+                <file>../src/Artax/Injection/ReflectionStorage.php</file>
+                <file>../src/Artax/Injection/ProviderDefinitionException.php</file>
+                <file>../src/Artax/Injection/Injector.php</file>
+                
                 <file>../src/Artax/UnifiedHandler.php</file>
-                <file>../src/Artax/Injector.php</file>
-                <file>../src/Artax/BadListenerException.php</file>
                 <file>../src/Artax/FatalErrorException.php</file>
                 <file>../src/Artax/ScriptHaltException.php</file>
-                <file>../src/Artax/ProviderDefinitionException.php</file>
+                
+                <file>../src/Artax/Uri.php</file>
+                
+                <file>../src/Artax/Routing/RouteMatcher.php</file>
+                <file>../src/Artax/Routing/Route.php</file>
+                <file>../src/Artax/Routing/RouteStorage.php</file>
+                
+                <file>../src/Artax/Http/Request.php</file>
+                <file>../src/Artax/Http/Response.php</file>
+                
+                <file>../src/Artax/Negotiation/NegotiableTerm.php</file>
+                <file>../src/Artax/Negotiation/Parsers/HeaderParser.php</file>
+                <file>../src/Artax/Negotiation/Negotiators/HeaderNegotiator.php</file>
+                <file>../src/Artax/Negotiation/Parsers/AcceptEncodingParser.php</file>
+                <file>../src/Artax/Negotiation/Parsers/AcceptLanguageParser.php</file>
+                
+                <file>../src/Artax/Encoding/Codec.php</file>
+                <file>../src/Artax/Encoding/Decoder.php</file>
+                <file>../src/Artax/Encoding/Encoder.php</file>
             </exclude>
         </whitelist>
     </filter>
     
     <logging>
-        
-        <log type="coverage-text"
-            target="php://stdout"
-            highLowerBound="85"
-            lowUpperBound="50"
-        />
-        
-        <log type="coverage-html"
+        <log
+            type="coverage-html"
             target="./coverage"
             charset="UTF-8"
-            highLowerBound="85"
-            lowUpperBound="50"
-            showUncoveredFiles="true"
             yui="true"
+            lowUpperBound="35"
+            highLowerBound="70"
+            showUncoveredFiles="true"
         />
-        
+        <!--
+        <log
+            type="coverage-text"
+            target="php://stdout"
+            lowUpperBound="35"
+            highLowerBound="70"
+        />
+        -->
     </logging>
 </phpunit>
