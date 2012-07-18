@@ -1,0 +1,90 @@
+<?php
+/**
+ * Http500 Handler Class File
+ * 
+ * PHP 5.3+
+ * 
+ * @category     Artax
+ * @package      Http
+ * @subpackage   StatusHandlers
+ * @author       Daniel Lowrey <rdlowrey@gmail.com>
+ * @license      All code subject to the terms of the LICENSE file in the base package directory
+ * @version      ${project.version}
+ */
+namespace Artax\Http\StatusHandlers;
+
+use Exception,
+    Artax\Events\Mediator,
+    Artax\Http\Request,
+    Artax\Http\Response;
+
+/**
+ * Outputs a DEBUG-level appropriate 500 response in the event of an uncaught exception
+ * 
+ * @category     Artax
+ * @package      Http
+ * @subpackage   StatusHandlers
+ * @author       Daniel Lowrey <rdlowrey@gmail.com>
+ */
+class Http500 {
+    
+    /**
+     * @var Mediator
+     */
+    private $mediator;
+    
+    /**
+     * @var Request
+     */
+    private $request;
+    
+    /**
+     * @var Response
+     */
+    private $response;
+    
+    /**
+     * Constructor
+     * 
+     * @param Mediator $mediator
+     * @param Request $request
+     * @param Response $response
+     * 
+     * @return void
+     */
+    public function __construct(Mediator $mediator, Request $request, Response $response) {
+        $this->mediator = $mediator;
+        $this->request  = $request;
+        $this->response = $response;
+    }
+    
+    /**
+     * Listens for the Artax `exception` event to output 500 errors
+     * 
+     * @param Exception $e
+     * @param int $debugLevel
+     * 
+     * @return void
+     */
+    public function __invoke(Exception $e, $debugLevel) {
+        $this->response->setStatusCode(500);
+        $this->response->setStatusDescription('Internal Server Error');
+        
+        if (!$this->mediator->notify('app.http-500', $this->request, $this->response, $e,
+            $debugLevel)
+        ) {
+            $body  = '<h1>500 Internal Server Error</h1><hr />' . PHP_EOL . '<p>' . PHP_EOL;
+            $body .= $debugLevel ? (string) $e : 'Well this is embarrassing ...';
+            $body .= '</p>';
+            $this->response->setBody($body);
+            $this->response->setHeader('Content-Type', 'text/html');
+            $this->response->setHeader('Content-Length', strlen($body));
+        }
+        
+        if (!$this->response->wasSent()) {
+            $this->response->send();
+        }
+        
+        return false;
+    }
+}
