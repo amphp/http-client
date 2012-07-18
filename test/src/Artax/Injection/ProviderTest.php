@@ -336,8 +336,8 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
     public function testShareMarksClassSharedOnNullObjectParameter() {
         
         $dp = new Provider(new ReflectionPool);
-        $this->assertEquals(null, $dp->share('Artax\\Mediator'));
-        $this->assertTrue($dp->isShared('Artax\Mediator'));
+        $this->assertEquals(null, $dp->share('Artax\\Events\\Mediator'));
+        $this->assertTrue($dp->isShared('Artax\Events\Mediator'));
     }
     
     /**
@@ -347,7 +347,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
     public function testShareThrowsExceptionOnInvalidArgument() {
         
         $dp = new Provider(new ReflectionPool);
-        $dp->share('Artax\\Mediator', new StdClass);
+        $dp->share('Artax\\Events\\Mediator', new StdClass);
     }
     
     /**
