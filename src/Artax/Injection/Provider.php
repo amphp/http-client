@@ -3,12 +3,12 @@
  * Provider Class File
  * 
  * @category    Artax
- * @package     Core
+ * @package     Injection
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
  * @license     All code subject to the terms of the LICENSE file in the project root
  * @version     ${project.version}
  */
-namespace Artax;
+namespace Artax\Injection;
 
 use InvalidArgumentException,
     OutOfBoundsException,
@@ -16,13 +16,14 @@ use InvalidArgumentException,
     ReflectionException,
     ArrayAccess,
     Traversable,
-    StdClass;
+    StdClass,
+    Artax\ReflectionPool;
   
 /**
  * A dependency injection container
  * 
  * @category    Artax
- * @package     Core
+ * @package     Injection
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
  */
 class Provider implements Injector {

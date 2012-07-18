@@ -3,17 +3,19 @@
  * Artax Notifier Class File
  * 
  * @category    Artax
- * @package     Core
+ * @package     Events
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
  * @license     All code subject to the terms of the LICENSE file in the project root
  * @version     ${project.version}
  */
-namespace Artax;
+namespace Artax\Events;
 
 use InvalidArgumentException,
     ArrayAccess,
     Traversable,
-    StdClass;
+    StdClass,
+    Artax\Injection\Injector,
+    Artax\Injection\ProviderDefinitionException;
 
 /**
  * A central transit hub for application event broadcasting

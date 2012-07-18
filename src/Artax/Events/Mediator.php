@@ -3,18 +3,18 @@
  * Mediator Interface File
  * 
  * @category    Artax
- * @package     Core
+ * @package     Events
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
  * @license     All code subject to the terms of the LICENSE file in the project root
  * @version     ${project.version}
  */
-namespace Artax;
+namespace Artax\Events;
   
 /**
  * Defines the facing interface for event mediators.
  * 
  * @category    Artax
- * @package     Core
+ * @package     Events
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
  */
 interface Mediator {

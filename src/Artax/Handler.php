@@ -11,7 +11,8 @@
 namespace Artax;
 
 use Exception,
-    ErrorException;
+    ErrorException,
+    Artax\Events\Mediator;
 
 /**
  * Provides error, uncaught exception and shutdown handling

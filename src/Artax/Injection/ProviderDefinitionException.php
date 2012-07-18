@@ -3,12 +3,12 @@
  * Artax ProviderDefinitionException File
  * 
  * @category    Artax
- * @package     Core
+ * @package     Injection
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
  * @license     All code subject to the terms of the LICENSE file in the project root
  * @version     ${project.version}
  */
-namespace Artax;
+namespace Artax\Injection;
 
 use LogicException;
 
@@ -28,7 +28,7 @@ use LogicException;
  * registered class loaders.
  * 
  * @category    Artax
- * @package     Core
+ * @package     Injection
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
  */
 class ProviderDefinitionException extends LogicException {}

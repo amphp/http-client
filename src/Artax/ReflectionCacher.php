@@ -17,12 +17,6 @@ use SplObjectStorage,
 /**
  * Caches reflection results to minimize reflection performance impact
  * 
- * Computationally, Reflection can be slow(ish) ... so we cache the results.
- * The ReflectionCacher class acts as a wrapper to reflection calls. When
- * a reflection object is retrieved the class caches the object so that
- * future reflection attempts can reuse the same instance instead of repeating
- * the same slow(ish) operation multiple times.
- * 
  * @category    Artax
  * @package     Core
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
@@ -30,7 +24,7 @@ use SplObjectStorage,
 class ReflectionCacher implements ReflectionPool {
 
     /**
-     * An array mapping class names reflected class objects
+     * An array mapping class names to reflected class instances
      * @var array
      */
     private $classes = array();
@@ -137,8 +131,7 @@ class ReflectionCacher implements ReflectionPool {
      * the same parameter typehint or ReflectionClass is needed again we
      * already have it cached.
      * 
-     * @param ReflectionParameter $reflParam a ReflectionParameter object
-     * 
+     * @param ReflectionParameter $reflParam
      * @return string Returns the typehinted class name of the given parameter
      *                or NULL if none exists.
      */

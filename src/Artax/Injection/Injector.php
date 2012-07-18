@@ -3,18 +3,18 @@
  * Injector Interface File
  * 
  * @category    Artax
- * @package     Core
+ * @package     Injection
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
  * @license     All code subject to the terms of the LICENSE file in the project root
  * @version     ${project.version}
  */
-namespace Artax;
+namespace Artax\Injection;
   
 /**
  * Specifies a front-facing interface for dependency injection providers
  * 
  * @category    Artax
- * @package     Core
+ * @package     Injection
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
  */
 interface Injector {
