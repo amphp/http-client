@@ -16,8 +16,7 @@ use InvalidArgumentException,
     ReflectionException,
     ArrayAccess,
     Traversable,
-    StdClass,
-    Artax\ReflectionPool;
+    StdClass;
   
 /**
  * A dependency injection container
@@ -44,18 +43,16 @@ class Provider implements Injector {
     private $sharedClasses = array();
     
     /**
-     * @var ReflectionPool
+     * @var ReflectionStorage
      */
-    private $reflectionPool;
+    private $reflectionStorage;
     
     /**
-     * Constructor
-     * 
-     * @param ReflectionPool $reflectionPool
+     * @param ReflectionStorage $reflectionStorage
      * @return void
      */
-    public function __construct(ReflectionPool $reflectionPool) {
-        $this->reflectionPool = $reflectionPool;
+    public function __construct(ReflectionStorage $reflectionStorage) {
+        $this->reflectionStorage = $reflectionStorage;
     }
     
     /**
@@ -352,7 +349,7 @@ class Provider implements Injector {
      */
     protected function getInjectedInstance($className, array $definition) {
         try {
-            $ctorParams = $this->reflectionPool->getConstructorParameters($className);
+            $ctorParams = $this->reflectionStorage->getConstructorParameters($className);
         } catch (ReflectionException $e) {
             throw new ProviderDefinitionException(
                 "Provider instantiation failure: $className doesn't exist".
@@ -372,7 +369,7 @@ class Provider implements Injector {
                 throw new ProviderDefinitionException($msg);
             }
             
-            $reflClass = $this->reflectionPool->getClass($className);
+            $reflClass = $this->reflectionStorage->getClass($className);
             
             return $reflClass->newInstanceArgs($args);
         }
@@ -399,7 +396,7 @@ class Provider implements Injector {
             }
             
             $reflectedParam = $reflectedCtorParams[$i];
-            $typehint = $this->reflectionPool->getTypehint($reflectedParam);
+            $typehint = $this->reflectionStorage->getTypehint($reflectedParam);
             
             if ($typehint && $this->isInstantiable($typehint)) {
                 $instanceArgs[] = $this->make($typehint);
@@ -429,6 +426,6 @@ class Provider implements Injector {
      * @return bool
      */
     private function isInstantiable($className) {
-        return $this->reflectionPool->getClass($className)->isInstantiable();
+        return $this->reflectionStorage->getClass($className)->isInstantiable();
     }
 }

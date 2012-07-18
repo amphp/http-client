@@ -1,27 +1,25 @@
 <?php
 /**
- * ReflectionPool Interface File
+ * ReflectionStorage Interface File
  * 
  * @category    Artax
- * @package     Core
+ * @package     Injection
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
  * @license     All code subject to the terms of the LICENSE file in the project root
  * @version     ${project.version}
  */
-namespace Artax;
+namespace Artax\Injection;
 
-use SplObjectStorage,
-    ReflectionClass,
-    ReflectionParameter;
+use ReflectionParameter;
 
 /**
- * Defines an interface for pooling reflection objects
+ * Defines an interface for caching/pooling reflection objects
  * 
  * @category    Artax
- * @package     Core
+ * @package     Injection
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
  */
-interface ReflectionPool {
+interface ReflectionStorage {
     
     /**
      * Retrieves and caches the ReflectionClass objects

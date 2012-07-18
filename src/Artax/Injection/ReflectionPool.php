@@ -3,12 +3,12 @@
  * ReflectionCacher Class File
  * 
  * @category    Artax
- * @package     Core
+ * @package     Injection
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
  * @license     All code subject to the terms of the LICENSE file in the project root
  * @version     ${project.version}
  */
-namespace Artax;
+namespace Artax\Injection;
 
 use SplObjectStorage,
     ReflectionClass,
@@ -18,10 +18,10 @@ use SplObjectStorage,
  * Caches reflection results to minimize reflection performance impact
  * 
  * @category    Artax
- * @package     Core
+ * @package     Injection
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
  */
-class ReflectionCacher implements ReflectionPool {
+class ReflectionPool implements ReflectionStorage {
 
     /**
      * An array mapping class names to reflected class instances
