@@ -2,87 +2,106 @@
 /**
  * Url Class File
  * 
- * @category     Artax
- * @author       Levi Morrison <levim@php.net>
- * @license      All code subject to the terms of the LICENSE file in the project root
- * @version      ${project.version}
+ * @category    Artax
+ * @author      Levi Morrison <levim@php.net>
+ * @author      Daniel Lowrey <rdlowrey@gmail.com>
+ * @license     All code subject to the terms of the LICENSE file in the project root
+ * @version     ${project.version}
  */
 namespace Artax;
 
+use InvalidArgumentException;
+
 /**
- * A URL representation
+ * An implementation of the Uri interface
  *
- * @category     Artax
- * @author       Levi Morrison <levim@php.net>
+ * @category    Artax
+ * @author      Levi Morrison <levim@php.net>
+ * @author      Daniel Lowrey <rdlowrey@gmail.com>
  */
 class Url implements Uri  {
 
-    /**
-     * @var string
-     */
-    private $scheme;
-    
-    /**
-     * @var string
-     */
-    private $userInfo;
-    
-    /**
-     * @var string
-     */
-    private $rawUserInfo;
-
-    /**
-     * @var string
-     */
+    private $scheme = 'http';
+    private $userInfo = '';
+    private $rawUserInfo = '';
     private $host;
-
+    private $port = 80;
+    private $explicitPort = false;
+    private $path = '/';
+    private $query = '';
+    private $fragment = '';
+    
+    public function __construct($fullUrlString = null) {
+        if ($fullUrlString) {
+            $this->parseFullUrlString($fullUrlString);
+        }
+    }
+    
+    private function parseFullUrlString($fullUrlString) {
+        if (!$urlParts = parse_url($fullUrlString)) {
+            throw new InvalidArgumentException("Invalid URL: $fullUrlString");
+        }
+        
+        if (!isset($urlParts['scheme'])) {
+            throw new InvalidArgumentException(
+                'Invalid URL: No scheme (http|https) specified'
+            );
+        }
+        
+        $this->scheme = $urlParts['scheme'];
+        $this->host = $urlParts['host'];
+        
+        $explicitPort = isset($urlParts['port']);
+        $this->port = $explicitPort ? $urlParts['port'] : 80;
+        $this->explicitPort = $explicitPort;
+        
+        $this->path = isset($urlParts['path']) ? $urlParts['path'] : '/';
+        $this->query = isset($urlParts['query']) ? $urlParts['query'] : '';
+        $this->fragment = isset($urlParts['fragment']) ? $urlParts['fragment'] : '';
+        
+        $userInfo = '';
+        if (!empty($urlParts['user'])) {
+            $userInfo .= $urlParts['user'];
+        }
+        if ($userInfo && !empty($urlParts['pass'])) {
+            $userInfo .= ':' . $urlParts['pass'];
+        }
+        
+        $this->setUserInfo($userInfo);
+        
+    }
+    
     /**
-     * @var int
+     * @return string
      */
-    private $port;
-
-    /**
-     * @var string
-     */
-    private $path;
-
-    /**
-     * @var string
-     */
-    private $query;
-
-    /**
-     * @var string
-     */
-    private $fragment;
+    public function getScheme() {
+        return $this->scheme;
+    }
     
     /**
      * @param string $scheme
-     * @param string $host
-     * @param string $userInfo
-     * @param int $port
-     * @param string $path
-     * @param string $query
-     * @param string $fragment
-     * 
-     * @return void
      */
-    public function __construct($scheme, $host, $userInfo = '', $port = 80, $path = '/', $query = '', $fragment = '') {
+    public function setScheme($scheme) {
         $this->scheme = $scheme;
-        $this->host = $host;
-        $this->port = $port;
-        $this->path = '/' . ltrim($path, '/');
-        $this->query = $query;
-        $this->fragment = $fragment;
-        
+    }
+    
+    /**
+     * @return string
+     */
+    public function getUserInfo() {
+        return $this->userInfo;
+    }
+    
+    /**
+     * @param string $userInfo
+     */
+    public function setUserInfo($userInfo) {
         $this->userInfo = $userInfo ? $this->protectUserInfo($userInfo) : '';
         $this->rawUserInfo = $userInfo;
     }
     
     /**
      * @param string $rawUserInfo
-     * @return string
      */
     private function protectUserInfo($rawUserInfo) {
         $colonPos = strpos($rawUserInfo, ':');
@@ -102,8 +121,8 @@ class Url implements Uri  {
     /**
      * @return string
      */
-    public function getScheme() {
-        return $this->scheme;
+    public function getRawUserInfo() {
+        return $this->rawUserInfo;
     }
 
     /**
@@ -114,17 +133,10 @@ class Url implements Uri  {
     }
     
     /**
-     * @return string
+     * @param string $host
      */
-    public function getUserInfo() {
-        return $this->userInfo;
-    }
-    
-    /**
-     * @return string
-     */
-    public function getRawUserInfo() {
-        return $this->rawUserInfo;
+    public function setHost($host) {
+        $this->host = $host;
     }
 
     /**
@@ -132,6 +144,56 @@ class Url implements Uri  {
      */
     public function getPort() {
         return $this->port;
+    }
+    
+    /**
+     * @param string $port
+     */
+    public function setPort($port) {
+        $this->port = $port;
+        $this->explicitPort = true;
+    }
+
+    /**
+     * @return string
+     */
+    public function getPath() {
+        return $this->path;
+    }
+    
+    /**
+     * @param string $path
+     */
+    public function setPath($path) {
+        $this->path = '/' . ltrim($path, '/');
+    }
+
+    /**
+     * @return string
+     */
+    public function getQuery() {
+        return $this->query;
+    }
+    
+    /**
+     * @param string $queryString
+     */
+    public function setQuery($queryString) {
+        $this->query = ltrim($queryString, '?');
+    }
+    
+    /**
+     * @return string
+     */
+    public function getFragment() {
+        return $this->fragment;
+    }
+    
+    /**
+     * @param string $fragment
+     */
+    public function setFragment($fragment) {
+        $this->fragment = ltrim($fragment, '#');
     }
 
     /**
@@ -144,7 +206,7 @@ class Url implements Uri  {
         $authority = $this->userInfo ? $this->userInfo.'@' : '';
         $authority .= $this->host;
         
-        if ($this->port != 80) {
+        if ($this->explicitPort) {
             $authority .= ":{$this->port}";
         }
         
@@ -158,32 +220,11 @@ class Url implements Uri  {
         $authority = $this->rawUserInfo ? $this->rawUserInfo.'@' : '';
         $authority .= $this->host;
         
-        if ($this->port != 80) {
+        if ($this->explicitPort) {
             $authority .= ":{$this->port}";
         }
         
         return $authority;
-    }
-
-    /**
-     * @return string
-     */
-    public function getPath() {
-        return $this->path;
-    }
-
-    /**
-     * @return string
-     */
-    public function getQuery() {
-        return $this->query;
-    }
-    
-    /**
-     * @return string
-     */
-    public function getFragment() {
-        return $this->fragment;
     }
     
     /**

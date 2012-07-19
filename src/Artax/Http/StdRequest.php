@@ -13,7 +13,9 @@ namespace Artax\Http;
 
 use DomainException,
     RuntimeException,
-    Artax\Uri;
+    InvalidArgumentException,
+    Artax\Uri,
+    Artax\Url;
 
 /**
  * An immutable standard HTTP request model
@@ -61,7 +63,7 @@ class StdRequest implements Request {
     private $queryParameters;
 
     /**
-     * @param Uri $uri
+     * @param mixed $uri A valid URI string or Artax\Uri instance
      * @param string $httpVersion
      * @param string $method
      * @param array $headers
@@ -69,13 +71,27 @@ class StdRequest implements Request {
      * @return void
      * @throws DomainException On invalid HTTP method verb
      */
-    public function __construct(Uri $uri, $httpVersion, $method, array $headers, $body = '') {
-        $this->uri = $uri;
+    public function __construct($uri, $httpVersion, $method, array $headers, $body = '') {
+        $this->uri = $uri instanceof Uri ? $uri : $this->buildUri($uri);
         $this->headers = $this->normalizeHeaders($headers);
         $this->httpVersion = $httpVersion;
         $this->method = $this->normalizeMethod($method);
         $this->body = $this->acceptsEntityBody() ? $body : '';
-        $this->queryParameters = $this->parseParametersFromString($uri->getQuery());
+        $this->queryParameters = $this->parseParametersFromString($this->uri->getQuery());
+    }
+    
+    /**
+     * @param string $uri
+     */
+    private function buildUri($uri) {
+        try {
+            return new Url($uri);
+        } catch (InvalidArgumentException $e) {
+            throw new InvalidArgumentException(
+                'Invalid URI specified at Argument 1 in ' . get_class($this) . '::__construct: ' .
+                "$uri. Please specify a valid URI string or instance of Artax\\Uri.", null, $e
+            );
+        }
     }
     
     /**

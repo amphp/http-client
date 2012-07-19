@@ -15,6 +15,27 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Http\StdRequest::__construct
+     * @covers Artax\Http\StdRequest::buildUri
+     */
+    public function testConstructorBuildsUriInstanceOnStringParameter() {
+        $uri = 'http://www.google.com/';
+        $request = new StdRequest($uri, '1.1', 'PUT', array(), 'request body');
+        $this->assertInstanceOf('Artax\\Http\\StdRequest', $request);
+        $this->assertEquals($uri, $request->getUri());
+    }
+    
+    /**
+     * @covers Artax\Http\StdRequest::__construct
+     * @covers Artax\Http\StdRequest::buildUri
+     * @expectedException InvalidArgumentException
+     */
+    public function testConstructorThrowsExceptionOnInvalidUriString() {
+        $uri = 'http://';
+        $request = new StdRequest($uri, '1.1', 'PUT', array(), 'request body');
+    }
+    
+    /**
+     * @covers Artax\Http\StdRequest::__construct
      * @covers Artax\Http\StdRequest::normalizeHeaders
      */
     public function testNormalizeHeadersUppercasesHeaderFieldNames() {

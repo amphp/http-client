@@ -4,145 +4,189 @@ use Artax\Url;
 
 class UrlTest extends PHPUnit_Framework_TestCase {
     
-    public function provideValidUrlParams() {
+    public function provideValidUrls() {
         return array(
-            array('https', 'localhost.localdomain', '', 80, '/myPage.html', 'var1=one', 'afterHash'),
-            array('https', 'localhost.localdomain', 'user', 80, '/myPage.html', 'var1=one', 'afterHash'),
-            array('https', 'localhost.localdomain', 'user:pass', 80, '/myPage.html', 'var1=one', 'afterHash')
+            array('https://localhost.localdomain/myPage.html?var1=one#afterHash'),
+            array('https://user@localhost.localdomain/myPage.html?var1=one#afterHash'),
+            array('http://www.google.com/')
+        );
+    }
+    
+    public function provideBadUrls() {
+        return array(
+            array('https://'),
+            array('www.google.com') // scheme is required
         );
     }
     
     /**
-     * @dataProvider provideValidUrlParams
-     * @covers Artax\Url::getFragment
-     * @covers Artax\Url::__construct
+     * @dataProvider provideBadUrls
+     * @covers Artax\Url
+     * @expectedException InvalidArgumentException
      */
-    public function testGetFragmentReturnsFragmentPropertyValue($scheme, $host, $userInfo, $port, $path, $query, $fragment) {
-        $url = new Url($scheme, $host, $userInfo, $port, $path, $query, $fragment);
-        $this->assertEquals($fragment, $url->getFragment());
+    public function testUrlThrowsExceptionOnMalformedUrl($rawUrlString) {
+        $url = new Url($rawUrlString);
     }
     
     /**
-     * @dataProvider provideValidUrlParams
-     * @covers Artax\Url::getHost
      * @covers Artax\Url::__construct
-     */
-    public function testGetHostReturnsHostPropertyValue($scheme, $host, $userInfo, $port, $path, $query, $fragment) {
-        $url = new Url($scheme, $host, $userInfo, $port, $path, $query, $fragment);
-        $this->assertEquals($host, $url->getHost());
-    }
-    
-    /**
-     * @dataProvider provideValidUrlParams
-     * @covers Artax\Url::getPath
-     * @covers Artax\Url::__construct
-     */
-    public function testGetPathReturnsPathPropertyValue($scheme, $host, $userInfo, $port, $path, $query, $fragment) {
-        $url = new Url($scheme, $host, $userInfo, $port, $path, $query, $fragment);
-        $this->assertEquals($path, $url->getPath());
-    }
-    
-    /**
-     * @dataProvider provideValidUrlParams
-     * @covers Artax\Url::getPort
-     * @covers Artax\Url::__construct
-     */
-    public function testGetPortReturnsPortPropertyValue($scheme, $host, $userInfo, $port, $path, $query, $fragment) {
-        $url = new Url($scheme, $host, $userInfo, $port, $path, $query, $fragment);
-        $this->assertEquals($port, $url->getPort());
-    }
-    
-    /**
-     * @dataProvider provideValidUrlParams
-     * @covers Artax\Url::getQuery
-     * @covers Artax\Url::__construct
-     */
-    public function testGetQueryReturnsQueryPropertyValue($scheme, $host, $userInfo, $port, $path, $query, $fragment) {
-        $url = new Url($scheme, $host, $userInfo, $port, $path, $query, $fragment);
-        $this->assertEquals($query, $url->getQuery());
-    }
-    
-    /**
-     * @dataProvider provideValidUrlParams
+     * @covers Artax\Url::parseFullUrlString
      * @covers Artax\Url::getScheme
-     * @covers Artax\Url::__construct
+     * @covers Artax\Url::getHost
+     * @covers Artax\Url::getPath
+     * @covers Artax\Url::getQuery
+     * @covers Artax\Url::getFragment
+     * @covers Artax\Url::getPort
+     * @covers Artax\Url::getUserInfo
      */
-    public function testGetSchemeReturnsSchemePropertyValue($scheme, $host, $userInfo, $port, $path, $query, $fragment) {
-        $url = new Url($scheme, $host, $userInfo, $port, $path, $query, $fragment);
-        $this->assertEquals($scheme, $url->getScheme());
+    public function testConstructorSetsParsedUriPropertyValues() {
+        $url = new Url('https://localhost.localdomain/myPage.html?var1=one#afterHash');
+        
+        $this->assertEquals('https', $url->getScheme());
+        $this->assertEquals('localhost.localdomain', $url->getHost());
+        $this->assertEquals('/myPage.html', $url->getPath());
+        $this->assertEquals('var1=one', $url->getQuery());
+        $this->assertEquals('afterHash', $url->getFragment());
+        $this->assertEquals('80', $url->getPort());
+        $this->assertEquals('', $url->getUserInfo());
+    }
+    
+    /**
+     * @covers Artax\Url::setScheme
+     */
+    public function testSchemeSetterAssignsSchemePropertyAndReturnsNull() {
+        $url = new Url;
+        $this->assertNull($url->setScheme('https'));
+        $this->assertEquals('https', $url->getScheme());
+    }
+    
+    /**
+     * @covers Artax\Url::setHost
+     */
+    public function testHostSetterAssignsHostPropertyAndReturnsNull() {
+        $url = new Url;
+        $this->assertNull($url->setHost('www.yourmom.com'));
+        $this->assertEquals('www.yourmom.com', $url->getHost());
+    }
+    
+    /**
+     * @covers Artax\Url::setPath
+     */
+    public function testPathSetterAssignsPathPropertyAndNormalizesLeadingSlash() {
+        $url = new Url;
+        $this->assertNull($url->setPath('mypage.html'));
+        $this->assertEquals('/mypage.html', $url->getPath());
+    }
+    
+    /**
+     * @covers Artax\Url::setPort
+     */
+    public function testPortSetterAssignsPortAndReturnsNull() {
+        $url = new Url;
+        $this->assertNull($url->setPort(8096));
+        $this->assertEquals(8096, $url->getPort());
+    }
+    
+    /**
+     * @covers Artax\Url::setUserInfo
+     */
+    public function testUserInfoSetterAssignsRawAndProtectedValuesAndReturnsNull() {
+        $url = new Url;
+        $this->assertNull($url->setUserInfo('user:pass'));
+        $this->assertEquals('user:pass', $url->getRawUserInfo());
+        $this->assertEquals('user:********', $url->getUserInfo());
     }
     
     /**
      * @covers Artax\Url::getAuthority
      * @covers Artax\Url::__construct
+     * @covers Artax\Url::parseFullUrlString
      */
     public function testGetAuthorityAppendsPortIfNot80() {
-        $url = new Url('https', 'localhost.localdomain', '', 4395);
+        $url = new Url('https://localhost.localdomain:4395');
         $this->assertEquals('localhost.localdomain:4395', $url->getAuthority());
     }
     
     /**
-     * @dataProvider provideValidUrlParams
+     * @covers Artax\Url::setQuery
+     */
+    public function testQuerySetterAssignsQueryAndNormalizesLeadingQuestionMark() {
+        $url = new Url;
+        $this->assertNull($url->setQuery('?var1=one'));
+        $this->assertEquals('var1=one', $url->getQuery());
+    }
+    
+    /**
+     * @covers Artax\Url::setFragment
+     */
+    public function testFragmentSetterAssignsFragmentAndNormalizesLeadingHash() {
+        $url = new Url;
+        $this->assertNull($url->setFragment('#danRocks'));
+        $this->assertEquals('danRocks', $url->getFragment());
+    }
+    
+    /**
+     * @dataProvider provideValidUrls
      * @covers Artax\Url::__toString
      * @covers Artax\Url::__construct
+     * @covers Artax\Url::parseFullUrlString
      */
-    public function testToStringReturnsFullUrl($scheme, $host, $userInfo, $port, $path, $query, $fragment) {
-        $url = new Url($scheme, $host, $userInfo, $port, $path, $query, $fragment);
-        $this->assertEquals(
-            "$scheme://" . $url->getAuthority() . "$path?$query#$fragment",
-            $url->__toString()
-        );
+    public function testToStringReturnsFullUrl($fullUrlString) {
+        $url = new Url($fullUrlString);
+        $this->assertEquals($fullUrlString, $url->__toString());
     }
     
     /**
      * @covers Artax\Url::__toString
+     * @covers Artax\Url::parseFullUrlString
      */
     public function testToStringUsesProtectedUserInfo() {
-        $url = new Url('https', 'localhost.localdomain', 'user:pass');
+        $url = new Url('https://user:pass@localhost.localdomain');
         $this->assertEquals('https://user:********@localhost.localdomain/', $url->__toString());
     }
     
     /**
      * @covers Artax\Url::getRawUrl
+     * @covers Artax\Url::parseFullUrlString
      */
     public function testRawUrlGetterUsesRawUserInfo() {
-        $url = new Url('https', 'localhost.localdomain', 'user:pass', 80, 'index.php', 'var1=one',
-            'afterHash'
-        );
-        $this->assertEquals('https://user:pass@localhost.localdomain/index.php?var1=one#afterHash',
-            $url->getRawUrl()
-        );
+        $raw = 'https://user:pass@localhost.localdomain:80/index.php?var1=one#afterHash';
+        $url = new Url($raw);
+        $this->assertEquals($raw, $url->getRawUrl());
     }
     
     /**
      * @covers Artax\Url::getRawUserInfo
      * @covers Artax\Url::protectUserInfo
+     * @covers Artax\Url::parseFullUrlString
      */
     public function testRawUserInfoGetterReturnsProperty() {
-        $url = new Url('https', 'localhost.localdomain', 'user:pass');
+        $url = new Url('https://user:pass@localhost.localdomain');
         $this->assertEquals('user:pass', $url->getRawUserInfo());
     }
     
     /**
      * @covers Artax\Url::getUserInfo
      * @covers Artax\Url::protectUserInfo
+     * @covers Artax\Url::parseFullUrlString
      */
     public function testUserInfoGetterReturnsProtectedUserInfo() {
-        $url = new Url('https', 'localhost.localdomain', 'user:pass');
+        $url = new Url('https://user:pass@localhost.localdomain');
         $this->assertEquals('user:********', $url->getUserInfo());
         
-        $url = new Url('https', 'localhost.localdomain', 'user:');
-        $this->assertEquals('user:', $url->getUserInfo());
+        $url = new Url('https://user:@localhost.localdomain');
+        $this->assertEquals('user', $url->getUserInfo());
     }
     
     /**
      * @covers Artax\Url::getRawAuthority
+     * @covers Artax\Url::parseFullUrlString
      */
     public function testRawAuthorityGetterAppendsPortIfNot80() {
-        $url = new Url('https', 'localhost.localdomain', 'user', 4395);
+        $url = new Url('https://user@localhost.localdomain:4395');
         $this->assertEquals('user@localhost.localdomain:4395', $url->getRawAuthority());
         
-        $url = new Url('https', 'localhost.localdomain', 'user:pass', 4395);
+        $url = new Url('https://user:pass@localhost.localdomain:4395');
         $this->assertEquals('user:pass@localhost.localdomain:4395', $url->getRawAuthority());
     }
 }

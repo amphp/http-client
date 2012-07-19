@@ -36,7 +36,14 @@ class SuperglobalToUrlTranslator {
         $query = $this->detectQuery($_server);
         $scheme = $this->detectScheme($_server);
         
-        return new Url($scheme, $host, '', $port, $path, $query);
+        $url = new Url();
+        $url->setScheme($scheme);
+        $url->setHost($host);
+        $url->setPort($port);
+        $url->setPath($path);
+        $url->setQuery($query);
+        
+        return $url;
     }
     
     /**
