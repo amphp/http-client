@@ -99,6 +99,10 @@ class StdRequest implements Request {
      * @return array
      */
     private function normalizeHeaders(array $headers) {
+        // prior to PHP 5.4 warnings are issued if empty arrays are used
+        if (!$headers) {
+            return $headers;
+        }
         return array_combine(array_map('strtoupper', array_keys($headers)), $headers);
     }
     
