@@ -10,7 +10,8 @@ class Client {
      * @var array
      */
     protected $contextOptions = array('http' => array(
-        'max_redirects' => 10
+        'max_redirects' => 10,
+        'ignore_errors' => TRUE
     ));
 
     /**
@@ -21,7 +22,7 @@ class Client {
     public function __construct() {
 
         $allowsUrlFOpen = filter_var(
-            ini_get('allow_url_fopen'), 
+            ini_get('allow_url_fopen'),
             FILTER_VALIDATE_BOOLEAN
         );
 
@@ -39,10 +40,10 @@ class Client {
     }
 
     protected function notificationCallback(
-        $notification_code, $severity, $message, 
+        $notification_code, $severity, $message,
         $message_code, $bytes_transferred, $bytes_max
     ) {
-        echo "$notification_code, $severity, $message, $message_code, $bytes_transferred, $bytes_max\n";
+//        echo "$notification_code, $severity, $message, $message_code, $bytes_transferred, $bytes_max\n";
     }
 
     /**
@@ -70,7 +71,7 @@ class Client {
 
         $this->contextOptions['http']['content'] = $request->getBody();
         $this->contextOptions['http']['method'] = $request->getMethod();
-        
+
         $context = stream_context_create(
             $this->contextOptions,
             $this->contextParameters
@@ -85,7 +86,7 @@ class Client {
 
         if ($fp === FALSE) {
             throw new RuntimeException();
-        } 
+        }
 
         return $this->buildResponseFromStream($fp);
 
@@ -100,9 +101,9 @@ class Client {
 
         $meta_data = stream_get_meta_data($stream);
         $headers = $meta_data['wrapper_data'];
-        
+
         $response = new StdResponse();
-        
+
         $response->setStartLine($headers[0]);
         for ($i = 1, $headerCount = count($headers); $i < $headerCount; $i++) {
             $response->setRawHeader($headers[$i]);
