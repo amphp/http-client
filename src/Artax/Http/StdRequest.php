@@ -71,7 +71,7 @@ class StdRequest implements Request {
      * @return void
      * @throws DomainException On invalid HTTP method verb
      */
-    public function __construct($uri, $httpVersion, $method, array $headers, $body = '') {
+    public function __construct($uri, $httpVersion, $method, array $headers = array(), $body = '') {
         $this->uri = $uri instanceof Uri ? $uri : $this->buildUri($uri);
         $this->headers = $this->normalizeHeaders($headers);
         $this->httpVersion = $httpVersion;
