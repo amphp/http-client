@@ -38,15 +38,6 @@ abstract class BaseNegotiator implements HeaderNegotiator {
     }
     
     /**
-     * Negotiates the appropriate content value from a raw header
-     * 
-     * @param string $rawHeader
-     * @param array $available
-     * @return string
-     */
-    abstract public function negotiate($rawHeader, array $available);
-    
-    /**
      * @param array $terms
      * @return void
      */
