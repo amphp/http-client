@@ -27,8 +27,7 @@ class Client {
 
         if (!$allowsUrlFOpen) {
             throw new RuntimeException(
-                'Artax\\Http\\Client requires setting allow_url_fopen to be '
-                . 'enabled'
+                'Artax\\Http\\Client requires setting allow_url_fopen to be enabled'
             );
         }
 
@@ -56,6 +55,7 @@ class Client {
 
     /**
      * @param \Artax\Http\Request $request
+     * @throws RuntimeException
      * @return \Artax\Http\Response
      */
     public function send(Request $request) {
