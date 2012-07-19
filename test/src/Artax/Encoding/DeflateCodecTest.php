@@ -2,7 +2,9 @@
 
 use Artax\Encoding\DeflateCodec;
 
-class DeflateCodecTest extends PHPUnit_Framework_TestCase {
+require_once __DIR__ . '/BaseEncodingTest.php';
+
+class DeflateCodecTest extends BaseEncodingTest {
     
     /**
      * @covers Artax\Encoding\DeflateCodec::encode

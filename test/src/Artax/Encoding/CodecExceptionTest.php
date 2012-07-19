@@ -2,10 +2,12 @@
 
 use Artax\Encoding\CodecException;
 
+require_once __DIR__ . '/BaseEncodingTest.php';
+
 /**
  * @covers Artax\Encoding\CodecException
  */
-class CodecExceptionTest extends PHPUnit_Framework_TestCase {
+class CodecExceptionTest extends BaseEncodingTest {
     
     public function testIsRuntimeException() {
         try {

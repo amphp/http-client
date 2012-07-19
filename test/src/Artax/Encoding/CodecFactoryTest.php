@@ -2,7 +2,9 @@
 
 use Artax\Encoding\CodecFactory;
 
-class CodecFactoryTest extends PHPUnit_Framework_TestCase {
+require_once __DIR__ . '/BaseEncodingTest.php';
+
+class CodecFactoryTest extends BaseEncodingTest {
     
     /**
      * @covers Artax\Encoding\CodecFactory::make

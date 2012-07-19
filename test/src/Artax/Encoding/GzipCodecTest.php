@@ -2,7 +2,9 @@
 
 use Artax\Encoding\GzipCodec;
 
-class GzipCodecTest extends PHPUnit_Framework_TestCase {
+require_once __DIR__ . '/BaseEncodingTest.php';
+
+class GzipCodecTest extends BaseEncodingTest {
     
     /**
      * @covers Artax\Encoding\GzipCodec::encode
