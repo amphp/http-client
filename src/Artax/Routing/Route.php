@@ -38,7 +38,7 @@ interface Route extends Serializable {
     function getResource();
     
     /**
-     * @param mixed $resourceClass
+     * @param mixed $resource
      * @return void
      */
     function setResource($resource);
