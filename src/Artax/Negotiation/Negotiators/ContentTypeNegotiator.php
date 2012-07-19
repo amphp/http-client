@@ -82,11 +82,14 @@ class ContentTypeNegotiator extends BaseNegotiator {
      * @return array
      * @throws InvalidArgumentException
      */
-    private function convertStringsToMimeTypes(array $arrayOfMimeTypeStrings) {
-        $self = $this;
-        return array_map(function($mimeStr) use ($self) {
-            return $self->mimeTypeFactory->make($mimeStr);
-        }, $arrayOfMimeTypeStrings);
+    private function convertStringsToMimeTypes(array $arrayOfMimeTypeStrings) {        
+        $mimeTypeObjects = array();
+        
+        foreach ($arrayOfMimeTypeStrings as $mimeStr) {
+            $mimeTypeObjects[] = $this->mimeTypeFactory->make($mimeStr);
+        }
+        
+        return $mimeTypeObjects;
     }
     
     /**
