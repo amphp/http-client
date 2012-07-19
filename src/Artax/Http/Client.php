@@ -9,7 +9,7 @@ class Client {
     /**
      * @var array
      */
-    protected $contextOptions = array('http' = array(
+    protected $contextOptions = array('http' => array(
         'max_redirects' => 10
     ));
 
@@ -28,7 +28,7 @@ class Client {
         if (!$allowsUrlFOpen) {
             throw new RuntimeException(
                 'Artax\\Http\\Client requires setting allow_url_fopen to be '
-                . 'enabled';
+                . 'enabled'
             );
         }
 
