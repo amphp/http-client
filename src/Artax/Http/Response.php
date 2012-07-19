@@ -18,7 +18,12 @@ namespace Artax\Http;
  * @author       Levi Morrison <levim@php.net>
  */
 interface Response extends Message {
-
+    
+    /**
+     * @param string $rawStartLineStr
+     */
+    function setStartLine($rawStartLineStr);
+    
     /**
      * @param string $httpVersion
      * @return string
@@ -53,6 +58,11 @@ interface Response extends Message {
      * @return void
      */
     function setHeader($header, $value);
+    
+    /**
+     * @param string $rawHeaderStr
+     */
+    function setRawHeader($rawHeaderStr);
 
     /**
      * @param mixed $iterable
