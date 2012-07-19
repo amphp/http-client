@@ -4,7 +4,7 @@
  * 
  * @category     Artax
  * @author       Levi Morrison <levim@php.net>
- * @license      All code subject to the terms of the LICENSE file in the base package directory
+ * @license      All code subject to the terms of the LICENSE file in the project root
  * @version      ${project.version}
  */
 

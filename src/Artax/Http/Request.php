@@ -6,7 +6,7 @@
  * @package     Http
  * @author      Levi Morrison <levim@php.net>
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
- * @license     All code subject to the terms of the LICENSE file in the base package directory
+ * @license     All code subject to the terms of the LICENSE file in the project root
  * @version     ${project.version}
  */
 namespace Artax\Http;
