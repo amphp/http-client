@@ -200,7 +200,7 @@ $mediator->notify('__sys.ready');
 try {
     
     if (!$router->match($request->getPath())) {
-        $mediator->notify("__sys.http-404", new HttpStatusException('Not Found', 404));
+        throw new NotFoundException;
     } else {
         $resourceClass = $router->getMatchedResource();
         $resourceMethod = strtolower($request->getMethod());
@@ -210,8 +210,11 @@ try {
         $resourceMapper = new ClassResourceMapper($injector, $reflPool, $resourceFactory);
         $resource = $resourceMapper->make($resourceClass, $resourceMethod, $routeArgs);
         $resource();
-        //echo "<pre>"; print_r($_SERVER); echo "</pre>";
     }
+    
+} catch (NotFoundException $e) {
+    
+    $mediator->notify('__sys.http-404', $e);
     
 } catch (BadResourceMethodException $e) {
     
@@ -223,7 +226,7 @@ try {
 } catch (NotAcceptableException $e) {
     
     $mediator->notify('__sys.http-406', $e);
-      
+
 } catch (HttpStatusException $e) {
     
     $mediator->notify("__sys.http-general", $e);
