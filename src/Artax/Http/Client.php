@@ -71,6 +71,7 @@ class Client {
 
         $this->contextOptions['http']['content'] = $request->getBody();
         $this->contextOptions['http']['method'] = $request->getMethod();
+        $this->contextOptions['http']['protocol_version'] = $request->getHttpVersion();
 
         $context = stream_context_create(
             $this->contextOptions,
