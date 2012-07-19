@@ -158,10 +158,10 @@ $injector->defineAll(array(
  * -------------------------------------------------------------------------------------------------
  */
 
-$mediator->unshift('exception', 'Artax\\Http\\StatusHandlers\\Http500');
-$mediator->unshift('__sys.http-404', 'Artax\\Http\\StatusHandlers\\Http404');
-$mediator->unshift('__sys.http-405', 'Artax\\Http\\StatusHandlers\\Http405');
-$mediator->unshift('__sys.http-406', 'Artax\\Http\\StatusHandlers\\Http406');
+$mediator->unshift('exception', 'Artax\\Framework\\Http\\StatusHandlers\\Http500');
+$mediator->unshift('__sys.http-404', 'Artax\\Framework\\Http\\StatusHandlers\\Http404');
+$mediator->unshift('__sys.http-405', 'Artax\\Framework\\Http\\StatusHandlers\\Http405');
+$mediator->unshift('__sys.http-406', 'Artax\\Framework\\Http\\StatusHandlers\\Http406');
 
 $mediator->unshift('__mediator.delta', function(Mediator $mediator) {
     list($eventName, $deltaType) = $mediator->getLastQueueDelta();
