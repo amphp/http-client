@@ -48,4 +48,94 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals('entity body', $response->getBody());
     }
     
+    /**
+     * @covers Artax\Http\StdResponse::getHeader
+     * @expectedException RuntimeException
+     */
+    public function testHeaderGetterThrowsExceptionOnInvalidHeaderRequest() {
+        $response = new StdResponse;
+        $response->getHeader('Doesnt-Exist');
+    }
+    
+    /**
+     * @covers Artax\Http\StdResponse::getHeader
+     * @covers Artax\Http\StdResponse::setHeader
+     */
+    public function testHeaderAccessors() {
+        $response = new StdResponse;
+        $this->assertNull($response->setHeader('Content-Type', 'text/html'));
+        $this->assertEquals('text/html', $response->getHeader('Content-Type'));
+        
+        $this->assertNull($response->setHeader('content-type', 'application/json'));
+        $this->assertEquals('application/json', $response->getHeader('CONTENT-TYPE'));
+    }
+    
+    /**
+     * @covers Artax\Http\StdResponse::hasHeader
+     */
+    public function testHasHeaderReturnsBoolOnHeaderExistence() {
+        $response = new StdResponse;
+        $this->assertFalse($response->hasHeader('Content-Type'));
+        $response->setHeader('Content-Type', 'text/html');
+        $this->assertTrue($response->hasHeader('Content-TYPE'));
+    }
+    
+    /**
+     * @covers Artax\Http\StdResponse::getAllHeaders
+     */
+    public function testGetAllHeadersReturnsHeaderStorageArray() {
+        $response = new StdResponse;
+        $response->setHeader('Content-Type', 'text/html');
+        $response->setHeader('Content-Length', 42);
+        
+        $expected = array(
+            'CONTENT-TYPE' => 'text/html',
+            'CONTENT-LENGTH' => 42
+        );
+        
+        $this->assertEquals($expected, $response->getAllHeaders());
+    }
+    
+    /**
+     * @covers Artax\Http\StdResponse::setAllHeaders
+     * @expectedException InvalidArgumentException
+     */
+    public function testSetAllHeadersThrowsExceptionOnInvalidParameter() {
+        $response = new StdResponse;
+        $response->setAllHeaders('not an iterable');
+    }
+    
+    /**
+     * @covers Artax\Http\StdResponse::setAllHeaders
+     */
+    public function testSetAllHeadersCallsSetHeaderForEachHeader() {
+        $response = $this->getMock('Artax\\Http\\StdResponse', array('setHeader'));
+        
+        $headers = array(
+            'CONTENT-TYPE' => 'text/html',
+            'CONTENT-LENGTH' => 42
+        );
+        
+        $response->expects($this->exactly(2))
+                 ->method('setHeader');
+        $response->setAllHeaders($headers);
+    }
+    
+    /**
+     * @covers Artax\Http\StdResponse::send
+     * @covers Artax\Http\StdResponse::wasSent
+     * @runInSeparateProcess
+     */
+    public function testSendOutputsHeadersAndReturnsNull() {
+        $response = new StdResponse;
+        $response->setAllHeaders(array(
+            'CONTENT-TYPE' => 'text/html',
+            'CONTENT-LENGTH' => 42
+        ));
+        
+        $this->assertFalse($response->wasSent());
+        $this->AssertNull($response->send());
+        $this->assertTrue($response->wasSent());
+    }
+    
 }

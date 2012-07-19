@@ -193,23 +193,15 @@ class StdResponse implements Response {
         $headerStr = 'HTTP/' . $this->getHttpVersion() . ' ' . $this->getStatusCode() . ' ' .
             $this->getStatusDescription();
         
-        $this->sendHeader($headerStr);
+        header($headerStr);
         
         foreach ($this->headers as $header => $value) {
-            $this->sendHeader($header . ': ' . $value);
+            header($header . ': ' . $value);
         }
 
         echo $this->body;
         
         $this->wasSent = true;
-    }
-    
-    /**
-     * A testing seam to mock header output in test environments
-     * @param string $headerString
-     */
-    protected function sendHeader($headerString) {
-        header($headerString);
     }
 
     /**

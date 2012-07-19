@@ -101,11 +101,12 @@ class ObservableResponseTest extends PHPUnit_Framework_TestCase {
     /**
      * @covers Artax\Framework\Http\ObservableResponse::send
      * @covers Artax\Framework\Http\ObservableResponse::notify
+     * @runInSeparateProcess
      */
     public function testSendNotifiesListenersBeforeAndAfterOutput() {
         $mediator = $this->getMock('Artax\\Events\\Mediator');
         $response = $this->getMock('Artax\\Framework\\Http\\ObservableResponse',
-            array('sendHeader'),
+            null,
             array($mediator)
         );
         
@@ -114,6 +115,5 @@ class ObservableResponseTest extends PHPUnit_Framework_TestCase {
                  ->with($this->logicalOr('__sys.response.beforeSend', '__sys.response.afterSend'));
         
         $response->send();
-        
     }
 }
