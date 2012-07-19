@@ -188,7 +188,9 @@ class StdResponse implements Response {
         
         $pattern = ',^([^\s:]+):[ \t]*(.+)$,';
         if (!preg_match($pattern, $normalized, $match)) {
-            throw new InvalidArgumentException;
+            throw new InvalidArgumentException(
+                "Invalid raw header: $rawHeaderStr"
+            );
         }
         
         $this->setHeader($match[1], $match[2]);
