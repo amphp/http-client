@@ -50,13 +50,13 @@ class ObservableResource {
     
     /**
      * @param Mediator $mediator
-     * @param mixed $callableResource
+     * @param callable $callableResource
      * @param array $args
      * @return void
      */
     public function __construct(
         Mediator $mediator,
-        callable $callableResource,
+        $callableResource,
         array $invocationArgs
     ) {
         $this->mediator = $mediator;
