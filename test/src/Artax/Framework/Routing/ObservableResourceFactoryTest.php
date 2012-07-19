@@ -35,4 +35,13 @@ class ObservableResourceFactoryTest extends PHPUnit_Framework_TestCase {
         $this->assertInstanceOf('Artax\\Framework\\Routing\\ObservableResource', $resource);
     }
     
+    /**
+     * @depends testConstructorStoresMediatorInstance
+     * @covers Artax\Framework\Routing\ObservableResourceFactory::make
+     * @expectedException InvalidArgumentException
+     */
+    public function testMakeThrowsExceptionOnUncallableResourceParameter($factory) {
+        $resource = $factory->make('not callable', array());
+    }
+    
 }

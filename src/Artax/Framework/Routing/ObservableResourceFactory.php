@@ -11,7 +11,8 @@
  */
 namespace Artax\Framework\Routing;
 
-use Artax\Events\Mediator;
+use InvalidArgumentException,
+    Artax\Events\Mediator;
 
 /**
  * Generates callable, observable resources
@@ -40,8 +41,14 @@ class ObservableResourceFactory {
      * @param mixed $callableResource
      * @param array $invocationArgs
      * @return mixed
+     * @throws InvalidArgumentException
      */
-    public function make(callable $callableResource, array $invocationArgs) {
+    public function make($callableResource, array $invocationArgs) {
+        if (!is_callable($callableResource)) {
+            throw new InvalidArgumentException(
+                get_class($this) . "::make requires a callable parameter at Argument 1"
+            );
+        }
         return new ObservableResource($this->mediator, $callableResource, $invocationArgs);
     }
 }
