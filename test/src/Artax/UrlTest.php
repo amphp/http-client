@@ -52,52 +52,6 @@ class UrlTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers Artax\Url::setScheme
-     */
-    public function testSchemeSetterAssignsSchemePropertyAndReturnsNull() {
-        $url = new Url;
-        $this->assertNull($url->setScheme('https'));
-        $this->assertEquals('https', $url->getScheme());
-    }
-    
-    /**
-     * @covers Artax\Url::setHost
-     */
-    public function testHostSetterAssignsHostPropertyAndReturnsNull() {
-        $url = new Url;
-        $this->assertNull($url->setHost('www.yourmom.com'));
-        $this->assertEquals('www.yourmom.com', $url->getHost());
-    }
-    
-    /**
-     * @covers Artax\Url::setPath
-     */
-    public function testPathSetterAssignsPathPropertyAndNormalizesLeadingSlash() {
-        $url = new Url;
-        $this->assertNull($url->setPath('mypage.html'));
-        $this->assertEquals('/mypage.html', $url->getPath());
-    }
-    
-    /**
-     * @covers Artax\Url::setPort
-     */
-    public function testPortSetterAssignsPortAndReturnsNull() {
-        $url = new Url;
-        $this->assertNull($url->setPort(8096));
-        $this->assertEquals(8096, $url->getPort());
-    }
-    
-    /**
-     * @covers Artax\Url::setUserInfo
-     */
-    public function testUserInfoSetterAssignsRawAndProtectedValuesAndReturnsNull() {
-        $url = new Url;
-        $this->assertNull($url->setUserInfo('user:pass'));
-        $this->assertEquals('user:pass', $url->getRawUserInfo());
-        $this->assertEquals('user:********', $url->getUserInfo());
-    }
-    
-    /**
      * @covers Artax\Url::getAuthority
      * @covers Artax\Url::__construct
      * @covers Artax\Url::parseFullUrlString
@@ -105,24 +59,6 @@ class UrlTest extends PHPUnit_Framework_TestCase {
     public function testGetAuthorityAppendsPortIfNot80() {
         $url = new Url('https://localhost.localdomain:4395');
         $this->assertEquals('localhost.localdomain:4395', $url->getAuthority());
-    }
-    
-    /**
-     * @covers Artax\Url::setQuery
-     */
-    public function testQuerySetterAssignsQueryAndNormalizesLeadingQuestionMark() {
-        $url = new Url;
-        $this->assertNull($url->setQuery('?var1=one'));
-        $this->assertEquals('var1=one', $url->getQuery());
-    }
-    
-    /**
-     * @covers Artax\Url::setFragment
-     */
-    public function testFragmentSetterAssignsFragmentAndNormalizesLeadingHash() {
-        $url = new Url;
-        $this->assertNull($url->setFragment('#danRocks'));
-        $this->assertEquals('danRocks', $url->getFragment());
     }
     
     /**
@@ -139,6 +75,7 @@ class UrlTest extends PHPUnit_Framework_TestCase {
     /**
      * @covers Artax\Url::__toString
      * @covers Artax\Url::parseFullUrlString
+     * @covers Artax\Url::setUserInfo
      */
     public function testToStringUsesProtectedUserInfo() {
         $url = new Url('https://user:pass@localhost.localdomain');

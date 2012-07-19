@@ -1,6 +1,6 @@
 <?php
 /**
- * SuperglobalToUrlTranslator Class File
+ * SuperglobalUrlDetector Class File
  * 
  * @category     Artax
  * @author       Daniel Lowrey <rdlowrey@gmail.com>
@@ -15,7 +15,7 @@ namespace Artax;
  * @category     Artax
  * @author       Daniel Lowrey <rdlowrey@gmail.com>
  */
-class SuperglobalToUrlTranslator {
+class SuperglobalUrlDetector {
     
     /**
      * Creates a Url instance from a superglobal $_SERVER array
@@ -30,20 +30,18 @@ class SuperglobalToUrlTranslator {
      * @return Url Returns a Url instance
      */
     public function make(array $_server) {
-        $host = $this->detectHost($_server);
-        $path = $this->detectPath($_server);
-        $port = $this->detectPort($_server);
-        $query = $this->detectQuery($_server);
         $scheme = $this->detectScheme($_server);
+        $host = $this->detectHost($_server);
+        $port = $this->detectPort($_server);
+        $path = $this->detectPath($_server);
+        $query = $this->detectQuery($_server);
         
-        $url = new Url();
-        $url->setScheme($scheme);
-        $url->setHost($host);
-        $url->setPort($port);
-        $url->setPath($path);
-        $url->setQuery($query);
+        $url = "$scheme://$host";
+        $url .= ($port != 80) ? ":$port" : '';
+        $url .= $path;
+        $url .= $query ? "?$query" : '';
         
-        return $url;
+        return new Url($url);
     }
     
     /**

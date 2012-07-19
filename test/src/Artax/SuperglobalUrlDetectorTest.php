@@ -1,8 +1,8 @@
 <?php
 
-use Artax\SuperglobalToUrlTranslator;
+use Artax\SuperglobalUrlDetector;
 
-class SuperglobalToUrlTranslatorTest extends PHPUnit_Framework_TestCase {
+class SuperglobalUrlDetectorTest extends PHPUnit_Framework_TestCase {
     
     public function provideServerSuperglobalsForParsing() {
         return array(
@@ -27,15 +27,15 @@ class SuperglobalToUrlTranslatorTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideServerSuperglobalsForParsing
-     * @covers Artax\SuperglobalToUrlTranslator::make
-     * @covers Artax\SuperglobalToUrlTranslator::detectPath
-     * @covers Artax\SuperglobalToUrlTranslator::detectHost
-     * @covers Artax\SuperglobalToUrlTranslator::detectScheme
-     * @covers Artax\SuperglobalToUrlTranslator::detectPort
-     * @covers Artax\SuperglobalToUrlTranslator::detectQuery
+     * @covers Artax\SuperglobalUrlDetector::make
+     * @covers Artax\SuperglobalUrlDetector::detectPath
+     * @covers Artax\SuperglobalUrlDetector::detectHost
+     * @covers Artax\SuperglobalUrlDetector::detectScheme
+     * @covers Artax\SuperglobalUrlDetector::detectPort
+     * @covers Artax\SuperglobalUrlDetector::detectQuery
      */
     public function testMakeParsesUrlPropertiesFromSuperglobalArray($_server) {
-        $translator = new SuperglobalToUrlTranslator;
+        $translator = new SuperglobalUrlDetector;
         
         $expectedHost = $_server['HTTP_HOST'];
         $expectedPort = isset($_server['REMOTE_PORT']) ? $_server['REMOTE_PORT'] : 80;

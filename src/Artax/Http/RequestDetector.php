@@ -10,7 +10,7 @@
  */
 namespace Artax\Http;
 
-use Artax\SuperglobalToUrlTranslator;
+use Artax\SuperglobalUrlDetector;
 
 /**
  * Detects HTTP Request properties from an array of server values (superglobal)
@@ -22,16 +22,16 @@ use Artax\SuperglobalToUrlTranslator;
 class RequestDetector {
     
     /**
-     * @SuperglobalToUrlTranslator
+     * @SuperglobalUrlDetector
      */
     private $urlTranslator;
     
     /**
-     * @param SuperglobalToUrlTranslator $urlTranslator
+     * @param SuperglobalUrlDetector $urlTranslator
      * @return void
      */
-    public function __construct(SuperglobalToUrlTranslator $urlTranslator = null) {
-        $this->urlTranslator = $urlTranslator ?: new SuperglobalToUrlTranslator;
+    public function __construct(SuperglobalUrlDetector $urlTranslator = null) {
+        $this->urlTranslator = $urlTranslator ?: new SuperglobalUrlDetector;
     }
     
     /**

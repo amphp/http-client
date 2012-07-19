@@ -12,7 +12,7 @@ class RequestDetectorTest extends PHPUnit_Framework_TestCase {
     public function testDetectUrlUsesComposedUrlTranslatorToMake() {
         $url = new Url('http://localhost');
         
-        $mock = $this->getMock('Artax\\SuperglobalToUrlTranslator', array('make'));
+        $mock = $this->getMock('Artax\\SuperglobalUrlDetector', array('make'));
         $mock->expects($this->once())
              ->method('make')
              ->will($this->returnValue($url));

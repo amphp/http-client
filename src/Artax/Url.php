@@ -31,13 +31,11 @@ class Url implements Uri  {
     private $query = '';
     private $fragment = '';
     
-    public function __construct($fullUrlString = null) {
-        if ($fullUrlString) {
-            $this->parseFullUrlString($fullUrlString);
-        }
+    public function __construct($fullUrlString) {
+        $this->parseFullUrlString($fullUrlString);
     }
     
-    private function parseFullUrlString($fullUrlString) {
+    protected function parseFullUrlString($fullUrlString) {
         if (!$urlParts = parse_url($fullUrlString)) {
             throw new InvalidArgumentException("Invalid URL: $fullUrlString");
         }
@@ -72,30 +70,9 @@ class Url implements Uri  {
     }
     
     /**
-     * @return string
-     */
-    public function getScheme() {
-        return $this->scheme;
-    }
-    
-    /**
-     * @param string $scheme
-     */
-    public function setScheme($scheme) {
-        $this->scheme = $scheme;
-    }
-    
-    /**
-     * @return string
-     */
-    public function getUserInfo() {
-        return $this->userInfo;
-    }
-    
-    /**
      * @param string $userInfo
      */
-    public function setUserInfo($userInfo) {
+    protected function setUserInfo($userInfo) {
         $this->userInfo = $userInfo ? $this->protectUserInfo($userInfo) : '';
         $this->rawUserInfo = $userInfo;
     }
@@ -103,7 +80,7 @@ class Url implements Uri  {
     /**
      * @param string $rawUserInfo
      */
-    private function protectUserInfo($rawUserInfo) {
+    protected function protectUserInfo($rawUserInfo) {
         $colonPos = strpos($rawUserInfo, ':');
         
         // rfc3986-3.2.1 | http://tools.ietf.org/html/rfc3986#section-3.2
@@ -121,6 +98,20 @@ class Url implements Uri  {
     /**
      * @return string
      */
+    public function getScheme() {
+        return $this->scheme;
+    }
+    
+    /**
+     * @return string
+     */
+    public function getUserInfo() {
+        return $this->userInfo;
+    }
+    
+    /**
+     * @return string
+     */
     public function getRawUserInfo() {
         return $this->rawUserInfo;
     }
@@ -131,13 +122,6 @@ class Url implements Uri  {
     public function getHost() {
         return $this->host;
     }
-    
-    /**
-     * @param string $host
-     */
-    public function setHost($host) {
-        $this->host = $host;
-    }
 
     /**
      * @return int
@@ -145,27 +129,12 @@ class Url implements Uri  {
     public function getPort() {
         return $this->port;
     }
-    
-    /**
-     * @param string $port
-     */
-    public function setPort($port) {
-        $this->port = $port;
-        $this->explicitPort = true;
-    }
 
     /**
      * @return string
      */
     public function getPath() {
         return $this->path;
-    }
-    
-    /**
-     * @param string $path
-     */
-    public function setPath($path) {
-        $this->path = '/' . ltrim($path, '/');
     }
 
     /**
@@ -176,24 +145,10 @@ class Url implements Uri  {
     }
     
     /**
-     * @param string $queryString
-     */
-    public function setQuery($queryString) {
-        $this->query = ltrim($queryString, '?');
-    }
-    
-    /**
      * @return string
      */
     public function getFragment() {
         return $this->fragment;
-    }
-    
-    /**
-     * @param string $fragment
-     */
-    public function setFragment($fragment) {
-        $this->fragment = ltrim($fragment, '#');
     }
 
     /**
