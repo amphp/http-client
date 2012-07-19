@@ -1,8 +1,13 @@
 <phpunit bootstrap="./phpunitBootstrap.php" colors="true">
     <testsuites>
-        <testsuite name="Core">
+        <testsuite name="Unit-Tests">
             <directory>./src</directory>
         </testsuite>
+        <!--
+        <testsuite name="Integration-Tests">
+            <directory>./integration</directory>
+        </testsuite>
+        -->
     </testsuites>
     <filter>
         <whitelist addUncoveredFilesFromWhitelist="true">
