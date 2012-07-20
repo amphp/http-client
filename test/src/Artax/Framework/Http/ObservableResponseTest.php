@@ -105,10 +105,8 @@ class ObservableResponseTest extends PHPUnit_Framework_TestCase {
      */
     public function testSendNotifiesListenersBeforeAndAfterOutput() {
         $mediator = $this->getMock('Artax\\Events\\Mediator');
-        $response = $this->getMock('Artax\\Framework\\Http\\ObservableResponse',
-            null,
-            array($mediator)
-        );
+        $response = new ObservableResponse($mediator);
+        $response->setStatusCode(200);
         
         $mediator->expects($this->exactly(2))
                  ->method('notify')
