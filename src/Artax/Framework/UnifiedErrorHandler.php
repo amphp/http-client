@@ -125,7 +125,13 @@ class UnifiedErrorHandler {
         $this->response->setStatusCode(StatusCodes::HTTP_INTERNAL_SERVER_ERROR);
         $this->response->setStatusDescription(StatusCodes::HTTP_500);
         
-        $body = $this->debugMode ? "<pre>$e</pre>" : 'Well this is embarrassing ...';
+        if ($this->debugMode) {
+            $body = '<p style="color:red;font-weight:bold;">DEBUG MODE<br />';
+            $body .= 'turn off ARTAX_DEBUG_MODE to display user-friendly output on errors.</p>';
+            $body .= "<pre>$e</pre>";
+        } else {
+            $body = '<p>Well this is embarrassing ...</p>';
+        }
         
         $this->response->setBody($body);
         $this->response->setRawHeader('Content-Length: ' . strlen($body));

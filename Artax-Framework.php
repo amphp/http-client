@@ -51,11 +51,11 @@ error_reporting(E_ALL | E_STRICT);
 ini_set('display_errors', false);
 ini_set('html_errors', false);
 
-if (!defined('ARTAX_DEBUG_LEVEL')) {
-    define('ARTAX_DEBUG_LEVEL', 0);
+if (!defined('ARTAX_DEBUG_MODE')) {
+    define('ARTAX_DEBUG_MODE', 0);
 }
 
-$unifiedErrorHandler = new UnifiedErrorHandler(new StdResponse, $mediator, ARTAX_DEBUG_LEVEL);
+$unifiedErrorHandler = new UnifiedErrorHandler(new StdResponse, $mediator, ARTAX_DEBUG_MODE);
 $unifiedErrorHandler->register();
 
 
@@ -156,7 +156,9 @@ $mediator->unshift('__sys.http-406', 'Artax\\Framework\\Http\\StatusHandlers\\Ht
 $mediator->unshift('__mediator.delta', function(Mediator $mediator) {
     list($eventName, $deltaType) = $mediator->getLastQueueDelta();
     if (strpos($eventName, '__') === 0) {
-        throw new Exception("Protected event listener `$eventName` may not be modified after boot");
+        throw new Exception(
+            "Protected event listener `$eventName` may not be modified after boot"
+        );
     }
 });
 

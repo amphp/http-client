@@ -55,19 +55,24 @@ class Http500 {
     
     /**
      * @param Exception $e
-     * @param int $debugLevel
+     * @param int $debugMode
      * @return void
      */
-    public function __invoke(Exception $e, $debugLevel) {
+    public function __invoke(Exception $e, $debugMode) {
         $this->response->setStatusCode(500);
         $this->response->setStatusDescription('Internal Server Error');
         
         if (!$this->mediator->notify('app.http-500', $this->request, $this->response, $e,
-            $debugLevel
+            $debugMode
         )) {
             $body  = '<h1>500 Internal Server Error</h1><hr />' . PHP_EOL . '<p>' . PHP_EOL;
-            $body .= $debugLevel ? "<pre>$e</pre>" : 'Well this is embarrassing ...';
-            $body .= '</p>';
+            
+            if ($debugMode) {
+                $body .= "<h2 style=\"color:red;\">DEBUG MODE ON</h2><pre>$e</pre>";
+            } else {
+                $body .= '<p>Well this is embarrassing ...</p>';
+            }
+            
             $this->response->setBody($body);
             $this->response->setHeader('Content-Type', 'text/html');
             $this->response->setHeader('Content-Length', strlen($body));
