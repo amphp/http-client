@@ -9,6 +9,7 @@
  */
 
 use Artax\Http\StdRequestFactory,
+    Artax\Http\StdResponse,
     Artax\Framework\Config\ConfigFactory,
     Artax\Framework\Routing\ObservableRoutePool,
     Artax\Framework\Routing\ObservableRouteFactory,
@@ -19,30 +20,11 @@ use Artax\Http\StdRequestFactory,
     Artax\Framework\Http\Exceptions\MethodNotAllowedException,
     Artax\Framework\Http\Exceptions\HttpStatusException,
     Artax\Negotiation\NotAcceptableException,
-    Artax\Http\StatusCodes;
+    Artax\Http\StatusCodes,
+    Artax\Framework\UnifiedErrorHandler;
 
 
 require __DIR__ . '/Artax.php';
-
-
-/*
- * -------------------------------------------------------------------------------------------------
- * Define the error handling environment.
- * -------------------------------------------------------------------------------------------------
- */
-
-if (!defined('ARTAX_DEBUG_LEVEL')) {
-    define('ARTAX_DEBUG_LEVEL', 0);
-}
-
-error_reporting(E_ALL | E_STRICT);
-ini_set('html_errors', FALSE);
-
-if (ARTAX_DEBUG_LEVEL) {
-    ini_set('display_errors', TRUE);
-} else {
-    ini_set('display_errors', FALSE);
-}
 
 
 /*
@@ -61,16 +43,20 @@ $injector->share('Artax\\Injection\\ReflectionPool', $reflPool);
 
 /*
  * -------------------------------------------------------------------------------------------------
- * Register error, exception and shutdown handlers.
+ * Define the error handling environment; register error, exception and shutdown handlers.
  * -------------------------------------------------------------------------------------------------
  */
 
-if (PHP_VERSION_ID >= 50400) {
-    (new Artax\Handler(ARTAX_DEBUG_LEVEL, $mediator))->register();
-} else {
-    $handlers = new Artax\Handler(ARTAX_DEBUG_LEVEL, $mediator);
-    $handlers->register();
+error_reporting(E_ALL | E_STRICT);
+ini_set('display_errors', false);
+ini_set('html_errors', false);
+
+if (!defined('ARTAX_DEBUG_LEVEL')) {
+    define('ARTAX_DEBUG_LEVEL', 0);
 }
+
+$unifiedErrorHandler = new UnifiedErrorHandler(new StdResponse, $mediator, ARTAX_DEBUG_LEVEL);
+$unifiedErrorHandler->register();
 
 
 /*
@@ -162,7 +148,7 @@ $injector->defineAll(array(
  * -------------------------------------------------------------------------------------------------
  */
 
-$mediator->unshift('exception', 'Artax\\Framework\\Http\\StatusHandlers\\Http500');
+$mediator->unshift('__sys.exception', 'Artax\\Framework\\Http\\StatusHandlers\\Http500');
 $mediator->unshift('__sys.http-404', 'Artax\\Framework\\Http\\StatusHandlers\\Http404');
 $mediator->unshift('__sys.http-405', 'Artax\\Framework\\Http\\StatusHandlers\\Http405');
 $mediator->unshift('__sys.http-406', 'Artax\\Framework\\Http\\StatusHandlers\\Http406');

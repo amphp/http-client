@@ -3,12 +3,12 @@
  * FatalErrorException Class File
  * 
  * @category    Artax
- * @package     Core
+ * @package     Framework
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
  * @license     All code subject to the terms of the LICENSE file in the project root
  * @version     ${project.version}
  */
-namespace Artax;
+namespace Artax\Framework;
 
 use RuntimeException;
 
@@ -20,7 +20,7 @@ use RuntimeException;
  * should be thrown instead.
  * 
  * @category    Artax
- * @package     Core
+ * @package     Framework
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
  */
 class FatalErrorException extends RuntimeException {}

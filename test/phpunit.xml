@@ -20,9 +20,10 @@
                 <file>../src/Artax/Injection/ProviderDefinitionException.php</file>
                 <file>../src/Artax/Injection/Injector.php</file>
                 
-                <file>../src/Artax/UnifiedHandler.php</file>
-                <file>../src/Artax/FatalErrorException.php</file>
-                <file>../src/Artax/ScriptHaltException.php</file>
+                <!-- Ignored because code coverage reports class declaration line as uncovered -->
+                <file>../src/Artax/Framework/FatalErrorException.php</file>
+                <!-- Ignored because code coverage reports class declaration line as uncovered -->
+                <file>../src/Artax/Framework/ScriptHaltException.php</file>
                 
                 <file>../src/Artax/Uri.php</file>
                 
