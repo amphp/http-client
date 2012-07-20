@@ -21,7 +21,7 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
      */
     public function testStatusCodeAccessors() {
         $response = new StdResponse;
-        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertEquals(null, $response->getStatusCode());
         $this->assertNull($response->setStatusCode(404));
         $this->assertEquals(404, $response->getStatusCode());
     }
@@ -32,7 +32,7 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
      */
     public function testStatusDescriptionAccessors() {
         $response = new StdResponse;
-        $this->assertEquals('OK', $response->getStatusDescription());
+        $this->assertEquals(null, $response->getStatusDescription());
         $this->assertNull($response->setStatusDescription('Not Found'));
         $this->assertEquals('Not Found', $response->getStatusDescription());
     }
@@ -123,11 +123,21 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Http\StdResponse::send
+     * @expectedException LogicException
+     */
+    public function testSendThrowsExceptionOnUnassignedStatusCode() {
+        $response = new StdResponse;
+        $response->send();
+    }
+    
+    /**
+     * @covers Artax\Http\StdResponse::send
      * @covers Artax\Http\StdResponse::wasSent
      * @runInSeparateProcess
      */
     public function testSendOutputsHeadersAndReturnsNull() {
         $response = new StdResponse;
+        $response->setStatusCode(200);
         $response->setAllHeaders(array(
             'CONTENT-TYPE' => 'text/html',
             'CONTENT-LENGTH' => 42

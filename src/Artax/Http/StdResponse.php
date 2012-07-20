@@ -12,6 +12,7 @@ namespace Artax\Http;
 
 use StdClass,
     Traversable,
+    LogicException,
     RuntimeException,
     InvalidArgumentException,
     Artax\Events\Mediator;
@@ -33,12 +34,12 @@ class StdResponse implements Response {
     /**
      * @var string
      */
-    private $statusCode = '200';
+    private $statusCode;
 
     /**
      * @var string
      */
-    private $statusDescription = 'OK';
+    private $statusDescription;
 
     /**
      * @var array
@@ -235,10 +236,13 @@ class StdResponse implements Response {
     /**
      * Formats and sends all headers prior to outputting the message body.
      * @return void
-     * @notifies sys.response.before-send(StdResponse $response)
-     * @notifies sys.response.after-send(StdResponse $response)
+     * @throws LogicException
      */
     public function send() {
+        if (!$this->statusCode) {
+            throw new LogicException('Cannot send response without an assigned HTTP status code');
+        }
+        
         $headerStr = 'HTTP/' . $this->getHttpVersion() . ' ' . $this->getStatusCode() . ' ' .
             $this->getStatusDescription();
         
