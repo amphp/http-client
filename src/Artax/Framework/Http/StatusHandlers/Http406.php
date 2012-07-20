@@ -14,7 +14,6 @@ namespace Artax\Framework\Http\StatusHandlers;
 use Artax\Events\Mediator,
     Artax\Http\Request,
     Artax\Http\Response,
-    Artax\Http\StatusCodes,
     Artax\Negotiation\NotAcceptableException;
 
 /**
@@ -43,12 +42,9 @@ class Http406 {
     private $response;
     
     /**
-     * Constructor
-     * 
      * @param Mediator $mediator
      * @param Request $request
      * @param Response $response
-     * 
      * @return void
      */
     public function __construct(Mediator $mediator, Request $request, Response $response) {
@@ -58,17 +54,13 @@ class Http406 {
     }
     
     /**
-     * Builds and outputs a 406 response
-     * 
      * @return void
      */
     public function __invoke(NotAcceptableException $e) {
-        $this->response->setStatusCode(StatusCodes::HTTP_NOT_ACCEPTABLE);
+        $this->response->setStatusCode(406);
         $this->response->setStatusDescription('Not Acceptable');
         
-        $userEvent = 'app.http-' . StatusCodes::HTTP_NOT_ACCEPTABLE;
-        
-        if (!$this->mediator->notify($userEvent, $this->request, $this->response, $e)) {
+        if (!$this->mediator->notify('app.http-406', $this->request, $this->response, $e)) {
             $body  = '<h1>406 Not Acceptable</h1>' . PHP_EOL . '<hr />' . PHP_EOL;
             $body .= '<p>' . $e->getMessage() . '</p>' . PHP_EOL;
             $this->response->setBody($body);

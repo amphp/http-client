@@ -15,7 +15,7 @@ use LogicException,
     Artax\Events\Mediator,
     Artax\Http\Request,
     Artax\Http\Response,
-    Artax\Http\Exceptions\HttpStatusException;
+    Artax\Framework\Http\Exceptions\HttpStatusException;
 
 /**
  * A catch-all listener for HttpStatusException handling

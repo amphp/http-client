@@ -14,8 +14,7 @@ namespace Artax\Framework\Http\StatusHandlers;
 use Artax\Events\Mediator,
     Artax\Http\Request,
     Artax\Http\Response,
-    Artax\Http\StatusCodes,
-    Artax\Http\Exceptions\HttpStatusException;
+    Artax\Framework\Http\Exceptions\HttpStatusException;
 
 /**
  * A default handler for 404 scenarios
@@ -59,13 +58,10 @@ class Http404 {
      * @return void
      */
     public function __invoke(HttpStatusException $e) {
-        
-        $this->response->setStatusCode(StatusCodes::HTTP_NOT_FOUND);
+        $this->response->setStatusCode(404);
         $this->response->setStatusDescription('Not Found');
         
-        $userEvent = 'app.http-' . StatusCodes::HTTP_NOT_FOUND;
-        
-        if (!$this->mediator->notify($userEvent, $this->request, $this->response, $e)) {
+        if (!$this->mediator->notify('app.http-404', $this->request, $this->response, $e)) {
             $body  = '<h1>404 Not Found</h1>' . PHP_EOL . '<hr />' . PHP_EOL;
             $body .= '<p>The requested resource could not be found:<br />' . PHP_EOL;
             $body .= '<em>'.$this->request->getUri().'</em></p>' . PHP_EOL;

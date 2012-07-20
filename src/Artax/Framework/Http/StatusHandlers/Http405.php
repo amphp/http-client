@@ -14,8 +14,7 @@ namespace Artax\Framework\Http\StatusHandlers;
 use Artax\Events\Mediator,
     Artax\Http\Request,
     Artax\Http\Response,
-    Artax\Http\StatusCodes,
-    Artax\Http\Exceptions\MethodNotAllowedException;
+    Artax\Framework\Http\Exceptions\MethodNotAllowedException;
 
 /**
  * A default handler for 405 scenarios
@@ -43,12 +42,9 @@ class Http405 {
     private $response;
     
     /**
-     * Constructor
-     * 
      * @param Mediator $mediator
      * @param Request $request
      * @param Response $response
-     * 
      * @return void
      */
     public function __construct(Mediator $mediator, Request $request, Response $response) {
@@ -58,12 +54,10 @@ class Http405 {
     }
     
     /**
-     * Builds and outputs a generic 405 response
-     * 
      * @return void
      */
     public function __invoke(MethodNotAllowedException $e) {
-        $this->response->setStatusCode(StatusCodes::HTTP_NOT_FOUND);
+        $this->response->setStatusCode(405);
         $this->response->setStatusDescription('Method Not Allowed');
         
         // As per http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.7 ...
@@ -72,9 +66,7 @@ class Http405 {
             strtoupper(implode(', ', $e->getAvailableResourceMethods()))
         );
         
-        $userEvent = 'app.http-' . StatusCodes::HTTP_NOT_FOUND;
-        
-        if (!$this->mediator->notify($userEvent, $this->request, $this->response, $e)) {
+        if (!$this->mediator->notify('app.http-405', $this->request, $this->response, $e)) {
             $body  = '<h1>405 Method Not Allowed</h1>' . PHP_EOL . '<hr />' . PHP_EOL;
             $body .= '<p>Request Method: <em>'.$this->request->getMethod().'</em></p>';
             $this->response->setBody($body);
