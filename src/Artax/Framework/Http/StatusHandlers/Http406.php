@@ -3,13 +3,13 @@
  * Http406 Handler Class File
  * 
  * @category     Artax
- * @package      Http
- * @subpackage   StatusHandlers
+ * @package      Framework
+ * @subpackage   Http
  * @author       Daniel Lowrey <rdlowrey@gmail.com>
  * @license      All code subject to the terms of the LICENSE file in the project root
  * @version      ${project.version}
  */
-namespace Artax\Http\StatusHandlers;
+namespace Artax\Framework\Http\StatusHandlers;
 
 use Artax\Events\Mediator,
     Artax\Http\Request,
@@ -20,8 +20,8 @@ use Artax\Events\Mediator,
  * A default handler for 406 scenarios
  * 
  * @category     Artax
- * @package      Http
- * @subpackage   StatusHandlers
+ * @package      Framework
+ * @subpackage   Http
  * @author       Daniel Lowrey <rdlowrey@gmail.com>
  */
 class Http406 {

@@ -1,18 +1,15 @@
 <?php
-
 /**
  * HttpGeneral Handler Class File
  * 
- * PHP 5.3+
- * 
  * @category     Artax
- * @package      Http
- * @subpackage   StatusHandlers
+ * @package      Framework
+ * @subpackage   Http
  * @author       Daniel Lowrey <rdlowrey@gmail.com>
  * @license      All code subject to the terms of the LICENSE file in the project root
  * @version      ${project.version}
  */
-namespace Artax\Http\StatusHandlers;
+namespace Artax\Framework\Http\StatusHandlers;
 
 use LogicException,
     Artax\Events\Mediator,
@@ -24,8 +21,8 @@ use LogicException,
  * A catch-all listener for HttpStatusException handling
  * 
  * @category     Artax
- * @package      Http
- * @subpackage   StatusHandlers
+ * @package      Framework
+ * @subpackage   Http
  * @author       Daniel Lowrey <rdlowrey@gmail.com>
  */
 class HttpGeneral {

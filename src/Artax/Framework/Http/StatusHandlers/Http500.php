@@ -2,16 +2,14 @@
 /**
  * Http500 Handler Class File
  * 
- * PHP 5.3+
- * 
  * @category     Artax
- * @package      Http
- * @subpackage   StatusHandlers
+ * @package      Framework
+ * @subpackage   Http
  * @author       Daniel Lowrey <rdlowrey@gmail.com>
  * @license      All code subject to the terms of the LICENSE file in the project root
  * @version      ${project.version}
  */
-namespace Artax\Http\StatusHandlers;
+namespace Artax\Framework\Http\StatusHandlers;
 
 use Exception,
     Artax\Events\Mediator,
@@ -22,8 +20,8 @@ use Exception,
  * Outputs a DEBUG-level appropriate 500 response in the event of an uncaught exception
  * 
  * @category     Artax
- * @package      Http
- * @subpackage   StatusHandlers
+ * @package      Framework
+ * @subpackage   Http
  * @author       Daniel Lowrey <rdlowrey@gmail.com>
  */
 class Http500 {
