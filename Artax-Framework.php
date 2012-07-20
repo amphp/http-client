@@ -18,7 +18,8 @@ use Artax\Http\StdRequestFactory,
     Artax\Framework\Http\Exceptions\NotFoundException,
     Artax\Framework\Http\Exceptions\MethodNotAllowedException,
     Artax\Framework\Http\Exceptions\HttpStatusException,
-    Artax\Negotiation\NotAcceptableException;
+    Artax\Negotiation\NotAcceptableException,
+    Artax\Http\StatusCodes;
 
 
 require __DIR__ . '/Artax.php';
@@ -217,18 +218,20 @@ try {
     
 } catch (NotFoundException $e) {
     
-    $mediator->notify('__sys.http-404', $e);
+    $mediator->notify('__sys.http-' . StatusCodes::HTTP_NOT_FOUND, $e);
     
 } catch (BadResourceMethodException $e) {
     
     $availableMethods = array_intersect($e->getAvailableMethods(),
         array('options', 'get', 'head', 'post', 'put', 'delete', 'trace', 'connect')
     );
-    $mediator->notify('__sys.http-405', new MethodNotAllowedException($availableMethods));
+    $mediator->notify('__sys.http-' . StatusCodes::HTTP_METHOD_NOT_ALLOWED,
+        new MethodNotAllowedException($availableMethods)
+    );
     
 } catch (NotAcceptableException $e) {
     
-    $mediator->notify('__sys.http-406', $e);
+    $mediator->notify('__sys.http-' . StatusCodes::HTTP_NOT_ACCEPTABLE, $e);
 
 } catch (HttpStatusException $e) {
     

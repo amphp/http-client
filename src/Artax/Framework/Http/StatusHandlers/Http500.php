@@ -14,6 +14,7 @@ namespace Artax\Framework\Http\StatusHandlers;
 use Exception,
     Artax\Events\Mediator,
     Artax\Http\Request,
+    Artax\Http\StatusCodes,
     Artax\Http\Response;
 
 /**
@@ -65,12 +66,12 @@ class Http500 {
      * @return void
      */
     public function __invoke(Exception $e, $debugLevel) {
-        $this->response->setStatusCode(500);
+        $this->response->setStatusCode(StatusCodes::HTTP_NOT_ACCEPTABLE);
         $this->response->setStatusDescription('Internal Server Error');
         
-        if (!$this->mediator->notify('app.http-500', $this->request, $this->response, $e,
-            $debugLevel)
-        ) {
+        $userEvent = 'app.http-' . StatusCodes::HTTP_NOT_ACCEPTABLE;
+        
+        if (!$this->mediator->notify($userEvent, $this->request, $this->response, $e, $debugLevel)) {
             $body  = '<h1>500 Internal Server Error</h1><hr />' . PHP_EOL . '<p>' . PHP_EOL;
             $body .= $debugLevel ? (string) $e : 'Well this is embarrassing ...';
             $body .= '</p>';

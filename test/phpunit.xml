@@ -33,6 +33,9 @@
                 <file>../src/Artax/Http/Request.php</file>
                 <file>../src/Artax/Http/Response.php</file>
                 
+                <!-- Ignored because code coverage reports class declaration line as uncovered -->
+                <file>../src/Artax/Http/StatusCodes.php</file>
+                
                 <file>../src/Artax/Negotiation/NegotiableTerm.php</file>
                 <file>../src/Artax/Negotiation/Parsers/HeaderParser.php</file>
                 <file>../src/Artax/Negotiation/Negotiators/HeaderNegotiator.php</file>
