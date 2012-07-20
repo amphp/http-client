@@ -95,16 +95,19 @@ if ($cfg->has('bootstrapFile') && $bootstrapFile = $cfg->get('bootstrapFile')) {
 
 if ($cfg->has('applyRouteShortcuts') && $cfg->get('applyRouteShortcuts')) {
     $injector->share('Artax\\Framework\\Plugins\\RouteShortcuts');
-    $mediator->push('sys.route.new', 'Artax\\Framework\\Plugins\\RouteShortcuts');
+    $mediator->push('__sys.route.new', 'Artax\\Framework\\Plugins\\RouteShortcuts');
 }
 if ($cfg->has('autoResponseContentLength') && $cfg->get('autoResponseContentLength')) {
-    $mediator->push('sys.response.beforeSend', 'Artax\\Framework\\Plugins\\AutoResponseContentLength');
+    $mediator->push('__sys.response.beforeSend', 'Artax\\Framework\\Plugins\\AutoResponseContentLength');
 }
 if ($cfg->has('autoResponseDate') && $cfg->get('autoResponseDate')) {
-    $mediator->push('sys.response.beforeSend', 'Artax\\Framework\\Plugins\\AutoResponseDate');
+    $mediator->push('__sys.response.beforeSend', 'Artax\\Framework\\Plugins\\AutoResponseDate');
+}
+if ($cfg->has('autoResponseStatus') && $cfg->get('autoResponseStatus')) {
+    $mediator->push('__sys.response.beforeSend', 'Artax\\Framework\\Plugins\\AutoResponseStatus');
 }
 if ($cfg->has('autoResponseEncode') && $cfg->get('autoResponseEncode')) {
-    $mediator->push('sys.response.beforeSend', 'Artax\\Framework\\Plugins\\AutoResponseEncode');
+    $mediator->push('__sys.response.beforeSend', 'Artax\\Framework\\Plugins\\AutoResponseEncode');
     $injector->define('Artax\\Framework\\Plugins\\AutoResponseEncode',
         array('request' => 'Artax\\Http\\StdRequest')
     );
@@ -221,7 +224,7 @@ try {
     $availableMethods = array_intersect($e->getAvailableMethods(),
         array('options', 'get', 'head', 'post', 'put', 'delete', 'trace', 'connect')
     );
-    $mediator->notify("__sys.http-405", new MethodNotAllowedException($availableMethods));
+    $mediator->notify('__sys.http-405', new MethodNotAllowedException($availableMethods));
     
 } catch (NotAcceptableException $e) {
     
@@ -229,6 +232,6 @@ try {
 
 } catch (HttpStatusException $e) {
     
-    $mediator->notify("__sys.http-general", $e);
+    $mediator->notify('__sys.http-general', $e);
     
 }
