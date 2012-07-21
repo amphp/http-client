@@ -73,10 +73,13 @@ class StdRequest implements Request {
      */
     public function __construct($uri, $httpVersion, $method, array $headers = array(), $body = '') {
         $this->uri = $uri instanceof Uri ? $uri : $this->buildUri($uri);
-        $this->headers = $this->normalizeHeaders($headers);
         $this->httpVersion = $httpVersion;
         $this->method = $this->normalizeMethod($method);
         $this->body = $this->acceptsEntityBody() ? $body : '';
+        
+        // prior to PHP 5.4 warnings are issued if empty arrays are used
+        $this->headers = $headers ? $this->normalizeHeaders($headers) : $headers;
+        
         $this->queryParameters = $this->parseParametersFromString($this->uri->getQuery());
     }
     
@@ -99,10 +102,6 @@ class StdRequest implements Request {
      * @return array
      */
     private function normalizeHeaders(array $headers) {
-        // prior to PHP 5.4 warnings are issued if empty arrays are used
-        if (!$headers) {
-            return $headers;
-        }
         return array_combine(array_map('strtoupper', array_keys($headers)), $headers);
     }
     
