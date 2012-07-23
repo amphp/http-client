@@ -101,13 +101,14 @@ class Client {
     protected function buildResponseFromStream($stream) {
 
         $meta_data = stream_get_meta_data($stream);
-        $headers = $meta_data['wrapper_data'];
+        $headers = $this->buildHeadersFromWrapperData($meta_data['wrapper_data']);
 
+        $last_header = $headers[count($headers) - 1];
         $response = new StdResponse();
 
-        $response->setStartLine($headers[0]);
-        for ($i = 1, $headerCount = count($headers); $i < $headerCount; $i++) {
-            $response->setRawHeader($headers[$i]);
+        $response->setStartLine($last_header[0]);
+        for ($i = 1, $headerCount = count($last_header); $i < $headerCount; $i++) {
+            $response->setRawHeader($last_header[$i]);
         }
 
         $body = stream_get_contents($stream);
@@ -115,6 +116,22 @@ class Client {
         $response->setBody($body);
 
         return $response;
+    }
+
+    protected function buildHeadersFromWrapperData($wrapper_data) {
+        $headers = array();
+
+        foreach ($wrapper_data as $header) {
+            if (strpos($header, 'HTTP/') === 0) {
+                $headers[] = array($header);
+            } else {
+                $headers[count($headers)-1][] = $header;
+            }
+
+        }
+
+        return $headers;
+
     }
 
 }
