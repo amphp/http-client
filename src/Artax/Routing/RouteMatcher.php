@@ -10,8 +10,6 @@
  */
 namespace Artax\Routing;
 
-use Countable;
-
 /**
  * An interface for matching patterns against a pool of resource routes
  * 
@@ -19,19 +17,13 @@ use Countable;
  * @package     Routing
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
  */
-interface RouteMatcher extends Countable {
-    
-    /**
-     * @param RouteStorage $routeStorage
-     * @return void
-     */
-    function setRoutes(RouteStorage $routeStorage);
+interface RouteMatcher {
     
     /**
      * @param string $matchablePattern
      * @return bool
      */
-    function match($matchablePattern);
+    function match($matchablePattern, RouteStorage $routeStorage);
     
     /**
      * @return string

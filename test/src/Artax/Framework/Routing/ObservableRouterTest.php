@@ -20,23 +20,6 @@ class ObservableRouterTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers Artax\Framework\Routing\ObservableRouter::setRoutes
-     * @covers Artax\Framework\Routing\ObservableRouter::notify
-     */
-    public function testSetRoutesNotifiesListeners() {
-        $mediator = $this->getMock('Artax\\Events\\Mediator');
-        
-        $router = new ObservableRouter($mediator);
-        
-        $mediator->expects($this->once())
-                 ->method('notify')
-                 ->with('__sys.router.setRoutes');
-        
-        $routes = $this->getMock('Artax\\Routing\\RouteStorage');
-        $router->setRoutes($routes);
-    }
-    
-    /**
      * @covers Artax\Framework\Routing\ObservableRouter::match
      * @covers Artax\Framework\Routing\ObservableRouter::notify
      */
@@ -47,13 +30,11 @@ class ObservableRouterTest extends PHPUnit_Framework_TestCase {
         $routes = new RoutePool(new StdRouteFactory);
         $routes->addRoute('/widgets', 'WidgetResource');
                
-        $router->setRoutes($routes);
-        
         $mediator->expects($this->once())
                  ->method('notify')
                  ->with('__sys.router.matchFound');
         
-        $this->assertTrue($router->match('/widgets'));
+        $this->assertTrue($router->match('/widgets', $routes));
     }
     
     /**
@@ -67,12 +48,10 @@ class ObservableRouterTest extends PHPUnit_Framework_TestCase {
         $routes = new RoutePool(new StdRouteFactory);
         $routes->addRoute('/kumqats', 'KumqatResource');
                
-        $router->setRoutes($routes);
-        
         $mediator->expects($this->once())
                  ->method('notify')
                  ->with('__sys.router.noMatch');
         
-        $this->assertFalse($router->match('/widgets'));
+        $this->assertFalse($router->match('/widgets', $routes));
     }
 }

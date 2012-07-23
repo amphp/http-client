@@ -24,11 +24,6 @@ use StdClass,
 class Router implements RouteMatcher {
     
     /**
-     * @var RouteStorage
-     */
-    private $routeStorage;
-    
-    /**
      * @var string
      */
     private $matchedResource;
@@ -39,25 +34,15 @@ class Router implements RouteMatcher {
     private $matchedArgs;
     
     /**
-     * @param RouteStorage $routeStorage
-     * @return void
-     */
-    public function setRoutes(RouteStorage $routeStorage) {
-        $this->routeStorage = $routeStorage;
-    }
-    
-    /**
      * @param string $matchablePattern
+     * @param RouteStorage $routeStorage
      * @return bool
      */
-    public function match($matchablePattern) {
-        if (!$this->routeStorage) {
-            return false;
-        }
+    public function match($matchablePattern, RouteStorage $routeStorage) {
         
-        foreach ($this->routeStorage as $route) {
+        foreach ($routeStorage as $route) {
             $routePattern = '#^' . $route->getPattern() . '$#';
-            if ($this->matchPatternAndBuildArgs($routePattern, $matchablePattern)) {
+            if ($this->matchRouteArguments($routePattern, $matchablePattern)) {
                 $this->matchedResource = $route->getResource();
                 return true;
             }
@@ -71,7 +56,7 @@ class Router implements RouteMatcher {
      * @param string $matchablePattern
      * @return bool
      */
-    private function matchPatternAndBuildArgs($routePattern, $matchablePattern) {
+    private function matchRouteArguments($routePattern, $matchablePattern) {
         if (!preg_match($routePattern, $matchablePattern, $matchedArgs)) {
             return false;
         }
@@ -98,12 +83,5 @@ class Router implements RouteMatcher {
      */
     public function getMatchedArgs() {
         return $this->matchedArgs;
-    }
-    
-    /**
-     * @return int
-     */
-    public function count() {
-        return $this->routeStorage ? count($this->routeStorage) : 0;
     }
 }

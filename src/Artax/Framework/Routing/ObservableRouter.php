@@ -48,21 +48,13 @@ class ObservableRouter extends Router {
     }
     
     /**
-     * @param RouteStorage $routeStorage
-     * @return void
-     */
-    public function setRoutes(RouteStorage $routeStorage) {
-        parent::setRoutes($routeStorage);
-        $this->notify('__sys.router.setRoutes');
-    }
-    
-    /**
      * @param string $uriPath
+     * @param RouteStorage $routes
      * @return bool
      * @throws MissingRoutesException
      */
-    public function match($uriPath) {
-        $matchResult = parent::match($uriPath);
+    public function match($uriPath, RouteStorage $routes) {
+        $matchResult = parent::match($uriPath, $routes);
         
         if ($matchResult) {
             $this->notify('__sys.router.matchFound');
