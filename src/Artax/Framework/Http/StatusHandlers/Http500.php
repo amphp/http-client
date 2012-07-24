@@ -62,13 +62,17 @@ class Http500 {
         $this->response->setStatusCode(500);
         $this->response->setStatusDescription('Internal Server Error');
         
-        if (!$this->mediator->notify('app.http-500', $this->request, $this->response, $e,
+        if (!$this->mediator->notify(
+            'app.http-500',
+            $this->request,
+            $this->response,
+            $e,
             $debugMode
         )) {
-            $body  = '<h1>500 Internal Server Error</h1><hr />' . PHP_EOL . '<p>' . PHP_EOL;
+            $body  = '<h1>500 Internal Server Error</h1><hr />' . PHP_EOL;
             
             if ($debugMode) {
-                $body .= "<h2 style=\"color:red;\">DEBUG MODE ON</h2><pre>$e</pre>";
+                $body .= "<h2 style=\"color:red;\">DEBUG MODE</h2><pre>$e</pre>";
             } else {
                 $body .= '<p>Well this is embarrassing ...</p>';
             }
