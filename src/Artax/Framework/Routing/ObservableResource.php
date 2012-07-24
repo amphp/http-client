@@ -44,11 +44,6 @@ class ObservableResource {
     private $invocationResult;
     
     /**
-     * @var bool
-     */
-    private $wasInvoked = false;
-    
-    /**
      * @param Mediator $mediator
      * @param callable $callableResource
      * @param array $args
@@ -89,13 +84,6 @@ class ObservableResource {
     }
     
     /**
-     * @return mixed Returns the resource class instance
-     */
-    public function getResourceInstance() {
-        return $this->callableResource[0];
-    }
-    
-    /**
      * @return mixed Returns a callable resource/method in the array callback construction
      */
     public function getCallableResource() {
@@ -114,12 +102,5 @@ class ObservableResource {
      */
     public function getInvocationResult() {
         return $this->invocationResult;
-    }
-    
-    /**
-     * @return bool
-     */
-    public function wasInvoked() {
-        return $this->wasInvoked;
     }
 }
