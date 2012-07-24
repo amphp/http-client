@@ -9,7 +9,7 @@
  */
 
 use Artax\Http\StdRequestFactory,
-    Artax\Http\StdResponse,
+    Artax\Framework\Http\ObservableResponse,
     Artax\Framework\Config\ConfigFactory,
     Artax\Framework\Routing\ObservableRoutePool,
     Artax\Framework\Routing\ObservableRouteFactory,
@@ -43,6 +43,35 @@ $injector->share('Artax\\Injection\\ReflectionPool', $reflPool);
 
 /*
  * -------------------------------------------------------------------------------------------------
+ * Define injection parameters for system classes that typehint interfaces.
+ * -------------------------------------------------------------------------------------------------
+ */
+
+$mediatorDefinition = array('mediator' => $mediator);
+$httpStatusHandlerDefinition = array(
+    'mediator' => $mediator,
+    'request'  => 'Artax\\Http\\StdRequest',
+    'response' => 'Artax\\Framework\\Http\\ObservableResponse'
+);
+
+$injector->defineAll(array(
+    'Artax\\Framework\\Http\\ObservableResponse' => $mediatorDefinition,
+    'Artax\\Framework\\Routing\\ObservableResource' => $mediatorDefinition,
+    'Artax\\Framework\\Routing\\ObservableResourceFactory' => $mediatorDefinition,
+    'Artax\\Framework\\Routing\\ObservableRoute' => $mediatorDefinition,
+    'Artax\\Framework\\Routing\\ObservableRouteFactory' => $mediatorDefinition,
+    'Artax\\Framework\\Routing\\ObservableRoutePool' => $mediatorDefinition,
+    'Artax\\Framework\\Routing\\ObservableRouter' => $mediatorDefinition,
+    'Artax\\Framework\\Http\\StatusHandlers\\Http404' => $httpStatusHandlerDefinition,
+    'Artax\\Framework\\Http\\StatusHandlers\\Http405' => $httpStatusHandlerDefinition,
+    'Artax\\Framework\\Http\\StatusHandlers\\Http406' => $httpStatusHandlerDefinition,
+    'Artax\\Framework\\Http\\StatusHandlers\\Http500' => $httpStatusHandlerDefinition,
+    'Artax\\Framework\\Http\\StatusHandlers\\HttpGeneral' => $httpStatusHandlerDefinition
+));
+
+
+/*
+ * -------------------------------------------------------------------------------------------------
  * Define the error handling environment; register error, exception and shutdown handlers.
  * -------------------------------------------------------------------------------------------------
  */
@@ -55,8 +84,12 @@ if (!defined('ARTAX_DEBUG_MODE')) {
     define('ARTAX_DEBUG_MODE', 0);
 }
 
-$unifiedErrorHandler = new UnifiedErrorHandler(new StdResponse, $mediator, ARTAX_DEBUG_MODE);
-$unifiedErrorHandler->register();
+$unifiedHandler = new UnifiedErrorHandler(
+    new ObservableResponse($mediator),
+    $mediator,
+    ARTAX_DEBUG_MODE
+);
+$unifiedHandler->register();
 
 
 /*
@@ -80,6 +113,12 @@ if ($cfg->has('bootstrapFile') && $bootstrapFile = $cfg->get('bootstrapFile')) {
     $userBootstrap($injector, $mediator, $bootstrapFile);
 }
 
+if ($cfg->has('autoImplementRequest') && $cfg->get('autoImplementRequest')) {
+    $injector->implement('Artax\\Http\\Request', 'Artax\\Http\\StdRequest');
+}
+if ($cfg->has('autoImplementResponse') && $cfg->get('autoImplementResponse')) {
+    $injector->implement('Artax\\Http\\Response', 'Artax\\Framework\\Http\\ObservableResponse');
+}
 if ($cfg->has('applyRouteShortcuts') && $cfg->get('applyRouteShortcuts')) {
     $injector->share('Artax\\Framework\\Plugins\\RouteShortcuts');
     $mediator->push('__sys.route.new', 'Artax\\Framework\\Plugins\\RouteShortcuts');
@@ -111,35 +150,6 @@ if ($cfg->has('injectionDefinitions')) {
 if ($cfg->has('interfaceImplementations')) {
     $injector->implementAll($cfg->get('interfaceImplementations'));
 }
-
-
-/*
- * -------------------------------------------------------------------------------------------------
- * Define injection parameters for system classes that use interface typehints.
- * -------------------------------------------------------------------------------------------------
- */
-
-$mediatorDefinition = array('mediator' => $mediator);
-$httpStatusHandlerDefinition = array(
-    'mediator' => $mediator,
-    'request'  => 'Artax\\Http\\StdRequest',
-    'response' => 'Artax\\Framework\\Http\\ObservableResponse'
-);
-
-$injector->defineAll(array(
-    'Artax\\Framework\\Http\\ObservableResponse' => $mediatorDefinition,
-    'Artax\\Framework\\Routing\\ObservableResource' => $mediatorDefinition,
-    'Artax\\Framework\\Routing\\ObservableResourceFactory' => $mediatorDefinition,
-    'Artax\\Framework\\Routing\\ObservableRoute' => $mediatorDefinition,
-    'Artax\\Framework\\Routing\\ObservableRouteFactory' => $mediatorDefinition,
-    'Artax\\Framework\\Routing\\ObservableRoutePool' => $mediatorDefinition,
-    'Artax\\Framework\\Routing\\ObservableRouter' => $mediatorDefinition,
-    'Artax\\Framework\\Http\\StatusHandlers\\Http404' => $httpStatusHandlerDefinition,
-    'Artax\\Framework\\Http\\StatusHandlers\\Http405' => $httpStatusHandlerDefinition,
-    'Artax\\Framework\\Http\\StatusHandlers\\Http406' => $httpStatusHandlerDefinition,
-    'Artax\\Framework\\Http\\StatusHandlers\\Http500' => $httpStatusHandlerDefinition,
-    'Artax\\Framework\\Http\\StatusHandlers\\HttpGeneral' => $httpStatusHandlerDefinition
-));
 
 
 /*

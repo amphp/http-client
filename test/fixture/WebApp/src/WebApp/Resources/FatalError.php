@@ -5,8 +5,7 @@ namespace WebApp\Resources;
 use Artax\Http\Request,
     Artax\Http\Response;
 
-
-class Index {
+class FatalError {
     
     private $request;
     private $response;
@@ -17,13 +16,12 @@ class Index {
     }
     
     public function get() {
-        $body = 'Index::get';
-        $this->response->setBody($body);
-        $this->response->setStatusCode(200);
-        $this->response->setStatusDescription('OK');
-        $this->response->send();
-        
-        return $this->response;
+        // cause a fatal error
+        ini_set('memory_limit', '1M');
+        $data = '';
+        while(1) {
+            $data .= str_repeat('#', PHP_INT_MAX);
+        }
     }
 
 }

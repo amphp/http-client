@@ -2,8 +2,8 @@
 
 namespace WebApp\Resources;
 
-use Artax\Http\StdRequest,
-    Artax\Framework\Http\ObservableResponse;
+use Artax\Http\Request,
+    Artax\Http\Response;
 
 
 class Error {
@@ -11,18 +11,13 @@ class Error {
     private $request;
     private $response;
     
-    public function __construct(StdRequest $request, ObservableResponse $response) {
+    public function __construct(Request $request, Response $response) {
         $this->request = $request;
         $this->response = $response;
     }
     
     public function get() {
-        // cause a fatal error
-        ini_set('memory_limit', '1M');
-        $data = '';
-        while(1) {
-            $data .= str_repeat('#', PHP_INT_MAX);
-        }
+        trigger_error('Error::get', E_USER_NOTICE);
     }
 
 }

@@ -2,11 +2,12 @@
 
 namespace WebApp\Resources;
 
-use Artax\Http\Request,
+use Exception,
+    Artax\Http\Request,
     Artax\Http\Response;
 
 
-class Index {
+class ExceptionTest {
     
     private $request;
     private $response;
@@ -17,13 +18,7 @@ class Index {
     }
     
     public function get() {
-        $body = 'Index::get';
-        $this->response->setBody($body);
-        $this->response->setStatusCode(200);
-        $this->response->setStatusDescription('OK');
-        $this->response->send();
-        
-        return $this->response;
+        throw new Exception('ExceptionTest::get');
     }
 
 }

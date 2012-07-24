@@ -2,22 +2,22 @@
 
 namespace WebApp\Resources;
 
-use Artax\Http\StdRequest,
-    Artax\Framework\Http\ObservableResponse;
+use Artax\Http\Request,
+    Artax\Http\Response;
 
 
-class Test {
+class PostOnly {
     
     private $request;
     private $response;
     
-    public function __construct(StdRequest $request, ObservableResponse $response) {
+    public function __construct(Request $request, Response $response) {
         $this->request = $request;
         $this->response = $response;
     }
     
-    public function get() {
-        $body = '<html><body><h1>Test::get</h1></body></html>';
+    public function post() {
+        $body = '<html><body><h1>PostOnly::post</h1></body></html>';
         $this->response->setBody($body);
         $this->response->setStatusCode(200);
         $this->response->setStatusDescription('OK');
