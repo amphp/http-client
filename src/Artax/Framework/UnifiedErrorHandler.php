@@ -28,23 +28,23 @@ class UnifiedErrorHandler {
     /**
      * @var Response
      */
-    private $response;
+    protected $response;
     
     /**
      * @var Mediator
      */
-    private $mediator;
+    protected $mediator;
     
     /**
      * @var int
      */
-    private $debugMode;
+    protected $debugMode;
     
     /**
      * Helper flag for working around https://bugs.php.net/bug.php?id=60909
      * @var bool
      */
-    private $shutdownRoutineInvoked = false;
+    protected $shutdownRoutineInvoked = false;
     
     /**
      * @param Response $response
@@ -61,9 +61,9 @@ class UnifiedErrorHandler {
      * @return void
      */
     public function register() {
-        set_error_handler(array($this, 'error'));
-        set_exception_handler(array($this, 'exception'));
-        register_shutdown_function(array($this, 'shutdown'));
+        set_error_handler(array($this, 'handleError'));
+        set_exception_handler(array($this, 'handleException'));
+        register_shutdown_function(array($this, 'handleShutdown'));
     }
     
     /**
@@ -73,7 +73,7 @@ class UnifiedErrorHandler {
      * @param int    $errLine The line in which the error occurred
      * @return void
      */
-    public function error($errNo, $errStr, $errFile, $errLine) {
+    public function handleError($errNo, $errStr, $errFile, $errLine) {
         $msg = "$errStr in $errFile on line $errLine";
         $e = new ErrorException($msg, $errNo);
         
@@ -86,8 +86,8 @@ class UnifiedErrorHandler {
             // Because of the bug listed at  https://bugs.php.net/bug.php?id=60909
             // we manually call the exception/shutdown routine when error handling
             // results in an exception and end execution
-            $this->exception($e);
-            $this->shutdown();
+            $this->handleException($e);
+            $this->handleShutdown();
             
             throw new ScriptHaltException;
         }
@@ -97,19 +97,19 @@ class UnifiedErrorHandler {
      * @param Exception $e
      * @return void
      */
-    public function exception(Exception $e) {
+    public function handleException(Exception $e) {
         if ($e instanceof ScriptHaltException) {
             return;
         }
         
         try {
             if (!$this->mediator->notify('__sys.exception', $e, $this->debugMode)) {
-                $this->outputDefaultHandlerMsg($e);
+                $this->outputDefaultExceptionMessage($e);
             }
-        } catch (ScriptHaltException $e) {
+        } catch (ScriptHaltException $scriptHaltException) {
             return;
-        } catch (Exception $e) {
-            $this->outputDefaultHandlerMsg($e);
+        } catch (Exception $nestedException) {
+            $this->outputDefaultExceptionMessage($nestedException);
         }
     }
     
@@ -117,7 +117,7 @@ class UnifiedErrorHandler {
      * @param Exception $e
      * @return string
      */
-    protected function outputDefaultHandlerMsg(Exception $e) {
+    protected function outputDefaultExceptionMessage(Exception $e) {
         if ($this->response->wasSent()) {
             return;
         }
@@ -125,26 +125,27 @@ class UnifiedErrorHandler {
         $this->response->setStatusCode(StatusCodes::HTTP_INTERNAL_SERVER_ERROR);
         $this->response->setStatusDescription(StatusCodes::HTTP_500);
         
+        $body  = '<h1>500 Internal Server Error</h1><hr />' . PHP_EOL;
+        
         if ($this->debugMode) {
-            $body = '<p style="color:red;font-weight:bold;">DEBUG MODE<br />';
-            $body .= 'turn off ARTAX_DEBUG_MODE to display user-friendly output on errors.</p>';
+            $body .= '<h2 style="color:red;">DEBUG MODE</h2>';
             $body .= "<pre>$e</pre>";
         } else {
-            $body = '<p>Well this is embarrassing ...</p>';
+            $body .= '<p>Well this is embarrassing ...</p>';
         }
         
+        $this->response->setStatusCode(500);
+        $this->response->setStatusDescription('Internal Server Error');
         $this->response->setBody($body);
-        $this->response->setRawHeader('Content-Length: ' . strlen($body));
+        $this->response->setHeader('Content-Type', 'text/html');
+        $this->response->setHeader('Content-Length', strlen($body));
         $this->response->send();
     }
     
     /**
-     * Handle unexpected fatal errors and notify listeners of shutdown
-     * 
      * @return void
-     * @notifies shutdown()
      */
-    public function shutdown() {
+    public function handleShutdown() {
         // Because of the bug listed at https://bugs.php.net/bug.php?id=60909 this function
         // may have already been invoked by the error handler
         if ($this->shutdownRoutineInvoked) {
@@ -153,15 +154,15 @@ class UnifiedErrorHandler {
         
         $this->shutdownRoutineInvoked = true;
         
-        if ($e = $this->buildExceptionFromFatal()) {
+        if ($e = $this->buildExceptionFromFatalError()) {
             $this->handleFatalError($e);
         } else {
             try {
                 $this->mediator->notify('__sys.shutdown');
-            } catch (ScriptHaltException $e) {
+            } catch (ScriptHaltException $scriptHaltException) {
                 return;
-            } catch (Exception $e) {
-                $this->outputDefaultHandlerMsg($e);
+            } catch (Exception $nestedException) {
+                $this->outputDefaultExceptionMessage($nestedException);
             }
         }
     }
@@ -169,23 +170,23 @@ class UnifiedErrorHandler {
     /**
      * @param FatalErrorException $e
      */
-    private function handleFatalError(FatalErrorException $e) {
+    protected function handleFatalError(FatalErrorException $e) {
         try {
             if (!$this->mediator->notify('__sys.exception', $e, $this->debugMode)) {
-                $this->outputDefaultHandlerMsg($e);
+                $this->outputDefaultExceptionMessage($e);
             }
             $this->mediator->notify('__sys.shutdown');
         } catch (ScriptHaltException $e) {
             return;
         } catch (Exception $e) {
-            $this->outputDefaultHandlerMsg($e);
+            $this->outputDefaultExceptionMessage($e);
         }
     }
 
     /**
      * @return FatalErrorException Returns null if the most recent PHP error wasn't fatal
      */
-    private function buildExceptionFromFatal() {
+    protected function buildExceptionFromFatalError() {
         $ex  = null;
         $err = $this->getLastError();
         
@@ -210,7 +211,7 @@ class UnifiedErrorHandler {
     /**
      * @return array Returns an associative error representation array
      */
-    private function getLastError() {
+    protected function getLastError() {
         return error_get_last();
     }
 }
