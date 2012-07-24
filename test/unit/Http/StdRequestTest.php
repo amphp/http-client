@@ -306,4 +306,81 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals('var1=one&var2=two', $request->getBody());
     }
     
+    /**
+     * @covers Artax\Http\StdRequest::__construct
+     * @covers Artax\Http\StdRequest::hasFormEncodedBody
+     * @covers Artax\Http\StdRequest::parseParametersFromString
+     * @covers Artax\Http\StdRequest::acceptsEntityBody
+     */
+    public function testConstructorAssignsFormEncodedBodyParametersIfDefined() {
+        $uri = $this->getMock('Artax\\Uri');
+        $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
+        $body = 'var1=one&var2=two&var3=Yes%20sir';
+        $request = new StdRequest($uri, '1.1', 'POST', $headers, $body);
+        
+        $this->assertEquals('one', $request->getBodyParameter('var1'));
+        $this->assertEquals('two', $request->getBodyParameter('var2'));
+        $this->assertEquals('Yes sir', $request->getBodyParameter('var3'));
+        
+        $request = new StdRequest($uri, '1.1', 'POST', array());
+        $this->assertEquals(array(), $request->getAllBodyParameters());
+    }
+    
+    /**
+     * @covers Artax\Http\StdRequest::__construct
+     * @covers Artax\Http\StdRequest::getAllBodyParameters
+     */
+    public function testGetAllBodyParametersReturnsArrayOfBodyParameters() {
+        $uri = $this->getMock('Artax\\Uri');
+        $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
+        $body = 'var1=one&var2=two&var3=Yes%20sir';
+        $request = new StdRequest($uri, '1.1', 'POST', $headers, $body);
+        
+        $expected = array('var1' => 'one', 'var2' => 'two', 'var3' => 'Yes sir');
+        $this->assertEquals($expected, $request->getAllBodyParameters());
+        
+        $request = new StdRequest($uri, '1.1', 'POST', array());
+        $this->assertEquals(array(), $request->getAllBodyParameters());
+    }
+    
+    /**
+     * @covers Artax\Http\StdRequest::__construct
+     * @covers Artax\Http\StdRequest::hasBodyParameter
+     */
+    public function testHasBodyParameterReturnsBoolOnParameterAvailability() {
+        $uri = $this->getMock('Artax\\Uri');
+        $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
+        $body = 'var1=one&var2=two&var3=Yes%20sir';
+        $request = new StdRequest($uri, '1.1', 'POST', $headers, $body);
+        
+        $this->assertTrue($request->hasBodyParameter('var1'));
+        $this->assertFalse($request->hasBodyParameter('var999'));
+    }
+    
+    /**
+     * @covers Artax\Http\StdRequest::__construct
+     * @covers Artax\Http\StdRequest::getBodyParameter
+     */
+    public function testGetBodyParameterReturnsRequestParameterValue() {
+        $uri = $this->getMock('Artax\\Uri');
+        $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
+        $body = 'var1=one&var2=two&var3=Yes%20sir';
+        $request = new StdRequest($uri, '1.1', 'POST', $headers, $body);
+        
+        $this->assertEquals('one', $request->getBodyParameter('var1'));
+    }
+    
+    /**
+     * @covers Artax\Http\StdRequest::__construct
+     * @covers Artax\Http\StdRequest::getBodyParameter
+     * @expectedException RuntimeException
+     */
+    public function testGetBodyParameterExceptionOnInvalidParameter() {
+        $uri = $this->getMock('Artax\\Uri');
+        $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
+        $body = 'var1=one&var2=two&var3=Yes%20sir';
+        $request = new StdRequest($uri, '1.1', 'POST', $headers, $body);
+        
+        $request->getBodyParameter('var999999');
+    }
 }

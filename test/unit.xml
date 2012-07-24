@@ -27,9 +27,8 @@
                 <file>../src/Artax/Routing/RouteStorage.php</file>
                 
                 <file>../src/Artax/Http/Request.php</file>
+                <file>../src/Artax/Http/FormEncodableRequest.php</file>
                 <file>../src/Artax/Http/Response.php</file>
-                
-                <!-- Ignored because code coverage reports class declaration line as uncovered -->
                 <file>../src/Artax/Http/StatusCodes.php</file>
                 
                 <file>../src/Artax/Negotiation/NegotiableTerm.php</file>

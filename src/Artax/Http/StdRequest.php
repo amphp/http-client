@@ -25,7 +25,7 @@ use DomainException,
  * @author      Levi Morrison <levim@php.net>
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
  */
-class StdRequest implements Request {
+class StdRequest implements FormEncodableRequest {
     
     /**
      * @var Uri
@@ -45,7 +45,7 @@ class StdRequest implements Request {
     /**
      * @var array
      */
-    private $headers;
+    private $headers = array();
     
     /**
      * @var string
@@ -61,6 +61,11 @@ class StdRequest implements Request {
      * @var array
      */
     private $queryParameters;
+    
+    /**
+     * @var array
+     */
+    private $bodyParameters = array();
 
     /**
      * @param mixed $uri A valid URI string or Artax\Uri instance
@@ -77,10 +82,17 @@ class StdRequest implements Request {
         $this->method = $this->normalizeMethod($method);
         $this->body = $this->acceptsEntityBody() ? $body : '';
         
-        // prior to PHP 5.4 warnings are issued if empty arrays are used
-        $this->headers = $headers ? $this->normalizeHeaders($headers) : $headers;
+        if ($headers) {
+            $this->headers = $this->normalizeHeaders($headers);
+        }
         
         $this->queryParameters = $this->parseParametersFromString($this->uri->getQuery());
+        
+        if ($this->hasFormEncodedBody() && $this->acceptsEntityBody()) {
+            $this->bodyParameters = $this->parseParametersFromString($this->getBody());
+        } else {
+            $this->bodyParameters = array();
+        }
     }
     
     /**
@@ -92,7 +104,7 @@ class StdRequest implements Request {
         } catch (InvalidArgumentException $e) {
             throw new InvalidArgumentException(
                 'Invalid URI specified at Argument 1 in ' . get_class($this) . '::__construct: ' .
-                "$uri. Please specify a valid URI string or instance of Artax\\Uri.", null, $e
+                "$uri. Please specify a valid URI string or Artax\\Uri instance.", null, $e
             );
         }
     }
@@ -130,6 +142,16 @@ class StdRequest implements Request {
     protected function parseParametersFromString($paramString) {
         parse_str($paramString, $parameters);
         return array_map('urldecode', $parameters);
+    }
+    
+    /**
+     * @return bool
+     */
+    protected function hasFormEncodedBody() {
+        if (!$this->hasHeader('Content-Type')) {
+            return false;
+        }
+        return strtolower($this->getHeader('Content-Type')) === 'application/x-www-form-urlencoded';
     }
     
     /**
@@ -269,5 +291,32 @@ class StdRequest implements Request {
      */
     public function getAllQueryParameters() {
         return $this->queryParameters;
+    }
+    
+    /**
+     * @param string $parameter
+     * @return bool
+     */
+    public function hasBodyParameter($parameter) {
+        return isset($this->bodyParameters[$parameter]);
+    }
+    
+    /**
+     * @param string $parameter
+     * @return string
+     * @todo Determine appropriate exception for invalid parameter request
+     */
+    public function getBodyParameter($parameter) {
+        if (!$this->hasBodyParameter($parameter)) {
+            throw new RuntimeException;
+        }
+        return $this->bodyParameters[$parameter];
+    }
+    
+    /**
+     * @return array
+     */
+    public function getAllBodyParameters() {
+        return $this->bodyParameters;
     }
 }

@@ -8,20 +8,23 @@
  * @version     ${project.version}
  */
 
-use Artax\Http\StdRequestFactory,
-    Artax\Framework\Http\ObservableResponse,
+use Artax\Http\StatusCodes,
+    Artax\Http\RequestFactory,
+    Artax\Http\StdResponse,
+    Artax\Events\Mediator,
     Artax\Framework\Config\ConfigFactory,
     Artax\Framework\Routing\ObservableRoutePool,
     Artax\Framework\Routing\ObservableRouteFactory,
     Artax\Framework\Routing\ObservableResourceFactory,
     Artax\Framework\Routing\ClassResourceMapper,
     Artax\Framework\Routing\BadResourceMethodException,
+    Artax\Framework\Http\ObservableResponse,
     Artax\Framework\Http\Exceptions\NotFoundException,
     Artax\Framework\Http\Exceptions\MethodNotAllowedException,
     Artax\Framework\Http\Exceptions\HttpStatusException,
-    Artax\Negotiation\NotAcceptableException,
-    Artax\Http\StatusCodes,
-    Artax\Framework\UnifiedErrorHandler;
+    Artax\Framework\UnifiedErrorHandler,
+    Artax\Framework\Events\SystemEventDeltaException,
+    Artax\Negotiation\NotAcceptableException;
 
 
 require __DIR__ . '/Artax.php';
@@ -39,6 +42,23 @@ $mediator = new Artax\Framework\Events\ProvisionedNotifier($injector);
 
 $injector->share('Artax\\Framework\\Events\\ProvisionedNotifier', $mediator);
 $injector->share('Artax\\Injection\\ReflectionPool', $reflPool);
+
+
+/*
+ * -------------------------------------------------------------------------------------------------
+ * Define the error handling environment; register error, exception and shutdown handlers.
+ * -------------------------------------------------------------------------------------------------
+ */
+
+error_reporting(E_ALL | E_STRICT);
+ini_set('display_errors', false);
+
+if (!defined('ARTAX_DEBUG_MODE')) {
+    define('ARTAX_DEBUG_MODE', 0);
+}
+
+$handler = new UnifiedErrorHandler(new StdResponse($mediator), $mediator, ARTAX_DEBUG_MODE);
+$handler->register();
 
 
 /*
@@ -72,24 +92,14 @@ $injector->defineAll(array(
 
 /*
  * -------------------------------------------------------------------------------------------------
- * Define the error handling environment; register error, exception and shutdown handlers.
+ * Register HTTP event handlers.
  * -------------------------------------------------------------------------------------------------
  */
 
-error_reporting(E_ALL | E_STRICT);
-ini_set('display_errors', false);
-ini_set('html_errors', false);
-
-if (!defined('ARTAX_DEBUG_MODE')) {
-    define('ARTAX_DEBUG_MODE', 0);
-}
-
-$unifiedHandler = new UnifiedErrorHandler(
-    new ObservableResponse($mediator),
-    $mediator,
-    ARTAX_DEBUG_MODE
-);
-$unifiedHandler->register();
+$mediator->push('__sys.http-404', 'Artax\\Framework\\Http\\StatusHandlers\\Http404');
+$mediator->push('__sys.http-405', 'Artax\\Framework\\Http\\StatusHandlers\\Http405');
+$mediator->push('__sys.http-406', 'Artax\\Framework\\Http\\StatusHandlers\\Http406');
+$mediator->push('__sys.exception', 'Artax\\Framework\\Http\\StatusHandlers\\Http500');
 
 
 /*
@@ -113,12 +123,6 @@ if ($cfg->has('bootstrapFile') && $bootstrapFile = $cfg->get('bootstrapFile')) {
     $userBootstrap($injector, $mediator, $bootstrapFile);
 }
 
-if ($cfg->has('autoImplementRequest') && $cfg->get('autoImplementRequest')) {
-    $injector->implement('Artax\\Http\\Request', 'Artax\\Http\\StdRequest');
-}
-if ($cfg->has('autoImplementResponse') && $cfg->get('autoImplementResponse')) {
-    $injector->implement('Artax\\Http\\Response', 'Artax\\Framework\\Http\\ObservableResponse');
-}
 if ($cfg->has('applyRouteShortcuts') && $cfg->get('applyRouteShortcuts')) {
     $injector->share('Artax\\Framework\\Plugins\\RouteShortcuts');
     $mediator->push('__sys.route.new', 'Artax\\Framework\\Plugins\\RouteShortcuts');
@@ -135,7 +139,7 @@ if ($cfg->has('autoResponseStatus') && $cfg->get('autoResponseStatus')) {
 if ($cfg->has('autoResponseEncode') && $cfg->get('autoResponseEncode')) {
     $mediator->push('__sys.response.beforeSend', 'Artax\\Framework\\Plugins\\AutoResponseEncode');
     $injector->define('Artax\\Framework\\Plugins\\AutoResponseEncode',
-        array('request' => 'Artax\\Http\\StdRequest')
+        array('request' => 'Artax\\Http\\FormEncodableRequest')
     );
 }
 
@@ -154,19 +158,14 @@ if ($cfg->has('interfaceImplementations')) {
 
 /*
  * -------------------------------------------------------------------------------------------------
- * Register HTTP event handlers; prevent post-boot changes to protected listeners.
+ * Prevent post-boot changes to protected listeners.
  * -------------------------------------------------------------------------------------------------
  */
-
-$mediator->unshift('__sys.exception', 'Artax\\Framework\\Http\\StatusHandlers\\Http500');
-$mediator->unshift('__sys.http-404', 'Artax\\Framework\\Http\\StatusHandlers\\Http404');
-$mediator->unshift('__sys.http-405', 'Artax\\Framework\\Http\\StatusHandlers\\Http405');
-$mediator->unshift('__sys.http-406', 'Artax\\Framework\\Http\\StatusHandlers\\Http406');
 
 $mediator->unshift('__mediator.delta', function(Mediator $mediator) {
     list($eventName, $deltaType) = $mediator->getLastQueueDelta();
     if (strpos($eventName, '__') === 0) {
-        throw new Exception(
+        throw new SystemEventDeltaException(
             "Protected event listener `$eventName` may not be modified after boot"
         );
     }
@@ -179,8 +178,8 @@ $mediator->unshift('__mediator.delta', function(Mediator $mediator) {
  * -------------------------------------------------------------------------------------------------
  */
 
-$stdRequestFactory = new StdRequestFactory;
-$request = $stdRequestFactory->make($_SERVER);
+$requestFactory = new RequestFactory;
+$request = $requestFactory->make($_SERVER);
 $injector->share('Artax\\Http\\StdRequest', $request);
 
 $router = $injector->make('Artax\\Framework\\Routing\\ObservableRouter');
