@@ -18,7 +18,7 @@ class ObservableResourceTest extends PHPUnit_Framework_TestCase {
         
         $resource = new ObservableResource($mediator, function(){}, array());        
         $this->assertInstanceOf('Artax\\Framework\\Routing\\ObservableResource', $resource);
-        $this->assertEquals(1, $mediator->countNotifications('__sys.resource.new'));
+        $this->assertEquals(1, $mediator->getBroadcastCount('__sys.resource.new'));
     }
     
     /**
@@ -36,8 +36,8 @@ class ObservableResourceTest extends PHPUnit_Framework_TestCase {
         );
         
         $this->assertEquals(null, $resource());
-        $this->assertEquals(1, $mediator->countNotifications('__sys.resource.beforeInvocation'));
-        $this->assertEquals(1, $mediator->countNotifications('__sys.resource.afterInvocation'));
+        $this->assertEquals(1, $mediator->getBroadcastCount('__sys.resource.beforeInvocation'));
+        $this->assertEquals(1, $mediator->getBroadcastCount('__sys.resource.afterInvocation'));
     }
     
     /**

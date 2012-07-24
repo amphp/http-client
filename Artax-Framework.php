@@ -35,9 +35,9 @@ require __DIR__ . '/Artax.php';
 
 $reflPool = new Artax\Injection\ReflectionPool;
 $injector = new Artax\Injection\Provider($reflPool);
-$mediator = new Artax\Events\Notifier($injector);
+$mediator = new Artax\Framework\Events\ProvisionedNotifier($injector);
 
-$injector->share('Artax\\Events\\Notifier', $mediator);
+$injector->share('Artax\\Framework\\Events\\ProvisionedNotifier', $mediator);
 $injector->share('Artax\\Injection\\ReflectionPool', $reflPool);
 
 
@@ -165,7 +165,7 @@ $mediator->unshift('__mediator.delta', function(Mediator $mediator) {
 
 /*
  * -------------------------------------------------------------------------------------------------
- * Create a request; create a router; register routes if user listeners haven't already.
+ * Create a request, router and route pool; register routes if user listeners haven't already.
  * -------------------------------------------------------------------------------------------------
  */
 
@@ -174,10 +174,9 @@ $request = $stdRequestFactory->make($_SERVER);
 $injector->share('Artax\\Http\\StdRequest', $request);
 
 $router = $injector->make('Artax\\Framework\\Routing\\ObservableRouter');
-if (!count($router)) {
-    $routePool = new ObservableRoutePool($mediator, new ObservableRouteFactory($mediator));
+$routePool = new ObservableRoutePool($mediator, new ObservableRouteFactory($mediator));
+if (!count($routePool)) {
     $routePool->addAllRoutes($cfg->get('routes'));
-    $router->setRoutes($routePool);
 }
 
 
@@ -191,7 +190,7 @@ $mediator->notify('__sys.ready');
 
 try {
     
-    if (!$router->match($request->getPath())) {
+    if (!$router->match($request->getPath(), $routePool)) {
         throw new NotFoundException;
     } else {
         $resourceClass = $router->getMatchedResource();

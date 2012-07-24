@@ -20,7 +20,7 @@ class ObservableRoutePoolTest extends PHPUnit_Framework_TestCase {
         $routeFactory = $this->getMock('Artax\\Routing\\RouteFactory');
         $routePool = new ObservableRoutePool($mediator, $routeFactory);
         
-        $this->assertEquals(1, $mediator->countNotifications('__sys.routePool.new'));
+        $this->assertEquals(1, $mediator->getBroadcastCount('__sys.routePool.new'));
     }
     
     /**
@@ -37,7 +37,7 @@ class ObservableRoutePoolTest extends PHPUnit_Framework_TestCase {
         
         unset($routePool);
         
-        $this->assertEquals(1, $mediator->countNotifications('__sys.routePool.new'));
+        $this->assertEquals(1, $mediator->getBroadcastCount('__sys.routePool.new'));
     }
     
     /**

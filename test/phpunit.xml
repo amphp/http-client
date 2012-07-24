@@ -14,7 +14,7 @@
             <directory>../src/Artax</directory>
             <exclude>
                 <file>../src/Artax/Events/Mediator.php</file>
-                <file>../src/Artax/Events/BadListenerException.php</file>
+                <file>../src/Artax/Framework/Events/BadListenerException.php</file>
                 
                 <file>../src/Artax/Injection/ReflectionStorage.php</file>
                 <file>../src/Artax/Injection/ProviderDefinitionException.php</file>

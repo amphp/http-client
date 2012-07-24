@@ -13,6 +13,7 @@ class NotifierTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Events\Notifier::push
+     * @covers Artax\Events\Notifier::isValidListener
      * @expectedException InvalidArgumentException
      */
     public function testPushThrowsExceptionOnInvalidListener() {
@@ -22,6 +23,7 @@ class NotifierTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Events\Notifier::push
+     * @covers Artax\Events\Notifier::isValidListener
      * @covers Artax\Events\Notifier::last
      */
     public function testPushAddsEventListenerAndReturnsCount() {
@@ -32,8 +34,6 @@ class NotifierTest extends PHPUnit_Framework_TestCase {
         
         $this->assertEquals(1, $m->push('test_event', $f1));
         $this->assertEquals(2, $m->push('test_event', $f2));
-        $this->assertEquals($f1, $m->shift('test_event'));
-        $this->assertEquals($f2, $m->shift('test_event'));
     }
     
     /**
@@ -46,11 +46,11 @@ class NotifierTest extends PHPUnit_Framework_TestCase {
         
         $f1 = function(){ return 'a'; };
         $m->push('test_event', $f1);
-        $this->assertEquals(1, $m->countNotifications('__mediator.delta'));
+        $this->assertEquals(1, $m->getBroadcastCount('__mediator.delta'));
         
         $f2 = function(){ return 'b'; };
         $m->push('test_event', $f2);
-        $this->assertEquals(2, $m->countNotifications('__mediator.delta'));
+        $this->assertEquals(2, $m->getBroadcastCount('__mediator.delta'));
         $this->assertEquals(array('test_event', 'push'), $m->getLastQueueDelta());
     }
     
@@ -82,13 +82,11 @@ class NotifierTest extends PHPUnit_Framework_TestCase {
         $m = new Notifier(new Provider(new ReflectionPool));
         $cnt = $m->pushAll(array(
             'app.ready' => function(){},
-            'app.event' => array(function(){}, function(){}, function(){}),
-            'app.lazy'  => array('dot.notation')
+            'app.event' => array(function(){}, function(){}, function(){})
         ));
         $this->assertNull($cnt);
         $this->assertEquals(1, $m->count('app.ready'));
         $this->assertEquals(3, $m->count('app.event'));
-        $this->assertEquals(1, $m->count('app.lazy'));
     }
     
     /**
@@ -127,11 +125,11 @@ class NotifierTest extends PHPUnit_Framework_TestCase {
         
         $f1 = function(){ return 'a'; };
         $m->unshift('test_event', $f1);
-        $this->assertEquals(1, $m->countNotifications('__mediator.delta'));
+        $this->assertEquals(1, $m->getBroadcastCount('__mediator.delta'));
         
         $f2 = function(){ return 'b'; };
         $m->unshift('test_event', $f2);
-        $this->assertEquals(2, $m->countNotifications('__mediator.delta'));
+        $this->assertEquals(2, $m->getBroadcastCount('__mediator.delta'));
         $this->assertEquals(array('test_event', 'unshift'), $m->getLastQueueDelta());
     }
     
@@ -201,11 +199,11 @@ class NotifierTest extends PHPUnit_Framework_TestCase {
         
         $f1 = function(){ return 'a'; };
         $m->clear('test_event');
-        $this->assertEquals(1, $m->countNotifications('__mediator.delta'));
+        $this->assertEquals(1, $m->getBroadcastCount('__mediator.delta'));
         
         $f2 = function(){ return 'b'; };
         $m->clear('test_event', $f2);
-        $this->assertEquals(2, $m->countNotifications('__mediator.delta'));
+        $this->assertEquals(2, $m->getBroadcastCount('__mediator.delta'));
         $this->assertEquals(array('test_event', 'clear'), $m->getLastQueueDelta());
     }
     
@@ -233,11 +231,11 @@ class NotifierTest extends PHPUnit_Framework_TestCase {
         
         $f1 = function(){ return 'a'; };
         $m->pop('test_event');
-        $this->assertEquals(1, $m->countNotifications('__mediator.delta'));
+        $this->assertEquals(1, $m->getBroadcastCount('__mediator.delta'));
         
         $f2 = function(){ return 'b'; };
         $m->pop('test_event', $f2);
-        $this->assertEquals(2, $m->countNotifications('__mediator.delta'));
+        $this->assertEquals(2, $m->getBroadcastCount('__mediator.delta'));
         $this->assertEquals(array('test_event', 'pop'), $m->getLastQueueDelta());
     }
     
@@ -274,11 +272,11 @@ class NotifierTest extends PHPUnit_Framework_TestCase {
         
         $f1 = function(){ return 'a'; };
         $m->shift('test_event');
-        $this->assertEquals(1, $m->countNotifications('__mediator.delta'));
+        $this->assertEquals(1, $m->getBroadcastCount('__mediator.delta'));
         
         $f2 = function(){ return 'b'; };
         $m->shift('test_event', $f2);
-        $this->assertEquals(2, $m->countNotifications('__mediator.delta'));
+        $this->assertEquals(2, $m->getBroadcastCount('__mediator.delta'));
         
         $this->assertEquals(array('test_event', 'shift'), $m->getLastQueueDelta());
     }
@@ -306,9 +304,9 @@ class NotifierTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Events\Notifier::notify
+     * @covers Artax\Events\Notifier::getCallableListenerFromQueue
      * @covers Artax\Events\Notifier::incrementEventBroadcastCount
      * @covers Artax\Events\Notifier::incrementListenerInvocationCount
-     * @covers Artax\Events\Notifier::getCallableListenerFromQueue
      */
     public function testNotifyDistributesMessagesToListeners() {
         $dp = new Provider(new ReflectionPool);
@@ -329,36 +327,10 @@ class NotifierTest extends PHPUnit_Framework_TestCase {
     /**
      * @covers Artax\Events\Notifier::notify
      * @covers Artax\Events\Notifier::getCallableListenerFromQueue
-     * @expectedException Artax\Events\BadListenerException
-     */
-    public function testNotifyThrowsExceptionOnUnistantiableLazyListener() {
-        $dp = new Provider(new ReflectionPool);
-        $m = new Notifier($dp);
-        
-        $m->push('test.event1', 'UninstantiableClass');
-        $m->notify('test.event1');
-    }
-    
-    /**
-     * @covers Artax\Events\Notifier::notify
-     * @covers Artax\Events\Notifier::getCallableListenerFromQueue
-     * @expectedException Artax\Events\BadListenerException
-     */
-    public function testNotifyThrowsExceptionOnUncallableLazyListener() {
-        $dp = new Provider(new ReflectionPool);
-        $m = new Notifier($dp);
-        
-        $m->push('test.event1', 'NotifierTestUninvokableClass');
-        $m->notify('test.event1');
-    }
-    
-    /**
-     * @covers Artax\Events\Notifier::notify
-     * @covers Artax\Events\Notifier::countNotifications
-     * @covers Artax\Events\Notifier::countInvocations
+     * @covers Artax\Events\Notifier::getBroadcastCount
+     * @covers Artax\Events\Notifier::getInvocationCount
      * @covers Artax\Events\Notifier::incrementEventBroadcastCount
      * @covers Artax\Events\Notifier::incrementListenerInvocationCount
-     * @covers Artax\Events\Notifier::getCallableListenerFromQueue
      */
     public function testNotifyUpdatesInvocationAndNotificationCounts() {
         $dp = new Provider(new ReflectionPool);
@@ -368,22 +340,22 @@ class NotifierTest extends PHPUnit_Framework_TestCase {
         $m->push('test.event1', function() { return TRUE; });
         $this->assertEquals(1, $m->notify('test.event1'));
         
-        $this->assertEquals(1, $m->countNotifications('test.event1'));
-        $this->assertEquals(1, $m->countInvocations('test.event1'));
+        $this->assertEquals(1, $m->getBroadcastCount('test.event1'));
+        $this->assertEquals(1, $m->getInvocationCount('test.event1'));
         
         $m->push('test.event1', function() { return TRUE; });
         $m->push('test.event1', function() { return TRUE; });
         $m->push('test.event1', function() { return TRUE; });
         $this->assertEquals(4, $m->notify('test.event1'));
         
-        $this->assertEquals(2, $m->countNotifications('test.event1'));
-        $this->assertEquals(5, $m->countInvocations('test.event1'));
+        $this->assertEquals(2, $m->getBroadcastCount('test.event1'));
+        $this->assertEquals(5, $m->getInvocationCount('test.event1'));
         
         return $m;
     }
     
     /**
-     * @covers Artax\Events\Notifier::countNotifications
+     * @covers Artax\Events\Notifier::getBroadcastCount
      */
     public function testCountNotificationsReturnsAggregateCountOnNullEventParam() {
         $dp = new Provider(new ReflectionPool);
@@ -392,11 +364,11 @@ class NotifierTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals(0, $m->notify('test.event1'));
         $this->assertEquals(0, $m->notify('test.event2'));
         $this->assertEquals(0, $m->notify('test.event3'));
-        $this->assertEquals(0, $m->countNotifications('nonexistent.event'));
+        $this->assertEquals(0, $m->getBroadcastCount('nonexistent.event'));
     }
     
     /**
-     * @covers Artax\Events\Notifier::countInvocations
+     * @covers Artax\Events\Notifier::getInvocationCount
      */
     public function testCountInvocationsReturnsAggregateCountOnNullEventParam() {
         $dp = new Provider(new ReflectionPool);
@@ -410,7 +382,7 @@ class NotifierTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals(1, $m->notify('test.event2'));
         $this->assertEquals(2, $m->notify('test.event1'));
         $this->assertEquals(0, $m->notify('test.event3'));
-        $this->assertEquals(0, $m->countInvocations('nonexistent.event'));
+        $this->assertEquals(0, $m->getInvocationCount('nonexistent.event'));
     }
     
     /**
@@ -422,56 +394,6 @@ class NotifierTest extends PHPUnit_Framework_TestCase {
         $m->push('test.event1', $f);
         
         $this->assertEquals(array($f), $m->all('test.event1'));
-    }
-    
-    /**
-     * @covers Artax\Events\Notifier::notify
-     * @covers Artax\Events\Notifier::incrementEventBroadcastCount
-     * @covers Artax\Events\Notifier::incrementListenerInvocationCount
-     * @covers Artax\Events\Notifier::getCallableListenerFromQueue
-     */
-    public function testNotifyUsesProviderForBasicLazyListenerLoad() {
-        $m = new Notifier(new Provider(new ReflectionPool));        
-        $m->push('class_listener_event', 'NotifierTestNeedsDep');
-        $this->expectOutputString('testVal');
-        $m->notify('class_listener_event', 'testVal');
-    }
-    
-    /**
-     * @covers Artax\Events\Notifier::notify
-     * @covers Artax\Events\Notifier::incrementEventBroadcastCount
-     * @covers Artax\Events\Notifier::incrementListenerInvocationCount
-     * @covers Artax\Events\Notifier::getCallableListenerFromQueue
-     */
-    public function testNotifyUsesProviderForAdvancedLazyListenerLoad() {
-        $m = new Notifier(new Provider(new ReflectionPool));
-        $m->push('class_listener_event', 'NotifierTestNeedsDep',
-            array('NotifierTestDependency')
-        );
-        $this->expectOutputString('testVal');
-        $m->notify('class_listener_event', 'testVal');
-    }
-    
-    /**
-     * @covers Artax\Events\Notifier::notify
-     * @expectedException Artax\Events\BadListenerException
-     */
-    public function testNotifyThrowsExceptionOnUninstantiableLazyListener() {
-        
-        $m = new Notifier(new Provider(new ReflectionPool));
-        $m->push('class_listener_event', 'NonexistentClass');
-        $m->notify('class_listener_event', 'testVal');
-    }
-    
-    /**
-     * @covers Artax\Events\Notifier::notify
-     * @expectedException Artax\Events\BadListenerException
-     */
-    public function testNotifyThrowsExceptionOnUninvokableLazyListener() {
-        
-        $m = new Notifier(new Provider(new ReflectionPool));
-        $m->push('class_listener_event', 'NotifierTestUninvokableClass');
-        $m->notify('class_listener_event');
     }
 }
 

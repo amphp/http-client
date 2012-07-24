@@ -27,7 +27,7 @@ class ObservableRouteTest extends PHPUnit_Framework_TestCase {
         $route = new ObservableRoute($mediator, 'widgets', 'WidgetResource');
         
         $this->assertEquals('/widgets', $route->getPattern());
-        $this->assertEquals(1, $mediator->countNotifications('__sys.route.new'));
+        $this->assertEquals(1, $mediator->getBroadcastCount('__sys.route.new'));
         
         return $route;
     }
@@ -47,7 +47,7 @@ class ObservableRouteTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals(null, $route->setResource('SomeOtherResource'));
         $this->assertEquals('SomeOtherResource', $route->getResource());
         
-        $this->assertEquals(2, $mediator->countNotifications('__sys.route.setResource'));
+        $this->assertEquals(2, $mediator->getBroadcastCount('__sys.route.setResource'));
     }
     
     /**
@@ -65,6 +65,6 @@ class ObservableRouteTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals(null, $route->setPattern('/widgets-transformed'));
         $this->assertEquals('/widgets-transformed', $route->getPattern());
         
-        $this->assertEquals(2, $mediator->countNotifications('__sys.route.setPattern'));
+        $this->assertEquals(2, $mediator->getBroadcastCount('__sys.route.setPattern'));
     }
 }

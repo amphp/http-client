@@ -11,7 +11,7 @@
 namespace Artax\Events;
   
 /**
- * Defines the facing interface for event mediators.
+ * Defines a front facing interface for event mediators.
  * 
  * @category    Artax
  * @package     Events
@@ -22,78 +22,77 @@ interface Mediator {
     /**
      * Notify listeners that the specified event has occurred
      * 
-     * @param string $event The event that occurred
+     * @param string $eventName
      */
-    function notify($event);
+    function notify($eventName);
     
     /**
-     * Iterates through the items in the order they are traversed, adding them
-     * to the event queue found in the key.
-     *
-     * @param mixed $iterable The variable to loop through and add listeners
-     */
-    function pushAll($iterable);
-    
-    /**
-     * Connect a `$listener` to the end of the `$eventName` queue
+     * Attach a listener to the end of the specified event queue
      * 
-     * @param string $eventName Event identifier name
-     * @param mixed  $listener  Event listener
+     * @param string $eventName
+     * @param mixed  $listener
      */
     function push($eventName, $listener);
     
     /**
-     * Connect a `$listener` to the front of the `$eventName` queue
+     * Pushes multiple event listeners by event-listener key-value pairs
+     *
+     * @param mixed $iterable An iterable key-value map linking events to listeners
+     */
+    function pushAll($iterable);
+    
+    /**
+     * Attach a listener to the front of the specified event queue
      * 
-     * @param string $eventName Event identifier name
-     * @param mixed  $listener  Event listener
+     * @param string $eventName
+     * @param mixed  $listener
      */
     function unshift($eventName, $listener);
     
     /**
-     * Remove the first `$listener` from the front of the `$eventName` event queue
+     * Remove and return the first registered listener from the specified event queue
      * 
-     * @param string $eventName Event identifier name
+     * @param string $eventName
      */
     function shift($eventName);
     
     /**
-     * Remove the last `$listener` from the end of the `$eventName` event queue
+     * Remove and return the last listener from the specified event queue
      * 
-     * @param string $eventName Event identifier name
+     * @param string $eventName
      */
     function pop($eventName);
     
     /**
-     * Clear all listeners from the `$eventName` event queue
+     * Clear all listeners from the specified event queue
      * 
-     * @param string $eventName Event identifier name
+     * @param string $eventName
      */
     function clear($eventName);
     
     /**
-     * Retrieve a count of all listeners in the queue for a specific event
+     * Retrieve a count of all listeners in the specified event queue
      * 
-     * @param string $eventName Event identifier name
+     * @param string $eventName
      */
     function count($eventName);
     
     /**
-     * Retrieve a list of all event listeners in the queue for an event
+     * Retrieve all event listeners in the specified event queue
      */
     function all($eventName);
     
     /**
-     * Retrieve the first event listener in the queue for the specified event
+     * Retrieve the first listener in the specified event queue
      * 
-     * @param string $eventName Event identifier name
+     * @param string $eventName
      */
     function first($eventName);
     
     /**
-     * Retrieve the last event listener in the queue for the specified event
+     * Retrieve the last event listener in the specified event queue
      * 
-     * @param string $eventName Event identifier name
+     * @param string $eventName
      */
     function last($eventName);
     
@@ -106,18 +105,14 @@ interface Mediator {
      * Get the total number of listeners that have been invoked for an event
      * 
      * @param string $eventName
-     * 
-     * @return int Returns total invocation count for the specified event.
      */
-    function countInvocations($eventName);
+    function getInvocationCount($eventName);
     
     /**
-     * Get the total number of times an event has been broadcast/notified
+     * Get the total number of times an event has been broadcast (notified)
      * 
      * @param string $eventName
-     * 
-     * @return int Returns total notification count for the specified event.
      */
-    function countNotifications($eventName);
+    function getBroadcastCount($eventName);
     
 }
