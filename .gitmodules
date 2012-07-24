@@ -1,0 +1,3 @@
+[submodule "vendor/vfsStream"]
+	path = vendor/vfsStream
+	url = git://github.com/mikey179/vfsStream.git
