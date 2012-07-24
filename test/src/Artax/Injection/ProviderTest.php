@@ -6,6 +6,14 @@ use Artax\Injection\Provider,
 class ProviderTest extends PHPUnit_Framework_TestCase {
 
     /**
+     * @covers Artax\Injection\Provider::__construct
+     */
+    public function testBeginsEmpty() {
+        $provider = new Provider(new ReflectionPool);
+        $this->assertInstanceOf('Artax\\Injection\\Provider', $provider);
+    }
+    
+    /**
      * @covers Artax\Injection\Provider::make
      * @covers Artax\Injection\Provider::getInjectedInstance
      * @covers Artax\Injection\Provider::buildNewInstanceArgs
@@ -13,9 +21,9 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testMakeInjectsSimpleConcreteDependency() {
     
-        $dp = new Provider(new ReflectionPool);
+        $provider = new Provider(new ReflectionPool);
         $this->assertEquals(new TestNeedsDep(new TestDependency),
-            $dp->make('TestNeedsDep')
+            $provider->make('TestNeedsDep')
         );
     }
     
@@ -27,8 +35,8 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testMakePassesNullIfDefaultAndNoTypehintExists() {
     
-        $dp = new Provider(new ReflectionPool);
-        $nullCtorParamObj = $dp->make('ProvTestNoDefinitionNullDefaultClass');
+        $provider = new Provider(new ReflectionPool);
+        $nullCtorParamObj = $provider->make('ProvTestNoDefinitionNullDefaultClass');
         $this->assertEquals(new ProvTestNoDefinitionNullDefaultClass, $nullCtorParamObj);
         $this->assertEquals(NULL, $nullCtorParamObj->arg);
     }
@@ -41,15 +49,15 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testMakeReturnsSharedInstanceIfSpecified() {
     
-        $dp = new Provider(new ReflectionPool);
-        $dp->define('RequiresInterface', array('dep' => 'DepImplementation'));
-        $dp->share('RequiresInterface');
-        $injected = $dp->make('RequiresInterface');
+        $provider = new Provider(new ReflectionPool);
+        $provider->define('RequiresInterface', array('dep' => 'DepImplementation'));
+        $provider->share('RequiresInterface');
+        $injected = $provider->make('RequiresInterface');
         
         $this->assertEquals('something', $injected->testDep->testProp);
         $injected->testDep->testProp = 'something else';
         
-        $injected2 = $dp->make('RequiresInterface');
+        $injected2 = $provider->make('RequiresInterface');
         $this->assertEquals('something else', $injected2->testDep->testProp);
     }
     
@@ -62,8 +70,8 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testMakeThrowsExceptionOnNonNullScalarTypehintSansDefinitions() {
     
-        $dp = new Provider(new ReflectionPool);
-        $dp->make('TestClassWithNoCtorTypehints');
+        $provider = new Provider(new ReflectionPool);
+        $provider->make('TestClassWithNoCtorTypehints');
     }
     
     /**
@@ -75,8 +83,8 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testMakeThrowsExceptionIfProvisioningMissingUnloadableClass() {
     
-        $dp = new Provider(new ReflectionPool);
-        $dp->make('ClassThatDoesntExist');
+        $provider = new Provider(new ReflectionPool);
+        $provider->make('ClassThatDoesntExist');
     }
     
     /**
@@ -87,8 +95,8 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testMakeUsesInstanceDefinitionParamIfSpecified() {
     
-        $dp = new Provider(new ReflectionPool);
-        $dp->make('TestMultiDepsNeeded', array('TestDependency', new TestDependency2));
+        $provider = new Provider(new ReflectionPool);
+        $provider->make('TestMultiDepsNeeded', array('TestDependency', new TestDependency2));
     }
     
     /**
@@ -99,9 +107,9 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testMakeUsesCustomDefinitionIfSpecified() {
     
-        $dp = new Provider(new ReflectionPool);
-        $dp->define('TestNeedsDep', array('testDep'=>'TestDependency'));
-        $injected = $dp->make('TestNeedsDep', array('testDep'=>'TestDependency2'));
+        $provider = new Provider(new ReflectionPool);
+        $provider->define('TestNeedsDep', array('testDep'=>'TestDependency'));
+        $injected = $provider->make('TestNeedsDep', array('testDep'=>'TestDependency2'));
         $this->assertEquals('testVal2', $injected->testDep->testProp);
     }
     
@@ -114,8 +122,8 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testMakeThrowsExceptionOnScalarDefaultCtorParam() {
     
-        $dp  = new Provider(new ReflectionPool);
-        $obj = $dp->make('NoTypehintNullDefaultConstructorClass');
+        $provider  = new Provider(new ReflectionPool);
+        $obj = $provider->make('NoTypehintNullDefaultConstructorClass');
     }
     
     /**
@@ -123,10 +131,10 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testMakeStoresShareIfMarkedWithNullInstance() {
     
-        $dp = new Provider(new ReflectionPool);
-        $dp->share('TestDependency');
-        $dp->make('TestDependency');
-        $this->assertTrue($dp->isShared('TestDependency'));
+        $provider = new Provider(new ReflectionPool);
+        $provider->share('TestDependency');
+        $provider->make('TestDependency');
+        $this->assertTrue($provider->isShared('TestDependency'));
     }
     
     /**
@@ -137,11 +145,11 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testMakeUsesReflectionForUnknownParamsInMultiBuildWithDeps() {
     
-        $dp  = new Provider(new ReflectionPool);
-        $obj = $dp->make('TestMultiDepsWithCtor', array('val1'=>'TestDependency'));
+        $provider  = new Provider(new ReflectionPool);
+        $obj = $provider->make('TestMultiDepsWithCtor', array('val1'=>'TestDependency'));
         $this->assertInstanceOf('TestMultiDepsWithCtor', $obj);
         
-        $obj = $dp->make('NoTypehintNoDefaultConstructorClass',
+        $obj = $provider->make('NoTypehintNoDefaultConstructorClass',
             array('val1'=>'TestDependency')
         );
         $this->assertInstanceOf('NoTypehintNoDefaultConstructorClass', $obj);
@@ -157,8 +165,8 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testMakeThrowsExceptionOnUnknownParamsInMultiBuildWithDeps() {
     
-        $dp  = new Provider(new ReflectionPool);
-        $obj = $dp->make('NoTypehintNullDefaultConstructorClass',
+        $provider  = new Provider(new ReflectionPool);
+        $obj = $provider->make('NoTypehintNullDefaultConstructorClass',
             array('val1'=>'TestDependency')
         );
     }
@@ -172,8 +180,8 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testMakeThrowsExceptionOnUninstantiableTypehintWithoutDefinition() {
     
-        $dp  = new Provider(new ReflectionPool);
-        $obj = $dp->make('RequiresInterface');
+        $provider  = new Provider(new ReflectionPool);
+        $obj = $provider->make('RequiresInterface');
     }
     
     /**
@@ -182,11 +190,11 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testDefineAssignsPassedDefinition() {
         
-        $dp = new Provider(new ReflectionPool);
+        $provider = new Provider(new ReflectionPool);
         $definition = array('dep' => 'DepImplementation');
-        $dp->define('RequiresInterface', $definition);
-        $this->assertInstanceOf('RequiresInterface', $dp->make('RequiresInterface'));
-        $this->assertEquals($definition, $dp->getDefinition('RequiresInterface'));
+        $provider->define('RequiresInterface', $definition);
+        $this->assertInstanceOf('RequiresInterface', $provider->make('RequiresInterface'));
+        $this->assertEquals($definition, $provider->getDefinition('RequiresInterface'));
     }
     
     /**
@@ -195,8 +203,8 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testDefineAllThrowsExceptionOnInvalidIterable() {
         
-        $dp = new Provider(new ReflectionPool);
-        $dp->defineAll(1);
+        $provider = new Provider(new ReflectionPool);
+        $provider->defineAll(1);
     }
     
     /**
@@ -205,8 +213,8 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testGetDefinitionThrowsExceptionOnUndefinedClass() {
         
-        $dp = new Provider(new ReflectionPool);
-        $dp->getDefinition('ClassThatHasntBeenDefined');
+        $provider = new Provider(new ReflectionPool);
+        $provider->getDefinition('ClassThatHasntBeenDefined');
     }
     
     /**
@@ -214,12 +222,12 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testClearAllDefinitionsRemovesDefinitions() {
         
-        $dp = new Provider(new ReflectionPool);
-        $this->assertFalse($dp->isDefined('RequiresInterface'));
-        $dp->define('RequiresInterface', array('dep' => 'DepImplementation'));
-        $this->assertTrue($dp->isDefined('RequiresInterface'));
-        $dp->clearAllDefinitions();
-        $this->assertFalse($dp->isDefined('RequiresInterface'));
+        $provider = new Provider(new ReflectionPool);
+        $this->assertFalse($provider->isDefined('RequiresInterface'));
+        $provider->define('RequiresInterface', array('dep' => 'DepImplementation'));
+        $this->assertTrue($provider->isDefined('RequiresInterface'));
+        $provider->clearAllDefinitions();
+        $this->assertFalse($provider->isDefined('RequiresInterface'));
     }
     
     /**
@@ -227,12 +235,12 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testDefineAllAssignsPassedDefinitionsAndReturnsAddedCount() {
         
-        $dp = new Provider(new ReflectionPool);
+        $provider = new Provider(new ReflectionPool);
         $depList = array();
         $depList['RequiresInterface'] = array('dep' => 'DepImplementation');
         
-        $this->assertEquals(1, $dp->defineAll($depList));
-        $this->assertInstanceOf('RequiresInterface', $dp->make('RequiresInterface'));
+        $this->assertEquals(1, $provider->defineAll($depList));
+        $this->assertInstanceOf('RequiresInterface', $provider->make('RequiresInterface'));
     }
     
     /**
@@ -240,11 +248,11 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testClearDefinitionRemovesDefinitionAndReturnsNull() {
         
-        $dp = new Provider(new ReflectionPool);
-        $dp->define('RequiresInterface', array('dep' => 'DepImplementation'));
-        $this->assertTrue($dp->isDefined('RequiresInterface'));
-        $this->assertEquals(null, $dp->clearDefinition('RequiresInterface'));
-        $this->assertFalse($dp->isDefined('RequiresInterface'));
+        $provider = new Provider(new ReflectionPool);
+        $provider->define('RequiresInterface', array('dep' => 'DepImplementation'));
+        $this->assertTrue($provider->isDefined('RequiresInterface'));
+        $this->assertEquals(null, $provider->clearDefinition('RequiresInterface'));
+        $this->assertFalse($provider->isDefined('RequiresInterface'));
     }
     
     /**
@@ -252,13 +260,13 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testClearAllDefinitionsRemovesDefinitionAndReturnsNull() {
         
-        $dp = new Provider(new ReflectionPool);
-        $dp->define('RequiresInterface', array('dep' => 'DepImplementation'));
-        $this->assertTrue($dp->isDefined('RequiresInterface'));
+        $provider = new Provider(new ReflectionPool);
+        $provider->define('RequiresInterface', array('dep' => 'DepImplementation'));
+        $this->assertTrue($provider->isDefined('RequiresInterface'));
         
-        $return = $dp->clearAllDefinitions();
-        $this->assertEquals(null, $dp->clearAllDefinitions());
-        $this->assertFalse($dp->isDefined('RequiresInterface'));
+        $return = $provider->clearAllDefinitions();
+        $this->assertEquals(null, $provider->clearAllDefinitions());
+        $this->assertFalse($provider->isDefined('RequiresInterface'));
     }
     
     /**
@@ -266,15 +274,15 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testRefreshClearsSharedInstanceAndReturnsNull() {
         
-        $dp = new Provider(new ReflectionPool);
-        $dp->share('TestDependency');
-        $obj = $dp->make('TestDependency');
-        $this->assertTrue($dp->isShared('TestDependency'));
+        $provider = new Provider(new ReflectionPool);
+        $provider->share('TestDependency');
+        $obj = $provider->make('TestDependency');
+        $this->assertTrue($provider->isShared('TestDependency'));
         $obj->testProp = 42;
         
-        $this->assertEquals(null, $dp->refresh('TestDependency'));
-        $this->assertTrue($dp->isShared('TestDependency'));
-        $refreshedObj = $dp->make('TestDependency');
+        $this->assertEquals(null, $provider->refresh('TestDependency'));
+        $this->assertTrue($provider->isShared('TestDependency'));
+        $refreshedObj = $provider->make('TestDependency');
         $this->assertEquals('testVal', $refreshedObj->testProp);
     }
     
@@ -283,11 +291,11 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testIsSharedReturnsBooleanStatus() {
         
-        $dp = new Provider(new ReflectionPool);
-        $dp->share('TestDependency');
-        $this->assertTrue($dp->isShared('TestDependency'));
-        $dp->unshare('TestDependency');
-        $this->assertFalse($dp->isShared('TestDependency'));
+        $provider = new Provider(new ReflectionPool);
+        $provider->share('TestDependency');
+        $this->assertTrue($provider->isShared('TestDependency'));
+        $provider->unshare('TestDependency');
+        $this->assertFalse($provider->isShared('TestDependency'));
     }
     
     /**
@@ -295,12 +303,12 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testUnshareRemovesSharingAndReturnsNull() { 
     
-        $dp = new Provider(new ReflectionPool);
-        $this->assertFalse($dp->isShared('TestDependency'));
-        $dp->share('TestDependency');
-        $this->assertTrue($dp->isShared('TestDependency'));
-        $this->assertEquals(null, $dp->unshare('TestDependency'));
-        $this->assertFalse($dp->isShared('TestDependency'));
+        $provider = new Provider(new ReflectionPool);
+        $this->assertFalse($provider->isShared('TestDependency'));
+        $provider->share('TestDependency');
+        $this->assertTrue($provider->isShared('TestDependency'));
+        $this->assertEquals(null, $provider->unshare('TestDependency'));
+        $this->assertFalse($provider->isShared('TestDependency'));
     }
     
     /**
@@ -308,11 +316,11 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testIsDefinedReturnsDefinitionStatus() {
     
-        $dp = new Provider(new ReflectionPool);
-        $this->assertFalse($dp->isDefined('RequiresInterface'));
-        $dp->define('RequiresInterface', array('dep' => 'DepImplementation'));
+        $provider = new Provider(new ReflectionPool);
+        $this->assertFalse($provider->isDefined('RequiresInterface'));
+        $provider->define('RequiresInterface', array('dep' => 'DepImplementation'));
         
-        $this->assertTrue($dp->isDefined('RequiresInterface'));
+        $this->assertTrue($provider->isDefined('RequiresInterface'));
     }
     
     /**
@@ -320,13 +328,13 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testShareStoresSharedInstanceAndReturnsNull() {
         
-        $dp = new Provider(new ReflectionPool);
+        $provider = new Provider(new ReflectionPool);
         $testShare = new StdClass;
         $testShare->test = 42;
         
-        $this->assertEquals(null, $dp->share('StdClass', $testShare));
+        $this->assertEquals(null, $provider->share('StdClass', $testShare));
         $testShare->test = 'test';
-        $this->assertEquals('test', $dp->make('stdclass')->test);
+        $this->assertEquals('test', $provider->make('stdclass')->test);
         
     }
     
@@ -335,9 +343,9 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testShareMarksClassSharedOnNullObjectParameter() {
         
-        $dp = new Provider(new ReflectionPool);
-        $this->assertEquals(null, $dp->share('Artax\\Events\\Mediator'));
-        $this->assertTrue($dp->isShared('Artax\Events\Mediator'));
+        $provider = new Provider(new ReflectionPool);
+        $this->assertEquals(null, $provider->share('Artax\\Events\\Mediator'));
+        $this->assertTrue($provider->isShared('Artax\Events\Mediator'));
     }
     
     /**
@@ -346,8 +354,8 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testShareThrowsExceptionOnInvalidArgument() {
         
-        $dp = new Provider(new ReflectionPool);
-        $dp->share('Artax\\Events\\Mediator', new StdClass);
+        $provider = new Provider(new ReflectionPool);
+        $provider->share('Artax\\Events\\Mediator', new StdClass);
     }
     
     /**
@@ -357,10 +365,10 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testImplementAssignsValueAndReturnsNull() {
         
-        $dp = new Provider(new ReflectionPool);
-        $this->assertEquals(null, $dp->implement('DepInterface', 'DepImplementation'));
-        $this->assertTrue($dp->isImplemented('DepInterface'));
-        $this->assertEquals('DepImplementation', $dp->getImplementation('DepInterface'));
+        $provider = new Provider(new ReflectionPool);
+        $this->assertEquals(null, $provider->implement('DepInterface', 'DepImplementation'));
+        $this->assertTrue($provider->isImplemented('DepInterface'));
+        $this->assertEquals('DepImplementation', $provider->getImplementation('DepInterface'));
     }
     
     /**
@@ -369,8 +377,8 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testImplementAllThrowsExceptionOnNonIterableParameter() {
         
-        $dp = new Provider(new ReflectionPool);
-        $dp->implementAll('not iterable');
+        $provider = new Provider(new ReflectionPool);
+        $provider->implementAll('not iterable');
     }
     
     /**
@@ -378,14 +386,14 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testImplementAllAssignsPassedImplementationsAndReturnsAddedCount() {
         
-        $dp = new Provider(new ReflectionPool);
+        $provider = new Provider(new ReflectionPool);
         $implementations = array(
             'DepInterface' => 'DepImplementation',
             'AnotherInterface' => 'AnotherImplementation'
         );
         
-        $this->assertEquals(2, $dp->implementAll($implementations));
-        $this->assertInstanceOf('RequiresInterface', $dp->make('RequiresInterface'));
+        $this->assertEquals(2, $provider->implementAll($implementations));
+        $this->assertInstanceOf('RequiresInterface', $provider->make('RequiresInterface'));
     }
     
     /**
@@ -393,11 +401,11 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testClearAllImplementationsRemovesImplementations() {
         
-        $dp = new Provider(new ReflectionPool);
-        $dp->implement('DepInterface', 'DepImplementation');
-        $this->assertTrue($dp->isImplemented('DepInterface'));
-        $dp->clearAllImplementations();
-        $this->assertFalse($dp->isImplemented('DepInterface'));
+        $provider = new Provider(new ReflectionPool);
+        $provider->implement('DepInterface', 'DepImplementation');
+        $this->assertTrue($provider->isImplemented('DepInterface'));
+        $provider->clearAllImplementations();
+        $this->assertFalse($provider->isImplemented('DepInterface'));
     }
     
     /**
@@ -406,11 +414,11 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testClearImplementationRemovesAssignedTypeAndReturnsNull() {
         
-        $dp = new Provider(new ReflectionPool);
-        $dp->implement('DepInterface', 'DepImplementation');
-        $this->assertTrue($dp->isImplemented('DepInterface'));
-        $this->assertEquals(null, $dp->clearImplementation('DepInterface'));
-        $this->assertFalse($dp->isImplemented('DepInterface'));
+        $provider = new Provider(new ReflectionPool);
+        $provider->implement('DepInterface', 'DepImplementation');
+        $this->assertTrue($provider->isImplemented('DepInterface'));
+        $this->assertEquals(null, $provider->clearImplementation('DepInterface'));
+        $this->assertFalse($provider->isImplemented('DepInterface'));
     }
     
     /**
@@ -419,8 +427,8 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testGetImplementationThrowsExceptionIfSpecifiedImplementationDoesntExist() {
         
-        $dp = new Provider(new ReflectionPool);
-        $dp->getImplementation('InterfaceThatIsNotSetWithAnImplementation');
+        $provider = new Provider(new ReflectionPool);
+        $provider->getImplementation('InterfaceThatIsNotSetWithAnImplementation');
     }
     
     /**
@@ -429,9 +437,9 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      */
     public function testMakeUsesImplementationDefinitionsAsNeeded() {
         
-        $dp = new Provider(new ReflectionPool);
-        $dp->implement('DepInterface', 'DepImplementation');
-        $this->assertInstanceOf('RequiresInterface', $dp->make('RequiresInterface'));
+        $provider = new Provider(new ReflectionPool);
+        $provider->implement('DepInterface', 'DepImplementation');
+        $this->assertInstanceOf('RequiresInterface', $provider->make('RequiresInterface'));
     }
 }
 
