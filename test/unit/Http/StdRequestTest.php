@@ -166,21 +166,11 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Http\StdRequest::__construct
-     * @covers Artax\Http\StdRequest::normalizeMethod
      */
     public function testNormalizeMethodUppercasesMethodArg() {
         $uri = $this->getMock('Artax\\Uri');
         $request = new StdRequest($uri, '1.1', 'delete', array());
         $this->assertEquals('DELETE', $request->getMethod());
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::normalizeMethod
-     * @expectedException DomainException
-     */
-    public function testNormalizeMethodThrowsDomainExceptionOnInvalidHttpVerb() {
-        $uri = $this->getMock('Artax\\Uri');
-        $request = new StdRequest($uri, '1.1', 'invalid', array());
     }
     
     /**

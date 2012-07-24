@@ -79,7 +79,7 @@ class StdRequest implements FormEncodableRequest {
     public function __construct($uri, $httpVersion, $method, array $headers = array(), $body = '') {
         $this->uri = $uri instanceof Uri ? $uri : $this->buildUri($uri);
         $this->httpVersion = $httpVersion;
-        $this->method = $this->normalizeMethod($method);
+        $this->method = strtoupper($method);
         $this->body = $this->acceptsEntityBody() ? $body : '';
         
         if ($headers) {
@@ -115,24 +115,6 @@ class StdRequest implements FormEncodableRequest {
      */
     private function normalizeHeaders(array $headers) {
         return array_combine(array_map('strtoupper', array_keys($headers)), $headers);
-    }
-    
-    /**
-     * @param string $httpMethodVerb
-     * @return string
-     * @throws DomainException
-     */
-    private function normalizeMethod($httpMethodVerb) {
-        $normalized = strtoupper($httpMethodVerb);
-        $valid = array('OPTIONS', 'GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'TRACE', 'CONNECT');
-        if (!in_array($normalized, $valid)) {
-            throw new DomainException(
-                "Invalid HTTP method verb: $httpMethodVerb. Valid value domain: [" .
-                implode('|', $valid) . ']'
-            );
-        }
-        
-        return $normalized;
     }
     
     /**
