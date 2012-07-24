@@ -2,7 +2,8 @@
 
 use Artax\Http\Url,
     Artax\Http\StdRequest,
-    Artax\Http\Client;
+    Artax\Http\Client,
+    Artax\Http\StatusCodes;
 
 class ArtaxFrameworkTest extends PHPUnit_Framework_TestCase {
     
@@ -76,5 +77,38 @@ class ArtaxFrameworkTest extends PHPUnit_Framework_TestCase {
         
         $this->assertEquals(500, $response->getStatusCode());
         $this->assertEquals('fatal', $response->getBody());
+    }
+    
+    public function testExceptionResponseOnIllegalSystemEventDelta() {
+        $request = new StdRequest('http://localhost:8096/sysevent', '1.1', 'GET', array(
+            'User-Agent' => 'IntegrationTest'
+        ));
+        
+        $response = $this->client->send($request);
+        
+        $this->assertEquals(500, $response->getStatusCode());
+        $this->assertEquals('illegal sysevent delta', $response->getBody());
+    }
+    
+    public function testAutoStatusPluginIntegration() {
+        $request = new StdRequest('http://localhost:8096/auto-status', '1.1', 'GET', array(
+            'User-Agent' => 'IntegrationTest'
+        ));
+        
+        $response = $this->client->send($request);
+        
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertEquals(StatusCodes::HTTP_200, $response->getStatusDescription());
+    }
+    
+    public function testAutoContentLengthPluginIntegration() {
+        $request = new StdRequest('http://localhost:8096/auto-length', '1.1', 'GET', array(
+            'User-Agent' => 'IntegrationTest'
+        ));
+        
+        $response = $this->client->send($request);
+        
+        $this->assertTrue($response->hasHeader('Content-Length'));
+        $this->assertEquals(strlen($response->getBody()), $response->getHeader('Content-Length'));
     }
 }

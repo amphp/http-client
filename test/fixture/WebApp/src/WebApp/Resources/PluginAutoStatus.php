@@ -6,7 +6,7 @@ use Artax\Http\StdRequest,
     Artax\Framework\Http\ObservableResponse;
 
 
-class PostOnly {
+class PluginAutoStatus {
     
     private $request;
     private $response;
@@ -16,13 +16,12 @@ class PostOnly {
         $this->response = $response;
     }
     
-    public function post() {
-        $body = '<html><body><h1>PostOnly::post</h1></body></html>';
+    public function get() {
+        $body = 'PluginAutoStatus::get';
         $this->response->setBody($body);
-        $this->response->setStatusCode(200);
-        $this->response->setStatusDescription('OK');
         $this->response->send();
         
         return $this->response;
     }
+
 }

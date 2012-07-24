@@ -3,8 +3,8 @@
 namespace WebApp\Resources;
 
 use Exception,
-    Artax\Http\Request,
-    Artax\Http\Response;
+    Artax\Http\StdRequest,
+    Artax\Framework\Http\ObservableResponse;
 
 
 class ExceptionTest {
@@ -12,7 +12,7 @@ class ExceptionTest {
     private $request;
     private $response;
     
-    public function __construct(Request $request, Response $response) {
+    public function __construct(StdRequest $request, ObservableResponse $response) {
         $this->request = $request;
         $this->response = $response;
     }

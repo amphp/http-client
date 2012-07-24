@@ -13,7 +13,10 @@ $cfg->routes = array(
     '/error'       => 'WebApp\\Resources\\Error',
     '/exception'   => 'WebApp\\Resources\\ExceptionTest',
     '/fatal-error' => 'WebApp\\Resources\\FatalError',
-    '/post-only'   => 'WebApp\\Resources\\PostOnly'
+    '/post-only'   => 'WebApp\\Resources\\PostOnly',
+    '/sysevent'    => 'WebApp\\Resources\\IllegalSysEventDelta',
+    '/auto-status' => 'WebApp\\Resources\\PluginAutoStatus',
+    '/auto-length' => 'WebApp\\Resources\\PluginAutoContentLength'
 );
 
 $cfg->eventListeners = array(
@@ -22,10 +25,12 @@ $cfg->eventListeners = array(
     'app.http-500' => 'WebApp\\HttpHandlers\\Http500'
 );
 
+$cfg->interfaceImplementations = array(
+    'Artax\\Events\\Mediator' => 'Artax\\Framework\\Events\\ProvisionedNotifier'
+);
+
 $cfg->applyRouteShortcuts = true;
 $cfg->autoResponseContentLength = true;
 $cfg->autoResponseDate = true;
 $cfg->autoResponseStatus = true;
 $cfg->autoResponseEncode = false;
-$cfg->autoImplementRequest = true;
-$cfg->autoImplementResponse = true;

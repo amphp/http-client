@@ -2,8 +2,8 @@
 
 namespace WebApp\Resources;
 
-use Artax\Http\Request,
-    Artax\Http\Response;
+use Artax\Http\StdRequest,
+    Artax\Framework\Http\ObservableResponse;
 
 
 class Error {
@@ -11,7 +11,7 @@ class Error {
     private $request;
     private $response;
     
-    public function __construct(Request $request, Response $response) {
+    public function __construct(StdRequest $request, ObservableResponse $response) {
         $this->request = $request;
         $this->response = $response;
     }
