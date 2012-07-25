@@ -61,8 +61,11 @@ class Http406 {
         $this->response->setStatusDescription('Not Acceptable');
         
         if (!$this->mediator->notify('app.http-406', $this->request, $this->response, $e)) {
+            $body = '<html>'. PHP_EOL .'<body>' . PHP_EOL;
             $body  = '<h1>406 Not Acceptable</h1>' . PHP_EOL . '<hr />' . PHP_EOL;
             $body .= '<p>' . $e->getMessage() . '</p>' . PHP_EOL;
+            $body .= '<body>'. PHP_EOL .'</html>';
+            
             $this->response->setBody($body);
             $this->response->setHeader('Content-Type', 'text/html');
             $this->response->setHeader('Content-Length', strlen($body));

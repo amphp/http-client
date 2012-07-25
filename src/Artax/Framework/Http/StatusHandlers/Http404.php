@@ -62,9 +62,12 @@ class Http404 {
         $this->response->setStatusDescription('Not Found');
         
         if (!$this->mediator->notify('app.http-404', $this->request, $this->response, $e)) {
-            $body  = '<h1>404 Not Found</h1>' . PHP_EOL . '<hr />' . PHP_EOL;
+            $body = '<html>'. PHP_EOL .'<body>' . PHP_EOL;
+            $body .= '<h1>404 Not Found</h1>' . PHP_EOL . '<hr />' . PHP_EOL;
             $body .= '<p>The requested resource could not be found:<br />' . PHP_EOL;
             $body .= '<em>'.$this->request->getUri().'</em></p>' . PHP_EOL;
+            $body .= '<body>'. PHP_EOL .'</html>';
+            
             $this->response->setBody($body);
             $this->response->setHeader('Content-Type', 'text/html');
             $this->response->setHeader('Content-Length', strlen($body));

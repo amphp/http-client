@@ -69,13 +69,16 @@ class Http500 {
             $e,
             $debugMode
         )) {
-            $body  = '<h1>500 Internal Server Error</h1><hr />' . PHP_EOL;
+            $body = '<html>'. PHP_EOL .'<body>' . PHP_EOL;
+            $body .= '<h1>500 Internal Server Error</h1><hr />' . PHP_EOL;
             
             if ($debugMode) {
                 $body .= "<h2 style=\"color:red;\">DEBUG MODE</h2><pre>$e</pre>";
             } else {
                 $body .= '<p>Well this is embarrassing ...</p>';
             }
+            
+            $body .= '<body>'. PHP_EOL .'</html>';
             
             $this->response->setBody($body);
             $this->response->setHeader('Content-Type', 'text/html');

@@ -168,7 +168,7 @@ $mediator->unshift('__mediator.delta', function(Mediator $mediator) {
     list($eventName, $deltaType) = $mediator->getLastQueueDelta();
     if (strpos($eventName, '__') === 0) {
         throw new SystemEventDeltaException(
-            "Protected event listener `$eventName` may not be modified after boot"
+            "Protected event queue may not be modified after boot: $eventName"
         );
     }
 });
@@ -220,9 +220,6 @@ try {
     
 } catch (BadResourceMethodException $e) {
     
-    $availableMethods = array_intersect($e->getAvailableMethods(),
-        array('options', 'get', 'head', 'post', 'put', 'delete', 'trace', 'connect')
-    );
     $mediator->notify('__sys.http-' . StatusCodes::HTTP_METHOD_NOT_ALLOWED,
         new MethodNotAllowedException($availableMethods)
     );
