@@ -2,6 +2,15 @@
 /**
  * Artax Framework Bootstrap File
  * 
+ * To use, specify a valid Artax configuration file and require
+ * the Artax-Framework.php bootstrap file in your front controller:
+ * 
+ * ```php
+ * define('ARTAX_DEBUG_MODE', 1); // Optional debug mode flag (turned off by default)
+ * define('ARTAX_CONFIG_FILE', '/hard/path/to/config.php');
+ * require '/hard/path/to/Artax-Framework.php';
+ * ```
+ * 
  * @category    Artax
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
  * @license     All code subject to the terms of the LICENSE file in the project root
@@ -12,18 +21,18 @@ use Artax\Http\StatusCodes,
     Artax\Http\StdRequestFactory,
     Artax\Http\StdResponse,
     Artax\Events\Mediator,
-    Artax\Framework\Config\ConfigParserFactory,
-    Artax\Framework\Config\Config,
-    Artax\Framework\Routing\ObservableRoutePool,
-    Artax\Framework\Routing\ObservableRouteFactory,
-    Artax\Framework\Routing\ObservableResourceFactory,
-    Artax\Framework\Routing\ClassResourceMapper,
-    Artax\Framework\Routing\BadResourceMethodException,
-    Artax\Framework\Http\Exceptions\NotFoundException,
-    Artax\Framework\Http\Exceptions\MethodNotAllowedException,
-    Artax\Framework\Http\Exceptions\HttpStatusException,
     Artax\Framework\UnifiedErrorHandler,
+    Artax\Framework\Config\Config,
+    Artax\Framework\Config\ConfigParserFactory,
+    Artax\Framework\Http\Exceptions\HttpStatusException,
+    Artax\Framework\Http\Exceptions\MethodNotAllowedException,
+    Artax\Framework\Http\Exceptions\NotFoundException,
     Artax\Framework\Events\SystemEventDeltaException,
+    Artax\Framework\Routing\BadResourceMethodException,
+    Artax\Framework\Routing\ClassResourceMapper,
+    Artax\Framework\Routing\ObservableResourceFactory,
+    Artax\Framework\Routing\ObservableRouteFactory,
+    Artax\Framework\Routing\ObservableRoutePool,
     Artax\Negotiation\NotAcceptableException;
 
 
@@ -57,7 +66,7 @@ if (!defined('ARTAX_DEBUG_MODE')) {
     define('ARTAX_DEBUG_MODE', 0);
 }
 
-$handler = new UnifiedErrorHandler(new StdResponse($mediator), $mediator, ARTAX_DEBUG_MODE);
+$handler = new UnifiedErrorHandler(new StdResponse, $mediator, ARTAX_DEBUG_MODE);
 $handler->register();
 
 
@@ -119,21 +128,21 @@ if ($cfg->has('bootstrapFile') && $bootstrapFile = $cfg->get('bootstrapFile')) {
     $userBootstrap($injector, $mediator, $bootstrapFile);
 }
 
-if ($cfg->has('applyRouteShortcuts') && $cfg->get('applyRouteShortcuts')) {
+if ($cfg->get('applyRouteShortcuts')) {
     $injector->share('Artax\\Framework\\Plugins\\RouteShortcuts');
     $mediator->push('__sys.route.new', 'Artax\\Framework\\Plugins\\RouteShortcuts');
 }
-if ($cfg->has('autoResponseContentLength') && $cfg->get('autoResponseContentLength')) {
+if ($cfg->get('autoResponseContentLength')) {
     $mediator->push('__sys.response.beforeSend', 'Artax\\Framework\\Plugins\\AutoResponseContentLength');
 }
-if ($cfg->has('autoResponseDate') && $cfg->get('autoResponseDate')) {
+if ($cfg->get('autoResponseDate')) {
     $mediator->push('__sys.response.beforeSend', 'Artax\\Framework\\Plugins\\AutoResponseDate');
 }
-if ($cfg->has('autoResponseStatus') && $cfg->get('autoResponseStatus')) {
+if ($cfg->get('autoResponseStatus')) {
     $mediator->push('__sys.response.beforeSend', 'Artax\\Framework\\Plugins\\AutoResponseStatus');
 }
 /*
-if ($cfg->has('autoResponseEncode') && $cfg->get('autoResponseEncode')) {
+if ($cfg->get('autoResponseEncode')) {
     $mediator->push('__sys.response.beforeSend', 'Artax\\Framework\\Plugins\\AutoResponseEncode');
     $injector->define('Artax\\Framework\\Plugins\\AutoResponseEncode',
         array('request' => 'Artax\\Http\\FormEncodableRequest')
