@@ -25,7 +25,12 @@ use StdClass,
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
  */    
 class Config {
-
+    
+    /**
+     * @var ConfigValidator
+     */
+    private $validator;
+    
     /**
      * @var array
      */
@@ -36,14 +41,11 @@ class Config {
      */
     private $defaults = array(
         'applyRouteShortcuts' => true,
-        'autoResponseContentLength' => false,
-        'autoResponseBodyEncode' => false
+        'autoResponseStatus' => true,
+        'autoResponseDate' => true,
+        'autoResponseContentLength' => true,
+        'autoResponseEncode' => false,
     );
-    
-    /**
-     * @var ConfigValidator
-     */
-    private $validator;
     
     /**
      * @param mixed $iterableDirectives
@@ -51,9 +53,8 @@ class Config {
      * @return void
      * @throws InvalidArgumentException
      */
-    public function __construct($iterableDirectives, ConfigValidator $validator = null) {
+    public function __construct(ConfigValidator $validator = null) {
         $this->validator = $validator ?: new ConfigValidator;
-        $this->populate($iterableDirectives);
     }
     
     /**
@@ -81,11 +82,11 @@ class Config {
      * @param mixed $iterable An array, StdClass or Traversable
      * @return void
      */
-    private function populate($iterable) {
-        if (!(is_array($iterable)
-            || $iterable instanceof Traversable
-            || $iterable instanceof StdClass)
-        ) {
+    public function populate($iterable) {
+        if (!($iterable instanceof Traversable
+            || $iterable instanceof StdClass
+            || is_array($iterable)
+        )) {
             $type = is_object($iterable) ? get_class($iterable) : gettype($iterable);
             throw new InvalidArgumentException(
                 get_class($this) . '::populate expects an array, StdClass or '.
@@ -103,7 +104,7 @@ class Config {
         }
         
         $this->setUndefinedDefaults();
-        //$this->validator->validate($this);
+        $this->validator->validate($this);
     }
     
     /**
@@ -111,7 +112,26 @@ class Config {
      * @return void
      */
     private function setApplyRouteShortcuts($value) {
-        $this->directives['applyRouteShortcuts'] = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+        $normalized = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+        $this->directives['applyRouteShortcuts'] = $normalized;
+    }
+    
+    /**
+     * @param bool $value
+     * @return void
+     */
+    private function setAutoResponseStatus($value) {
+        $normalized = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+        $this->directives['autoResponseStatus'] = $normalized;
+    }
+    
+    /**
+     * @param bool $value
+     * @return void
+     */
+    private function setAutoResponseDate($value) {
+        $normalized = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+        $this->directives['autoResponseDate'] = $normalized;
     }
     
     /**
@@ -119,15 +139,17 @@ class Config {
      * @return void
      */
     private function setAutoResponseContentLength($value) {
-        $this->directives['autoResponseContentLength'] = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+        $normalized = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+        $this->directives['autoResponseContentLength'] = $normalized;
     }
     
     /**
      * @param bool $value
      * @return void
      */
-    private function setAutoResponseBodyEncode($value) {
-        $this->directives['autoResponseBodyEncode'] = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+    private function setAutoResponseEncode($value) {
+        $normalized = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+        $this->directives['autoResponseEncode'] = $normalized;
     }
     
     /**

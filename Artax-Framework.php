@@ -9,7 +9,7 @@
  */
 
 use Artax\Http\StatusCodes,
-    Artax\Http\RequestFactory,
+    Artax\Http\StdRequestFactory,
     Artax\Http\StdResponse,
     Artax\Events\Mediator,
     Artax\Framework\Config\ConfigFactory,
@@ -18,7 +18,6 @@ use Artax\Http\StatusCodes,
     Artax\Framework\Routing\ObservableResourceFactory,
     Artax\Framework\Routing\ClassResourceMapper,
     Artax\Framework\Routing\BadResourceMethodException,
-    Artax\Framework\Http\ObservableResponse,
     Artax\Framework\Http\Exceptions\NotFoundException,
     Artax\Framework\Http\Exceptions\MethodNotAllowedException,
     Artax\Framework\Http\Exceptions\HttpStatusException,
@@ -73,6 +72,11 @@ $httpStatusHandlerDefinition = array(
     'request'  => 'Artax\\Http\\StdRequest',
     'response' => 'Artax\\Framework\\Http\\ObservableResponse'
 );
+$http500HandlerDefinition = array(
+    'mediator' => $mediator,
+    'request'  => 'Artax\\Http\\StdRequest',
+    'response' => 'Artax\\Http\\StdResponse'
+);
 
 $injector->defineAll(array(
     'Artax\\Framework\\Http\\ObservableResponse' => $mediatorDefinition,
@@ -85,21 +89,9 @@ $injector->defineAll(array(
     'Artax\\Framework\\Http\\StatusHandlers\\Http404' => $httpStatusHandlerDefinition,
     'Artax\\Framework\\Http\\StatusHandlers\\Http405' => $httpStatusHandlerDefinition,
     'Artax\\Framework\\Http\\StatusHandlers\\Http406' => $httpStatusHandlerDefinition,
-    'Artax\\Framework\\Http\\StatusHandlers\\Http500' => $httpStatusHandlerDefinition,
+    'Artax\\Framework\\Http\\StatusHandlers\\Http500' => $http500HandlerDefinition,
     'Artax\\Framework\\Http\\StatusHandlers\\HttpGeneral' => $httpStatusHandlerDefinition
 ));
-
-
-/*
- * -------------------------------------------------------------------------------------------------
- * Register HTTP event handlers.
- * -------------------------------------------------------------------------------------------------
- */
-
-$mediator->push('__sys.http-404', 'Artax\\Framework\\Http\\StatusHandlers\\Http404');
-$mediator->push('__sys.http-405', 'Artax\\Framework\\Http\\StatusHandlers\\Http405');
-$mediator->push('__sys.http-406', 'Artax\\Framework\\Http\\StatusHandlers\\Http406');
-$mediator->push('__sys.exception', 'Artax\\Framework\\Http\\StatusHandlers\\Http500');
 
 
 /*
@@ -112,8 +104,11 @@ if (!defined('ARTAX_CONFIG_FILE')) {
     die('The ARTAX_CONFIG_FILE constant must be defined before continuing' . PHP_EOL);
 }
 
-$cfgFactory = new ConfigFactory();
-$cfg = $cfgFactory->make(ARTAX_CONFIG_FILE);
+$cfgParserFactory = new ConfigParserFactory();
+$cfgParser = $cfgParserFactory->make(ARTAX_CONFIG_FILE);
+$cfg = new Config();
+$cfg->populate($cfgParser->parse(ARTAX_CONFIG_FILE));
+
 $injector->share('Artax\\Framework\\Config\\Config', $cfg);
 
 if ($cfg->has('bootstrapFile') && $bootstrapFile = $cfg->get('bootstrapFile')) {
@@ -136,13 +131,14 @@ if ($cfg->has('autoResponseDate') && $cfg->get('autoResponseDate')) {
 if ($cfg->has('autoResponseStatus') && $cfg->get('autoResponseStatus')) {
     $mediator->push('__sys.response.beforeSend', 'Artax\\Framework\\Plugins\\AutoResponseStatus');
 }
+/*
 if ($cfg->has('autoResponseEncode') && $cfg->get('autoResponseEncode')) {
     $mediator->push('__sys.response.beforeSend', 'Artax\\Framework\\Plugins\\AutoResponseEncode');
     $injector->define('Artax\\Framework\\Plugins\\AutoResponseEncode',
         array('request' => 'Artax\\Http\\FormEncodableRequest')
     );
 }
-
+*/
 if ($cfg->has('eventListeners')) {
     $mediator->pushAll($cfg->get('eventListeners'));
 }
@@ -162,6 +158,11 @@ if ($cfg->has('interfaceImplementations')) {
  * -------------------------------------------------------------------------------------------------
  */
 
+$mediator->push('__sys.http-404', 'Artax\\Framework\\Http\\StatusHandlers\\Http404');
+$mediator->push('__sys.http-405', 'Artax\\Framework\\Http\\StatusHandlers\\Http405');
+$mediator->push('__sys.http-406', 'Artax\\Framework\\Http\\StatusHandlers\\Http406');
+$mediator->push('__sys.exception', 'Artax\\Framework\\Http\\StatusHandlers\\Http500');
+
 $mediator->unshift('__mediator.delta', function(Mediator $mediator) {
     list($eventName, $deltaType) = $mediator->getLastQueueDelta();
     if (strpos($eventName, '__') === 0) {
@@ -178,7 +179,7 @@ $mediator->unshift('__mediator.delta', function(Mediator $mediator) {
  * -------------------------------------------------------------------------------------------------
  */
 
-$requestFactory = new RequestFactory;
+$requestFactory = new StdRequestFactory;
 $request = $requestFactory->make($_SERVER);
 $injector->share('Artax\\Http\\StdRequest', $request);
 

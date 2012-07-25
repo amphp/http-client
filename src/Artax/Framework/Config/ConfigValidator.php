@@ -6,6 +6,8 @@
  * @package     Framework
  * @subpackage  Config
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
+ * @license     All code subject to the terms of the LICENSE file in the project root
+ * @version     ${project.version}
  */
 namespace Artax\Framework\Config;
 
@@ -18,6 +20,8 @@ use Traversable;
  * @package     Framework
  * @subpackage  Config
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
+ * @license     All code subject to the terms of the LICENSE file in the project root
+ * @version     ${project.version}
  */
 class ConfigValidator {
 
@@ -25,9 +29,17 @@ class ConfigValidator {
      * @return void
      * @throws ConfigException
      */
-    private function validate(Config $cfg) {
+    public function validate(Config $cfg) {
+        $this->validateRoutes($cfg);
+    }
+    
+    /**
+     * @return void
+     * @throws ConfigException
+     */
+    protected function validateRoutes(Config $cfg) {
         if (!$cfg->has('routes')) {
-            throw new ConfigException('No routes specified');
+            throw new ConfigException('No resource routes specified');
         }
         $routes = $cfg->get('routes');
         if (!(is_array($routes) || $routes instanceof Traversable)) {

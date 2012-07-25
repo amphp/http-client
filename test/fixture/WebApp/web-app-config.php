@@ -30,7 +30,9 @@ $cfg->interfaceImplementations = array(
 );
 
 $cfg->applyRouteShortcuts = true;
+
 $cfg->autoResponseContentLength = true;
 $cfg->autoResponseDate = true;
 $cfg->autoResponseStatus = true;
+
 $cfg->autoResponseEncode = false;
