@@ -1,6 +1,7 @@
 <?php
 
 use Artax\Framework\ScriptHaltException,
+    Artax\Framework\FatalErrorException,
     Artax\Framework\UnifiedErrorHandler;
 
 class UnifiedErrorHandlerTest extends PHPUnit_Framework_TestCase {
@@ -136,6 +137,7 @@ class UnifiedErrorHandlerTest extends PHPUnit_Framework_TestCase {
     /**
      * @covers Artax\Framework\UnifiedErrorHandler::__construct
      * @covers Artax\Framework\UnifiedErrorHandler::handleException
+     * @covers Artax\Framework\UnifiedErrorHandler::outputDefaultExceptionMessage
      */
     public function testExceptionHandlerOutputsDefaultExceptionMessageIfListenersThrowException() {
         $mediator = $this->getMock('Artax\\Events\\Mediator');
@@ -147,15 +149,33 @@ class UnifiedErrorHandlerTest extends PHPUnit_Framework_TestCase {
         $response = $this->getMock('Artax\\Http\\Response');
         $debugMode = 1;
         
-        $mock = $this->getMock('Artax\\Framework\\UnifiedErrorHandler',
-            array('outputDefaultExceptionMessage'), array($response, $mediator, $debugMode)
-        );
+        $handler = new UnifiedErrorHandler($response, $mediator, $debugMode);
         
-        $mock->expects($this->once())
-             ->method('outputDefaultExceptionMessage')
-             ->with(new Exception);
+        $this->assertNull($handler->handleException(new Exception));
+    }
+    
+    /**
+     * @covers Artax\Framework\UnifiedErrorHandler::__construct
+     * @covers Artax\Framework\UnifiedErrorHandler::handleException
+     * @covers Artax\Framework\UnifiedErrorHandler::outputDefaultExceptionMessage
+     */
+    public function testDefaultMessageOnlyOutputsOnce() {
+        $mediator = $this->getMock('Artax\\Events\\Mediator');
+        $mediator->expects($this->once())
+                 ->method('notify')
+                 ->with('__sys.exception', new Exception, 1)
+                 ->will($this->throwException(new Exception));
+                 
+        $response = $this->getMock('Artax\\Http\\Response');
+        $response->expects($this->once())
+                 ->method('wasSent')
+                 ->will($this->returnValue(true));
         
-        $this->assertNull($mock->handleException(new Exception));
+        $debugMode = 1;
+        
+        $handler = new UnifiedErrorHandler($response, $mediator, $debugMode);
+        
+        $this->assertNull($handler->handleException(new Exception));
     }
     
     /**
@@ -169,6 +189,107 @@ class UnifiedErrorHandlerTest extends PHPUnit_Framework_TestCase {
         
         $handler = new UnifiedErrorHandler($response, $mediator, $debugMode);
         $this->assertNull($handler->register());
+    }
+    
+    /**
+     * @covers Artax\Framework\UnifiedErrorHandler::handleShutdown
+     * @covers Artax\Framework\UnifiedErrorHandler::buildExceptionFromFatalError
+     * @covers Artax\Framework\UnifiedErrorHandler::getLastError
+     */
+    public function testHandleShutdownReturnsIfPreviouslyInvoked() {
+        $mediator = $this->getMock('Artax\\Events\\Mediator');
+        $mediator->expects($this->once())
+                 ->method('notify')
+                 ->with('__sys.shutdown');
+                 
+        $response = $this->getMock('Artax\\Http\\Response');
+        $debugMode = 1;
+        
+        $handler = $this->getMock(
+            'Artax\\Framework\\UnifiedErrorHandler',
+            null,
+            array($response, $mediator, $debugMode)
+        );
+        
+        $handler->handleShutdown();
+        $this->assertNull($handler->handleShutdown());
+    }
+    
+    /**
+     * @covers Artax\Framework\UnifiedErrorHandler::handleShutdown
+     */
+    public function testHandleShutdownReturnsIfShutdownListenerThrowsScriptHaltException() {
+        $mediator = $this->getMock('Artax\\Events\\Mediator');
+        $mediator->expects($this->once())
+                 ->method('notify')
+                 ->with('__sys.shutdown')
+                 ->will($this->throwException(new ScriptHaltException));
+                 
+        $response = $this->getMock('Artax\\Http\\Response');
+        $debugMode = 1;
+        
+        $handler = $this->getMock(
+            'Artax\\Framework\\UnifiedErrorHandler',
+            array('buildExceptionFromFatalError'),
+            array($response, $mediator, $debugMode)
+        );
+        
+        $handler->handleShutdown();
+    }
+    
+    /**
+     * @covers Artax\Framework\UnifiedErrorHandler::handleShutdown
+     */
+    public function testHandleShutdownOutputsDefaultOnUncaughtShutdownListenerException() {
+        $mediator = $this->getMock('Artax\\Events\\Mediator');
+        $mediator->expects($this->once())
+                 ->method('notify')
+                 ->with('__sys.shutdown')
+                 ->will($this->throwException(new Exception));
+                 
+        $response = $this->getMock('Artax\\Http\\Response');
+        $debugMode = 1;
+        
+        $handler = $this->getMock(
+            'Artax\\Framework\\UnifiedErrorHandler',
+            array('buildExceptionFromFatalError', 'outputDefaultExceptionMessage'),
+            array($response, $mediator, $debugMode)
+        );
+        $handler->expects($this->once())
+                ->method('outputDefaultExceptionMessage');
+        
+        $handler->handleShutdown();
+    }
+    
+    /**
+     * @covers Artax\Framework\UnifiedErrorHandler::handleShutdown
+     * @covers Artax\Framework\UnifiedErrorHandler::buildExceptionFromFatalError
+     */
+    public function testHandleShutdownInvokesExceptionHandlerForFatalErrors() {
+        $mediator = $this->getMock('Artax\\Events\\Mediator');
+        $response = $this->getMock('Artax\\Http\\Response');
+        $debugMode = 1;
+        
+        $handler = $this->getMock(
+            'Artax\\Framework\\UnifiedErrorHandler',
+            array('getLastError', 'handleException'),
+            array($response, $mediator, $debugMode)
+        );
+        
+        $lastError = array(
+            'type'    => 1,
+            'message' => 'The black knight always triumphs!',
+            'file'    => '/path/to/file.php',
+            'line'    => 42
+        );
+        
+        $handler->expects($this->once())
+                ->method('getLastError')
+                ->will($this->returnValue($lastError));
+        $handler->expects($this->once())
+                ->method('handleException');
+        
+        $handler->handleShutdown();
     }
 }
 

@@ -125,13 +125,9 @@ class UnifiedErrorHandler {
         $this->response->setStatusCode(StatusCodes::HTTP_INTERNAL_SERVER_ERROR);
         $this->response->setStatusDescription(StatusCodes::HTTP_500);
         
-        $body  = '<h1>500 Internal Server Error</h1><hr />' . PHP_EOL;
-        
+        $body = '<h1>500 Internal Server Error</h1><hr />' . PHP_EOL;
         if ($this->debugMode) {
-            $body .= '<h2 style="color:red;">DEBUG MODE</h2>';
             $body .= "<pre>$e</pre>";
-        } else {
-            $body .= '<p>Well this is embarrassing ...</p>';
         }
         
         $this->response->setStatusCode(500);
@@ -154,41 +150,26 @@ class UnifiedErrorHandler {
         
         $this->shutdownRoutineInvoked = true;
         
-        if ($e = $this->buildExceptionFromFatalError()) {
-            $this->handleFatalError($e);
-        } else {
-            try {
-                $this->mediator->notify('__sys.shutdown');
-            } catch (ScriptHaltException $scriptHaltException) {
-                return;
-            } catch (Exception $nestedException) {
-                $this->outputDefaultExceptionMessage($nestedException);
-            }
+        $fatalException = $this->buildExceptionFromFatalError();
+        
+        if ($fatalException) {
+            $this->handleException($fatalException);
         }
-    }
-    
-    /**
-     * @param FatalErrorException $e
-     */
-    protected function handleFatalError(FatalErrorException $e) {
+        
         try {
-            if (!$this->mediator->notify('__sys.exception', $e, $this->debugMode)) {
-                $this->outputDefaultExceptionMessage($e);
-            }
             $this->mediator->notify('__sys.shutdown');
-        } catch (ScriptHaltException $e) {
+        } catch (ScriptHaltException $scriptHaltException) {
             return;
-        } catch (Exception $e) {
-            $this->outputDefaultExceptionMessage($e);
+        } catch (Exception $nestedException) {
+            $this->outputDefaultExceptionMessage($nestedException);
         }
     }
 
     /**
-     * @return FatalErrorException Returns null if the most recent PHP error wasn't fatal
+     * @return FatalErrorException
      */
     protected function buildExceptionFromFatalError() {
-        $ex  = null;
-        $err = $this->getLastError();
+        $lastError = $this->getLastError();
         
         $fatals = array(
             E_ERROR           => 'Fatal Error',
@@ -199,17 +180,15 @@ class UnifiedErrorHandler {
             E_COMPILE_WARNING => 'Compile Warning'
         );
         
-        if (isset($fatals[$err['type']])) {
-            $msg = $fatals[$err['type']] . ': ' . $err['message'] . ' in ';
-            $msg.= $err['file'] . ' on line ' . $err['line'];
-            $ex  = new FatalErrorException($msg);
+        if (isset($fatals[$lastError['type']])) {
+            $msg = $fatals[$lastError['type']] . ': ' . $lastError['message'] . ' in ';
+            $msg.= $lastError['file'] . ' on line ' . $lastError['line'];
+            return new FatalErrorException($msg);
         }
-        
-        return $ex;
     }
     
     /**
-     * @return array Returns an associative error representation array
+     * @return array
      */
     protected function getLastError() {
         return error_get_last();
