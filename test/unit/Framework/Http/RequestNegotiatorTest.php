@@ -1,28 +1,28 @@
 <?php
 
-use Artax\Framework\ContentNegotiationAdapter,
+use Artax\Framework\Http\RequestNegotiator,
     Artax\Negotiation\CompositeNegotiator,
     Artax\Negotiation\NegotiatorFactory;
 
-class ContentNegotiationAdapterTest extends PHPUnit_Framework_TestCase {
+class RequestNegotiatorTest extends PHPUnit_Framework_TestCase {
     
     /**
-     * @covers Artax\Framework\ContentNegotiationAdapter::__construct
+     * @covers Artax\Framework\Http\RequestNegotiator::__construct
      */
     public function testConstructorInitializesObject() {
         $request = $this->getMock('Artax\\Http\\Request');
         $composite = new CompositeNegotiator(new NegotiatorFactory);
-        $negotiator = new ContentNegotiationAdapter($composite);
+        $negotiator = new RequestNegotiator($composite);
     }
     
     /**
-     * @covers Artax\Framework\ContentNegotiationAdapter::negotiate
+     * @covers Artax\Framework\Http\RequestNegotiator::negotiate
      * @expectedException LogicException
      */
     public function testNegotiateThrowsExceptionOnMissingContentTypes() {
         $request = $this->getMock('Artax\\Http\\Request');
         $composite = new CompositeNegotiator(new NegotiatorFactory);
-        $negotiator = new ContentNegotiationAdapter($composite);
+        $negotiator = new RequestNegotiator($composite);
         
         $negotiator->setAvailableCharsets(array('utf-8'));
         $negotiator->setAvailableLanguages(array('en'));
@@ -30,13 +30,13 @@ class ContentNegotiationAdapterTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers Artax\Framework\ContentNegotiationAdapter::negotiate
+     * @covers Artax\Framework\Http\RequestNegotiator::negotiate
      * @expectedException LogicException
      */
     public function testNegotiateThrowsExceptionOnMissingCharsets() {
         $request = $this->getMock('Artax\\Http\\Request');
         $composite = new CompositeNegotiator(new NegotiatorFactory);
-        $negotiator = new ContentNegotiationAdapter($composite);
+        $negotiator = new RequestNegotiator($composite);
         
         $negotiator->setAvailableContentTypes(array('text/hmtl'));
         $negotiator->setAvailableLanguages(array('en'));
@@ -44,13 +44,13 @@ class ContentNegotiationAdapterTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers Artax\Framework\ContentNegotiationAdapter::negotiate
+     * @covers Artax\Framework\Http\RequestNegotiator::negotiate
      * @expectedException LogicException
      */
     public function testNegotiateThrowsExceptionOnMissingLanguages() {
         $request = $this->getMock('Artax\\Http\\Request');
         $composite = new CompositeNegotiator(new NegotiatorFactory);
-        $negotiator = new ContentNegotiationAdapter($composite);
+        $negotiator = new RequestNegotiator($composite);
         
         $negotiator->setAvailableContentTypes(array('text/hmtl'));
         $negotiator->setAvailableCharsets(array('utf-8'));
@@ -58,20 +58,20 @@ class ContentNegotiationAdapterTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers Artax\Framework\ContentNegotiationAdapter::negotiate
-     * @covers Artax\Framework\ContentNegotiationAdapter::negotiateContentType
-     * @covers Artax\Framework\ContentNegotiationAdapter::negotiateCharset
-     * @covers Artax\Framework\ContentNegotiationAdapter::negotiateLanguage
-     * @covers Artax\Framework\ContentNegotiationAdapter::negotiateEncoding
-     * @covers Artax\Framework\ContentNegotiationAdapter::setAvailableContentTypes
-     * @covers Artax\Framework\ContentNegotiationAdapter::setAvailableCharsets
-     * @covers Artax\Framework\ContentNegotiationAdapter::setAvailableLanguages
-     * @covers Artax\Framework\ContentNegotiationAdapter::setAvailableEncodings
+     * @covers Artax\Framework\Http\RequestNegotiator::negotiate
+     * @covers Artax\Framework\Http\RequestNegotiator::negotiateContentType
+     * @covers Artax\Framework\Http\RequestNegotiator::negotiateCharset
+     * @covers Artax\Framework\Http\RequestNegotiator::negotiateLanguage
+     * @covers Artax\Framework\Http\RequestNegotiator::negotiateEncoding
+     * @covers Artax\Framework\Http\RequestNegotiator::setAvailableContentTypes
+     * @covers Artax\Framework\Http\RequestNegotiator::setAvailableCharsets
+     * @covers Artax\Framework\Http\RequestNegotiator::setAvailableLanguages
+     * @covers Artax\Framework\Http\RequestNegotiator::setAvailableEncodings
      */
     public function testNegotiateReturnsAnArrayOfNegotiatedValues() {
-        $request = new ContentNegotiationAdapterMockRequest;
+        $request = new RequestNegotiatorMockRequest;
         $composite = new CompositeNegotiator(new NegotiatorFactory);
-        $negotiator = new ContentNegotiationAdapter($composite);
+        $negotiator = new RequestNegotiator($composite);
         
         $negotiator->setAvailableContentTypes(array('text/html', 'application/json'));
         $negotiator->setAvailableCharsets(array('utf-8'));
@@ -89,12 +89,12 @@ class ContentNegotiationAdapterTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers Artax\Framework\ContentNegotiationAdapter::negotiateAndApply
+     * @covers Artax\Framework\Http\RequestNegotiator::negotiateAndApply
      */
     public function testNegotiateAndApplyAssignsResponseHeadersAndReturnsNegotiatedValues() {
-        $request = new ContentNegotiationAdapterMockRequest;
+        $request = new RequestNegotiatorMockRequest;
         $composite = new CompositeNegotiator(new NegotiatorFactory);
-        $negotiator = new ContentNegotiationAdapter($composite);
+        $negotiator = new RequestNegotiator($composite);
         
         $negotiator->setAvailableContentTypes(array('text/html', 'application/json'));
         $negotiator->setAvailableCharsets(array('utf-8'));
@@ -125,7 +125,7 @@ class ContentNegotiationAdapterTest extends PHPUnit_Framework_TestCase {
 }
 
 
-class ContentNegotiationAdapterMockRequest implements Artax\Http\Request {
+class RequestNegotiatorMockRequest implements Artax\Http\Request {
     
     function getHeader($header) {
         $header = strtolower($header);

@@ -1,14 +1,15 @@
 <?php
 /**
- * HTTP ContentNegotiationAdapter Class File
+ * HTTP RequestNegotiator Class File
  * 
  * @category    Artax
  * @package     Framework
+ * @subpackage  Http
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
  * @license     All code subject to the terms of the LICENSE file in the project root
  * @version     ${project.version}
  */
-namespace Artax\Framework;
+namespace Artax\Framework\Http;
 
 use LogicException,
     Artax\Http\Request,
@@ -20,9 +21,10 @@ use LogicException,
  * 
  * @category    Artax
  * @package     Framework
+ * @subpackage  Http
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
  */
-class ContentNegotiationAdapter {
+class RequestNegotiator {
     
     /**
      * @var CompositeNegotiator
@@ -59,32 +61,6 @@ class ContentNegotiationAdapter {
     
     /**
      * @param Request $request
-     * @param Response $response
-     * @return array
-     * @throws LogicException
-     * @throws NotAcceptableException
-     */
-    public function negotiateAndApply(Request $request, Response $response) {
-        $negotiatedArr = $this->negotiate($request, $response);
-        extract($negotiatedArr);
-        
-        $response->setHeader('Content-Type', "$contentType; charset=$charset");
-        $response->setHeader('Content-Language', "$language");
-        
-        if ($encoding !== 'identity') {
-            $response->setHeader('Content-Encoding', "$encoding");
-        }
-        
-        // rfc-rfc2616-sec14.44:
-        // "An HTTP/1.1 server SHOULD include a Vary header field with any cacheable 
-        // response that is subject to server-driven negotiation."
-        $response->setHeader('Vary', 'Accept,Accept-Charset,Accept-Language,Accept-Encoding');
-        
-        return $negotiatedArr;
-    }
-    
-    /**
-     * @param Request $request
      * @return array
      * @throws LogicException
      * @throws NotAcceptableException
@@ -110,6 +86,32 @@ class ContentNegotiationAdapter {
             'language' => $this->negotiateLanguage($request),
             'encoding' => $this->negotiateEncoding($request)
         );
+    }
+    
+    /**
+     * @param Request $request
+     * @param Response $response
+     * @return array
+     * @throws LogicException
+     * @throws NotAcceptableException
+     */
+    public function negotiateAndApply(Request $request, Response $response) {
+        $negotiatedArr = $this->negotiate($request, $response);
+        extract($negotiatedArr);
+        
+        $response->setHeader('Content-Type', "$contentType; charset=$charset");
+        $response->setHeader('Content-Language', "$language");
+        
+        if ($encoding !== 'identity') {
+            $response->setHeader('Content-Encoding', "$encoding");
+        }
+        
+        // rfc-rfc2616-sec14.44:
+        // "An HTTP/1.1 server SHOULD include a Vary header field with any cacheable 
+        // response that is subject to server-driven negotiation."
+        $response->setHeader('Vary', 'Accept,Accept-Charset,Accept-Language,Accept-Encoding');
+        
+        return $negotiatedArr;
     }
     
     /**
