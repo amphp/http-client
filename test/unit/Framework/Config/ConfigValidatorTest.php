@@ -14,6 +14,9 @@ class ConfigValidatorTest extends PHPUnit_Framework_TestCase {
         $directives = array();
         $cfg = new Config();
         $cfg->populate($directives);
+        
+        $validator = new ConfigValidator();
+        $validator->validate($cfg);
     }
     
     /**
@@ -25,8 +28,12 @@ class ConfigValidatorTest extends PHPUnit_Framework_TestCase {
         $directives = array(
             'routes' => 'not iterable'
         );
+        
         $cfg = new Config();
         $cfg->populate($directives);
+        
+        $validator = new ConfigValidator();
+        $validator->validate($cfg);
     }
     
     /**
@@ -40,5 +47,8 @@ class ConfigValidatorTest extends PHPUnit_Framework_TestCase {
         );
         $cfg = new Config();
         $cfg->populate($directives);
+        
+        $validator = new ConfigValidator();
+        $validator->validate($cfg);
     }
 }

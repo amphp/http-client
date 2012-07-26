@@ -5,13 +5,6 @@ use Artax\Framework\Config\Config;
 class ConfigTest extends PHPUnit_Framework_TestCase {
     
     /**
-     * @covers Artax\Framework\Config\Config::__construct
-     */
-    public function testBeginsEmpty() {
-        $cfg = new Config();
-    }
-    
-    /**
      * @covers Artax\Framework\Config\Config::get
      * @expectedException DomainException
      */
@@ -25,8 +18,7 @@ class ConfigTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Framework\Config\Config::setUndefinedDefaults
      */
     public function testGetReturnsDirectiveValue() {
-        $validator = $this->getMock('Artax\\Framework\\Config\\ConfigValidator');
-        $cfg = new Config($validator);
+        $cfg = new Config();
         $cfg->populate(array());
         $this->assertTrue(is_bool($cfg->get('applyRouteShortcuts')));
     }
@@ -36,8 +28,7 @@ class ConfigTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Framework\Config\Config::setUndefinedDefaults
      */
     public function testHasReturnsBooleanExistenceStatusOfSpecifiedDirective() {
-        $validator = $this->getMock('Artax\\Framework\\Config\\ConfigValidator');
-        $cfg = new Config($validator);
+        $cfg = new Config();
         $this->assertFalse($cfg->has('applyRouteShortcuts'));
         $cfg->populate(array());
         $this->assertTrue($cfg->has('applyRouteShortcuts'));
@@ -53,11 +44,7 @@ class ConfigTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Framework\Config\Config::setAutoResponseEncodeMediaRanges
      */
     public function testPopulateCallsDirectiveSetterMethodsIfDefined() {
-        $validator = $this->getMock('Artax\\Framework\\Config\\ConfigValidator');
-        $validator->expects($this->once())
-                  ->method('validate');
-                  
-        $cfg = new Config($validator);
+        $cfg = new Config();
         $cfg->populate(array(
             'applyRouteShortcuts' => 'yes',
             'autoResponseStatus' => 'true',
@@ -82,8 +69,7 @@ class ConfigTest extends PHPUnit_Framework_TestCase {
      * @expectedException InvalidArgumentException
      */
     public function testPopulateThrowsExceptionOnInvalidIterableParameter() {
-        $validator = $this->getMock('Artax\\Framework\\Config\\ConfigValidator');
-        $cfg = new Config($validator);
+        $cfg = new Config();
         $cfg->populate('not iterable');
     }
 }

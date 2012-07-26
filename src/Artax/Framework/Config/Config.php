@@ -49,16 +49,6 @@ class Config {
     );
     
     /**
-     * @param mixed $iterableDirectives
-     * @param ConfigValidator $validator
-     * @return void
-     * @throws InvalidArgumentException
-     */
-    public function __construct(ConfigValidator $validator = null) {
-        $this->validator = $validator ?: new ConfigValidator;
-    }
-    
-    /**
      * @param string $directive
      * @return mixed
      * @throws DomainException
@@ -105,7 +95,6 @@ class Config {
         }
         
         $this->setUndefinedDefaults();
-        $this->validator->validate($this);
     }
     
     private function setApplyRouteShortcuts($bool) {

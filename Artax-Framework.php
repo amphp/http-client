@@ -25,6 +25,7 @@ use Artax\Http\StatusCodes,
     Artax\Framework\UnifiedErrorHandler,
     Artax\Framework\Config\Config,
     Artax\Framework\Config\ConfigParserFactory,
+    Artax\Framework\Config\ConfigValidator,
     Artax\Framework\Http\Exceptions\HttpStatusException,
     Artax\Framework\Http\Exceptions\MethodNotAllowedException,
     Artax\Framework\Http\Exceptions\NotFoundException,
@@ -121,6 +122,8 @@ $configParserFactory = new ConfigParserFactory();
 $configParser = $configParserFactory->make(ARTAX_CONFIG_FILE);
 $config = new Config();
 $config->populate($configParser->parse(ARTAX_CONFIG_FILE));
+$configValidator = new ConfigValidator();
+$configValidator->validate($config);
 
 $injector->share('Artax\\Framework\\Config\\Config', $config);
 
