@@ -13,8 +13,8 @@ class ConfigParserFactory {
      * @throws DomainException
      */
     public function make($configFilepath) {
-        $fileInfo = new SplFileInfo($configFilepath);
-        $lowerExt = strtolower($fileInfo->getExtension());
+        $extension = pathinfo($configFilepath, PATHINFO_EXTENSION);
+        $lowerExt = strtolower($extension);
         
         switch ($lowerExt) {
             case 'php' :
