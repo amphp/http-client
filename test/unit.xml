@@ -10,7 +10,6 @@
             <exclude>
 
                 <!-- TEMPORARY -->
-                <file>../src/Artax/Framework/Plugins/AutoResponseEncode.php</file>
                 <file>../src/Artax/Framework/Config/Parsers/XmlConfigParser.php</file>
                 <!-- TEMPORARY -->
                 
