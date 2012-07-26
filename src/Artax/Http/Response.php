@@ -69,7 +69,13 @@ interface Response extends Message {
      * @return void
      */
     function setAllHeaders($iterable);
-
+    
+    /**
+     * @param string $header
+     * @return void
+     */
+    function removeHeader($header);
+    
     /**
      * @param string $body
      * @return void

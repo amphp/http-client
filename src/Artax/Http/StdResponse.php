@@ -216,7 +216,18 @@ class StdResponse implements Response {
             $this->setHeader($headerName, $value);
         }
     }
-
+    
+    /**
+     * @param string $headerName
+     * @return void
+     */
+    public function removeHeader($headerName) {
+        // Headers are case-insensitive as per the HTTP spec:
+        // http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
+        $capsHeader = strtoupper($headerName);
+        unset($this->headers[$capsHeader]);
+    }
+    
     /**
      * @return string
      */

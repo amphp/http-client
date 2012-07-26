@@ -83,6 +83,16 @@ class ObservableResponse extends StdResponse {
     }
 
     /**
+     * @param string $headerName
+     * @param string $value
+     * @return void
+     */
+    public function removeHeader($headerName) {
+        parent::removeHeader($headerName);
+        $this->notify('__sys.response.removeHeader');
+    }
+
+    /**
      * @param string $body
      * @return void
      * @notifies sys.response.set-body(StdResponse $response)
