@@ -24,6 +24,44 @@ class ArtaxFrameworkTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals('Index::get', $response->getBody());
     }
     
+    public function testPostResponse() {
+        $headers = array('User-Agent' => 'IntegrationTest');
+        $body = urlencode('var1=test1&var2=test2');
+        
+        $request = new StdRequest(
+            'http://localhost:8096/post-only',
+            '1.1',
+            'POST',
+            $headers,
+            $body
+        );
+        
+        $response = $this->client->send($request);
+        
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertEquals("PostOnly::post - $body", $response->getBody());
+    }
+    
+    public function testPostWithRedirect() {
+        $this->markTestSkipped('Relevent Client redirect code not yet implemented');
+        
+        $headers = array('User-Agent' => 'IntegrationTest');
+        $body = urlencode('var1=test1&var2=test2');
+        
+        $request = new StdRequest(
+            'http://localhost:8096/post-redir',
+            '1.1',
+            'POST',
+            $headers,
+            $body
+        );
+        
+        $response = $this->client->send($request);
+        
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertEquals("PostOnly::post - $body", $response->getBody());
+    }
+    
     public function testNotFoundResponse() {
         $request = new StdRequest('http://localhost:8096/nonexistent', '1.1', 'GET', array(
             'User-Agent' => 'IntegrationTest'

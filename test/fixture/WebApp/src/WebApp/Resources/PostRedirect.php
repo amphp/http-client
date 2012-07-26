@@ -6,7 +6,7 @@ use Artax\Http\StdRequest,
     Artax\Framework\Http\ObservableResponse;
 
 
-class PostOnly {
+class PostRedirect {
     
     private $request;
     private $response;
@@ -17,12 +17,8 @@ class PostOnly {
     }
     
     public function post() {
-        $body = 'PostOnly::post - ';
-        $body .= $this->request->getBody();
-        
-        $this->response->setBody($body);
-        $this->response->setStatusCode(200);
-        $this->response->setStatusDescription('OK');
+        $this->response->setStatusCode(301);
+        $this->response->setRawHeader('Location: /post-only');
         $this->response->send();
         
         return $this->response;
