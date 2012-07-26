@@ -97,9 +97,22 @@ class Provider implements Injector {
      * 
      * @return void
      */
-    public function define($class, array $definition) {
-        $lowClass = strtolower($class);
-        $this->injectionDefinitions[$lowClass] = $definition;
+    public function define($className, array $injectionDefinition) {
+        $this->validateInjectionDefinition($injectionDefinition);
+        $lowClass = strtolower($className);
+        $this->injectionDefinitions[$lowClass] = $injectionDefinition;
+    }
+    
+    private function validateInjectionDefinition($injectionDefinition) {
+        foreach ($injectionDefinition as $paramName => $value) {
+            if (0 !== strpos($paramName, 'r:') && !is_string($value)) {
+                throw new ProviderDefinitionException(
+                    "Invalid injection definition for parameter `$paramName`; raw parameter " .
+                    "names must be prefixed with `r:` (r:$paramName) to differentiate them " .
+                    'from provisionable class names.'
+                );
+            }
+        }
     }
     
     /**
@@ -387,11 +400,13 @@ class Provider implements Injector {
             $paramName = $reflectedCtorParams[$i]->name;
             
             if (isset($definition[$paramName])) {
-                
-                $instanceArgs[] = is_string($definition[$paramName])
-                    ? $this->make($definition[$paramName])
-                    : $definition[$paramName];
-                
+                $instanceArgs[] = $this->make($definition[$paramName]);
+                continue;
+            }
+            
+            $rawParamKey = "r:$paramName";
+            if (isset($definition[$rawParamKey])) {
+                $instanceArgs[] = $definition[$rawParamKey];
                 continue;
             }
             
@@ -402,19 +417,15 @@ class Provider implements Injector {
                 $instanceArgs[] = $this->make($typehint);
             } elseif ($typehint && $this->isImplemented($typehint)) {
                 $instanceArgs[] = $this->make($this->getImplementation($typehint));
-            } elseif ($reflectedParam->isDefaultValueAvailable()
-                && null === $reflectedParam->getDefaultValue()
-            ) {
-                $instanceArgs[] = null;
+            } elseif ($reflectedParam->isDefaultValueAvailable()) {
+                $instanceArgs[] = $reflectedParam->getDefaultValue();
             } elseif ($typehint) {
                 throw new ProviderDefinitionException(
-                    'Injection definition required for non-concrete parameter $'.
-                    "$paramName of type `$typehint` at argument " . ($i+1)
+                    'Injection definition/implementation required for non-concrete constructor '.
+                    "parameter \$$paramName of type $typehint at argument " . ($i+1)
                 );
             } else {
-                throw new ProviderDefinitionException(
-                    'Scalar default value not allowed at argument ' . ($i+1)
-                );
+                $instanceArgs[] = null;
             }
         }
         

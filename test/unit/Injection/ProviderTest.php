@@ -68,19 +68,6 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Injection\Provider::isInstantiable
      * @expectedException Artax\Injection\ProviderDefinitionException
      */
-    public function testMakeThrowsExceptionOnNonNullScalarTypehintSansDefinitions() {
-    
-        $provider = new Provider(new ReflectionPool);
-        $provider->make('TestClassWithNoCtorTypehints');
-    }
-    
-    /**
-     * @covers Artax\Injection\Provider::make
-     * @covers Artax\Injection\Provider::getInjectedInstance
-     * @covers Artax\Injection\Provider::buildNewInstanceArgs
-     * @covers Artax\Injection\Provider::isInstantiable
-     * @expectedException Artax\Injection\ProviderDefinitionException
-     */
     public function testMakeThrowsExceptionIfProvisioningMissingUnloadableClass() {
     
         $provider = new Provider(new ReflectionPool);
@@ -111,19 +98,6 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
         $provider->define('TestNeedsDep', array('testDep'=>'TestDependency'));
         $injected = $provider->make('TestNeedsDep', array('testDep'=>'TestDependency2'));
         $this->assertEquals('testVal2', $injected->testDep->testProp);
-    }
-    
-    /**
-     * @covers Artax\Injection\Provider::make
-     * @covers Artax\Injection\Provider::getInjectedInstance
-     * @covers Artax\Injection\Provider::buildNewInstanceArgs
-     * @covers Artax\Injection\Provider::isInstantiable
-     * @expectedException Artax\Injection\ProviderDefinitionException
-     */
-    public function testMakeThrowsExceptionOnScalarDefaultCtorParam() {
-    
-        $provider  = new Provider(new ReflectionPool);
-        $obj = $provider->make('NoTypehintNullDefaultConstructorClass');
     }
     
     /**
@@ -160,27 +134,80 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Injection\Provider::make
      * @covers Artax\Injection\Provider::getInjectedInstance
      * @covers Artax\Injection\Provider::buildNewInstanceArgs
-     * @covers Artax\Injection\Provider::isInstantiable
-     * @expectedException Artax\Injection\ProviderDefinitionException
      */
-    public function testMakeThrowsExceptionOnUnknownParamsInMultiBuildWithDeps() {
-    
+    public function testMakeInjectsNullOnUntypehintedParameterWithoutDefinitionOrDefault() {
         $provider  = new Provider(new ReflectionPool);
-        $obj = $provider->make('NoTypehintNullDefaultConstructorClass',
-            array('val1'=>'TestDependency')
-        );
+        $obj = $provider->make('ProviderTestCtorParamWithNoTypehintOrDefault');
+        $this->assertNull($obj->val);
     }
     
     /**
      * @covers Artax\Injection\Provider::make
      * @covers Artax\Injection\Provider::getInjectedInstance
      * @covers Artax\Injection\Provider::buildNewInstanceArgs
-     * @covers Artax\Injection\Provider::isInstantiable
      * @expectedException Artax\Injection\ProviderDefinitionException
      */
     public function testMakeThrowsExceptionOnUninstantiableTypehintWithoutDefinition() {
-    
         $provider  = new Provider(new ReflectionPool);
+        $obj = $provider->make('RequiresInterface');
+    }
+    
+    /**
+     * @covers Artax\Injection\Provider::make
+     * @covers Artax\Injection\Provider::validateInjectionDefinition
+     * @covers Artax\Injection\Provider::getInjectedInstance
+     * @covers Artax\Injection\Provider::buildNewInstanceArgs
+     */
+    public function testMakeInjectsRawParametersDirectlyWhenDefinedWithParameterNamePrefix() {
+    
+        $provider = new Provider(new ReflectionPool);
+        $provider->define('ProviderTestRawCtorParams', array(
+            'r:string' => 'string',
+            'r:obj' => new StdClass,
+            'r:int' => 42,
+            'r:array' => array(),
+            'r:float' => 9.3,
+            'r:bool' => true,
+        ));
+        
+        $obj = $provider->make('ProviderTestRawCtorParams');
+        $this->assertInternalType('string', $obj->string);
+        $this->assertInstanceOf('StdClass', $obj->obj);
+        $this->assertInternalType('int', $obj->int);
+        $this->assertInternalType('array', $obj->array);
+        $this->assertInternalType('float', $obj->float);
+        $this->assertInternalType('bool', $obj->bool);
+    }
+    
+    public function provideInvalidRawDefinitions() {
+        return array(
+            array(array('obj' => new StdClass)),
+            array(array('int' => 42)),
+            array(array('array' => array())),
+            array(array('float' => 9.3)),
+            array(array('bool' => true)),
+        );
+    }
+    
+    /**
+     * @dataProvider provideInvalidRawDefinitions
+     * @covers Artax\Injection\Provider::make
+     * @covers Artax\Injection\Provider::validateInjectionDefinition
+     * @expectedException Artax\Injection\ProviderDefinitionException
+     */
+    public function testDefineThrowsExceptionOnRawParamDefinitionMissingRawParameterPrefix($def) {
+        $provider = new Provider(new ReflectionPool);
+        $provider->define('TestClass', $def);
+    }
+    
+    /**
+     * @covers Artax\Injection\Provider::make
+     * @covers Artax\Injection\Provider::getInjectedInstance    
+     * @expectedException Artax\Injection\ProviderDefinitionException
+     */
+    public function testMakeThrowsExceptionOnUntypehintedParameterWithNoDefinition() {
+    
+        $provider = new Provider(new ReflectionPool);
         $obj = $provider->make('RequiresInterface');
     }
     
@@ -514,3 +541,51 @@ class ProvTestNoDefinitionNullDefaultClass {
         $this->arg = $arg;
     }
 }
+
+class ProviderTestCtorParamWithNoTypehintOrDefault {
+    public $val = 42;
+    public function __construct($val) {
+        $this->val = $val;
+    }
+}
+
+class ProviderTestRawCtorParams {
+    public $string;
+    public $obj;
+    public $int;
+    public $array;
+    public $float;
+    public $bool;
+    
+    public function __construct($string, $obj, $int, $array, $float, $bool) {
+        $this->string = $string;
+        $this->obj = $obj;
+        $this->int = $int;
+        $this->array = $array;
+        $this->float = $float;
+        $this->bool = $bool;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

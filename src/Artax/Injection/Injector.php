@@ -31,9 +31,9 @@ interface Injector {
      * Defines custom instantiation parameters for the specified class
      * 
      * @param string $class
-     * @param array  $definition
+     * @param array  $injectionDefinition
      */
-    function define($className, array $definition);
+    function define($className, array $injectionDefinition);
     
     /**
      * Retrieves the assigned definition for the specified class
