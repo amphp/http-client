@@ -80,15 +80,15 @@ $unifiedHandler->register();
  */
 
 $mediatorDefinition = array(
-    'r:mediator' => $mediator
+    ':mediator' => $mediator
 );
 $httpStatusHandlerDefinition = array(
-    'r:mediator' => $mediator,
+    ':mediator' => $mediator,
     'request'  => 'Artax\\Http\\StdRequest',
     'response' => 'Artax\\Framework\\Http\\ObservableResponse'
 );
 $http500HandlerDefinition = array(
-    'r:mediator' => $mediator,
+    ':mediator' => $mediator,
     'request'  => 'Artax\\Http\\StdRequest',
     'response' => 'Artax\\Http\\StdResponse'
 );

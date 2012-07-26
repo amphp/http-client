@@ -83,7 +83,7 @@ class BootConfigurator {
     protected function enableAutoResponseEncode(array $encodableMediaRanges) {
         $this->injector->define('Artax\\Framework\\Plugins\\AutoResponseEncode', array(
             'request' => 'Artax\\Http\\StdRequest',
-            'r:encodableMediaRanges' => $encodableMediaRanges
+            ':encodableMediaRanges' => $encodableMediaRanges
         ));
             
         $this->mediator->push(

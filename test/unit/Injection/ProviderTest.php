@@ -162,12 +162,12 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
     
         $provider = new Provider(new ReflectionPool);
         $provider->define('ProviderTestRawCtorParams', array(
-            'r:string' => 'string',
-            'r:obj' => new StdClass,
-            'r:int' => 42,
-            'r:array' => array(),
-            'r:float' => 9.3,
-            'r:bool' => true,
+            ':string' => 'string',
+            ':obj' => new StdClass,
+            ':int' => 42,
+            ':array' => array(),
+            ':float' => 9.3,
+            ':bool' => true,
         ));
         
         $obj = $provider->make('ProviderTestRawCtorParams');

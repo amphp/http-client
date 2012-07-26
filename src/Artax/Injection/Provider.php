@@ -105,7 +105,7 @@ class Provider implements Injector {
     
     private function validateInjectionDefinition($injectionDefinition) {
         foreach ($injectionDefinition as $paramName => $value) {
-            if (0 !== strpos($paramName, 'r:') && !is_string($value)) {
+            if (0 !== strpos($paramName, ':') && !is_string($value)) {
                 throw new ProviderDefinitionException(
                     "Invalid injection definition for parameter `$paramName`; raw parameter " .
                     "names must be prefixed with `r:` (r:$paramName) to differentiate them " .
@@ -404,7 +404,7 @@ class Provider implements Injector {
                 continue;
             }
             
-            $rawParamKey = "r:$paramName";
+            $rawParamKey = ":$paramName";
             if (isset($definition[$rawParamKey])) {
                 $instanceArgs[] = $definition[$rawParamKey];
                 continue;
