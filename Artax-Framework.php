@@ -19,6 +19,7 @@
 
 use Artax\Http\StatusCodes,
     Artax\Http\StdRequestFactory,
+    Artax\Http\RequestDetector,
     Artax\Http\StdResponse,
     Artax\Events\Mediator,
     Artax\Framework\BootConfigurator,
@@ -79,15 +80,15 @@ $unifiedHandler->register();
  */
 
 $mediatorDefinition = array(
-    'mediator' => $mediator
+    'r:mediator' => $mediator
 );
 $httpStatusHandlerDefinition = array(
-    'mediator' => $mediator,
+    'r:mediator' => $mediator,
     'request'  => 'Artax\\Http\\StdRequest',
     'response' => 'Artax\\Framework\\Http\\ObservableResponse'
 );
 $http500HandlerDefinition = array(
-    'mediator' => $mediator,
+    'r:mediator' => $mediator,
     'request'  => 'Artax\\Http\\StdRequest',
     'response' => 'Artax\\Http\\StdResponse'
 );
@@ -105,8 +106,6 @@ $injector->defineAll(array(
     'Artax\\Framework\\Http\\StatusHandlers\\Http406' => $httpStatusHandlerDefinition,
     'Artax\\Framework\\Http\\StatusHandlers\\Http500' => $http500HandlerDefinition,
     'Artax\\Framework\\Http\\StatusHandlers\\HttpGeneral' => $httpStatusHandlerDefinition,
-    'Artax\\Framework\\Plugins\\AutoResponseEncode' => array('request' => 'Artax\\Http\\StdRequest'),
-    'Artax\\Framework\\Plugins\\AutoResponseEncodeMediaRanges' => array('injector' => $injector)
 ));
 
 
@@ -129,24 +128,9 @@ $configValidator->validate($config);
 
 $injector->share('Artax\\Framework\\Config\\Config', $config);
 
-$bootConfigurator = new BootConfigurator($mediator);
+$bootConfigurator = new BootConfigurator($injector, $mediator);
 $bootConfigurator->configure($config);
 
-if ($config->get('applyRouteShortcuts')) {
-    $injector->share('Artax\\Framework\\Plugins\\RouteShortcuts');
-}
-
-if ($config->has('eventListeners')) {
-    $mediator->pushAll($config->get('eventListeners'));
-}
-
-if ($config->has('injectionDefinitions')) {
-    $injector->defineAll($config->get('injectionDefinitions'));
-}
-
-if ($config->has('injectionImplementations')) {
-    $injector->implementAll($config->get('injectionImplementations'));
-}
 
 /*
  * -------------------------------------------------------------------------------------------------
@@ -182,7 +166,7 @@ $mediator->unshift('__mediator.delta', function(Mediator $mediator) {
  * -------------------------------------------------------------------------------------------------
  */
 
-$requestFactory = new StdRequestFactory;
+$requestFactory = new StdRequestFactory(new RequestDetector);
 $request = $requestFactory->make($_SERVER);
 $injector->share('Artax\\Http\\StdRequest', $request);
 

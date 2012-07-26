@@ -33,22 +33,27 @@ class AutoResponseEncode {
     private $mediaRangeFactory;
     private $mimeTypeFactory;
     private $codecFactory;
-    private $encodableMediaRanges;
+    private $encodableMediaRanges = array();
     private $availableCodecs = array('gzip', 'deflate');
     
     public function __construct(
         Request $request,
         MediaRangeFactory $mediaRangeFactory,
         MimeTypeFactory $mimeTypeFactory,
-        CodecFactory $codecFactory
+        CodecFactory $codecFactory,
+        array $encodableMediaRanges
     ) {
         $this->request = $request;
         $this->mediaRangeFactory = $mediaRangeFactory;
         $this->mimeTypeFactory = $mimeTypeFactory;
         $this->codecFactory = $codecFactory;
-        
-        $defaultEncodableRanges = array('text/*', 'application/json', 'application/xml');
-        $this->setEncodableMediaRanges($defaultEncodableRanges);
+        $this->setEncodableMediaRanges($encodableMediaRanges);
+    }
+    
+    protected function setEncodableMediaRanges(array $encodableMediaRanges) {
+        foreach ($encodableMediaRanges as $mediaRangeStr) {
+            $this->encodableMediaRanges[] = $this->mediaRangeFactory->make($mediaRangeStr);
+        }
     }
     
     public function __invoke(Response $response) {
@@ -119,7 +124,7 @@ class AutoResponseEncode {
         // Workaround for IE bug: http://support.microsoft.com/kb/323308
         if (preg_match('/MSIE\s*([5678])?/', $userAgent, $match)) {
             if (isset($match[1])
-                && $this->request->getUriScheme('scheme') == 'https'
+                && $this->request->getScheme() == 'https'
                 && $this->request->hasHeader('Cache-Control')
             ) {
                 $cacheControl = strtolower($this->request->getHeader('Cache-Control'));
@@ -142,13 +147,5 @@ class AutoResponseEncode {
             : 'Accept-Encoding,User-Agent';
         
         $response->setHeader('Vary', $varyHeader);
-    }
-    
-    public function setEncodableMediaRanges(array $mediaRangeArray) {
-        $arr = array();
-        foreach ($mediaRangeArray as $mediaRangeStr) {
-            $arr[] = $this->mediaRangeFactory->make($mediaRangeStr);
-        }
-        $this->encodableMediaRanges = $arr;
     }
 }

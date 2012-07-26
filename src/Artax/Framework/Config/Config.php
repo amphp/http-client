@@ -45,7 +45,7 @@ class Config {
         'autoResponseDate' => true,
         'autoResponseContentLength' => true,
         'autoResponseEncode' => false,
-        'autoResponseEncodeMediaRanges' => array()
+        'autoResponseEncodeMediaRanges' => array('text/*', 'application/json', 'application/xml')
     );
     
     /**
@@ -122,9 +122,9 @@ class Config {
         $this->directives['autoResponseEncode'] = $normalized;
     }
     
-    private function setAutoResponseEncodeMediaRanges($commaDelimitedMediaRanges) {
-        if ($commaDelimitedMediaRanges) {
-            $normalized = array_map('trim', explode(',', $commaDelimitedMediaRanges));
+    private function setAutoResponseEncodeMediaRanges($commaDelimitedMediaRangeStr) {
+        if ($commaDelimitedMediaRangeStr) {
+            $normalized = array_map('trim', explode(',', $commaDelimitedMediaRangeStr));
             $this->directives['autoResponseEncodeMediaRanges'] = $normalized;
         }
     }

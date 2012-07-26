@@ -8,9 +8,11 @@ use Artax\Injection\Injector,
 
 class BootConfigurator {
     
+    private $injector;
     private $mediator;
     
-    public function __construct(Mediator $mediator) {
+    public function __construct(Injector $injector, Mediator $mediator) {
+        $this->injector = $injector;
         $this->mediator = $mediator;
     }
     
@@ -32,11 +34,25 @@ class BootConfigurator {
         }
         
         if ($config->get('autoResponseEncode')) {
-            $this->enableAutoResponseEncode();
+            $encodableMediaRanges = $config->get('autoResponseEncodeMediaRanges');
+            $this->enableAutoResponseEncode($encodableMediaRanges);
+        }
+        
+        if ($config->has('eventListeners')) {
+            $this->mediator->pushAll($config->get('eventListeners'));
+        }
+        
+        if ($config->has('injectionDefinitions')) {
+            $this->injector->defineAll($config->get('injectionDefinitions'));
+        }
+        
+        if ($config->has('injectionImplementations')) {
+            $this->injector->implementAll($config->get('injectionImplementations'));
         }
     }
     
     protected function enableRouteShortcuts() {
+        $this->injector->share('Artax\\Framework\\Plugins\\RouteShortcuts');
         $this->mediator->push(
             '__sys.route.new',
             'Artax\\Framework\\Plugins\\RouteShortcuts'
@@ -64,15 +80,15 @@ class BootConfigurator {
         );
     }
     
-    protected function enableAutoResponseEncode() {
+    protected function enableAutoResponseEncode(array $encodableMediaRanges) {
+        $this->injector->define('Artax\\Framework\\Plugins\\AutoResponseEncode', array(
+            'request' => 'Artax\\Http\\StdRequest',
+            'r:encodableMediaRanges' => $encodableMediaRanges
+        ));
+            
         $this->mediator->push(
             '__sys.response.beforeSend',
             'Artax\\Framework\\Plugins\\AutoResponseEncode'
-        );
-        
-        $this->mediator->push(
-            '__sys.ready',
-            'Artax\\Framework\\Plugins\\AutoResponseEncodeMediaRanges'
         );
     }
 }
