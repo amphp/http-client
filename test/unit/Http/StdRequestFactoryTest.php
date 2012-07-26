@@ -1,6 +1,7 @@
 <?php
 
-use Artax\Http\StdRequestFactory;
+use Artax\Http\StdRequestFactory,
+    Artax\Http\RequestDetector;
 
 class StdRequestFactoryTest extends PHPUnit_Framework_TestCase {
     
@@ -36,7 +37,7 @@ class StdRequestFactoryTest extends PHPUnit_Framework_TestCase {
             'REQUEST_TIME' => '1342119105'
         );
         
-        $factory = new StdRequestFactory;
+        $factory = new StdRequestFactory(new RequestDetector);
         $this->assertInstanceOf('Artax\\Http\\StdRequest', $factory->make($_server));
     }
     

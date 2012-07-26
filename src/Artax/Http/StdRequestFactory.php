@@ -31,8 +31,8 @@ class StdRequestFactory {
     /**
      * @param RequestDetector $requestDetector
      */
-    public function __construct(RequestDetector $detector = null) {
-        $this->requestDetector = $detector ?: new RequestDetector;
+    public function __construct(RequestDetector $detector) {
+        $this->requestDetector = $detector;
     }
     
     /**
