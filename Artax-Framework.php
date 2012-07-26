@@ -67,8 +67,8 @@ if (!defined('ARTAX_DEBUG_MODE')) {
 error_reporting(E_ALL | E_STRICT);
 ini_set('display_errors', false);
 
-$handler = new UnifiedErrorHandler(new StdResponse, $mediator, ARTAX_DEBUG_MODE);
-$handler->register();
+$unifiedHandler = new UnifiedErrorHandler(new StdResponse, $mediator, ARTAX_DEBUG_MODE);
+$unifiedHandler->register();
 
 
 /*
