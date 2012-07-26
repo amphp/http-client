@@ -8,11 +8,9 @@ use Artax\Injection\Injector,
 
 class BootConfigurator {
     
-    private $injector;
     private $mediator;
     
-    public function __construct(Injector $injector, Mediator $mediator) {
-        $this->injector = $injector;
+    public function __construct(Mediator $mediator) {
         $this->mediator = $mediator;
     }
     
@@ -36,22 +34,9 @@ class BootConfigurator {
         if ($config->get('autoResponseEncode')) {
             $this->enableAutoResponseEncode();
         }
-        
-        if ($config->has('eventListeners')) {
-            $this->mediator->pushAll($config->get('eventListeners'));
-        }
-        
-        if ($config->has('injectionDefinitions')) {
-            $this->injector->defineAll($config->get('injectionDefinitions'));
-        }
-        
-        if ($config->has('interfaceImplementations')) {
-            $this->injector->implementAll($config->get('interfaceImplementations'));
-        }
     }
     
     protected function enableRouteShortcuts() {
-        $this->injector->share('Artax\\Framework\\Plugins\\RouteShortcuts', null);
         $this->mediator->push(
             '__sys.route.new',
             'Artax\\Framework\\Plugins\\RouteShortcuts'
@@ -80,11 +65,6 @@ class BootConfigurator {
     }
     
     protected function enableAutoResponseEncode() {
-        $this->injector->define(
-            'Artax\\Framework\\Plugins\\AutoResponseEncode',
-            array('request' => 'Artax\\Http\\StdRequest')
-        );
-        
         $this->mediator->push(
             '__sys.response.beforeSend',
             'Artax\\Framework\\Plugins\\AutoResponseEncode'

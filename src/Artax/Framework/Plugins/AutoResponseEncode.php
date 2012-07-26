@@ -51,35 +51,26 @@ class AutoResponseEncode {
         $this->setEncodableMediaRanges($defaultEncodableRanges);
     }
     
-    public function __invoke(Response $respone) {
+    public function __invoke(Response $response) {
         $this->encodeResponseBody($response);
     }
     
-    public function setEncodableMediaRanges(array $mediaRangeArray) {
-        $this->encodableMediaRanges = array_map(function($term) {
-            return $this->mediaRangeFactory->make($term);
-        }, $arrayOfMediaRangeStrings);
-    }
-    
     public function encodeResponseBody(Response $response) {
-        if (!$response->hasHeader('Content-Type')
-            || !$response->hasHeader('Content-Encoding')
-        ) {
+        if (!($response->hasHeader('Content-Type') && $response->hasHeader('Content-Encoding'))) {
             return;
         }
         
         $encoding = strtolower($response->getHeader('Content-Encoding'));
-        
         if (!in_array($encoding, $this->availableCodecs)) {
             return;
         }
         
-        if (!$contentType = $this->getEncodableContentType($response)) {
+        $mimeType = $this->getEncodableMimeType($response);
+        if (!$mimeType) {
             return;
         }
         
-        // Account for browsers that lie about the encodings they can handle
-        if (!$this->accountForBrowserQuirks($contentType, $encoding)) {
+        if (!$this->accountForBrowserQuirks($mimeType, $encoding)) {
             $response->removeHeader('Content-Encoding');
             return;
         }
@@ -95,8 +86,9 @@ class AutoResponseEncode {
         $this->setVaryHeader($response);
     }
     
-    private function getEncodableContentType(Response $response) {
+    protected function getEncodableMimeType(Response $response) {
         $rawHeader = $response->getHeader('Content-Type');
+        
         if (strpos($rawHeader, ';')) {
             $parts = explode(';', $rawHeader);
             $contentType = trim($parts[0]);
@@ -107,7 +99,7 @@ class AutoResponseEncode {
         try {
             $mimeType = $this->mimeTypeFactory->make($contentType);
         } catch (InvalidArgumentException $e) {
-            return false;
+            return;
         }
         
         foreach ($this->encodableMediaRanges as $mediaRange) {
@@ -115,11 +107,9 @@ class AutoResponseEncode {
                 return $mimeType;
             }
         }
-        
-        return false;
     }
     
-    private function accountForBrowserQuirks($contentType, $encoding) {
+    protected function accountForBrowserQuirks($mimeType, $encoding) {
         if (!$this->request->hasHeader('User-Agent')) {
             return true;
         }
@@ -129,7 +119,7 @@ class AutoResponseEncode {
         // Workaround for IE bug: http://support.microsoft.com/kb/323308
         if (preg_match('/MSIE\s*([5678])?/', $userAgent, $match)) {
             if (isset($match[1])
-                && $this->request->getUriComponent('scheme') == 'https'
+                && $this->request->getUriScheme('scheme') == 'https'
                 && $this->request->hasHeader('Cache-Control')
             ) {
                 $cacheControl = strtolower($this->request->getHeader('Cache-Control'));
@@ -140,17 +130,25 @@ class AutoResponseEncode {
         
         // Netscape 4.x has problems ... especially 4.06-4.08
         if (preg_match('{Mozilla/4(?:\.0([678]))?}', $userAgent, $match)) {
-            if ($contentType != 'text/html' || $encoding !== 'gzip' || isset($match[1])) {
+            if ($mimeType != 'text/html' || $encoding !== 'gzip' || isset($match[1])) {
                 return false;
             }
         }
     }
     
-    private function setVaryHeader(Response $response) {
+    protected function setVaryHeader(Response $response) {
         $varyHeader = $response->hasHeader('Vary')
             ? $response->getHeader('Vary') . ',User-Agent'
             : 'Accept-Encoding,User-Agent';
         
         $response->setHeader('Vary', $varyHeader);
+    }
+    
+    public function setEncodableMediaRanges(array $mediaRangeArray) {
+        $arr = array();
+        foreach ($mediaRangeArray as $mediaRangeStr) {
+            $arr[] = $this->mediaRangeFactory->make($mediaRangeStr);
+        }
+        $this->encodableMediaRanges = $arr;
     }
 }

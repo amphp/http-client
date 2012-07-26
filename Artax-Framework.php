@@ -74,7 +74,7 @@ $unifiedHandler->register();
 
 /*
  * -------------------------------------------------------------------------------------------------
- * Define injection parameters for system classes that utilize interface typehints.
+ * Define system class injection parameters
  * -------------------------------------------------------------------------------------------------
  */
 
@@ -104,7 +104,9 @@ $injector->defineAll(array(
     'Artax\\Framework\\Http\\StatusHandlers\\Http405' => $httpStatusHandlerDefinition,
     'Artax\\Framework\\Http\\StatusHandlers\\Http406' => $httpStatusHandlerDefinition,
     'Artax\\Framework\\Http\\StatusHandlers\\Http500' => $http500HandlerDefinition,
-    'Artax\\Framework\\Http\\StatusHandlers\\HttpGeneral' => $httpStatusHandlerDefinition
+    'Artax\\Framework\\Http\\StatusHandlers\\HttpGeneral' => $httpStatusHandlerDefinition,
+    'Artax\\Framework\\Plugins\\AutoResponseEncode' => array('request' => 'Artax\\Http\\StdRequest'),
+    'Artax\\Framework\\Plugins\\AutoResponseEncodeMediaRanges' => array('injector' => $injector)
 ));
 
 
@@ -127,9 +129,24 @@ $configValidator->validate($config);
 
 $injector->share('Artax\\Framework\\Config\\Config', $config);
 
-$bootConfigurator = new BootConfigurator($injector, $mediator);
+$bootConfigurator = new BootConfigurator($mediator);
 $bootConfigurator->configure($config);
 
+if ($config->get('applyRouteShortcuts')) {
+    $injector->share('Artax\\Framework\\Plugins\\RouteShortcuts');
+}
+
+if ($config->has('eventListeners')) {
+    $mediator->pushAll($config->get('eventListeners'));
+}
+
+if ($config->has('injectionDefinitions')) {
+    $injector->defineAll($config->get('injectionDefinitions'));
+}
+
+if ($config->has('injectionImplementations')) {
+    $injector->implementAll($config->get('injectionImplementations'));
+}
 
 /*
  * -------------------------------------------------------------------------------------------------

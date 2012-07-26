@@ -40,6 +40,6 @@ $cfg->eventListeners = array(
     'app.http-500' => 'WebApp\\HttpHandlers\\Http500'
 );
 
-$cfg->interfaceImplementations = array(
+$cfg->injectionImplementations = array(
     'Artax\\Events\\Mediator' => 'Artax\\Framework\\Events\\ProvisionedNotifier'
 );

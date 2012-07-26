@@ -9,10 +9,9 @@ class BootConfiguratorTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Framework\BootConfigurator::__construct
      */
     public function testBeginsEmpty() {
-        $injector = $this->getMock('Artax\\Injection\\Injector');
         $mediator = $this->getMock('Artax\\Events\\Mediator');
         
-        $configurator = new BootConfigurator($injector, $mediator);
+        $configurator = new BootConfigurator($mediator);
         $this->assertInstanceOf('Artax\\Framework\\BootConfigurator', $configurator);
     }
     
@@ -26,10 +25,9 @@ class BootConfiguratorTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Framework\BootConfigurator::enableAutoResponseEncode
      */
     public function testConfigureEnablesCorePlugins() {
-        $injector = $this->getMock('Artax\\Injection\\Injector');
         $mediator = $this->getMock('Artax\\Events\\Mediator');
         
-        $configurator = new BootConfigurator($injector, $mediator);
+        $configurator = new BootConfigurator($mediator);
         
         $config = new Config();
         $config->populate(array(
