@@ -125,7 +125,7 @@ interface Injector {
      * @param string $className
      * @param mixed  $instance
      */
-    function share($className, $instance);
+    function share($className, $instance = null);
     
     /**
      * Determines if a given class name is marked as shared
