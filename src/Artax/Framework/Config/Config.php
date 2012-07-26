@@ -45,6 +45,7 @@ class Config {
         'autoResponseDate' => true,
         'autoResponseContentLength' => true,
         'autoResponseEncode' => false,
+        'autoResponseEncodeMediaRanges' => array()
     );
     
     /**
@@ -107,54 +108,38 @@ class Config {
         $this->validator->validate($this);
     }
     
-    /**
-     * @param bool $value
-     * @return void
-     */
-    private function setApplyRouteShortcuts($value) {
-        $normalized = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+    private function setApplyRouteShortcuts($bool) {
+        $normalized = filter_var($bool, FILTER_VALIDATE_BOOLEAN);
         $this->directives['applyRouteShortcuts'] = $normalized;
     }
     
-    /**
-     * @param bool $value
-     * @return void
-     */
-    private function setAutoResponseStatus($value) {
-        $normalized = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+    private function setAutoResponseStatus($bool) {
+        $normalized = filter_var($bool, FILTER_VALIDATE_BOOLEAN);
         $this->directives['autoResponseStatus'] = $normalized;
     }
     
-    /**
-     * @param bool $value
-     * @return void
-     */
-    private function setAutoResponseDate($value) {
-        $normalized = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+    private function setAutoResponseDate($bool) {
+        $normalized = filter_var($bool, FILTER_VALIDATE_BOOLEAN);
         $this->directives['autoResponseDate'] = $normalized;
     }
     
-    /**
-     * @param bool $value
-     * @return void
-     */
-    private function setAutoResponseContentLength($value) {
-        $normalized = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+    private function setAutoResponseContentLength($bool) {
+        $normalized = filter_var($bool, FILTER_VALIDATE_BOOLEAN);
         $this->directives['autoResponseContentLength'] = $normalized;
     }
     
-    /**
-     * @param bool $value
-     * @return void
-     */
-    private function setAutoResponseEncode($value) {
-        $normalized = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+    private function setAutoResponseEncode($bool) {
+        $normalized = filter_var($bool, FILTER_VALIDATE_BOOLEAN);
         $this->directives['autoResponseEncode'] = $normalized;
     }
     
-    /**
-     * @return void
-     */
+    private function setAutoResponseEncodeMediaRanges($commaDelimitedMediaRanges) {
+        if ($commaDelimitedMediaRanges) {
+            $normalized = array_map('trim', explode(',', $commaDelimitedMediaRanges));
+            $this->directives['autoResponseEncodeMediaRanges'] = $normalized;
+        }
+    }
+    
     private function setUndefinedDefaults() {
         foreach ($this->defaults as $defaultKey => $defaultValue) {
             if (!$this->has($defaultKey)) {

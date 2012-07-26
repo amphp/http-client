@@ -50,6 +50,7 @@ class ConfigTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Framework\Config\Config::setAutoResponseDate
      * @covers Artax\Framework\Config\Config::setAutoResponseContentLength
      * @covers Artax\Framework\Config\Config::setAutoResponseEncode
+     * @covers Artax\Framework\Config\Config::setAutoResponseEncodeMediaRanges
      */
     public function testPopulateCallsDirectiveSetterMethodsIfDefined() {
         $validator = $this->getMock('Artax\\Framework\\Config\\ConfigValidator');
@@ -63,7 +64,8 @@ class ConfigTest extends PHPUnit_Framework_TestCase {
             'autoResponseDate' => 1,
             'autoResponseContentLength' => 'yes',
             'autoResponseEncode' => 'no',
-            'bootstrapFile' => '/test'
+            'autoResponseEncodeMediaRanges' => 'text/html',
+            'customUserDirective' => 42
         ));
         
         $this->assertTrue($cfg->get('applyRouteShortcuts'));
@@ -71,7 +73,8 @@ class ConfigTest extends PHPUnit_Framework_TestCase {
         $this->assertTrue($cfg->get('autoResponseDate'));
         $this->assertTrue($cfg->get('autoResponseContentLength'));
         $this->assertFalse($cfg->get('autoResponseEncode'));
-        $this->assertEquals('/test', $cfg->get('bootstrapFile'));
+        $this->assertEquals(array('text/html'), $cfg->get('autoResponseEncodeMediaRanges'));
+        $this->assertEquals(42, $cfg->get('customUserDirective'));
     }
     
     /**

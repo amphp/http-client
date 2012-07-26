@@ -21,6 +21,7 @@ use Artax\Http\StatusCodes,
     Artax\Http\StdRequestFactory,
     Artax\Http\StdResponse,
     Artax\Events\Mediator,
+    Artax\Framework\BootConfigurator,
     Artax\Framework\UnifiedErrorHandler,
     Artax\Framework\Config\Config,
     Artax\Framework\Config\ConfigParserFactory,
@@ -59,12 +60,12 @@ $injector->share('Artax\\Injection\\ReflectionPool', $reflPool);
  * -------------------------------------------------------------------------------------------------
  */
 
-error_reporting(E_ALL | E_STRICT);
-ini_set('display_errors', false);
-
 if (!defined('ARTAX_DEBUG_MODE')) {
     define('ARTAX_DEBUG_MODE', 0);
 }
+
+error_reporting(E_ALL | E_STRICT);
+ini_set('display_errors', false);
 
 $handler = new UnifiedErrorHandler(new StdResponse, $mediator, ARTAX_DEBUG_MODE);
 $handler->register();
@@ -72,11 +73,13 @@ $handler->register();
 
 /*
  * -------------------------------------------------------------------------------------------------
- * Define injection parameters for system classes that typehint interfaces.
+ * Define injection parameters for system classes that utilize interface typehints.
  * -------------------------------------------------------------------------------------------------
  */
 
-$mediatorDefinition = array('mediator' => $mediator);
+$mediatorDefinition = array(
+    'mediator' => $mediator
+);
 $httpStatusHandlerDefinition = array(
     'mediator' => $mediator,
     'request'  => 'Artax\\Http\\StdRequest',
@@ -114,70 +117,40 @@ if (!defined('ARTAX_CONFIG_FILE')) {
     die('The ARTAX_CONFIG_FILE constant must be defined before continuing' . PHP_EOL);
 }
 
-$cfgParserFactory = new ConfigParserFactory();
-$cfgParser = $cfgParserFactory->make(ARTAX_CONFIG_FILE);
-$cfg = new Config();
-$cfg->populate($cfgParser->parse(ARTAX_CONFIG_FILE));
+$configParserFactory = new ConfigParserFactory();
+$configParser = $configParserFactory->make(ARTAX_CONFIG_FILE);
+$config = new Config();
+$config->populate($configParser->parse(ARTAX_CONFIG_FILE));
 
-$injector->share('Artax\\Framework\\Config\\Config', $cfg);
+$injector->share('Artax\\Framework\\Config\\Config', $config);
 
-if ($cfg->has('bootstrapFile') && $bootstrapFile = $cfg->get('bootstrapFile')) {
-    $userBootstrap = function($injector, $mediator, $bootstrapFile) {
-        require $bootstrapFile;
-    };
-    $userBootstrap($injector, $mediator, $bootstrapFile);
-}
-
-if ($cfg->get('applyRouteShortcuts')) {
-    $injector->share('Artax\\Framework\\Plugins\\RouteShortcuts');
-    $mediator->push('__sys.route.new', 'Artax\\Framework\\Plugins\\RouteShortcuts');
-}
-if ($cfg->get('autoResponseContentLength')) {
-    $mediator->push('__sys.response.beforeSend', 'Artax\\Framework\\Plugins\\AutoResponseContentLength');
-}
-if ($cfg->get('autoResponseDate')) {
-    $mediator->push('__sys.response.beforeSend', 'Artax\\Framework\\Plugins\\AutoResponseDate');
-}
-if ($cfg->get('autoResponseStatus')) {
-    $mediator->push('__sys.response.beforeSend', 'Artax\\Framework\\Plugins\\AutoResponseStatus');
-}
-/*
-if ($cfg->get('autoResponseEncode')) {
-    $mediator->push('__sys.response.beforeSend', 'Artax\\Framework\\Plugins\\AutoResponseEncode');
-    $injector->define('Artax\\Framework\\Plugins\\AutoResponseEncode',
-        array('request' => 'Artax\\Http\\FormEncodableRequest')
-    );
-}
-*/
-if ($cfg->has('eventListeners')) {
-    $mediator->pushAll($cfg->get('eventListeners'));
-}
-
-if ($cfg->has('injectionDefinitions')) {
-    $injector->defineAll($cfg->get('injectionDefinitions'));
-}
-
-if ($cfg->has('interfaceImplementations')) {
-    $injector->implementAll($cfg->get('interfaceImplementations'));
-}
+$bootConfigurator = new BootConfigurator($injector, $mediator);
+$bootConfigurator->configure($config);
 
 
 /*
  * -------------------------------------------------------------------------------------------------
- * Prevent post-boot changes to protected listeners.
+ * Prevent changes to protected system event queues.
  * -------------------------------------------------------------------------------------------------
  */
 
-$mediator->push('__sys.http-404', 'Artax\\Framework\\Http\\StatusHandlers\\Http404');
-$mediator->push('__sys.http-405', 'Artax\\Framework\\Http\\StatusHandlers\\Http405');
-$mediator->push('__sys.http-406', 'Artax\\Framework\\Http\\StatusHandlers\\Http406');
-$mediator->push('__sys.exception', 'Artax\\Framework\\Http\\StatusHandlers\\Http500');
+$mediator->unshift('__sys.http-404', 'Artax\\Framework\\Http\\StatusHandlers\\Http404');
+$mediator->unshift('__sys.http-405', 'Artax\\Framework\\Http\\StatusHandlers\\Http405');
+$mediator->unshift('__sys.http-406', 'Artax\\Framework\\Http\\StatusHandlers\\Http406');
+$mediator->unshift('__sys.exception', 'Artax\\Framework\\Http\\StatusHandlers\\Http500');
 
 $mediator->unshift('__mediator.delta', function(Mediator $mediator) {
     list($eventName, $deltaType) = $mediator->getLastQueueDelta();
-    if (strpos($eventName, '__') === 0) {
+    $protectedQueues = array(
+        '__sys.http-404',
+        '__sys.http-405',
+        '__sys.http-406',
+        '__sys.exception',
+        '__mediator.delta'
+    );
+    if (in_array($eventName, $protectedQueues)) {
         throw new SystemEventDeltaException(
-            "Protected event queue may not be modified after boot: $eventName"
+            "Protected event listener queue may not be modified after boot: $eventName"
         );
     }
 });
@@ -185,7 +158,7 @@ $mediator->unshift('__mediator.delta', function(Mediator $mediator) {
 
 /*
  * -------------------------------------------------------------------------------------------------
- * Create a request, router and route pool; register routes if user listeners haven't already.
+ * Create and share a request; notify interested listeners that the system is ready.
  * -------------------------------------------------------------------------------------------------
  */
 
@@ -193,11 +166,7 @@ $requestFactory = new StdRequestFactory;
 $request = $requestFactory->make($_SERVER);
 $injector->share('Artax\\Http\\StdRequest', $request);
 
-$router = $injector->make('Artax\\Framework\\Routing\\ObservableRouter');
-$routePool = new ObservableRoutePool($mediator, new ObservableRouteFactory($mediator));
-if (!count($routePool)) {
-    $routePool->addAllRoutes($cfg->get('routes'));
-}
+$mediator->notify('__sys.ready');
 
 
 /*
@@ -206,7 +175,11 @@ if (!count($routePool)) {
  * -------------------------------------------------------------------------------------------------
  */
 
-$mediator->notify('__sys.ready');
+$router = $injector->make('Artax\\Framework\\Routing\\ObservableRouter');
+$routePool = new ObservableRoutePool($mediator, new ObservableRouteFactory($mediator));
+if (!count($routePool)) {
+    $routePool->addAllRoutes($config->get('routes'));
+}
 
 try {
     
@@ -230,7 +203,7 @@ try {
 } catch (BadResourceMethodException $e) {
     
     $mediator->notify('__sys.http-' . StatusCodes::HTTP_METHOD_NOT_ALLOWED,
-        new MethodNotAllowedException($availableMethods)
+        new MethodNotAllowedException($e->getAvailableMethods())
     );
     
 } catch (NotAcceptableException $e) {
