@@ -106,6 +106,17 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
+     * @covers Artax\Http\StdResponse::removeHeader
+     */
+    public function testRemoveHeaderClearsSpecifiedHeader() {
+        $response = new StdResponse;
+        $response->setHeader('Content-Type', 'text/html');
+        $this->assertTrue($response->hasHeader('Content-TYPE'));
+        $response->removeHeader('Content-Type');
+        $this->assertFalse($response->hasHeader('Content-TYPE'));
+    }
+    
+    /**
      * @covers Artax\Http\StdResponse::setAllHeaders
      */
     public function testSetAllHeadersCallsSetHeaderForEachHeader() {

@@ -99,6 +99,25 @@ class ObservableResponseTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
+     * @covers Artax\Framework\Http\ObservableResponse::removeHeader
+     * @covers Artax\Framework\Http\ObservableResponse::notify
+     */
+    public function testRemoveHeaderNotifiesListeners() {
+        $mediator = $this->getMock('Artax\\Events\\Mediator');
+        
+        $response = new ObservableResponse($mediator);
+        
+        $response->setHeader('Content-Type', 'text/html');
+        
+        $mediator->expects($this->once())
+                 ->method('notify')
+                 ->with('__sys.response.removeHeader');
+        
+        $response->removeHeader('Content-Type');
+        $this->assertFalse($response->hasHeader('Content-Type'));
+    }
+    
+    /**
      * @covers Artax\Framework\Http\ObservableResponse::send
      * @covers Artax\Framework\Http\ObservableResponse::notify
      * @runInSeparateProcess
