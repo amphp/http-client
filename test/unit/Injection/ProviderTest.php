@@ -354,7 +354,6 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Injection\Provider::share
      */
     public function testShareStoresSharedInstanceAndReturnsNull() {
-        
         $provider = new Provider(new ReflectionPool);
         $testShare = new StdClass;
         $testShare->test = 42;
@@ -362,7 +361,31 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals(null, $provider->share($testShare));
         $testShare->test = 'test';
         $this->assertEquals('test', $provider->make('stdclass')->test);
+    }
+    
+    /**
+     * @covers Artax\Injection\Provider::shareAll
+     */
+    public function testShareAllStoresSpecifiedValuesAndReturnsNull() {
+        $reflPool = $this->getMock('Artax\\Injection\\ReflectionPool');
+        $provider = $this->getMock('Artax\\Injection\\Provider', array('share'), array($reflPool));
+        $provider->expects($this->exactly(3))
+                 ->method('share');
         
+        $toShare = array('Class1', 'Class2', new StdClass);
+        $this->assertNull($provider->shareAll($toShare));
+    }
+    
+    /**
+     * @covers Artax\Injection\Provider::shareAll
+     * @expectedException InvalidArgumentException
+     */
+    public function testShareAllThrowsExceptionOnInvalidParameter() {
+        $reflPool = $this->getMock('Artax\\Injection\\ReflectionPool');
+        $provider = $this->getMock('Artax\\Injection\\Provider', array('share'), array($reflPool));
+        
+        $toShare = 'not an array or traversable';
+        $provider->shareAll($toShare);
     }
     
     /**

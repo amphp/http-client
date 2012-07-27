@@ -316,6 +316,29 @@ class Provider implements Injector {
     }
     
     /**
+     * Shares all specified classes/instances
+     * 
+     * @param mixed $arrayOrTraversable
+     * @return void
+     * @throws InvalidArgumentException
+     */
+    public function shareAll($arrayOrTraversable) {
+        if (!(is_array($arrayOrTraversable) || $arrayOrTraversable instanceof Traversable)) {
+            $type = is_object($arrayOrTraversable)
+                ? get_class($arrayOrTraversable)
+                : gettype($arrayOrTraversable);
+            throw new InvalidArgumentException(
+                get_class($this).'::shareAll() requires an array or Traversable object at ' .
+                "Argument 1; $type specified"
+            );
+        }
+        
+        foreach ($arrayOrTraversable as $toBeShared) {
+            $this->share($toBeShared);
+        }
+    }
+    
+    /**
      * Determines if a given class name is marked as shared
      * 
      * @param string $class Class name

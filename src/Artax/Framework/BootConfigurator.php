@@ -51,9 +51,7 @@ class BootConfigurator {
         }
         
         if ($config->has('sharedClasses')) {
-            foreach ($config->get('sharedClasses') as $share) {
-                $this->injector->share($share);
-            }
+            $this->injector->shareAll($config->get('sharedClasses'));
         }
     }
     

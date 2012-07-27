@@ -38,7 +38,7 @@ class BootConfiguratorTest extends PHPUnit_Framework_TestCase {
             'autoResponseDate' => 1,
             'autoResponseContentLength' => 'yes',
             'autoResponseEncode' => 'yes',
-            'autoResponseEncodeMediaRanges' => 'text/html',
+            'autoResponseEncodeMediaRanges' => array('text/html'),
             'routes' => array(
                 '/' => 'Resources\\Index'
             ),

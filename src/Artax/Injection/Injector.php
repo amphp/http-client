@@ -120,11 +120,18 @@ interface Injector {
     function clearAllImplementations();
     
     /**
-     * Shares an instance of the specified class
+     * Shares the specified class
      * 
      * @param mixed $classNameOrInstance
      */
     function share($classNameOrInstance);
+    
+    /**
+     * Shares all specified classes/instances
+     * 
+     * @param mixed $arrayOrTraversableObject
+     */
+    function shareAll($arrayOrTraversableObject);
     
     /**
      * Determines if a given class name is marked as shared
