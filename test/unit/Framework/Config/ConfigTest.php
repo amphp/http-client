@@ -51,7 +51,7 @@ class ConfigTest extends PHPUnit_Framework_TestCase {
             'autoResponseDate' => 1,
             'autoResponseContentLength' => 'yes',
             'autoResponseEncode' => 'no',
-            'autoResponseEncodeMediaRanges' => 'text/html',
+            'autoResponseEncodeMediaRanges' => array('text/html'),
             'customUserDirective' => 42
         ));
         
@@ -62,6 +62,22 @@ class ConfigTest extends PHPUnit_Framework_TestCase {
         $this->assertFalse($cfg->get('autoResponseEncode'));
         $this->assertEquals(array('text/html'), $cfg->get('autoResponseEncodeMediaRanges'));
         $this->assertEquals(42, $cfg->get('customUserDirective'));
+    }
+    
+    /**
+     * @covers Artax\Framework\Config\Config::populate
+     * @covers Artax\Framework\Config\Config::setAutoResponseEncodeMediaRanges
+     */
+    public function testPopulateUsesDefaultEncodeMediaRangesOnEmptyValue() {
+        $cfg = new Config();
+        $cfg->populate(array(
+            'autoResponseEncodeMediaRanges' => array()
+        ));
+        
+        $this->assertEquals(
+            array('text/*', 'application/json', 'application/xml'),
+            $cfg->get('autoResponseEncodeMediaRanges')
+        );
     }
     
     /**

@@ -122,11 +122,12 @@ class Config {
         $this->directives['autoResponseEncode'] = $normalized;
     }
     
-    private function setAutoResponseEncodeMediaRanges($commaDelimitedMediaRangeStr) {
-        if ($commaDelimitedMediaRangeStr) {
-            $normalized = array_map('trim', explode(',', $commaDelimitedMediaRangeStr));
-            $this->directives['autoResponseEncodeMediaRanges'] = $normalized;
+    private function setAutoResponseEncodeMediaRanges($mediaRangeArray) {
+        if (!$mediaRangeArray) {
+            return;
         }
+        $normalized = array_map('trim', $mediaRangeArray);
+        $this->directives['autoResponseEncodeMediaRanges'] = $normalized;
     }
     
     private function setUndefinedDefaults() {
