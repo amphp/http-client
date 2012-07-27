@@ -168,7 +168,7 @@ $mediator->unshift('__mediator.delta', function(Mediator $mediator) {
 
 $requestFactory = new StdRequestFactory(new RequestDetector);
 $request = $requestFactory->make($_SERVER);
-$injector->share('Artax\\Http\\StdRequest', $request);
+$injector->share($request);
 
 $mediator->notify('__sys.ready');
 
