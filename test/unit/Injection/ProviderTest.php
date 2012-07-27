@@ -359,7 +359,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
         $testShare = new StdClass;
         $testShare->test = 42;
         
-        $this->assertEquals(null, $provider->share('StdClass', $testShare));
+        $this->assertEquals(null, $provider->share($testShare));
         $testShare->test = 'test';
         $this->assertEquals('test', $provider->make('stdclass')->test);
         
@@ -382,7 +382,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
     public function testShareThrowsExceptionOnInvalidArgument() {
         
         $provider = new Provider(new ReflectionPool);
-        $provider->share('Artax\\Events\\Mediator', new StdClass);
+        $provider->share(42);
     }
     
     /**

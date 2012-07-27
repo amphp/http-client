@@ -44,7 +44,8 @@ class BootConfiguratorTest extends PHPUnit_Framework_TestCase {
             ),
             'eventListeners' => array(),
             'injectionDefinitions' => array(),
-            'injectionImplementations' => array()
+            'injectionImplementations' => array(),
+            'sharedClasses' => array('TestClass')
         ));
         
         $configurator->configure($config);

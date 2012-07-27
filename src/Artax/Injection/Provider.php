@@ -284,34 +284,33 @@ class Provider implements Injector {
     }
     
     /**
-     * Stores a shared instance for the specified class
+     * Stores a shared instance of the specified class
      * 
      * If an instance of the class is specified, it will be stored and shared
      * for calls to `Provider::make` for that class until the shared instance
      * is manually removed or refreshed.
      * 
-     * If no object instance is specified, the Provider will mark the class
+     * If a string class name is specified, the Provider will mark the class
      * as "shared" and the next time the Provider is used to instantiate the
      * class it's instance will be stored and shared.
      * 
-     * @param string $class Name of the class to share
-     * @param mixed  $instance   An instance of the shared class
+     * @param mixed $classNameOrInstance
      * 
      * @return void
      * @throws InvalidArgumentException
      */
-    public function share($class, $instance = null) {
-        $lowClass = strtolower($class);
-        
-        if (!$instance) {
+    public function share($classNameOrInstance) {
+        if (is_string($classNameOrInstance)) {
+            $lowClass = strtolower($classNameOrInstance);
             $this->sharedClasses[$lowClass] = null;
-        } elseif ($instance instanceof $class) {
-            $this->sharedClasses[$lowClass] = $instance;
+        } elseif (is_object($classNameOrInstance)) {
+            $lowClass = strtolower(get_class($classNameOrInstance));
+            $this->sharedClasses[$lowClass] = $classNameOrInstance;
         } else {
-            $type = is_object($instance) ? get_class($instance) : gettype($instance);
+            $parameterType = gettype($classNameOrInstance);
             throw new InvalidArgumentException(
-                get_class($this).'::share() argument 2 must be an '
-                ."instance of $class: $type provided"
+                get_class($this).'::share() requires a string class name or object instance at ' .
+                "Argument 1; $parameterType specified"
             );
         }
     }

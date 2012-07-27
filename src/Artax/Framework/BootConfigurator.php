@@ -49,6 +49,12 @@ class BootConfigurator {
         if ($config->has('injectionImplementations')) {
             $this->injector->implementAll($config->get('injectionImplementations'));
         }
+        
+        if ($config->has('sharedClasses')) {
+            foreach ($config->get('sharedClasses') as $share) {
+                $this->injector->share($share);
+            }
+        }
     }
     
     protected function enableRouteShortcuts() {
