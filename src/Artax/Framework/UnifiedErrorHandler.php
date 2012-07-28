@@ -74,6 +74,10 @@ class UnifiedErrorHandler {
      * @return void
      */
     public function handleError($errNo, $errStr, $errFile, $errLine) {
+        if (0 === $this->getErrorReportingValue()) {
+            return;
+        }
+        
         $msg = "$errStr in $errFile on line $errLine";
         $e = new ErrorException($msg, $errNo);
         
@@ -91,6 +95,10 @@ class UnifiedErrorHandler {
             
             throw new ScriptHaltException;
         }
+    }
+    
+    protected function getErrorReportingValue() {
+        return error_reporting();
     }
     
     /**

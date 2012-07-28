@@ -41,6 +41,7 @@ class UnifiedErrorHandlerTest extends PHPUnit_Framework_TestCase {
     /**
      * @covers Artax\Framework\UnifiedErrorHandler::__construct
      * @covers Artax\Framework\UnifiedErrorHandler::handleError
+     * @covers Artax\Framework\UnifiedErrorHandler::getErrorReportingValue
      */
     public function testErrorHandlerNotifiesListenersIfAvailable() {
         $mediator = $this->getMock('Artax\\Events\\Mediator');
@@ -57,6 +58,27 @@ class UnifiedErrorHandlerTest extends PHPUnit_Framework_TestCase {
         $handler = new UnifiedErrorHandler($response, $mediator, $debugMode);
         $this->assertNull($handler->handleError(E_WARNING, 'test error', '/path', 42));
         
+    }
+    
+    /**
+     * @covers Artax\Framework\UnifiedErrorHandler::__construct
+     * @covers Artax\Framework\UnifiedErrorHandler::handleError
+     */
+    public function testErrorHandlerReturnsOnSuppressedError() {
+        $mediator = $this->getMock('Artax\\Events\\Mediator');
+        $response = $this->getMock('Artax\\Http\\Response');
+        $debugMode = 1;
+        
+        $handler = $this->getMock(
+            'Artax\\Framework\\UnifiedErrorHandler',
+            array('getErrorReportingValue'),
+            array($response, $mediator, $debugMode)
+        );
+        $handler->expects($this->once())
+                ->method('getErrorReportingValue')
+                ->will($this->returnValue(0));
+        
+        $this->assertNull($handler->handleError(E_WARNING, 'test error', '/path', 42));
     }
     
     /**
