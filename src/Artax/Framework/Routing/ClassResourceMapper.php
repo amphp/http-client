@@ -48,7 +48,7 @@ class ClassResourceMapper {
      * @param ObservableResourceFactory $resourceFactory
      * @return void
      */
-     public function __construct(
+    public function __construct(
         Injector $injector,
         ReflectionStorage $reflectionStorage,
         ObservableResourceFactory $resourceFactory
