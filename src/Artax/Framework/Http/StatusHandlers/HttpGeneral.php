@@ -68,7 +68,9 @@ class HttpGeneral {
         $this->response->setStatusDescription($e->getMessage());
         
         if (!$this->mediator->notify("app.http-$statusCode", $this->request, $this->response, $e)) {
-            throw new LogicException("No handlers specified for HTTP $statusCode events");
+            throw new LogicException(
+                "No app.http-$statusCode event handlers registered for HTTP $statusCode events"
+            );
         }
         
         if (!$this->response->wasSent()) {
