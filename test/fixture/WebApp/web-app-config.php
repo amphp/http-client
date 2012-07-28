@@ -6,20 +6,18 @@
 
 $cfg = new StdClass;
 
-$autoloader = function() {
-    spl_autoload_register(function($className) {
-        if (0 === strpos($className, 'WebApp\\')) {
-            $className = str_replace('\\', '/', $className);
-            require __DIR__ . "/src/$className.php";
-        }
-    });
-};
+$cfg->requiredFiles = array(
+    __DIR__ . '/web-app-bootstrap.php'
+);
 
-$cfg->applyRouteShortcuts = true;
-$cfg->autoResponseContentLength = true;
-$cfg->autoResponseDate = true;
-$cfg->autoResponseStatus = true;
-$cfg->autoResponseEncode = false;
+$cfg->plugins = array(
+    'RouteShortcuts'        => true,
+    'ResponseContentLength' => 1,
+    'ResponseStatus'        => 'yes',
+    'ResponseDate'          => true,
+    'ResponseEncode'        => false,
+    'SomeNonexistentPlugin' => 'no'
+);
 
 $cfg->routes = array(
     '/'            => 'WebApp\\Resources\\Index',
@@ -34,7 +32,6 @@ $cfg->routes = array(
 );
 
 $cfg->eventListeners = array(
-    '__sys.ready'  => $autoloader,
     'app.http-404' => 'WebApp\\HttpHandlers\\Http404',
     'app.http-405' => 'WebApp\\HttpHandlers\\Http405',
     'app.http-500' => 'WebApp\\HttpHandlers\\Http500'

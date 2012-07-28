@@ -3,16 +3,25 @@
         <testsuite name="Unit-Tests">
             <directory>./unit</directory>
         </testsuite>
+        <testsuite name="Plugin Unit-Tests">
+            <directory>../plugins/ResponseContentLength/test</directory>
+            <directory>../plugins/ResponseDate/test</directory>
+            <!-- <directory>../plugins/ResponseEncode/test</directory> -->
+            <directory>../plugins/ResponseStatus/test</directory>
+            <directory>../plugins/RouteShortcuts/test</directory>
+        </testsuite>
     </testsuites>
     <filter>
         <whitelist addUncoveredFilesFromWhitelist="true">
             <directory>../src/Artax</directory>
+            
+            <directory>../plugins/ResponseContentLength/src</directory>
+            <directory>../plugins/ResponseDate/src</directory>
+            <directory>../plugins/ResponseEncode/src</directory>
+            <directory>../plugins/ResponseStatus/src</directory>
+            <directory>../plugins/RouteShortcuts/src</directory>
             <exclude>
 
-                <!-- TEMPORARY -->
-                <file>../src/Artax/Framework/Config/Parsers/XmlConfigParser.php</file>
-                <!-- TEMPORARY -->
-                
                 <file>../src/Artax/Events/Mediator.php</file>
                 
                 <file>../src/Artax/Injection/ReflectionStorage.php</file>
@@ -23,8 +32,8 @@
                 <file>../src/Artax/Framework/ScriptHaltException.php</file>
                 <file>../src/Artax/Framework/Events/SystemEventDeltaException.php</file>
                 <file>../src/Artax/Framework/Events/BadListenerException.php</file>
-                <file>../src/Artax/Framework/Config/ConfigException.php</file>
-                <file>../src/Artax/Framework/Config/Parsers/ConfigParser.php</file>
+                <file>../src/Artax/Framework/Configuration/ConfigException.php</file>
+                <file>../src/Artax/Framework/Configuration/Parsers/ConfigParser.php</file>
                 
                 <file>../src/Artax/Uri.php</file>
                 

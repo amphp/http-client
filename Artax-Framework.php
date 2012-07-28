@@ -17,16 +17,17 @@
  * @version     ${project.version}
  */
 
-use Artax\Http\StatusCodes,
+use Artax\Http\RequestDetector,
+    Artax\Http\StatusCodes,
     Artax\Http\StdRequestFactory,
-    Artax\Http\RequestDetector,
     Artax\Http\StdResponse,
     Artax\Events\Mediator,
-    Artax\Framework\BootConfigurator,
     Artax\Framework\UnifiedErrorHandler,
-    Artax\Framework\Config\Config,
-    Artax\Framework\Config\ConfigParserFactory,
-    Artax\Framework\Config\ConfigValidator,
+    Artax\Framework\Configuration\AppConfig,
+    Artax\Framework\Configuration\Config,
+    Artax\Framework\Configuration\Configurator,
+    Artax\Framework\Configuration\Parsers\PhpConfigParser,
+    Artax\Framework\Events\ProvisionedNotifier,
     Artax\Framework\Http\Exceptions\HttpStatusException,
     Artax\Framework\Http\Exceptions\MethodNotAllowedException,
     Artax\Framework\Http\Exceptions\NotFoundException,
@@ -36,6 +37,8 @@ use Artax\Http\StatusCodes,
     Artax\Framework\Routing\ObservableResourceFactory,
     Artax\Framework\Routing\ObservableRouteFactory,
     Artax\Framework\Routing\ObservableRoutePool,
+    Artax\Injection\Provider,
+    Artax\Injection\ReflectionPool,
     Artax\Negotiation\NotAcceptableException;
 
 
@@ -48,12 +51,11 @@ require __DIR__ . '/Artax.php';
  * -------------------------------------------------------------------------------------------------
  */
 
-$reflPool = new Artax\Injection\ReflectionPool;
-$injector = new Artax\Injection\Provider($reflPool);
-$mediator = new Artax\Framework\Events\ProvisionedNotifier($injector);
-
-$injector->share('Artax\\Framework\\Events\\ProvisionedNotifier', $mediator);
-$injector->share('Artax\\Injection\\ReflectionPool', $reflPool);
+$reflPool = new ReflectionPool;
+$injector = new Provider($reflPool);
+$mediator = new ProvisionedNotifier($injector);
+$injector->share($mediator);
+$injector->share($reflPool);
 
 
 /*
@@ -75,7 +77,7 @@ $unifiedHandler->register();
 
 /*
  * -------------------------------------------------------------------------------------------------
- * Define system class injection parameters
+ * Define system class injection parameters.
  * -------------------------------------------------------------------------------------------------
  */
 
@@ -119,17 +121,42 @@ if (!defined('ARTAX_CONFIG_FILE')) {
     die('The ARTAX_CONFIG_FILE constant must be defined before continuing' . PHP_EOL);
 }
 
-$configParserFactory = new ConfigParserFactory();
-$configParser = $configParserFactory->make(ARTAX_CONFIG_FILE);
-$config = new Config();
-$config->populate($configParser->parse(ARTAX_CONFIG_FILE));
-$configValidator = new ConfigValidator();
-$configValidator->validate($config);
+$configParser = new PhpConfigParser();
+$appConfig = new AppConfig();
+$appConfig->populate($configParser->parse(ARTAX_CONFIG_FILE));
 
-$injector->share('Artax\\Framework\\Config\\Config', $config);
+$injector->share($appConfig);
 
-$bootConfigurator = new BootConfigurator($injector, $mediator);
-$bootConfigurator->configure($config);
+$configurator = new Configurator($injector, $mediator);
+$configurator->configure($appConfig);
+
+
+/*
+ * -------------------------------------------------------------------------------------------------
+ * Load plugins.
+ * -------------------------------------------------------------------------------------------------
+ */
+
+if ($appConfig->has('plugins')) {
+    
+    if (!($appConfig->has('pluginDir') && $pluginDir = $appConfig->get('pluginDir'))) {
+        $pluginDir = __DIR__ . '/plugins';
+    }
+    
+    foreach ($appConfig->get('plugins') as $plugin => $enabled) {
+        if (!$enabled) {
+            continue;
+        }
+        
+        $pluginManifestFile = "$pluginDir/$plugin/manifest.php";
+        $manifestCfg = $configParser->parse($pluginManifestFile);
+        
+        $pluginConfig = new Config();
+        $pluginConfig->populate($manifestCfg);
+        
+        $configurator->configure($pluginConfig);
+    }
+}
 
 
 /*
@@ -182,7 +209,7 @@ $mediator->notify('__sys.ready');
 $router = $injector->make('Artax\\Framework\\Routing\\ObservableRouter');
 $routePool = new ObservableRoutePool($mediator, new ObservableRouteFactory($mediator));
 if (!count($routePool)) {
-    $routePool->addAllRoutes($config->get('routes'));
+    $routePool->addAllRoutes($appConfig->get('routes'));
 }
 
 try {
