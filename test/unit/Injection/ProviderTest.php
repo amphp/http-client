@@ -31,10 +31,103 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Injection\Provider::make
      * @covers Artax\Injection\Provider::getInjectedInstance
      * @covers Artax\Injection\Provider::buildNewInstanceArgs
+     * @covers Artax\Injection\Provider::buildWithoutConstructorParams
+     */
+    public function testMakeReturnsNewInstanceIfClassHasNoConstructor() {
+        $provider = new Provider(new ReflectionPool);
+        $this->assertEquals(new TestNoConstructor, $provider->make('TestNoConstructor'));
+    }
+    
+    /**
+     * @covers Artax\Injection\Provider::make
+     * @covers Artax\Injection\Provider::getInjectedInstance
+     * @covers Artax\Injection\Provider::buildNewInstanceArgs
+     * @covers Artax\Injection\Provider::buildWithoutConstructorParams
+     * @covers Artax\Injection\Provider::buildImplementation
+     */
+    public function testMakeReturnsNonConcreteImplementationIfIsImplemented() {
+        $provider = new Provider(new ReflectionPool);
+        $provider->implement('DepInterface', 'DepImplementation');
+        $this->assertEquals(new DepImplementation, $provider->make('DepInterface'));
+    }
+    
+    /**
+     * @covers Artax\Injection\Provider::make
+     * @covers Artax\Injection\Provider::getInjectedInstance
+     * @covers Artax\Injection\Provider::buildNewInstanceArgs
+     * @covers Artax\Injection\Provider::buildWithoutConstructorParams
+     * @expectedException Artax\Injection\ProviderDefinitionException
+     */
+    public function testMakeThrowsExceptionOnNonConcreteParameterWithoutImplementation() {
+        $provider = new Provider(new ReflectionPool);
+        $provider->make('DepInterface');
+    }
+    
+    /**
+     * @covers Artax\Injection\Provider::make
+     * @covers Artax\Injection\Provider::getInjectedInstance
+     * @covers Artax\Injection\Provider::buildNewInstanceArgs
+     * @covers Artax\Injection\Provider::buildWithoutConstructorParams
+     * @covers Artax\Injection\Provider::buildImplementation
+     * @expectedException Artax\Injection\BadImplementationException
+     */
+    public function testMakeThrowsExceptionOnInvalidImplementationTypeMismatch() {
+        $provider = new Provider(new ReflectionPool);
+        $provider->implement('DepInterface', 'StdClass');
+        $provider->make('DepInterface');
+    }
+    
+    /**
+     * @covers Artax\Injection\Provider::make
+     * @covers Artax\Injection\Provider::getInjectedInstance
+     * @covers Artax\Injection\Provider::buildNewInstanceArgs
+     * @covers Artax\Injection\Provider::buildWithoutConstructorParams
+     * @covers Artax\Injection\Provider::buildImplementation
+     * @covers Artax\Injection\Provider::buildAbstractTypehintParam
+     * @expectedException Artax\Injection\ProviderDefinitionException
+     */
+    public function testMakeThrowsExceptionOnNonConcreteCtorParamWithoutImplementation() {
+        $provider = new Provider(new ReflectionPool);
+        $provider->make('RequiresInterface');
+    }
+    
+    /**
+     * @covers Artax\Injection\Provider::make
+     * @covers Artax\Injection\Provider::getInjectedInstance
+     * @covers Artax\Injection\Provider::buildNewInstanceArgs
+     * @covers Artax\Injection\Provider::buildWithoutConstructorParams
+     * @covers Artax\Injection\Provider::buildImplementation
+     * @covers Artax\Injection\Provider::buildAbstractTypehintParam
+     */
+    public function testMakeBuildsNonConcreteCtorParamWithImplementation() {
+        $provider = new Provider(new ReflectionPool);
+        $provider->implement('DepInterface', 'DepImplementation');
+        $obj = $provider->make('RequiresInterface');
+        $this->assertInstanceOf('RequiresInterface', $obj);
+    }
+    
+    /**
+     * @covers Artax\Injection\Provider::make
+     * @covers Artax\Injection\Provider::getInjectedInstance
+     * @covers Artax\Injection\Provider::buildNewInstanceArgs
+     * @covers Artax\Injection\Provider::buildWithoutConstructorParams
+     * @covers Artax\Injection\Provider::buildImplementation
+     * @covers Artax\Injection\Provider::buildAbstractTypehintParam
+     * @expectedException Artax\Injection\BadImplementationException
+     */
+    public function testMakeThrowsExceptionOnNonConcreteCtorParamWithBadImplementation() {
+        $provider = new Provider(new ReflectionPool);
+        $provider->implement('DepInterface', 'StdClass');
+        $provider->make('RequiresInterface');
+    }
+    
+    /**
+     * @covers Artax\Injection\Provider::make
+     * @covers Artax\Injection\Provider::getInjectedInstance
+     * @covers Artax\Injection\Provider::buildNewInstanceArgs
      * @covers Artax\Injection\Provider::isInstantiable
      */
-    public function testMakePassesNullIfDefaultAndNoTypehintExists() {
-    
+    public function testMakePassesNullCtorParameterIrNoTypehintOrDefaultCanBeDetermined() {
         $provider = new Provider(new ReflectionPool);
         $nullCtorParamObj = $provider->make('ProvTestNoDefinitionNullDefaultClass');
         $this->assertEquals(new ProvTestNoDefinitionNullDefaultClass, $nullCtorParamObj);
@@ -47,8 +140,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Injection\Provider::buildNewInstanceArgs
      * @covers Artax\Injection\Provider::isInstantiable
      */
-    public function testMakeReturnsSharedInstanceIfSpecified() {
-    
+    public function testMakeReturnsSharedInstanceIfAvailable() {
         $provider = new Provider(new ReflectionPool);
         $provider->define('RequiresInterface', array('dep' => 'DepImplementation'));
         $provider->share('RequiresInterface');
@@ -68,8 +160,7 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Injection\Provider::isInstantiable
      * @expectedException Artax\Injection\ProviderDefinitionException
      */
-    public function testMakeThrowsExceptionIfProvisioningMissingUnloadableClass() {
-    
+    public function testMakeThrowsExceptionOnClassLoadFailure() {
         $provider = new Provider(new ReflectionPool);
         $provider->make('ClassThatDoesntExist');
     }
@@ -476,22 +567,12 @@ class ProviderTest extends PHPUnit_Framework_TestCase {
      * @expectedException OutOfBoundsException
      */
     public function testGetImplementationThrowsExceptionIfSpecifiedImplementationDoesntExist() {
-        
         $provider = new Provider(new ReflectionPool);
         $provider->getImplementation('InterfaceThatIsNotSetWithAnImplementation');
     }
-    
-    /**
-     * @covers Artax\Injection\Provider::make
-     * @covers Artax\Injection\Provider::buildNewInstanceArgs
-     */
-    public function testMakeUsesImplementationDefinitionsAsNeeded() {
-        
-        $provider = new Provider(new ReflectionPool);
-        $provider->implement('DepInterface', 'DepImplementation');
-        $this->assertInstanceOf('RequiresInterface', $provider->make('RequiresInterface'));
-    }
 }
+
+class TestNoConstructor {}
 
 class TestDependency {
     public $testProp = 'testVal';

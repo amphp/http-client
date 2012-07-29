@@ -4,28 +4,30 @@
             <directory>./unit</directory>
         </testsuite>
         <testsuite name="Plugin Unit-Tests">
-            <directory>../plugins/ResponseContentLength/test</directory>
-            <directory>../plugins/ResponseDate/test</directory>
+            <directory>../plugins/ArtaxPlugins/ResponseContentLength/test</directory>
+            <directory>../plugins/ArtaxPlugins/ResponseDate/test</directory>
             <!-- <directory>../plugins/ResponseEncode/test</directory> -->
-            <directory>../plugins/ResponseStatus/test</directory>
-            <directory>../plugins/RouteShortcuts/test</directory>
+            <directory>../plugins/ArtaxPlugins/ResponseStatus/test</directory>
+            <directory>../plugins/ArtaxPlugins/RouteShortcuts/test</directory>
         </testsuite>
     </testsuites>
     <filter>
         <whitelist addUncoveredFilesFromWhitelist="true">
             <directory>../src/Artax</directory>
             
-            <directory>../plugins/ResponseContentLength/src</directory>
-            <directory>../plugins/ResponseDate/src</directory>
-            <directory>../plugins/ResponseEncode/src</directory>
-            <directory>../plugins/ResponseStatus/src</directory>
-            <directory>../plugins/RouteShortcuts/src</directory>
+            <directory>../plugins/ArtaxPlugins/ResponseContentLength/src</directory>
+            <directory>../plugins/ArtaxPlugins/ResponseDate/src</directory>
+            <directory>../plugins/ArtaxPlugins/ResponseEncode/src</directory>
+            <directory>../plugins/ArtaxPlugins/ResponseStatus/src</directory>
+            <directory>../plugins/ArtaxPlugins/RouteShortcuts/src</directory>
+            
             <exclude>
 
                 <file>../src/Artax/Events/Mediator.php</file>
                 
                 <file>../src/Artax/Injection/ReflectionStorage.php</file>
                 <file>../src/Artax/Injection/ProviderDefinitionException.php</file>
+                <file>../src/Artax/Injection/BadImplementationException.php</file>
                 <file>../src/Artax/Injection/Injector.php</file>
                 
                 <file>../src/Artax/Framework/FatalErrorException.php</file>

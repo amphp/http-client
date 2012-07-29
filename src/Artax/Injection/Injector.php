@@ -73,7 +73,7 @@ interface Injector {
     function clearAllDefinitions();
     
     /**
-     * Defines an implementation class for all occurrences of a given interface or abstract
+     * Defines an implementation class for all occurrences of a given interface or abstract class
      * 
      * @param string $nonConcreteType
      * @param string $className

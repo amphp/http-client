@@ -56,7 +56,7 @@ class Provider implements Injector {
     }
     
     /**
-     * Instantiate a class subject to a predefined or call-time injection definition
+     * Instantiate a class subject according to a predefined or call-time injection definition
      * 
      * @param string $class Class name
      * @param array  $customDefinition An optional array of custom instantiation parameters
@@ -394,7 +394,9 @@ class Provider implements Injector {
         }
         
         if (!$ctorParams) {
-            return new $className;
+        
+            return $this->buildWithoutConstructorParams($className);
+            
         } else {
         
             try {
@@ -408,6 +410,49 @@ class Provider implements Injector {
             
             return $reflClass->newInstanceArgs($args);
         }
+    }
+    
+    /**
+     * 
+     */
+    private function buildWithoutConstructorParams($className) {
+        if ($this->isInstantiable($className)) {
+            return new $className;
+        } elseif ($this->isImplemented($className)) {
+            return $this->buildImplementation($className);
+        } else {
+            $reflClass = $this->reflectionStorage->getClass($className);
+            $type = $reflClass->isInterface() ? 'interface' : 'abstract';
+            throw new ProviderDefinitionException(
+                "Cannot instantiate $type $className without an injection definition or " .
+                "implementation"
+            );
+        }
+    }
+    
+    /**
+     * @param string $className
+     * @return bool
+     */
+    private function isInstantiable($className) {
+        return $this->reflectionStorage->getClass($className)->isInstantiable();
+    }
+    
+    /**
+     * 
+     */
+    private function buildImplementation($interfaceOrAbstractName) {
+        $implClass = $this->getImplementation($interfaceOrAbstractName);
+        $implObj   = $this->make($implClass);
+        $implRefl  = $this->reflectionStorage->getClass($implClass);
+        
+        if (!$implRefl->isSubclassOf($interfaceOrAbstractName)) {
+            throw new BadImplementationException(
+                "Bad implementation: {$implRefl->name} does not implement $interfaceOrAbstractName"
+            );
+        }
+        
+        return $implObj;
     }
     
     /**
@@ -437,15 +482,10 @@ class Provider implements Injector {
             
             if ($typehint && $this->isInstantiable($typehint)) {
                 $instanceArgs[] = $this->make($typehint);
-            } elseif ($typehint && $this->isImplemented($typehint)) {
-                $instanceArgs[] = $this->make($this->getImplementation($typehint));
+            } elseif ($typehint) {
+                $instanceArgs[] = $this->buildAbstractTypehintParam($typehint, $paramName, $i+1);
             } elseif ($reflectedParam->isDefaultValueAvailable()) {
                 $instanceArgs[] = $reflectedParam->getDefaultValue();
-            } elseif ($typehint) {
-                throw new ProviderDefinitionException(
-                    'Injection definition/implementation required for non-concrete constructor '.
-                    "parameter \$$paramName of type $typehint at argument " . ($i+1)
-                );
             } else {
                 $instanceArgs[] = null;
             }
@@ -455,10 +495,25 @@ class Provider implements Injector {
     }
     
     /**
-     * @param string $className
-     * @return bool
+     * 
      */
-    private function isInstantiable($className) {
-        return $this->reflectionStorage->getClass($className)->isInstantiable();
+    private function buildAbstractTypehintParam($typehint, $paramName, $argNum) {
+        if ($this->isImplemented($typehint)) {
+            try {
+                return $this->buildImplementation($typehint);
+            } catch (BadImplementationException $e) {
+                throw new BadImplementationException(
+                    'Bad implementation definition encountered while attempting to provision ' .
+                    "non-concrete parameter \$$paramName of type $typehint at argument $argNum",
+                    null,
+                    $e
+                );
+            }
+        }
+        
+        throw new ProviderDefinitionException(
+            'Injection definition/implementation required for non-concrete constructor '.
+            "parameter \$$paramName of type $typehint at argument $argNum"
+        );
     }
 }
