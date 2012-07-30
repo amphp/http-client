@@ -24,9 +24,11 @@ use Artax\Http\RequestDetector,
     Artax\Events\Mediator,
     Artax\Framework\UnifiedErrorHandler,
     Artax\Framework\Configuration\AppConfig,
-    Artax\Framework\Configuration\Config,
     Artax\Framework\Configuration\Configurator,
     Artax\Framework\Configuration\Parsers\PhpConfigParser,
+    Artax\Framework\Configuration\PluginLoader,
+    Artax\Framework\Configuration\PluginManifest,
+    Artax\Framework\Configuration\PluginManifestFactory,
     Artax\Framework\Events\ProvisionedNotifier,
     Artax\Framework\Http\Exceptions\HttpStatusException,
     Artax\Framework\Http\Exceptions\MethodNotAllowedException,
@@ -42,6 +44,7 @@ use Artax\Http\RequestDetector,
     Artax\Negotiation\NotAcceptableException;
 
 
+define('ARTAX_SYSTEM_VERSION', 0);
 require __DIR__ . '/Artax.php';
 
 
@@ -95,19 +98,29 @@ $http500HandlerDefinition = array(
     'response' => 'Artax\\Http\\StdResponse'
 );
 
+$observableRoutePoolDefinition = array(
+    ':mediator' => $mediator,
+    'routeFactory' => 'Artax\\Framework\\Routing\\ObservableRouteFactory'
+);
+
 $injector->defineAll(array(
     'Artax\\Framework\\Http\\ObservableResponse' => $mediatorDefinition,
     'Artax\\Framework\\Routing\\ObservableResource' => $mediatorDefinition,
     'Artax\\Framework\\Routing\\ObservableResourceFactory' => $mediatorDefinition,
     'Artax\\Framework\\Routing\\ObservableRoute' => $mediatorDefinition,
     'Artax\\Framework\\Routing\\ObservableRouteFactory' => $mediatorDefinition,
-    'Artax\\Framework\\Routing\\ObservableRoutePool' => $mediatorDefinition,
+    'Artax\\Framework\\Routing\\ObservableRoutePool' => $observableRoutePoolDefinition,
     'Artax\\Framework\\Routing\\ObservableRouter' => $mediatorDefinition,
     'Artax\\Framework\\Http\\StatusHandlers\\Http404' => $httpStatusHandlerDefinition,
     'Artax\\Framework\\Http\\StatusHandlers\\Http405' => $httpStatusHandlerDefinition,
     'Artax\\Framework\\Http\\StatusHandlers\\Http406' => $httpStatusHandlerDefinition,
     'Artax\\Framework\\Http\\StatusHandlers\\Http500' => $http500HandlerDefinition,
     'Artax\\Framework\\Http\\StatusHandlers\\HttpGeneral' => $httpStatusHandlerDefinition,
+));
+
+$injector->implementAll(array(
+    'Artax\\Routing\\RouteMatcher' => 'Artax\\Framework\\Routing\\ObservableRouter',
+    'Artax\\Routing\\RouteStorage' => 'Artax\\Framework\\Routing\\ObservableRoutePool'
 ));
 
 
@@ -118,7 +131,7 @@ $injector->defineAll(array(
  */
 
 if (!defined('ARTAX_CONFIG_FILE')) {
-    die('The ARTAX_CONFIG_FILE constant must be defined before continuing' . PHP_EOL);
+    die('The ARTAX_CONFIG_FILE constant must be defined to continue' . PHP_EOL);
 }
 
 $configParser = new PhpConfigParser();
@@ -128,7 +141,7 @@ $appConfig->populate($configParser->parse(ARTAX_CONFIG_FILE));
 $injector->share($appConfig);
 
 $configurator = new Configurator($injector, $mediator);
-$configurator->configure($appConfig);
+$configurator->apply($appConfig);
 
 
 /*
@@ -143,19 +156,15 @@ if ($appConfig->has('plugins')) {
         $pluginDir = __DIR__ . '/plugins';
     }
     
-    foreach ($appConfig->get('plugins') as $plugin => $enabled) {
-        if (!$enabled) {
-            continue;
-        }
-        
-        $pluginManifestFile = "$pluginDir/$plugin/manifest.php";
-        $manifestCfg = $configParser->parse($pluginManifestFile);
-        
-        $pluginConfig = new Config();
-        $pluginConfig->populate($manifestCfg);
-        
-        $configurator->configure($pluginConfig);
-    }
+    $pluginLoader = new PluginLoader(
+        $configurator,
+        $configParser,
+        new PluginManifestFactory,
+        $pluginDir,
+        ARTAX_SYSTEM_VERSION
+    );
+    
+    $pluginLoader->load($appConfig->get('plugins'));
 }
 
 
@@ -206,8 +215,9 @@ $mediator->notify('__sys.ready');
  * -------------------------------------------------------------------------------------------------
  */
 
-$router = $injector->make('Artax\\Framework\\Routing\\ObservableRouter');
-$routePool = new ObservableRoutePool($mediator, new ObservableRouteFactory($mediator));
+$router = $injector->make('Artax\\Routing\\RouteMatcher');
+$routePool = $injector->make('Artax\\Routing\\RouteStorage');
+
 if (!count($routePool)) {
     $routePool->addAllRoutes($appConfig->get('routes'));
 }

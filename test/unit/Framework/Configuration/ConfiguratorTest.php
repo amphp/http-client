@@ -1,7 +1,9 @@
 <?php
 
 use Artax\Framework\Configuration\Configurator,
-    Artax\Framework\Configuration\Config,
+    Artax\Framework\Configuration\AppConfig,
+    Artax\Injection\Provider,
+    Artax\Injection\ReflectionPool,
     org\bovigo\vfs\vfsStream,
     org\bovigo\vfs\vfsStreamWrapper;
 
@@ -11,7 +13,7 @@ vfsStream::copyFromFileSystem(
     ARTAX_SYSTEM_DIR . '/test/fixture/vfs/config', vfsStream::setup('root')
 );
 
-class ConfiguratorTest extends PHPUnit_Framework_TestCase {
+class AppConfiguratorTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Framework\Configuration\Configurator::__construct
@@ -26,32 +28,33 @@ class ConfiguratorTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Framework\Configuration\Configurator::__construct
-     * @covers Artax\Framework\Configuration\Configurator::configure
+     * @covers Artax\Framework\Configuration\Configurator::apply
      * @covers Artax\Framework\Configuration\Configurator::requireFile
      */
     public function testConfigureAppliesConfigurationDirectives() {
         $directives = array(
-            'requiredFiles' => array('vfs://root/config-require.php'),
+            'requiredFiles' => array(
+                'vfs://root/config-require.php'
+            ),
             'routes' => array(
                 '/' => 'Resources\Index'
             ),
-            'eventListeners' => array(),
-            'injectionDefinitions' => array(),
-            'injectionImplementations' => array(),
-            'sharedClasses' => array('TestClass')
+            'eventListeners' => array(
+                'testEvent' => 'ConfiguratorTestInterfaceImpl'
+            ),
+            'injectionDefinitions' => array(
+                'ConfiguratorTestDefinition' => array(':stdClass' => 'StdClass')
+            ),
+            'injectionImplementations' => array(
+                'ConfiguratorTestInterface' => 'ConfiguratorTestInterfaceImpl'
+            ),
+            'sharedClasses' => array(
+                'TestClass'
+            )
         );
         
         
-        $injector = $this->getMock('Artax\Injection\Injector');
-        $injector->expects($this->once())
-                 ->method('defineAll')
-                 ->with($directives['injectionDefinitions']);
-        $injector->expects($this->once())
-                 ->method('implementAll')
-                 ->with($directives['injectionImplementations']);
-        $injector->expects($this->once())
-                 ->method('shareAll')
-                 ->with($directives['sharedClasses']);
+        $injector = new Provider(new ReflectionPool);
         
         $mediator = $this->getMock('Artax\Events\Mediator');
         $mediator->expects($this->once())
@@ -60,12 +63,12 @@ class ConfiguratorTest extends PHPUnit_Framework_TestCase {
         
         $configurator = new Configurator($injector, $mediator);
         
-        $config = new Config();
+        $config = new AppConfig();
         $config->populate($directives);
-        $configurator->configure($config);
+        $configurator->apply($config);
     }
     /**
-     * @covers Artax\Framework\Configuration\Configurator::configure
+     * @covers Artax\Framework\Configuration\Configurator::apply
      * @covers Artax\Framework\Configuration\Configurator::requireFile
      * @expectedException Artax\Framework\Configuration\ConfigException
      */
@@ -75,9 +78,15 @@ class ConfiguratorTest extends PHPUnit_Framework_TestCase {
         
         $configurator = new Configurator($injector, $mediator);
         
-        $config = new Config();
+        $config = new AppConfig();
         $config->populate(array('requiredFiles' => array('vfs://root/nonexistentFile.php')));
-        $configurator->configure($config);
+        $configurator->apply($config);
     }
     
+}
+
+interface ConfiguratorTestInterface {}
+class ConfiguratorTestInterfaceImpl implements ConfiguratorTestInterface {}
+class ConfiguratorTestDefinition {
+    public function __construct($stdClass){}
 }

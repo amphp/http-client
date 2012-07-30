@@ -26,26 +26,26 @@ use StdClass,
 class PhpConfigParser implements ConfigParser {
     
     /**
-     * @param string $configFilepath
+     * @param string $configFile
      * @return mixed
      * @throws ConfigException
      */
-    public function parse($configFilepath) {
-        if (false === @include $configFilepath) {
-            throw new ConfigException("Failed loading config file: $configFilepath");
+    public function parse($configFile) {
+        if (false === @include $configFile) {
+            throw new ConfigException("Failed loading config file: $configFile");
         }
         
         if (!isset($cfg)) {
             throw new ConfigException(
                 'Config file must specify a $cfg array, StdClass or Traversable storing ' .
-                "configuration directives; none found in $configFilepath"
+                "configuration directives; none found in $configFile"
             );
         }
         
         if (!(is_array($cfg) || $cfg instanceof StdClass || $cfg instanceof Traversable)) {
             $cfgType = is_object($cfg) ? get_class($cfg) : gettype($cfg);
             throw new ConfigException(
-                "\$cfg must be an array, StdClass or Traversable; $cfgType specified"
+                "\$cfg in $configFile must be an array, StdClass or Traversable: $cfgType specified"
             );
         }
         

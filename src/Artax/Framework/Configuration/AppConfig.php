@@ -9,11 +9,10 @@
  */
 namespace Artax\Framework\Configuration;
 
-use StdClass,
-    Traversable;
+use InvalidArgumentException;
 
 /**
- * A value object storing application configuration directives
+ * An immutable value object storing application configuration directives
  * 
  * @category    Artax
  * @package     Framework
@@ -22,34 +21,62 @@ use StdClass,
  */    
 class AppConfig extends Config {
     
-    /**
-     * Populate the object using a key-value iterable
-     * 
-     * @param mixed $iterable An array, StdClass or Traversable
-     * @return void
-     * @throws InvalidArgumentException
-     */
+    public function __construct() {
+        $this->directives['routes'] = array();
+        $this->directives['plugins'] = array();
+    }
+    
     public function populate($iterable) {
-        parent::populate($iterable);
+        if (!$this->isTraversableMap($iterable)) {
+            throw new ConfigException(
+                'Invalid configuration iterable: ' . get_class($this) . '::populate requires an ' .
+                'array, StdClass or Traversable at Argument 1'
+            );
+        }
         
-        if (!$this->has('routes') || !$this->get('routes')) {
-            throw new ConfigException('No resource routes specified');
+        foreach ($iterable as $directive => $value) {
+            $setterMethod = 'set' . ucfirst($directive);
+            if (method_exists($this, $setterMethod)) {
+                $this->$setterMethod($value);
+            } else {
+                $this->assignCustomDirective($directive, $value);
+            }
         }
     }
     
-    /**
-     * @return void
-     */
-    protected function setRoutes(array $routes) {
-        $this->directives['routes'] = $routes;
+    protected function assignCustomDirective($directive, $value) {
+        if (is_scalar($value)) {
+            $this->directives[$directive] = $value;
+        } else {
+            $directiveType = is_object($value) ? get_class($value) : gettype($value);
+            throw new ConfigException(
+                "Invalid config directive: $directive requires a scalar value"
+            );
+        }
     }
     
-    /**
-     * @return void
-     */
-    protected function setPlugins(array $plugins) {
-        $this->directives['plugins'] = array_map(function($plugin) {
-            return filter_var($plugin, FILTER_VALIDATE_BOOLEAN);
-        }, $plugins);
+    protected function setPlugins($iterable) {
+        if (!$this->isTraversableMap($iterable)) {
+            throw new ConfigException(
+                'Invalid config directive: plugins requires an array, StdClass or Traversable'
+            );
+        }
+        
+        $plugins = array();
+        foreach ($iterable as $plugin => $enabled) {
+            $plugins[$plugin] = filter_var($enabled, FILTER_VALIDATE_BOOLEAN);
+        }
+        
+        $this->directives['plugins'] = $plugins;
+    }
+    
+    protected function setRoutes($iterable) {
+        if (!$this->isTraversableMap($iterable)) {
+            throw new ConfigException(
+                'Invalid config directive: routes requires an array, StdClass or Traversable'
+            );
+        }
+        
+        $this->directives['routes'] = $iterable;
     }
 }

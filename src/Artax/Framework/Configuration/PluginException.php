@@ -1,6 +1,6 @@
 <?php
 /**
- * ConfigException Class File
+ * PluginException Class File
  * 
  * @category    Artax
  * @package     Framework
@@ -11,14 +11,12 @@
  */
 namespace Artax\Framework\Configuration;
 
-use Exception;
-
 /**
- * Exception thrown to indicate a problem with application or plugin configuration settings
+ * Exception thrown on plugin load failure
  * 
  * @category    Artax
  * @package     Framework
  * @subpackage  Configuration
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
  */
-class ConfigException extends Exception {}
+class PluginException extends ConfigException {}

@@ -18,21 +18,6 @@ spl_autoload_register(function($cls) {
 });
 
 /*
- * -------------------------------------------------------------------------------------------------
- * Register a class loader for plugins.
- * -------------------------------------------------------------------------------------------------
- */
-
-spl_autoload_register(function($class) {
-    if (0 === strpos($class, 'ArtaxPlugins\\')) {
-        $classParts = explode('\\', $class);
-        array_shift($classParts);
-        $pluginName = array_shift($classParts);
-        require ARTAX_SYSTEM_DIR . "/plugins/$pluginName/src/" . implode('/', $classParts) . '.php';
-    }
-});
-
-/*
  * --------------------------------------------------------------------
  * Register vfsStream autoloader.
  * --------------------------------------------------------------------

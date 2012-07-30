@@ -15,7 +15,7 @@ use Artax\Injection\Injector,
     Artax\Events\Mediator;
 
 /**
- * Applies application configuration directives specified in the supplied Config instance
+ * Applies application configuration directives from the supplied Config instance
  * 
  * Both application config files and plugin manifests influence operation by adding listeners
  * to the system event mediator and definitions to the system's dependency injection container. 
@@ -36,27 +36,27 @@ class Configurator {
         $this->mediator = $mediator;
     }
     
-    public function configure(Config $config) {
-        if ($config->has('requiredFiles')) {
-            foreach ($config->get('requiredFiles') as $filepath) {
+    public function apply(Config $config) {
+        if ($requiredFiles = $config->get('requiredFiles')) {
+            foreach ($requiredFiles as $filepath) {
                 $this->requireFile($filepath);
             }
         }
         
-        if ($config->has('eventListeners')) {
-            $this->mediator->pushAll($config->get('eventListeners'));
+        if ($eventListeners = $config->get('eventListeners')) {
+            $this->mediator->pushAll($eventListeners);
         }
         
-        if ($config->has('injectionDefinitions')) {
-            $this->injector->defineAll($config->get('injectionDefinitions'));
+        if ($injectionDefinitions = $config->get('injectionDefinitions')) {
+            $this->injector->defineAll($injectionDefinitions);
         }
         
-        if ($config->has('injectionImplementations')) {
-            $this->injector->implementAll($config->get('injectionImplementations'));
+        if ($injectionImplementations = $config->get('injectionImplementations')) {
+            $this->injector->implementAll($injectionImplementations);
         }
         
-        if ($config->has('sharedClasses')) {
-            $this->injector->shareAll($config->get('sharedClasses'));
+        if ($sharedClasses = $config->get('sharedClasses')) {
+            $this->injector->shareAll($sharedClasses);
         }
     }
     

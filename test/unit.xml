@@ -35,6 +35,7 @@
                 <file>../src/Artax/Framework/Events/SystemEventDeltaException.php</file>
                 <file>../src/Artax/Framework/Events/BadListenerException.php</file>
                 <file>../src/Artax/Framework/Configuration/ConfigException.php</file>
+                <file>../src/Artax/Framework/Configuration/PluginException.php</file>
                 <file>../src/Artax/Framework/Configuration/Parsers/ConfigParser.php</file>
                 
                 <file>../src/Artax/Uri.php</file>

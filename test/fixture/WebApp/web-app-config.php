@@ -11,12 +11,12 @@ $cfg->requiredFiles = array(
 );
 
 $cfg->plugins = array(
-    'RouteShortcuts'        => true,
-    'ResponseContentLength' => 1,
-    'ResponseStatus'        => 'yes',
-    'ResponseDate'          => true,
-    'ResponseEncode'        => false,
-    'SomeNonexistentPlugin' => 'no'
+    'ArtaxPlugins/RouteShortcuts'        => true,
+    'ArtaxPlugins/ResponseContentLength' => 1,
+    'ArtaxPlugins/ResponseStatus'        => 'yes',
+    'ArtaxPlugins/ResponseDate'          => true,
+    'ArtaxPlugins/ResponseEncode'        => false,
+    'SomeNonexistentPlugin'              => 'no'
 );
 
 $cfg->routes = array(
