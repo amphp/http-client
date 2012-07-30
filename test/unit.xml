@@ -4,22 +4,22 @@
             <directory>./unit</directory>
         </testsuite>
         <testsuite name="Plugin Unit-Tests">
-            <directory>../plugins/ArtaxPlugins/ResponseContentLength/test</directory>
-            <directory>../plugins/ArtaxPlugins/ResponseDate/test</directory>
-            <!-- <directory>../plugins/ResponseEncode/test</directory> -->
-            <directory>../plugins/ArtaxPlugins/ResponseStatus/test</directory>
-            <directory>../plugins/ArtaxPlugins/RouteShortcuts/test</directory>
+            <directory>../plugins/Artax/ResponseContentLength/test</directory>
+            <directory>../plugins/Artax/ResponseDate/test</directory>
+            <directory>../plugins/Artax/ResponseEncode/test</directory>
+            <directory>../plugins/Artax/ResponseStatus/test</directory>
+            <directory>../plugins/Artax/RouteShortcuts/test</directory>
         </testsuite>
     </testsuites>
     <filter>
         <whitelist addUncoveredFilesFromWhitelist="true">
             <directory>../src/Artax</directory>
             
-            <directory>../plugins/ArtaxPlugins/ResponseContentLength/src</directory>
-            <directory>../plugins/ArtaxPlugins/ResponseDate/src</directory>
-            <directory>../plugins/ArtaxPlugins/ResponseEncode/src</directory>
-            <directory>../plugins/ArtaxPlugins/ResponseStatus/src</directory>
-            <directory>../plugins/ArtaxPlugins/RouteShortcuts/src</directory>
+            <directory>../plugins/Artax/ResponseContentLength/src</directory>
+            <directory>../plugins/Artax/ResponseDate/src</directory>
+            <directory>../plugins/Artax/ResponseEncode/src</directory>
+            <directory>../plugins/Artax/ResponseStatus/src</directory>
+            <directory>../plugins/Artax/RouteShortcuts/src</directory>
             
             <exclude>
 

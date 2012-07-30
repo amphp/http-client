@@ -2,7 +2,7 @@
 
 $cfg = new StdClass;
 
-$cfg->name = 'ArtaxPlugins/ResponseContentLength';
+$cfg->name = 'Artax/ResponseContentLength';
 $cfg->description = 'Automatically adds a ContentLength header to outbound responses';
 $cfg->version = 0.1;
 $cfg->minSystemVersion = 0;

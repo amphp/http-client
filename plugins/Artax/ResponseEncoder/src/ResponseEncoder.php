@@ -15,10 +15,10 @@ use InvalidArgumentException,
     Artax\MediaRangeFactory,
     Artax\MimeTypeFactory,
     Artax\Encoding\CodecFactory,
-    Artax\Framework\Config\Config;
+    Artax\Framework\Configuration\AppConfig;
 
 /**
- * matically encodes response body for supported Content-Encodings and Content-Types
+ * Automatically encodes response body for supported Content-Encodings and Content-Types
  * 
  * @category    ArtaxPlugins
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
@@ -29,7 +29,7 @@ class ResponseEncoder {
     private $mediaRangeFactory;
     private $mimeTypeFactory;
     private $codecFactory;
-    private $encodableMediaRanges = array();
+    private $encodableMediaRanges;
     private $availableCodecs = array('gzip', 'deflate');
     
     public function __construct(
@@ -37,26 +37,36 @@ class ResponseEncoder {
         MediaRangeFactory $mediaRangeFactory,
         MimeTypeFactory $mimeTypeFactory,
         CodecFactory $codecFactory,
-        array $encodableMediaRanges
+        AppConfig $appConfig
     ) {
         $this->request = $request;
         $this->mediaRangeFactory = $mediaRangeFactory;
         $this->mimeTypeFactory = $mimeTypeFactory;
         $this->codecFactory = $codecFactory;
-        $this->setEncodableMediaRanges($encodableMediaRanges);
+        
+        if ($appConfig->has('Artax.ResponseEncoder.MediaRanges')) {
+            $customRangeStr = $appConfig->has('Artax.ResponseEncoder.MediaRanges');
+            $mediaRanges = array_map('trim', explode(',', $customRangeStr));
+        } else {
+            $mediaRanges = array('text/*', 'application/json', 'application/xml');
+        }
+        
+        $this->setCustomMediaRanges($mediaRanges);
     }
     
-    protected function setEncodableMediaRanges(array $encodableMediaRanges) {
-        foreach ($encodableMediaRanges as $mediaRangeStr) {
-            $this->encodableMediaRanges[] = $this->mediaRangeFactory->make($mediaRangeStr);
+    protected function setCustomMediaRanges(array $mediaRanges) {
+        $customRanges = array();
+        foreach ($mediaRanges as $mediaRange) {
+            $customRanges[] = $this->mediaRangeFactory->make($mediaRange);
         }
+        $this->encodableMediaRanges = $customRanges;
     }
     
     public function __invoke(Response $response) {
-        $this->encodeResponseBody($response);
+        $this->encode($response);
     }
     
-    public function encodeResponseBody(Response $response) {
+    public function encode(Response $response) {
         if (!($response->hasHeader('Content-Type') && $response->hasHeader('Content-Encoding'))) {
             return;
         }
@@ -135,13 +145,26 @@ class ResponseEncoder {
                 return false;
             }
         }
+        
+        return true;
     }
     
     protected function setVaryHeader(Response $response) {
-        $varyHeader = $response->hasHeader('Vary')
-            ? $response->getHeader('Vary') . ',User-Agent'
-            : 'Accept-Encoding,User-Agent';
+        if (!$response->hasHeader('Vary')) {
+            $response->setHeader('Vary', 'Accept-Encoding,User-Agent');
+            return;
+        }
         
-        $response->setHeader('Vary', $varyHeader);
+        $header = $response->getHeader('Vary');
+        
+        if (!stristr($header, 'Accept-Encoding')) {
+            $header .= ',Accept-Encoding';
+        }
+        
+        if (!stristr($header, 'User-Agent')) {
+            $header .= ',User-Agent';
+        }
+        
+        $response->setHeader('Vary', $header);
     }
 }

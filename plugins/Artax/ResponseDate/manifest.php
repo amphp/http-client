@@ -2,7 +2,7 @@
 
 $cfg = new StdClass;
 
-$cfg->name = 'ArtaxPlugins/ResponseDate';
+$cfg->name = 'Artax/ResponseDate';
 $cfg->description = '';
 $cfg->version = 0.1;
 $cfg->minSystemVersion = 0;
