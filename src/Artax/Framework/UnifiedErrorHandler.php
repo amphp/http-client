@@ -75,7 +75,7 @@ class UnifiedErrorHandler {
      */
     public function handleError($errNo, $errStr, $errFile, $errLine) {
         if (0 === $this->getErrorReportingValue()) {
-            return;
+            return; // respect @ error suppression
         }
         
         $msg = "$errStr in $errFile on line $errLine";
