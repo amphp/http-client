@@ -219,15 +219,6 @@ class Client {
         if (!$this->followLocation) {
             return false;
         }
-        
-        $statusCode = $response->getStatusCode();
-        
-        if ($statusCode < 300) {
-            return false;
-        }
-        if ($statusCode > 399) {
-            return false;
-        }
         if (!$response->hasHeader('Location')) {
             return false;
         }
