@@ -142,8 +142,14 @@ class RequestNegotiatorMockRequest implements Artax\Http\Request {
         return true;
     }
     
-    function getMethod() { return null; }
     function getUri() { return null; }
+    function getRawUri() { return null; }
+    function getAuthority() { return null; }
+    function getRawAuthority() { return null; }
+    function getUserInfo() { return null; }
+    function getRawUserInfo() { return null; }
+    
+    function getMethod() { return null; }
     function getScheme() { return null; }
     function getHost() { return null; }
     function getPort() { return null; }

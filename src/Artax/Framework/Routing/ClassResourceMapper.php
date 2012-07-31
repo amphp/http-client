@@ -78,7 +78,14 @@ class ClassResourceMapper {
             return $this->resourceFactory->make($callableResource, $mergedArgs);
         }
         
-        throw new BadResourceMethodException(get_class_methods($resource));
+        $classMethods = get_class_methods($resource);
+        
+        $constructorKey = array_search('__construct', $classMethods);
+        if (false !== $constructorKey) {
+            unset($classMethods[$constructorKey]);
+        }
+        
+        throw new BadResourceMethodException($classMethods);
     }
     
     /**

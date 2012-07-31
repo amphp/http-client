@@ -8,24 +8,24 @@ class ClientTest extends PHPUnit_Framework_TestCase {
 
     /**
      * @covers Artax\Http\Client::__construct
-     * @covers Artax\Http\Client::send
+     * @covers Artax\Http\Client::request
      * @expectedException RuntimeException
      */
-    public function testSendThrowsExceptionIfUrlFopenDisabled() {
+    public function testRequestThrowsExceptionIfUrlFopenDisabled() {
         $client = $this->getMock('Artax\\Http\\Client', array('getAllowUrlFopenStatus'));
         $client->expects($this->any())
                ->method('getAllowUrlFopenStatus')
                ->will($this->returnValue(false));
                
-        $client->send($this->getMock('Artax\\Http\\Request'));
+        $client->request($this->getMock('Artax\\Http\\Request'));
     }
     
     /**
      * @covers Artax\Http\Client::__construct
-     * @covers Artax\Http\Client::send
+     * @covers Artax\Http\Client::request
      * @expectedException RuntimeException
      */
-    public function testSendThrowsExceptionIfBuildStreamReturnsFalse() {
+    public function testRequestThrowsExceptionIfBuildStreamReturnsFalse() {
         $client = $this->getMock(
             'Artax\\Http\\Client',
             array('buildStreamContext', 'buildStream')
@@ -34,21 +34,20 @@ class ClientTest extends PHPUnit_Framework_TestCase {
                ->method('buildStream')
                ->will($this->returnValue(false));
                
-        $client->send($this->getMock('Artax\\Http\\Request'));
+        $client->request($this->getMock('Artax\\Http\\Request'));
     }
     
     /**
      * @covers Artax\Http\Client::__construct
      * @covers Artax\Http\Client::getAllowUrlFopenStatus
-     * @covers Artax\Http\Client::send
+     * @covers Artax\Http\Client::request
      * @covers Artax\Http\Client::buildStream
      * @covers Artax\Http\Client::buildStreamContext
      * @covers Artax\Http\Client::getStreamMetaData
      * @covers Artax\Http\Client::getStreamBodyData
-     * @covers Artax\Http\Client::buildHeadersFromWrapperData
      * @covers Artax\Http\Client::buildResponse
      */
-    public function testSendReturnsPopulatedResponse() {
+    public function testRequestReturnsPopulatedResponse() {
         stream_wrapper_unregister('http');
         stream_wrapper_register('http', 'HttpStreamWrapperStub');
         
@@ -66,7 +65,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         // The request's headers/body are ignored and simulated by the stream wrapper stub
         $request = new StdRequest('http://test', 'PUT', array('Accept' => '*/*'));
         
-        $response = $client->send($request);
+        $response = $client->request($request);
         
         $this->assertInstanceOf('Artax\\Http\\Response', $response);
         $this->assertEquals('1.1', $response->getHttpVersion());

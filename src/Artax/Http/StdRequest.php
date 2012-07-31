@@ -156,6 +156,13 @@ class StdRequest implements FormEncodableRequest {
     /**
      * @return string
      */
+    public function getRawUri() {
+        return $this->uri->getRawUrl();
+    }
+    
+    /**
+     * @return string
+     */
     public function getScheme() {
         return $this->uri->getScheme();
     }
@@ -193,6 +200,34 @@ class StdRequest implements FormEncodableRequest {
      */
     public function getFragment() {
         return $this->uri->getFragment();
+    }
+    
+    /**
+     * @return string
+     */
+    public function getAuthority() {
+        return $this->uri->getAuthority();
+    }
+    
+    /**
+     * @return string
+     */
+    public function getRawAuthority() {
+        return $this->uri->getRawAuthority();
+    }
+    
+    /**
+     * @return string
+     */
+    public function getUserInfo() {
+        return $this->uri->getUserInfo();
+    }
+    
+    /**
+     * @return string
+     */
+    public function getRawUserInfo() {
+        return $this->uri->getRawUserInfo();
     }
 
     /**

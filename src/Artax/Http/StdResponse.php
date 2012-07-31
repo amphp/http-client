@@ -66,7 +66,9 @@ class StdResponse implements Response {
         // Conforms to Start-Line specification in rfc2616-sec6.1
         $pattern = ',^HTTP/(\d+\.\d+) (\d{3}) (.+)$,';
         if (!preg_match($pattern, $rawStartLineStr, $match)) {
-            throw new InvalidArgumentException;
+            throw new InvalidArgumentException(
+                "Invalid HTTP start line: $rawStartLineStr"
+            );
         }
         
         $this->httpVersion = $match[1];

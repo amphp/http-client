@@ -28,9 +28,16 @@ interface Request extends Message {
     function getMethod();
 
     /**
+     * Returns a URI with protected user info obscured by asterisks as per rfc3986-3.2.1
      * @return string
      */
     function getUri();
+
+    /**
+     * Returns a URI without protected user info obscured by asterisks
+     * @return string
+     */
+    function getRawUri();
     
     /**
      * @return string
@@ -61,6 +68,30 @@ interface Request extends Message {
      * @return string
      */
     public function getFragment();
+    
+    /**
+     * Returns Authority with protected user info obscured by asterisks as per rfc3986-3.2.1
+     * @return string
+     */
+    public function getAuthority();
+    
+    /**
+     * Returns Authority without protected user info obscured by asterisks
+     * @return string
+     */
+    public function getRawAuthority();
+    
+    /**
+     * Returns user info with the password obscured by asterisks as per rfc3986-3.2.1
+     * @return string
+     */
+    public function getUserInfo();
+    
+    /**
+     * Returns user info without protected user info obscured by asterisks
+     * @return string
+     */
+    public function getRawUserInfo();
     
     /**
      * @param string $parameterName
