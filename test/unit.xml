@@ -6,7 +6,7 @@
         <testsuite name="Plugin Unit-Tests">
             <directory>../plugins/Artax/ResponseContentLength/test</directory>
             <directory>../plugins/Artax/ResponseDate/test</directory>
-            <directory>../plugins/Artax/ResponseEncode/test</directory>
+            <directory>../plugins/Artax/ResponseEncoder/test</directory>
             <directory>../plugins/Artax/ResponseStatus/test</directory>
             <directory>../plugins/Artax/RouteShortcuts/test</directory>
         </testsuite>
@@ -17,7 +17,7 @@
             
             <directory>../plugins/Artax/ResponseContentLength/src</directory>
             <directory>../plugins/Artax/ResponseDate/src</directory>
-            <directory>../plugins/Artax/ResponseEncode/src</directory>
+            <directory>../plugins/Artax/ResponseEncoder/src</directory>
             <directory>../plugins/Artax/ResponseStatus/src</directory>
             <directory>../plugins/Artax/RouteShortcuts/src</directory>
             

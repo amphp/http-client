@@ -2,7 +2,8 @@
 
 namespace Artax\Http;
 
-use RuntimeException;
+use RuntimeException,
+    InvalidArgumentException;
 
 class Client {
 
@@ -13,55 +14,59 @@ class Client {
         'max_redirects' => 10,
         'ignore_errors' => TRUE
     ));
+    
+    /**
+     * @var bool
+     */
+    protected $allowUrlFopen;
 
     /**
-     * @var array
+     * @return void
      */
-    protected $contextParameters = array();
-
     public function __construct() {
-
-        $allowsUrlFOpen = filter_var(
+        $this->allowUrlFopen = $this->getAllowUrlFopenStatus();
+    }
+    
+    /**
+     * @return bool
+     */
+    protected function getAllowUrlFopenStatus()  {
+        return filter_var(
             ini_get('allow_url_fopen'),
             FILTER_VALIDATE_BOOLEAN
         );
-
-        if (!$allowsUrlFOpen) {
-            throw new RuntimeException(
-                'Artax\\Http\\Client requires setting allow_url_fopen to be enabled'
-            );
-        }
-
-        $this->contextParameters['notification'] = array(
-            $this,
-            'notificationCallback'
-        );
-
-    }
-
-    protected function notificationCallback(
-        $notification_code, $severity, $message,
-        $message_code, $bytes_transferred, $bytes_max
-    ) {
-//        echo "$notification_code, $severity, $message, $message_code, $bytes_transferred, $bytes_max\n";
     }
 
     /**
-     * @var int $maxRedirects
-     * @return void
-     */
-    public function setMaxRedirects($maxRedirects) {
-        $this->contextOptions['http']['max_redirects'] = $maxRedirects;
-    }
-
-    /**
-     * @param \Artax\Http\Request $request
      * @throws RuntimeException
-     * @return \Artax\Http\Response
+     * @return Artax\Http\Response
      */
     public function send(Request $request) {
-        $headers = $request->getAllHeaders();
-        if (!empty($headers)) {
+        if (!$this->allowUrlFopen) {
+            throw new RuntimeException(
+                '`allow_url_fopen` must be enabled to use Artax\\Http\\Client'
+            );
+        }
+        
+        $context = $this->buildStreamContext($request);
+        $stream  = $this->buildStream($request->getUri(), $context);
+        
+        if ($stream === FALSE) {
+            throw new RuntimeException();
+        }
+        
+        $bodyData = $this->getStreamBodyData($stream);
+        $metaData = $this->getStreamMetaData($stream);
+        $headers  = $this->buildHeadersFromWrapperData($metaData);
+        
+        return $this->buildResponse($headers, $bodyData);
+    }
+    
+    /**
+     * @return resource
+     */
+    protected function buildStreamContext(Request $request) {
+        if ($headers = $request->getAllHeaders()) {
             $streamFormattedHeaders = array();
             foreach($headers as $header => $value) {
                 $streamFormattedHeaders[] = "$header: $value";
@@ -72,56 +77,42 @@ class Client {
         $this->contextOptions['http']['content'] = $request->getBody();
         $this->contextOptions['http']['method'] = $request->getMethod();
         $this->contextOptions['http']['protocol_version'] = $request->getHttpVersion();
-
-        $context = stream_context_create(
-            $this->contextOptions,
-            $this->contextParameters
-        );
-
-        $fp = @fopen(
-            $request->getUri(),
-            'rb',
-            $useIncludePath = FALSE,
-            $context
-        );
-
-        if ($fp === FALSE) {
-            throw new RuntimeException();
-        }
-
-        return $this->buildResponseFromStream($fp);
-
+        
+        return stream_context_create($this->contextOptions);
+        
     }
-
+    
     /**
-     * @todo Add more error handling to the stream.
-     * @param resource $stream
-     * @return \Artax\Http\Response
+     * @return resource
      */
-    protected function buildResponseFromStream($stream) {
-
-        $meta_data = stream_get_meta_data($stream);
-        $headers = $this->buildHeadersFromWrapperData($meta_data['wrapper_data']);
-
-        $last_header = $headers[count($headers) - 1];
-        $response = new StdResponse();
-
-        $response->setStartLine($last_header[0]);
-        for ($i = 1, $headerCount = count($last_header); $i < $headerCount; $i++) {
-            $response->setRawHeader($last_header[$i]);
-        }
-
-        $body = stream_get_contents($stream);
-
-        $response->setBody($body);
-
-        return $response;
+    protected function buildStream($uri, $context) {
+        return @fopen($uri, 'rb', $useIncludePath = FALSE, $context);
     }
-
-    protected function buildHeadersFromWrapperData($wrapper_data) {
+    
+    /**
+     * @param resource $stream
+     * @return array
+     */
+    protected function getStreamMetaData($stream) {
+        $metaData = stream_get_meta_data($stream);
+        return $metaData['wrapper_data'];
+    }
+    
+    /**
+     * @param resource $stream
+     * @return string
+     */
+    protected function getStreamBodyData($stream) {
+        return stream_get_contents($stream);
+    }
+    
+    /**
+     * @return array
+     */
+    protected function buildHeadersFromWrapperData($wrapperData) {
         $headers = array();
 
-        foreach ($wrapper_data as $header) {
+        foreach ($wrapperData as $header) {
             if (strpos($header, 'HTTP/') === 0) {
                 $headers[] = array($header);
             } else {
@@ -131,8 +122,34 @@ class Client {
         }
 
         return $headers;
-
     }
 
+    /**
+     * @todo Add more error handling
+     * @param array $headers
+     * @param string $body
+     * @return Artax\Http\Response
+     */
+    protected function buildResponse($headers, $body) {
+        $lastHeader = $headers[count($headers) - 1];
+        $response = new StdResponse();
+
+        $response->setStartLine($lastHeader[0]);
+        for ($i = 1, $headerCount = count($lastHeader); $i < $headerCount; $i++) {
+            $response->setRawHeader($lastHeader[$i]);
+        }
+
+        $response->setBody($body);
+
+        return $response;
+    }
+
+    /**
+     * @param int $maxRedirects
+     * @return void
+     */
+    public function setMaxRedirects($maxRedirects) {
+        $this->contextOptions['http']['max_redirects'] = $maxRedirects;
+    }
 }
 

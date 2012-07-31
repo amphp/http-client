@@ -29,4 +29,3 @@ spl_autoload_register(function($cls) {
         require ARTAX_SYSTEM_DIR . "/vendor/vfsStream/src/main/php/$cls.php";
     }
 });
-
