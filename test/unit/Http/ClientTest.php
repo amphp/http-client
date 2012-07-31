@@ -64,7 +64,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $client = new Client();
         
         // The request's headers/body are ignored and simulated by the stream wrapper stub
-        $request = new StdRequest('http://test', '1.1', 'PUT', array('Accept' => '*/*'));
+        $request = new StdRequest('http://test', 'PUT', array('Accept' => '*/*'));
         
         $response = $client->send($request);
         

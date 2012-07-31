@@ -46,6 +46,6 @@ class StdRequestFactory {
         $headers = $this->requestDetector->detectHeaders($_server);
         $body = $this->requestDetector->detectBody();
         
-        return new StdRequest($url, $httpVersion, $method, $headers, $body);
+        return new StdRequest($url, $method, $headers, $body, $httpVersion);
     }
 }

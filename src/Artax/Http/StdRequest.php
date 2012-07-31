@@ -35,11 +35,6 @@ class StdRequest implements FormEncodableRequest {
     /**
      * @var string
      */
-    private $httpVersion;
-    
-    /**
-     * @var string
-     */
     private $method;
     
     /**
@@ -55,7 +50,7 @@ class StdRequest implements FormEncodableRequest {
     /**
      * @var string
      */
-    private $decodedBody;
+    private $httpVersion;
     
     /**
      * @var array
@@ -69,14 +64,14 @@ class StdRequest implements FormEncodableRequest {
 
     /**
      * @param mixed $uri A valid URI string or Artax\Uri instance
-     * @param string $httpVersion
      * @param string $method
      * @param array $headers
      * @param string $body
+     * @param string $httpVersion
      * @return void
      * @throws DomainException On invalid HTTP method verb
      */
-    public function __construct($uri, $httpVersion, $method, array $headers = array(), $body = '') {
+    public function __construct($uri, $method, $headers = array(), $body = '', $httpVersion = '1.1') {
         $this->uri = $uri instanceof Uri ? $uri : $this->buildUri($uri);
         $this->httpVersion = $httpVersion;
         $this->method = strtoupper($method);
