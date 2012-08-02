@@ -17,10 +17,11 @@
  * @version     ${project.version}
  */
 
-use Artax\Http\RequestDetector,
-    Artax\Http\StatusCodes,
+use Artax\Http\StatusCodes,
+    Artax\Http\StdRequestDetector,
     Artax\Http\StdRequestFactory,
     Artax\Http\StdResponse,
+    Artax\Http\SuperglobalUriDetector,
     Artax\Events\Mediator,
     Artax\Framework\UnifiedErrorHandler,
     Artax\Framework\Configuration\AppConfig,
@@ -202,7 +203,7 @@ $mediator->unshift('__mediator.delta', function(Mediator $mediator) {
  * -------------------------------------------------------------------------------------------------
  */
 
-$requestFactory = new StdRequestFactory(new RequestDetector);
+$requestFactory = new StdRequestFactory(new StdRequestDetector(new SuperglobalUriDetector));
 $request = $requestFactory->make($_SERVER);
 $injector->share($request);
 

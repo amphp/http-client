@@ -54,7 +54,7 @@ class StdResponse implements Response {
     /**
      * @var bool
      */
-    private $wasSent = FALSE;
+    private $wasSent = false;
     
     /**
      * @param string $rawStartLineStr
@@ -275,5 +275,64 @@ class StdResponse implements Response {
      */
     public function wasSent() {
         return $this->wasSent;
+    }
+    
+    /**
+     * @todo Implement HTTP response message string
+     */
+    public function __toString() {
+        throw new \RuntimeException('Not yet implemented');
+    }
+    
+    /**
+     * Reset the object to its original state
+     * 
+     * @return void
+     */
+    public function clearAssignedValues() {
+        $this->httpVersion = '1.1';
+        $this->statusCode = null;
+        $this->statusDescription = null;
+        $this->headers = array();
+        $this->body = '';
+        $this->wasSent = false;
+    }
+    
+    /**
+     * Populate response values from a raw HTTP message
+     * 
+     * @param string $rawMessage
+     * @todo Determine appropriate exception to throw on parse failure
+     */
+    public function populateFromRawMessage($rawMessage) {
+        $responsePattern = ",HTTP/(\d+\.\d+) (\d{3}) ([^(?:\r\n)]+)\r\n(.+)\r\n\r\n(.+)?,s";
+        if (!preg_match($responsePattern, $rawMessage, $match)) {
+            throw new RuntimeException(
+                'Failed parsing response from raw message: invalid format'
+            );
+        }
+        
+        $this->clearAssignedValues();
+        
+        $this->setHttpVersion($match[1]);
+        $this->setStatusCode($match[2]);
+        $this->setStatusDescription($match[3]);
+        
+        $normalizedHeaders = preg_replace(",\r\n[ \t]+,", ' ', $match[4]);
+        
+        preg_match_all(
+            ',([^\s:]+):[ \t]*(.+),',
+            $normalizedHeaders,
+            $headerMatches,
+            PREG_SET_ORDER
+        );
+        
+        foreach ($headerMatches as $headerMatch) {
+            $this->setHeader($headerMatch[1], rtrim($headerMatch[2]));
+        }
+        
+        if (isset($match[5])) {
+            $this->setBody($match[5]);
+        }
     }
 }

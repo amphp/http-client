@@ -148,6 +148,7 @@ class RequestNegotiatorMockRequest implements Artax\Http\Request {
     function getRawAuthority() { return null; }
     function getUserInfo() { return null; }
     function getRawUserInfo() { return null; }
+    function __toString() { return null; }
     
     function getMethod() { return null; }
     function getScheme() { return null; }

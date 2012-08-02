@@ -4,7 +4,7 @@
  * 
  * Because core PHP has no way to access the raw HTTP message, we cobble together the 
  * necessary StdRequest properties by parsing values from the superglobal $_SERVER array
- * and the `php://` input stream to instantiate new requests.
+ * and the `php://` input stream to populate a StdRequest value object.
  * 
  * @category     Artax
  * @package      Http
@@ -17,6 +17,8 @@ namespace Artax\Http;
 use DomainException;
 
 /**
+ * Factory for creating new StdRequest value objects
+ * 
  * @category     Artax
  * @package      Http
  * @author       Daniel Lowrey <rdlowrey@gmail.com>
@@ -29,9 +31,9 @@ class StdRequestFactory {
     private $requestDetector;
     
     /**
-     * @param RequestDetector $requestDetector
+     * @param StdRequestDetector $requestDetector
      */
-    public function __construct(RequestDetector $detector) {
+    public function __construct(StdRequestDetector $detector) {
         $this->requestDetector = $detector;
     }
     
@@ -40,12 +42,12 @@ class StdRequestFactory {
      * @throws DomainException
      */
     public function make(array $_server) {
-        $url = $this->requestDetector->detectUrl($_server);
+        $uri = $this->requestDetector->detectUri($_server);
         $httpVersion = $this->requestDetector->detectHttpVersion($_server);
         $method = $this->requestDetector->detectMethod($_server);
         $headers = $this->requestDetector->detectHeaders($_server);
         $body = $this->requestDetector->detectBody();
         
-        return new StdRequest($url, $method, $headers, $body, $httpVersion);
+        return new StdRequest($uri, $method, $headers, $body, $httpVersion);
     }
 }

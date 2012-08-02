@@ -1,6 +1,6 @@
 <?php
 /**
- * RequestDetector Class File
+ * StdRequestDetector Class File
  * 
  * @category     Artax
  * @package      Http
@@ -10,8 +10,6 @@
  */
 namespace Artax\Http;
 
-use Artax\SuperglobalUrlDetector;
-
 /**
  * Detects HTTP Request properties from an array of server values (superglobal)
  * 
@@ -19,27 +17,27 @@ use Artax\SuperglobalUrlDetector;
  * @package      Http
  * @author       Daniel Lowrey <rdlowrey@gmail.com>
  */
-class RequestDetector {
+class StdRequestDetector {
     
     /**
-     * @SuperglobalUrlDetector
+     * @SuperglobalUriDetector
      */
-    private $urlTranslator;
+    private $uriDetector;
     
     /**
-     * @param SuperglobalUrlDetector $urlTranslator
+     * @param SuperglobalUriDetector $uriDetector
      * @return void
      */
-    public function __construct(SuperglobalUrlDetector $urlTranslator = null) {
-        $this->urlTranslator = $urlTranslator ?: new SuperglobalUrlDetector;
+    public function __construct(SuperglobalUriDetector $uriDetector) {
+        $this->uriDetector = $uriDetector;
     }
     
     /**
      * @param array $_server
      * @return Url
      */
-    public function detectUrl($_server) {
-        return $this->urlTranslator->make($_server);
+    public function detectUri($_server) {
+        return $this->uriDetector->make($_server);
     }
     
     /**

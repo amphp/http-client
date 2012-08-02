@@ -13,9 +13,7 @@ namespace Artax\Http;
 
 use DomainException,
     RuntimeException,
-    InvalidArgumentException,
-    Artax\Uri,
-    Artax\Url;
+    InvalidArgumentException;
 
 /**
  * An immutable standard HTTP request model
@@ -28,7 +26,7 @@ use DomainException,
 class StdRequest implements FormEncodableRequest {
     
     /**
-     * @var Uri
+     * @var StdUri
      */
     private $uri;
     
@@ -40,7 +38,7 @@ class StdRequest implements FormEncodableRequest {
     /**
      * @var array
      */
-    private $headers = array();
+    private $headers;
     
     /**
      * @var string
@@ -63,7 +61,7 @@ class StdRequest implements FormEncodableRequest {
     private $bodyParameters = array();
 
     /**
-     * @param mixed $uri A valid URI string or Artax\Uri instance
+     * @param mixed $uri A valid URI string or instance of Artax\Http\Uri
      * @param string $method
      * @param array $headers
      * @param string $body
@@ -72,14 +70,11 @@ class StdRequest implements FormEncodableRequest {
      * @throws DomainException On invalid HTTP method verb
      */
     public function __construct($uri, $method, $headers = array(), $body = '', $httpVersion = '1.1') {
-        $this->uri = $uri instanceof Uri ? $uri : $this->buildUri($uri);
-        $this->httpVersion = $httpVersion;
+        $this->uri = $uri instanceof Uri ? $uri : $this->buildUriFromString($uri);
         $this->method = strtoupper($method);
+        $this->headers = $headers ? $this->normalizeHeaders($headers) : $headers;
         $this->body = $this->acceptsEntityBody() ? $body : '';
-        
-        if ($headers) {
-            $this->headers = $this->normalizeHeaders($headers);
-        }
+        $this->httpVersion = $httpVersion;
         
         $this->queryParameters = $this->parseParametersFromString($this->uri->getQuery());
         
@@ -92,14 +87,17 @@ class StdRequest implements FormEncodableRequest {
     
     /**
      * @param string $uri
+     * @return Artax\Http\StdUri
      */
-    private function buildUri($uri) {
+    private function buildUriFromString($uri) {
         try {
-            return new Url($uri);
+            return new StdUri($uri);
         } catch (InvalidArgumentException $e) {
             throw new InvalidArgumentException(
                 'Invalid URI specified at Argument 1 in ' . get_class($this) . '::__construct: ' .
-                "$uri. Please specify a valid URI string or Artax\\Uri instance.", null, $e
+                "$uri. Please specify a valid URI string or instance of Artax\\Http\\Uri",
+                null,
+                $e
             );
         }
     }
@@ -108,8 +106,16 @@ class StdRequest implements FormEncodableRequest {
      * @param array $headers
      * @return array
      */
-    private function normalizeHeaders(array $headers) {
-        return array_combine(array_map('strtoupper', array_keys($headers)), $headers);
+    private function normalizeHeaders($headers) {
+        $normalized = array();
+        
+        foreach ($headers as $header => $value) {
+            // Headers are case-insensitive as per the HTTP spec:
+            // http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
+            $normalized[strtoupper($header)] = $value;
+        }
+        
+        return $normalized;
     }
     
     /**
@@ -157,7 +163,7 @@ class StdRequest implements FormEncodableRequest {
      * @return string
      */
     public function getRawUri() {
-        return $this->uri->getRawUrl();
+        return $this->uri->getRawUri();
     }
     
     /**
@@ -227,7 +233,7 @@ class StdRequest implements FormEncodableRequest {
      * @return string
      */
     public function getRawUserInfo() {
-        return $this->uri->getRawUserInfo();
+        return $this->uri->getRawUri();
     }
 
     /**
@@ -330,5 +336,54 @@ class StdRequest implements FormEncodableRequest {
      */
     public function getAllBodyParameters() {
         return $this->bodyParameters;
+    }
+    
+    /**
+     * Returns a fully stringified HTTP request message to be sent to an HTTP/1.1 server
+     * 
+     * Messages generated in accordance with RFC2616 section 5:
+     * http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html#sec5
+     * 
+     * @return string
+     */
+    public function __toString() {
+        if (strcmp('CONNECT', $this->getMethod())) {
+            return $this->buildMessage();
+        } else {
+            return $this->buildConnectMessage();
+        }
+    }
+    
+    protected function buildMessage() {
+        $msg = $this->getMethod() . ' ' . $this->getPath();
+        if ($queryStr = $this->getQuery()) {
+            $msg .= "?$queryStr";
+        }
+        $msg .= ' HTTP/' . $this->getHttpVersion() . "\r\n";
+        
+        $msg.= 'Host: ' . $this->getHost() . "\r\n";
+        
+        $headers = $this->getAllHeaders();
+        unset($headers['HOST']);
+        
+        foreach ($headers as $header => $value) {
+            $msg.= "$header: $value\r\n";
+        }
+        
+        $msg.= "\r\n" . $this->getBody();
+        
+        return $msg;
+    }
+    
+    protected function buildConnectMessage() {
+        $msg = 'CONNECT ' . $this->getRawAuthority() . ' ';
+        $msg.= 'HTTP/' . $this->getHttpVersion() . "\r\n";
+        
+        foreach ($this->getAllHeaders() as $header => $value) {
+            $msg.= "$header: $value\r\n";
+        }
+        $msg.= "\r\n" . $this->getBody();
+        
+        return $msg;
     }
 }

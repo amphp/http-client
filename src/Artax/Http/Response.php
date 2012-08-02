@@ -93,4 +93,9 @@ interface Response extends Message {
      * @return bool
      */
     function wasSent();
+    
+    /**
+     * @param string $rawMessage
+     */
+    function populateFromRawMessage($rawMessage);
 }

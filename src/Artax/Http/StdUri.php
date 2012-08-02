@@ -1,57 +1,64 @@
 <?php
 /**
- * Url Class File
+ * StdUri Class File
  * 
  * @category    Artax
+ * @package     Http
  * @author      Levi Morrison <levim@php.net>
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
  * @license     All code subject to the terms of the LICENSE file in the project root
  * @version     ${project.version}
  */
-namespace Artax;
+namespace Artax\Http;
 
 use InvalidArgumentException;
 
 /**
- * An implementation of the Uri interface
+ * A standard URI value object compliant with the specifications outlined in RFC 2396 and RFC 3986
+ * 
+ * http://www.ietf.org/rfc/rfc2396.txt
+ * http://www.ietf.org/rfc/rfc3986.txt
  *
  * @category    Artax
+ * @package     Http
  * @author      Levi Morrison <levim@php.net>
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
  */
-class Url implements Uri  {
+class StdUri implements Uri {
 
     private $scheme = 'http';
     private $userInfo = '';
     private $rawUserInfo = '';
     private $host;
     private $port = 80;
-    private $explicitPort = false;
     private $path = '/';
     private $query = '';
     private $fragment = '';
     
-    public function __construct($fullUrlString) {
-        $this->parseFullUrlString($fullUrlString);
+    private $explicitPortSpecified = false;
+    
+    /**
+     * @param string $uri
+     */
+    public function __construct($uri) {
+        $this->parseUri($uri);
     }
     
-    protected function parseFullUrlString($fullUrlString) {
-        if (!$urlParts = parse_url($fullUrlString)) {
-            throw new InvalidArgumentException("Invalid URL: $fullUrlString");
+    protected function parseUri($uri) {
+        if (!$urlParts = @parse_url($uri)) {
+            throw new InvalidArgumentException("Invalid URL: $uri");
         }
         
         if (!isset($urlParts['scheme'])) {
-            throw new InvalidArgumentException(
-                'Invalid URL: No scheme (http|https) specified'
-            );
+            throw new InvalidArgumentException('Invalid URL: No scheme (http|https) specified');
         }
         
         $this->scheme = $urlParts['scheme'];
         $this->host = $urlParts['host'];
         
-        $explicitPort = isset($urlParts['port']);
-        $this->port = $explicitPort ? $urlParts['port'] : 80;
-        $this->explicitPort = $explicitPort;
+        $explicitPortSpecified = isset($urlParts['port']);
+        $this->port = $explicitPortSpecified ? $urlParts['port'] : 80;
+        $this->explicitPortSpecified = $explicitPortSpecified;
         
         $this->path = isset($urlParts['path']) ? $urlParts['path'] : '/';
         $this->query = isset($urlParts['query']) ? $urlParts['query'] : '';
@@ -66,7 +73,6 @@ class Url implements Uri  {
         }
         
         $this->setUserInfo($userInfo);
-        
     }
     
     /**
@@ -153,7 +159,7 @@ class Url implements Uri  {
 
     /**
      * Uses protected user info by default as per rfc3986-3.2.1
-     * Url::getRawAuthority() is available if plain-text password information is desirable.
+     * Uri::getRawAuthority() is available if plain-text password information is desirable.
      * 
      * @return string
      */
@@ -161,7 +167,7 @@ class Url implements Uri  {
         $authority = $this->userInfo ? $this->userInfo.'@' : '';
         $authority .= $this->host;
         
-        if ($this->explicitPort) {
+        if ($this->explicitPortSpecified) {
             $authority .= ":{$this->port}";
         }
         
@@ -175,7 +181,7 @@ class Url implements Uri  {
         $authority = $this->rawUserInfo ? $this->rawUserInfo.'@' : '';
         $authority .= $this->host;
         
-        if ($this->explicitPort) {
+        if ($this->explicitPortSpecified) {
             $authority .= ":{$this->port}";
         }
         
@@ -185,7 +191,7 @@ class Url implements Uri  {
     /**
      * @return string
      */
-    public function getRawUrl() {
+    public function getRawUri() {
         $url = $this->scheme . '://' . $this->getRawAuthority() . $this->path;
         
         if (!empty($this->query)) {
@@ -201,7 +207,7 @@ class Url implements Uri  {
     
     /**
      * Uses protected user info by default as per rfc3986-3.2.1
-     * Url::getRawUrl() is available if plain-text password information is desirable.
+     * Uri::getRawUri() is available if plain-text password information is desirable.
      * 
      * @return string
      */

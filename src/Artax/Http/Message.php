@@ -46,4 +46,9 @@ interface Message {
      * @return string
      */
     function getBody();
+    
+    /**
+     * @return string
+     */
+    function __toString();
 }

@@ -8,14 +8,14 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdRequest::__construct
      */
     public function testConstructorAssignsProperties() {
-        $uri = $this->getMock('Artax\\Uri');
+        $uri = $this->getMock('Artax\\Http\\Uri');
         $request = new StdRequest($uri, 'PUT', array(), 'request body', '1.1');
         $this->assertInstanceOf('Artax\\Http\\StdRequest', $request);
     }
     
     /**
      * @covers Artax\Http\StdRequest::__construct
-     * @covers Artax\Http\StdRequest::buildUri
+     * @covers Artax\Http\StdRequest::buildUriFromString
      */
     public function testConstructorBuildsUriInstanceOnStringParameter() {
         $uri = 'http://www.google.com/';
@@ -26,7 +26,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Http\StdRequest::__construct
-     * @covers Artax\Http\StdRequest::buildUri
+     * @covers Artax\Http\StdRequest::buildUriFromString
      * @expectedException InvalidArgumentException
      */
     public function testConstructorThrowsExceptionOnInvalidUriString() {
@@ -39,7 +39,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdRequest::normalizeHeaders
      */
     public function testNormalizeHeadersUppercasesHeaderFieldNames() {
-        $uri = $this->getMock('Artax\\Uri');
+        $uri = $this->getMock('Artax\\Http\\Uri');
         $headers = array('Accept-Charset' => '*/*');
         $request = new StdRequest($uri, 'PUT', $headers, 'request body');
         $this->assertTrue($request->hasHeader('ACCEPT-CHARSET'));
@@ -50,7 +50,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdRequest::getHttpVersion
      */
     public function testHttpVersionGetterReturnsPropertyValue() {
-        $uri = $this->getMock('Artax\\Uri');
+        $uri = $this->getMock('Artax\\Http\\Uri');
         $request = new StdRequest($uri, 'GET', array(), '', '1.0');
         $this->assertInstanceOf('Artax\\Http\\StdRequest', $request);
         $this->assertEquals('1.0', $request->getHttpVersion());
@@ -61,7 +61,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdRequest::getUri
      */
     public function testUriGetterReturnsComposedUriToStringResult() {
-        $uri = $this->getMock('Artax\\Uri');
+        $uri = $this->getMock('Artax\\Http\\Uri');
         $uri->expects($this->once())
             ->method('__toString')
             ->will($this->returnValue('test'));
@@ -75,7 +75,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdRequest::getScheme
      */
     public function testSchemeGetterReturnsComposedUriGetSchemeResult() {
-        $uri = $this->getMock('Artax\\Uri');
+        $uri = $this->getMock('Artax\\Http\\Uri');
         $uri->expects($this->once())
             ->method('getScheme')
             ->will($this->returnValue('https'));
@@ -89,7 +89,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdRequest::getHost
      */
     public function testHostGetterReturnsComposedUriGetHostResult() {
-        $uri = $this->getMock('Artax\\Uri');
+        $uri = $this->getMock('Artax\\Http\\Uri');
         $uri->expects($this->once())
             ->method('getHost')
             ->will($this->returnValue('localhost'));
@@ -103,7 +103,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdRequest::getPort
      */
     public function testPortGetterReturnsComposedUriGetPortResult() {
-        $uri = $this->getMock('Artax\\Uri');
+        $uri = $this->getMock('Artax\\Http\\Uri');
         $uri->expects($this->once())
             ->method('getPort')
             ->will($this->returnValue('80'));
@@ -117,7 +117,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdRequest::getPath
      */
     public function testPathGetterReturnsComposedUriGetPathResult() {
-        $uri = $this->getMock('Artax\\Uri');
+        $uri = $this->getMock('Artax\\Http\\Uri');
         $uri->expects($this->once())
             ->method('getPath')
             ->will($this->returnValue('/index.html'));
@@ -131,7 +131,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdRequest::getQuery
      */
     public function testQueryGetterReturnsComposedUriGetQueryResult() {
-        $uri = $this->getMock('Artax\\Uri');
+        $uri = $this->getMock('Artax\\Http\\Uri');
         $uri->expects($this->any())
             ->method('getQuery')
             ->will($this->returnValue('var1=one&var2=2'));
@@ -145,7 +145,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdRequest::getFragment
      */
     public function testFragmentGetterReturnsComposedUriGetFragmentResult() {
-        $uri = $this->getMock('Artax\\Uri');
+        $uri = $this->getMock('Artax\\Http\\Uri');
         $uri->expects($this->any())
             ->method('getFragment')
             ->will($this->returnValue('idSomething'));
@@ -159,7 +159,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdRequest::getMethod
      */
     public function testMethodGetterReturnsMethodProperty() {
-        $uri = $this->getMock('Artax\\Uri');
+        $uri = $this->getMock('Artax\\Http\\Uri');
         $request = new StdRequest($uri, 'delete', array());
         $this->assertEquals('DELETE', $request->getMethod());
     }
@@ -168,7 +168,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdRequest::__construct
      */
     public function testNormalizeMethodUppercasesMethodArg() {
-        $uri = $this->getMock('Artax\\Uri');
+        $uri = $this->getMock('Artax\\Http\\Uri');
         $request = new StdRequest($uri, 'delete', array());
         $this->assertEquals('DELETE', $request->getMethod());
     }
@@ -178,7 +178,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdRequest::hasQueryParameter
      */
     public function testHasQueryParameterReturnsBoolOnParameterAvailability() {
-        $uri = $this->getMock('Artax\\Uri');
+        $uri = $this->getMock('Artax\\Http\\Uri');
         $uri->expects($this->any())
             ->method('getQuery')
             ->will($this->returnValue('var1=one&var2=2'));
@@ -193,7 +193,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdRequest::getQueryParameter
      */
     public function testQueryParameterGetterReturnsRequestedParameterValue() {
-        $uri = $this->getMock('Artax\\Uri');
+        $uri = $this->getMock('Artax\\Http\\Uri');
         $uri->expects($this->any())
             ->method('getQuery')
             ->will($this->returnValue('var1=one&var2=2'));
@@ -208,7 +208,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @expectedException RuntimeException
      */
     public function testQueryParameterGetterThrowsExceptionOnInvalidParameterRequest() {
-        $uri = $this->getMock('Artax\\Uri');
+        $uri = $this->getMock('Artax\\Http\\Uri');
         $uri->expects($this->any())
             ->method('getQuery')
             ->will($this->returnValue('var1=one&var2=2'));
@@ -222,7 +222,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdRequest::getAllQueryParameters
      */
     public function testGetAllQueryParametersReturnsQueryParameterArray() {
-        $uri = $this->getMock('Artax\\Uri');
+        $uri = $this->getMock('Artax\\Http\\Uri');
         $uri->expects($this->any())
             ->method('getQuery')
             ->will($this->returnValue('var1=one&var2=2'));
@@ -236,7 +236,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdRequest::hasHeader
      */
     public function testHasHeaderReturnsBoolOnDefinedHeaderParameter() {
-        $uri = $this->getMock('Artax\\Uri');
+        $uri = $this->getMock('Artax\\Http\\Uri');
         $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
         $request = new StdRequest($uri, 'POST', $headers, 'var1=one&var2=two');
         
@@ -249,7 +249,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdRequest::getHeader
      */
     public function testGetHeaderReturnsHeaderParameterIfAvailable() {
-        $uri = $this->getMock('Artax\\Uri');
+        $uri = $this->getMock('Artax\\Http\\Uri');
         $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
         $request = new StdRequest($uri, 'POST', $headers, 'var1=one&var2=two');
         
@@ -264,7 +264,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @expectedException RuntimeException
      */
     public function testGetHeaderThrowsExceptionOnInvalidHeaderName() {
-        $uri = $this->getMock('Artax\\Uri');
+        $uri = $this->getMock('Artax\\Http\\Uri');
         $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
         $request = new StdRequest($uri, 'POST', $headers, 'var1=one&var2=two');
         $request->getHeader('Invalid-Header');
@@ -275,7 +275,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdRequest::getAllHeaders
      */
     public function testGetAllHeadersReturnsHeaderArray() {
-        $uri = $this->getMock('Artax\\Uri');
+        $uri = $this->getMock('Artax\\Http\\Uri');
         $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
         $request = new StdRequest($uri, 'POST', $headers, 'var1=one&var2=two');
         
@@ -289,7 +289,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdRequest::getBody
      */
     public function testGetBodyReturnsProperty() {
-        $uri = $this->getMock('Artax\\Uri');
+        $uri = $this->getMock('Artax\\Http\\Uri');
         $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
         $request = new StdRequest($uri, 'POST', $headers, 'var1=one&var2=two');
         
@@ -303,7 +303,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdRequest::acceptsEntityBody
      */
     public function testConstructorAssignsFormEncodedBodyParametersIfDefined() {
-        $uri = $this->getMock('Artax\\Uri');
+        $uri = $this->getMock('Artax\\Http\\Uri');
         $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
         $body = 'var1=one&var2=two&var3=Yes%20sir';
         $request = new StdRequest($uri, 'POST', $headers, $body);
@@ -321,7 +321,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdRequest::getAllBodyParameters
      */
     public function testGetAllBodyParametersReturnsArrayOfBodyParameters() {
-        $uri = $this->getMock('Artax\\Uri');
+        $uri = $this->getMock('Artax\\Http\\Uri');
         $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
         $body = 'var1=one&var2=two&var3=Yes%20sir';
         $request = new StdRequest($uri, 'POST', $headers, $body);
@@ -338,7 +338,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdRequest::hasBodyParameter
      */
     public function testHasBodyParameterReturnsBoolOnParameterAvailability() {
-        $uri = $this->getMock('Artax\\Uri');
+        $uri = $this->getMock('Artax\\Http\\Uri');
         $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
         $body = 'var1=one&var2=two&var3=Yes%20sir';
         $request = new StdRequest($uri, 'POST', $headers, $body);
@@ -352,7 +352,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdRequest::getBodyParameter
      */
     public function testGetBodyParameterReturnsRequestParameterValue() {
-        $uri = $this->getMock('Artax\\Uri');
+        $uri = $this->getMock('Artax\\Http\\Uri');
         $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
         $body = 'var1=one&var2=two&var3=Yes%20sir';
         $request = new StdRequest($uri, 'POST', $headers, $body);
@@ -366,7 +366,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @expectedException RuntimeException
      */
     public function testGetBodyParameterExceptionOnInvalidParameter() {
-        $uri = $this->getMock('Artax\\Uri');
+        $uri = $this->getMock('Artax\\Http\\Uri');
         $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
         $body = 'var1=one&var2=two&var3=Yes%20sir';
         $request = new StdRequest($uri, 'POST', $headers, $body);

@@ -12,7 +12,8 @@
 namespace Artax\Http;
 
 /**
- * This interface is modelled after RFC 2616, section 5. Source:
+ * This interface is modelled after RFC 2616, section 5.
+ * 
  * http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html
  * 
  * @category    Artax
@@ -21,7 +22,7 @@ namespace Artax\Http;
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
  */
 interface Request extends Message {
-
+    
     /**
      * @return string The HTTP method, upper-cased.
      */
@@ -42,56 +43,56 @@ interface Request extends Message {
     /**
      * @return string
      */
-    public function getScheme();
+    function getScheme();
     
     /**
      * @return string
      */
-    public function getHost();
+    function getHost();
     
     /**
      * @return string
      */
-    public function getPort();
+    function getPort();
     
     /**
      * @return string
      */
-    public function getPath();
+    function getPath();
     
     /**
      * @return string
      */
-    public function getQuery();
+    function getQuery();
     
     /**
      * @return string
      */
-    public function getFragment();
+    function getFragment();
     
     /**
      * Returns Authority with protected user info obscured by asterisks as per rfc3986-3.2.1
      * @return string
      */
-    public function getAuthority();
+    function getAuthority();
     
     /**
      * Returns Authority without protected user info obscured by asterisks
      * @return string
      */
-    public function getRawAuthority();
+    function getRawAuthority();
     
     /**
      * Returns user info with the password obscured by asterisks as per rfc3986-3.2.1
      * @return string
      */
-    public function getUserInfo();
+    function getUserInfo();
     
     /**
      * Returns user info without protected user info obscured by asterisks
      * @return string
      */
-    public function getRawUserInfo();
+    function getRawUserInfo();
     
     /**
      * @param string $parameterName
@@ -106,7 +107,6 @@ interface Request extends Message {
     
     /**
      * @param string $parameterName
-     * @return bool
      */
     function hasQueryParameter($parameterName);
 }

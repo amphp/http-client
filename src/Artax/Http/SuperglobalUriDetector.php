@@ -1,67 +1,80 @@
 <?php
 /**
- * SuperglobalUrlDetector Class File
+ * SuperglobalUriDetector Class File
  * 
- * @category     Artax
- * @author       Daniel Lowrey <rdlowrey@gmail.com>
- * @license      All code subject to the terms of the LICENSE file in the project root
- * @version      ${project.version}
+ * @category    Artax
+ * @package     Http
+ * @author      Daniel Lowrey <rdlowrey@gmail.com>
+ * @license     All code subject to the terms of the LICENSE file in the project root
+ * @version     ${project.version}
  */
-namespace Artax;
+namespace Artax\Http;
 
 /**
- * Generates a Url object from a superglobal-type $_SERVER array
+ * Generates a StdUri from a superglobal-type $_SERVER array
  * 
- * @category     Artax
- * @author       Daniel Lowrey <rdlowrey@gmail.com>
+ * @category    Artax
+ * @package     Http
+ * @author      Daniel Lowrey <rdlowrey@gmail.com>
  */
-class SuperglobalUrlDetector {
+class SuperglobalUriDetector {
     
     /**
-     * Creates a Url instance from a superglobal $_SERVER array
-     * 
-     * Notice that there is no method for detecting URI fragments from the
-     * end of the URI (#) because the server has no access to this data. For
-     * more info on this subject, see the following:
-     * 
-     * http://www.w3.org/DesignIssues/Fragment.html
+     * Generates a StdUri from a superglobal $_SERVER array
      * 
      * @param array $_server
-     * @return Url Returns a Url instance
+     * @return StdUri
      */
-    public function make(array $_server) {
+    public function make($_server) {
         $scheme = $this->detectScheme($_server);
         $host = $this->detectHost($_server);
         $port = $this->detectPort($_server);
         $path = $this->detectPath($_server);
         $query = $this->detectQuery($_server);
         
-        $url = "$scheme://$host";
-        $url .= ($port != 80) ? ":$port" : '';
-        $url .= $path;
-        $url .= $query ? "?$query" : '';
+        return $this->normalizeProxyUri($scheme, $host, $port, $path, $query);
+    }
+    
+    /**
+     * The contents of the $_SERVER superglobal change if the raw HTTP message specifies a request
+     * line with an absolute proxy-style URI as opposed to a standard HTTP/1.1 client request line
+     * that specifies only the URI path/query component in conjunction with a Host header:
+     * 
+     * GET http://www.google.com HTTP/1.1
+     * 
+     * In this case, $_SERVER['HOST'] is not populated at all and the full absolute URI is stored in
+     * $_SERVER['REQUEST_URI'].
+     */
+    private function normalizeProxyUri($scheme, $host, $port, $path, $query) {
+        if (!$host && $parsed = parse_url($path)) {
+            extract($parsed);
+        }
         
-        return new Url($url);
+        $uri = "$scheme://$host";
+        $uri.= ($port != 80) ? ":$port" : '';
+        $uri.= $path;
+        $uri.= $query ? "?$query" : '';
+        
+        return new StdUri($uri);
     }
     
     /**
      * @param array $_server
      * @return string
+     * @throws RuntimeException
      */
     private function detectPath($_server) {
-        $uri = null;
-        
         if (isset($_server['REQUEST_URI'])) {
             $uri = $_server['REQUEST_URI'];
         } elseif (isset($_server['REDIRECT_URL'])) {
             $uri = $_server['REDIRECT_URL'];
+        } else {
+            throw new RuntimeException("Could not detect URI path from superglobal");
         }
         
-        if ($uri) {
-            $queryStr = strpos($uri, '?');        
-            if ($queryStr !== false) {
-              $uri = substr($uri, 0, $queryStr);
-            }
+        $queryStr = strpos($uri, '?');        
+        if ($queryStr !== false) {
+          $uri = substr($uri, 0, $queryStr);
         }
         
         return $uri;
@@ -72,7 +85,7 @@ class SuperglobalUrlDetector {
      * @return string
      */
     private function detectHost(array $_server) {
-        return isset($_server['HTTP_HOST']) ? $_server['HTTP_HOST'] : null;
+        return isset($_server['HTTP_HOST']) ? $_server['HTTP_HOST'] : '';
     }
     
     /**
