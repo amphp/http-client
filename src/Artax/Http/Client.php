@@ -6,11 +6,6 @@ use RuntimeException,
     InvalidArgumentException;
 
 class Client {
-
-    /**
-     * @var bool
-     */
-    protected $followLocation = true;
     
     /**
      * @var int
@@ -41,10 +36,7 @@ class Client {
      * @var bool
      */
     protected $isOpenSslLoaded;
-    
-    /**
-     * @return void
-     */
+
     public function __construct() {
         $this->timeout = ini_get('default_socket_timeout');
         $this->isOpenSslLoaded = $this->getOpenSslStatus();
@@ -60,8 +52,8 @@ class Client {
     /**
      * Request a remote HTTP resource
      * 
-     * @param Artax\Http\Request $request
-     * @return Artax\Http\Response
+     * @param Request $request
+     * @return Response
      * @throws RuntimeException
      */
     public function request(Request $request) {
@@ -72,7 +64,7 @@ class Client {
     /**
      * Request an HTTP resource, returning an array of Response objects created by redirection
      * 
-     * @param Artax\Http\Request $request
+     * @param Request $request
      * @return array
      */
     public function requestChain(Request $request) {
@@ -83,7 +75,7 @@ class Client {
     /**
      * Send a request and don't wait for a response
      * 
-     * @param Artax\Http\Request $request
+     * @param Request $request
      * @return void
      */
     public function requestAsync(Request $request) {
@@ -94,9 +86,11 @@ class Client {
         fwrite($stream, $request->__toString());
         fclose($stream);
     }
-    
+
     /**
-     * @return Artax\Http\Response
+     * @param Request $request
+     * @param int $flags
+     * @return resource
      * @throws RuntimeException
      */
     protected function buildSocketStream(Request $request, $flags = STREAM_CLIENT_CONNECT) {
@@ -126,9 +120,10 @@ class Client {
         
         return $stream;
     }
-    
+
     /**
-     * @return Artax\Http\Response
+     * @param Request $request
+     * @return Response
      * @throws RuntimeException
      */
     protected function doRequest(Request $request) {
@@ -152,15 +147,14 @@ class Client {
             return $response;
         }
     }
-    
+
     /**
+     * @param Request $request
+     * @param Response $response
      * @return bool
      */
     protected function canRedirect(Request $request, Response $response) {
-        if (!$this->followLocation) {
-            return false;
-        }
-        if ($this->currentRedirectIteration == $this->maxRedirects) {
+        if ($this->currentRedirectIteration >= $this->maxRedirects) {
             return false;
         }
         if (!$response->hasHeader('Location')) {
@@ -174,9 +168,11 @@ class Client {
         
         return true;
     }
-    
+
     /**
-     * @return Artax\Http\Response
+     * @param Request $lastRequest
+     * @param Response $lastResponse
+     * @return Response
      */
     protected function doRedirect(Request $lastRequest, Response $lastResponse) {
         $newLocation = $this->normalizeLocationHeader($lastRequest, $lastResponse);
@@ -193,8 +189,10 @@ class Client {
         
         return $this->doRequest($redirectedRequest);
     }
-    
+
     /**
+     * @param Request $lastRequest
+     * @param Response $lastResponse
      * @return string
      */
     protected function normalizeLocationHeader(Request $lastRequest, Response $lastResponse) {
@@ -213,21 +211,11 @@ class Client {
         
         return $newLocation;
     }
-
-    /**
-     * Should Location headers transparently redirect? Defaults to true.
-     * 
-     * @param bool $boolFlag
-     * @return void
-     */
-    public function followLocation($boolFlag) {
-        $this->followLocation = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
-    }
     
     /**
-     * Should the client transparently redirect equests not using GET or HEAD? Defaults to false.
+     * Should the client transparently redirect requests not using GET or HEAD? Defaults to false.
      * 
-     * Acording to RFC2616-10.3, "If the 301 status code is received in response to a request other
+     * According to RFC2616-10.3, "If the 301 status code is received in response to a request other
      * than GET or HEAD, the user agent MUST NOT automatically redirect the request unless it can be
      * confirmed by the user, since this might change the conditions under which the request was
      * issued."
@@ -255,11 +243,11 @@ class Client {
     /**
      * Set the number of seconds before a request times out.
      * 
-     * @param int $timeout
+     * @param int $seconds
      * @return void
      */
     public function setTimeout($seconds) {
         $this->timeout = (int) $seconds;
     }
-}
 
+}
