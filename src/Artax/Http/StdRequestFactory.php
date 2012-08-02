@@ -1,28 +1,9 @@
 <?php
-/**
- * StdRequestFactory Class File
- * 
- * Because core PHP has no way to access the raw HTTP message, we cobble together the 
- * necessary StdRequest properties by parsing values from the superglobal $_SERVER array
- * and the `php://` input stream to populate a StdRequest value object.
- * 
- * @category     Artax
- * @package      Http
- * @author       Daniel Lowrey <rdlowrey@gmail.com>
- * @license      All code subject to the terms of the LICENSE file in the project root
- * @version      ${project.version}
- */
+
 namespace Artax\Http;
 
 use DomainException;
 
-/**
- * Factory for creating new StdRequest value objects
- * 
- * @category     Artax
- * @package      Http
- * @author       Daniel Lowrey <rdlowrey@gmail.com>
- */
 class StdRequestFactory {
     
     /**

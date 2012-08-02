@@ -1,13 +1,5 @@
 <?php
-/**
- * HTTP StdResponse Class File
- * 
- * @category     Artax
- * @package      Http
- * @author       Levi Morrison <levim@php.net>
- * @license      All code subject to the terms of the LICENSE file in the project root
- * @version      ${project.version}
- */
+
 namespace Artax\Http;
 
 use StdClass,
@@ -17,13 +9,6 @@ use StdClass,
     InvalidArgumentException,
     Artax\Events\Mediator;
 
-/**
- * A standard mutable HTTP response model
- * 
- * @category     Artax
- * @package      Routing
- * @author       Levi Morrison <levim@php.net>
- */
 class StdResponse implements Response {
 
     /**

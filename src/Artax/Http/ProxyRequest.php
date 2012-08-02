@@ -1,26 +1,11 @@
 <?php
-/**
- * HTTP ProxyRequest Class File
- * 
- * @category    Artax
- * @package     Http
- * @author      Daniel Lowrey <rdlowrey@gmail.com>
- * @license     All code subject to the terms of the LICENSE file in the project root
- * @version     ${project.version}
- */
+
 namespace Artax\Http;
 
-/**
- * An immutable value object modeling requests made to HTTP proxies
- * 
- * @category    Artax
- * @package     Http
- * @author      Daniel Lowrey <rdlowrey@gmail.com>
- */
 class ProxyRequest extends StdRequest {
     
     /**
-     * Returns a fully stringified HTTP request message to be sent to a proxy server
+     * Builds a raw HTTP request message for sending to a proxy server
      * 
      * The request line differ slightly for requests to proxies as per rfc2616-5.1.2:
      * http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html#sec5

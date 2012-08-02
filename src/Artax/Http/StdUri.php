@@ -1,29 +1,9 @@
 <?php
-/**
- * StdUri Class File
- * 
- * @category    Artax
- * @package     Http
- * @author      Levi Morrison <levim@php.net>
- * @author      Daniel Lowrey <rdlowrey@gmail.com>
- * @license     All code subject to the terms of the LICENSE file in the project root
- * @version     ${project.version}
- */
+
 namespace Artax\Http;
 
 use InvalidArgumentException;
 
-/**
- * A standard URI value object compliant with the specifications outlined in RFC 2396 and RFC 3986
- * 
- * http://www.ietf.org/rfc/rfc2396.txt
- * http://www.ietf.org/rfc/rfc3986.txt
- *
- * @category    Artax
- * @package     Http
- * @author      Levi Morrison <levim@php.net>
- * @author      Daniel Lowrey <rdlowrey@gmail.com>
- */
 class StdUri implements Uri {
 
     private $scheme = 'http';

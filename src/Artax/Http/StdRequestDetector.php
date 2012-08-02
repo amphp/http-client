@@ -1,22 +1,7 @@
 <?php
-/**
- * StdRequestDetector Class File
- * 
- * @category     Artax
- * @package      Http
- * @author       Daniel Lowrey <rdlowrey@gmail.com>
- * @license      All code subject to the terms of the LICENSE file in the project root
- * @version      ${project.version}
- */
+
 namespace Artax\Http;
 
-/**
- * Detects HTTP Request properties from an array of server values (superglobal)
- * 
- * @category     Artax
- * @package      Http
- * @author       Daniel Lowrey <rdlowrey@gmail.com>
- */
 class StdRequestDetector {
     
     /**

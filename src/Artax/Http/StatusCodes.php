@@ -1,24 +1,7 @@
 <?php
-/**
- * StatusCodes Class File
- * 
- * @category    Artax
- * @package     Framework
- * @subpackage  Plugins
- * @author      Daniel Lowrey <rdlowrey@gmail.com>
- * @license     All code subject to the terms of the LICENSE file in the project root
- * @version     ${project.version}
- */
+
 namespace Artax\Http;
 
-/**
- * Provides HTTP status code constants
- * 
- * @category    Artax
- * @package     Framework
- * @subpackage  Plugins
- * @author      Daniel Lowrey <rdlowrey@gmail.com>
- */
 class StatusCodes {
     
     const HTTP_ACCEPTED = 202;

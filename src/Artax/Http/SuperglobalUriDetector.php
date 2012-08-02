@@ -1,24 +1,9 @@
 <?php
-/**
- * SuperglobalUriDetector Class File
- * 
- * @category    Artax
- * @package     Http
- * @author      Daniel Lowrey <rdlowrey@gmail.com>
- * @license     All code subject to the terms of the LICENSE file in the project root
- * @version     ${project.version}
- */
+
 namespace Artax\Http;
 
 use RuntimeException;
 
-/**
- * Generates a StdUri from a superglobal-type $_SERVER array
- * 
- * @category    Artax
- * @package     Http
- * @author      Daniel Lowrey <rdlowrey@gmail.com>
- */
 class SuperglobalUriDetector {
     
     /**
