@@ -26,29 +26,19 @@ class SuperglobalUriDetector {
      * @return StdUri
      */
     public function make($_server) {
+        // If the raw HTTP request message arrives with a proxy-style absolute URI in the
+        // initial request line, the absolute URI is stored in $_SERVER['REQUEST_URI'] and
+        // we only need to parse that.
+        $parsed = parse_url($_server['REQUEST_URI']);
+        if (isset($parsed['scheme'])) {
+            return new StdUri($_server['REQUEST_URI']);
+        }
+        
         $scheme = $this->detectScheme($_server);
         $host = $this->detectHost($_server);
         $port = $this->detectPort($_server);
         $path = $this->detectPath($_server);
         $query = $this->detectQuery($_server);
-        
-        return $this->normalizeProxyUri($scheme, $host, $port, $path, $query);
-    }
-    
-    /**
-     * The contents of the $_SERVER superglobal change if the raw HTTP message specifies a request
-     * line with an absolute proxy-style URI as opposed to a standard HTTP/1.1 client request line
-     * that specifies only the URI path/query component in conjunction with a Host header:
-     * 
-     * GET http://www.google.com HTTP/1.1
-     * 
-     * In this case, $_SERVER['HOST'] is not populated at all and the full absolute URI is stored in
-     * $_SERVER['REQUEST_URI'].
-     */
-    private function normalizeProxyUri($scheme, $host, $port, $path, $query) {
-        if (!$host && $parsed = parse_url($path)) {
-            extract($parsed);
-        }
         
         $uri = "$scheme://$host";
         $uri.= ($port != 80) ? ":$port" : '';
@@ -93,7 +83,7 @@ class SuperglobalUriDetector {
      * @return string
      */
     private function detectPort(array $_server) {
-        return isset($_server['REMOTE_PORT']) ? $_server['REMOTE_PORT'] : 80;
+        return isset($_server['SERVER_PORT']) ? $_server['SERVER_PORT'] : 80;
     }
     
     /**
