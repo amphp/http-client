@@ -36,6 +36,7 @@ class StdUri implements Uri {
     private $fragment = '';
     
     private $explicitPortSpecified = false;
+    private $explicitTrailingHostSlash = false;
     
     /**
      * @param string $uri
@@ -45,31 +46,43 @@ class StdUri implements Uri {
     }
     
     protected function parseUri($uri) {
-        if (!$urlParts = @parse_url($uri)) {
-            throw new InvalidArgumentException("Invalid URL: $uri");
+        if (!$uriParts = @parse_url($uri)) {
+            throw new InvalidArgumentException(
+                "Invalid URI: $uri"
+            );
         }
         
-        if (!isset($urlParts['scheme'])) {
-            throw new InvalidArgumentException('Invalid URL: No scheme (http|https) specified');
+        if (!isset($uriParts['scheme'])) {
+            throw new InvalidArgumentException(
+                'Invalid URI: No scheme (http|https) specified'
+            );
         }
         
-        $this->scheme = $urlParts['scheme'];
-        $this->host = $urlParts['host'];
+        $this->scheme = $uriParts['scheme'];
+        $this->host = $uriParts['host'];
         
-        $explicitPortSpecified = isset($urlParts['port']);
-        $this->port = $explicitPortSpecified ? $urlParts['port'] : 80;
+        $explicitPortSpecified = isset($uriParts['port']);
+        $this->port = $explicitPortSpecified ? $uriParts['port'] : 80;
         $this->explicitPortSpecified = $explicitPortSpecified;
         
-        $this->path = isset($urlParts['path']) ? $urlParts['path'] : '/';
-        $this->query = isset($urlParts['query']) ? $urlParts['query'] : '';
-        $this->fragment = isset($urlParts['fragment']) ? $urlParts['fragment'] : '';
+        if (isset($uriParts['path'])) {
+            $this->path = $uriParts['path'];
+            if ('/' == $uriParts['path']) {
+                $this->explicitTrailingHostSlash = true;
+            }
+        } else {
+            $this->path = '/';
+        }
+        
+        $this->query = isset($uriParts['query']) ? $uriParts['query'] : '';
+        $this->fragment = isset($uriParts['fragment']) ? $uriParts['fragment'] : '';
         
         $userInfo = '';
-        if (!empty($urlParts['user'])) {
-            $userInfo .= $urlParts['user'];
+        if (!empty($uriParts['user'])) {
+            $userInfo .= $uriParts['user'];
         }
-        if ($userInfo && !empty($urlParts['pass'])) {
-            $userInfo .= ':' . $urlParts['pass'];
+        if ($userInfo && !empty($uriParts['pass'])) {
+            $userInfo .= ':' . $uriParts['pass'];
         }
         
         $this->setUserInfo($userInfo);
@@ -192,17 +205,23 @@ class StdUri implements Uri {
      * @return string
      */
     public function getRawUri() {
-        $url = $this->scheme . '://' . $this->getRawAuthority() . $this->path;
+        $uri = $this->scheme . '://' . $this->getRawAuthority();
+        
+        if ('/' == $this->path) {
+            $uri .= $this->explicitTrailingHostSlash ? '/' : '';
+        } else {
+            $uri .= $this->path;
+        }
         
         if (!empty($this->query)) {
-            $url .= "?{$this->query}";
+            $uri .= "?{$this->query}";
         }
 
         if (!empty($this->fragment)) {
-            $url .= "#{$this->fragment}";
+            $uri .= "#{$this->fragment}";
         }
 
-        return $url;
+        return $uri;
     }
     
     /**
@@ -212,16 +231,22 @@ class StdUri implements Uri {
      * @return string
      */
     public function __toString() {
-        $url = $this->scheme . '://' . $this->getAuthority() . $this->path;
-
+        $uri = $this->scheme . '://' . $this->getAuthority();
+        
+        if ('/' == $this->path) {
+            $uri .= $this->explicitTrailingHostSlash ? '/' : '';
+        } else {
+            $uri .= $this->path;
+        }
+        
         if (!empty($this->query)) {
-            $url .= "?{$this->query}";
+            $uri .= "?{$this->query}";
         }
 
         if (!empty($this->fragment)) {
-            $url .= "#{$this->fragment}";
+            $uri .= "#{$this->fragment}";
         }
 
-        return $url;
+        return $uri;
     }
 }

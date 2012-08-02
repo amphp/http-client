@@ -8,7 +8,8 @@ class StdUriTest extends PHPUnit_Framework_TestCase {
         return array(
             array('https://localhost.localdomain/myPage.html?var1=one#afterHash'),
             array('https://user@localhost.localdomain/myPage.html?var1=one#afterHash'),
-            array('http://www.google.com/')
+            array('http://www.google.com/'),
+            array('http://www.google.com')
         );
     }
     
@@ -25,7 +26,7 @@ class StdUriTest extends PHPUnit_Framework_TestCase {
      * @expectedException InvalidArgumentException
      */
     public function testStdUriThrowsExceptionOnMalformedStdUri($rawStdUriString) {
-        $url = new StdUri($rawStdUriString);
+        $uri = new StdUri($rawStdUriString);
     }
     
     /**
@@ -40,15 +41,15 @@ class StdUriTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdUri::getUserInfo
      */
     public function testConstructorSetsParsedUriPropertyValues() {
-        $url = new StdUri('https://localhost.localdomain/myPage.html?var1=one#afterHash');
+        $uri = new StdUri('https://localhost.localdomain/myPage.html?var1=one#afterHash');
         
-        $this->assertEquals('https', $url->getScheme());
-        $this->assertEquals('localhost.localdomain', $url->getHost());
-        $this->assertEquals('/myPage.html', $url->getPath());
-        $this->assertEquals('var1=one', $url->getQuery());
-        $this->assertEquals('afterHash', $url->getFragment());
-        $this->assertEquals('80', $url->getPort());
-        $this->assertEquals('', $url->getUserInfo());
+        $this->assertEquals('https', $uri->getScheme());
+        $this->assertEquals('localhost.localdomain', $uri->getHost());
+        $this->assertEquals('/myPage.html', $uri->getPath());
+        $this->assertEquals('var1=one', $uri->getQuery());
+        $this->assertEquals('afterHash', $uri->getFragment());
+        $this->assertEquals('80', $uri->getPort());
+        $this->assertEquals('', $uri->getUserInfo());
     }
     
     /**
@@ -57,19 +58,21 @@ class StdUriTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdUri::parseUri
      */
     public function testGetAuthorityAppendsPortIfNot80() {
-        $url = new StdUri('https://localhost.localdomain:4395');
-        $this->assertEquals('localhost.localdomain:4395', $url->getAuthority());
+        $uri = new StdUri('https://localhost.localdomain:4395');
+        $this->assertEquals('localhost.localdomain:4395', $uri->getAuthority());
     }
     
     /**
      * @dataProvider provideValidStdUris
      * @covers Artax\Http\StdUri::__toString
+     * @covers Artax\Http\StdUri::getRawUri
      * @covers Artax\Http\StdUri::__construct
      * @covers Artax\Http\StdUri::parseUri
      */
     public function testToStringReturnsFullStdUri($fullStdUriString) {
-        $url = new StdUri($fullStdUriString);
-        $this->assertEquals($fullStdUriString, $url->__toString());
+        $uri = new StdUri($fullStdUriString);
+        $this->assertEquals($fullStdUriString, $uri->__toString());
+        $this->assertEquals($fullStdUriString, $uri->getRawUri());
     }
     
     /**
@@ -78,8 +81,8 @@ class StdUriTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdUri::setUserInfo
      */
     public function testToStringUsesProtectedUserInfo() {
-        $url = new StdUri('https://user:pass@localhost.localdomain');
-        $this->assertEquals('https://user:********@localhost.localdomain/', $url->__toString());
+        $uri = new StdUri('https://user:pass@localhost.localdomain');
+        $this->assertEquals('https://user:********@localhost.localdomain', $uri->__toString());
     }
     
     /**
@@ -88,8 +91,8 @@ class StdUriTest extends PHPUnit_Framework_TestCase {
      */
     public function testRawStdUriGetterUsesRawUserInfo() {
         $raw = 'https://user:pass@localhost.localdomain:80/index.php?var1=one#afterHash';
-        $url = new StdUri($raw);
-        $this->assertEquals($raw, $url->getRawUri());
+        $uri = new StdUri($raw);
+        $this->assertEquals($raw, $uri->getRawUri());
     }
     
     /**
@@ -98,8 +101,8 @@ class StdUriTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdUri::parseUri
      */
     public function testRawUserInfoGetterReturnsProperty() {
-        $url = new StdUri('https://user:pass@localhost.localdomain');
-        $this->assertEquals('user:pass', $url->getRawUserInfo());
+        $uri = new StdUri('https://user:pass@localhost.localdomain');
+        $this->assertEquals('user:pass', $uri->getRawUserInfo());
     }
     
     /**
@@ -108,11 +111,11 @@ class StdUriTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdUri::parseUri
      */
     public function testUserInfoGetterReturnsProtectedUserInfo() {
-        $url = new StdUri('https://user:pass@localhost.localdomain');
-        $this->assertEquals('user:********', $url->getUserInfo());
+        $uri = new StdUri('https://user:pass@localhost.localdomain');
+        $this->assertEquals('user:********', $uri->getUserInfo());
         
-        $url = new StdUri('https://user:@localhost.localdomain');
-        $this->assertEquals('user', $url->getUserInfo());
+        $uri = new StdUri('https://user:@localhost.localdomain');
+        $this->assertEquals('user', $uri->getUserInfo());
     }
     
     /**
@@ -120,10 +123,10 @@ class StdUriTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdUri::parseUri
      */
     public function testRawAuthorityGetterAppendsPortIfNot80() {
-        $url = new StdUri('https://user@localhost.localdomain:4395');
-        $this->assertEquals('user@localhost.localdomain:4395', $url->getRawAuthority());
+        $uri = new StdUri('https://user@localhost.localdomain:4395');
+        $this->assertEquals('user@localhost.localdomain:4395', $uri->getRawAuthority());
         
-        $url = new StdUri('https://user:pass@localhost.localdomain:4395');
-        $this->assertEquals('user:pass@localhost.localdomain:4395', $url->getRawAuthority());
+        $uri = new StdUri('https://user:pass@localhost.localdomain:4395');
+        $this->assertEquals('user:pass@localhost.localdomain:4395', $uri->getRawAuthority());
     }
 }

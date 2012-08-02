@@ -38,8 +38,6 @@
                 <file>../src/Artax/Framework/Configuration/PluginException.php</file>
                 <file>../src/Artax/Framework/Configuration/Parsers/ConfigParser.php</file>
                 
-                <file>../src/Artax/Uri.php</file>
-                
                 <file>../src/Artax/Routing/RouteMatcher.php</file>
                 <file>../src/Artax/Routing/Route.php</file>
                 <file>../src/Artax/Routing/RouteStorage.php</file>
@@ -48,6 +46,7 @@
                 <file>../src/Artax/Http/FormEncodableRequest.php</file>
                 <file>../src/Artax/Http/Response.php</file>
                 <file>../src/Artax/Http/StatusCodes.php</file>
+                <file>../src/Artax/Http/Uri.php</file>
                 
                 <file>../src/Artax/Negotiation/NegotiableTerm.php</file>
                 <file>../src/Artax/Negotiation/Parsers/HeaderParser.php</file>

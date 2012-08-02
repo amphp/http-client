@@ -10,6 +10,8 @@
  */
 namespace Artax\Http;
 
+use RuntimeException;
+
 /**
  * Generates a StdUri from a superglobal-type $_SERVER array
  * 
@@ -26,12 +28,8 @@ class SuperglobalUriDetector {
      * @return StdUri
      */
     public function make($_server) {
-        // If the raw HTTP request message arrives with a proxy-style absolute URI in the
-        // initial request line, the absolute URI is stored in $_SERVER['REQUEST_URI'] and
-        // we only need to parse that.
-        $parsed = parse_url($_server['REQUEST_URI']);
-        if (isset($parsed['scheme'])) {
-            return new StdUri($_server['REQUEST_URI']);
+        if ($uri = $this->attemptProxyStyleParse($_server)) {
+            return $uri;
         }
         
         $scheme = $this->detectScheme($_server);
@@ -46,6 +44,21 @@ class SuperglobalUriDetector {
         $uri.= $query ? "?$query" : '';
         
         return new StdUri($uri);
+    }
+    
+    /**
+     * @param array $_server
+     * @return StdUri
+     */
+    private function attemptProxyStyleParse($_server) {
+        // If the raw HTTP request message arrives with a proxy-style absolute URI in the
+        // initial request line, the absolute URI is stored in $_SERVER['REQUEST_URI'] and
+        // we only need to parse that.
+        if (isset($_server['REQUEST_URI']) && parse_url($_server['REQUEST_URI'], PHP_URL_SCHEME)) {
+            return new StdUri($_server['REQUEST_URI']);
+        }
+        
+        return null;
     }
     
     /**

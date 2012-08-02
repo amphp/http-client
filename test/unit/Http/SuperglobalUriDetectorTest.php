@@ -8,19 +8,30 @@ class SuperglobalUriDetectorTest extends PHPUnit_Framework_TestCase {
         return array(
             array(array(
                 'REQUEST_URI' => '/index.html',
-                'HTTP_HOST' => 'localhost'
+                'HTTP_HOST' => 'localhost',
+                'expectedResult' => 'http://localhost/index.html'
             )),
             array(array(
                 'REDIRECT_URL' => '/redirect.php',
                 'HTTP_HOST' => 'localhost',
                 'HTTPS' => 'off',
-                'REMOTE_PORT' => 8080
+                'SERVER_PORT' => 8080,
+                'expectedResult' => 'http://localhost:8080/redirect.php'
             )),
             array(array(
                 'REQUEST_URI' => '/index.php?queryVar=test',
                 'QUERY_STRING' => 'queryVar=test',
                 'HTTP_HOST' => 'localhost',
-                'HTTPS' => true
+                'HTTPS' => true,
+                'expectedResult' => 'https://localhost/index.php?queryVar=test'
+            )),
+            array(array(
+                'REQUEST_URI' => 'http://localhost',
+                'expectedResult' => 'http://localhost'
+            )),
+            array(array(
+                'REQUEST_URI' => 'http://localhost/',
+                'expectedResult' => 'http://localhost/'
             )),
         );
     }
@@ -28,6 +39,7 @@ class SuperglobalUriDetectorTest extends PHPUnit_Framework_TestCase {
     /**
      * @dataProvider provideServerSuperglobalsForParsing
      * @covers Artax\Http\SuperglobalUriDetector::make
+     * @covers Artax\Http\SuperglobalUriDetector::attemptProxyStyleParse
      * @covers Artax\Http\SuperglobalUriDetector::detectPath
      * @covers Artax\Http\SuperglobalUriDetector::detectHost
      * @covers Artax\Http\SuperglobalUriDetector::detectScheme
@@ -35,28 +47,19 @@ class SuperglobalUriDetectorTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\SuperglobalUriDetector::detectQuery
      */
     public function testMakeParsesUrlPropertiesFromSuperglobalArray($_server) {
-        $translator = new SuperglobalUriDetector;
+        $detector = new SuperglobalUriDetector;
         
-        $expectedHost = $_server['HTTP_HOST'];
-        $expectedPort = isset($_server['REMOTE_PORT']) ? $_server['REMOTE_PORT'] : 80;
-        $expectedQuery = isset($_server['QUERY_STRING']) ? $_server['QUERY_STRING'] : '';
-        
-        $pathVar = isset($_server['REQUEST_URI']) ? $_server['REQUEST_URI'] : $_server['REDIRECT_URL'];
-        $qPos = strpos($pathVar, '?');
-        $expectedPath = $qPos !== FALSE ? substr($pathVar, 0, $qPos) : $pathVar;
-        
-        $expectedScheme = isset($_server['HTTPS']) && filter_var($_server['HTTPS'], FILTER_VALIDATE_BOOLEAN)
-            ? 'https'
-            : 'http';
-        
-        
-        $url = $translator->make($_server);
-        
-        $this->assertEquals($expectedHost, $url->getHost());
-        $this->assertEquals($expectedPath, $url->getPath());
-        $this->assertEquals($expectedQuery, $url->getQuery());
-        $this->assertEquals($expectedPort, $url->getPort());
-        $this->assertEquals($expectedScheme, $url->getScheme());
-        $this->assertEquals('', $url->getFragment());
+        $uri = $detector->make($_server);
+        $this->assertEquals($_server['expectedResult'], $uri->__toString());
+    }
+    
+    /**
+     * @covers Artax\Http\SuperglobalUriDetector::make
+     * @covers Artax\Http\SuperglobalUriDetector::detectPath
+     * @expectedException RuntimeException
+     */
+    public function testMakeThrowsExceptionOnMissingUriKeys() {
+        $detector = new SuperglobalUriDetector;
+        $uri = $detector->make(array('HTTPS'=>'On'));
     }
 }
