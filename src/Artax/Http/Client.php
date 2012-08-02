@@ -18,14 +18,19 @@ class Client {
     protected $maxRedirects = 10;
     
     /**
+     * @var int
+     */
+    protected $currentRedirectIteration = 0;
+    
+    /**
      * @var bool
      */
-    protected $nonStandardRedirects = false;
+    protected $nonStandardRedirectFlag = false;
     
     /**
      * @var int
      */
-    protected $currentRedirectIteration = 0;
+    protected $timeout;
 
     /**
      * @var array
@@ -35,19 +40,20 @@ class Client {
     /**
      * @var bool
      */
-    protected $openSslLoaded;
+    protected $isOpenSslLoaded;
     
     /**
      * @return void
      */
     public function __construct() {
-        $this->openSslLoaded = $this->isOpenSslLoaded();
+        $this->timeout = ini_get('default_socket_timeout');
+        $this->isOpenSslLoaded = $this->getOpenSslStatus();
     }
     
     /**
      * @return bool
      */
-    protected function isOpenSslLoaded() {
+    protected function getOpenSslStatus() {
         return extension_loaded('openssl');
     }
     
@@ -96,25 +102,25 @@ class Client {
     protected function buildSocketStream(Request $request, $flags = STREAM_CLIENT_CONNECT) {
         $transport = strcmp('https', $request->getScheme()) ? 'tcp' : 'ssl';
         
-        if ('ssl' === $transport && !$this->openSslLoaded) {
+        if ('ssl' == $transport && !$this->isOpenSslLoaded) {
             throw new RuntimeException(
                 '`openssl` extension must be loaded to make SSL requests'
             );
         }
         
         $socketUri = "$transport://" . $request->getHost() . ':' . $request->getPort();
-        $timeOut = 5;
         
-        $context = stream_context_create();
-        stream_context_set_params($context, array('notification' =>
-            array($this, 'notifyCallback')
-        ));
-        
-        $stream = stream_socket_client($socketUri, $errorNo, $errorStr, $timeOut, $flags, $context);
+        $stream = stream_socket_client(
+            $socketUri,
+            $errorNo,
+            $errorStr,
+            $this->timeout,
+            $flags
+        );
         
         if (false === $stream) {
             throw new RuntimeException(
-                "Asynchronous connection failed [$errorNo]: $errorStr"
+                "Connection to $socketUri failed: [error $errorNo] $errorStr"
             );
         }
         
@@ -162,7 +168,7 @@ class Client {
         }
         
         $requestMethod = strtoupper($request->getMethod());
-        if (!$this->nonStandardRedirects && !in_array($requestMethod, array('GET', 'HEAD'))) {
+        if (!$this->nonStandardRedirectFlag && !in_array($requestMethod, array('GET', 'HEAD'))) {
             return false;
         }
         
@@ -233,7 +239,7 @@ class Client {
      * @return void
      */
     public function allowNonStandardRedirects($boolFlag) {
-        $this->nonStandardRedirects = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
+        $this->nonStandardRedirectFlag = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
     }
 
     /**
@@ -245,12 +251,15 @@ class Client {
     public function setMaxRedirects($maxRedirects) {
         $this->maxRedirects = (int) $maxRedirects;
     }
-    
-    protected function notifyCallback(
-        $notification_code, $severity, $message,
-        $message_code, $bytes_transferred, $bytes_max
-    ) {
-        echo "$notification_code, $severity, $message, $message_code, $bytes_transferred, $bytes_max\n";
+
+    /**
+     * Set the number of seconds before a request times out.
+     * 
+     * @param int $timeout
+     * @return void
+     */
+    public function setTimeout($seconds) {
+        $this->timeout = (int) $seconds;
     }
 }
 
