@@ -278,10 +278,25 @@ class StdResponse implements Response {
     }
     
     /**
-     * @todo Implement HTTP response message string
+     * @return string
      */
     public function __toString() {
-        throw new \RuntimeException('Not yet implemented');
+        $msg = 'HTTP/' . $this->getHttpVersion() . ' ' . $this->getStatusCode();
+        $msg.= ' ' . $this->getStatusDescription() . "\r\n";
+        
+        $headerArr = $this->getAllHeaders();
+        $headers = array_combine(
+            array_map('strtoupper', array_keys($headerArr)),
+            array_values($headerArr)
+        );
+        
+        foreach ($headers as $header => $value) {
+            $msg.= "$header: $value\r\n";
+        }
+        
+        $msg.= "\r\n" . $this->getBody();
+        
+        return $msg;
     }
     
     /**
