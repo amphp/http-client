@@ -5,20 +5,6 @@ use Artax\Http\Client,
     Artax\Http\StdResponse;
 
 class ClientTest extends PHPUnit_Framework_TestCase {
-
-    /**
-     * @covers Artax\Http\Client::__construct
-     * @covers Artax\Http\Client::request
-     * @expectedException RuntimeException
-     */
-    public function testRequestThrowsExceptionIfUrlFopenDisabled() {
-        $client = $this->getMock('Artax\\Http\\Client', array('getAllowUrlFopenStatus'));
-        $client->expects($this->any())
-               ->method('getAllowUrlFopenStatus')
-               ->will($this->returnValue(false));
-               
-        $client->request($this->getMock('Artax\\Http\\Request'));
-    }
     
     /**
      * @covers Artax\Http\Client::__construct
@@ -39,7 +25,6 @@ class ClientTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Http\Client::__construct
-     * @covers Artax\Http\Client::getAllowUrlFopenStatus
      * @covers Artax\Http\Client::request
      * @covers Artax\Http\Client::buildStream
      * @covers Artax\Http\Client::buildStreamContext

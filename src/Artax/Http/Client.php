@@ -8,97 +8,58 @@ use RuntimeException,
 class Client {
 
     /**
-     * @var array
-     */
-    protected $contextOptions = array('http' => array(
-        'max_redirects' => 10,
-        'ignore_errors' => TRUE,
-        'follow_location' => 0 // off to allow manual redirection
-    ));
-    
-    /**
-     * @var bool
-     */
-    protected $allowUrlFopen;
-    
-    /**
      * @var bool
      */
     protected $followLocation = true;
     
     /**
+     * @var int
+     */
+    protected $maxRedirects = 10;
+    
+    /**
      * @var bool
      */
     protected $nonStandardRedirects = false;
+    
+    /**
+     * @var int
+     */
+    protected $currentRedirectIteration = 0;
 
     /**
      * @var array
      */
-    protected $redirectChain;
+    protected $responseChain;
+    
+    /**
+     * @var bool
+     */
+    protected $openSslLoaded;
     
     /**
      * @return void
      */
     public function __construct() {
-        $this->allowUrlFopen = $this->getAllowUrlFopenStatus();
+        $this->openSslLoaded = $this->isOpenSslLoaded();
     }
     
     /**
      * @return bool
      */
-    protected function getAllowUrlFopenStatus()  {
-        return filter_var(
-            ini_get('allow_url_fopen'),
-            FILTER_VALIDATE_BOOLEAN
-        );
-    }
-
-    /**
-     * Should Location headers be used for automatically redirection? Defaults to true.
-     * 
-     * @param int $boolFlag
-     * @return void
-     */
-    public function setFollowLocation($boolFlag) {
-        $this->followLocation = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
-    }
-
-    /**
-     * Maximum number of allowed redirects. Defaults to 10
-     * 
-     * @param int $maxRedirects
-     * @return void
-     */
-    public function setMaxRedirects($maxRedirects) {
-        $this->contextOptions['http']['max_redirects'] = $maxRedirects;
-    }
-    
-    /**
-     * Is automatic redirection of requests not using GET or HEAD allowed? Defaults to false.
-     * 
-     * RFC2616-10.3:
-     * "If the 301 status code is received in response to a request other than GET or HEAD, the user
-     *  agent MUST NOT automatically redirect the request unless it can be confirmed by the user, 
-     * since this might change the conditions under which the request was issued."
-     * 
-     * This directive allows the user to confirm that requests made using methods other than GET
-     * and HEAD may be redirected.
-     * 
-     * @param bool $boolFlag
-     * @return void
-     */
-    public function setNonStandardRedirects($boolFlag) {
-        $this->nonStandardRedirects = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
+    protected function isOpenSslLoaded() {
+        return extension_loaded('openssl');
     }
     
     /**
      * Request a remote HTTP resource
      * 
+     * @param Artax\Http\Request $request
      * @return Artax\Http\Response
      * @throws RuntimeException
      */
     public function request(Request $request) {
-        $this->redirectChain = array();
+        $this->responseChain = array();
         return $this->doRequest($request);
     }
     
@@ -108,9 +69,56 @@ class Client {
      * @param Artax\Http\Request $request
      * @return array
      */
-    public function requestRedirectChain(Request $request) {
+    public function requestChain(Request $request) {
         $this->request($request);
-        return $this->redirectChain;
+        return $this->responseChain;
+    }
+    
+    /**
+     * Send a request and don't wait for a response
+     * 
+     * @param Artax\Http\Request $request
+     * @return void
+     */
+    public function requestAsync(Request $request) {
+        $stream = $this->buildSocketStream(
+            $request, STREAM_CLIENT_CONNECT | STREAM_CLIENT_ASYNC_CONNECT
+        );
+        
+        fwrite($stream, $request->__toString());
+        fclose($stream);
+    }
+    
+    /**
+     * @return Artax\Http\Response
+     * @throws RuntimeException
+     */
+    protected function buildSocketStream(Request $request, $flags = STREAM_CLIENT_CONNECT) {
+        $transport = strcmp('https', $request->getScheme()) ? 'tcp' : 'ssl';
+        
+        if ('ssl' === $transport && !$this->openSslLoaded) {
+            throw new RuntimeException(
+                '`openssl` extension must be loaded to make SSL requests'
+            );
+        }
+        
+        $socketUri = "$transport://" . $request->getHost() . ':' . $request->getPort();
+        $timeOut = 5;
+        
+        $context = stream_context_create();
+        stream_context_set_params($context, array('notification' =>
+            array($this, 'notifyCallback')
+        ));
+        
+        $stream = stream_socket_client($socketUri, $errorNo, $errorStr, $timeOut, $flags, $context);
+        
+        if (false === $stream) {
+            throw new RuntimeException(
+                "Asynchronous connection failed [$errorNo]: $errorStr"
+            );
+        }
+        
+        return $stream;
     }
     
     /**
@@ -118,24 +126,19 @@ class Client {
      * @throws RuntimeException
      */
     protected function doRequest(Request $request) {
-        if (!$this->allowUrlFopen) {
-            throw new RuntimeException(
-                '`allow_url_fopen` must be enabled to use Artax\\Http\\Client'
-            );
+        $stream = $this->buildSocketStream($request);
+        fwrite($stream, $request->__toString());
+        
+        $rawResponseMessage = '';
+        while (!feof($stream)) {
+            $rawResponseMessage.= fgets($stream, 1024);
         }
+        fclose($stream);
         
-        $context = $this->buildStreamContext($request);
-        $stream  = $this->buildStream($request->getRawUri(), $context);
+        $response = new StdResponse();
+        $response->populateFromRawMessage($rawResponseMessage);
         
-        if ($stream === FALSE) {
-            throw new RuntimeException();
-        }
-        
-        $bodyData = $this->getStreamBodyData($stream);
-        $metaData = $this->getStreamMetaData($stream);
-        $response = $this->buildResponse($metaData, $bodyData);
-        
-        $this->redirectChain[] = $response;
+        $this->responseChain[] = $response;
         
         if ($this->canRedirect($request, $response)) {
             return $this->doRedirect($request, $response);
@@ -145,87 +148,21 @@ class Client {
     }
     
     /**
-     * @return resource
-     */
-    protected function buildStreamContext(Request $request) {
-        if ($headers = $request->getAllHeaders()) {
-            $streamFormattedHeaders = array();
-            foreach($headers as $header => $value) {
-                $streamFormattedHeaders[] = "$header: $value";
-            }
-            $this->contextOptions['http']['header'] = $streamFormattedHeaders;
-        }
-
-        $this->contextOptions['http']['content'] = $request->getBody();
-        $this->contextOptions['http']['method'] = $request->getMethod();
-        $this->contextOptions['http']['protocol_version'] = $request->getHttpVersion();
-        
-        return stream_context_create($this->contextOptions);
-    }
-    
-    /**
-     * @param string $uri
-     * @param resource $context
-     * @return resource
-     */
-    protected function buildStream($uri, $context) {
-        return @fopen($uri, 'rb', $useIncludePath = FALSE, $context);
-    }
-    
-    /**
-     * @param resource $stream
-     * @return array
-     */
-    protected function getStreamMetaData($stream) {
-        $metaData = stream_get_meta_data($stream);
-        return $metaData['wrapper_data'];
-    }
-    
-    /**
-     * @param resource $stream
-     * @return string
-     */
-    protected function getStreamBodyData($stream) {
-        return stream_get_contents($stream);
-    }
-
-    /**
-     * @todo Add more error handling
-     * @param array $headers
-     * @param string $body
-     * @return Artax\Http\Response
-     */
-    protected function buildResponse($headers, $body) {
-        $response = new StdResponse();
-        
-        foreach ($headers as $header) {
-            if (strpos($header, 'HTTP/') === 0) {
-                $response->setStartLine($header);
-                $headers[] = array($header);
-            } else {
-                $response->setRawHeader($header);
-            }
-        }
-
-        $response->setBody($body);
-
-        return $response;
-    }
-    
-    /**
      * @return bool
      */
     protected function canRedirect(Request $request, Response $response) {
         if (!$this->followLocation) {
             return false;
         }
+        if ($this->currentRedirectIteration == $this->maxRedirects) {
+            return false;
+        }
         if (!$response->hasHeader('Location')) {
             return false;
         }
         
-        $requestMethod = strtolower($request->getMethod());
-        
-        if (!$this->nonStandardRedirects && !in_array($requestMethod, array('get', 'head'))) {
+        $requestMethod = strtoupper($request->getMethod());
+        if (!$this->nonStandardRedirects && !in_array($requestMethod, array('GET', 'HEAD'))) {
             return false;
         }
         
@@ -245,6 +182,8 @@ class Client {
             $lastRequest->getBody(),
             $lastRequest->getHttpVersion()
         );
+        
+        ++$this->currentRedirectIteration;
         
         return $this->doRequest($redirectedRequest);
     }
@@ -267,6 +206,51 @@ class Client {
         }
         
         return $newLocation;
+    }
+
+    /**
+     * Should Location headers transparently redirect? Defaults to true.
+     * 
+     * @param bool $boolFlag
+     * @return void
+     */
+    public function followLocation($boolFlag) {
+        $this->followLocation = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
+    }
+    
+    /**
+     * Should the client transparently redirect equests not using GET or HEAD? Defaults to false.
+     * 
+     * Acording to RFC2616-10.3, "If the 301 status code is received in response to a request other
+     * than GET or HEAD, the user agent MUST NOT automatically redirect the request unless it can be
+     * confirmed by the user, since this might change the conditions under which the request was
+     * issued."
+     * 
+     * This directive, if set to true, serves as confirmation that requests made using methods other
+     * than GET/HEAD may be redirected automatically.
+     * 
+     * @param bool $boolFlag
+     * @return void
+     */
+    public function allowNonStandardRedirects($boolFlag) {
+        $this->nonStandardRedirects = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    /**
+     * Set the maximum number of redirects allowed to fulfill a request. Defaults to 10.
+     * 
+     * @param int $maxRedirects
+     * @return void
+     */
+    public function setMaxRedirects($maxRedirects) {
+        $this->maxRedirects = (int) $maxRedirects;
+    }
+    
+    protected function notifyCallback(
+        $notification_code, $severity, $message,
+        $message_code, $bytes_transferred, $bytes_max
+    ) {
+        echo "$notification_code, $severity, $message, $message_code, $bytes_transferred, $bytes_max\n";
     }
 }
 
