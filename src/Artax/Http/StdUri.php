@@ -34,16 +34,20 @@ class StdUri implements Uri {
         
         if (!isset($uriParts['scheme'])) {
             throw new InvalidArgumentException(
-                'Invalid URI: No scheme (http|https) specified'
+                'Invalid URI: http|https scheme required'
             );
         }
         
         $this->scheme = $uriParts['scheme'];
         $this->host = $uriParts['host'];
         
-        $explicitPortSpecified = isset($uriParts['port']);
-        $this->port = $explicitPortSpecified ? $uriParts['port'] : 80;
-        $this->explicitPortSpecified = $explicitPortSpecified;
+        if (isset($uriParts['port'])) {
+            $this->port = $uriParts['port'];
+            $this->explicitPortSpecified = true;
+        } else {
+            $this->port = strcmp('https', $uriParts['scheme']) ? 80 : 443;
+            $this->explicitPortSpecified = false;
+        }
         
         if (isset($uriParts['path'])) {
             $this->path = $uriParts['path'];

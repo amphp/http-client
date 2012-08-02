@@ -36,6 +36,11 @@ class Client {
      * @var bool
      */
     protected $isOpenSslLoaded;
+    
+    /**
+     * @var array
+     */
+    protected $sslOptions = array();
 
     public function __construct() {
         $this->timeout = ini_get('default_socket_timeout');
@@ -48,9 +53,71 @@ class Client {
     protected function getOpenSslStatus() {
         return extension_loaded('openssl');
     }
+
+    /**
+     * Set the number of seconds before a request times out.
+     * 
+     * @param int $seconds
+     * @return void
+     */
+    public function setTimeout($seconds) {
+        $this->timeout = (int) $seconds;
+    }
+
+    /**
+     * Set custom SSL request options
+     * 
+     * To customize SSL connections, assign a key-value associative array of option values:
+     * 
+     *     $options = array(
+     *         'verify_peer'       => true,
+     *         'allow_self_signed' => true,
+     *         'cafile'            => '/hard/path/to/cert/authority/file'
+     *     );
+     *     
+     *     $client->setOptions($options);
+     *  
+     * 
+     * A full list of available options may be viewed here:
+     * http://www.php.net/manual/en/context.ssl.php
+     * 
+     * @param array $options
+     * @return void
+     */
+    public function setSslOptions($options) {
+        $this->sslOptions = $options;
+    }
+
+    /**
+     * Set the maximum number of redirects allowed to fulfill a request. Defaults to 10.
+     * 
+     * @param int $maxRedirects
+     * @return void
+     */
+    public function setMaxRedirects($maxRedirects) {
+        $this->maxRedirects = (int) $maxRedirects;
+    }
     
     /**
-     * Request a remote HTTP resource
+     * Should the client transparently redirect requests not using GET or HEAD? Defaults to false.
+     * 
+     * According to RFC2616-10.3, "If the 301 status code is received in response to a request other
+     * than GET or HEAD, the user agent MUST NOT automatically redirect the request unless it can be
+     * confirmed by the user, since this might change the conditions under which the request was
+     * issued."
+     * 
+     * This directive, if set to true, serves as confirmation that requests made using methods other
+     * than GET/HEAD may be redirected automatically.
+     * 
+     * @param bool $boolFlag
+     * @return void
+     */
+    public function allowNonStandardRedirects($boolFlag) {
+        $this->nonStandardRedirectFlag = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
+    }
+    
+    /**
+     * Request an HTTP resource
      * 
      * @param Request $request
      * @return Response
@@ -73,7 +140,7 @@ class Client {
     }
     
     /**
-     * Send a request and don't wait for a response
+     * Send an HTTP request and don't wait for a response
      * 
      * @param Request $request
      * @return void
@@ -94,18 +161,55 @@ class Client {
      * @throws RuntimeException
      */
     protected function buildSocketStream(Request $request, $flags = STREAM_CLIENT_CONNECT) {
-        $transport = strcmp('https', $request->getScheme()) ? 'tcp' : 'ssl';
+        $scheme = strcmp('https', $request->getScheme()) ? 'tcp' : 'ssl';
+        $authority = $request->getHost() . ':' . $request->getPort();
         
-        if ('ssl' == $transport && !$this->isOpenSslLoaded) {
-            throw new RuntimeException(
-                '`openssl` extension must be loaded to make SSL requests'
-            );
+        if ($scheme == 'tcp') {
+            return $this->makeTcpStream("tcp://$authority", $flags);
+        } else {
+            return $this->makeSslStream("ssl://$authority", $flags);
         }
+    }
+
+    /**
+     * @todo Add error handling for different failure types (length/md5 mismatch, empty, etc)
+     * @param Request $request
+     * @return Response
+     * @throws RuntimeException
+     */
+    protected function doRequest(Request $request) {
+        $stream = $this->buildSocketStream($request);
         
-        $socketUri = "$transport://" . $request->getHost() . ':' . $request->getPort();
+        fwrite($stream, $request->__toString());
         
-        $stream = stream_socket_client(
-            $socketUri,
+        $rawResponseMessage = '';
+        while (!feof($stream)) {
+            $rawResponseMessage.= fread($stream, 8192);
+        }
+        fclose($stream);
+        
+        $response = new StdResponse();
+        $response->populateFromRawMessage($rawResponseMessage);
+        
+        $this->responseChain[] = $response;
+        
+        if ($this->canRedirect($request, $response)) {
+            return $this->doRedirect($request, $response);
+        } else {
+            return $response;
+        }
+    }
+    
+    /**
+     * @todo Determine appropriate exception to throw on stream failure
+     * @param string $uri
+     * @param int $flags
+     * @return resource
+     * @throws RuntimeException
+     */
+    protected function makeTcpStream($uri, $flags) {
+        $stream = @stream_socket_client(
+            $uri,
             $errorNo,
             $errorStr,
             $this->timeout,
@@ -120,32 +224,38 @@ class Client {
         
         return $stream;
     }
-
+    
     /**
-     * @param Request $request
-     * @return Response
+     * @todo Determine appropriate exception to throw on stream failure
+     * @param string $uri
+     * @param int $flags
+     * @return resource
      * @throws RuntimeException
      */
-    protected function doRequest(Request $request) {
-        $stream = $this->buildSocketStream($request);
-        fwrite($stream, $request->__toString());
-        
-        $rawResponseMessage = '';
-        while (!feof($stream)) {
-            $rawResponseMessage.= fgets($stream, 1024);
+    protected function makeSslStream($uri, $flags) {
+        if (!$this->isOpenSslLoaded) {
+            throw new RuntimeException(
+                '`openssl` extension must be loaded to make SSL requests'
+            );
         }
-        fclose($stream);
         
-        $response = new StdResponse();
-        $response->populateFromRawMessage($rawResponseMessage);
+        $context = stream_context_create(array('ssl'=>$this->sslOptions));
+        $stream = @stream_socket_client(
+            $uri,
+            $errNo,
+            $errStr,
+            $this->timeout,
+            $flags,
+            $context
+        );
         
-        $this->responseChain[] = $response;
-        
-        if ($this->canRedirect($request, $response)) {
-            return $this->doRedirect($request, $response);
-        } else {
-            return $response;
+        if (false === $stream) {
+            throw new RuntimeException(
+                "Connection to $uri failed: [error $error] $errStr"
+            );
         }
+        
+        return $stream;
     }
 
     /**
@@ -212,42 +322,4 @@ class Client {
         return $newLocation;
     }
     
-    /**
-     * Should the client transparently redirect requests not using GET or HEAD? Defaults to false.
-     * 
-     * According to RFC2616-10.3, "If the 301 status code is received in response to a request other
-     * than GET or HEAD, the user agent MUST NOT automatically redirect the request unless it can be
-     * confirmed by the user, since this might change the conditions under which the request was
-     * issued."
-     * 
-     * This directive, if set to true, serves as confirmation that requests made using methods other
-     * than GET/HEAD may be redirected automatically.
-     * 
-     * @param bool $boolFlag
-     * @return void
-     */
-    public function allowNonStandardRedirects($boolFlag) {
-        $this->nonStandardRedirectFlag = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
-    }
-
-    /**
-     * Set the maximum number of redirects allowed to fulfill a request. Defaults to 10.
-     * 
-     * @param int $maxRedirects
-     * @return void
-     */
-    public function setMaxRedirects($maxRedirects) {
-        $this->maxRedirects = (int) $maxRedirects;
-    }
-
-    /**
-     * Set the number of seconds before a request times out.
-     * 
-     * @param int $seconds
-     * @return void
-     */
-    public function setTimeout($seconds) {
-        $this->timeout = (int) $seconds;
-    }
-
 }

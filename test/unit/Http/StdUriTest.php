@@ -48,7 +48,7 @@ class StdUriTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals('/myPage.html', $uri->getPath());
         $this->assertEquals('var1=one', $uri->getQuery());
         $this->assertEquals('afterHash', $uri->getFragment());
-        $this->assertEquals('80', $uri->getPort());
+        $this->assertEquals('443', $uri->getPort());
         $this->assertEquals('', $uri->getUserInfo());
     }
     

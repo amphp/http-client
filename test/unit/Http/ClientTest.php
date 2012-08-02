@@ -9,23 +9,6 @@ class ClientTest extends PHPUnit_Framework_TestCase {
     /**
      * @covers Artax\Http\Client::__construct
      * @covers Artax\Http\Client::request
-     * @expectedException RuntimeException
-     */
-    public function testRequestThrowsExceptionIfBuildStreamReturnsFalse() {
-        $client = $this->getMock(
-            'Artax\\Http\\Client',
-            array('buildStreamContext', 'buildStream')
-        );
-        $client->expects($this->any())
-               ->method('buildStream')
-               ->will($this->returnValue(false));
-               
-        $client->request($this->getMock('Artax\\Http\\Request'));
-    }
-    
-    /**
-     * @covers Artax\Http\Client::__construct
-     * @covers Artax\Http\Client::request
      * @covers Artax\Http\Client::buildStream
      * @covers Artax\Http\Client::buildStreamContext
      * @covers Artax\Http\Client::getStreamMetaData
