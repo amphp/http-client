@@ -6,20 +6,19 @@
  * project without using the framework writ-large. Framework users SHOULD NOT
  * include this file and SHOULD INSTEAD use the `Artax-Framework.php` bootstrap
  * file (which references this file) located in the base project directory.
- * 
- * @category    Artax
- * @author      Daniel Lowrey <rdlowrey@gmail.com>
- * @license     All code subject to the terms of the LICENSE file in the project root
- * @version     ${project.version}
  */
 
 if (!defined('PHP_VERSION_ID') || PHP_VERSION_ID < 50300) {
-    die('Artax requires PHP 5.3 or higher' . PHP_EOL);
+    throw new RuntimeException(
+        'Artax requires PHP 5.3 or higher'
+    );
 }
 
 if (extension_loaded('mbstring')) { 
-    if( ini_get('mbstring.func_overload') & 2 ) { 
-        throw new \RuntimeException('Artax requires that string functions not be overloaded by "mbstring.func_overload"');
+    if (ini_get('mbstring.func_overload') & 2) { 
+        throw new RuntimeException(
+            'Artax requires that string functions not be overloaded by "mbstring.func_overload"'
+        );
     }
 }
 
