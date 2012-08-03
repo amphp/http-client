@@ -6,7 +6,7 @@
         <testsuite name="Plugin Unit-Tests">
             <directory>../plugins/Artax/ResponseContentLength/test</directory>
             <directory>../plugins/Artax/ResponseDate/test</directory>
-            <directory>../plugins/Artax/ResponseEncoder/test</directory>
+            <!--<directory>../plugins/Artax/ResponseEncoder/test</directory>-->
             <directory>../plugins/Artax/ResponseStatus/test</directory>
             <directory>../plugins/Artax/RouteShortcuts/test</directory>
         </testsuite>
@@ -42,11 +42,18 @@
                 <file>../src/Artax/Routing/Route.php</file>
                 <file>../src/Artax/Routing/RouteStorage.php</file>
                 
-                <file>../src/Artax/Http/Request.php</file>
+                <file>../src/Artax/Http/Message.php</file>
+                <file>../src/Artax/Http/MutableMessage.php</file>
+                <file>../src/Artax/Http/MutableRequest.php</file>
+                <file>../src/Artax/Http/MutableResponse.php</file>
                 <file>../src/Artax/Http/FormEncodableRequest.php</file>
                 <file>../src/Artax/Http/Response.php</file>
                 <file>../src/Artax/Http/StatusCodes.php</file>
                 <file>../src/Artax/Http/Uri.php</file>
+                <file>../src/Artax/Http/Exceptions/MessageParseException.php</file>
+                <file>../src/Artax/Http/Exceptions/MessageValidationException.php</file>
+                <file>../src/Artax/Http/Exceptions/ClientException.php</file>
+                <file>../src/Artax/Http/Exceptions/InfiniteRedirectException.php</file>
                 
                 <file>../src/Artax/Negotiation/NegotiableTerm.php</file>
                 <file>../src/Artax/Negotiation/Parsers/HeaderParser.php</file>

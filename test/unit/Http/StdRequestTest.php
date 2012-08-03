@@ -1,6 +1,7 @@
 <?php
 
-use Artax\Http\StdRequest;
+use Artax\Http\StdRequest,
+    Artax\Http\StdUri;
 
 class StdRequestTest extends PHPUnit_Framework_TestCase {
     
@@ -68,6 +69,20 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
         
         $request = new StdRequest($uri, 'GET', array());
         $this->assertEquals('test', $request->getUri());
+    }
+    
+    /**
+     * @covers Artax\Http\StdRequest::__construct
+     * @covers Artax\Http\StdRequest::getRawUri
+     */
+    public function testRawUriGetterReturnsProtectedUriString() {
+        $uri = $this->getMock('Artax\\Http\\Uri');
+        $uri->expects($this->once())
+            ->method('getRawUri')
+            ->will($this->returnValue('test'));
+        
+        $request = new StdRequest($uri, 'GET');
+        $this->assertEquals('test', $request->getRawUri());
     }
     
     /**
@@ -175,6 +190,62 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Http\StdRequest::__construct
+     * @covers Artax\Http\StdRequest::getAuthority
+     */
+    public function testAuthorityGetterReturnsUriFunctionResult() {
+        $uri = $this->getMock('Artax\\Http\\Uri');
+        $uri->expects($this->once())
+            ->method('getAuthority')
+            ->will($this->returnValue('test'));
+        
+        $request = new StdRequest($uri, 'GET');
+        $this->assertEquals('test', $request->getAuthority());
+    }
+    
+    /**
+     * @covers Artax\Http\StdRequest::__construct
+     * @covers Artax\Http\StdRequest::getRawAuthority
+     */
+    public function testRawAuthorityGetterReturnsUriFunctionResult() {
+        $uri = $this->getMock('Artax\\Http\\Uri');
+        $uri->expects($this->once())
+            ->method('getRawAuthority')
+            ->will($this->returnValue('test'));
+        
+        $request = new StdRequest($uri, 'GET');
+        $this->assertEquals('test', $request->getRawAuthority());
+    }
+    
+    /**
+     * @covers Artax\Http\StdRequest::__construct
+     * @covers Artax\Http\StdRequest::getUserInfo
+     */
+    public function testUserInfoGetterReturnsUriFunctionResult() {
+        $uri = $this->getMock('Artax\\Http\\Uri');
+        $uri->expects($this->once())
+            ->method('getUserInfo')
+            ->will($this->returnValue('test'));
+        
+        $request = new StdRequest($uri, 'GET');
+        $this->assertEquals('test', $request->getUserInfo());
+    }
+    
+    /**
+     * @covers Artax\Http\StdRequest::__construct
+     * @covers Artax\Http\StdRequest::getRawUserInfo
+     */
+    public function testRawUserInfoGetterReturnsUriFunctionResult() {
+        $uri = $this->getMock('Artax\\Http\\Uri');
+        $uri->expects($this->once())
+            ->method('getRawUserInfo')
+            ->will($this->returnValue('test'));
+        
+        $request = new StdRequest($uri, 'GET');
+        $this->assertEquals('test', $request->getRawUserInfo());
+    }
+    
+    /**
+     * @covers Artax\Http\StdRequest::__construct
      * @covers Artax\Http\StdRequest::hasQueryParameter
      */
     public function testHasQueryParameterReturnsBoolOnParameterAvailability() {
@@ -234,6 +305,8 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     /**
      * @covers Artax\Http\StdRequest::__construct
      * @covers Artax\Http\StdRequest::hasHeader
+     * @covers Artax\Http\StdRequest::assignHeader
+     * @covers Artax\Http\StdRequest::assignAllHeaders
      */
     public function testHasHeaderReturnsBoolOnDefinedHeaderParameter() {
         $uri = $this->getMock('Artax\\Http\\Uri');
@@ -247,6 +320,8 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     /**
      * @covers Artax\Http\StdRequest::__construct
      * @covers Artax\Http\StdRequest::getHeader
+     * @covers Artax\Http\StdRequest::assignHeader
+     * @covers Artax\Http\StdRequest::assignAllHeaders
      */
     public function testGetHeaderReturnsHeaderParameterIfAvailable() {
         $uri = $this->getMock('Artax\\Http\\Uri');
@@ -261,6 +336,8 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     /**
      * @covers Artax\Http\StdRequest::__construct
      * @covers Artax\Http\StdRequest::getHeader
+     * @covers Artax\Http\StdRequest::assignHeader
+     * @covers Artax\Http\StdRequest::assignAllHeaders
      * @expectedException RuntimeException
      */
     public function testGetHeaderThrowsExceptionOnInvalidHeaderName() {
@@ -350,6 +427,8 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     /**
      * @covers Artax\Http\StdRequest::__construct
      * @covers Artax\Http\StdRequest::getBodyParameter
+     * @covers Artax\Http\StdRequest::assignHeader
+     * @covers Artax\Http\StdRequest::assignAllHeaders
      */
     public function testGetBodyParameterReturnsRequestParameterValue() {
         $uri = $this->getMock('Artax\\Http\\Uri');
@@ -363,6 +442,8 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     /**
      * @covers Artax\Http\StdRequest::__construct
      * @covers Artax\Http\StdRequest::getBodyParameter
+     * @covers Artax\Http\StdRequest::assignHeader
+     * @covers Artax\Http\StdRequest::assignAllHeaders
      * @expectedException RuntimeException
      */
     public function testGetBodyParameterExceptionOnInvalidParameter() {
@@ -372,5 +453,38 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
         $request = new StdRequest($uri, 'POST', $headers, $body);
         
         $request->getBodyParameter('var999999');
+    }
+    
+    /**
+     * @covers Artax\Http\StdRequest::__toString
+     * @covers Artax\Http\StdRequest::buildConnectMessage
+     */
+    public function testToStringConnectOutput() {
+        $uri = new StdUri('http://localhost:8096');
+        $headers = array('Content-Type' => 'test');
+        $request = new StdRequest($uri, 'CONNECT', $headers);
+        
+        $expected = "CONNECT localhost:8096 HTTP/1.1\r\nCONTENT-TYPE: test\r\n\r\n";
+        $this->assertEquals($expected, $request->__toString());
+    }
+    
+    /**
+     * @covers Artax\Http\StdRequest::__toString
+     * @covers Artax\Http\StdRequest::buildMessage
+     */
+    public function testToStringOutput() {
+        $uri = new StdUri('http://user:pass@localhost:8096/test.html?var=42');
+        $headers = array('Accept' => 'text/*', 'Host' => 'invalid');
+        $body = 'We few, we happy few';
+        $bodyLen = strlen($body);
+        $request = new StdRequest($uri, 'POST', $headers, $body);
+        
+        $expected = "POST /test.html?var=42 HTTP/1.1\r\n";
+        $expected.= "HOST: user:********@localhost:8096\r\n";
+        $expected.= "CONTENT-LENGTH: $bodyLen\r\n";
+        $expected.= "ACCEPT: text/*\r\n\r\n";
+        $expected.= $body;
+        
+        $this->assertEquals($expected, $request->__toString());
     }
 }

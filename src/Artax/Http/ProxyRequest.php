@@ -13,10 +13,17 @@ class ProxyRequest extends StdRequest {
      * @return string
      */
     protected function buildMessage() {
-        $msg = $this->getMethod() . ' ' . $this->getRawUri() . ' ';
+        $msg = $this->getMethod() . ' ' . $this->getUri() . ' ';
         $msg.= 'HTTP/' . $this->getHttpVersion() . "\r\n";
         
-        foreach ($this->getAllHeaders() as $header => $value) {
+        if ($body = $this->getBody()) {
+            $msg.= 'CONTENT-LENGTH: ' . strlen($body) . "\r\n";
+        }
+        
+        $headers = $this->getAllHeaders();
+        unset($headers['CONTENT-LENGTH']);
+        
+        foreach ($headers as $header => $value) {
             $msg.= "$header: $value\r\n";
         }
         $msg.= "\r\n" . $this->getBody();

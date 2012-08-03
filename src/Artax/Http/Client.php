@@ -160,6 +160,67 @@ class Client {
         fwrite($stream, $request->__toString());
         fclose($stream);
     }
+    
+    /**
+     * THIS IS EXPERIMENTAL -- DON'T USE IT YET.
+     * THIS IS EXPERIMENTAL -- DON'T USE IT YET.
+     * THIS IS EXPERIMENTAL -- DON'T USE IT YET.
+     * THIS IS EXPERIMENTAL -- DON'T USE IT YET.
+     * THIS IS EXPERIMENTAL -- DON'T USE IT YET.
+     */
+    public function requestParallel($traversableRequests) {
+        $exceptions = array();
+        $streams = array();
+        
+        foreach ($traversableRequests as $key => $request) {
+            try {
+                $stream = $this->buildSocketStream($request);
+                stream_set_blocking($stream, 0);
+                $streams[$key] = $stream;
+            } catch (Exception $e) {
+                $exceptions[$key] = $e;
+            }
+        }
+        
+        $rawResponseData = array_map(function($x) { return ''; }, array_flip(array_keys($streams)));
+        $completed = array_map(function($x) { return false; }, $rawResponseData);
+        
+        $r = $w = $origStreams = $streams;
+        $e = array();
+        
+        while (stream_select($r, $w, $e, 0, 350000)) {
+        
+            foreach ($w as $key => $stream) {
+                $request = $traversableRequests[$key];
+                $bytes = fwrite($stream, $request->__toString());
+                if ($bytes == strlen($request)) {
+                    unset($w[$key]);
+                }
+                //stream_filter_append($stream, 'dechunk');
+            }
+            
+            foreach ($r as $key => $stream) {
+                $rawResponseData[$key] .= fread($stream, 1024);
+                if (feof($stream)) {
+                    $completed[$key] = true;
+                }
+            }
+            
+            if (count($completed) !== array_sum($completed)) {
+                // stream_select modifies the contents of $r
+                // in a loop we should replace it with the original
+                $r = $origStreams;
+                continue;
+            } else {
+                break;
+            }
+        }
+        
+        foreach ($rawResponseData as $key => $rawData) {
+            fclose($streams[$key]);
+            echo $traversableRequests[$key]->getUri() . " -- " . strlen($rawData) . "bytes\n~~~\n\n";
+        }
+    }
 
     /**
      * @param Request $request

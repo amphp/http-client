@@ -4,43 +4,11 @@ namespace Artax\Http;
 
 use StdClass,
     Traversable,
-    LogicException,
-    RuntimeException,
     InvalidArgumentException,
-    Artax\Events\Mediator;
+    Artax\Http\Exceptions\RawMessageParseException;
 
-class StdResponse implements Response {
+class MutableStdResponse extends StdResponse implements MutableResponse {
 
-    /**
-     * @var string
-     */
-    private $httpVersion = '1.1';
-
-    /**
-     * @var string
-     */
-    private $statusCode;
-
-    /**
-     * @var string
-     */
-    private $statusDescription;
-
-    /**
-     * @var array
-     */
-    private $headers = array();
-    
-    /**
-     * @var string
-     */
-    private $body = '';
-
-    /**
-     * @var bool
-     */
-    private $wasSent = false;
-    
     /**
      * @param string $rawStartLineStr
      * @return void
@@ -60,13 +28,6 @@ class StdResponse implements Response {
         $this->statusCode = $match[2];
         $this->statusDescription = $match[3];
     }
-    
-    /**
-     * @return string The HTTP version number (not prefixed by `HTTP/`)
-     */
-    public function getHttpVersion() {
-        return $this->httpVersion;
-    }
 
     /**
      * @param string $httpVersion
@@ -74,13 +35,6 @@ class StdResponse implements Response {
      */
     public function setHttpVersion($httpVersion) {
         $this->httpVersion = $httpVersion;
-    }
-
-    /**
-     * @return int
-     */
-    public function getStatusCode() {
-        return $this->statusCode;
     }
 
     /**
@@ -92,53 +46,11 @@ class StdResponse implements Response {
     }
 
     /**
-     * @return string
-     */
-    public function getStatusDescription() {
-        return $this->statusDescription;
-    }
-
-    /**
      * @param string $httpStatusDescription
      * @return void
      */
     public function setStatusDescription($httpStatusDescription) {
         $this->statusDescription = $httpStatusDescription;
-    }
-
-    /**
-     * @param string $headerName
-     * @return string
-     * @throws RuntimeException
-     * @todo Figure out the best exception to throw. Perhaps one isn't needed.
-     */
-    public function getHeader($headerName) {
-        if (!$this->hasHeader($headerName)) {
-            throw new RuntimeException();
-        }
-        
-        // Headers are case-insensitive:
-        // http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
-        $capsHeader = strtoupper($headerName);
-        return $this->headers[$capsHeader];
-    }
-
-    /**
-     * @param string $headerName
-     * @return bool
-     */
-    public function hasHeader($headerName) {
-        // Headers are case-insensitive:
-        // http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
-        $capsHeader = strtoupper($headerName);
-        return isset($this->headers[$capsHeader]) || array_key_exists($capsHeader, $this->headers);
-    }
-
-    /**
-     * @return array
-     */
-    public function getAllHeaders() {
-        return $this->headers;
     }
 
     /**
@@ -214,52 +126,13 @@ class StdResponse implements Response {
         $capsHeader = strtoupper($headerName);
         unset($this->headers[$capsHeader]);
     }
-    
-    /**
-     * @return string
-     */
-    public function getBody() {
-        return $this->body;
-    }
 
     /**
      * @param string $body
      * @return void
-     * @notifies sys.response.set-body(StdResponse $response)
      */
     public function setBody($bodyString) {
         $this->body = $bodyString;
-    }
-
-    /**
-     * Formats and sends all headers prior to outputting the message body.
-     * @return void
-     * @throws LogicException
-     */
-    public function send() {
-        if (!$this->statusCode) {
-            throw new LogicException('Cannot send response without an assigned HTTP status code');
-        }
-        
-        $headerStr = 'HTTP/' . $this->getHttpVersion() . ' ' . $this->getStatusCode() . ' ' .
-            $this->getStatusDescription();
-        
-        header($headerStr);
-        
-        foreach ($this->headers as $header => $value) {
-            header($header . ': ' . $value);
-        }
-
-        echo $this->body;
-        
-        $this->wasSent = true;
-    }
-
-    /**
-     * @return bool
-     */
-    public function wasSent() {
-        return $this->wasSent;
     }
     
     /**
@@ -267,7 +140,7 @@ class StdResponse implements Response {
      * 
      * @return void
      */
-    public function clearAssignedValues() {
+    public function clearAll() {
         $this->httpVersion = '1.1';
         $this->statusCode = null;
         $this->statusDescription = null;
@@ -281,14 +154,14 @@ class StdResponse implements Response {
      * 
      * @param string $rawMessage
      * @return void
-     * @throws InvalidArgumentException
+     * @throws Artax\Http\Exceptions\RawMessageParseException
      */
     public function populateFromRawMessage($rawMessage) {
-        $this->clearAssignedValues();
+        $this->clearAll();
         
         $startLineAndEverythingElse = explode("\r\n", $rawMessage, 2);
         if (2 !== count($startLineAndEverythingElse)) {
-            throw new InvalidArgumentException(
+            throw new RawMessageParseException(
                 'Invalid HTTP response message specified for parsing'
             );
         }
@@ -298,7 +171,7 @@ class StdResponse implements Response {
         try {
             $this->setStartLine($startLine);
         } catch (InvalidArgumentException $e) {
-            throw new InvalidArgumentException(
+            throw new RawMessageParseException(
                 'Invalid HTTP response message specified for parsing'
             );
         }
@@ -324,24 +197,37 @@ class StdResponse implements Response {
     }
     
     /**
+     * @param Response $response
+     */
+    public function populateFromResponse(Response $response) {
+        $this->setHttpVersion($response->getHttpVersion());
+        $this->setStatusCode($response->getStatusCode());
+        $this->setStatusDescription($response->getStatusDescription());
+        $this->setAllHeaders($response->getAllHeaders());
+        $this->setBody($response->getBody());
+    }
+    
+    /**
+     * Returns a fully stringified HTTP response message
+     * 
+     * If the current response properties do not pass validation an empty string is returned.
+     * 
+     * Messages generated in accordance with RFC2616 section 5:
+     * http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html#sec5
+     * 
      * @return string
      */
     public function __toString() {
-        $msg = 'HTTP/' . $this->getHttpVersion() . ' ' . $this->getStatusCode();
-        $msg.= ' ' . $this->getStatusDescription() . "\r\n";
-        
-        $headerArr = $this->getAllHeaders();
-        $headers = array_combine(
-            array_map('strtoupper', array_keys($headerArr)),
-            array_values($headerArr)
-        );
-        
-        foreach ($headers as $header => $value) {
-            $msg.= "$header: $value\r\n";
+        try {
+            $this->validateMessage();
+        } catch (MessageValidationException $e) {
+            return '';
         }
         
-        $msg.= "\r\n" . $this->getBody();
+        return parent::__toString();
+    }
+    
+    public function validateMessage() {
         
-        return $msg;
     }
 }

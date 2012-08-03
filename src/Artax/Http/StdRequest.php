@@ -11,37 +11,37 @@ class StdRequest implements FormEncodableRequest {
     /**
      * @var StdUri
      */
-    private $uri;
+    protected $uri;
     
     /**
      * @var string
      */
-    private $method;
+    protected $method;
     
     /**
      * @var array
      */
-    private $headers;
+    protected $headers = array();
     
     /**
      * @var string
      */
-    private $body;
+    protected $body;
     
     /**
      * @var string
      */
-    private $httpVersion;
+    protected $httpVersion;
     
     /**
      * @var array
      */
-    private $queryParameters;
+    protected $queryParameters;
     
     /**
      * @var array
      */
-    private $bodyParameters = array();
+    protected $bodyParameters = array();
 
     /**
      * @param mixed $uri A valid URI string or instance of Artax\Http\Uri
@@ -55,9 +55,14 @@ class StdRequest implements FormEncodableRequest {
     public function __construct($uri, $method, $headers = array(), $body = '', $httpVersion = '1.1') {
         $this->uri = $uri instanceof Uri ? $uri : $this->buildUriFromString($uri);
         $this->method = strtoupper($method);
-        $this->headers = $headers ? $this->normalizeHeaders($headers) : $headers;
+        
+        if ($headers) {
+            $this->assignAllHeaders($headers);
+        }
+        
         $this->body = $this->acceptsEntityBody() ? $body : '';
         $this->httpVersion = $httpVersion;
+        
         $this->queryParameters = $this->parseParametersFromString($this->uri->getQuery());
         
         if ($this->hasFormEncodedBody() && $this->acceptsEntityBody()) {
@@ -71,7 +76,7 @@ class StdRequest implements FormEncodableRequest {
      * @param string $uri
      * @return Artax\Http\StdUri
      */
-    private function buildUriFromString($uri) {
+    protected function buildUriFromString($uri) {
         try {
             return new StdUri($uri);
         } catch (InvalidArgumentException $e) {
@@ -85,16 +90,49 @@ class StdRequest implements FormEncodableRequest {
     }
     
     /**
+     * @param string $headerName
+     * @param string $value
+     * @return void
+     */
+    protected function assignHeader($headerName, $value) {
+        // Headers are case-insensitive as per the HTTP spec:
+        // http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
+        $normalizedHeader = rtrim(strtoupper($headerName), ': ');
+        $this->headers[$normalizedHeader] = $value;
+    }
+    
+    /**
+     * @param mixed $iterable
+     * @return void
+     * @throws InvalidArgumentException
+     */
+    protected function assignAllHeaders($iterable) {
+        if (!($iterable instanceof Traversable
+            || $iterable instanceof StdClass
+            || is_array($iterable)
+        )) {
+            $type = is_object($iterable) ? get_class($iterable) : gettype($iterable);
+            throw new InvalidArgumentException(
+                'Only an array, StdClass or Traversable object may be used to assign headers: ' .
+                "$type specified"
+            );
+        }
+        foreach ($iterable as $headerName => $value) {
+            $this->assignHeader($headerName, $value);
+        }
+    }
+    
+    /**
      * @param array $headers
      * @return array
      */
-    private function normalizeHeaders($headers) {
+    protected function normalizeHeaders($headers) {
         $normalized = array();
         
         foreach ($headers as $header => $value) {
             // Headers are case-insensitive as per the HTTP spec:
             // http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
-            $normalized[strtoupper($header)] = $value;
+            $normalized[rtrim(strtoupper($header), ': ')] = $value;
         }
         
         return $normalized;
@@ -115,8 +153,11 @@ class StdRequest implements FormEncodableRequest {
     protected function hasFormEncodedBody() {
         if (!$this->hasHeader('Content-Type')) {
             return false;
+        } else {
+            $contentType = strtolower($this->getHeader('Content-Type'));
         }
-        return strtolower($this->getHeader('Content-Type')) === 'application/x-www-form-urlencoded';
+        
+        return ($contentType == 'application/x-www-form-urlencoded');
     }
     
     /**
@@ -124,7 +165,8 @@ class StdRequest implements FormEncodableRequest {
      * @return bool
      */
     protected function acceptsEntityBody() {
-        return in_array($this->getMethod(), array('POST', 'PUT', 'OPTIONS'));
+        $methodsDisallowingEntityBody = array('GET', 'HEAD', 'DELETE', 'TRACE', 'CONNECT');
+        return !in_array($this->getMethod(), $methodsDisallowingEntityBody);
     }
 
     /**
@@ -215,7 +257,7 @@ class StdRequest implements FormEncodableRequest {
      * @return string
      */
     public function getRawUserInfo() {
-        return $this->uri->getRawUri();
+        return $this->uri->getRawUserInfo();
     }
 
     /**
@@ -249,7 +291,7 @@ class StdRequest implements FormEncodableRequest {
         // Headers are case-insensitive as per the HTTP spec:
         // http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
         $upHeader = strtoupper($header);
-        return isset($this->headers[$upHeader]) || array_key_exists($upHeader, $this->headers);
+        return array_key_exists($upHeader, $this->headers);
     }
 
     /**
@@ -345,7 +387,7 @@ class StdRequest implements FormEncodableRequest {
             $msg.= "?$queryStr";
         }
         $msg.= ' HTTP/' . $this->getHttpVersion() . "\r\n";
-        $msg.= 'HOST: ' . $this->getHost() . "\r\n";
+        $msg.= 'HOST: ' . $this->getAuthority() . "\r\n";
         
         if ($body = $this->getBody()) {
             $msg.= 'CONTENT-LENGTH: ' . strlen($body) . "\r\n";
@@ -374,7 +416,7 @@ class StdRequest implements FormEncodableRequest {
         foreach ($this->getAllHeaders() as $header => $value) {
             $msg.= "$header: $value\r\n";
         }
-        $msg.= "\r\n" . $this->getBody();
+        $msg.= "\r\n";
         
         return $msg;
     }
