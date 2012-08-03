@@ -302,37 +302,46 @@ class StdResponse implements Response {
      * Populate response values from a raw HTTP message
      * 
      * @param string $rawMessage
-     * @todo Determine appropriate exception to throw on parse failure
+     * @return void
+     * @throws InvalidArgumentException
      */
     public function populateFromRawMessage($rawMessage) {
-        $responsePattern = ",HTTP/(\d+\.\d+) (\d{3}) ([^(?:\r\n)]+)\r\n(.+)\r\n\r\n(.+)?,s";
-        if (!preg_match($responsePattern, $rawMessage, $match)) {
-            throw new RuntimeException(
-                'Failed parsing response from raw message: invalid format'
+        $this->clearAssignedValues();
+        
+        $startLineAndEverythingElse = explode("\r\n", $rawMessage, 2);
+        if (2 !== count($startLineAndEverythingElse)) {
+            throw new InvalidArgumentException(
+                'Invalid HTTP response message specified for parsing'
             );
         }
         
-        $this->clearAssignedValues();
+        list($startLine, $headersAndEverythingElse) = $startLineAndEverythingElse;
         
-        $this->setHttpVersion($match[1]);
-        $this->setStatusCode($match[2]);
-        $this->setStatusDescription($match[3]);
-        
-        $normalizedHeaders = preg_replace(",\r\n[ \t]+,", ' ', $match[4]);
-        
-        preg_match_all(
-            ',([^\s:]+):[ \t]*(.+),',
-            $normalizedHeaders,
-            $headerMatches,
-            PREG_SET_ORDER
-        );
-        
-        foreach ($headerMatches as $headerMatch) {
-            $this->setHeader($headerMatch[1], rtrim($headerMatch[2]));
+        try {
+            $this->setStartLine($startLine);
+        } catch (InvalidArgumentException $e) {
+            throw new InvalidArgumentException(
+                'Invalid HTTP response message specified for parsing'
+            );
         }
         
-        if (isset($match[5])) {
-            $this->setBody($match[5]);
+        $headersAndBody = explode("\r\n\r\n", $headersAndEverythingElse, 2);
+        $headers = $headersAndBody[0];
+        $body = isset($headersAndBody[1]) ? $headersAndBody[1] : '';
+        
+        $normalizedHeaders = preg_replace(",\r\n[ \t]+,", ' ', $headers);
+        preg_match_all(',([^\s:]+):[ \t]*(.+),', $normalizedHeaders, $matches, PREG_SET_ORDER);
+        
+        foreach ($matches as $match) {
+            $header = $match[1];
+            $value  = rtrim($match[2]);
+            if ($this->hasHeader($header)) {
+                $this->setHeader($header, $this->getHeader($header) . ',' . $value);
+            } else {
+                $this->setHeader($header, $value);
+            }
         }
+        
+        $this->setBody($body);
     }
 }
