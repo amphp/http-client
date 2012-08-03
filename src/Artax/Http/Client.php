@@ -3,7 +3,8 @@
 namespace Artax\Http;
 
 use RuntimeException,
-    InvalidArgumentException;
+    InvalidArgumentException,
+    Artax\Http\Exceptions\InfiniteRedirectException;
 
 class Client {
     
@@ -176,6 +177,47 @@ class Client {
             return $this->makeSslStream("ssl://$authority", $flags);
         }
     }
+    
+    /**
+     * @todo Determine appropriate exception to throw on stream failure
+     * @param string $uri
+     * @param int $flags
+     * @return resource
+     * @throws RuntimeException
+     */
+    protected function makeTcpStream($uri, $flags) {
+        $stream = @stream_socket_client($uri, $errNo, $errStr, $this->timeout, $flags);
+        
+        if (false === $stream) {
+            throw new RuntimeException($errStr, $errNo);
+        }
+        
+        return $stream;
+    }
+    
+    /**
+     * @todo Determine appropriate exception to throw on stream failure
+     * @param string $uri
+     * @param int $flags
+     * @return resource
+     * @throws RuntimeException
+     */
+    protected function makeSslStream($uri, $flags) {
+        if (!$this->isOpenSslLoaded) {
+            throw new RuntimeException(
+                '`openssl` extension must be loaded to originate SSL requests'
+            );
+        }
+        
+        $context = stream_context_create(array('ssl'=>$this->sslOptions));
+        $stream = @stream_socket_client($uri, $errNo, $errStr, $this->timeout, $flags, $context);
+        
+        if (false === $stream) {
+            throw new RuntimeException($errStr, $errNo);
+        }
+        
+        return $stream;
+    }
 
     /**
      * @todo Add error handling for different failure types (length/md5 mismatch, empty, etc)
@@ -187,6 +229,7 @@ class Client {
         $stream = $this->buildSocketStream($request);
         
         fwrite($stream, $request->__toString());
+        stream_filter_append($stream, 'dechunk');
         
         $rawResponseMessage = '';
         while (!feof($stream)) {
@@ -204,64 +247,6 @@ class Client {
         } else {
             return $response;
         }
-    }
-    
-    /**
-     * @todo Determine appropriate exception to throw on stream failure
-     * @param string $uri
-     * @param int $flags
-     * @return resource
-     * @throws RuntimeException
-     */
-    protected function makeTcpStream($uri, $flags) {
-        $stream = @stream_socket_client(
-            $uri,
-            $errorNo,
-            $errorStr,
-            $this->timeout,
-            $flags
-        );
-        
-        if (false === $stream) {
-            throw new RuntimeException(
-                "Connection to $socketUri failed: [error $errorNo] $errorStr"
-            );
-        }
-        
-        return $stream;
-    }
-    
-    /**
-     * @todo Determine appropriate exception to throw on stream failure
-     * @param string $uri
-     * @param int $flags
-     * @return resource
-     * @throws RuntimeException
-     */
-    protected function makeSslStream($uri, $flags) {
-        if (!$this->isOpenSslLoaded) {
-            throw new RuntimeException(
-                '`openssl` extension must be loaded to make SSL requests'
-            );
-        }
-        
-        $context = stream_context_create(array('ssl'=>$this->sslOptions));
-        $stream = @stream_socket_client(
-            $uri,
-            $errNo,
-            $errStr,
-            $this->timeout,
-            $flags,
-            $context
-        );
-        
-        if (false === $stream) {
-            throw new RuntimeException(
-                "Connection to $uri failed: [error $error] $errStr"
-            );
-        }
-        
-        return $stream;
     }
 
     /**
@@ -296,7 +281,7 @@ class Client {
         
         if (in_array($newLocation, $this->redirectHistory)) {
             throw new InfiniteRedirectException(
-                "Infinite redirect detected: $newLocation"
+                "Infinite redirect loop detected and aborted while redirecting to $newLocation"
             );
         }
         
