@@ -50,7 +50,7 @@ class StdRequest implements FormEncodableRequest {
      * @param string $body
      * @param string $httpVersion
      * @return void
-     * @throws DomainException On invalid HTTP method verb
+     * @throws InvalidArgumentException
      */
     public function __construct($uri, $method, $headers = array(), $body = '', $httpVersion = '1.1') {
         $this->uri = $uri instanceof Uri ? $uri : $this->buildUriFromString($uri);
@@ -58,7 +58,6 @@ class StdRequest implements FormEncodableRequest {
         $this->headers = $headers ? $this->normalizeHeaders($headers) : $headers;
         $this->body = $this->acceptsEntityBody() ? $body : '';
         $this->httpVersion = $httpVersion;
-        
         $this->queryParameters = $this->parseParametersFromString($this->uri->getQuery());
         
         if ($this->hasFormEncodedBody() && $this->acceptsEntityBody()) {
@@ -337,27 +336,37 @@ class StdRequest implements FormEncodableRequest {
         }
     }
     
+    /**
+     * @return string
+     */
     protected function buildMessage() {
         $msg = $this->getMethod() . ' ' . $this->getPath();
         if ($queryStr = $this->getQuery()) {
-            $msg .= "?$queryStr";
+            $msg.= "?$queryStr";
         }
-        $msg .= ' HTTP/' . $this->getHttpVersion() . "\r\n";
+        $msg.= ' HTTP/' . $this->getHttpVersion() . "\r\n";
+        $msg.= 'HOST: ' . $this->getHost() . "\r\n";
         
-        $msg.= 'Host: ' . $this->getHost() . "\r\n";
+        if ($body = $this->getBody()) {
+            $msg.= 'CONTENT-LENGTH: ' . strlen($body) . "\r\n";
+        }
         
         $headers = $this->getAllHeaders();
         unset($headers['HOST']);
+        unset($headers['CONTENT-LENGTH']);
         
         foreach ($headers as $header => $value) {
             $msg.= "$header: $value\r\n";
         }
         
-        $msg.= "\r\n" . $this->getBody();
+        $msg.= "\r\n$body";
         
         return $msg;
     }
     
+    /**
+     * @return string
+     */
     protected function buildConnectMessage() {
         $msg = 'CONNECT ' . $this->getRawAuthority() . ' ';
         $msg.= 'HTTP/' . $this->getHttpVersion() . "\r\n";
