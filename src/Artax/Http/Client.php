@@ -33,6 +33,11 @@ class Client {
     protected $responseChain;
     
     /**
+     * @var array
+     */
+    protected $redirectHistory;
+    
+    /**
      * @var bool
      */
     protected $isOpenSslLoaded;
@@ -125,6 +130,7 @@ class Client {
      */
     public function request(Request $request) {
         $this->responseChain = array();
+        $this->redirectHistory = array();
         return $this->doRequest($request);
     }
     
@@ -285,7 +291,14 @@ class Client {
      * @return Response
      */
     protected function doRedirect(Request $lastRequest, Response $lastResponse) {
+        $this->redirectHistory[] = $lastRequest->getRawUri();
         $newLocation = $this->normalizeLocationHeader($lastRequest, $lastResponse);
+        
+        if (in_array($newLocation, $this->redirectHistory)) {
+            throw new InfiniteRedirectException(
+                "Infinite redirect detected: $newLocation"
+            );
+        }
         
         $redirectedRequest = new StdRequest(
             $newLocation,
