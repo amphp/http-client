@@ -109,7 +109,7 @@ class StdRequestDetectorTest extends PHPUnit_Framework_TestCase {
      */
     public function testDetectBody() {
         $detector = new StdRequestDetector(new SuperglobalUriDetector);
-        $this->assertEquals('', $detector->detectBody());
+        $this->assertTrue(is_resource($detector->detectBody()));
     }
     
 }
