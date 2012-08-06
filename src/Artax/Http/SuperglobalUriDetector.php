@@ -24,7 +24,7 @@ class SuperglobalUriDetector {
         $query = $this->detectQuery($_server);
         
         $uri = "$scheme://$host";
-        $uri.= ($port != 80) ? ":$port" : '';
+        $uri.= ($port != $this->detectDefaultPort($_server)) ? ":$port" : '';
         $uri.= $path;
         $uri.= $query ? "?$query" : '';
         
@@ -81,7 +81,16 @@ class SuperglobalUriDetector {
      * @return string
      */
     private function detectPort(array $_server) {
-        return isset($_server['SERVER_PORT']) ? $_server['SERVER_PORT'] : 80;
+        $defaultPort = $this->detectDefaultPort($_server);
+        return isset($_server['SERVER_PORT']) ? $_server['SERVER_PORT'] : $defaultPort;
+    }
+
+    /**
+     * @param array $_server
+     * @return int
+     */
+    private function detectDefaultPort(array $_server) {
+        return $this->detectScheme($_server) === 'http' ? 80 : 443;
     }
     
     /**
@@ -101,7 +110,7 @@ class SuperglobalUriDetector {
      * 
      * @param array $_server A superglobal $_SERVER array
      * 
-     * @return string Returns http or https depending on the URI scheme
+     * @return string Returns "http" or "https" depending on the URI scheme
      */
     private function detectScheme(array $_server) {
         if (isset($_server['HTTPS'])

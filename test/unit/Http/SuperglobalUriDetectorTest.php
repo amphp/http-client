@@ -12,6 +12,26 @@ class SuperglobalUriDetectorTest extends PHPUnit_Framework_TestCase {
                 'expectedResult' => 'http://localhost/index.html'
             )),
             array(array(
+                'REQUEST_URI' => '/index.html',
+                'HTTP_HOST' => 'localhost',
+                'SERVER_PORT' => 80,
+                'expectedResult' => 'http://localhost/index.html'
+            )),
+            array(array(
+                'REQUEST_URI' => '/index.html',
+                'HTTP_HOST' => 'localhost',
+                'SERVER_PORT' => 443,
+                'HTTPS' => true,
+                'expectedResult' => 'https://localhost/index.html'
+            )),
+            array(array(
+                'REQUEST_URI' => '/index.html',
+                'HTTP_HOST' => 'localhost',
+                'SERVER_PORT' => 80,
+                'HTTPS' => true,
+                'expectedResult' => 'https://localhost:80/index.html'
+            )),
+            array(array(
                 'REDIRECT_URL' => '/redirect.php',
                 'HTTP_HOST' => 'localhost',
                 'HTTPS' => 'off',
