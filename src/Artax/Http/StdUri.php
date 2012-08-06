@@ -20,11 +20,16 @@ class StdUri implements Uri {
     
     /**
      * @param string $uri
+     * @throws InvalidArgumentException
      */
     public function __construct($uri) {
         $this->parseUri($uri);
     }
     
+    /**
+     * @param string $uri
+     * @throws InvalidArgumentException
+     */
     protected function parseUri($uri) {
         if (!$uriParts = @parse_url($uri)) {
             throw new InvalidArgumentException(

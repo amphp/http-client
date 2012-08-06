@@ -20,7 +20,7 @@
 use Artax\Http\StatusCodes,
     Artax\Http\StdRequestDetector,
     Artax\Http\StdRequestFactory,
-    Artax\Http\StdResponse,
+    Artax\Http\MutableStdResponse,
     Artax\Http\SuperglobalUriDetector,
     Artax\Events\Mediator,
     Artax\Framework\UnifiedErrorHandler,
@@ -75,7 +75,7 @@ if (!defined('ARTAX_DEBUG_MODE')) {
 error_reporting(E_ALL | E_STRICT);
 ini_set('display_errors', false);
 
-$unifiedHandler = new UnifiedErrorHandler(new StdResponse, $mediator, ARTAX_DEBUG_MODE);
+$unifiedHandler = new UnifiedErrorHandler(new MutableStdResponse, $mediator, ARTAX_DEBUG_MODE);
 $unifiedHandler->register();
 
 
@@ -96,7 +96,7 @@ $httpStatusHandlerDefinition = array(
 $http500HandlerDefinition = array(
     ':mediator' => $mediator,
     'request'  => 'Artax\\Http\\StdRequest',
-    'response' => 'Artax\\Http\\StdResponse'
+    'response' => 'Artax\\Http\\MutableStdResponse'
 );
 
 $observableRoutePoolDefinition = array(

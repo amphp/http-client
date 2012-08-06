@@ -35,6 +35,8 @@ interface MutableMessage {
      */
     function setBody($body);
     
+    function removeBody();
+    
     /**
      * @param string $rawMessageStr
      */

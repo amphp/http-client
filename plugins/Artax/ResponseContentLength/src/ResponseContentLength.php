@@ -9,7 +9,7 @@
  */
 namespace ArtaxPlugins;
 
-use Artax\Http\Response;
+use Artax\Http\MutableResponse;
 
 /**
  * Applies Content-Length header to HTTP responses
@@ -23,7 +23,7 @@ class ResponseContentLength {
      * @param Response $response
      * @return void
      */
-    public function __invoke(Response $response) {
+    public function __invoke(MutableResponse $response) {
         $this->setContentLengthHeader($response);
     }
     
@@ -31,7 +31,7 @@ class ResponseContentLength {
      * @param Response $response
      * @return void
      */
-    public function setContentLengthHeader(Response $response) {
+    public function setContentLengthHeader(MutableResponse $response) {
         // http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.3
         // 
         // "The presence of a message-body in a request is signaled by the inclusion of a

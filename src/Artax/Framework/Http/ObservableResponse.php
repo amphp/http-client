@@ -12,7 +12,7 @@
 namespace Artax\Framework\Http;
 
 use Artax\Events\Mediator,
-    Artax\Http\StdResponse;
+    Artax\Http\MutableStdResponse;
 
 /**
  * An observable HTTP response
@@ -21,7 +21,7 @@ use Artax\Events\Mediator,
  * @subpackage  Http
  * @author      Daniel Lowrey <rdlowrey@gmail.com>
  */
-class ObservableResponse extends StdResponse {
+class ObservableResponse extends MutableStdResponse {
     
     /**
      * @var Mediator
@@ -30,7 +30,7 @@ class ObservableResponse extends StdResponse {
     
     /**
      * @param Mediator
-     * @notifies sys.response.new(StdResponse $response)
+     * @notifies sys.response.new(MutableStdResponse $response)
      */
     public function __construct(Mediator $mediator) {
         $this->mediator = $mediator;
@@ -95,7 +95,7 @@ class ObservableResponse extends StdResponse {
     /**
      * @param string $body
      * @return void
-     * @notifies sys.response.set-body(StdResponse $response)
+     * @notifies sys.response.set-body(MutableStdResponse $response)
      */
     public function setBody($bodyString) {
         parent::setBody($bodyString);

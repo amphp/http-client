@@ -2,7 +2,7 @@
 
 use Artax\Http\Client,
     Artax\Http\StdRequest,
-    Artax\Http\StdResponse;
+    Artax\Http\MutableStdResponse;
 
 class ClientTest extends PHPUnit_Framework_TestCase {
     

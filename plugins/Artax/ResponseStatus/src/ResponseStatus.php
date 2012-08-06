@@ -9,7 +9,7 @@
  */
 namespace ArtaxPlugins;
 
-use Artax\Http\Response;
+use Artax\Http\MutableResponse;
 
 /**
  * -adds HTTP status code and description to outgoing responses if needed
@@ -27,18 +27,18 @@ use Artax\Http\Response;
  */
 class ResponseStatus {
     
-    public function __invoke(Response $response) {
+    public function __invoke(MutableResponse $response) {
         $this->setStatusCode($response);
         $this->setStatusDescription($response);
     }
     
-    public function setStatusCode(Response $response) {
+    public function setStatusCode(MutableResponse $response) {
         if (!$response->getStatusCode()) {
             $response->setStatusCode(200);
         }
     }
     
-    public function setStatusDescription(Response $response) {
+    public function setStatusDescription(MutableResponse $response) {
         if (null === $response->getStatusDescription()) {
             $constantName = 'HTTP_' . $response->getStatusCode();
             if ($description = constant("Artax\\Http\\StatusCodes::$constantName")) {

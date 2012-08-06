@@ -11,7 +11,7 @@ namespace ArtaxPlugins;
 
 use InvalidArgumentException,
     Artax\Http\Request,
-    Artax\Http\Response,
+    Artax\Http\MutableResponse,
     Artax\MediaRangeFactory,
     Artax\MimeTypeFactory,
     Artax\Encoding\CodecFactory,
@@ -45,10 +45,15 @@ class ResponseEncoder {
         $this->codecFactory = $codecFactory;
         
         if ($appConfig->has('Artax.ResponseEncoder.MediaRanges')) {
-            $customRangeStr = $appConfig->has('Artax.ResponseEncoder.MediaRanges');
+            $customRangeStr = $appConfig->get('Artax.ResponseEncoder.MediaRanges');
             $mediaRanges = array_map('trim', explode(',', $customRangeStr));
         } else {
-            $mediaRanges = array('text/*', 'application/json', 'application/xml');
+            $mediaRanges = array(
+                'text/*',
+                'application/json',
+                'application/xhtml+xml',
+                'application/xml'
+            );
         }
         
         $this->setCustomMediaRanges($mediaRanges);
@@ -62,11 +67,11 @@ class ResponseEncoder {
         $this->encodableMediaRanges = $customRanges;
     }
     
-    public function __invoke(Response $response) {
+    public function __invoke(MutableResponse $response) {
         $this->encode($response);
     }
     
-    public function encode(Response $response) {
+    public function encode(MutableResponse $response) {
         if (!($response->hasHeader('Content-Type') && $response->hasHeader('Content-Encoding'))) {
             return;
         }
@@ -97,7 +102,7 @@ class ResponseEncoder {
         $this->setVaryHeader($response);
     }
     
-    protected function getEncodableMimeType(Response $response) {
+    protected function getEncodableMimeType(MutableResponse $response) {
         $rawHeader = $response->getHeader('Content-Type');
         
         if (strpos($rawHeader, ';')) {
@@ -149,7 +154,7 @@ class ResponseEncoder {
         return true;
     }
     
-    protected function setVaryHeader(Response $response) {
+    protected function setVaryHeader(MutableResponse $response) {
         if (!$response->hasHeader('Vary')) {
             $response->setHeader('Vary', 'Accept-Encoding,User-Agent');
             return;

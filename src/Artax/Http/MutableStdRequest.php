@@ -124,6 +124,10 @@ class MutableStdRequest extends StdRequest implements MutableRequest {
         }
     }
     
+    public function removeBody() {
+        $this->body = null;
+    }
+    
     /**
      * Reset the object to its original state
      * 
@@ -134,7 +138,7 @@ class MutableStdRequest extends StdRequest implements MutableRequest {
         $this->uri = null;
         $this->httpVersion = '1.1';
         $this->headers = array();
-        $this->body = '';
+        $this->body = null;
         $this->queryParameters = array();
         $this->bodyParameters = array();
     }

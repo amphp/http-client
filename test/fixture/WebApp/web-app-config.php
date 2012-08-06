@@ -12,11 +12,10 @@ $cfg->requiredFiles = array(
 
 $cfg->plugins = array(
     'Artax/RouteShortcuts'        => true,
-    'Artax/ResponseContentLength' => 1,
-    'Artax/ResponseStatus'        => 'yes',
+    'Artax/ResponseContentLength' => true,
+    'Artax/ResponseStatus'        => true,
     'Artax/ResponseDate'          => true,
-    'Artax/ResponseEncoder'       => true,
-    'SomeNonexistentPlugin'       => 'no'
+    'Artax/ResponseEncoder'       => true
 );
 
 $cfg->routes = array(
@@ -30,7 +29,9 @@ $cfg->routes = array(
     '/auto-status' => 'WebApp\\Resources\\PluginAutoStatus',
     '/auto-length' => 'WebApp\\Resources\\PluginAutoContentLength',
     '/negotiation' => 'WebApp\\Resources\\Negotiation',
-    '/diagnostics' => 'WebApp\\Resources\\Diagnostics'
+    '/diagnostics' => 'WebApp\\Resources\\Diagnostics',
+    '/get-redir'   => 'WebApp\\Resources\\GetRedirect',
+    '/async'       => 'WebApp\\Resources\\AsyncTest'
 );
 
 $cfg->eventListeners = array(

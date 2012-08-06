@@ -149,6 +149,7 @@ class MutableStdRequestTest extends PHPUnit_Framework_TestCase {
         
         $this->assertNull($request->getUri());
         $this->assertEquals(null, $request->getMethod());
+        $this->assertEquals(null, $request->getBody());
         $this->assertEquals(array(), $request->getAllHeaders());
         $this->assertEquals(array(), $request->getAllQueryParameters());
         $this->assertEquals(array(), $request->getAllBodyParameters());
@@ -282,7 +283,6 @@ class MutableStdRequestTest extends PHPUnit_Framework_TestCase {
         
         $expected = "POST / HTTP/1.0\r\n";
         $expected.= "HOST: localhost\r\n";
-        $expected.= "CONTENT-LENGTH: " . strlen('test') . "\r\n";
         $expected.= "CONTENT-TYPE: text/plain\r\n";
         $expected.= "\r\n";
         $expected.= "test";
@@ -305,7 +305,6 @@ class MutableStdRequestTest extends PHPUnit_Framework_TestCase {
         
         $rawData = "POST / HTTP/1.0\r\n";
         $rawData.= "HOST: localhost\r\n";
-        $rawData.= "CONTENT-LENGTH: " . strlen('test') . "\r\n";
         $rawData.= "CONTENT-TYPE: text/plain\r\n";
         $rawData.= "\r\n";
         $rawData.= "test";

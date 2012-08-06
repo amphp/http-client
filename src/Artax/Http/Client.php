@@ -3,10 +3,15 @@
 namespace Artax\Http;
 
 use RuntimeException,
-    InvalidArgumentException,
-    Artax\Http\Exceptions\InfiniteRedirectException;
+    Artax\Http\Exceptions\InfiniteRedirectException,
+    Artax\Http\Exceptions\MessageParseException;
 
 class Client {
+    
+    /**
+     * @var string
+     */
+    protected $userAgent = 'Artax-Http/0.1 (PHP5.3+)';
     
     /**
      * @var int
@@ -26,7 +31,7 @@ class Client {
     /**
      * @var int
      */
-    protected $timeout;
+    protected $timeout = 60;
 
     /**
      * @var array
@@ -44,13 +49,23 @@ class Client {
     protected $isOpenSslLoaded;
     
     /**
+     * @var bool
+     */
+    protected $acceptedEncodings;
+    
+    /**
+     * @var array
+     */
+    protected $connectionPool = array();
+    
+    /**
      * @var array
      */
     protected $sslOptions = array();
 
     public function __construct() {
-        $this->timeout = ini_get('default_socket_timeout');
         $this->isOpenSslLoaded = $this->getOpenSslStatus();
+        $this->acceptedEncodings = $this->getAcceptedEncodings();
     }
     
     /**
@@ -59,9 +74,31 @@ class Client {
     protected function getOpenSslStatus() {
         return extension_loaded('openssl');
     }
+    
+    /**
+     * @return void
+     */
+    protected function getAcceptedEncodings() {
+        if (!extension_loaded('zlib')) {
+            return 'identity';
+        }
+        
+        $encodings = array();
+        
+        if (function_exists('gzdecode')) {
+            $encodings[] = 'gzip';
+        }
+        if (function_exists('gzinflate')) {
+            $encodings[] = 'deflate';
+        }
+        
+        $encodings[] = 'identity';
+        
+        return implode(',', $encodings);
+    }
 
     /**
-     * Set the number of seconds before a request times out.
+     * Set the number of seconds before a socket connection idles out.
      * 
      * @param int $seconds
      * @return void
@@ -127,7 +164,8 @@ class Client {
      * 
      * @param Request $request
      * @return Response
-     * @throws RuntimeException
+     * @throws Artax\Http\Exceptions\MessageValidationException
+     * @throws Artax\Http\Exceptions\ConnectException
      */
     public function request(Request $request) {
         $this->responseChain = array();
@@ -136,177 +174,386 @@ class Client {
     }
     
     /**
-     * Request an HTTP resource, returning an array of Response objects created by redirection
+     * Request an HTTP resource, returning an array of transparently redirected Responses
      * 
      * @param Request $request
      * @return array
+     * @throws Artax\Http\Exceptions\MessageValidationException
+     * @throws Artax\Http\Exceptions\ConnectException
      */
-    public function requestChain(Request $request) {
+    public function requestRedirectTrace(Request $request) {
         $this->request($request);
         return $this->responseChain;
     }
     
     /**
-     * Send an HTTP request and don't wait for a response
+     * Send an HTTP request and don't bother to wait for a response
      * 
+     * @todo add error handling for networking failures
      * @param Request $request
      * @return void
+     * @throws Artax\Http\Exceptions\MessageValidationException
+     * @throws Artax\Http\Exceptions\ConnectException
      */
     public function requestAsync(Request $request) {
-        $stream = $this->buildSocketStream(
-            $request, STREAM_CLIENT_CONNECT | STREAM_CLIENT_ASYNC_CONNECT
-        );
+        $request = $this->normalizeRequest($request);
         
-        fwrite($stream, $request->__toString());
-        fclose($stream);
+        $socketUri = $this->getSocketUriFromRequest($request);
+        $flags = STREAM_CLIENT_CONNECT | STREAM_CLIENT_ASYNC_CONNECT;
+        $stream = $this->openConnection($socketUri, $flags);
+        
+        $this->writeRequestToStream($request, $stream);
+        $this->closeConnection($stream);
     }
     
     /**
-     * THIS IS EXPERIMENTAL -- DON'T USE IT YET.
-     * THIS IS EXPERIMENTAL -- DON'T USE IT YET.
-     * THIS IS EXPERIMENTAL -- DON'T USE IT YET.
-     * THIS IS EXPERIMENTAL -- DON'T USE IT YET.
-     * THIS IS EXPERIMENTAL -- DON'T USE IT YET.
-     */
-    public function requestParallel($traversableRequests) {
-        $exceptions = array();
-        $streams = array();
-        
-        foreach ($traversableRequests as $key => $request) {
-            try {
-                $stream = $this->buildSocketStream($request);
-                stream_set_blocking($stream, 0);
-                $streams[$key] = $stream;
-            } catch (Exception $e) {
-                $exceptions[$key] = $e;
-            }
-        }
-        
-        $rawResponseData = array_map(function($x) { return ''; }, array_flip(array_keys($streams)));
-        $completed = array_map(function($x) { return false; }, $rawResponseData);
-        
-        $r = $w = $origStreams = $streams;
-        $e = array();
-        
-        while (stream_select($r, $w, $e, 0, 350000)) {
-        
-            foreach ($w as $key => $stream) {
-                $request = $traversableRequests[$key];
-                $bytes = fwrite($stream, $request->__toString());
-                if ($bytes == strlen($request)) {
-                    unset($w[$key]);
-                }
-                //stream_filter_append($stream, 'dechunk');
-            }
-            
-            foreach ($r as $key => $stream) {
-                $rawResponseData[$key] .= fread($stream, 1024);
-                if (feof($stream)) {
-                    $completed[$key] = true;
-                }
-            }
-            
-            if (count($completed) !== array_sum($completed)) {
-                // stream_select modifies the contents of $r
-                // in a loop we should replace it with the original
-                $r = $origStreams;
-                continue;
-            } else {
-                break;
-            }
-        }
-        
-        foreach ($rawResponseData as $key => $rawData) {
-            fclose($streams[$key]);
-            echo $traversableRequests[$key]->getUri() . " -- " . strlen($rawData) . "bytes\n~~~\n\n";
-        }
-    }
-
-    /**
-     * @param Request $request
-     * @param int $flags
-     * @return resource
-     * @throws RuntimeException
-     */
-    protected function buildSocketStream(Request $request, $flags = STREAM_CLIENT_CONNECT) {
-        $scheme = strcmp('https', $request->getScheme()) ? 'tcp' : 'ssl';
-        $authority = $request->getHost() . ':' . $request->getPort();
-        
-        if ($scheme == 'tcp') {
-            return $this->makeTcpStream("tcp://$authority", $flags);
-        } else {
-            return $this->makeSslStream("ssl://$authority", $flags);
-        }
-    }
-    
-    /**
-     * @todo Determine appropriate exception to throw on stream failure
-     * @param string $uri
-     * @param int $flags
-     * @return resource
-     * @throws RuntimeException
-     */
-    protected function makeTcpStream($uri, $flags) {
-        $stream = @stream_socket_client($uri, $errNo, $errStr, $this->timeout, $flags);
-        
-        if (false === $stream) {
-            throw new RuntimeException($errStr, $errNo);
-        }
-        
-        return $stream;
-    }
-    
-    /**
-     * @todo Determine appropriate exception to throw on stream failure
-     * @param string $uri
-     * @param int $flags
-     * @return resource
-     * @throws RuntimeException
-     */
-    protected function makeSslStream($uri, $flags) {
-        if (!$this->isOpenSslLoaded) {
-            throw new RuntimeException(
-                '`openssl` extension must be loaded to originate SSL requests'
-            );
-        }
-        
-        $context = stream_context_create(array('ssl'=>$this->sslOptions));
-        $stream = @stream_socket_client($uri, $errNo, $errStr, $this->timeout, $flags, $context);
-        
-        if (false === $stream) {
-            throw new RuntimeException($errStr, $errNo);
-        }
-        
-        return $stream;
-    }
-
-    /**
-     * @todo Add error handling for different failure types (length/md5 mismatch, empty, etc)
      * @param Request $request
      * @return Response
-     * @throws RuntimeException
+     * @throws Artax\Http\Exceptions\MessageParseException
      */
     protected function doRequest(Request $request) {
-        $stream = $this->buildSocketStream($request);
+        $request   = $this->normalizeRequest($request);
+        $socketUri = $this->getSocketUriFromRequest($request);
+        $stream    = $this->openConnection($socketUri);
         
-        fwrite($stream, $request->__toString());
-        stream_filter_append($stream, 'dechunk');
+        $this->writeRequestToStream($request, $stream);
+        $response  = $this->readResponseHeadersFromStream($stream);
         
-        $rawResponseMessage = '';
-        while (!feof($stream)) {
-            $rawResponseMessage.= fread($stream, 8192);
+        $statusCode = $response->getStatusCode();
+        
+        if ($this->statusCodeAllowsEntityBody($statusCode)) {
+            $this->assignEntityBodyFromStream($response, $stream);
         }
-        fclose($stream);
         
-        $response = new StdResponse();
-        $response->populateFromRawMessage($rawResponseMessage);
+        if ($this->shouldCloseConnection($response)) {
+            $this->closeConnection($stream);
+        }
         
         $this->responseChain[] = $response;
         
         if ($this->canRedirect($request, $response)) {
-            return $this->doRedirect($request, $response);
+            $response = $this->doRedirect($request, $response);
+        }
+        
+        return $response;
+    }
+    
+    /**
+     * @param Request $request
+     * @return Request
+     * @throws Artax\Http\Exceptions\MessageValidationException
+     */
+    protected function normalizeRequest(Request $request) {
+        $mutable = $request instanceof ProxyRequest
+            ? new MutableProxyRequest()
+            : new MutableStdRequest();
+        
+        $mutable->populateFromRequest($request);
+        $mutable->validateMessage();
+        
+        $mutable->setHeader('User-Agent', $this->userAgent);
+        $mutable->setHeader('Accept-Encoding', $this->acceptedEncodings);
+        
+        if ($body = $mutable->getBody() && !$mutable->hasHeader('Content-Length')) {
+            $mutable->setHeader('Content-Length', strlen($body));
+        }
+        
+        return $mutable;
+    }
+    
+    /**
+     * @param Response $response
+     * @param resource $stream
+     * @return void
+     */
+    protected function assignEntityBodyFromStream(Response $response, $stream) {
+        
+        if ($this->isChunked($response)) {
+            $body = $this->readChunkedEntityBody($stream);
+        } elseif ($response->hasHeader('Content-Length')) {
+            $length = $response->getHeader('Content-Length');
+            $body = $this->readEntityBodyWithLength($stream, $length);
         } else {
+            $body = $this->readEntityBodyFromClosingConnection($stream);
+        }
+        
+        if ($response->hasHeader('Content-Encoding')) {
+            $encoding = strtolower($response->getHeader('Content-Encoding'));
+            $body = $this->decodeEntityBody($encoding, $body);
+        }
+        
+        $response->setBody($body);
+    }
+    
+    /**
+     * @todo add error handling for request send failure
+     * @param Request $request
+     * @param resource $stream
+     * @return void
+     * @throws Artax\Http\Exceptions\NetworkTransferException
+     */
+    protected function writeRequestToStream(Request $request, $stream) {
+        $rawRequestMessage = $request->__toString();
+        
+        $totalBytes = strlen($rawRequestMessage);
+        $bytesRemaining = $totalBytes;
+        while (false !== ($bytes = @fwrite($stream, $rawRequestMessage, $bytesRemaining))) {
+            $bytesRemaining -= $bytes;
+            if ($bytesRemaining <= 0) {
+                return;
+            }
+        }
+        
+        $errorMsg = $this->getTransferErrorMessage($stream, 'Request');
+        throw new NetworkTransferException($errorMsg);
+    }
+    
+    /**
+     * @todo Add error handling for invalid raw response message or fgets failure
+     * @param resource $stream
+     * @return Response $response
+     * @throws Artax\Http\Exceptions\NetworkTransferException
+     */
+    protected function readResponseHeadersFromStream($stream) {
+        $buffer = '';
+        while (false !== ($data = @fgets($stream, 8192))) {
+            $buffer .= $data;
+            if ($data !== "\r\n") {
+                continue;
+            }
+            if (!preg_match(",(.+)\r\n(.+)\r\n\r\n,smU", $buffer, $match)) {
+                throw new MessageParseException(
+                    "Invalid HTTP message headers received; cannot continue: $buffer"
+                );
+            }
+            
+            $response = new MutableStdResponse;
+            $response->setStartLine($match[1]);
+            $response->setAllRawHeaders($match[2]);
+            
             return $response;
+        }
+        
+        $errorMsg = $this->getTransferErrorMessage($stream, 'Response');
+        throw new NetworkTransferException($errorMsg);
+    }
+    
+    
+    /**
+     * @param int $statusCode
+     * @return bool
+     */
+    protected function statusCodeAllowsEntityBody($statusCode) {
+        if ($statusCode == 204) {
+            return false;
+        }
+        if ($statusCode == 304) {
+            return false;
+        }
+        if ($statusCode >= 100 && $statusCode < 200) {
+            return false;
+        }
+        return true;
+    }
+    
+    /**
+     * @param resource $stream
+     * @return string
+     * @throws Artax\Http\Exceptions\NetworkTransferException
+     */
+    protected function readChunkedEntityBody($stream) {
+        $tmpHandle = fopen('php://memory', 'r+');
+        
+        while (false !== ($data = @fgets($stream, 8192))) {
+            fwrite($tmpHandle, $data);
+            if ($data == "0\r\n") {
+                break;
+            }
+        }
+        
+        if (false === $data) {
+            $errorMsg = $this->getTransferErrorMessage($stream, 'Response');
+            throw new NetworkTransferException($errorMsg);
+        }
+        
+        stream_filter_prepend($tmpHandle, 'dechunk');
+        rewind($tmpHandle);
+        return stream_get_contents($tmpHandle);
+    }
+    
+    /**
+     * @param resource $stream
+     * @param int $contentLength
+     * @return string
+     * @throws Artax\Http\Exceptions\NetworkTransferException
+     */
+    protected function readEntityBodyWithLength($stream, $contentLength) {
+        if (!$contentLength) {
+            return;
+        }
+        
+        $buffer = '';
+        while (false !== ($data = @fread($stream, $contentLength))) {
+            $buffer.= $data;
+            if (strlen($buffer) == $contentLength) {
+                return $buffer;
+            }
+        }
+        
+        $errorMsg = $this->getTransferErrorMessage($stream, 'Response');
+        throw new NetworkTransferException($errorMsg);
+    }
+    
+    /**
+     * @param resource $stream
+     * @return string
+     * @throws Artax\Http\Exceptions\NetworkTransferException
+     */
+    protected function readEntityBodyFromClosingConnection($stream) {
+        $buffer = '';
+        while ($data = @fread($stream, 8192)) {
+			$buffer .= $data;
+		}
+		
+		if (false === $data) {
+		    $errorMsg = $this->getTransferErrorMessage($stream, 'Response');
+            throw new NetworkTransferException($errorMsg);
+		}
+		
+		return $buffer;
+    }
+    
+    /**
+     * @param resource $stream
+     * @param string $transferType
+     */
+    protected function getTransferErrorMessage($stream, $transferType) {
+        $metaData = stream_get_meta_data($stream);
+        $timeout = $metaData['timed_out'];
+        
+        $msg = "$transferType failure: connection to {$metaData['uri']} ";
+        $msg.= $timeout ? "timed out ({$this->timeout} seconds)" : " was lost during transfer";
+        
+        return $msg;
+    }
+    
+    /**
+     * @param Response $response
+     * @return bool
+     */
+    protected function isChunked(Response $response) {
+        if (!$response->hasHeader('Transfer-Encoding')) {
+            return false;
+        }
+        
+        $transferEncoding = $response->getHeader('Transfer-Encoding');
+        
+        // http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.4
+        // 
+        // "If a Transfer-Encoding header field (section 14.41) is present and has any value other 
+        // than "identity", then the transfer-length is defined by use of the "chunked" 
+        // transfer-coding (section 3.6), unless the message is terminated by closing the 
+        // connection.
+        $isChunked = strtolower($transferEncoding) !== 'identity';
+        
+        return $isChunked;
+    }
+    
+    /**
+     * @param Response $response
+     * @return bool
+     */
+    protected function shouldCloseConnection(Response $response) {
+        //http://www.w3.org/Protocols/rfc2616/rfc2616-sec8.html#sec8.1.2
+        // 
+        // "... unless otherwise indicated, the client SHOULD assume that the server will maintain "
+        // a persistent connection"
+        if (!$response->hasHeader('Connection')) {
+            return false;
+        }
+        
+        return ('close' == $response->getHeader('Connection'));
+    }
+    
+    /**
+     * @param string $encoding
+     * @param string $encodedBodyStr
+     * @return string
+     */
+    protected function decodeEntityBody($encoding, $encodedBodyStr) {
+        switch (strtolower($encoding)) {
+            case 'gzip':
+                return gzdecode($encodedBodyStr);
+            case 'deflate':
+                return gzinflate($encodedBodyStr);
+            default:
+                return $encodedBodyStr;
+        }
+    }
+    
+    /**
+     * @param Request $request
+     * @return string
+     */
+    protected function getSocketUriFromRequest(Request $request) {
+        $scheme = strcmp('https', $request->getScheme()) ? 'tcp' : 'ssl';
+        $authority = $request->getHost() . ':' . $request->getPort();
+        
+        return "$scheme://$authority";
+    }
+    
+    /**
+     * @param string $socketUri
+     * @return resource
+     */
+    protected function openConnection($socketUri, $flags = STREAM_CLIENT_CONNECT) {
+        if (isset($this->connectionPool[$socketUri])) {
+            return $this->connectionPool[$socketUri];
+        }
+        
+        $stream = $this->makeStreamFromSocketUri($socketUri, $flags);
+        $this->connectionPool[$socketUri] = $stream;
+        
+        return $stream;
+    }
+    
+    /**
+     * @param string $uri
+     * @param int $flags
+     * @return resource
+     * @throws Artax\Http\Exceptions\ConnectException
+     */
+    protected function makeStreamFromSocketUri($uri, $flags) {
+        $scheme = parse_url($uri, PHP_URL_SCHEME);
+        
+        if ('tcp' == $scheme) {
+            $stream = @stream_socket_client($uri, $errNo, $errStr, $this->timeout, $flags);
+        } else {
+            if (!$this->isOpenSslLoaded) {
+                throw new RuntimeException(
+                    '`openssl` extension must be loaded to originate SSL requests'
+                );
+            }
+            
+            $context = stream_context_create(array('ssl' => $this->sslOptions));
+            $stream = @stream_socket_client($uri, $errNo, $errStr, $this->timeout, $flags, $context);
+        }
+        
+        if (false === $stream) {
+            throw new ConnectException($errStr, $errNo);
+        }
+        
+        return $stream;
+    }
+    
+    /**
+     * @param string $socketUri
+     * @return void
+     */
+    protected function closeConnection($stream) {
+        @fclose($stream);
+        if (false !== ($key = array_search($stream, $this->connectionPool))) {
+            unset($this->connectionPool[$key]);
         }
     }
 

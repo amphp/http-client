@@ -2,7 +2,7 @@
 
 namespace Artax\Http;
 
-class ProxyRequest extends StdRequest {
+class MutableProxyRequest extends MutableStdRequest implements MutableRequest {
     
     /**
      * Builds a raw HTTP request message for sending to a proxy server

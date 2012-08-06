@@ -9,7 +9,7 @@
  */
 namespace ArtaxPlugins;
 
-use Artax\Http\Response;
+use Artax\Http\MutableResponse;
 
 /**
  * ApplY RFC 1123 Date header to an HTTP response
@@ -26,7 +26,7 @@ class ResponseDate {
      * @param Response $response
      * @return void
      */
-    public function __invoke(Response $response) {
+    public function __invoke(MutableResponse $response) {
         $this->setDateHeader($response);
     }
     
@@ -34,7 +34,7 @@ class ResponseDate {
      * @param Response $response
      * @return void
      */
-    public function setDateHeader(Response $response) {
+    public function setDateHeader(MutableResponse $response) {
         $rf1123Date = $this->buildRfc1123Date();
         $response->setHeader('Date', $rf1123Date);
     }

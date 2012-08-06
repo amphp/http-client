@@ -11,7 +11,7 @@ class Http405Test extends PHPUnit_Framework_TestCase {
     public function testBeginsEmpty() {
         $mediator = $this->getMock('Artax\\Events\\Mediator');
         $request  = $this->getMock('Artax\\Http\\Request');
-        $response = $this->getMock('Artax\\Http\\Response');
+        $response = $this->getMock('Artax\\Http\\MutableResponse');
         
         $handler = new Http405($mediator, $request, $response);
         $this->assertInstanceOf(
@@ -27,7 +27,7 @@ class Http405Test extends PHPUnit_Framework_TestCase {
         $e = new MethodNotAllowedException(array('post'));
         
         $request  = $this->getMock('Artax\\Http\\Request');
-        $response = $this->getMock('Artax\\Http\\Response');
+        $response = $this->getMock('Artax\\Http\\MutableResponse');
         $response->expects($this->once())
                  ->method('setStatusCode')
                  ->with(405);
@@ -60,7 +60,7 @@ class Http405Test extends PHPUnit_Framework_TestCase {
         $e = new MethodNotAllowedException(array('post'));
         
         $request  = $this->getMock('Artax\\Http\\Request');
-        $response = $this->getMock('Artax\\Http\\Response');
+        $response = $this->getMock('Artax\\Http\\MutableResponse');
         
         $mediator = $this->getMock('Artax\\Events\\Mediator');
         $mediator->expects($this->once())

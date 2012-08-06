@@ -6,7 +6,7 @@ use DomainException,
     RuntimeException,
     InvalidArgumentException;
 
-class StdRequest implements FormEncodableRequest {
+class StdRequest extends StdMessage implements FormEncodableRequest {
     
     /**
      * @var StdUri
@@ -21,21 +21,6 @@ class StdRequest implements FormEncodableRequest {
     /**
      * @var array
      */
-    protected $headers = array();
-    
-    /**
-     * @var string
-     */
-    protected $body;
-    
-    /**
-     * @var string
-     */
-    protected $httpVersion;
-    
-    /**
-     * @var array
-     */
     protected $queryParameters;
     
     /**
@@ -46,7 +31,7 @@ class StdRequest implements FormEncodableRequest {
     /**
      * @param mixed $uri A valid URI string or instance of Artax\Http\Uri
      * @param string $method
-     * @param array $headers
+     * @param mixed $headers
      * @param string $body
      * @param string $httpVersion
      * @return void
@@ -90,55 +75,6 @@ class StdRequest implements FormEncodableRequest {
     }
     
     /**
-     * @param string $headerName
-     * @param string $value
-     * @return void
-     */
-    protected function assignHeader($headerName, $value) {
-        // Headers are case-insensitive as per the HTTP spec:
-        // http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
-        $normalizedHeader = rtrim(strtoupper($headerName), ': ');
-        $this->headers[$normalizedHeader] = $value;
-    }
-    
-    /**
-     * @param mixed $iterable
-     * @return void
-     * @throws InvalidArgumentException
-     */
-    protected function assignAllHeaders($iterable) {
-        if (!($iterable instanceof Traversable
-            || $iterable instanceof StdClass
-            || is_array($iterable)
-        )) {
-            $type = is_object($iterable) ? get_class($iterable) : gettype($iterable);
-            throw new InvalidArgumentException(
-                'Only an array, StdClass or Traversable object may be used to assign headers: ' .
-                "$type specified"
-            );
-        }
-        foreach ($iterable as $headerName => $value) {
-            $this->assignHeader($headerName, $value);
-        }
-    }
-    
-    /**
-     * @param array $headers
-     * @return array
-     */
-    protected function normalizeHeaders($headers) {
-        $normalized = array();
-        
-        foreach ($headers as $header => $value) {
-            // Headers are case-insensitive as per the HTTP spec:
-            // http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
-            $normalized[rtrim(strtoupper($header), ': ')] = $value;
-        }
-        
-        return $normalized;
-    }
-    
-    /**
      * @param string $paramString
      * @return array
      */
@@ -167,13 +103,6 @@ class StdRequest implements FormEncodableRequest {
     protected function acceptsEntityBody() {
         $methodsDisallowingEntityBody = array('GET', 'HEAD', 'DELETE', 'TRACE', 'CONNECT');
         return !in_array($this->getMethod(), $methodsDisallowingEntityBody);
-    }
-
-    /**
-     * @return string The HTTP version, not prefixed by `HTTP/`
-     */
-    public function getHttpVersion() {
-        return $this->httpVersion;
     }
     
     /**
@@ -266,47 +195,6 @@ class StdRequest implements FormEncodableRequest {
     public function getMethod() {
         return $this->method;
     }
-
-    /**
-     * @param string $header
-     * @return string
-     * @throws RuntimeException if the header doesn't exist.
-     * @todo Figure out the best exception to throw.
-     */
-    public function getHeader($header) {
-        if (!$this->hasHeader($header)) {
-            throw new RuntimeException();
-        }
-        // Headers are case-insensitive as per the HTTP spec:
-        // http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
-        $upHeader = strtoupper($header);
-        return $this->headers[$upHeader];
-    }
-
-    /**
-     * @param string $header
-     * @return bool
-     */
-    public function hasHeader($header) {
-        // Headers are case-insensitive as per the HTTP spec:
-        // http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
-        $upHeader = strtoupper($header);
-        return array_key_exists($upHeader, $this->headers);
-    }
-
-    /**
-     * @return array
-     */
-    public function getAllHeaders() {
-        return $this->headers;
-    }
-
-    /**
-     * @return string
-     */
-    public function getBody() {
-        return $this->body;
-    }
     
     /**
      * @param string $parameter
@@ -389,19 +277,14 @@ class StdRequest implements FormEncodableRequest {
         $msg.= ' HTTP/' . $this->getHttpVersion() . "\r\n";
         $msg.= 'HOST: ' . $this->getAuthority() . "\r\n";
         
-        if ($body = $this->getBody()) {
-            $msg.= 'CONTENT-LENGTH: ' . strlen($body) . "\r\n";
-        }
-        
         $headers = $this->getAllHeaders();
         unset($headers['HOST']);
-        unset($headers['CONTENT-LENGTH']);
         
         foreach ($headers as $header => $value) {
             $msg.= "$header: $value\r\n";
         }
         
-        $msg.= "\r\n$body";
+        $msg.= "\r\n" . $this->getBody();
         
         return $msg;
     }
@@ -410,7 +293,7 @@ class StdRequest implements FormEncodableRequest {
      * @return string
      */
     protected function buildConnectMessage() {
-        $msg = 'CONNECT ' . $this->getRawAuthority() . ' ';
+        $msg = 'CONNECT ' . $this->getAuthority() . ' ';
         $msg.= 'HTTP/' . $this->getHttpVersion() . "\r\n";
         
         foreach ($this->getAllHeaders() as $header => $value) {

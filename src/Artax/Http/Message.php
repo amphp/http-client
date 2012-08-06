@@ -9,10 +9,11 @@ namespace Artax\Http;
 interface Message {
     
     /**
-     * @return string Returns the HTTP version number, not prefixed by `HTTP/`
+     * @param string $headerName
+     * @return bool
      */
-    function getHttpVersion();
-
+    function hasHeader($headerName);
+    
     /**
      * @param string $headerName
      * @return string
@@ -25,16 +26,15 @@ interface Message {
     function getAllHeaders();
 
     /**
-     * @param string $headerName
-     * @return bool
-     */
-    function hasHeader($headerName);
-    
-    /**
      * @return string
      */
     function getBody();
     
+    /**
+     * @return string Returns the HTTP version number, not prefixed by `HTTP/`
+     */
+    function getHttpVersion();
+
     /**
      * @return string
      */

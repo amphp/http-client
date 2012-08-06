@@ -101,9 +101,7 @@ class RequestNegotiatorTest extends PHPUnit_Framework_TestCase {
         $negotiator->setAvailableLanguages(array('en'));
         $negotiator->setAvailableEncodings(array('gzip', 'deflate', 'identity'));
         
-        $injector = new Artax\Injection\Provider(new Artax\Injection\ReflectionPool);
-        $mediator = new Artax\Events\Notifier($injector);
-        $response = new Artax\Http\StdResponse($mediator);
+        $response = new Artax\Http\MutableStdResponse();
         
         $expected = array(
             'contentType' => 'text/html',

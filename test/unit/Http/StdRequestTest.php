@@ -48,17 +48,6 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Http\StdRequest::__construct
-     * @covers Artax\Http\StdRequest::getHttpVersion
-     */
-    public function testHttpVersionGetterReturnsPropertyValue() {
-        $uri = $this->getMock('Artax\\Http\\Uri');
-        $request = new StdRequest($uri, 'GET', array(), '', '1.0');
-        $this->assertInstanceOf('Artax\\Http\\StdRequest', $request);
-        $this->assertEquals('1.0', $request->getHttpVersion());
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::__construct
      * @covers Artax\Http\StdRequest::getUri
      */
     public function testUriGetterReturnsComposedUriToStringResult() {
@@ -304,77 +293,6 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Http\StdRequest::__construct
-     * @covers Artax\Http\StdRequest::hasHeader
-     * @covers Artax\Http\StdRequest::assignHeader
-     * @covers Artax\Http\StdRequest::assignAllHeaders
-     */
-    public function testHasHeaderReturnsBoolOnDefinedHeaderParameter() {
-        $uri = $this->getMock('Artax\\Http\\Uri');
-        $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
-        $request = new StdRequest($uri, 'POST', $headers, 'var1=one&var2=two');
-        
-        $this->assertTrue($request->hasHeader('Content-Type'));
-        $this->assertFalse($request->hasHeader('DoesntExist'));
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::__construct
-     * @covers Artax\Http\StdRequest::getHeader
-     * @covers Artax\Http\StdRequest::assignHeader
-     * @covers Artax\Http\StdRequest::assignAllHeaders
-     */
-    public function testGetHeaderReturnsHeaderParameterIfAvailable() {
-        $uri = $this->getMock('Artax\\Http\\Uri');
-        $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
-        $request = new StdRequest($uri, 'POST', $headers, 'var1=one&var2=two');
-        
-        $this->assertEquals('application/x-www-form-urlencoded',
-            $request->getHeader('Content-Type')
-        );
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::__construct
-     * @covers Artax\Http\StdRequest::getHeader
-     * @covers Artax\Http\StdRequest::assignHeader
-     * @covers Artax\Http\StdRequest::assignAllHeaders
-     * @expectedException RuntimeException
-     */
-    public function testGetHeaderThrowsExceptionOnInvalidHeaderName() {
-        $uri = $this->getMock('Artax\\Http\\Uri');
-        $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
-        $request = new StdRequest($uri, 'POST', $headers, 'var1=one&var2=two');
-        $request->getHeader('Invalid-Header');
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::__construct
-     * @covers Artax\Http\StdRequest::getAllHeaders
-     */
-    public function testGetAllHeadersReturnsHeaderArray() {
-        $uri = $this->getMock('Artax\\Http\\Uri');
-        $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
-        $request = new StdRequest($uri, 'POST', $headers, 'var1=one&var2=two');
-        
-        $this->assertEquals(array('CONTENT-TYPE' => 'application/x-www-form-urlencoded'),
-            $request->getAllHeaders()
-        );
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::__construct
-     * @covers Artax\Http\StdRequest::getBody
-     */
-    public function testGetBodyReturnsProperty() {
-        $uri = $this->getMock('Artax\\Http\\Uri');
-        $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
-        $request = new StdRequest($uri, 'POST', $headers, 'var1=one&var2=two');
-        
-        $this->assertEquals('var1=one&var2=two', $request->getBody());
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::__construct
      * @covers Artax\Http\StdRequest::hasFormEncodedBody
      * @covers Artax\Http\StdRequest::parseParametersFromString
      * @covers Artax\Http\StdRequest::acceptsEntityBody
@@ -481,7 +399,6 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
         
         $expected = "POST /test.html?var=42 HTTP/1.1\r\n";
         $expected.= "HOST: user:********@localhost:8096\r\n";
-        $expected.= "CONTENT-LENGTH: $bodyLen\r\n";
         $expected.= "ACCEPT: text/*\r\n\r\n";
         $expected.= $body;
         

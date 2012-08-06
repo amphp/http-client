@@ -10,7 +10,7 @@ class ResponseContentLengthTest extends PHPUnit_Framework_TestCase {
      * @covers ArtaxPlugins\ResponseContentLength::__invoke
      */
     public function testMagicInvokeCallsPrimaryWorkMethod() {
-        $response = $this->getMock('Artax\\Http\\Response');
+        $response = $this->getMock('Artax\\Http\\MutableResponse');
         $mock = $this->getMock(
             'ArtaxPlugins\\ResponseContentLength',
             array('setContentLengthHeader')
@@ -25,7 +25,7 @@ class ResponseContentLengthTest extends PHPUnit_Framework_TestCase {
      * @covers ArtaxPlugins\ResponseContentLength::setContentLengthHeader
      */
     public function testSetContentLengthHeaderAssignsResponseBodyLengthToResponseHeader() {
-        $response = $this->getMock('Artax\\Http\\Response');
+        $response = $this->getMock('Artax\\Http\\MutableResponse');
         $response->expects($this->once())
                  ->method('getBody')
                  ->will($this->returnValue('five'));

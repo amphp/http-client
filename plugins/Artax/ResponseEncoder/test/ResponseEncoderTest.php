@@ -9,24 +9,24 @@ class ResponseEncoderTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers ArtaxPlugins\ResponseEncoder::__construct
-     * @covers ArtaxPlugins\ResponseEncoder::setEncodableMediaRanges
+     * @covers ArtaxPlugins\ResponseEncoder::setCustomMediaRanges
      */
     public function testBeginsEmpty() {
         $request = $this->getMock('Artax\\Http\\Request');
         $mediaRangeFactory = $this->getMock('Artax\\MediaRangeFactory');
         $mimeTypeFactory = $this->getMock('Artax\\MimeTypeFactory');
         $codecFactory = $this->getMock('Artax\\Encoding\\CodecFactory');
-        $encodableTypes = array('text/*', 'application/json', 'application/xml');
+        $appConfig = $this->getMock('Artax\\Framework\\Configuration\\AppConfig');
         
         $plugin = new ResponseEncoder(
             $request,
             $mediaRangeFactory,
             $mimeTypeFactory,
             $codecFactory,
-            $encodableTypes
+            $appConfig
         );
         
-        $this->assertInstanceOf('Artax\\Framework\\Plugins\\ResponseEncoder', $plugin);
+        $this->assertInstanceOf('ArtaxPlugins\\ResponseEncoder', $plugin);
     }
     
     /**
@@ -37,39 +37,39 @@ class ResponseEncoderTest extends PHPUnit_Framework_TestCase {
         $mediaRangeFactory = $this->getMock('Artax\\MediaRangeFactory');
         $mimeTypeFactory = $this->getMock('Artax\\MimeTypeFactory');
         $codecFactory = $this->getMock('Artax\\Encoding\\CodecFactory');
-        $encodableTypes = array('text/*', 'application/json', 'application/xml');
+        $appConfig = $this->getMock('Artax\\Framework\\Configuration\\AppConfig');
         
         $plugin = $this->getMock(
             'ArtaxPlugins\\ResponseEncoder',
-            array('encodeResponseBody'),
-            array($request, $mediaRangeFactory, $mimeTypeFactory, $codecFactory, $encodableTypes)
+            array('encode'),
+            array($request, $mediaRangeFactory, $mimeTypeFactory, $codecFactory, $appConfig)
         );
         
         $response = $this->getMock('Artax\\Http\\Response');
         
         $plugin->expects($this->once())
-               ->method('encodeResponseBody')
+               ->method('encode')
                ->with($response);
         
         $plugin($response);
     }
     
     /**
-     * @covers ArtaxPlugins\ResponseEncoder::encodeResponseBody
+     * @covers ArtaxPlugins\ResponseEncoder::encode
      */
     public function testEncodeResponseBodyReturnsIfRequiredResponseHeadersMissing() {
         $request = $this->getMock('Artax\\Http\\Request');
         $mediaRangeFactory = $this->getMock('Artax\\MediaRangeFactory');
         $mimeTypeFactory = $this->getMock('Artax\\MimeTypeFactory');
         $codecFactory = $this->getMock('Artax\\Encoding\\CodecFactory');
-        $encodableTypes = array('text/*', 'application/json', 'application/xml');
+        $appConfig = $this->getMock('Artax\\Framework\\Configuration\\AppConfig');
         
         $plugin = new ResponseEncoder(
             $request,
             $mediaRangeFactory,
             $mimeTypeFactory,
             $codecFactory,
-            $encodableTypes
+            $appConfig
         );
         
         $response = $this->getMock('Artax\\Http\\Response');
@@ -82,21 +82,21 @@ class ResponseEncoderTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers ArtaxPlugins\ResponseEncoder::encodeResponseBody
+     * @covers ArtaxPlugins\ResponseEncoder::encode
      */
     public function testEncodeResponseBodyReturnsIfResponseContentEncodingHeaderNotSupported() {
         $request = $this->getMock('Artax\\Http\\Request');
         $mediaRangeFactory = $this->getMock('Artax\\MediaRangeFactory');
         $mimeTypeFactory = $this->getMock('Artax\\MimeTypeFactory');
         $codecFactory = $this->getMock('Artax\\Encoding\\CodecFactory');
-        $encodableTypes = array('text/*', 'application/json', 'application/xml');
+        $appConfig = $this->getMock('Artax\\Framework\\Configuration\\AppConfig');
         
         $plugin = new ResponseEncoder(
             $request,
             $mediaRangeFactory,
             $mimeTypeFactory,
             $codecFactory,
-            $encodableTypes
+            $appConfig
         );
         
         $response = $this->getMock('Artax\\Http\\Response');
@@ -113,7 +113,7 @@ class ResponseEncoderTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers ArtaxPlugins\ResponseEncoder::encodeResponseBody
+     * @covers ArtaxPlugins\ResponseEncoder::encode
      * @covers ArtaxPlugins\ResponseEncoder::getEncodableMimeType
      */
     public function testEncodeResponseBodyReturnsIfBrowserQuirksReturnsFalse() {
@@ -121,12 +121,12 @@ class ResponseEncoderTest extends PHPUnit_Framework_TestCase {
         $mediaRangeFactory = new Artax\MediaRangeFactory();
         $mimeTypeFactory = new Artax\MimeTypeFactory();
         $codecFactory = $this->getMock('Artax\\Encoding\\CodecFactory');
-        $encodableTypes = array('text/*', 'application/json', 'application/xml');
+        $appConfig = $this->getMock('Artax\\Framework\\Configuration\\AppConfig');
         
         $plugin = $this->getMock(
             'ArtaxPlugins\\ResponseEncoder',
             array('accountForBrowserQuirks'),
-            array($request, $mediaRangeFactory, $mimeTypeFactory, $codecFactory, $encodableTypes)
+            array($request, $mediaRangeFactory, $mimeTypeFactory, $codecFactory, $appConfig)
         );
         
         $response = new StdResponse();
@@ -144,7 +144,7 @@ class ResponseEncoderTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers ArtaxPlugins\ResponseEncoder::encodeResponseBody
+     * @covers ArtaxPlugins\ResponseEncoder::encode
      * @covers ArtaxPlugins\ResponseEncoder::setVaryHeader
      */
     public function testEncodeResponseBodyAppliesEncodingAndRelevantHeaders() {
@@ -152,12 +152,12 @@ class ResponseEncoderTest extends PHPUnit_Framework_TestCase {
         $mediaRangeFactory = new Artax\MediaRangeFactory();
         $mimeTypeFactory = new Artax\MimeTypeFactory();
         $codecFactory = $this->getMock('Artax\\Encoding\\CodecFactory');
-        $encodableTypes = array('text/*', 'application/json', 'application/xml');
+        $appConfig = $this->getMock('Artax\\Framework\\Configuration\\AppConfig');
         
         $plugin = $this->getMock(
             'ArtaxPlugins\\ResponseEncoder',
             array('accountForBrowserQuirks'),
-            array($request, $mediaRangeFactory, $mimeTypeFactory, $codecFactory, $encodableTypes)
+            array($request, $mediaRangeFactory, $mimeTypeFactory, $codecFactory, $appConfig)
         );
         
         $response = new StdResponse();
@@ -183,7 +183,32 @@ class ResponseEncoderTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers ArtaxPlugins\ResponseEncoder::encodeResponseBody
+     * @covers ArtaxPlugins\ResponseEncoder::__construct
+     */
+    public function testConstructorAssignsCustomMediaRangesIfSpecified() {
+        $request = $this->getMock('Artax\\Http\\Request');
+        $mediaRangeFactory = new Artax\MediaRangeFactory();
+        $mimeTypeFactory = new Artax\MimeTypeFactory();
+        $codecFactory = $this->getMock('Artax\\Encoding\\CodecFactory');
+        $appConfig = $this->getMock('Artax\\Framework\\Configuration\\AppConfig');
+        $appConfig->expects($this->once())
+                  ->method('has')
+                  ->with('Artax.ResponseEncoder.MediaRanges')
+                  ->will($this->returnValue(true));
+        $appConfig->expects($this->once())
+                  ->method('get')
+                  ->with('Artax.ResponseEncoder.MediaRanges')
+                  ->will($this->returnValue('text/html'));
+        
+        $plugin = $this->getMock(
+            'ArtaxPlugins\\ResponseEncoder',
+            array('encode'),
+            array($request, $mediaRangeFactory, $mimeTypeFactory, $codecFactory, $appConfig)
+        );
+    }
+    
+    /**
+     * @covers ArtaxPlugins\ResponseEncoder::encode
      * @covers ArtaxPlugins\ResponseEncoder::accountForBrowserQuirks
      */
     public function testEncodeResponseAbortsIfUserAgentMatchesBrokenBrowser() {
