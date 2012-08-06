@@ -58,10 +58,32 @@ abstract class StdMessage implements Message {
     }
     
     /**
+     * Access the entity body
+     * 
+     * If a resource stream is assigned to the body property, its entire contents will be read into
+     * memory and returned as a string. To access the stream resource directly, use
+     * StdMessage::getBodyStream().
+     * 
      * @return string
      */
     public function getBody() {
-        return $this->body;
+        if (is_resource($this->body)) {
+            rewind($this->body);
+            $contents = stream_get_contents($this->body);
+            rewind($this->body);
+            return $contents;
+        } else {
+            return $this->body;
+        }
+    }
+    
+    /**
+     * Access the entity body's resource stream directly
+     * 
+     * @return resource
+     */
+    public function getBodyStream() {
+        return is_resource($this->body) ? $this->body : null;
     }
     
     /**

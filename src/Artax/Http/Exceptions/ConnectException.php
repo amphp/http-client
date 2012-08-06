@@ -2,4 +2,4 @@
 
 namespace Artax\Http\Exceptions;
 
-class ConnectFailureException extends ClientException {}
+class ConnectException extends ClientException {}

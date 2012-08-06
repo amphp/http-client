@@ -5,39 +5,82 @@ use Artax\Http\MutableStdResponse;
 class MutableStdResponseTest extends PHPUnit_Framework_TestCase {
     
     /**
-     * @covers Artax\Http\MutableStdResponse::setAllHeaders
-     * @expectedException InvalidArgumentException
+     * @covers Artax\Http\MutableStdResponse::setStatusCode
      */
-    public function testSetAllHeadersThrowsExceptionOnInvalidParameter() {
-        $response = new MutableStdResponse;
-        $response->setAllHeaders('not an iterable');
+    public function testSetStatusCodeAssignsValueAndReturnsNull() {
+        $response = new MutableStdResponse();
+        $this->assertNull($response->setStatusCode(400));
+        $this->assertEquals(400, $response->getStatusCode());
+    }
+    
+    /**
+     * @covers Artax\Http\MutableStdResponse::setStatusDescription
+     */
+    public function testSetStatusDescriptionAssignsValueAndReturnsNull() {
+        $response = new MutableStdResponse();
+        $this->assertNull($response->setStatusDescription('OK'));
+        $this->assertEquals('OK', $response->getStatusDescription());
+    }
+    
+    /**
+     * @covers Artax\Http\MutableStdResponse::removeBody
+     */
+    public function testSetRemoveBodyDoesAndReturnsNull() {
+        $response = new MutableStdResponse();
+        $this->assertNull($response->setBody('Glorfindel'));
+        $this->assertEquals('Glorfindel', $response->getBody());
+        $this->assertNull($response->removeBody());
+        $this->assertNull($response->getBody());
+    }
+    
+    /**
+     * @covers Artax\Http\MutableStdResponse::setHttpVersion
+     */
+    public function testSetHttpVersionReturnsNull() {
+        $response = new MutableStdResponse();
+        $this->assertNull($response->setHttpVersion('1.0'));
+        $this->assertEquals('1.0', $response->getHttpVersion());
+    }
+    
+    /**
+     * @covers Artax\Http\MutableStdResponse::setHeader
+     */
+    public function testSetHeaderCallsUnderlyingAssignHeadersMethodAndReturnsNull() {
+        $response = new MutableStdResponse();
+        $this->assertNull($response->setHeader('Content-Encoding:', 'gzip'));
+        $this->assertEquals('gzip', $response->getHeader('content-encoding'));
+    }
+    
+    /**
+     * @covers Artax\Http\MutableStdResponse::setHeader
+     * @covers Artax\Http\MutableStdResponse::setAllHeaders
+     */
+    public function testSetAllHeadersAssignsValuesAndReturnsNull() {
+        $response = new MutableStdResponse();
+        $headers = array('Content-Type'=>'text/html');
+        $this->assertNull($response->setAllHeaders($headers));
+        $this->assertEquals('text/html', $response->getHeader('CONTENT-TYPE'));
     }
     
     /**
      * @covers Artax\Http\MutableStdResponse::removeHeader
      */
-    public function testRemoveHeaderClearsSpecifiedHeader() {
-        $response = new MutableStdResponse;
-        $response->setHeader('Content-Type', 'text/html');
-        $this->assertTrue($response->hasHeader('Content-TYPE'));
-        $response->removeHeader('Content-Type');
-        $this->assertFalse($response->hasHeader('Content-TYPE'));
+    public function testRemoveHeaderDoesAndReturnsNull() {
+        $response = new MutableStdResponse();
+        $response->setHeader('Connection', 'close');
+        $this->assertEquals('close', $response->getHeader('connection'));
+        $this->assertNull($response->removeHeader('Connection'));
+        $this->assertFalse($response->hasHeader('connection'));
     }
     
     /**
-     * @covers Artax\Http\MutableStdResponse::setAllHeaders
+     * @covers Artax\Http\MutableStdResponse::__construct
+     * @covers Artax\Http\MutableStdResponse::setBody
      */
-    public function testSetAllHeadersCallsSetHeaderForEachHeader() {
-        $response = $this->getMock('Artax\\Http\\MutableStdResponse', array('setHeader'));
-        
-        $headers = array(
-            'CONTENT-TYPE' => 'text/html',
-            'CONTENT-LENGTH' => 42
-        );
-        
-        $response->expects($this->exactly(2))
-                 ->method('setHeader');
-        $response->setAllHeaders($headers);
+    public function testSetBodyDoesAndReturnsNull() {
+        $response = new MutableStdResponse();
+        $this->assertNull($response->setBody('We few, we happy few.'));
+        $this->assertEquals('We few, we happy few.', $response->getBody());
     }
     
     public function provideInvalidStartLines() {
@@ -75,8 +118,8 @@ class MutableStdResponseTest extends PHPUnit_Framework_TestCase {
     
     public function provideInvalidRawHeaders() {
         return array(
-            array('1234 Get your woman on the floor'),
-            array('X-Requested-By'),
+            array('When in the chronicle of wasted time, I see descriptions of the fairest wights'),
+            array('X-Responseed-By'),
             array("Content-Type: text/html\r\nContent-Length: 42"),
             array("Vary: Accept,Accept-Charset,\r\nAccept-Encoding")
         );
@@ -87,7 +130,7 @@ class MutableStdResponseTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\MutableStdResponse::setRawHeader
      * @expectedException Artax\Http\Exceptions\MessageParseException
      */
-    public function testSetRawHeaderThrowsExceptionOnInvalidArgumentFormat($rawHeaderStr) {
+    public function testSetRawHeaderThrowsExceptionOnInvalidFormat($rawHeaderStr) {
         $response = new MutableStdResponse;
         $response->setRawHeader($rawHeaderStr);
     }

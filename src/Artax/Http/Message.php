@@ -31,6 +31,11 @@ interface Message {
     function getBody();
     
     /**
+     * @return resource
+     */
+    function getBodyStream();
+    
+    /**
      * @return string Returns the HTTP version number, not prefixed by `HTTP/`
      */
     function getHttpVersion();

@@ -40,8 +40,24 @@ class StdResponse extends StdMessage implements Response {
         if ($headers) {
             $this->assignAllHeaders($headers);
         }
-        $this->body = $body;
+        $this->body = $this->buildSeekableBody($body);
         $this->httpVersion = $httpVersion;
+    }
+    
+    protected function buildSeekableBody($body) {
+        if (!is_resource($body)) {
+            return (string) $body;
+        }
+        
+        $meta = stream_get_meta_data($body);
+        if ($meta['uri'] == 'php://input') {
+            $newBodyStream = fopen('php://temp', 'r+');
+            stream_copy_to_stream($body, $newBodyStream);
+            rewind($newBodyStream);
+            return $newBodyStream;
+        }
+        
+        return $body;
     }
 
     /**
@@ -62,18 +78,25 @@ class StdResponse extends StdMessage implements Response {
      * Formats and sends all headers prior to outputting the message body.
      * 
      * @return void
+     * @todo add chunked response body streaming
      */
     public function send() {
-        $headerStr = 'HTTP/' . $this->getHttpVersion() . ' ' . $this->getStatusCode() . ' ' .
-            $this->getStatusDescription();
-        
-        header($headerStr);
+        $startLine = 'HTTP/' . $this->getHttpVersion() . ' ' . $this->getStatusCode() . ' ';
+        $startLine.= $this->getStatusDescription();
+        header($startLine);
         
         foreach ($this->headers as $header => $value) {
             header($header . ': ' . $value);
         }
-
-        echo $this->body;
+        
+        if (!$this->body) {
+            $this->wasSent = true;
+            return;
+        } elseif ($streamableBody = $this->getBodyStream()) {
+            echo stream_get_contents($streamableBody);
+        } else {
+            echo $this->body;
+        }
         
         $this->wasSent = true;
     }

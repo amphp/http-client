@@ -9,7 +9,7 @@ class StdMessageTest extends PHPUnit_Framework_TestCase {
      */
     public function testHttpVersionAccessors() {
         $response = new MutableStdResponse;
-        $this->assertNull($response->getHttpVersion());
+        $this->assertEquals('1.1', $response->getHttpVersion());
         $this->assertNull($response->setHttpVersion('1.0'));
         $this->assertEquals('1.0', $response->getHttpVersion());
     }

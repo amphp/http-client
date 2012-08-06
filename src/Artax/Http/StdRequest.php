@@ -45,12 +45,15 @@ class StdRequest extends StdMessage implements FormEncodableRequest {
             $this->assignAllHeaders($headers);
         }
         
-        $this->body = $this->acceptsEntityBody() ? $body : '';
+        if ($body && $this->acceptsEntityBody()) {
+            $this->body = $body;
+        }
+        
         $this->httpVersion = $httpVersion;
         
         $this->queryParameters = $this->parseParametersFromString($this->uri->getQuery());
         
-        if ($this->hasFormEncodedBody() && $this->acceptsEntityBody()) {
+        if ($body && $this->hasFormEncodedBody() && $this->acceptsEntityBody()) {
             $this->bodyParameters = $this->parseParametersFromString($this->getBody());
         } else {
             $this->bodyParameters = array();
@@ -253,6 +256,11 @@ class StdRequest extends StdMessage implements FormEncodableRequest {
     /**
      * Returns a fully stringified HTTP request message to be sent to an HTTP/1.1 server
      * 
+     * This method will read the entire contents of a stream body into memory to output as a string.
+     * If a streamed body is preferred, manually output the raw message headers using
+     * StdRequest::getMessageHeaderStr(), get the entity body stream with StdRequest::getBodyStream
+     * and manually send the contents of the body resource stream.
+     * 
      * Messages generated in accordance with RFC2616 section 5:
      * http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html#sec5
      * 
@@ -260,7 +268,9 @@ class StdRequest extends StdMessage implements FormEncodableRequest {
      */
     public function __toString() {
         if (strcmp('CONNECT', $this->getMethod())) {
-            return $this->buildMessage();
+            $msg = $this->getMessageHeaderStr();
+            $msg.= $this->body ? $this->getBody() : '';
+            return $msg;
         } else {
             return $this->buildConnectMessage();
         }
@@ -269,7 +279,7 @@ class StdRequest extends StdMessage implements FormEncodableRequest {
     /**
      * @return string
      */
-    protected function buildMessage() {
+    public function getMessageHeaderStr() {
         $msg = $this->getMethod() . ' ' . $this->getPath();
         if ($queryStr = $this->getQuery()) {
             $msg.= "?$queryStr";
@@ -284,7 +294,22 @@ class StdRequest extends StdMessage implements FormEncodableRequest {
             $msg.= "$header: $value\r\n";
         }
         
-        $msg.= "\r\n" . $this->getBody();
+        $msg.= "\r\n";
+        
+        return $msg;
+    }
+    
+    /**
+     * @return string
+     */
+    public function getProxyMessageHeaderStr() {
+        $msg = $this->getMethod() . ' ' . $this->getUri() . ' ';
+        $msg.= 'HTTP/' . $this->getHttpVersion() . "\r\n";
+        
+        foreach ($this->getAllHeaders() as $header => $value) {
+            $msg.= "$header: $value\r\n";
+        }
+        $msg.= "\r\n";
         
         return $msg;
     }

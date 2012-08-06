@@ -388,7 +388,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Http\StdRequest::__toString
-     * @covers Artax\Http\StdRequest::buildMessage
+     * @covers Artax\Http\StdRequest::getMessageHeaderStr
      */
     public function testToStringOutput() {
         $uri = new StdUri('http://user:pass@localhost:8096/test.html?var=42');

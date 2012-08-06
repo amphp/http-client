@@ -14,9 +14,7 @@ class ArtaxFrameworkTest extends PHPUnit_Framework_TestCase {
     }
     
     public function testOkayResponse() {
-        $request = new StdRequest('http://localhost:8096', 'GET', array(
-            'User-Agent' => 'IntegrationTest'
-        ));
+        $request = new StdRequest('http://localhost:8096', 'GET');
         
         $response = $this->client->request($request);
         
@@ -25,6 +23,15 @@ class ArtaxFrameworkTest extends PHPUnit_Framework_TestCase {
     }
     
     public function testPostResponse() {
+        $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
+        $body = urlencode('var1=test1&var2=test2');
+        $request = new StdRequest('http://localhost:8096/post-only', 'POST', $headers, $body);
+        $response = $this->client->request($request);
+        
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertEquals("PostOnly::post - $body", $response->getBody());
+        
+        /*
         $headers = array('User-Agent' => 'IntegrationTest');
         $body = urlencode('var1=test1&var2=test2');
         
@@ -34,6 +41,7 @@ class ArtaxFrameworkTest extends PHPUnit_Framework_TestCase {
         
         $this->assertEquals(200, $response->getStatusCode());
         $this->assertEquals("PostOnly::post - $body", $response->getBody());
+        */
     }
     
     public function testPostWithRedirect() {

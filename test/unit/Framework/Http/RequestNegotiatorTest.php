@@ -158,6 +158,7 @@ class RequestNegotiatorMockRequest implements Artax\Http\Request {
     function getHttpVersion() { return null; }
     function getAllHeaders() { return null; }
     function getBody() { return null; }
+    function getBodyStream() { return null; }
     function getQueryParameter($parameter) { return null; }
     function getAllQueryParameters() { return null; }
     function hasQueryParameter($parameter) { return null; }

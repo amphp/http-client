@@ -114,11 +114,11 @@ class MutableStdRequest extends StdRequest implements MutableRequest {
      * @param string $body
      * @return void
      */
-    public function setBody($bodyString) {
-        $this->body = $bodyString;
+    public function setBody($body) {
+        $this->body = $body;
         
-        if ($bodyString && $this->hasFormEncodedBody() && $this->acceptsEntityBody()) {
-            $this->bodyParameters = $this->parseParametersFromString($bodyString);
+        if ($body && $this->acceptsEntityBody() && $this->hasFormEncodedBody()) {
+            $this->bodyParameters = $this->parseParametersFromString($this->getBody());
         } else {
             $this->bodyParameters = array();
         }

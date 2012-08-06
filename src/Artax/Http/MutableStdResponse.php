@@ -61,10 +61,7 @@ class MutableStdResponse extends StdResponse implements MutableResponse {
      * @return void
      */
     public function setHeader($headerName, $value) {
-        // Headers are case-insensitive as per the HTTP spec:
-        // http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
-        $normalized = strtoupper($headerName);
-        $this->headers[$normalized] = $value;
+        $this->assignHeader($headerName, $value);
     }
     
     /**
@@ -73,18 +70,7 @@ class MutableStdResponse extends StdResponse implements MutableResponse {
      * @throws InvalidArgumentException
      */
     public function setAllHeaders($iterable) {
-        if (!($iterable instanceof Traversable
-            || $iterable instanceof StdClass
-            || is_array($iterable)
-        )) {
-            throw new InvalidArgumentException(
-                'Argument 1 passed to '.get_class($this).'::setAllHeaders must '
-                .'be an array, StdClass or Traversable object'
-            );
-        }
-        foreach ($iterable as $headerName => $value) {
-            $this->setHeader($headerName, $value);
-        }
+        $this->assignAllHeaders($iterable);
     }
     
     /**

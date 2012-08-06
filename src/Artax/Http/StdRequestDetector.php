@@ -83,6 +83,11 @@ class StdRequestDetector {
      * @return string
      */
     public function detectBody() {
-        return file_get_contents('php://input');
+        $input = fopen('php://input', 'r');
+        $output = fopen('php://memory', 'r+');
+        stream_copy_to_stream($input, $output);
+        rewind($output);
+        
+        return $output;
     }
 }

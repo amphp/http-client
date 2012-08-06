@@ -4,7 +4,10 @@ namespace Artax\Http;
 
 use RuntimeException,
     Artax\Http\Exceptions\InfiniteRedirectException,
-    Artax\Http\Exceptions\MessageParseException;
+    Artax\Http\Exceptions\MessageParseException,
+    Artax\Http\Exceptions\TransferException,
+    Artax\Http\Exceptions\ConnectException,
+    Artax\Http\Exceptions\NoResponseException;
 
 class Client {
     
@@ -12,6 +15,11 @@ class Client {
      * @var string
      */
     protected $userAgent = 'Artax-Http/0.1 (PHP5.3+)';
+    
+    /**
+     * @var int
+     */
+    protected $timeout = 60;
     
     /**
      * @var int
@@ -29,9 +37,14 @@ class Client {
     protected $nonStandardRedirectFlag = false;
     
     /**
-     * @var int
+     * @var bool
      */
-    protected $timeout = 60;
+    protected $proxyStyle = false;
+    
+    /**
+     * @var array
+     */
+    protected $sslOptions = array();
 
     /**
      * @var array
@@ -57,11 +70,6 @@ class Client {
      * @var array
      */
     protected $connectionPool = array();
-    
-    /**
-     * @var array
-     */
-    protected $sslOptions = array();
 
     public function __construct() {
         $this->isOpenSslLoaded = $this->getOpenSslStatus();
@@ -95,6 +103,16 @@ class Client {
         $encodings[] = 'identity';
         
         return implode(',', $encodings);
+    }
+
+    /**
+     * Turn on/off the use of proxy-style requests
+     * 
+     * @param bool boolFlag
+     * @return void
+     */
+    public function setProxyStyle($boolFlag) {
+        $this->proxyStyle = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
     }
 
     /**
@@ -217,7 +235,7 @@ class Client {
         $stream    = $this->openConnection($socketUri);
         
         $this->writeRequestToStream($request, $stream);
-        $response  = $this->readResponseHeadersFromStream($stream);
+        $response = $this->readResponseHeadersFromStream($stream);
         
         $statusCode = $response->getStatusCode();
         
@@ -244,9 +262,7 @@ class Client {
      * @throws Artax\Http\Exceptions\MessageValidationException
      */
     protected function normalizeRequest(Request $request) {
-        $mutable = $request instanceof ProxyRequest
-            ? new MutableProxyRequest()
-            : new MutableStdRequest();
+        $mutable = new MutableStdRequest();
         
         $mutable->populateFromRequest($request);
         $mutable->validateMessage();
@@ -254,7 +270,7 @@ class Client {
         $mutable->setHeader('User-Agent', $this->userAgent);
         $mutable->setHeader('Accept-Encoding', $this->acceptedEncodings);
         
-        if ($body = $mutable->getBody() && !$mutable->hasHeader('Content-Length')) {
+        if (($body = $mutable->getBody()) && !$mutable->hasHeader('Content-Length')) {
             $mutable->setHeader('Content-Length', strlen($body));
         }
         
@@ -290,29 +306,71 @@ class Client {
      * @param Request $request
      * @param resource $stream
      * @return void
-     * @throws Artax\Http\Exceptions\NetworkTransferException
+     * @throws Artax\Http\Exceptions\TransferException
      */
     protected function writeRequestToStream(Request $request, $stream) {
-        $rawRequestMessage = $request->__toString();
         
-        $totalBytes = strlen($rawRequestMessage);
-        $bytesRemaining = $totalBytes;
-        while (false !== ($bytes = @fwrite($stream, $rawRequestMessage, $bytesRemaining))) {
+        $rawHeaders = $this->proxyStyle
+            ? $request->getProxyMessageHeaderStr()
+            : $request->getMessageHeaderStr();
+        
+        try {
+            $this->writeRawDataToStream($rawHeaders, $stream);
+        } catch (TransferException $e) {
+            $bytesWritten = (int) $e->getMessage();
+            if ($bytesWritten) {
+                throw new TransferException(
+                    "Connection failure: request failed after $bytesWritten bytes were sent"
+                );
+            } else {
+                throw new NoResponseException();
+            }
+        }
+        
+        if (!$body = $request->getBody()) {
+            return;
+        }
+        
+        try {
+            if (is_resource($body)) {
+                // $this->streamOutboundRequest($body, $stream);
+                $this->writeRawDataToStream(stream_get_contents($body), $stream);
+            } else {
+                $this->writeRawDataToStream($body, $stream);
+            }
+        } catch (TransferException $e) {
+            $headerBytes = strlen($rawHeaders);
+            $bodyBytesWritten = (int) $e->getMessage();
+            $totalBytes = $headerBytes + $bodyBytesWritten;
+            throw new TransferException(
+                "Connection failure: request failed after $totalBytes bytes were sent"
+            );
+        }
+    }
+    
+    protected function writeRawDataToStream($rawData, $stream) {
+        $originalLength = strlen($rawData);
+        $bytesRemaining = $originalLength;
+        while (false !== ($bytes = @fwrite($stream, $rawData, 8192))) {
             $bytesRemaining -= $bytes;
             if ($bytesRemaining <= 0) {
                 return;
             }
         }
         
-        $errorMsg = $this->getTransferErrorMessage($stream, 'Request');
-        throw new NetworkTransferException($errorMsg);
+        $bytesWritten = $originalLength - $bytesRemaining;
+        throw new TransferException($bytesWritten);
+    }
+    
+    protected function streamOutboundRequest($inputBodyStream, $outputStream) {
+        // not yet implemented
     }
     
     /**
      * @todo Add error handling for invalid raw response message or fgets failure
      * @param resource $stream
      * @return Response $response
-     * @throws Artax\Http\Exceptions\NetworkTransferException
+     * @throws Artax\Http\Exceptions\TransferException
      */
     protected function readResponseHeadersFromStream($stream) {
         $buffer = '';
@@ -334,8 +392,13 @@ class Client {
             return $response;
         }
         
-        $errorMsg = $this->getTransferErrorMessage($stream, 'Response');
-        throw new NetworkTransferException($errorMsg);
+        if ($bytesRead = strlen($buffer)) {
+            throw new TransferException(
+                "Connection failure: $bytesRead bytes read prior to error"
+            );
+        } else {
+            throw new NoResponseException();
+        }
     }
     
     
@@ -359,21 +422,25 @@ class Client {
     /**
      * @param resource $stream
      * @return string
-     * @throws Artax\Http\Exceptions\NetworkTransferException
+     * @throws Artax\Http\Exceptions\TransferException
      */
     protected function readChunkedEntityBody($stream) {
         $tmpHandle = fopen('php://memory', 'r+');
-        
+        $bytesRead = 0;
         while (false !== ($data = @fgets($stream, 8192))) {
             fwrite($tmpHandle, $data);
+            $bytesRead += strlen($data);
             if ($data == "0\r\n") {
                 break;
             }
         }
         
         if (false === $data) {
-            $errorMsg = $this->getTransferErrorMessage($stream, 'Response');
-            throw new NetworkTransferException($errorMsg);
+            $s = $bytesRead == 1 ? '' : 's';
+            throw new TransferException(
+                "Connection failure: headers received, $bytesRead byte$s of chunked entity body " .
+                "read prior to error"
+            );
         }
         
         stream_filter_prepend($tmpHandle, 'dechunk');
@@ -385,7 +452,7 @@ class Client {
      * @param resource $stream
      * @param int $contentLength
      * @return string
-     * @throws Artax\Http\Exceptions\NetworkTransferException
+     * @throws Artax\Http\Exceptions\TransferException
      */
     protected function readEntityBodyWithLength($stream, $contentLength) {
         if (!$contentLength) {
@@ -400,14 +467,17 @@ class Client {
             }
         }
         
-        $errorMsg = $this->getTransferErrorMessage($stream, 'Response');
-        throw new NetworkTransferException($errorMsg);
+        $bytesRead = strlen($buffer);
+        $s = $bytesRead == 1 ? '' : 's';
+        throw new TransferException(
+            "Connection failure: headers received, $bytesRead entity body byte$s read prior to error"
+        );
     }
     
     /**
      * @param resource $stream
      * @return string
-     * @throws Artax\Http\Exceptions\NetworkTransferException
+     * @throws Artax\Http\Exceptions\TransferException
      */
     protected function readEntityBodyFromClosingConnection($stream) {
         $buffer = '';
@@ -416,25 +486,15 @@ class Client {
 		}
 		
 		if (false === $data) {
-		    $errorMsg = $this->getTransferErrorMessage($stream, 'Response');
-            throw new NetworkTransferException($errorMsg);
+		    $bytesRead = strlen($buffer);
+            $s = $bytesRead == 1 ? '' : 's';
+            throw new TransferException(
+                "Connection failure: headers received, $bytesRead entity body byte$s read prior  " .
+                "to error"
+            );
 		}
 		
 		return $buffer;
-    }
-    
-    /**
-     * @param resource $stream
-     * @param string $transferType
-     */
-    protected function getTransferErrorMessage($stream, $transferType) {
-        $metaData = stream_get_meta_data($stream);
-        $timeout = $metaData['timed_out'];
-        
-        $msg = "$transferType failure: connection to {$metaData['uri']} ";
-        $msg.= $timeout ? "timed out ({$this->timeout} seconds)" : " was lost during transfer";
-        
-        return $msg;
     }
     
     /**
