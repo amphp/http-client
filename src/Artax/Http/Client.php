@@ -310,16 +310,7 @@ class Client {
      */
     protected function writeRequestToStream(Request $request, $stream) {
         
-        if (!$this->proxyStyle) {
-            $rawHeaders = $request->getRequestLine() . "\r\n";
-            $rawHeaders.= 'HOST: ' . $request->getAuthority() . "\r\n";
-            $headers = $request->getAllHeaders();
-            unset($headers['HOST']);
-            foreach ($headers as $header => $value) {
-                $rawHeaders.= "$header: $value\r\n";
-            }
-            $rawHeaders.= "\r\n";
-        }
+        $rawHeaders = $this->buildRawRequestHeaders($request);
         
         try {
             $this->writeRawDataToStream($rawHeaders, $stream);
@@ -353,6 +344,33 @@ class Client {
                 "Connection failure: request failed after $totalBytes bytes were sent"
             );
         }
+    }
+    
+    /**
+     * @param Request $request
+     * @return string
+     */
+    protected function buildRawRequestHeaders(Request $request) {
+        $rawHeaders = '';
+        
+        if (!$this->proxyStyle) {
+            $rawHeaders.= $request->getRequestLine() . "\r\n";
+            $rawHeaders.= 'HOST: ' . $request->getAuthority() . "\r\n";
+            $headers = $request->getAllHeaders();
+            unset($headers['HOST']);
+            foreach ($headers as $header => $value) {
+                $rawHeaders.= "$header: $value\r\n";
+            }
+            $rawHeaders.= "\r\n";
+        } else {
+            $rawHeaders.= $request->getProxyRequestLine() . "\r\n";
+            foreach ($request->getAllHeaders() as $header => $value) {
+                $rawHeaders.= "$header: $value\r\n";
+            }
+            $rawHeaders.= "\r\n";
+        }
+        
+        return $rawHeaders;
     }
     
     protected function writeRawDataToStream($rawData, $stream) {
