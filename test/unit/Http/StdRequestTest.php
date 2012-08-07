@@ -307,7 +307,17 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals('two', $request->getBodyParameter('var2'));
         $this->assertEquals('Yes sir', $request->getBodyParameter('var3'));
         
-        $request = new StdRequest($uri, 'POST', array());
+        $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
+        $body = fopen('php://memory', 'w+');
+        fwrite($body, 'var4=four&var5=five&var6=six');
+        rewind($body);
+        $request = new StdRequest($uri, 'POST', $headers, $body);
+        
+        $this->assertEquals('four', $request->getBodyParameter('var4'));
+        $this->assertEquals('five', $request->getBodyParameter('var5'));
+        $this->assertEquals('six', $request->getBodyParameter('var6'));
+        
+        $request = new StdRequest($uri, 'POST', array(), 'test');
         $this->assertEquals(array(), $request->getAllBodyParameters());
     }
     
@@ -388,13 +398,12 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Http\StdRequest::__toString
-     * @covers Artax\Http\StdRequest::getMessageHeaderStr
+     * @covers Artax\Http\StdRequest::getRequestLine
      */
-    public function testToStringOutput() {
+    public function testToStringAutoAppliesHostFromUri() {
         $uri = new StdUri('http://user:pass@localhost:8096/test.html?var=42');
         $headers = array('Accept' => 'text/*', 'Host' => 'invalid');
         $body = 'We few, we happy few';
-        $bodyLen = strlen($body);
         $request = new StdRequest($uri, 'POST', $headers, $body);
         
         $expected = "POST /test.html?var=42 HTTP/1.1\r\n";
@@ -403,5 +412,17 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
         $expected.= $body;
         
         $this->assertEquals($expected, $request->__toString());
+    }
+    
+    /**
+     * @covers Artax\Http\StdRequest::getProxyRequestLine
+     */
+    public function testProxyRequestLineGetterUsesAbsoluteUri() {
+        $uri = new StdUri('http://localhost:8096/test.html');
+        $request = new StdRequest($uri, 'GET');
+        
+        $expected = "GET " . $uri . " HTTP/1.1\r\n";
+        
+        $this->assertEquals($expected, $request->getProxyRequestLine());
     }
 }

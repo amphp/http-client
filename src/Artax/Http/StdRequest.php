@@ -53,7 +53,7 @@ class StdRequest extends StdMessage implements FormEncodableRequest {
         
         $this->queryParameters = $this->parseParametersFromString($this->uri->getQuery());
         
-        if ($body && $this->hasFormEncodedBody() && $this->acceptsEntityBody()) {
+        if ($this->body && $this->hasFormEncodedBody()) {
             $this->bodyParameters = $this->parseParametersFromString($this->getBody());
         } else {
             $this->bodyParameters = array();
@@ -92,11 +92,9 @@ class StdRequest extends StdMessage implements FormEncodableRequest {
     protected function hasFormEncodedBody() {
         if (!$this->hasHeader('Content-Type')) {
             return false;
-        } else {
-            $contentType = strtolower($this->getHeader('Content-Type'));
         }
         
-        return ($contentType == 'application/x-www-form-urlencoded');
+        return !strcmp($this->getHeader('Content-Type'), 'application/x-www-form-urlencoded');
     }
     
     /**
@@ -254,6 +252,33 @@ class StdRequest extends StdMessage implements FormEncodableRequest {
     }
     
     /**
+     * Build a raw HTTP message request line
+     * 
+     * @return string
+     */
+    public function getRequestLine() {
+        $msg = $this->getMethod() . ' ' . $this->getPath();
+        if ($queryStr = $this->getQuery()) {
+            $msg.= "?$queryStr";
+        }
+        $msg.= ' HTTP/' . $this->getHttpVersion() . "\r\n";
+        
+        return $msg;
+    }
+    
+    /**
+     * Build a raw HTTP message request line using the proxy-style absolute URI
+     * 
+     * @return string
+     */
+    public function getProxyRequestLine() {
+        $msg = $this->getMethod() . ' ' . $this->getUri() . ' ';
+        $msg.= 'HTTP/' . $this->getHttpVersion() . "\r\n";
+        
+        return $msg;
+    }
+    
+    /**
      * Returns a fully stringified HTTP request message to be sent to an HTTP/1.1 server
      * 
      * This method will read the entire contents of a stream body into memory to output as a string.
@@ -268,50 +293,23 @@ class StdRequest extends StdMessage implements FormEncodableRequest {
      */
     public function __toString() {
         if (strcmp('CONNECT', $this->getMethod())) {
-            $msg = $this->getMessageHeaderStr();
+            $msg = $this->getRequestLine();
+            $msg.= 'HOST: ' . $this->getAuthority() . "\r\n";
+            
+            $headers = $this->getAllHeaders();
+            unset($headers['HOST']);
+            foreach ($headers as $header => $value) {
+                $msg.= "$header: $value\r\n";
+            }
+            
+            $msg.= "\r\n";
             $msg.= $this->body ? $this->getBody() : '';
+            
             return $msg;
+            
         } else {
             return $this->buildConnectMessage();
         }
-    }
-    
-    /**
-     * @return string
-     */
-    public function getMessageHeaderStr() {
-        $msg = $this->getMethod() . ' ' . $this->getPath();
-        if ($queryStr = $this->getQuery()) {
-            $msg.= "?$queryStr";
-        }
-        $msg.= ' HTTP/' . $this->getHttpVersion() . "\r\n";
-        $msg.= 'HOST: ' . $this->getAuthority() . "\r\n";
-        
-        $headers = $this->getAllHeaders();
-        unset($headers['HOST']);
-        
-        foreach ($headers as $header => $value) {
-            $msg.= "$header: $value\r\n";
-        }
-        
-        $msg.= "\r\n";
-        
-        return $msg;
-    }
-    
-    /**
-     * @return string
-     */
-    public function getProxyMessageHeaderStr() {
-        $msg = $this->getMethod() . ' ' . $this->getUri() . ' ';
-        $msg.= 'HTTP/' . $this->getHttpVersion() . "\r\n";
-        
-        foreach ($this->getAllHeaders() as $header => $value) {
-            $msg.= "$header: $value\r\n";
-        }
-        $msg.= "\r\n";
-        
-        return $msg;
     }
     
     /**

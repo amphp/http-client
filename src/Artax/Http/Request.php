@@ -9,61 +9,96 @@ namespace Artax\Http;
 interface Request extends Message {
     
     /**
-     * Should return an all-caps HTTP method verb
+     * Access the all-caps HTTP method verb
      */
     function getMethod();
 
     /**
-     * Should return a URI with protected user info obscured by asterisks as per rfc3986-3.2.1
-     */
-    function getUri();
-
-    /**
-     * Should return a URI without protected user info obscured by asterisks
-     */
-    function getRawUri();
-    
-    function getScheme();
-    
-    function getHost();
-    
-    function getPort();
-    
-    function getPath();
-    
-    function getQuery();
-    
-    function getFragment();
-    
-    /**
-     * Should return Authority with protected user info obscured by asterisks as per rfc3986-3.2.1
-     */
-    function getAuthority();
-    
-    /**
-     * Should return Authority without protected user info obscured by asterisks
-     */
-    function getRawAuthority();
-    
-    /**
-     * Should return user info with the password obscured by asterisks as per rfc3986-3.2.1
-     */
-    function getUserInfo();
-    
-    /**
-     * Should return user info without protected user info obscured by asterisks
-     */
-    function getRawUserInfo();
-    
-    /**
+     * Retrive a specific URI query parameter by name
+     * 
      * @param string $parameterName
      */
     function getQueryParameter($parameterName);
     
     /**
+     * Does the request contain query parameters?
+     * 
      * @param string $parameterName
      */
     function hasQueryParameter($parameterName);
     
+    /**
+     * Access an associative array of query string parameters
+     */
     function getAllQueryParameters();
+    
+    /**
+     * Build a raw HTTP message request line
+     */
+    function getRequestLine();
+    
+    /**
+     * Build a raw HTTP message request line using the proxy-style absolute URI
+     */
+    function getProxyRequestLine();
+    
+    /**
+     * Access the request URI with protected user info obscured by asterisks as per rfc3986-3.2.1
+     */
+    function getUri();
+
+    /**
+     * Access the raw request URI WITHOUT protected user info obscured by asterisks
+     */
+    function getRawUri();
+    
+    /**
+     * Access the request URI scheme
+     */
+    function getScheme();
+    
+    /**
+     * Access the request URI host
+     */
+    function getHost();
+    
+    /**
+     * Access the request URI port
+     */
+    function getPort();
+    
+    /**
+     * Access the request URI path
+     */
+    function getPath();
+    
+    /**
+     * Access the request URI query string
+     */
+    function getQuery();
+    
+    /**
+     * Access the request URI fragment
+     */
+    function getFragment();
+    
+    /**
+     * Access URI authority with protected user info obscured by asterisks as per rfc3986-3.2.1
+     */
+    function getAuthority();
+    
+    /**
+     * Access raw URI authority WITHOUT protected user info obscured by asterisks
+     */
+    function getRawAuthority();
+    
+    /**
+     * Access URI user info with the password obscured by asterisks as per rfc3986-3.2.1
+     */
+    function getUserInfo();
+    
+    /**
+     * Access raw URI user info WITHOUT protected user info obscured by asterisks
+     */
+    function getRawUserInfo();
 }
