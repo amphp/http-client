@@ -126,6 +126,7 @@ class MutableStdRequest extends StdRequest implements MutableRequest {
     
     public function removeBody() {
         $this->body = null;
+        $this->bodyParameters = array();
     }
     
     /**

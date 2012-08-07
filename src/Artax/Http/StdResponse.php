@@ -40,24 +40,8 @@ class StdResponse extends StdMessage implements Response {
         if ($headers) {
             $this->assignAllHeaders($headers);
         }
-        $this->body = $this->buildSeekableBody($body);
+        $this->body = $body;
         $this->httpVersion = $httpVersion;
-    }
-    
-    protected function buildSeekableBody($body) {
-        if (!is_resource($body)) {
-            return (string) $body;
-        }
-        
-        $meta = stream_get_meta_data($body);
-        if ($meta['uri'] == 'php://input') {
-            $newBodyStream = fopen('php://temp', 'r+');
-            stream_copy_to_stream($body, $newBodyStream);
-            rewind($newBodyStream);
-            return $newBodyStream;
-        }
-        
-        return $body;
     }
 
     /**

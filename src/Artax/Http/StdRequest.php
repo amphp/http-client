@@ -261,7 +261,7 @@ class StdRequest extends StdMessage implements FormEncodableRequest {
         if ($queryStr = $this->getQuery()) {
             $msg.= "?$queryStr";
         }
-        $msg.= ' HTTP/' . $this->getHttpVersion() . "\r\n";
+        $msg.= ' HTTP/' . $this->getHttpVersion();
         
         return $msg;
     }
@@ -273,7 +273,7 @@ class StdRequest extends StdMessage implements FormEncodableRequest {
      */
     public function getProxyRequestLine() {
         $msg = $this->getMethod() . ' ' . $this->getUri() . ' ';
-        $msg.= 'HTTP/' . $this->getHttpVersion() . "\r\n";
+        $msg.= 'HTTP/' . $this->getHttpVersion();
         
         return $msg;
     }
@@ -293,7 +293,7 @@ class StdRequest extends StdMessage implements FormEncodableRequest {
      */
     public function __toString() {
         if (strcmp('CONNECT', $this->getMethod())) {
-            $msg = $this->getRequestLine();
+            $msg = $this->getRequestLine() . "\r\n";
             $msg.= 'HOST: ' . $this->getAuthority() . "\r\n";
             
             $headers = $this->getAllHeaders();
