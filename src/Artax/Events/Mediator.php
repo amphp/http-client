@@ -1,22 +1,7 @@
 <?php
-/**
- * Mediator Interface File
- * 
- * @category    Artax
- * @package     Events
- * @author      Daniel Lowrey <rdlowrey@gmail.com>
- * @license     All code subject to the terms of the LICENSE file in the project root
- * @version     ${project.version}
- */
+
 namespace Artax\Events;
   
-/**
- * Defines a front facing interface for event mediators.
- * 
- * @category    Artax
- * @package     Events
- * @author      Daniel Lowrey <rdlowrey@gmail.com>
- */
 interface Mediator {
     
     /**
@@ -114,5 +99,10 @@ interface Mediator {
      * @param string $eventName
      */
     function getBroadcastCount($eventName);
+    
+    /**
+     * Access information about the most recently modified queue and the action taken to modify it
+     */
+    function getLastQueueDelta();
     
 }

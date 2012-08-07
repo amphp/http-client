@@ -1,27 +1,11 @@
 <?php
-/**
- * Artax Notifier Class File
- * 
- * @category    Artax
- * @package     Events
- * @author      Daniel Lowrey <rdlowrey@gmail.com>
- * @license     All code subject to the terms of the LICENSE file in the project root
- * @version     ${project.version}
- */
+
 namespace Artax\Events;
 
 use InvalidArgumentException,
-    ArrayAccess,
     Traversable,
     StdClass;
 
-/**
- * A central transit hub for application event broadcasting
- * 
- * @category    Artax
- * @package     Core
- * @author      Daniel Lowrey <rdlowrey@gmail.com>
- */
 class Notifier implements Mediator {
     
     /**
@@ -47,12 +31,7 @@ class Notifier implements Mediator {
     /**
      * Connect a listener to the end of the specified event queue
      * 
-     * To enable listener lazy-loading, all string listeners are assumed to be 
-     * class names and will be instantiated using the dependency provider. This
-     * means that global function names and static class methods (in string form)
-     * cannot be attached.
-     * 
-     * @param string $eventName Event identifier name to listen for
+     * @param string $eventName Event identifier name
      * @param mixed  $listener  A valid callable or string class name
      * 
      * @return int Returns the new number of listeners queued for the specified event
@@ -123,7 +102,7 @@ class Notifier implements Mediator {
     /**
      * Attach an event listener to the front of the event queue
      * 
-     * @param string $eventName
+     * @param string $eventName Event identifier name
      * @param mixed  $listener  A valid callable or string class name
      * @return int Returns the new number of listeners in the event queue
      * @throws InvalidArgumentException
@@ -147,7 +126,7 @@ class Notifier implements Mediator {
     /**
      * Remove a listener from the front of the specified event queue
      * 
-     * @param string $eventName
+     * @param string $eventName Event identifier name
      * @return mixed Returns shifted listener or null if no listeners assigned
      */
     public function shift($eventName) {
@@ -163,7 +142,7 @@ class Notifier implements Mediator {
     /**
      * Remove the last listener from the end of the specified event queue
      * 
-     * @param string $eventName
+     * @param string $eventName Event identifier name
      * @return mixed Returns popped listener or null if no listeners assigned
      */
     public function pop($eventName) {
@@ -179,7 +158,7 @@ class Notifier implements Mediator {
     /**
      * Clear all listeners for the specified event
      * 
-     * @param string $eventName Event name
+     * @param string $eventName Event identifier name
      * @return void
      */
     public function clear($eventName) {
@@ -190,7 +169,7 @@ class Notifier implements Mediator {
     /**
      * Notify listeners that an event has occurred
      * 
-     * @param string $eventName
+     * @param string $eventName Event identifier name
      * @return int Returns a count of listeners invoked for this broadcast
      */
     public function notify($eventName) {
@@ -333,6 +312,8 @@ class Notifier implements Mediator {
     }
     
     /**
+     * Access a two-element array storing the most recently modified queue and the action taken
+     * 
      * @return array
      */
     public function getLastQueueDelta() {
