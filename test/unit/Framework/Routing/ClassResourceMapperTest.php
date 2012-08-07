@@ -55,6 +55,7 @@ class ClassResourceMapperTest extends PHPUnit_Framework_TestCase {
 }
 
 class WidgetController {
+    public function __construct(){}
     public function get(){}
 }
 class WidgetController2 {
