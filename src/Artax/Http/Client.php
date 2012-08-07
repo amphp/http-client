@@ -310,9 +310,16 @@ class Client {
      */
     protected function writeRequestToStream(Request $request, $stream) {
         
-        $rawHeaders = $this->proxyStyle
-            ? $request->getProxyMessageHeaderStr()
-            : $request->getMessageHeaderStr();
+        if (!$this->proxyStyle) {
+            $rawHeaders = $request->getRequestLine() . "\r\n";
+            $rawHeaders.= 'HOST: ' . $request->getAuthority() . "\r\n";
+            $headers = $request->getAllHeaders();
+            unset($headers['HOST']);
+            foreach ($headers as $header => $value) {
+                $rawHeaders.= "$header: $value\r\n";
+            }
+            $rawHeaders.= "\r\n";
+        }
         
         try {
             $this->writeRawDataToStream($rawHeaders, $stream);
