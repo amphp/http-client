@@ -31,15 +31,11 @@ class StdUri implements Uri {
      * @throws InvalidArgumentException
      */
     protected function parseUri($uri) {
-        if (!$uriParts = @parse_url($uri)) {
-            throw new InvalidArgumentException(
-                "Invalid URI: $uri"
-            );
-        }
+        $uriParts = @parse_url($uri);
         
         if (!isset($uriParts['scheme'])) {
             throw new InvalidArgumentException(
-                'Invalid URI: http|https scheme required'
+                "Invalid URI: $uri"
             );
         }
         
