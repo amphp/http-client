@@ -21,6 +21,19 @@ class MutableStdRequestTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
+     * @covers Artax\Http\MutableStdRequest::removeBody
+     */
+    public function testRemoveBodyDoesAndReturnsNull() {
+        $uri = $this->getMock('Artax\\Http\\Uri');
+        $request = new MutableStdRequest();
+        $request->setBody('request body');
+        $this->assertEquals('request body', $request->getBody());
+        $this->assertNull($request->removeBody());
+        $this->assertNull($request->getBody());
+        $this->assertEquals(array(), $request->getAllBodyParameters());
+    }
+    
+    /**
      * @covers Artax\Http\MutableStdRequest::__construct
      * @covers Artax\Http\MutableStdRequest::setUri
      */

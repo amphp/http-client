@@ -421,7 +421,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
         $uri = new StdUri('http://localhost:8096/test.html');
         $request = new StdRequest($uri, 'GET');
         
-        $expected = "GET " . $uri . " HTTP/1.1\r\n";
+        $expected = "GET " . $uri . " HTTP/1.1";
         
         $this->assertEquals($expected, $request->getProxyRequestLine());
     }
