@@ -11,6 +11,7 @@ change until an official version 1.0 is reached.*
 * Built-in [dependency injection][wiki-dic]
 * Lazy-loading of class-based event listeners
 * Unified application [error, exception and shutdown][wiki-errors] event handling
+* An HTTP client that requires no additional libraries, not even cURL.
 
 ### PROJECT GOALS
 
@@ -46,4 +47,3 @@ event-driven and pluggable PHP applications.
 [wiki-events]: https://github.com/rdlowrey/Artax/wiki/Event-Management
 [wiki-dic]: https://github.com/rdlowrey/Artax/wiki/Dependency-Injection
 [wiki-errors]: https://github.com/rdlowrey/Artax/wiki/Error-Management
-
