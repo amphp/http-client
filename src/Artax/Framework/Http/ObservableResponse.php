@@ -93,12 +93,12 @@ class ObservableResponse extends MutableStdResponse {
     }
 
     /**
-     * @param string $body
+     * @param mixed $body
      * @return void
      * @notifies sys.response.set-body(MutableStdResponse $response)
      */
-    public function setBody($bodyString) {
-        parent::setBody($bodyString);
+    public function setBody($body) {
+        parent::setBody($body);
         $this->notify('__sys.response.setBody');
     }
 

@@ -14,7 +14,7 @@ $cfg->eventListeners = array(
     '__sys.response.beforeSend' =>'ArtaxPlugins\\ResponseEncoder'
 );
 $cfg->injectionDefinitions = array('ArtaxPlugins\\ResponseEncoder' => array(
-    'request' => 'Artax\\Http\\StdRequest'
+    'request' => 'Artax\\Http\\FormEncodedRequest'
 ));
 
 $cfg->requiredFiles = array(

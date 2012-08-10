@@ -6,7 +6,7 @@ use Artax\Http\FormEncodableRequest as Request,
     Artax\Framework\Http\ObservableResponse as Response;
 
 
-class GetRedirect {
+class StreamBody {
     
     private $request;
     private $response;
@@ -16,9 +16,12 @@ class GetRedirect {
         $this->response = $response;
     }
     
-    public function get() {
-        $this->response->setStatusCode(301);
-        $this->response->setRawHeader('Location: /');
+    public function post() {
+        $entityBodyStream = $this->request->getBodyStream();
+        
+        $this->response->setBody($entityBodyStream);
+        $this->response->setStatusCode(200);
+        $this->response->setStatusDescription('OK');
         $this->response->send();
         
         return $this->response;

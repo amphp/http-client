@@ -17,31 +17,21 @@ class ArtaxFrameworkTest extends PHPUnit_Framework_TestCase {
         $request = new StdRequest('http://localhost:8096', 'GET');
         
         $response = $this->client->request($request);
-        
         $this->assertEquals(200, $response->getStatusCode());
         $this->assertEquals('Index::get', $response->getBody());
+        
     }
     
     public function testPostResponse() {
         $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
-        $body = urlencode('var1=test1&var2=test2');
-        $request = new StdRequest('http://localhost:8096/post-only', 'POST', $headers, $body);
+        $body = 'var1=test1&var2=test2';
+        $request = new StdRequest('http://localhost:8096/post-only', 'POST', $headers,
+            urlencode($body)
+        );
         $response = $this->client->request($request);
         
         $this->assertEquals(200, $response->getStatusCode());
         $this->assertEquals("PostOnly::post - $body", $response->getBody());
-        
-        /*
-        $headers = array('User-Agent' => 'IntegrationTest');
-        $body = urlencode('var1=test1&var2=test2');
-        
-        $request = new StdRequest('http://localhost:8096/post-only', 'POST', $headers, $body);
-        
-        $response = $this->client->request($request);
-        
-        $this->assertEquals(200, $response->getStatusCode());
-        $this->assertEquals("PostOnly::post - $body", $response->getBody());
-        */
     }
     
     public function testPostWithRedirect() {
@@ -65,9 +55,7 @@ class ArtaxFrameworkTest extends PHPUnit_Framework_TestCase {
     }
     
     public function testNotFoundResponse() {
-        $request = new StdRequest('http://localhost:8096/nonexistent', 'GET', array(
-            'User-Agent' => 'IntegrationTest'
-        ));
+        $request = new StdRequest('http://localhost:8096/nonexistent', 'GET');
         
         $response = $this->client->request($request);
         
@@ -76,9 +64,7 @@ class ArtaxFrameworkTest extends PHPUnit_Framework_TestCase {
     }
     
     public function testMethodNotAllowedResponse() {
-        $request = new StdRequest('http://localhost:8096/post-only', 'GET', array(
-            'User-Agent' => 'IntegrationTest'
-        ));
+        $request = new StdRequest('http://localhost:8096/post-only', 'GET');
         
         $response = $this->client->request($request);
         
@@ -87,9 +73,7 @@ class ArtaxFrameworkTest extends PHPUnit_Framework_TestCase {
     }
     
     public function testErrorResponse() {
-        $request = new StdRequest('http://localhost:8096/error', 'GET', array(
-            'User-Agent' => 'IntegrationTest'
-        ));
+        $request = new StdRequest('http://localhost:8096/error', 'GET');
         
         $response = $this->client->request($request);
         
@@ -98,9 +82,7 @@ class ArtaxFrameworkTest extends PHPUnit_Framework_TestCase {
     }
     
     public function testExceptionResponse() {
-        $request = new StdRequest('http://localhost:8096/exception', 'GET', array(
-            'User-Agent' => 'IntegrationTest'
-        ));
+        $request = new StdRequest('http://localhost:8096/exception', 'GET');
         
         $response = $this->client->request($request);
         
@@ -109,9 +91,7 @@ class ArtaxFrameworkTest extends PHPUnit_Framework_TestCase {
     }
     
     public function testFatalResponse() {
-        $request = new StdRequest('http://localhost:8096/fatal-error', 'GET', array(
-            'User-Agent' => 'IntegrationTest'
-        ));
+        $request = new StdRequest('http://localhost:8096/fatal-error', 'GET');
         
         $response = $this->client->request($request);
         
@@ -120,9 +100,7 @@ class ArtaxFrameworkTest extends PHPUnit_Framework_TestCase {
     }
     
     public function testExceptionResponseOnIllegalSystemEventDelta() {
-        $request = new StdRequest('http://localhost:8096/sysevent', 'GET', array(
-            'User-Agent' => 'IntegrationTest'
-        ));
+        $request = new StdRequest('http://localhost:8096/sysevent', 'GET');
         
         $response = $this->client->request($request);
         
@@ -131,9 +109,7 @@ class ArtaxFrameworkTest extends PHPUnit_Framework_TestCase {
     }
     
     public function testAutoStatusPluginIntegration() {
-        $request = new StdRequest('http://localhost:8096/auto-status', 'GET', array(
-            'User-Agent' => 'IntegrationTest'
-        ));
+        $request = new StdRequest('http://localhost:8096/auto-status', 'GET');
         
         $response = $this->client->request($request);
         
@@ -142,9 +118,7 @@ class ArtaxFrameworkTest extends PHPUnit_Framework_TestCase {
     }
     
     public function testAutoContentLengthPluginIntegration() {
-        $request = new StdRequest('http://localhost:8096/auto-length', 'GET', array(
-            'User-Agent' => 'IntegrationTest'
-        ));
+        $request = new StdRequest('http://localhost:8096/auto-length', 'GET');
         
         $response = $this->client->request($request);
         

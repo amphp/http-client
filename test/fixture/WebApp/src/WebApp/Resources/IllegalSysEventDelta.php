@@ -2,8 +2,8 @@
 
 namespace WebApp\Resources;
 
-use Artax\Http\StdRequest,
-    Artax\Framework\Http\ObservableResponse,
+use Artax\Http\FormEncodableRequest as Request,
+    Artax\Framework\Http\ObservableResponse as Response,
     Artax\Events\Mediator,
     Artax\Framework\Events\SystemEventDeltaException;
 
@@ -14,7 +14,7 @@ class IllegalSysEventDelta {
     private $response;
     private $mediator;
     
-    public function __construct(StdRequest $request, ObservableResponse $response, Mediator $mediator) {
+    public function __construct(Request $request, Response $response, Mediator $mediator) {
         $this->request = $request;
         $this->response = $response;
         $this->mediator = $mediator;

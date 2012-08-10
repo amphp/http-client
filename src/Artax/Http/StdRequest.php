@@ -6,7 +6,7 @@ use DomainException,
     RuntimeException,
     InvalidArgumentException;
 
-class StdRequest extends StdMessage implements FormEncodableRequest {
+class StdRequest extends StdMessage implements Request {
     
     /**
      * @var StdUri
@@ -22,11 +22,6 @@ class StdRequest extends StdMessage implements FormEncodableRequest {
      * @var array
      */
     protected $queryParameters;
-    
-    /**
-     * @var array
-     */
-    protected $bodyParameters = array();
 
     /**
      * @param mixed $uri A valid URI string or instance of Artax\Http\Uri
@@ -49,15 +44,9 @@ class StdRequest extends StdMessage implements FormEncodableRequest {
             $this->body = $body;
         }
         
-        $this->httpVersion = $httpVersion;
+        $this->httpVersion = $httpVersion ?: '1.1';
         
         $this->queryParameters = $this->parseParametersFromString($this->uri->getQuery());
-        
-        if ($this->body && $this->hasFormEncodedBody()) {
-            $this->bodyParameters = $this->parseParametersFromString($this->getBody());
-        } else {
-            $this->bodyParameters = array();
-        }
     }
     
     /**
@@ -78,6 +67,15 @@ class StdRequest extends StdMessage implements FormEncodableRequest {
     }
     
     /**
+     * @param string $httpMethod
+     * @return bool
+     */
+    protected function acceptsEntityBody() {
+        $methodsDisallowingEntityBody = array('GET', 'HEAD', 'DELETE', 'TRACE', 'CONNECT');
+        return !in_array($this->getMethod(), $methodsDisallowingEntityBody);
+    }
+    
+    /**
      * @param string $paramString
      * @return array
      */
@@ -87,23 +85,68 @@ class StdRequest extends StdMessage implements FormEncodableRequest {
     }
     
     /**
-     * @return bool
+     * Access the entity body
+     * 
+     * If a resource stream is assigned to the body property, its entire contents will be read into
+     * memory and returned as a string. To access the stream resource directly without buffering
+     * its contents, use Message::getBodyStream().
+     * 
+     * In web environments, php://input is a stream to the HTTP request body, but it can only be
+     * read once and is not seekable. So we load it into our own stream if php://input is our 
+     * request body property.
+     * 
+     * @return string
      */
-    protected function hasFormEncodedBody() {
-        if (!$this->hasHeader('Content-Type')) {
-            return false;
+    public function getBody() {
+        if (!is_resource($this->body)) {
+            return $this->body;
         }
         
-        return !strcmp($this->getHeader('Content-Type'), 'application/x-www-form-urlencoded');
+        if (!is_null($this->cachedBodyFromStream)) {
+            return $this->cachedBodyFromStream;
+        }
+        
+        $meta = stream_get_meta_data($this->body);
+        
+        if ($meta['uri'] == 'php://input') {
+            $this->cachedBodyFromStream = '';
+            
+            $tempStream = fopen('php://memory', 'r+');
+            while (!feof($this->body)) {
+                $data = fread($this->body, 8192);
+                $this->cachedBodyFromStream .= $data;
+                fwrite($tempStream, $data);
+            }
+            rewind($tempStream);
+            fclose($this->body);
+            $this->body = $tempStream;
+            
+        } else {
+            $this->cachedBodyFromStream = stream_get_contents($this->body);
+            rewind($this->body);
+        }
+        
+        return $this->cachedBodyFromStream;
     }
     
     /**
-     * @param string $httpMethod
-     * @return bool
+     * Access the entity body resource stream directly without buffering its contents
+     * 
+     * @return resource
      */
-    protected function acceptsEntityBody() {
-        $methodsDisallowingEntityBody = array('GET', 'HEAD', 'DELETE', 'TRACE', 'CONNECT');
-        return !in_array($this->getMethod(), $methodsDisallowingEntityBody);
+    public function getBodyStream() {
+        if (!is_resource($this->body)) {
+            return null;
+        }
+        
+        $meta = stream_get_meta_data($this->body);
+        if ($meta['uri'] == 'php://input') {
+            $tempStream = fopen('php://memory', 'r+');
+            stream_copy_to_stream($this->body, $tempStream);
+            $this->body = $tempStream;
+        }
+        
+        return $this->body;
     }
     
     /**
@@ -222,33 +265,6 @@ class StdRequest extends StdMessage implements FormEncodableRequest {
      */
     public function getAllQueryParameters() {
         return $this->queryParameters;
-    }
-    
-    /**
-     * @param string $parameter
-     * @return bool
-     */
-    public function hasBodyParameter($parameter) {
-        return isset($this->bodyParameters[$parameter]);
-    }
-    
-    /**
-     * @param string $parameter
-     * @return string
-     * @todo Determine appropriate exception for invalid parameter request
-     */
-    public function getBodyParameter($parameter) {
-        if (!$this->hasBodyParameter($parameter)) {
-            throw new RuntimeException;
-        }
-        return $this->bodyParameters[$parameter];
-    }
-    
-    /**
-     * @return array
-     */
-    public function getAllBodyParameters() {
-        return $this->bodyParameters;
     }
     
     /**

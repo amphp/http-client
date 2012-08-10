@@ -30,7 +30,6 @@ class MutableStdRequestTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals('request body', $request->getBody());
         $this->assertNull($request->removeBody());
         $this->assertNull($request->getBody());
-        $this->assertEquals(array(), $request->getAllBodyParameters());
     }
     
     /**
@@ -53,20 +52,6 @@ class MutableStdRequestTest extends PHPUnit_Framework_TestCase {
         $request = new MutableStdRequest();
         $this->assertNull($request->setMethod('test'));
         $this->assertEquals('TEST', $request->getMethod());
-    }
-    
-    /**
-     * @covers Artax\Http\MutableStdRequest::__construct
-     * @covers Artax\Http\MutableStdRequest::setMethod
-     */
-    public function testSetMethodAssignsBodyParameterValues() {
-        $request = new MutableStdRequest();
-        $request->setHeader('Content-Type', 'application/x-www-form-urlencoded');
-        $request->setUri('http://www.nytimes.com');
-        $request->setBody('x=42&y=99');
-        $request->setMethod('POST');
-        
-        $this->assertEquals(array('x'=>'42', 'y'=>'99'), $request->getAllBodyParameters());
     }
     
     /**
@@ -134,20 +119,6 @@ class MutableStdRequestTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers Artax\Http\MutableStdRequest::__construct
-     * @covers Artax\Http\MutableStdRequest::setBody
-     */
-    public function testSetBodyAssignsBodyParameterValues() {
-        $request = new MutableStdRequest();
-        $request->setHeader('Content-Type', 'application/x-www-form-urlencoded');
-        $request->setMethod('POST');
-        $request->setUri('http://www.nytimes.com');
-        $request->setBody('x=42&y=99');
-        
-        $this->assertEquals(array('x'=>'42', 'y'=>'99'), $request->getAllBodyParameters());
-    }
-    
-    /**
      * @covers Artax\Http\MutableStdRequest::clearAll
      * @covers Artax\Http\MutableStdRequest::getUri
      */
@@ -165,7 +136,6 @@ class MutableStdRequestTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals(null, $request->getBody());
         $this->assertEquals(array(), $request->getAllHeaders());
         $this->assertEquals(array(), $request->getAllQueryParameters());
-        $this->assertEquals(array(), $request->getAllBodyParameters());
     }
     
     /**
@@ -183,20 +153,34 @@ class MutableStdRequestTest extends PHPUnit_Framework_TestCase {
         $this->assertNull($mutableRequest->populateFromRequest($stdRequest));
         
         $this->assertEquals(array('var'=>'42'), $mutableRequest->getAllQueryParameters());
-        $this->assertEquals(array('bodyVar'=>'42'), $mutableRequest->getAllBodyParameters());
-        
         $this->assertEquals($stdRequest->getHttpVersion(),$mutableRequest->getHttpVersion());
         $this->assertEquals($stdRequest->getUri(),$mutableRequest->getUri());
         $this->assertEquals($stdRequest->getMethod(), $mutableRequest->getMethod());
         $this->assertEquals($stdRequest->getBody(), $mutableRequest->getBody());
         $this->assertEquals($stdRequest->getAllHeaders(), $mutableRequest->getAllHeaders());
         $this->assertEquals($stdRequest->getAllQueryParameters(), $mutableRequest->getAllQueryParameters());
-        $this->assertEquals($stdRequest->getAllBodyParameters(), $mutableRequest->getAllBodyParameters());
+    }
+    
+    /**
+     * @covers Artax\Http\MutableStdRequest::populateFromRequest
+     */
+    public function testPopulateFromRequestDuplicatesStreamBody() {
+        $body = fopen('php://memory', 'r+');
+        fwrite($body, 'test');
+        rewind($body);
+        
+        $request = new StdRequest('http://www.kumqat.com/widgets?var=42', 'POST', array(), $body);
+        
+        $mutableRequest = new MutableStdRequest();
+        $mutableRequest->populateFromRequest($request);
+        
+        $this->assertTrue(is_resource($mutableRequest->getBodyStream()));
+        $this->assertEquals('test', $mutableRequest->getBody());
     }
     
     public function provideInvalidRawHeaders() {
         return array(
-            array('1234 Get your woman on the floor'),
+            array('Balderdash'),
             array('X-Requested-By'),
             array("Content-Type: text/html\r\nContent-Length: 42"),
             array("Vary: Accept,Accept-Charset,\r\nAccept-Encoding")
@@ -327,6 +311,64 @@ class MutableStdRequestTest extends PHPUnit_Framework_TestCase {
         
         $this->assertEquals($rawData, $request->__toString());
         $this->assertEquals($populated->__toString(), $request->__toString());
+    }
+    
+    /**
+     * @covers Artax\Http\MutableStdRequest::populateFromRawMessage
+     */
+    public function testPopulateFromRawMessageAssignsAbsoluteUriIfSpecified() {
+        $request = new MutableStdRequest;
+        
+        $rawData = "POST http://localhost/ HTTP/1.0\r\n";
+        $rawData.= "CONTENT-TYPE: text/plain\r\n";
+        $rawData.= "\r\n";
+        $rawData.= "test";
+        
+        $request->populateFromRawMessage($rawData);
+        
+        $this->assertEquals('http://localhost/', $request->getUri());
+    }
+    
+    /**
+     * @covers Artax\Http\MutableStdRequest::populateFromRawMessage
+     */
+    public function testPopulateFromRawMessageAppendsMultipleHeadersOfTheSameType() {
+        $request = new MutableStdRequest;
+        
+        $rawData = "POST http://localhost/ HTTP/1.0\r\n";
+        $rawData.= "WARNING: something\r\n";
+        $rawData.= "WARNING: something-else\r\n";
+        $rawData.= "\r\n";
+        $rawData.= "test";
+        
+        $request->populateFromRawMessage($rawData);
+        
+        $this->assertEquals('something,something-else', $request->getHeader('Warning'));
+    }
+    
+    public function provideInvalidRawHttpMessages() {
+        
+        $msg1 = "GET /index.php HTTP/1.1"; // missing trailing \r\n after request line
+        $msg2 = "GET HTTP/1.1\r\n"; // bad request line
+        $msg3 = "BAD REQUEST LINE"; // bad request line
+        $msg4 = "GET /index.php HTTP/1.1\r\nContent-Type: text/plain\r\n\r\n"; // missing Host
+        
+        return array(
+            array($msg1),
+            array($msg2),
+            array($msg3),
+            array($msg4)
+        );
+    }
+    
+    /**
+     * @dataProvider provideInvalidRawHttpMessages
+     * @covers Artax\Http\MutableStdRequest::populateFromRawMessage
+     * @expectedException Artax\Http\Exceptions\MessageParseException
+     */
+    public function testPopulateFromRawMessageThrowsExceptionOnInvalidHttpMessage($badMsg) {
+        $request = new MutableStdRequest;
+        $request->populateFromRawMessage($badMsg);
     }
     
 }

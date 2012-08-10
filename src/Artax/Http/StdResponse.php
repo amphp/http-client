@@ -43,6 +43,22 @@ class StdResponse extends StdMessage implements Response {
         $this->body = $body;
         $this->httpVersion = $httpVersion;
     }
+    
+    /**
+     * @return string
+     */
+    public function __toString() {
+        $msg = 'HTTP/' . $this->getHttpVersion() . ' ' . $this->getStatusCode();
+        $msg.= ' ' . $this->getStatusDescription() . "\r\n";
+        
+        foreach ($this->getAllHeaders() as $header => $value) {
+            $msg.= "$header: $value\r\n";
+        }
+        
+        $msg.= "\r\n" . $this->getBody();
+        
+        return $msg;
+    }
 
     /**
      * @return int
@@ -59,58 +75,82 @@ class StdResponse extends StdMessage implements Response {
     }
 
     /**
-     * Formats and sends all headers prior to outputting the message body.
-     * 
-     * @return void
-     * @todo add chunked response body streaming
-     */
-    public function send() {
-        $startLine = 'HTTP/' . $this->getHttpVersion() . ' ' . $this->getStatusCode() . ' ';
-        $startLine.= $this->getStatusDescription();
-        header($startLine);
-        
-        foreach ($this->headers as $header => $value) {
-            header($header . ': ' . $value);
-        }
-        
-        if (!$this->body) {
-            $this->wasSent = true;
-            return;
-        } elseif ($streamableBody = $this->getBodyStream()) {
-            echo stream_get_contents($streamableBody);
-        } else {
-            echo $this->body;
-        }
-        
-        $this->wasSent = true;
-    }
-
-    /**
      * @return bool
      */
     public function wasSent() {
         return $this->wasSent;
     }
-    
+
     /**
-     * @return string
+     * Formats and sends all headers prior to outputting the message body.
+     * 
+     * @return void
+     * @throws RuntimeException
      */
-    public function __toString() {
-        $msg = 'HTTP/' . $this->getHttpVersion() . ' ' . $this->getStatusCode();
-        $msg.= ' ' . $this->getStatusDescription() . "\r\n";
-        
-        $headerArr = $this->getAllHeaders();
-        $headers = array_combine(
-            array_map('strtoupper', array_keys($headerArr)),
-            array_values($headerArr)
-        );
-        
-        foreach ($headers as $header => $value) {
-            $msg.= "$header: $value\r\n";
+    public function send() {
+        $this->removeContentLengthForChunkedBody();
+        $this->sendHeaders();
+        if ($this->body) {
+            $this->sendBody();
         }
         
-        $msg.= "\r\n" . $this->getBody();
+        $this->wasSent = true;
+    }
+    
+    /**
+     * It's important not to send a Content-Length header with a streamed response body.
+     * PHP automatically sends a chunked message if no Content-Length header is sent,
+     * so we don't need to bother with adding a Transfer-Encoding header here.
+     * 
+     * @return void
+     */
+    protected function removeContentLengthForChunkedBody() {
+        if ($this->getBodyStream() && $this->hasHeader('Content-Length')) {
+            unset($this->headers['CONTENT-LENGTH']);
+        }
+    }
+    
+    /**
+     * @return void
+     */
+    protected function sendHeaders() {
+        $startLine = 'HTTP/' . $this->getHttpVersion() . ' ' . $this->getStatusCode() . ' ';
+        $startLine.= $this->getStatusDescription();
         
-        return $msg;
+        header($startLine);
+        
+        foreach ($this->headers as $header => $value) {
+            header($header . ': ' . $value);
+        }
+    }
+    
+    /**
+     * @return void
+     * @throws RuntimeException
+     */
+    protected function sendBody() {
+        if (!$this->getBodyStream()) {
+            echo $this->getBody();
+            return;
+        }
+        
+        rewind($this->body);
+        
+        while (!feof($this->body)) {
+            if (false !== ($chunk = $this->outputBodyChunk())) {
+                echo $chunk;
+            } else {
+                throw new RuntimeException(
+                    "Failed reading response body from {$this->body}"
+                );
+            }
+        }
+    }
+    
+    /**
+     * @return int Returns false on error
+     */
+    protected function outputBodyChunk() {
+        return @fread($this->body, 8192);
     }
 }

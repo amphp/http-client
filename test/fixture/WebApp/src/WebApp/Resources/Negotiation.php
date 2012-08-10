@@ -3,8 +3,8 @@
 namespace WebApp\Resources;
 
 use RuntimeException,
-    Artax\Http\StdRequest,
-    Artax\Framework\Http\ObservableResponse,
+    Artax\Http\FormEncodableRequest as Request,
+    Artax\Framework\Http\ObservableResponse as Response,
     Artax\Framework\Http\RequestNegotiator;
 
 class Negotiation {
@@ -12,7 +12,7 @@ class Negotiation {
     private $request;
     private $response;
     
-    public function __construct(StdRequest $request, ObservableResponse $response) {
+    public function __construct(Request $request, Response $response) {
         $this->request = $request;
         $this->response = $response;
     }

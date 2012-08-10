@@ -18,9 +18,9 @@
  */
 
 use Artax\Http\StatusCodes,
-    Artax\Http\StdRequestDetector,
-    Artax\Http\StdRequestFactory,
     Artax\Http\MutableStdResponse,
+    Artax\Http\FormEncodedRequest,
+    Artax\Http\SuperglobalRequestDetector,
     Artax\Http\SuperglobalUriDetector,
     Artax\Events\Mediator,
     Artax\Framework\UnifiedErrorHandler,
@@ -48,6 +48,20 @@ use Artax\Http\StatusCodes,
 define('ARTAX_SYSTEM_VERSION', 0);
 require __DIR__ . '/Artax.php';
 
+
+/*
+ * -------------------------------------------------------------------------------------------------
+ * Error handlers require a request. An error should never occur, but if it does, we can't proceed.
+ * -------------------------------------------------------------------------------------------------
+ */
+
+$uriDetector = new SuperglobalUriDetector();
+
+try {
+    $requestUri = $uriDetector->make($_SERVER);
+} catch (Exception $e) {
+    die('URI detection failed: cannot continue');
+}
 
 /*
  * -------------------------------------------------------------------------------------------------
@@ -90,12 +104,12 @@ $mediatorDefinition = array(
 );
 $httpStatusHandlerDefinition = array(
     ':mediator' => $mediator,
-    'request'  => 'Artax\\Http\\StdRequest',
+    'request'  => 'Artax\\Http\\FormEncodedRequest',
     'response' => 'Artax\\Framework\\Http\\ObservableResponse'
 );
 $http500HandlerDefinition = array(
     ':mediator' => $mediator,
-    'request'  => 'Artax\\Http\\StdRequest',
+    'request'  => 'Artax\\Http\\FormEncodedRequest',
     'response' => 'Artax\\Http\\MutableStdResponse'
 );
 
@@ -203,8 +217,15 @@ $mediator->unshift('__mediator.delta', function(Mediator $mediator) {
  * -------------------------------------------------------------------------------------------------
  */
 
-$requestFactory = new StdRequestFactory(new StdRequestDetector(new SuperglobalUriDetector));
-$request = $requestFactory->make($_SERVER);
+$requestDetector = new SuperglobalRequestDetector();
+$request = new FormEncodedRequest(
+    $requestUri,
+    $requestDetector->detectMethod($_SERVER),
+    $requestDetector->detectHeaders($_SERVER),
+    $requestDetector->detectBody(),
+    $requestDetector->detectHttpVersion($_SERVER)
+);
+
 $injector->share($request);
 
 $mediator->notify('__sys.ready');

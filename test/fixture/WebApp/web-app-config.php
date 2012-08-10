@@ -24,6 +24,7 @@ $cfg->routes = array(
     '/exception'   => 'WebApp\\Resources\\ExceptionTest',
     '/fatal-error' => 'WebApp\\Resources\\FatalError',
     '/post-only'   => 'WebApp\\Resources\\PostOnly',
+    '/stream-body' => 'WebApp\\Resources\\StreamBody',
     '/post-redir'  => 'WebApp\\Resources\\PostRedirect',
     '/sysevent'    => 'WebApp\\Resources\\IllegalSysEventDelta',
     '/auto-status' => 'WebApp\\Resources\\PluginAutoStatus',
@@ -41,5 +42,6 @@ $cfg->eventListeners = array(
 );
 
 $cfg->injectionImplementations = array(
+    'Artax\\Http\\FormEncodableRequest' => 'Artax\\Http\\FormEncodedRequest',
     'Artax\\Events\\Mediator' => 'Artax\\Framework\\Events\\ProvisionedNotifier'
 );

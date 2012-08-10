@@ -7,16 +7,19 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Http\StdRequest::__construct
+     * @covers Artax\Http\StdRequest::parseParametersFromString
      */
     public function testConstructorAssignsProperties() {
-        $uri = $this->getMock('Artax\\Http\\Uri');
+        $uri = new StdUri('http://localhost/test.php?var1=1');
         $request = new StdRequest($uri, 'PUT', array(), 'request body', '1.1');
         $this->assertInstanceOf('Artax\\Http\\StdRequest', $request);
+        $this->assertEquals('1', $request->getQueryParameter('var1'));
     }
     
     /**
      * @covers Artax\Http\StdRequest::__construct
      * @covers Artax\Http\StdRequest::buildUriFromString
+     * @covers Artax\Http\StdRequest::parseParametersFromString
      */
     public function testConstructorBuildsUriInstanceOnStringParameter() {
         $uri = 'http://www.google.com/';
@@ -33,17 +36,6 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     public function testConstructorThrowsExceptionOnInvalidUriString() {
         $uri = 'http://';
         $request = new StdRequest($uri, 'PUT', array(), 'request body');
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::__construct
-     * @covers Artax\Http\StdRequest::normalizeHeaders
-     */
-    public function testNormalizeHeadersUppercasesHeaderFieldNames() {
-        $uri = $this->getMock('Artax\\Http\\Uri');
-        $headers = array('Accept-Charset' => '*/*');
-        $request = new StdRequest($uri, 'PUT', $headers, 'request body');
-        $this->assertTrue($request->hasHeader('ACCEPT-CHARSET'));
     }
     
     /**
@@ -292,98 +284,6 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers Artax\Http\StdRequest::__construct
-     * @covers Artax\Http\StdRequest::hasFormEncodedBody
-     * @covers Artax\Http\StdRequest::parseParametersFromString
-     * @covers Artax\Http\StdRequest::acceptsEntityBody
-     */
-    public function testConstructorAssignsFormEncodedBodyParametersIfDefined() {
-        $uri = $this->getMock('Artax\\Http\\Uri');
-        $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
-        $body = 'var1=one&var2=two&var3=Yes%20sir';
-        $request = new StdRequest($uri, 'POST', $headers, $body);
-        
-        $this->assertEquals('one', $request->getBodyParameter('var1'));
-        $this->assertEquals('two', $request->getBodyParameter('var2'));
-        $this->assertEquals('Yes sir', $request->getBodyParameter('var3'));
-        
-        $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
-        $body = fopen('php://memory', 'w+');
-        fwrite($body, 'var4=four&var5=five&var6=six');
-        rewind($body);
-        $request = new StdRequest($uri, 'POST', $headers, $body);
-        
-        $this->assertEquals('four', $request->getBodyParameter('var4'));
-        $this->assertEquals('five', $request->getBodyParameter('var5'));
-        $this->assertEquals('six', $request->getBodyParameter('var6'));
-        
-        $request = new StdRequest($uri, 'POST', array(), 'test');
-        $this->assertEquals(array(), $request->getAllBodyParameters());
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::__construct
-     * @covers Artax\Http\StdRequest::getAllBodyParameters
-     */
-    public function testGetAllBodyParametersReturnsArrayOfBodyParameters() {
-        $uri = $this->getMock('Artax\\Http\\Uri');
-        $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
-        $body = 'var1=one&var2=two&var3=Yes%20sir';
-        $request = new StdRequest($uri, 'POST', $headers, $body);
-        
-        $expected = array('var1' => 'one', 'var2' => 'two', 'var3' => 'Yes sir');
-        $this->assertEquals($expected, $request->getAllBodyParameters());
-        
-        $request = new StdRequest($uri, 'POST', array());
-        $this->assertEquals(array(), $request->getAllBodyParameters());
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::__construct
-     * @covers Artax\Http\StdRequest::hasBodyParameter
-     */
-    public function testHasBodyParameterReturnsBoolOnParameterAvailability() {
-        $uri = $this->getMock('Artax\\Http\\Uri');
-        $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
-        $body = 'var1=one&var2=two&var3=Yes%20sir';
-        $request = new StdRequest($uri, 'POST', $headers, $body);
-        
-        $this->assertTrue($request->hasBodyParameter('var1'));
-        $this->assertFalse($request->hasBodyParameter('var999'));
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::__construct
-     * @covers Artax\Http\StdRequest::getBodyParameter
-     * @covers Artax\Http\StdRequest::assignHeader
-     * @covers Artax\Http\StdRequest::assignAllHeaders
-     */
-    public function testGetBodyParameterReturnsRequestParameterValue() {
-        $uri = $this->getMock('Artax\\Http\\Uri');
-        $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
-        $body = 'var1=one&var2=two&var3=Yes%20sir';
-        $request = new StdRequest($uri, 'POST', $headers, $body);
-        
-        $this->assertEquals('one', $request->getBodyParameter('var1'));
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::__construct
-     * @covers Artax\Http\StdRequest::getBodyParameter
-     * @covers Artax\Http\StdRequest::assignHeader
-     * @covers Artax\Http\StdRequest::assignAllHeaders
-     * @expectedException RuntimeException
-     */
-    public function testGetBodyParameterExceptionOnInvalidParameter() {
-        $uri = $this->getMock('Artax\\Http\\Uri');
-        $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
-        $body = 'var1=one&var2=two&var3=Yes%20sir';
-        $request = new StdRequest($uri, 'POST', $headers, $body);
-        
-        $request->getBodyParameter('var999999');
-    }
-    
-    /**
      * @covers Artax\Http\StdRequest::__toString
      * @covers Artax\Http\StdRequest::buildConnectMessage
      */
@@ -424,5 +324,62 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
         $expected = "GET " . $uri . " HTTP/1.1";
         
         $this->assertEquals($expected, $request->getProxyRequestLine());
+    }
+    
+    /**
+     * @covers Artax\Http\StdRequest::getBody
+     */
+    public function testGetBodyReturnsAssignedBodyIfNotAResourceStream() {
+        $uri = $this->getMock('Artax\\Http\\Uri');
+        $headers = array('Accept-Charset' => '*/*');
+        $request = new StdRequest($uri, 'PUT', $headers, 'request body');
+        $this->assertEquals('request body', $request->getBody());
+    }
+    
+    /**
+     * @covers Artax\Http\StdRequest::getBodyStream
+     */
+    public function testGetStreamBodyReturnsNullIfBodyIsNotAResourceStream() {
+        $uri = $this->getMock('Artax\\Http\\Uri');
+        $headers = array('Accept-Charset' => '*/*');
+        $request = new StdRequest($uri, 'PUT', $headers, 'request body');
+        $this->assertNull($request->getBodyStream());
+    }
+    
+    /**
+     * @covers Artax\Http\StdRequest::getBodyStream
+     */
+    public function testGetStreamBodyCopiesUnseekablePhpInputStreamOnFirstAccess() {
+        $uri = $this->getMock('Artax\\Http\\Uri');
+        $phpInput = fopen('php://input', 'r');
+        $request = new StdRequest($uri, 'PUT', array(), $phpInput);
+        $this->assertEquals('', stream_get_contents($request->getBodyStream()));
+    }
+    
+    /**
+     * @covers Artax\Http\StdRequest::getBody
+     */
+    public function testGetBodyBuffersAndCopiesPhpInputStreamBody() {
+        $uri = $this->getMock('Artax\\Http\\Uri');
+        $phpInput = fopen('php://input', 'r');
+        $request = new StdRequest($uri, 'PUT', array(), $phpInput);
+        $this->assertEquals('', $request->getBody());
+        $this->assertEquals('', stream_get_contents($request->getBodyStream()));
+    }
+    
+    /**
+     * @covers Artax\Http\StdRequest::getBody
+     */
+    public function testGetBodyBuffersStreamBodyOnFirstRead() {
+        $uri = $this->getMock('Artax\\Http\\Uri');
+        $body = fopen('php://memory', 'r+');
+        fwrite($body, 'test');
+        rewind($body);
+        
+        $request = new StdRequest($uri, 'PUT', array(), $body);
+        $this->assertEquals('test', $request->getBody());
+        $this->assertEquals('test', stream_get_contents($request->getBodyStream()));
+        
+        $this->assertEquals('test', $request->getBody());
     }
 }

@@ -17,11 +17,52 @@ class StdMessageTest extends PHPUnit_Framework_TestCase {
     /**
      * @covers Artax\Http\StdMessage::getBody
      */
-    public function testBodyAccessors() {
+    public function testBodyAccessorReturnsStringEntityBodyIfAssigned() {
         $response = new MutableStdResponse;
         $this->assertEquals('', $response->getBody());
         $this->assertNull($response->setBody('entity body'));
         $this->assertEquals('entity body', $response->getBody());
+    }
+    
+    /**
+     * @covers Artax\Http\StdMessage::getBody
+     */
+    public function testBodyAccessorReturnsStreamEntityBodyContentsIfAssigned() {
+        $body = fopen('php://memory', 'r+');
+        fwrite($body, 'test');
+        rewind($body);
+        
+        $response = new MutableStdResponse();
+        $response->setBody($body);
+        $this->assertEquals('test', $response->getBody());
+        
+        // Retrun the body string that was cached on the first access
+        $this->assertEquals('test', $response->getBody());
+    }
+    
+    /**
+     * @covers Artax\Http\StdMessage::getBodyStream
+     */
+    public function testBodyStreamAccessorReturnsResource() {
+        $body = fopen('php://memory', 'r+');
+        fwrite($body, 'test');
+        rewind($body);
+        
+        $response = new MutableStdResponse();
+        $response->setBody($body);
+        $this->assertTrue(is_resource($response->getBodyStream()));
+        $this->assertEquals('test', stream_get_contents($response->getBodyStream()));
+    }
+    
+    /**
+     * @covers Artax\Http\StdMessage::getBodyStream
+     */
+    public function testBodyStreamAccessorReturnsNullIfNotAResource() {
+        $body = 'test';
+        
+        $response = new MutableStdResponse();
+        $response->setBody($body);
+        $this->assertNull($response->getBodyStream());
     }
     
     /**
@@ -69,5 +110,14 @@ class StdMessageTest extends PHPUnit_Framework_TestCase {
         );
         
         $this->assertEquals($expected, $response->getAllHeaders());
+    }
+    
+    /**
+     * @covers Artax\Http\StdMessage::assignAllHeaders
+     * @expectedException InvalidArgumentException
+     */
+    public function testAssignAllHeadersThrowsExceptionOnInvalidIterable() {
+        $response = new MutableStdResponse();
+        $response->setAllHeaders('not an iterable -- should throw exception');
     }
 }

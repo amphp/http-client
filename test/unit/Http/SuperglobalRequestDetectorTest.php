@@ -1,36 +1,17 @@
 <?php
 
-use Artax\Http\StdRequestDetector,
-    Artax\Http\StdUri,
-    Artax\Http\SuperglobalUriDetector;
+use Artax\Http\SuperglobalRequestDetector,
+    Artax\Http\StdUri;
 
-class StdRequestDetectorTest extends PHPUnit_Framework_TestCase {
+class SuperglobalRequestDetectorTest extends PHPUnit_Framework_TestCase {
     
     /**
-     * @covers Artax\Http\StdRequestDetector::__construct
-     * @covers Artax\Http\StdRequestDetector::detectUri
-     */
-    public function testDetectUriUsesComposedUriTranslatorToMake() {
-        $url = new StdUri('http://localhost');
-        
-        $mock = $this->getMock('Artax\\Http\\SuperglobalUriDetector', array('make'));
-        $mock->expects($this->once())
-             ->method('make')
-             ->will($this->returnValue($url));
-        
-        $detector = new StdRequestDetector($mock);
-        $this->assertEquals($url, $detector->detectUri(array()));
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequestDetector::__construct
-     * @covers Artax\Http\StdRequestDetector::detectHeaders
+     * @covers Artax\Http\SuperglobalRequestDetector::detectHeaders
      */
     public function testDetectHeadersUsesNativeFunctionIfAvailable() {
         $mock = $this->getMock(
-            'Artax\\Http\\StdRequestDetector',
-            array('detectHeadersNatively'),
-            array(new SuperglobalUriDetector)
+            'Artax\\Http\\SuperglobalRequestDetector',
+            array('detectHeadersNatively')
         );
         $headers = array('mock', 'header', 'list');
         $mock->expects($this->once())
@@ -71,44 +52,40 @@ class StdRequestDetectorTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideServerSuperglobal
-     * @covers Artax\Http\StdRequestDetector::__construct
-     * @covers Artax\Http\StdRequestDetector::detectHeaders
-     * @covers Artax\Http\StdRequestDetector::detectHeadersNatively
+     * @covers Artax\Http\SuperglobalRequestDetector::detectHeaders
+     * @covers Artax\Http\SuperglobalRequestDetector::detectHeadersNatively
      */
     public function testDetectHeadersParsesServerArrayIfNativeFunctionUnavailable($_server) {
-        $detector = new StdRequestDetector(new SuperglobalUriDetector);
+        $detector = new SuperglobalRequestDetector(new SuperglobalUriDetector);
         $headers = $detector->detectHeaders($_server);
     }
     
     /**
      * @dataProvider provideServerSuperglobal
-     * @covers Artax\Http\StdRequestDetector::__construct
-     * @covers Artax\Http\StdRequestDetector::detectMethod
+     * @covers Artax\Http\SuperglobalRequestDetector::detectMethod
      */
     public function testDetectMethodParsesRelevantSuperglobalEntry($_server) {
-        $detector = new StdRequestDetector(new SuperglobalUriDetector);
+        $detector = new SuperglobalRequestDetector(new SuperglobalUriDetector);
         $method = $detector->detectMethod($_server);
         $this->assertEquals($_server['REQUEST_METHOD'], $method);
     }
     
     /**
      * @dataProvider provideServerSuperglobal
-     * @covers Artax\Http\StdRequestDetector::__construct
-     * @covers Artax\Http\StdRequestDetector::detectHttpVersion
+     * @covers Artax\Http\SuperglobalRequestDetector::detectHttpVersion
      */
     public function testDetectHttpVersionParsesRelevantSuperglobalEntry($_server) {
-        $detector = new StdRequestDetector(new SuperglobalUriDetector);
+        $detector = new SuperglobalRequestDetector(new SuperglobalUriDetector);
         $_server['SERVER_PROTOCOL'] = 'HTTP/1.1';
         $version = $detector->detectHttpVersion($_server);
         $this->assertEquals('1.1', $version);
     }
     
     /**
-     * @covers Artax\Http\StdRequestDetector::__construct
-     * @covers Artax\Http\StdRequestDetector::detectBody
+     * @covers Artax\Http\SuperglobalRequestDetector::detectBody
      */
     public function testDetectBody() {
-        $detector = new StdRequestDetector(new SuperglobalUriDetector);
+        $detector = new SuperglobalRequestDetector(new SuperglobalUriDetector);
         $this->assertTrue(is_resource($detector->detectBody()));
     }
     

@@ -44,9 +44,9 @@ class MutableStdResponse extends StdResponse implements MutableResponse {
     public function setStartLine($rawStartLineStr) {
         // Conforms to Start-Line specification in rfc2616-sec6.1
         $pattern = ',^HTTP/(\d+\.\d+) (\d{3}) (.+)$,';
-        if (!preg_match($pattern, $rawStartLineStr, $match)) {
+        if (!preg_match($pattern, trim($rawStartLineStr), $match)) {
             throw new MessageParseException(
-                "Invalid HTTP start line: $rawStartLineStr"
+                'Invalid HTTP start line: ' . trim($rawStartLineStr)
             );
         }
         

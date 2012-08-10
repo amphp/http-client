@@ -34,12 +34,6 @@ class MutableStdRequest extends StdRequest implements MutableRequest {
         // http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html#sec5.1.1
         // "The method is case-sensitive"
         $this->method = strtoupper($httpMethodVerb);
-        
-        if ($this->body && $this->hasFormEncodedBody() && $this->acceptsEntityBody()) {
-            $this->bodyParameters = $this->parseParametersFromString($this->getBody());
-        } else {
-            $this->bodyParameters = array();
-        }
     }
     
     /**
@@ -116,17 +110,10 @@ class MutableStdRequest extends StdRequest implements MutableRequest {
      */
     public function setBody($body) {
         $this->body = $body;
-        
-        if ($body && $this->acceptsEntityBody() && $this->hasFormEncodedBody()) {
-            $this->bodyParameters = $this->parseParametersFromString($this->getBody());
-        } else {
-            $this->bodyParameters = array();
-        }
     }
     
     public function removeBody() {
         $this->body = null;
-        $this->bodyParameters = array();
     }
     
     /**
@@ -141,7 +128,6 @@ class MutableStdRequest extends StdRequest implements MutableRequest {
         $this->headers = array();
         $this->body = null;
         $this->queryParameters = array();
-        $this->bodyParameters = array();
     }
     
     /**
@@ -206,8 +192,8 @@ class MutableStdRequest extends StdRequest implements MutableRequest {
             $this->setUri('http://' . $this->getHeader('Host') . $uri);
         } else {
             throw new MessageParseException(
-                'Invalid HTTP request message: A Host header must be specified when a URI path' .
-                "is placed in the request line: $uri"
+                'Invalid HTTP request message: a Host header is required for requests using a ' .
+                "URI path in the request line: $uri"
             );
         }
         
@@ -222,7 +208,9 @@ class MutableStdRequest extends StdRequest implements MutableRequest {
         $this->setMethod($request->getMethod());
         $this->setUri($request->getRawUri());
         $this->setAllHeaders($request->getAllHeaders());
-        $this->setBody($request->getBody());
+        
+        $body = $request->getBodyStream() ?: $request->getBody();
+        $this->setBody($body);
     }
     
     /**
@@ -261,7 +249,7 @@ class MutableStdRequest extends StdRequest implements MutableRequest {
         }
         if ($this->body && !$this->acceptsEntityBody()) {
             throw new MessageValidationException(
-                "{$this->method} HTTP requests may not contain an entity body"
+                "A {$this->method} request may not contain an entity body"
             );
         }
     }

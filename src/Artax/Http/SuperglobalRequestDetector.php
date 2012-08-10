@@ -2,28 +2,7 @@
 
 namespace Artax\Http;
 
-class StdRequestDetector {
-    
-    /**
-     * @SuperglobalUriDetector
-     */
-    private $uriDetector;
-    
-    /**
-     * @param SuperglobalUriDetector $uriDetector
-     * @return void
-     */
-    public function __construct(SuperglobalUriDetector $uriDetector) {
-        $this->uriDetector = $uriDetector;
-    }
-    
-    /**
-     * @param array $_server
-     * @return Url
-     */
-    public function detectUri($_server) {
-        return $this->uriDetector->make($_server);
-    }
+class SuperglobalRequestDetector {
     
     /**
      * @param array $_server
@@ -83,11 +62,6 @@ class StdRequestDetector {
      * @return string
      */
     public function detectBody() {
-        $input = fopen('php://input', 'r');
-        $output = fopen('php://memory', 'r+');
-        stream_copy_to_stream($input, $output);
-        rewind($output);
-        
-        return $output;
+        return fopen('php://input', 'r');
     }
 }
