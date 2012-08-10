@@ -520,19 +520,19 @@ class Client {
     protected function readEntityBodyFromClosingConnection($stream) {
         $buffer = '';
         while ($data = @fread($stream, $this->chunkSize)) {
-			$buffer .= $data;
-		}
-		
-		if (false === $data) {
-		    $bytesRead = strlen($buffer);
+            $buffer .= $data;
+        }
+        
+        if (false === $data) {
+            $bytesRead = strlen($buffer);
             $s = $bytesRead == 1 ? '' : 's';
             throw new TransferException(
                 "Connection failure: headers received, $bytesRead entity body byte$s read prior  " .
                 "to error"
             );
-		}
-		
-		return $buffer;
+        }
+        
+        return $buffer;
     }
     
     /**
