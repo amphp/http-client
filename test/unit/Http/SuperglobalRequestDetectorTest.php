@@ -89,4 +89,170 @@ class SuperglobalRequestDetectorTest extends PHPUnit_Framework_TestCase {
         $this->assertTrue(is_resource($detector->detectBody()));
     }
     
+    public function provideServerSuperglobalsForUriParsing() {
+        return array(
+            array(array(
+                'REQUEST_URI' => '/index.html',
+                'HTTP_HOST' => 'localhost',
+                'SERVER_NAME' => 'localhost',
+                'expectedResult' => 'http://localhost/index.html',
+                'expectedPort' => 80
+            )),
+            array(array(
+                'REQUEST_URI' => '/index.html',
+                'HTTP_HOST' => 'localhost',
+                'SERVER_NAME' => 'localhost',
+                'SERVER_PORT' => 80,
+                'expectedResult' => 'http://localhost/index.html',
+                'expectedPort' => 80
+            )),
+            array(array(
+                'REQUEST_URI' => '/index.html',
+                'HTTP_HOST' => 'localhost',
+                'SERVER_NAME' => 'localhost',
+                'SERVER_PORT' => 443,
+                'HTTPS' => true,
+                'expectedResult' => 'https://localhost/index.html',
+                'expectedPort' => 443
+            )),
+            array(array(
+                'REQUEST_URI' => '/index.html',
+                'HTTP_HOST' => 'localhost:80',
+                'SERVER_NAME' => 'localhost',
+                'SERVER_PORT' => 80,
+                'HTTPS' => true,
+                'expectedResult' => 'https://localhost:80/index.html',
+                'expectedPort' => 80
+            )),
+            array(array(
+                'REDIRECT_URL' => '/redirect.php',
+                'HTTP_HOST' => 'localhost:8080',
+                'SERVER_NAME' => 'localhost',
+                'HTTPS' => 'off',
+                'SERVER_PORT' => 8080,
+                'expectedResult' => 'http://localhost:8080/redirect.php',
+                'expectedPort' => 8080
+            )),
+            array(array(
+                'REDIRECT_URL' => '/redirect.php',
+                'HTTP_HOST' => '127.0.0.1:9999',
+                'SERVER_NAME' => '127.0.0.1',
+                'HTTPS' => 'off',
+                'SERVER_PORT' => 8080,
+                'expectedResult' => 'http://127.0.0.1:8080/redirect.php',
+                'expectedPort' => 8080
+            )),
+            array(array(
+                'REDIRECT_URL' => '/redirect.php',
+                'HTTP_HOST' => '127.0.0.1',
+                'SERVER_NAME' => '127.0.0.1',
+                'SERVER_PORT' => 80,
+                'expectedResult' => 'http://127.0.0.1/redirect.php',
+                'expectedPort' => 80
+            )),
+            array(array(
+                'REDIRECT_URL' => '/redirect.php',
+                'HTTP_HOST' => '127.0.0.1:8123',
+                'SERVER_NAME' => '127.0.0.1',
+                'SERVER_PORT' => 8123,
+                'expectedResult' => 'http://127.0.0.1:8123/redirect.php',
+                'expectedPort' => 8123
+            )),
+            array(array(
+                'REDIRECT_URL' => '/redirect.php',
+                'HTTP_HOST' => 'dont-trust-me',
+                'SERVER_NAME' => '127.0.0.1',
+                'HTTPS' => 'off',
+                'SERVER_PORT' => 80,
+                'expectedResult' => 'http://127.0.0.1/redirect.php',
+                'expectedPort' => 80
+            )),
+            array(array(
+                'REQUEST_URI' => '/index.php?queryVar=test',
+                'QUERY_STRING' => 'queryVar=test',
+                'HTTP_HOST' => 'localhost',
+                'SERVER_NAME' => 'localhost',
+                'HTTPS' => true,
+                'expectedResult' => 'https://localhost/index.php?queryVar=test',
+                'expectedPort' => 443
+            )),
+            array(array(
+                'REQUEST_URI' => 'http://localhost',
+                'SERVER_NAME' => 'localhost',
+                'expectedResult' => 'http://localhost',
+                'expectedPort' => 80
+            )),
+            array(array(
+                'REQUEST_URI' => '/',
+                'SERVER_NAME' => 'localhost',
+                'HTTP_HOST' => 'localhost',
+                'expectedResult' => 'http://localhost/',
+                'expectedPort' => 80
+            )),array(array(
+                'REQUEST_URI' => '/',
+                'SERVER_NAME' => '127.0.0.1',
+                'SERVER_PORT' => 80,
+                'expectedResult' => 'http://127.0.0.1/',
+                'expectedPort' => 80
+            )),
+        );
+    }
+    
+    /**
+     * @dataProvider provideServerSuperglobalsForUriParsing
+     * @covers Artax\Http\SuperglobalRequestDetector::detectUri
+     * @covers Artax\Http\SuperglobalRequestDetector::attemptProxyStyleParse
+     * @covers Artax\Http\SuperglobalRequestDetector::detectPath
+     * @covers Artax\Http\SuperglobalRequestDetector::detectHost
+     * @covers Artax\Http\SuperglobalRequestDetector::detectScheme
+     * @covers Artax\Http\SuperglobalRequestDetector::detectPort
+     * @covers Artax\Http\SuperglobalRequestDetector::detectQuery
+     * @covers Artax\Http\SuperglobalRequestDetector::determineIpBasedHost
+     * @covers Artax\Http\SuperglobalRequestDetector::isIpBasedHost
+     */
+    public function testMakeParsesUrlPropertiesFromSuperglobalArray($_server) {
+        $detector = new SuperglobalRequestDetector;
+        
+        $uri = $detector->detectUri($_server);
+        $this->assertEquals($_server['expectedResult'], $uri->__toString());
+        $this->assertEquals($_server['expectedPort'], $uri->getPort());
+    }
+    
+    /**
+     * @covers Artax\Http\SuperglobalRequestDetector::detectUri
+     * @covers Artax\Http\SuperglobalRequestDetector::detectHost
+     * @expectedException RuntimeException
+     */
+    public function testMakeThrowsExceptionOnServerNameWithMissingHost() {
+        $detector = new SuperglobalRequestDetector;
+        $uri = $detector->detectUri(array('SERVER_NAME'=>'testhost'));
+    }
+    
+    /**
+     * @covers Artax\Http\SuperglobalRequestDetector::isIpBasedHost
+     * @expectedException RuntimeException
+     */
+    public function testMakeThrowsExceptionOnMissingServerName() {
+        $detector = new SuperglobalRequestDetector;
+        $uri = $detector->detectUri(array());
+    }
+    
+    /**
+     * @covers Artax\Http\SuperglobalRequestDetector::detectPath
+     * @expectedException RuntimeException
+     */
+    public function testMakeThrowsExceptionOnMissingPathKeys() {
+        $detector = new SuperglobalRequestDetector;
+        $uri = $detector->detectUri(array('SERVER_NAME' => 'test', 'HTTP_HOST' => 'test'));
+    }
+    
+    /**
+     * @covers Artax\Http\SuperglobalRequestDetector::detectPort
+     * @expectedException RuntimeException
+     */
+    public function testMakeThrowsExceptionOnMissingPortKeyOnIpBasedHost() {
+        $detector = new SuperglobalRequestDetector;
+        $uri = $detector->detectUri(array('SERVER_NAME' => '127.0.0.1'));
+    }
+    
 }

@@ -21,7 +21,6 @@ use Artax\Http\StatusCodes,
     Artax\Http\MutableStdResponse,
     Artax\Http\FormEncodedRequest,
     Artax\Http\SuperglobalRequestDetector,
-    Artax\Http\SuperglobalUriDetector,
     Artax\Events\Mediator,
     Artax\Framework\UnifiedErrorHandler,
     Artax\Framework\Configuration\AppConfig,
@@ -51,29 +50,30 @@ require __DIR__ . '/Artax.php';
 
 /*
  * -------------------------------------------------------------------------------------------------
- * Error handlers require a request. An error should never occur, but if it does, we can't proceed.
+ * Detect the client request; instantiate the injection container; instantiate the event mediator.
  * -------------------------------------------------------------------------------------------------
  */
 
-$uriDetector = new SuperglobalUriDetector();
-
 try {
-    $requestUri = $uriDetector->make($_SERVER);
+    $requestDetector = new SuperglobalRequestDetector();
+    $request = new FormEncodedRequest(
+        $requestDetector->detectUri($_SERVER),
+        $requestDetector->detectMethod($_SERVER),
+        $requestDetector->detectHeaders($_SERVER),
+        $requestDetector->detectBody(),
+        $requestDetector->detectHttpVersion($_SERVER)
+    );    
 } catch (Exception $e) {
     die('URI detection failed: cannot continue');
 }
 
-/*
- * -------------------------------------------------------------------------------------------------
- * Instantiate the injection container; instantiate/share the event mediator and reflection pool.
- * -------------------------------------------------------------------------------------------------
- */
-
 $reflPool = new ReflectionPool;
 $injector = new Provider($reflPool);
 $mediator = new ProvisionedNotifier($injector);
+
 $injector->share($mediator);
 $injector->share($reflPool);
+$injector->share($request);
 
 
 /*
@@ -213,29 +213,11 @@ $mediator->unshift('__mediator.delta', function(Mediator $mediator) {
 
 /*
  * -------------------------------------------------------------------------------------------------
- * Create and share a request; notify interested listeners that the system is ready.
- * -------------------------------------------------------------------------------------------------
- */
-
-$requestDetector = new SuperglobalRequestDetector();
-$request = new FormEncodedRequest(
-    $requestUri,
-    $requestDetector->detectMethod($_SERVER),
-    $requestDetector->detectHeaders($_SERVER),
-    $requestDetector->detectBody(),
-    $requestDetector->detectHttpVersion($_SERVER)
-);
-
-$injector->share($request);
-
-$mediator->notify('__sys.ready');
-
-
-/*
- * -------------------------------------------------------------------------------------------------
  * Route the request and invoke the resulting resource.
  * -------------------------------------------------------------------------------------------------
  */
+
+$mediator->notify('__sys.ready');
 
 $router = $injector->make('Artax\\Routing\\RouteMatcher');
 $routePool = $injector->make('Artax\\Routing\\RouteStorage');
