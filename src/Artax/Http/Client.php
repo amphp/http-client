@@ -351,56 +351,66 @@ class Client {
      */
     protected function writeStringDataToStream($dataStr, $stream) {
         $originalLength = strlen($dataStr);
-        $bytesRemaining = $originalLength;
+        $bytesWritten = 0;
         
-        while (false !== ($bytes = @fwrite($stream, $dataStr))) {
-            $bytesRemaining -= $bytes;
-            if ($bytesRemaining <= 0) {
-                return;
+        while ($bytesWritten < $originalLength) {
+        
+            $toWrite = substr($dataStr, $bytesWritten);
+            
+            if (false !== ($bytes = $this->writeToStream($stream, $toWrite))) {
+                $bytesWritten += $bytes;
+            } else {
+                throw new TransferException(
+                    "Connection failure: $bytesWritten of $originalLength bytes sent prior failure"
+                );
             }
         }
-        
-        throw new TransferException(
-            "Connection failure: $bytesRemaining remaining to send at failure"
-        );
     }
     
     /**
-     * @param resource $inputBodyStream
+     * @param resource $bodyStream
      * @param resource $outputStream
      * @return void
      * @throws RuntimeException
      * @throws Artax\Http\Exceptions\TransferException
      */
-    protected function streamOutboundRequestBody($inputBodyStream, $outputStream) {
-        $bytesSent = 0;
+    protected function streamOutboundRequestBody($bodyStream, $outputStream) {
+        $totalBytesSent = 0;
         
-        while (!feof($inputBodyStream)) {
-            
-            if (false !== ($data = @fread($inputBodyStream, $this->chunkSize))) {
-                
-                $chunkLength = strlen($data);
-                $chunk = dechex($chunkLength) . "\r\n$data\r\n";
-                
-                if (false !== @fwrite($outputStream, $chunk)) {
-                    $bytesSent += $chunkLength;
-                    continue;
-                }
-                
-                throw new TransferException(
-                    "Connection failure: $bytesSent bytes streamed from request body " .
-                    "$inputBodyStream prior to transmission failure"
+        while (!feof($bodyStream)) {
+        
+            if (false === ($data = $this->readFromStream($bodyStream, $this->chunkSize))) {
+                throw new RuntimeException(
+                    "Failed reading data from request entity body in $bodyStream"
                 );
             }
             
-            throw new RuntimeException(
-                "Failed reading data from request body stream $inputBodyStream"
-            );
+            $chunkBytesSent = 0;
+            $chunkLength = strlen($data);
+            $chunk = dechex($chunkLength) . "\r\n$data\r\n";
+            
+            while ($chunkBytesSent < $chunkLength) {
+                $toBeSent = substr($chunk, $chunkBytesSent);
+                if (false !== ($bytes = $this->writeToStream($outputStream, $toBeSent))) {
+                    $chunkBytesSent += $bytes;
+                    $totalBytesSent += $bytes;
+                    continue;
+                } else {
+                    throw new TransferException(
+                        "Connection failure: $totalBytesSent bytes streamed from request body " .
+                        "$bodyStream prior to transmission failure"
+                    );
+                }
+            }
         }
         
-        fwrite($outputStream, "0\r\n\r\n");
+        if (false === $this->writeToStream($outputStream, "0\r\n\r\n")) {
+            throw new TransferException(
+                "Connection failure: $totalBytesSent bytes streamed from request body " .
+                "$bodyStream prior to transmission failure"
+            );
+        }
     }
-    
     
     /**
      * @param resource $stream
@@ -409,21 +419,32 @@ class Client {
      */
     protected function readResponseHeadersFromStream($stream) {
         $response = new MutableStdResponse;
-        if (false !== ($startLine = @fgets($stream))) {
+        
+        if (false !== ($startLine = $this->readLineFromStream($stream))) {
             $response->setStartLine($startLine);
         } else {
             throw new NoResponseException();
         }
         
-        $headerBuffer = '';
-        while (false !== ($line = @fgets($stream))) {
-            $headerBuffer .= $line;
+        $buffer = '';
+        while ($line = $this->readLineFromStream($stream)) {
+            $buffer .= $line;
             if ($line == "\r\n") {
                 break;
             }
         }
         
-        $headers = rtrim($headerBuffer);
+        if (false === $line && !$buffer) {
+            throw new TransferException(
+                "Connection failure: response header retrieval failed"
+            );
+        } elseif (false === $line && $buffer) {
+            throw new MessageParseException(
+                "Invalid HTTP response message headers received"
+            );
+        }
+        
+        $headers = rtrim($buffer);
         
         if ($headers) {
             $response->setAllRawHeaders($headers);
@@ -498,18 +519,24 @@ class Client {
         
         $buffer = '';
         $bytesRead = 0;
-        while (false !== ($data = @fread($stream, $contentLength))) {
+        
+        while ($bytesRead < $contentLength) {
+            
+            $data = $this->readFromStream($stream, $contentLength);
+            
+            if (false === $data) {
+                $s = $bytesRead == 1 ? '' : 's';
+                throw new TransferException(
+                    "Connection failure: headers received, $bytesRead entity body byte$s read " .
+                    "prior to error"
+                );
+            }
+            
             $buffer.= $data;
             $bytesRead += strlen($data);
-            if ($bytesRead >= $contentLength) {
-                return $buffer;
-            }
         }
         
-        $s = $bytesRead == 1 ? '' : 's';
-        throw new TransferException(
-            "Connection failure: headers received, $bytesRead entity body byte$s read prior to error"
-        );
+        return $buffer;
     }
     
     /**
@@ -519,7 +546,8 @@ class Client {
      */
     protected function readEntityBodyFromClosingConnection($stream) {
         $buffer = '';
-        while ($data = @fread($stream, $this->chunkSize)) {
+        
+        while ($data = $this->readFromStream($stream, $this->chunkSize)) {
             $buffer .= $data;
         }
         
@@ -527,8 +555,8 @@ class Client {
             $bytesRead = strlen($buffer);
             $s = $bytesRead == 1 ? '' : 's';
             throw new TransferException(
-                "Connection failure: headers received, $bytesRead entity body byte$s read prior  " .
-                "to error"
+                "Connection failure: headers received, $bytesRead entity body byte$s read " .
+                "prior to error"
             );
         }
         
@@ -617,6 +645,15 @@ class Client {
     }
     
     /**
+     * @param resource $stream
+     * @return bool
+     */
+    protected function hasStreamTimedOut($stream) {
+        $meta = stream_get_meta_data($stream);
+        return !empty($meta['timed_out']);
+    }
+    
+    /**
      * @param string $uri
      * @param int $flags
      * @return resource
@@ -643,35 +680,6 @@ class Client {
         }
         
         return $stream;
-    }
-    
-    /**
-     * A test seam for mocking TCP socket streams
-     * 
-     * @param string $uri
-     * @param int $flags
-     */
-    protected function getTcpStream($uri, $flags) {
-        $stream = @stream_socket_client($uri, $errNo, $errStr, $this->timeout, $flags);
-        
-        // The stupid "by-reference" error parameters make this a PITA to mock and still provide
-        // meaningful error context information. As a result, we return the stream result in tandem
-        // with the generated error info inside an array.
-        return array($stream, $errNo, $errStr);
-    }
-    
-    /**
-     * A test seam for mocking SSL socket streams
-     * 
-     * @param string $uri
-     * @param int $flags
-     * @param resource $context
-     */
-    protected function getSslStream($uri, $flags, $context) {
-        $stream = @stream_socket_client($uri, $errNo, $errStr, $this->timeout, $flags, $context);
-        
-        // An array is returned for the same reason as in Client::getTcpStream
-        return array($stream, $errNo, $errStr);
     }
     
     /**
@@ -754,6 +762,65 @@ class Client {
         }
         
         return $newLocation;
+    }
+    
+    /**
+     * A test seam to allow easy mocking of stream write results
+     * 
+     * @param resource $stream
+     * @param string $data
+     */
+    protected function writeToStream($stream, $data) {
+        return @fwrite($stream, $data);
+    }
+    
+    /**
+     * A test seam to allow easy mocking of stream read results
+     * 
+     * @param resource $stream
+     * @param string $bytes
+     */
+    protected function readFromStream($stream, $bytes) {
+        return @fread($stream, $bytes);
+    }
+    
+    /**
+     * A test seam to allow easy mocking of stream line-read results
+     * 
+     * @param resource $stream
+     * @param string $bytes
+     */
+    protected function readLineFromStream($stream) {
+        return @fgets($stream);
+    }
+    
+    /**
+     * A test seam for mocking TCP socket streams
+     * 
+     * @param string $uri
+     * @param int $flags
+     */
+    protected function getTcpStream($uri, $flags) {
+        $stream = @stream_socket_client($uri, $errNo, $errStr, $this->timeout, $flags);
+        
+        // The stupid "by-reference" error parameters make this a PITA to mock and still provide
+        // meaningful error context information. As a result, we return the stream result in tandem
+        // with the generated error info inside an array.
+        return array($stream, $errNo, $errStr);
+    }
+    
+    /**
+     * A test seam for mocking SSL socket streams
+     * 
+     * @param string $uri
+     * @param int $flags
+     * @param resource $context
+     */
+    protected function getSslStream($uri, $flags, $context) {
+        $stream = @stream_socket_client($uri, $errNo, $errStr, $this->timeout, $flags, $context);
+        
+        // An array is returned for the same reason as in Client::getTcpStream
+        return array($stream, $errNo, $errStr);
     }
     
 }

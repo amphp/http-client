@@ -7,6 +7,10 @@ use Artax\Http\Client,
 
 class ClientTest extends PHPUnit_Framework_TestCase {
     
+    protected function verifyZlib() {
+        return function_exists('gzdecode') && function_exists('gzinflate');
+    }
+    
     /**
      * @covers Artax\Http\Client::__construct
      * @covers Artax\Http\Client::isOpenSslLoaded
@@ -67,12 +71,6 @@ class ClientTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\Client::normalizeRequestHeaders
      */
     public function testNormalizeRequestAddsChunkedTransferEncodingHeaderOnStreamBody() {
-        /*$client = $this->getMock('Artax\\Http\\Client', null, array(
-            'request',
-            'doRequest',
-            ''
-        ));
-        */
         $bodyStream = fopen('php://memory', 'w+');
         fwrite($bodyStream, 'When in the chronicle of wasted time');
         rewind($bodyStream);
@@ -190,47 +188,6 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $response = $client->request($request);
         $this->assertInstanceOf('Artax\\Http\\Response', $response);
         $this->assertEquals($responseMsg->getBody(), $response->getBody());
-    }
-    
-    /**
-     * @covers Artax\Http\Client::request
-     * @covers Artax\Http\Client::doRequest
-     * @covers Artax\Http\Client::shouldCloseConnection
-     * @covers Artax\Http\Client::closeConnection
-     * @covers Artax\Http\Client::readEntityBodyWithContentLength
-     * @covers Artax\Http\Client::buildRawRequestHeaders
-     * @covers Artax\Http\Client::isChunked
-     * @covers Artax\Http\Client::readEntityBodyFromStream
-     * @covers Artax\Http\Client::writeStringDataToStream
-     * @covers Artax\Http\Client::makeStreamFromSocketUri
-     */
-    public function testRequestDecodesCompressedResponseEntityBody() {
-        // Register a custom stream wrapper so we can control the responses our requests receive
-        stream_wrapper_unregister('http');
-        stream_wrapper_register('http', 'CustomStreamWrapper');
-        CustomStreamWrapper::reset();
-        
-        // Build a custom HTTP response message for the stubbed stream wrapper to return
-        $responseMsg = new MutableStdResponse();
-        $responseMsg->setStartLine('HTTP/1.1 200 OK');
-        $body = 'encode test response body';
-        $responseMsg->setBody($body);
-        $responseMsg->setAllHeaders(array(
-            'Content-Length'   => strlen($body),
-            'Content-Encoding' => 'gzip'
-        ));
-        
-        CustomStreamWrapper::setBody($responseMsg);
-        
-        $client = $this->getMock('ClientTcpStub', array('decodeEntityBody'));
-        $client->expects($this->once())
-               ->method('decodeEntityBody')
-               ->with($this->isType('string'), $this->isType('string'))
-               ->will($this->returnValue('encode test'));
-        
-        $request = new StdRequest('http://localhost', 'GET', array('Connection'=>'close'));
-        $response = $client->request($request);
-        $this->assertEquals('encode test', $response->getBody());
     }
     
     public function provideStatusCodesThatDontAllowEntityBody() {
@@ -441,8 +398,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\Client::streamOutboundRequestBody
      */
     public function testRequestStreamsOutboundEntityBodyIfPossible() {
-        $this->markTestIncomplete();
-        /*
+        
         stream_wrapper_unregister('http');
         stream_wrapper_register('http', 'CustomStreamWrapper');
         CustomStreamWrapper::reset();
@@ -462,9 +418,361 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $request = new StdRequest('http://localhost', 'POST', array(), $outboundStream);
         $response = $client->request($request);
         
+        $expected = "POST / HTTP/1.1\r\n" .
+            "HOST: localhost\r\n" .
+            "USER-AGENT: Artax-Http/0.1 (PHP5.3+)\r\n" .
+            "ACCEPT-ENCODING: " . $client->getAcceptedEncodings() . "\r\n" .
+            "TRANSFER-ENCODING: chunked\r\n" .
+            "\r\n" .
+            "3\r\nout\r\n0\r\n\r\n";
         
-        $this->assertEquals('out', CustomStreamWrapper::$writtenData);
-        */
+        $this->assertEquals($expected, CustomStreamWrapper::$writtenData);
+    }
+    
+    /**
+     * @covers Artax\Http\Client::writeRequestToStream
+     * @covers Artax\Http\Client::writeStringDataToStream
+     */
+    public function testRequestWritesOutboundEntityBodyDirectlyIfNotAStream() {
+        
+        stream_wrapper_unregister('http');
+        stream_wrapper_register('http', 'CustomStreamWrapper');
+        CustomStreamWrapper::reset();
+        
+        $responseMsg = new MutableStdResponse();
+        $responseMsg->setStartLine('HTTP/1.1 200 OK');
+        $responseMsg->setBody('test');
+        $responseMsg->setAllHeaders(array('Content-Length' => 4));
+        
+        CustomStreamWrapper::setBody($responseMsg);
+        
+        $body = 'out';
+        
+        $client = new ClientTcpStub();
+        $request = new StdRequest('http://localhost', 'POST', array(), $body);
+        $response = $client->request($request);
+        
+        $expected = "POST / HTTP/1.1\r\n" .
+            "HOST: localhost\r\n" .
+            "USER-AGENT: Artax-Http/0.1 (PHP5.3+)\r\n" .
+            "ACCEPT-ENCODING: " . $client->getAcceptedEncodings() . "\r\n" .
+            "CONTENT-LENGTH: 3\r\n" .
+            "\r\n" .
+            "out";
+        
+        $this->assertEquals($expected, CustomStreamWrapper::$writtenData);
+    }
+    
+    /**
+     * @covers Artax\Http\Client::buildRawRequestHeaders
+     */
+    public function testRequestSendsProxyStyleRequestLineIfProxyStyleOptionIsTrue() {
+        
+        stream_wrapper_unregister('http');
+        stream_wrapper_register('http', 'CustomStreamWrapper');
+        CustomStreamWrapper::reset();
+        
+        $responseMsg = new MutableStdResponse();
+        $responseMsg->setStartLine('HTTP/1.1 200 OK');
+        $responseMsg->setBody('test');
+        $responseMsg->setAllHeaders(array('Content-Length' => 4));
+        
+        CustomStreamWrapper::setBody($responseMsg);
+        
+        $client = new ClientTcpStub();
+        $client->setProxyStyle(true);
+        $request = new StdRequest('http://localhost', 'POST', array(), 'out');
+        $response = $client->request($request);
+        
+        $expected = "POST http://localhost HTTP/1.1\r\n" .
+            "USER-AGENT: Artax-Http/0.1 (PHP5.3+)\r\n" .
+            "ACCEPT-ENCODING: " . $client->getAcceptedEncodings() . "\r\n" .
+            "CONTENT-LENGTH: 3\r\n" .
+            "\r\n" .
+            "out";
+        
+        $this->assertEquals($expected, CustomStreamWrapper::$writtenData);
+    }
+    
+    /**
+     * @covers Artax\Http\Client::writeStringDataToStream
+     * @expectedException Artax\Http\Exceptions\TransferException
+     */
+    public function testRequestThrowsExceptionOnRequestWriteFailure() {
+        $client = $this->getMock('ClientTcpStub', array('writeToStream'));
+        $client->expects($this->once())
+               ->method('writeToStream')
+               ->will($this->returnValue(false));
+        
+        $request = new StdRequest('http://localhost', 'POST', array(), 'out');
+        $response = $client->request($request);
+    }
+    
+    /**
+     * @covers Artax\Http\Client::streamOutboundRequestBody
+     * @expectedException RuntimeException
+     */
+    public function testRequestThrowsExceptionOnFailureToReadStreamingRequestEntityBody() {
+        $client = $this->getMock('ClientTcpStub', array('readFromStream'));
+        $client->expects($this->once())
+               ->method('readFromStream')
+               ->will($this->returnValue(false));
+        
+        $entityBody = fopen('php://memory', 'r+');
+        fwrite($entityBody, 'out');
+        rewind($entityBody);
+        
+        $request = new StdRequest('http://localhost', 'POST', array(), $entityBody);
+        $response = $client->request($request);
+    }
+    
+    /**
+     * @covers Artax\Http\Client::streamOutboundRequestBody
+     * @expectedException Artax\Http\Exceptions\TransferException
+     */
+    public function testRequestThrowsExceptionOnFailureToWriteStreamingRequestEntityBody() {
+        $client = new StreamEntityBodyWriteFailureClientStub();
+        
+        $entityBody = fopen('php://memory', 'r+');
+        fwrite($entityBody, 'out');
+        rewind($entityBody);
+        
+        $request = new StdRequest('http://localhost', 'POST', array(), $entityBody);
+        $response = $client->request($request);
+    }
+    
+    /**
+     * @covers Artax\Http\Client::streamOutboundRequestBody
+     * @expectedException Artax\Http\Exceptions\TransferException
+     */
+    public function testRequestThrowsExceptionOnFailureToWriteFinalStreamEntityBodyChunk() {
+        $client = new StreamEntityBodyFinalChunkFailureClientStub();
+        
+        $entityBody = fopen('php://memory', 'r+');
+        fwrite($entityBody, 'out');
+        rewind($entityBody);
+        
+        $request = new StdRequest('http://localhost', 'POST', array(), $entityBody);
+        $response = $client->request($request);
+    }
+    
+    /**
+     * @covers Artax\Http\Client::readEntityBodyFromStream
+     * @covers Artax\Http\Client::readEntityBodyFromClosingConnection
+     */
+    public function testRequestReadsUntilConnectionCloseIfNotChunkedAndNoContentLength() {
+        stream_wrapper_unregister('http');
+        stream_wrapper_register('http', 'CustomStreamWrapper');
+        CustomStreamWrapper::reset();
+        
+        $responseMsg = new MutableStdResponse();
+        $responseMsg->setStartLine('HTTP/1.1 200 OK');
+        $responseMsg->setBody('test');
+        
+        CustomStreamWrapper::setBody($responseMsg);
+        
+        $client = new ClientTcpStub();
+        $request = new StdRequest('http://localhost', 'GET');
+        $response = $client->request($request);
+        
+        $this->assertEquals('test', $response->getBody());
+    }
+    
+    /**
+     * @covers Artax\Http\Client::readEntityBodyFromClosingConnection
+     * @expectedException Artax\Http\Exceptions\TransferException
+     */
+    public function testRequestThrowsExceptionOnConnectionClosingBodyRead() {
+        stream_wrapper_unregister('http');
+        stream_wrapper_register('http', 'CustomStreamWrapper');
+        CustomStreamWrapper::reset();
+        
+        $responseMsg = new MutableStdResponse();
+        $responseMsg->setStartLine('HTTP/1.1 200 OK');
+        $responseMsg->setBody('test');
+        
+        CustomStreamWrapper::setBody($responseMsg);
+        
+        $client = new EntityBodyReadFailureClientStub();
+        $request = new StdRequest('http://localhost', 'GET');
+        $client->request($request);
+    }
+    
+    /**
+     * @covers Artax\Http\Client::readEntityBodyWithContentLength
+     * @expectedException Artax\Http\Exceptions\TransferException
+     */
+    public function testRequestThrowsExceptionOnContentLengthBodyRead() {
+        stream_wrapper_unregister('http');
+        stream_wrapper_register('http', 'CustomStreamWrapper');
+        CustomStreamWrapper::reset();
+        
+        $responseMsg = new MutableStdResponse();
+        $responseMsg->setStartLine('HTTP/1.1 200 OK');
+        $responseMsg->setAllHeaders(array('Content-Length' => 4));
+        $responseMsg->setBody('test');
+        
+        CustomStreamWrapper::setBody($responseMsg);
+        
+        $client = $this->getMock('EntityBodyReadFailureClientStub', array('readFromStream'));
+        $client->expects($this->once())
+               ->method('readFromStream')
+               ->will($this->returnValue(false));
+        
+        $request = new StdRequest('http://localhost', 'GET');
+        $client->request($request);
+    }
+    
+    /**
+     * @covers Artax\Http\Client::readResponseHeadersFromStream
+     * @expectedException Artax\Http\Exceptions\TransferException
+     */
+    public function testRequestThrowsExceptionOnResponseHeaderRetrievalFailure() {
+        stream_wrapper_unregister('http');
+        stream_wrapper_register('http', 'CustomStreamWrapper');
+        CustomStreamWrapper::reset();
+        
+        $responseMsg = new MutableStdResponse();
+        $responseMsg->setStartLine('HTTP/1.1 200 OK');
+        $responseMsg->setAllHeaders(array('Content-Length' => 4));
+        $responseMsg->setBody('test');
+        
+        CustomStreamWrapper::setBody($responseMsg);
+        
+        $client = new HeaderReadFailureClientStub();
+        $request = new StdRequest('http://localhost', 'GET');
+        $response = $client->request($request);
+    }
+    
+    /**
+     * @covers Artax\Http\Client::doRequest
+     * @covers Artax\Http\Client::decodeEntityBody
+     * @covers Artax\Http\Client::readEntityBodyFromStream
+     */
+    public function testRequestDecodesGzipCompressedResponses() {
+        
+        if (!$this->verifyZlib()) {
+            $this->markTestSkipped('skipped because zlib extension is missing');
+            return;
+        }
+        
+        stream_wrapper_unregister('http');
+        stream_wrapper_register('http', 'CustomStreamWrapper');
+        CustomStreamWrapper::reset();
+        
+        $responseMsg = new MutableStdResponse();
+        $responseMsg->setStartLine('HTTP/1.1 200 OK');
+        
+        $body = 'When in the chronicle of wasted time ...';
+        $encodedBody = gzencode($body);
+        
+        $responseMsg->setBody($encodedBody);
+        $responseMsg->setAllHeaders(array(
+            'Content-Encoding' => 'gzip',
+            'Content-Length' => strlen($encodedBody)
+        ));
+        
+        CustomStreamWrapper::setBody($responseMsg);
+        
+        $client = new ClientTcpStub();
+        $request = new StdRequest('http://localhost', 'GET');
+        $response = $client->request($request);
+        $this->assertEquals($body, $response->getBody());
+    }
+    
+    /**
+     * @covers Artax\Http\Client::doRequest
+     * @covers Artax\Http\Client::decodeEntityBody
+     * @covers Artax\Http\Client::readEntityBodyFromStream
+     */
+    public function testRequestDecodesDeflateCompressedResponses() {
+        
+        if (!$this->verifyZlib()) {
+            $this->markTestSkipped('skipped because zlib extension is missing');
+            return;
+        }
+        
+        stream_wrapper_unregister('http');
+        stream_wrapper_register('http', 'CustomStreamWrapper');
+        CustomStreamWrapper::reset();
+        
+        $responseMsg = new MutableStdResponse();
+        $responseMsg->setStartLine('HTTP/1.1 200 OK');
+        
+        $body = 'When in the chronicle of wasted time ...';
+        $encodedBody = gzdeflate($body);
+        
+        $responseMsg->setBody($encodedBody);
+        $responseMsg->setAllHeaders(array(
+            'Content-Encoding' => 'deflate',
+            'Content-Length' => strlen($encodedBody)
+        ));
+        
+        CustomStreamWrapper::setBody($responseMsg);
+        
+        $client = new ClientTcpStub();
+        $request = new StdRequest('http://localhost', 'GET');
+        $response = $client->request($request);
+        $this->assertEquals($body, $response->getBody());
+    }
+    
+    /**
+     * @covers Artax\Http\Client::doRequest
+     * @covers Artax\Http\Client::decodeEntityBody
+     * @covers Artax\Http\Client::readEntityBodyFromStream
+     */
+    public function testRequestReturnsEncodedEntityBodyIfInFormatThatClientCantUnderstand() {
+        
+        if (!$this->verifyZlib()) {
+            $this->markTestSkipped('skipped because zlib extension is missing');
+            return;
+        }
+        
+        stream_wrapper_unregister('http');
+        stream_wrapper_register('http', 'CustomStreamWrapper');
+        CustomStreamWrapper::reset();
+        
+        $responseMsg = new MutableStdResponse();
+        $responseMsg->setStartLine('HTTP/1.1 200 OK');
+        
+        $body = 'When in the chronicle of wasted time ...';
+        $encodedBody = 'something weird';
+        
+        $responseMsg->setBody($encodedBody);
+        $responseMsg->setAllHeaders(array(
+            'Content-Encoding' => 'not supported',
+            'Content-Length' => strlen($encodedBody)
+        ));
+        
+        CustomStreamWrapper::setBody($responseMsg);
+        
+        $client = new ClientTcpStub();
+        $request = new StdRequest('http://localhost', 'GET');
+        $response = $client->request($request);
+        $this->assertEquals($encodedBody, $response->getBody());
+    }
+    
+    /**
+     * @covers Artax\Http\Client::doRequest
+     * @covers Artax\Http\Client::shouldCloseConnection
+     */
+    public function testRequestOnlyClosesConnectionIfConnectionHeaderSaysClose() {
+        
+        stream_wrapper_unregister('http');
+        stream_wrapper_register('http', 'CustomStreamWrapper');
+        CustomStreamWrapper::reset();
+        
+        $responseMsg = new MutableStdResponse();
+        $responseMsg->setStartLine('HTTP/1.1 200 OK');
+        $responseMsg->setBody('test');
+        $responseMsg->setAllHeaders(array('Content-Length' => 4));
+        
+        CustomStreamWrapper::setBody($responseMsg);
+        
+        $client = new ClientTcpStub();
+        $request = new StdRequest('http://localhost', 'GET');
+        $response = $client->request($request);
+        $this->assertEquals('test', $response->getBody());
     }
     
     
@@ -484,6 +792,71 @@ class ClientTcpStub extends Client {
         return array($stream, 0, 'no error');
     }
 }
+
+class StreamEntityBodyWriteFailureClientStub extends ClientTcpStub  {
+    private $writeCalls = 0;
+    
+    /**
+     * Fail on the second write attempt (streaming the request body after first sending headers)
+     */
+    protected function writeToStream($stream, $data) {
+        if ($this->writeCalls) {
+            return false;
+        } else {
+            ++$this->writeCalls;
+            return parent::writeToStream($stream, $data);
+        }
+    }
+}
+
+class StreamEntityBodyFinalChunkFailureClientStub extends ClientTcpStub  {
+    
+    /**
+     * Fail on the final closing chunk write attempt
+     */
+    protected function writeToStream($stream, $data) {
+        if ($data == "0\r\n\r\n") {
+            return false;
+        } else {
+            return parent::writeToStream($stream, $data);
+        }
+    }
+}
+
+class EntityBodyReadFailureClientStub extends ClientTcpStub  {
+    
+    private $readCalls = 0;
+    
+    /**
+     * Fail on the second read attempt
+     */
+    protected function readFromStream($stream, $bytes) {
+        if ($this->readCalls) {
+            return false;
+        } else {
+            ++$this->readCalls;
+            return parent::readFromStream($stream, $bytes);
+        }
+    }
+}
+
+class HeaderReadFailureClientStub extends ClientTcpStub  {
+    
+    private $readCalls = 0;
+    
+    /**
+     * Fail on the second line read attempt
+     */
+    protected function readLineFromStream($stream) {
+        if ($this->readCalls) {
+            return false;
+        } else {
+            ++$this->readCalls;
+            return parent::readLineFromStream($stream);
+        }
+    }
+}
+
 
 class CustomStreamWrapper {
     
