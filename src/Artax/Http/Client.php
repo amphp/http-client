@@ -2,14 +2,24 @@
 
 namespace Artax\Http;
 
-use RuntimeException,
+use StdClass,
+    Exception,
+    RuntimeException,
     Artax\Http\Exceptions\InfiniteRedirectException,
-    Artax\Http\Exceptions\MessageParseException,
     Artax\Http\Exceptions\TransferException,
-    Artax\Http\Exceptions\ConnectException,
-    Artax\Http\Exceptions\NoResponseException;
+    Artax\Http\Exceptions\ConnectException;
 
 class Client {
+    
+    const REQUEST_SENDING_HEADERS = 2;
+    const REQUEST_SENDING_BUFFERED_BODY = 4;
+    const REQUEST_SENDING_STREAM_BODY = 8;
+    const RESPONSE_AWAITING_HEADERS = 16;
+    const RESPONSE_READ_TO_CLOSE = 32;
+    const RESPONSE_READ_TO_LENGTH = 64;
+    const RESPONSE_READ_CHUNKS = 128;
+    const RESPONSE_READ_COMPLETE = 256;
+    const TRANSPORT_ERROR = 512;
     
     /**
      * @var string
@@ -19,7 +29,7 @@ class Client {
     /**
      * @var int
      */
-    protected $timeout = 60;
+    protected $connectTimeout = 60;
     
     /**
      * @var int
@@ -39,7 +49,12 @@ class Client {
     /**
      * @var bool
      */
-    protected $proxyStyle = false;
+    protected $allowContentEncoding = true;
+    
+    /**
+     * @var bool
+     */
+    protected $useProxyRequestLine = false;
     
     /**
      * @var int
@@ -47,14 +62,14 @@ class Client {
     protected $chunkSize = 8192;
     
     /**
-     * @var array
+     * @var int
      */
-    protected $sslOptions = array();
-
+    protected $hostConcurrencyLimit = 5;
+    
     /**
      * @var array
      */
-    protected $responseChain;
+    protected $sslOptions = array();
     
     /**
      * @var array
@@ -62,7 +77,7 @@ class Client {
     protected $redirectHistory;
     
     /**
-     * @var bool
+     * @var string
      */
     protected $acceptedEncodings;
     
@@ -70,44 +85,68 @@ class Client {
      * @var array
      */
     protected $connectionPool = array();
-
-    public function __construct() {
-        $this->acceptedEncodings = $this->getAcceptedEncodings();
-    }
     
     /**
-     * @return bool
-     */
-    protected function isOpenSslLoaded() {
-        return extension_loaded('openssl');
-    }
-    
-    /**
-     * @return void
-     */
-    public function getAcceptedEncodings() {
-        $encodings = array();
-        
-        if (function_exists('gzdecode')) {
-            $encodings[] = 'gzip';
-        }
-        if (function_exists('gzinflate')) {
-            $encodings[] = 'deflate';
-        }
-        
-        $encodings[] = 'identity';
-        
-        return implode(',', $encodings);
-    }
-
-    /**
-     * Turn on/off the use of proxy-style requests
+     * Retrieve an HTTP resource
      * 
-     * @param bool boolFlag
+     * @param Request $request
+     * @return Response
+     * @todo Don't use stream select when only one request is sent
+     */
+    public function send(Request $request) {
+        $requestStates = $this->doStreamSelect(array($request));
+        return $requestStates[0]->response;
+    }
+    
+    /**
+     * Retrieve multiple HTTP resources in parallel
+     * 
+     * @param array $requests
+     * @return array
+     */
+    public function sendMulti(array $requests) {
+        $requestStates = $this->doStreamSelect($requests);
+        return array_map(function($s) { return $s->response; }, $requestStates);
+    }
+    
+    /**
+     * Send an HTTP request and don't bother to wait for a response
+     * 
+     * @param Request $request
+     * @return void
+     * @throws Artax\Http\Exceptions\MessageValidationException
+     * @throws Artax\Http\Exceptions\ConnectException
+     */
+    public function sendAsync(Request $request) {
+        $request = $this->normalizeRequestHeaders($request);
+        
+        $connection = $this->makeConnection(
+            $request->getScheme(),
+            $request->getHost(),
+            $request->getPort()
+        );
+        
+        $connection->connect(STREAM_CLIENT_CONNECT | STREAM_CLIENT_ASYNC_CONNECT);
+        
+        $state = new RequestState();
+        $state->conn = $connection;
+        $state->request = $request;
+        
+        while ($state->status < self::RESPONSE_AWAITING_HEADERS) {
+            $this->sendRequest($state);
+        }
+        
+        $connection->close();
+    }
+
+    /**
+     * Turn on/off the use of proxy-style absolute URIs in request lines
+     * 
+     * @param bool $boolFlag
      * @return void
      */
-    public function setProxyStyle($boolFlag) {
-        $this->proxyStyle = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
+    public function useProxyRequestLine($boolFlag) {
+        $this->useProxyRequestLine = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
     }
 
     /**
@@ -116,8 +155,39 @@ class Client {
      * @param int $seconds
      * @return void
      */
-    public function setTimeout($seconds) {
-        $this->timeout = (int) $seconds;
+    public function setConnectTimout($seconds) {
+        $this->connectTimeout = (int) $seconds;
+    }
+    
+    /**
+     * Should the client transparently redirect requests not using GET or HEAD? Defaults to false.
+     * 
+     * According to RFC2616-10.3, "If the 301 status code is received in response to a request other
+     * than GET or HEAD, the user agent MUST NOT automatically redirect the request unless it can be
+     * confirmed by the user, since this might change the conditions under which the request was
+     * issued."
+     * 
+     * This directive, if set to true, serves as confirmation that requests made using methods other
+     * than GET/HEAD may be redirected automatically.
+     * 
+     * @param bool $boolFlag
+     * @return void
+     */
+    public function allowNonStandardRedirects($boolFlag) {
+        $this->nonStandardRedirectFlag = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
+    }
+    
+    /**
+     * Whether or not the client should request and decompress encoded entity bodies
+     * 
+     * This option is enabled by default. Note that even if this option is enabled, the client 
+     * will only request encoded messages if PHP's zlib extension is installed.
+     * 
+     * @param bool $boolFlag
+     * @return void
+     */
+    public function allowContentEncoding($boolFlag) {
+        $this->allowContentEncoding = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
     }
 
     /**
@@ -153,102 +223,434 @@ class Client {
     public function setMaxRedirects($maxRedirects) {
         $this->maxRedirects = (int) $maxRedirects;
     }
-    
+
     /**
-     * Should the client transparently redirect requests not using GET or HEAD? Defaults to false.
+     * Set the maximum number of sumultaneous connections allowed per host (between 1 and 10)
      * 
-     * According to RFC2616-10.3, "If the 301 status code is received in response to a request other
-     * than GET or HEAD, the user agent MUST NOT automatically redirect the request unless it can be
-     * confirmed by the user, since this might change the conditions under which the request was
-     * issued."
+     * The default value is 5. If the maximum number of simultaneous connections to a specific host
+     * are already in use during a `Client::sendMulti` operation, further requests to that host are
+     * queued until one of the existing in-use connections to that host becomes available.
      * 
-     * This directive, if set to true, serves as confirmation that requests made using methods other
-     * than GET/HEAD may be redirected automatically.
-     * 
-     * @param bool $boolFlag
+     * @param int $maxConnections
      * @return void
      */
-    public function allowNonStandardRedirects($boolFlag) {
-        $this->nonStandardRedirectFlag = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
+    public function setHostConcurrencyLimit($maxConnections) {
+        $maxConnections = (int) $maxConnections;
+        if ($maxConnections < 1) {
+            $maxConnections = 1;
+        } elseif ($maxConnections > 10) {
+            $maxConnections = 10;
+        }
+        
+        $this->hostConcurrencyLimit = $maxConnections;
     }
     
     /**
-     * Request an HTTP resource
+     * Dispatch state objects to the appropriate machine as reads/writes become available
      * 
-     * @param Request $request
-     * @return Response
-     * @throws Artax\Http\Exceptions\MessageValidationException
-     * @throws Artax\Http\Exceptions\ConnectException
+     * @param mixed $requests A traversable list of Request objects
      */
-    public function request(Request $request) {
-        $this->responseChain = array();
-        $this->redirectHistory = array();
-        return $this->doRequest($request);
+    protected function doStreamSelect($requests) {
+        list($requestStates, $requestQueue) = $this->buildRequestStateMap($requests);
+        $readArr = $writeArr = $this->buildStreamSelectArray($requestStates);
+        $ex = null;
+        
+        while (true) {
+            if (false === stream_select($readArr, $writeArr, $ex, 30)) {
+                continue;
+            }
+        
+            foreach ($writeArr as $stateKey => $stream) {
+                $state = $requestStates[$stateKey];
+                try {
+                    $this->sendRequest($state);
+                } catch (Exception $e) {
+                    $this->setStateError($state, $e);
+                }
+            }
+            
+            foreach ($readArr as $stateKey => $stream) {
+                $state = $requestStates[$stateKey];
+                try {
+                    $this->readResponse($state);
+                } catch (Exception $e) {
+                    $this->setStateError($state, $e);
+                }
+            }
+            
+            if ($requestQueue) {
+                list($map, $queue) = $this->buildRequestStateMap($requestQueue);
+                $requestQueue = $queue;
+                $requestStates = array_merge($requestStates, $map);
+            } elseif ($this->allRequestStatesHaveCompleted($requestStates)) {
+                return $requestStates;
+            }
+            
+            $readArr = $writeArr = array();
+            
+            foreach ($requestStates as $stateKey => $state) {
+                if ($state->status < self::RESPONSE_AWAITING_HEADERS) {
+                    $writeArr[$stateKey] = $state->conn->getStream();
+                } elseif ($state->status < self::RESPONSE_READ_COMPLETE) {
+                    $readArr[$stateKey] = $state->conn->getStream();
+                }
+            }
+        }
     }
     
     /**
-     * Request an HTTP resource, returning an array of transparently redirected Responses
+     * Determines if retrieval for all states in the array has completed
      * 
-     * @param Request $request
+     * @param array $requestStates
+     * @return bool
+     */
+    protected function allRequestStatesHaveCompleted(array $requestStates) {
+        $complete = array_map(array($this, 'isComplete'), $requestStates);
+        return array_sum($complete) == count($requestStates);
+    }
+    
+    /**
+     * Is retrieval complete for the specified state?
+     * 
+     * @return bool
+     */
+    protected function isComplete(RequestState $state) {
+        return $state->status >= self::RESPONSE_READ_COMPLETE;
+    }
+    
+    /**
+     * A state machine to send raw HTTP requests to a socket stream
+     * 
+     * @param RequestState $state
+     * @return void
+     */
+    protected function sendRequest(RequestState $state) {
+        if ($state->status == self::REQUEST_SENDING_HEADERS) {
+            $this->writeRequestHeaders($state);
+        }
+        
+        if ($state->status == self::REQUEST_SENDING_BUFFERED_BODY) {
+            $this->writeBufferedRequestBody($state);
+        }
+        
+        if ($state->status == self::REQUEST_SENDING_STREAM_BODY) {
+            $this->writeStreamingRequestBody($state);
+        }
+    }
+    
+    /**
+     * Send request headers
+     * 
+     * @param RequestState $state
+     * @return void
+     */
+    protected function writeRequestHeaders(RequestState $state) {
+        $rawHeaders = $this->buildRawRequestHeaders($state->request);
+        $totalBytesToWrite = strlen($rawHeaders);
+        
+        if ($state->totalBytesSent < $totalBytesToWrite) {
+            $dataToSend = substr($rawHeaders, $state->totalBytesSent);
+            
+            if ($bytesWritten = $state->conn->writeData($dataToSend)) {
+                $state->totalBytesSent += $bytesWritten;
+            }
+        }
+        
+        if ($state->totalBytesSent < $totalBytesToWrite) {
+            return;
+        }
+        
+        $state->totalBytesSent = 0;
+        
+        if (!$state->request->getBodyStream() && !$state->request->getBody()) {
+            $state->status = self::RESPONSE_AWAITING_HEADERS;
+        } else {
+            $state->status = $state->request->getBodyStream()
+                ? self::REQUEST_SENDING_STREAM_BODY
+                : self::REQUEST_SENDING_BUFFERED_BODY;
+        }
+    }
+    
+    /**
+     * Send buffered request body
+     * 
+     * @param RequestState $state
+     * @return void
+     */
+    protected function writeBufferedRequestBody(RequestState $state) {
+        $body = $state->request->getBody();
+        $totalBytesToWrite = strlen($body);
+        
+        if ($state->totalBytesSent < $totalBytesToWrite) {
+            $dataToSend = substr($body, $state->totalBytesSent);
+            
+            if ($bytesWritten = $state->conn->writeData($dataToSend)) {
+                $state->totalBytesSent += $bytesWritten;
+            }
+        }
+        
+        if ($state->totalBytesSent < $totalBytesToWrite) {
+            return;
+        }
+        
+        $state->status = self::RESPONSE_AWAITING_HEADERS;
+    }
+    
+    /**
+     * Send streaming request entity body
+     * 
+     * @param RequestState $state
+     * @return void
+     */
+    protected function writeStreamingRequestBody(RequestState $state) {
+        
+        $entityBody = $state->request->getBodyStream();
+        
+        while (true) {
+            
+            if (!$state->requestBodyStreamBuffer) {
+                if (false === ($data = @fread($entityBody, $this->chunkSize))) {
+                    throw new RuntimeException(
+                        "Failed reading data from request body $entityBody"
+                    );
+                }
+                
+                $chunkLength = strlen($data);
+                $state->requestBodyStreamPos = 0;
+                $state->requestBodyStreamBuffer = dechex($chunkLength) . "\r\n$data\r\n";
+                if (!$state->requestBodyStreamLength = strlen($state->requestBodyStreamBuffer)) {
+                    $state->status = self::RESPONSE_AWAITING_HEADERS;
+                    return;
+                }
+            }
+            
+            if ($bytesSent = $state->conn->writeData($state->requestBodyStreamBuffer)) {
+                $state->requestBodyStreamPos += $bytesSent;
+                
+                if ($state->requestBodyStreamPos == $state->requestBodyStreamLength) {
+                    $state->totalBytesSent += $chunkLength;
+                    $state->requestBodyStreamBuffer = null;
+                }
+                
+                if ($state->totalBytesSent == ftell($entityBody)) {
+                    $state->conn->writeData("0\r\n\r\n");
+                    $state->status = self::RESPONSE_AWAITING_HEADERS;
+                    return;
+                }
+                
+            } elseif (false === $bytesSent) {
+                throw new TransferException(
+                    "Transfer failure: connection lost after {$state->totalBytesSent} request " .
+                    "bytes sent"
+                );
+            }
+        }
+    }
+    
+    /**
+     * Pass a state holder to the response state machine when its stream is ready for reading
+     * 
+     * @param RequestState $state
+     * @return void
+     */
+    protected function readResponse(RequestState $state) {
+        
+        if ($state->status == self::RESPONSE_AWAITING_HEADERS) {
+            if (!$this->receiveHeaders($state)) {
+                return;
+            }
+        }
+        
+        if ($state->status != self::RESPONSE_READ_COMPLETE) {
+            if (!$this->receiveBody($state)) {
+                return;
+            }
+        }
+        
+        rewind($state->responseBodyStream);
+        $entityBody = stream_get_contents($state->responseBodyStream);
+        $state->response->setBody($entityBody);
+        
+        if ($state->response->hasHeader('Content-Encoding')) {
+            $this->decodeEntityBody($state->response);
+        }
+        
+        if ($this->shouldCloseConnection($state->response)) {
+            $state->conn->close();
+        } else {
+            $state->conn->setInUseFlag(false);
+        }
+        
+        if ($this->canRedirect($state)) {
+            $this->redirect($state);
+        }
+    }
+    
+    /**
+     * Receives HTTP message headers, returning true if header retrieval is complete
+     * 
+     * RequestState $state
+     * @return bool
+     */
+    protected function receiveHeaders(RequestState $state) {
+        while ($line = $state->conn->readLine()) {
+            $state->buffer .= $line;
+            $bytes = strlen($line);
+            $state->responseHeaderBytes += $bytes;
+            $state->responseTotalBytes += $bytes;
+            
+            if (substr($state->buffer, -4) !== "\r\n\r\n") {
+                continue;
+            }
+                
+            list($startLine, $headers) = explode("\r\n", $state->buffer, 2);
+            
+            $state->response->setStartLine($startLine);
+            $state->response->setAllRawHeaders($headers);
+            
+            if (!$this->allowsEntityBody($state->response)) {
+                $state->status = self::RESPONSE_READ_COMPLETE;
+            } elseif ($this->isChunked($state->response)) {
+                $state->status = self::RESPONSE_READ_CHUNKS;
+            } elseif ($state->response->hasHeader('Content-Length')) {
+                $state->status = self::RESPONSE_READ_TO_LENGTH;
+            } else {
+                $state->status = self::RESPONSE_READ_TO_CLOSE;
+            }
+            
+            return true;
+        }
+        
+        if (false === $line) {
+            throw new TransferException(
+                "Transfer failure: connection lost after {$state->responseTotalBytes} response " .
+                "bytes received"
+            );
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Receives HTTP message entity-body, returning true if body retrieval complete
+     * 
+     * RequestState $state
+     * @return bool
+     */
+    protected function receiveBody(RequestState $state) {
+        while ($data = $state->conn->readBytes($this->chunkSize)) {
+            fwrite($state->responseBodyStream, $data);
+            $state->responseTotalBytes += strlen($data);
+        }
+        
+        if ($state->status == self::RESPONSE_READ_TO_LENGTH) {
+            $entityLength = $state->responseTotalBytes - $state->responseHeaderBytes;
+            if ($entityLength >= $state->response->getHeader('Content-Length')) {
+                $state->status = self::RESPONSE_READ_COMPLETE;
+            }
+        }
+        
+        if ($state->status == self::RESPONSE_READ_CHUNKS) {
+            fseek($state->responseBodyStream, -7, SEEK_END);
+            if ("\r\n0\r\n\r\n" == stream_get_contents($state->responseBodyStream)) {
+                stream_filter_prepend($state->responseBodyStream, 'dechunk');
+                $state->status = self::RESPONSE_READ_COMPLETE;
+            }
+        }
+        
+        if ($state->status == self::RESPONSE_READ_TO_CLOSE && $data === '') {
+            $state->status = self::RESPONSE_READ_COMPLETE;
+        }
+        
+        if ($state->status == self::RESPONSE_READ_COMPLETE) {
+            return true;
+        }
+        
+        if (false === $data) {
+            throw new TransferException(
+                "Transfer failure: connection lost after {$state->responseTotalBytes} response " .
+                "bytes received"
+            );
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Build an array of request states
+     * 
+     * Returns a two-element array: the first element is a map of state objects; the second is
+     * an array of Request objects that had to be queued because the maximum number of persistent
+     * connections were already in use for the respective target host of each Request. 
+     * 
+     * @param mixed $requests A traversable array/StdClass/Traversable of Request instances
      * @return array
-     * @throws Artax\Http\Exceptions\MessageValidationException
-     * @throws Artax\Http\Exceptions\ConnectException
      */
-    public function requestRedirectTrace(Request $request) {
-        $this->request($request);
-        return $this->responseChain;
+    protected function buildRequestStateMap($requests) {
+        $requestStates = array();
+        $requestQueue = array();
+        
+        foreach ($requests as $key => $request) {
+            $state = new RequestState;
+            
+            try {
+                $connection = $this->getConnection(
+                    $request->getScheme(),
+                    $request->getHost(),
+                    $request->getPort()
+                );
+            } catch (ConnectException $e) {
+                $this->setStateError($state, $e);
+                $requestStates[$key] = $state;
+                continue;
+            }
+            
+            if (!$connection) {
+                $requestStates[$key] = null;
+                $requestQueue[$key] = $request;
+                continue;
+            }
+            
+            $state->status = self::REQUEST_SENDING_HEADERS;
+            $state->conn = $connection;
+            $state->request = $this->normalizeRequestHeaders($request);
+            $state->response = new ClientResponse();
+            $state->responseBodyStream = fopen('php://memory', 'r+');
+            
+            $requestStates[$key] = $state;
+        }
+        
+        return array($requestStates, $requestQueue);
     }
     
     /**
-     * Send an HTTP request and don't bother to wait for a response
+     * Build an array of streams to select against from a map of request state holders
      * 
-     * @todo add error handling for networking failures
-     * @param Request $request
-     * @return void
-     * @throws Artax\Http\Exceptions\MessageValidationException
-     * @throws Artax\Http\Exceptions\ConnectException
+     * @param array $requestStates
+     * @return array
      */
-    public function requestAsync(Request $request) {
-        $request = $this->normalizeRequestHeaders($request);
+    protected function buildStreamSelectArray(array $requestStates) {
+        $streams = array();
         
-        $socketUri = $this->getSocketUriFromRequest($request);
-        $flags = STREAM_CLIENT_CONNECT | STREAM_CLIENT_ASYNC_CONNECT;
-        $stream = $this->openConnection($socketUri, $flags);
+        foreach ($requestStates as $stateKey => $state) {
+            if ($state && !$this->isComplete($state)) {
+                $streams[$stateKey] = $state->conn->getStream();
+            }
+        }
         
-        $this->writeRequestToStream($request, $stream);
-        $this->closeConnection($stream);
+        return $streams;
     }
     
     /**
-     * @param Request $request
-     * @return Response
-     * @throws Artax\Http\Exceptions\MessageParseException
+     * Mark a state object as complete (terminal exception)
+     * 
+     * @param RequestState $state
+     * @param Exception $e
+     * @return void
      */
-    protected function doRequest(Request $request) {
-        $request   = $this->normalizeRequestHeaders($request);
-        $socketUri = $this->getSocketUriFromRequest($request);
-        $stream    = $this->openConnection($socketUri);
-        
-        $this->writeRequestToStream($request, $stream);
-        $response = $this->readResponseHeadersFromStream($stream);
-        
-        $statusCode = $response->getStatusCode();
-        
-        if ($this->statusCodeAllowsEntityBody($statusCode)) {
-            $this->readEntityBodyFromStream($response, $stream);
-        }
-        
-        if ($this->shouldCloseConnection($response)) {
-            $this->closeConnection($stream);
-        }
-        
-        $this->responseChain[] = $response;
-        
-        if ($this->canRedirect($request, $response)) {
-            $response = $this->doRedirect($request, $response);
-        }
-        
-        return $response;
+    protected function setStateError(RequestState $state, Exception $e) {
+        $state->status = self::TRANSPORT_ERROR;
+        $state->response = $e;
     }
     
     /**
@@ -266,28 +668,29 @@ class Client {
         if (!$response->hasHeader('Connection')) {
             return false;
         }
+        
         return ('close' == $response->getHeader('Connection'));
     }
     
     /**
      * @param Request $request
      * @return Request
-     * @throws Artax\Http\Exceptions\MessageValidationException
      */
     public function normalizeRequestHeaders(Request $request) {
         $mutable = new MutableStdRequest();
         
         $mutable->populateFromRequest($request);
-        $mutable->validateMessage();
-        
         $mutable->setHeader('User-Agent', $this->userAgent);
-        $mutable->setHeader('Accept-Encoding', $this->acceptedEncodings);
+        
+        $acceptEncoding = $this->allowContentEncoding
+            ? $this->determineAcceptedEncodings()
+            : 'identity';
+            
+        $mutable->setHeader('Accept-Encoding', $acceptEncoding);
         
         $body = $mutable->getBodyStream() ?: $mutable->getBody();
         
-        if (!$body) {
-            return $mutable;
-        } elseif (is_resource($body)) {
+        if (is_resource($body)) {
             $mutable->setHeader('Transfer-Encoding', 'chunked');
         } else {
             $mutable->setHeader('Content-Length', strlen($body));
@@ -297,24 +700,28 @@ class Client {
     }
     
     /**
-     * @param Request $request
-     * @param resource $stream
      * @return void
-     * @throws Artax\Http\Exceptions\TransferException
      */
-    protected function writeRequestToStream(Request $request, $stream) {
-        $rawHeaders = $this->buildRawRequestHeaders($request);
-        $this->writeStringDataToStream($rawHeaders, $stream);
-        
-        $body = $request->getBodyStream() ?: $request->getBody();
-        
-        if (!$body) {
-            return;
-        } elseif (is_resource($body)) {
-            $this->streamOutboundRequestBody($body, $stream);
-        } else {
-            $this->writeStringDataToStream($body, $stream);
+    protected function determineAcceptedEncodings() {
+        if ($this->acceptedEncodings) {
+            return $this->acceptedEncodings;
         }
+        
+        $encodings = array();
+        
+        if (function_exists('gzdecode')) {
+            $encodings[] = 'gzip';
+        }
+        if (function_exists('gzinflate')) {
+            $encodings[] = 'deflate';
+        }
+        
+        $encodings[] = 'identity';
+        
+        $encodingsWeCanHandle = implode(',', $encodings);
+        $this->acceptedEncodings = $encodingsWeCanHandle;
+        
+        return $encodingsWeCanHandle;
     }
     
     /**
@@ -324,7 +731,7 @@ class Client {
     protected function buildRawRequestHeaders(Request $request) {
         $rawHeaders = '';
         
-        if (!$this->proxyStyle) {
+        if (!$this->useProxyRequestLine) {
             $rawHeaders.= $request->getRequestLine() . "\r\n";
             $rawHeaders.= 'HOST: ' . $request->getAuthority() . "\r\n";
             
@@ -342,228 +749,13 @@ class Client {
         }
         
         $rawHeaders.= "\r\n";
+        
         return $rawHeaders;
     }
     
     /**
-     * @param string $dataStr
-     * @param resource $stream
-     */
-    protected function writeStringDataToStream($dataStr, $stream) {
-        $originalLength = strlen($dataStr);
-        $bytesWritten = 0;
-        
-        while ($bytesWritten < $originalLength) {
-        
-            $toWrite = substr($dataStr, $bytesWritten);
-            
-            if (false !== ($bytes = $this->writeToStream($stream, $toWrite))) {
-                $bytesWritten += $bytes;
-            } else {
-                throw new TransferException(
-                    "Connection failure: $bytesWritten of $originalLength bytes sent prior failure"
-                );
-            }
-        }
-    }
-    
-    /**
-     * @param resource $bodyStream
-     * @param resource $outputStream
-     * @return void
-     * @throws RuntimeException
-     * @throws Artax\Http\Exceptions\TransferException
-     */
-    protected function streamOutboundRequestBody($bodyStream, $outputStream) {
-        $totalBytesSent = 0;
-        
-        while (!feof($bodyStream)) {
-        
-            if (false === ($data = $this->readFromStream($bodyStream, $this->chunkSize))) {
-                throw new RuntimeException(
-                    "Failed reading data from request entity body in $bodyStream"
-                );
-            }
-            
-            $chunkBytesSent = 0;
-            $chunkLength = strlen($data);
-            $chunk = dechex($chunkLength) . "\r\n$data\r\n";
-            
-            while ($chunkBytesSent < $chunkLength) {
-                $toBeSent = substr($chunk, $chunkBytesSent);
-                if (false !== ($bytes = $this->writeToStream($outputStream, $toBeSent))) {
-                    $chunkBytesSent += $bytes;
-                    $totalBytesSent += $bytes;
-                    continue;
-                } else {
-                    throw new TransferException(
-                        "Connection failure: $totalBytesSent bytes streamed from request body " .
-                        "$bodyStream prior to transmission failure"
-                    );
-                }
-            }
-        }
-        
-        if (false === $this->writeToStream($outputStream, "0\r\n\r\n")) {
-            throw new TransferException(
-                "Connection failure: $totalBytesSent bytes streamed from request body " .
-                "$bodyStream prior to transmission failure"
-            );
-        }
-    }
-    
-    /**
-     * @param resource $stream
-     * @return Response $response
-     * @throws Artax\Http\Exceptions\TransferException
-     */
-    protected function readResponseHeadersFromStream($stream) {
-        $response = new MutableStdResponse;
-        
-        if (false !== ($startLine = $this->readLineFromStream($stream))) {
-            $response->setStartLine($startLine);
-        } else {
-            throw new NoResponseException();
-        }
-        
-        $buffer = '';
-        while ($line = $this->readLineFromStream($stream)) {
-            $buffer .= $line;
-            if ($line == "\r\n") {
-                break;
-            }
-        }
-        
-        if (false === $line && !$buffer) {
-            throw new TransferException(
-                "Connection failure: response header retrieval failed"
-            );
-        } elseif (false === $line && $buffer) {
-            throw new MessageParseException(
-                "Invalid HTTP response message headers received"
-            );
-        }
-        
-        $headers = rtrim($buffer);
-        
-        if ($headers) {
-            $response->setAllRawHeaders($headers);
-        }
-        
-        return $response;
-    }
-    
-    /**
-     * @param Response $response
-     * @param resource $stream
-     * @return void
-     */
-    protected function readEntityBodyFromStream(Response $response, $stream) {
-        
-        if ($this->isChunked($response)) {
-            $body = $this->readChunkedEntityBody($stream);
-        } elseif ($response->hasHeader('Content-Length')) {
-            $length = (int) $response->getHeader('Content-Length');
-            $body = $this->readEntityBodyWithContentLength($stream, $length);
-        } else {
-            $body = $this->readEntityBodyFromClosingConnection($stream);
-        }
-        
-        if ($response->hasHeader('Content-Encoding')) {
-            $encoding = strtolower($response->getHeader('Content-Encoding'));
-            $body = $this->decodeEntityBody($encoding, $body);
-        }
-        
-        $response->setBody($body);
-    }
-    
-    /**
-     * @param resource $stream
-     * @return string
-     * @throws Artax\Http\Exceptions\TransferException
-     */
-    protected function readChunkedEntityBody($stream) {
-        $tmpHandle = fopen('php://memory', 'r+');
-        $bytesRead = 0;
-        while (false !== ($data = @fgets($stream))) {
-            fwrite($tmpHandle, $data);
-            $bytesRead += strlen($data);
-            if ($data == "0\r\n") {
-                break;
-            }
-        }
-        
-        if (false === $data) {
-            $s = $bytesRead == 1 ? '' : 's';
-            throw new TransferException(
-                "Connection failure: headers received, $bytesRead byte$s of chunked entity body " .
-                "read prior to error"
-            );
-        }
-        
-        stream_filter_prepend($tmpHandle, 'dechunk');
-        rewind($tmpHandle);
-        return stream_get_contents($tmpHandle);
-    }
-    
-    /**
-     * @param resource $stream
-     * @param int $contentLength
-     * @return string
-     * @throws Artax\Http\Exceptions\TransferException
-     */
-    protected function readEntityBodyWithContentLength($stream, $contentLength) {
-        if (!$contentLength) {
-            return;
-        }
-        
-        $buffer = '';
-        $bytesRead = 0;
-        
-        while ($bytesRead < $contentLength) {
-            
-            $data = $this->readFromStream($stream, $contentLength);
-            
-            if (false === $data) {
-                $s = $bytesRead == 1 ? '' : 's';
-                throw new TransferException(
-                    "Connection failure: headers received, $bytesRead entity body byte$s read " .
-                    "prior to error"
-                );
-            }
-            
-            $buffer.= $data;
-            $bytesRead += strlen($data);
-        }
-        
-        return $buffer;
-    }
-    
-    /**
-     * @param resource $stream
-     * @return string
-     * @throws Artax\Http\Exceptions\TransferException
-     */
-    protected function readEntityBodyFromClosingConnection($stream) {
-        $buffer = '';
-        
-        while ($data = $this->readFromStream($stream, $this->chunkSize)) {
-            $buffer .= $data;
-        }
-        
-        if (false === $data) {
-            $bytesRead = strlen($buffer);
-            $s = $bytesRead == 1 ? '' : 's';
-            throw new TransferException(
-                "Connection failure: headers received, $bytesRead entity body byte$s read " .
-                "prior to error"
-            );
-        }
-        
-        return $buffer;
-    }
-    
-    /**
+     * Does the response utilize chunked transfer-encoding?
+     * 
      * @param Response $response
      * @return bool
      */
@@ -572,24 +764,28 @@ class Client {
             return false;
         }
         
-        $transferEncoding = $response->getHeader('Transfer-Encoding');
+        $stateferEncoding = $response->getHeader('Transfer-Encoding');
         
         // http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.4
         // 
         // "If a Transfer-Encoding header field (section 14.41) is present and has any value other 
         // than "identity", then the transfer-length is defined by use of the "chunked" 
-        // transfer-coding (section 3.6), unless the message is terminated by closing the 
+        // statefer-coding (section 3.6), unless the message is terminated by closing the 
         // connection.
-        $isChunked = strtolower($transferEncoding) !== 'identity';
+        $isChunked = strtolower($stateferEncoding) !== 'identity';
         
         return $isChunked;
     }
     
     /**
-     * @param int $statusCode
+     * Is the response allowed to have an entity body?
+     * 
+     * @param Response $response
      * @return bool
      */
-    protected function statusCodeAllowsEntityBody($statusCode) {
+    protected function allowsEntityBody(Response $response) {
+        $statusCode = $response->getStatusCode();
+        
         if ($statusCode == 204) {
             return false;
         }
@@ -599,114 +795,96 @@ class Client {
         if ($statusCode >= 100 && $statusCode < 200) {
             return false;
         }
+        
         return true;
     }
     
-    /**
-     * @param string $encoding
-     * @param string $encodedBodyStr
-     * @return string
-     */
-    protected function decodeEntityBody($encoding, $encodedBodyStr) {
-        switch (strtolower($encoding)) {
+    protected function decodeEntityBody(Response $response) {
+        
+        $encoding = strtolower($response->getHeader('Content-Encoding'));
+        
+        switch ($encoding) {
             case 'gzip':
-                return gzdecode($encodedBodyStr);
+                $entityBody = $response->getBody();
+                $decodedEntityBody = @gzdecode($entityBody) ?: $entityBody;
+                $response->setBody($decodedEntityBody);
+                break;
             case 'deflate':
-                return gzinflate($encodedBodyStr);
-            default:
-                return $encodedBodyStr;
+                $entityBody = $response->getBody();
+                $decodedEntityBody = @gzinflate($entityBody) ?: $entityBody;
+                $response->setBody($decodedEntityBody);
+                break;
         }
+        
+        return $response;
     }
     
     /**
+     * Get a new keep-alive connection to the request host
+     * 
      * @param Request $request
-     * @return string
+     * @return Connection -or- null if max persistent connections already in-use for this host
      */
-    protected function getSocketUriFromRequest(Request $request) {
-        $scheme = strcmp('https', $request->getScheme()) ? 'tcp' : 'ssl';
-        $authority = $request->getHost() . ':' . $request->getPort();
+    protected function getConnection($scheme, $host, $port) {
+        $authority = "$host:$port";
+        $openAuthorityConnections = 0;
         
-        return "$scheme://$authority";
-    }
-    
-    /**
-     * @param string $socketUri
-     * @return resource
-     */
-    protected function openConnection($socketUri, $flags = STREAM_CLIENT_CONNECT) {
-        if (isset($this->connectionPool[$socketUri])) {
-            return $this->connectionPool[$socketUri];
+        if (!isset($this->connectionPool[$authority])) {
+            $this->connectionPool[$authority] = array();
         }
         
-        $stream = $this->makeStreamFromSocketUri($socketUri, $flags);
-        $this->connectionPool[$socketUri] = $stream;
-        
-        return $stream;
-    }
-    
-    /**
-     * @param resource $stream
-     * @return bool
-     */
-    protected function hasStreamTimedOut($stream) {
-        $meta = stream_get_meta_data($stream);
-        return !empty($meta['timed_out']);
-    }
-    
-    /**
-     * @param string $uri
-     * @param int $flags
-     * @return resource
-     * @throws Artax\Http\Exceptions\ConnectException
-     */
-    protected function makeStreamFromSocketUri($uri, $flags) {
-        $scheme = parse_url($uri, PHP_URL_SCHEME);
-        
-        if ('tcp' == $scheme) {
-            list($stream, $errNo, $errStr) = $this->getTcpStream($uri, $flags);
-        } else {
-            if (!$this->isOpenSslLoaded()) {
-                throw new RuntimeException(
-                    '`openssl` extension must be loaded to originate SSL requests'
-                );
+        foreach ($this->connectionPool[$authority] as $key => $connection) {
+            if (!$connection->isConnected()) {
+                unset($this->connectionPool[$authority][$key]);
+            } else {
+                ++$openAuthorityConnections;
             }
+            if (!$connection->isInUse()) {
+                $connection->setInUseFlag(true);
+                return $connection;
+            }
+        }
+        
+        if ($this->hostConcurrencyLimit > $openAuthorityConnections) {
+        
+            $connection = $this->makeConnection($scheme, $host, $port);
+            $connection->setInUseFlag(true);
+            $connection->connect();
+            $this->connectionPool[$authority][] = $connection;
             
-            $context = stream_context_create(array('ssl' => $this->sslOptions));
-            list($stream, $errNo, $errStr) = $this->getSslStream($uri, $flags, $context);
+            return $connection;
         }
         
-        if (false === $stream) {
-            throw new ConnectException($errStr, $errNo);
-        }
-        
-        return $stream;
+        return null;
     }
     
-    /**
-     * @param string $socketUri
-     * @return void
-     */
-    protected function closeConnection($stream) {
-        @fclose($stream);
-        if (false !== ($key = array_search($stream, $this->connectionPool))) {
-            unset($this->connectionPool[$key]);
+    protected function makeConnection($scheme, $host, $port) {
+        if (strcmp('https', $scheme)) {
+            $connection = new Connection("$host:$port");
+        } else {
+            $connection = new SslConnection("$host:$port");
+            $connection->setSslOptions($this->sslOptions);
         }
+        
+        $connection->setConnectTimeout($this->connectTimeout);
+        
+        return $connection;
     }
 
     /**
-     * @param Request $request
-     * @param Response $response
+     * RequestState $state
      * @return bool
      */
-    protected function canRedirect(Request $request, Response $response) {
-        if ($this->currentRedirectIteration >= $this->maxRedirects) {
-            return false;
-        }
-        if (!$response->hasHeader('Location')) {
+    protected function canRedirect(RequestState $state) {
+        if (!$state->response->hasHeader('Location')) {
             return false;
         }
         
-        $requestMethod = strtoupper($request->getMethod());
+        if (count($state->redirectHistory) >= $this->maxRedirects) {
+            return false;
+        }
+        
+        $requestMethod = $state->request->getMethod();
         if (!$this->nonStandardRedirectFlag && !in_array($requestMethod, array('GET', 'HEAD'))) {
             return false;
         }
@@ -715,31 +893,42 @@ class Client {
     }
 
     /**
-     * @param Request $lastRequest
-     * @param Response $lastResponse
-     * @return Response
+     * @param RequestState $state
+     * @return void
      */
-    protected function doRedirect(Request $lastRequest, Response $lastResponse) {
-        $this->redirectHistory[] = $lastRequest->getRawUri();
-        $newLocation = $this->normalizeLocationHeader($lastRequest, $lastResponse);
+    protected function redirect(RequestState $state) {
+        $state->redirectHistory[] = $state->request->getRawUri();
+        $newLocation = $this->normalizeRedirectLocation($state->request, $state->response);
         
-        if (in_array($newLocation, $this->redirectHistory)) {
+        if (in_array($newLocation, $state->redirectHistory)) {
             throw new InfiniteRedirectException(
-                "Infinite redirect loop detected and aborted while redirecting to $newLocation"
+                "Infinite redirect loop detected: cannot redirect to $newLocation"
             );
         }
         
-        $redirectedRequest = new StdRequest(
+        $body = $state->request->getBodyStream() ?: $state->request->getBody();
+        $state->request = new StdRequest(
             $newLocation,
-            $lastRequest->getMethod(),
-            $lastRequest->getAllHeaders(),
-            $lastRequest->getBody(),
-            $lastRequest->getHttpVersion()
+            $state->request->getMethod(),
+            $state->request->getAllHeaders(),
+            $body,
+            $state->request->getHttpVersion()
         );
         
-        ++$this->currentRedirectIteration;
+        $previousResponse = $state->response;
+        $state->response = new ClientResponse();
+        $state->response->setPreviousResponse($previousResponse);
         
-        return $this->doRequest($redirectedRequest);
+        $state->buffer = '';
+        $state->bufferSize = 0;
+        $state->totalBytesSent = 0;
+        $state->status = self::REQUEST_SENDING_HEADERS;
+        
+        $state->conn = $this->getConnection(
+            $state->request->getScheme(),
+            $state->request->getHost(),
+            $state->request->getPort()
+        );
     }
 
     /**
@@ -747,12 +936,13 @@ class Client {
      * @param Response $lastResponse
      * @return string
      */
-    protected function normalizeLocationHeader(Request $lastRequest, Response $lastResponse) {
+    protected function normalizeRedirectLocation(Request $lastRequest, Response $lastResponse) {
         $locationHeader = $lastResponse->getHeader('Location');
         
         if (!@parse_url($locationHeader,  PHP_URL_HOST)) {
             $newLocation = $lastRequest->getScheme() . '://' . $lastRequest->getRawAuthority();
             $newLocation.= '/' . ltrim($locationHeader, '/');
+            $lastResponse->setHeader('Location', $newLocation);
             $lastResponse->setHeader(
                 'Warning',
                 "299 Invalid Location header: $locationHeader; $newLocation assumed"
@@ -765,62 +955,15 @@ class Client {
     }
     
     /**
-     * A test seam to allow easy mocking of stream write results
+     * Open a writable in-memory stream
      * 
-     * @param resource $stream
-     * @param string $data
+     * @return resource
+     * @throws RuntimeException
      */
-    protected function writeToStream($stream, $data) {
-        return @fwrite($stream, $data);
+    protected function openMemoryStream() {
+        if (false !== ($stream = @fopen('php://memory', 'r+'))) {
+            return $stream;
+        }
+        throw new RuntimeException('Failed opening in-memory stream');
     }
-    
-    /**
-     * A test seam to allow easy mocking of stream read results
-     * 
-     * @param resource $stream
-     * @param string $bytes
-     */
-    protected function readFromStream($stream, $bytes) {
-        return @fread($stream, $bytes);
-    }
-    
-    /**
-     * A test seam to allow easy mocking of stream line-read results
-     * 
-     * @param resource $stream
-     * @param string $bytes
-     */
-    protected function readLineFromStream($stream) {
-        return @fgets($stream);
-    }
-    
-    /**
-     * A test seam for mocking TCP socket streams
-     * 
-     * @param string $uri
-     * @param int $flags
-     */
-    protected function getTcpStream($uri, $flags) {
-        $stream = @stream_socket_client($uri, $errNo, $errStr, $this->timeout, $flags);
-        
-        // The stupid "by-reference" error parameters make this a PITA to mock and still provide
-        // meaningful error context information. As a result, we return the stream result in tandem
-        // with the generated error info inside an array.
-        return array($stream, $errNo, $errStr);
-    }
-    
-    /**
-     * A test seam for mocking SSL socket streams
-     * 
-     * @param string $uri
-     * @param int $flags
-     * @param resource $context
-     */
-    protected function getSslStream($uri, $flags, $context) {
-        $stream = @stream_socket_client($uri, $errNo, $errStr, $this->timeout, $flags, $context);
-        
-        // An array is returned for the same reason as in Client::getTcpStream
-        return array($stream, $errNo, $errStr);
-    }
-    
 }

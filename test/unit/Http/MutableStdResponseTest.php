@@ -27,10 +27,9 @@ class MutableStdResponseTest extends PHPUnit_Framework_TestCase {
      */
     public function testSetRemoveBodyDoesAndReturnsNull() {
         $response = new MutableStdResponse();
-        $this->assertNull($response->setBody('Glorfindel'));
+        $response->setBody('Glorfindel');
         $this->assertEquals('Glorfindel', $response->getBody());
         $this->assertNull($response->removeBody());
-        $this->assertNull($response->getBody());
     }
     
     /**

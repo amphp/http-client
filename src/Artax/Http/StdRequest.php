@@ -143,6 +143,7 @@ class StdRequest extends StdMessage implements Request {
         if ($meta['uri'] == 'php://input') {
             $tempStream = fopen('php://memory', 'r+');
             stream_copy_to_stream($this->body, $tempStream);
+            rewind($tempStream);
             $this->body = $tempStream;
         }
         

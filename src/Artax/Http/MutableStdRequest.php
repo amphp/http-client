@@ -173,6 +173,9 @@ class MutableStdRequest extends StdRequest implements MutableRequest {
         $headers = $headersAndBody[0];
         $body = isset($headersAndBody[1]) ? $headersAndBody[1] : '';
         
+        $this->setAllRawHeaders($headers);
+        
+        /*
         $normalizedHeaders = preg_replace(",\r\n[ \t]+,", ' ', $headers);
         preg_match_all(',([^\s:]+):[ \t]*(.+),', $normalizedHeaders, $matches, PREG_SET_ORDER);
         
@@ -185,6 +188,7 @@ class MutableStdRequest extends StdRequest implements MutableRequest {
                 $this->setHeader($header, $value);
             }
         }
+        */
         
         if (parse_url($uri, PHP_URL_SCHEME)) {
             $this->setUri($uri);
@@ -198,6 +202,35 @@ class MutableStdRequest extends StdRequest implements MutableRequest {
         }
         
         $this->setBody($body);
+    }
+    
+    /**
+     * Set all message headers from a raw string -- will clear all previously assigned headers.
+     * 
+     * @param string $rawHeaderStr
+     * @return void
+     * @throws MessageParseException
+     */
+    public function setAllRawHeaders($rawHeaderStr) {
+        $this->headers = array();
+        
+        $normalized = preg_replace(",\r\n[ \t]+,", ' ', $rawHeaderStr);
+        
+        if (!preg_match_all(",^([^\s:]+):[ \t]*(.+)$,m", $normalized, $matches, PREG_SET_ORDER)) {
+            throw new MessageParseException(
+                "Invalid raw headers: no valid headers found"
+            );
+        }
+        
+        foreach ($matches as $match) {
+            $header = $match[1];
+            $value  = rtrim($match[2]);
+            if ($this->hasHeader($header)) {
+                $this->setHeader($header, $this->getHeader($header) . ',' . $value);
+            } else {
+                $this->setHeader($header, $value);
+            }
+        }
     }
     
     /**

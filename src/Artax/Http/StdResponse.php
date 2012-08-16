@@ -55,7 +55,8 @@ class StdResponse extends StdMessage implements Response {
             $msg.= "$header: $value\r\n";
         }
         
-        $msg.= "\r\n" . $this->getBody();
+        $msg.= "\r\n";
+        $msg.= $this->getBodyStream() ? stream_get_contents($this->body) :$this->body;
         
         return $msg;
     }
@@ -72,6 +73,13 @@ class StdResponse extends StdMessage implements Response {
      */
     public function getStatusDescription() {
         return $this->statusDescription;
+    }
+
+    /**
+     * @return string
+     */
+    public function getStartLine() {
+        return "HTTP/{$this->httpVersion} {$this->statusCode} {$this->statusDescription}";
     }
 
     /**
@@ -129,8 +137,8 @@ class StdResponse extends StdMessage implements Response {
      * @throws RuntimeException
      */
     protected function sendBody() {
-        if (!$this->getBodyStream()) {
-            echo $this->getBody();
+        if (!is_resource($this->body)) {
+            echo $this->body;
             return;
         }
         

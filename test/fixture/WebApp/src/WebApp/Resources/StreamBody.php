@@ -17,9 +17,9 @@ class StreamBody {
     }
     
     public function post() {
-        $entityBodyStream = $this->request->getBodyStream();
+        $body = $this->request->getBodyStream();
         
-        $this->response->setBody($entityBodyStream);
+        $this->response->setBody($body);
         $this->response->setStatusCode(200);
         $this->response->setStatusDescription('OK');
         $this->response->send();

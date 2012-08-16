@@ -150,8 +150,8 @@ class MutableStdResponse extends StdResponse implements MutableResponse {
      * @param string $body
      * @return void
      */
-    public function setBody($bodyString) {
-        $this->body = $bodyString;
+    public function setBody($body) {
+        $this->body = $body;
     }
     
     public function removeBody() {
@@ -206,27 +206,9 @@ class MutableStdResponse extends StdResponse implements MutableResponse {
         $this->setStatusCode($response->getStatusCode());
         $this->setStatusDescription($response->getStatusDescription());
         $this->setAllHeaders($response->getAllHeaders());
-        $this->setBody($response->getBody());
-    }
-    
-    /**
-     * Returns a fully stringified HTTP response message
-     * 
-     * If the current response properties do not pass validation an empty string is returned.
-     * 
-     * Messages generated in accordance with RFC2616 section 5:
-     * http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html#sec5
-     * 
-     * @return string
-     */
-    public function __toString() {
-        try {
-            $this->validateMessage();
-        } catch (MessageValidationException $e) {
-            return '';
-        }
         
-        return parent::__toString();
+        $body = $response->getBodyStream() ?: $response->getBody();
+        $this->setBody($body);
     }
     
     public function validateMessage() {

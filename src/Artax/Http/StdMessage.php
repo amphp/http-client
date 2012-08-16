@@ -73,10 +73,8 @@ abstract class StdMessage implements Message {
      */
     public function getBody() {
         if (!is_resource($this->body)) {
-            return $this->body;
-        }
-        
-        if (!is_null($this->cachedBodyFromStream)) {
+            return (string) $this->body;
+        } elseif (!is_null($this->cachedBodyFromStream)) {
             return $this->cachedBodyFromStream;
         } else {
             $this->cachedBodyFromStream = stream_get_contents($this->body);
