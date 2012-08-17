@@ -172,41 +172,13 @@ class Client {
     }
 
     /**
-     * Enable/disable the use of proxy-style absolute URI request lines when sending requests
-     * 
-     * @param bool $boolFlag
-     * @return void
-     */
-    public function useProxyRequestLine($boolFlag) {
-        $this->useProxyRequestLine = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
-    }
-
-    /**
-     * Set the number of seconds before a socket connection idles out.
+     * Set the number of seconds before a socket connection attempt times out.
      * 
      * @param int $seconds
      * @return void
      */
     public function setConnectTimout($seconds) {
         $this->connectTimeout = (int) $seconds;
-    }
-    
-    /**
-     * Should the client transparently redirect requests not using GET or HEAD? Defaults to false.
-     * 
-     * According to RFC2616-10.3, "If the 301 status code is received in response to a request other
-     * than GET or HEAD, the user agent MUST NOT automatically redirect the request unless it can be
-     * confirmed by the user, since this might change the conditions under which the request was
-     * issued."
-     * 
-     * This directive, if set to true, serves as confirmation that requests made using methods other
-     * than GET/HEAD may be redirected automatically.
-     * 
-     * @param bool $boolFlag
-     * @return void
-     */
-    public function allowNonStandardRedirects($boolFlag) {
-        $this->nonStandardRedirectFlag = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
     }
     
     /**
@@ -247,7 +219,37 @@ class Client {
     }
 
     /**
+     * Enable/disable the use of proxy-style absolute URI request lines when sending requests
+     * 
+     * @param bool $boolFlag
+     * @return void
+     */
+    public function useProxyRequestLine($boolFlag) {
+        $this->useProxyRequestLine = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
+    }
+    
+    /**
+     * Should the client transparently redirect requests not using GET or HEAD? Defaults to false.
+     * 
+     * According to RFC2616-10.3, "If the 301 status code is received in response to a request other
+     * than GET or HEAD, the user agent MUST NOT automatically redirect the request unless it can be
+     * confirmed by the user, since this might change the conditions under which the request was
+     * issued."
+     * 
+     * This directive, if set to true, serves as confirmation that requests made using methods other
+     * than GET/HEAD may be redirected automatically.
+     * 
+     * @param bool $boolFlag
+     * @return void
+     */
+    public function allowNonStandardRedirects($boolFlag) {
+        $this->nonStandardRedirectFlag = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    /**
      * Set the maximum number of redirects allowed to fulfill a request. Defaults to 10.
+     * 
+     * Infinite redirection loops are detected immediately regardless of this setting.
      * 
      * @param int $maxRedirects
      * @return void
@@ -262,6 +264,10 @@ class Client {
      * The default value is 5. If the maximum number of simultaneous connections to a specific host
      * are already in use during a `Client::sendMulti` operation, further requests to that host are
      * queued until one of the existing in-use connections to that host becomes available.
+     * 
+     * Note: asynchronous requests are not subject to the concurrency limit because they always 
+     * open a new request in asynchronous mode and close the connection immediately after a request
+     * is sent.
      * 
      * @param int $maxConnections
      * @return void
@@ -381,7 +387,7 @@ class Client {
         if ($state->totalBytesSent < $totalBytesToWrite) {
             $dataToSend = substr($rawHeaders, $state->totalBytesSent);
             
-            if ($bytesWritten = $state->conn->writeData($dataToSend)) {
+            if ($bytesWritten = $this->writeDataToConnection($state->conn, $dataToSend)) {
                 $state->totalBytesSent += $bytesWritten;
             }
         }
@@ -414,7 +420,7 @@ class Client {
         if ($state->totalBytesSent < $totalBytesToWrite) {
             $dataToSend = substr($body, $state->totalBytesSent);
             
-            if ($bytesWritten = $state->conn->writeData($dataToSend)) {
+            if ($bytesWritten = $this->writeDataToConnection($state->conn, $dataToSend)) {
                 $state->totalBytesSent += $bytesWritten;
             }
         }
@@ -454,7 +460,10 @@ class Client {
                 }
             }
             
-            if ($bytesSent = $state->conn->writeData($state->requestBodyStreamBuffer)) {
+            if ($bytesSent = $this->writeDataToConnection(
+                $state->conn,
+                $state->requestBodyStreamBuffer
+            )) {
                 $state->requestBodyStreamPos += $bytesSent;
                 
                 if ($state->requestBodyStreamPos == $state->requestBodyStreamLength) {
@@ -463,7 +472,7 @@ class Client {
                 }
                 
                 if ($state->totalBytesSent == ftell($entityBody)) {
-                    $state->conn->writeData("0\r\n\r\n");
+                    $this->writeDataToConnection($state->conn, "0\r\n\r\n");
                     $state->status = self::RESPONSE_AWAITING_HEADERS;
                     return;
                 }
@@ -501,8 +510,10 @@ class Client {
         $entityBody = stream_get_contents($state->responseBodyStream);
         $state->response->setBody($entityBody);
         
+        
         if ($state->response->hasHeader('Content-Encoding')) {
-            $this->decodeEntityBody($state->response);
+            $encoding = strtolower($state->response->getHeader('Content-Encoding'));
+            $this->decodeEntityBody($encoding, $state->response->getBody());
         }
         
         if ($this->shouldCloseConnection($state->response)) {
@@ -523,7 +534,7 @@ class Client {
      * @return bool
      */
     protected function receiveHeaders(RequestState $state) {
-        while ($line = $state->conn->readLine()) {
+        while ($line = $this->readLineFromConnection($state->conn)) {
             $state->buffer .= $line;
             $bytes = strlen($line);
             $state->responseHeaderBytes += $bytes;
@@ -568,7 +579,7 @@ class Client {
      * @return bool
      */
     protected function receiveBody(RequestState $state) {
-        while ($data = $state->conn->readBytes($this->chunkSize)) {
+        while ($data = $this->readBytesFromConnection($state->conn, $this->chunkSize)) {
             fwrite($state->responseBodyStream, $data);
             $state->responseTotalBytes += strlen($data);
         }
@@ -829,31 +840,25 @@ class Client {
         return true;
     }
     
-    protected function decodeEntityBody(Response $response) {
-        
-        $encoding = strtolower($response->getHeader('Content-Encoding'));
-        
+    protected function decodeEntityBody($encoding, $entityBody) {
         switch ($encoding) {
             case 'gzip':
-                $entityBody = $response->getBody();
-                $decodedEntityBody = @gzdecode($entityBody) ?: $entityBody;
-                $response->setBody($decodedEntityBody);
-                break;
+                return @gzdecode($entityBody) ?: $entityBody;
             case 'deflate':
-                $entityBody = $response->getBody();
-                $decodedEntityBody = @gzinflate($entityBody) ?: $entityBody;
-                $response->setBody($decodedEntityBody);
-                break;
+                return @gzinflate($entityBody) ?: $entityBody;
         }
         
-        return $response;
+        return $entityBody;
     }
     
     /**
-     * Get a new keep-alive connection to the request host
+     * Checkout a new connection subject to the host concurrency limit
      * 
-     * @param Request $request
-     * @return Connection -or- null if max persistent connections already in-use for this host
+     * @param string $scheme
+     * @param string $host
+     * @param int $port
+     * 
+     * @return StreamConnection -or- null if no connection slots are available
      */
     protected function checkoutConnection($scheme, $host, $port) {
         $authority = "$host:$port";
@@ -888,9 +893,18 @@ class Client {
         return null;
     }
     
+    /**
+     * Create a new connection with no regard for the host concurrency limit
+     * 
+     * @param string $scheme
+     * @param string $host
+     * @param int $port
+     * 
+     * @return StreamConnection
+     */
     protected function makeConnection($scheme, $host, $port) {
         if (strcmp('https', $scheme)) {
-            $connection = new Connection("$host:$port");
+            $connection = new TcpConnection("$host:$port");
         } else {
             $connection = new SslConnection("$host:$port");
             $connection->setSslOptions($this->sslOptions);
@@ -902,6 +916,8 @@ class Client {
     }
 
     /**
+     * Is it possible to redirect the current response in the state holder?
+     * 
      * RequestState $state
      * @return bool
      */
@@ -923,6 +939,8 @@ class Client {
     }
 
     /**
+     * Adjust the request state to redirect using the response's Location header
+     * 
      * @param RequestState $state
      * @return void
      */
@@ -995,5 +1013,17 @@ class Client {
             return $stream;
         }
         throw new RuntimeException('Failed opening in-memory stream');
+    }
+    
+    protected function writeDataToConnection(StreamConnection $conn, $data) {
+        return @fwrite($conn->getStream(), $data);
+    }
+    
+    protected function readBytesFromConnection(StreamConnection $conn, $bytes) {
+        return @fread($conn->getStream(), $bytes);
+    }
+    
+    protected function readLineFromConnection(StreamConnection $conn) {
+        return @fgets($conn->getStream());
     }
 }

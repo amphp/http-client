@@ -5,18 +5,13 @@ namespace Artax\Http;
 use RuntimeException,
     Artax\Http\Exceptions\ConnectException;
 
-class SslConnection extends Connection {
+class SslConnection extends TcpConnection {
     
     protected $transport = 'ssl';
     protected $sslOptions = array();
-    protected $openSslStatus;
     
     public function connect($flags = STREAM_CLIENT_CONNECT) {
-        if (is_null($this->openSslStatus)) {
-            $this->openSslStatus = $this->isOpenSslLoaded();
-        }
-        
-        if (!$this->openSslStatus) {
+        if (!extension_loaded('openssl')) {
             throw new RuntimeException(
                 'openssl extension is required to originate SSL requests'
             );
@@ -34,10 +29,6 @@ class SslConnection extends Connection {
                 "Connection to {$this->authority} failed: [Error $errNo] $errStr"
             );
         }
-    }
-    
-    protected function isOpenSslLoaded() {
-        return extension_loaded('openssl');
     }
     
     public function setSslOptions(array $options) {

@@ -4,7 +4,7 @@ namespace Artax\Http;
 
 use Artax\Http\Exceptions\ConnectException;
 
-class Connection {
+class TcpConnection implements StreamConnection {
     
     protected $id;
     protected $authority;
@@ -48,18 +48,6 @@ class Connection {
     public function close() {
         @fclose($this->stream);
         $this->closed = true;
-    }
-    
-    public function writeData($data) {
-        return @fwrite($this->stream, $data);
-    }
-    
-    public function readBytes($bytes) {
-        return @fread($this->stream, $bytes);
-    }
-    
-    public function readLine() {
-        return @fgets($this->stream);
     }
     
     public function getId() {

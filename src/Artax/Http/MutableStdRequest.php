@@ -17,7 +17,12 @@ class MutableStdRequest extends StdRequest implements MutableRequest {
      */
     public function setUri($uri) {
         $this->uri = $uri instanceof Uri ? $uri : $this->buildUriFromString($uri);
-        $this->queryParameters = $this->parseParametersFromString($this->uri->getQuery());
+        
+        if ($queryString = $this->uri->getQuery()) {
+            $this->queryParameters = $this->parseParametersFromString($queryString);
+        } else {
+            $this->queryParameters = array();
+        }
     }
     
     /**
@@ -160,7 +165,7 @@ class MutableStdRequest extends StdRequest implements MutableRequest {
         $requestLinePattern = ',^([a-zA-Z]+) ([^\s]+) HTTP/(\d+\.\d+)$,';
         if (!preg_match($requestLinePattern, $requestLine, $matches)) {
             throw new MessageParseException(
-                'Invalid HTTP request message specified for parsing'
+                'Invalid HTTP request message: missing or invalid request line'
             );
         }
         
@@ -168,9 +173,14 @@ class MutableStdRequest extends StdRequest implements MutableRequest {
         $this->setHttpVersion($matches[3]);
         $uri = $matches[2];
         
-        $headersAndBody = explode("\r\n\r\n", $headersAndEverythingElse, 2);
-        $headers = $headersAndBody[0];
-        $body = isset($headersAndBody[1]) ? $headersAndBody[1] : '';
+        if (false === ($endHeaderPos = strpos($headersAndEverythingElse, "\r\n\r\n"))) {
+            throw new MessageParseException(
+                'Invalid HTTP request message: headers must terminate with 2xCRLF'
+            );
+        }
+        
+        $headers = substr($headersAndEverythingElse, 0, $endHeaderPos);
+        $body = substr($headersAndEverythingElse, $endHeaderPos + 4);
         
         $this->setAllRawHeaders($headers);
         
@@ -180,8 +190,8 @@ class MutableStdRequest extends StdRequest implements MutableRequest {
             $this->setUri('http://' . $this->getHeader('Host') . $uri);
         } else {
             throw new MessageParseException(
-                'Invalid HTTP request message: a Host header is required for requests using a ' .
-                "URI path in the request line: $uri"
+                'Invalid HTTP request message: a Host header is required for requests with a ' .
+                "relative URI path in the request line: $uri"
             );
         }
         
