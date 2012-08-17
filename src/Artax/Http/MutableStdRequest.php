@@ -167,28 +167,12 @@ class MutableStdRequest extends StdRequest implements MutableRequest {
         $this->setMethod($matches[1]);
         $this->setHttpVersion($matches[3]);
         $uri = $matches[2];
-        // URI assigned after headers determined because we need a HOST for URI path resolution
         
         $headersAndBody = explode("\r\n\r\n", $headersAndEverythingElse, 2);
         $headers = $headersAndBody[0];
         $body = isset($headersAndBody[1]) ? $headersAndBody[1] : '';
         
         $this->setAllRawHeaders($headers);
-        
-        /*
-        $normalizedHeaders = preg_replace(",\r\n[ \t]+,", ' ', $headers);
-        preg_match_all(',([^\s:]+):[ \t]*(.+),', $normalizedHeaders, $matches, PREG_SET_ORDER);
-        
-        foreach ($matches as $match) {
-            $header = $match[1];
-            $value  = rtrim($match[2]);
-            if ($this->hasHeader($header)) {
-                $this->setHeader($header, $this->getHeader($header) . ',' . $value);
-            } else {
-                $this->setHeader($header, $value);
-            }
-        }
-        */
         
         if (parse_url($uri, PHP_URL_SCHEME)) {
             $this->setUri($uri);

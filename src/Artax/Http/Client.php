@@ -3,11 +3,12 @@
 namespace Artax\Http;
 
 use StdClass,
+    Traversable,
     Exception,
     RuntimeException,
-    Artax\Http\Exceptions\InfiniteRedirectException,
+    Artax\Http\Exceptions\ConnectException,
     Artax\Http\Exceptions\TransferException,
-    Artax\Http\Exceptions\ConnectException;
+    Artax\Http\Exceptions\InfiniteRedirectException;
 
 class Client {
     
@@ -29,7 +30,7 @@ class Client {
     /**
      * @var int
      */
-    protected $connectTimeout = 60;
+    protected $connectTimeout = 30;
     
     /**
      * @var int
@@ -40,6 +41,11 @@ class Client {
      * @var int
      */
     protected $currentRedirectIteration = 0;
+    
+    /**
+     * @var array
+     */
+    protected $redirectHistory;
     
     /**
      * @var bool
@@ -72,11 +78,6 @@ class Client {
     protected $sslOptions = array();
     
     /**
-     * @var array
-     */
-    protected $redirectHistory;
-    
-    /**
      * @var string
      */
     protected $acceptedEncodings;
@@ -91,11 +92,32 @@ class Client {
      * 
      * @param Request $request
      * @return Response
-     * @todo Don't use stream select when only one request is sent
      */
     public function send(Request $request) {
-        $requestStates = $this->doStreamSelect(array($request));
-        return $requestStates[0]->response;
+        
+        $state = new RequestState();
+        
+        $state->conn = $this->checkoutConnection(
+            $request->getScheme(),
+            $request->getHost(),
+            $request->getPort()
+        );
+        
+        stream_set_blocking($state->conn->getStream(), 1);
+        
+        $state->request = $this->normalizeRequestHeaders($request);
+        $state->response = new ClientResponse();
+        $state->responseBodyStream = $this->openMemoryStream();
+        
+        while ($state->status < self::RESPONSE_AWAITING_HEADERS) {
+            $this->sendRequest($state);
+        }
+        
+        while ($state->status < self::RESPONSE_READ_COMPLETE) {
+            $this->readResponse($state);
+        }
+        
+        return $state->response;
     }
     
     /**
@@ -104,9 +126,20 @@ class Client {
      * @param array $requests
      * @return array
      */
-    public function sendMulti(array $requests) {
-        $requestStates = $this->doStreamSelect($requests);
-        return array_map(function($s) { return $s->response; }, $requestStates);
+    public function sendMulti($requests) {
+        if (!(is_array($requests)
+            || $requests instanceof Traversable
+            || $requests instanceof StdClass
+        )) {
+            $type = is_object($requests) ? get_class($requests) : gettype($requests);
+            throw new InvalidArgumentException(
+                "Client::sendMulti expects an array, StdClass or Traversable object at Argument " .
+                "1; $type provided"
+            );
+        }
+        
+        $completedRequestStates = $this->doStreamSelect($requests);
+        return array_map(function($s) { return $s->response; }, $completedRequestStates);
     }
     
     /**
@@ -118,8 +151,6 @@ class Client {
      * @throws Artax\Http\Exceptions\ConnectException
      */
     public function sendAsync(Request $request) {
-        $request = $this->normalizeRequestHeaders($request);
-        
         $connection = $this->makeConnection(
             $request->getScheme(),
             $request->getHost(),
@@ -127,10 +158,11 @@ class Client {
         );
         
         $connection->connect(STREAM_CLIENT_CONNECT | STREAM_CLIENT_ASYNC_CONNECT);
+        stream_set_blocking($connection->getStream(), 0);
         
         $state = new RequestState();
         $state->conn = $connection;
-        $state->request = $request;
+        $state->request = $this->normalizeRequestHeaders($request);
         
         while ($state->status < self::RESPONSE_AWAITING_HEADERS) {
             $this->sendRequest($state);
@@ -140,7 +172,7 @@ class Client {
     }
 
     /**
-     * Turn on/off the use of proxy-style absolute URIs in request lines
+     * Enable/disable the use of proxy-style absolute URI request lines when sending requests
      * 
      * @param bool $boolFlag
      * @return void
@@ -225,7 +257,7 @@ class Client {
     }
 
     /**
-     * Set the maximum number of sumultaneous connections allowed per host (between 1 and 10)
+     * Set the maximum number of sumultaneous connections allowed per host
      * 
      * The default value is 5. If the maximum number of simultaneous connections to a specific host
      * are already in use during a `Client::sendMulti` operation, further requests to that host are
@@ -238,20 +270,18 @@ class Client {
         $maxConnections = (int) $maxConnections;
         if ($maxConnections < 1) {
             $maxConnections = 1;
-        } elseif ($maxConnections > 10) {
-            $maxConnections = 10;
         }
         
         $this->hostConcurrencyLimit = $maxConnections;
     }
     
     /**
-     * Dispatch state objects to the appropriate machine as reads/writes become available
+     * Dispatch state holders to the appropriate machine as reads/writes become available
      * 
      * @param mixed $requests A traversable list of Request objects
      */
     protected function doStreamSelect($requests) {
-        list($requestStates, $requestQueue) = $this->buildRequestStateMap($requests);
+        list($requestStates, $requestQueue) = $this->buildStreamSelectStateMap($requests);
         $readArr = $writeArr = $this->buildStreamSelectArray($requestStates);
         $ex = null;
         
@@ -279,7 +309,7 @@ class Client {
             }
             
             if ($requestQueue) {
-                list($map, $queue) = $this->buildRequestStateMap($requestQueue);
+                list($map, $queue) = $this->buildStreamSelectStateMap($requestQueue);
                 $requestQueue = $queue;
                 $requestStates = array_merge($requestStates, $map);
             } elseif ($this->allRequestStatesHaveCompleted($requestStates)) {
@@ -577,16 +607,16 @@ class Client {
     }
     
     /**
-     * Build an array of request states
+     * Build an array of request states for use with parallel stream selects
      * 
      * Returns a two-element array: the first element is a map of state objects; the second is
      * an array of Request objects that had to be queued because the maximum number of persistent
-     * connections were already in use for the respective target host of each Request. 
+     * connections were already in use for the respective target host of each Request.
      * 
      * @param mixed $requests A traversable array/StdClass/Traversable of Request instances
      * @return array
      */
-    protected function buildRequestStateMap($requests) {
+    protected function buildStreamSelectStateMap($requests) {
         $requestStates = array();
         $requestQueue = array();
         
@@ -594,7 +624,7 @@ class Client {
             $state = new RequestState;
             
             try {
-                $connection = $this->getConnection(
+                $connection = $this->checkoutConnection(
                     $request->getScheme(),
                     $request->getHost(),
                     $request->getPort()
@@ -615,7 +645,7 @@ class Client {
             $state->conn = $connection;
             $state->request = $this->normalizeRequestHeaders($request);
             $state->response = new ClientResponse();
-            $state->responseBodyStream = fopen('php://memory', 'r+');
+            $state->responseBodyStream = fopen('php://temp', 'r+');
             
             $requestStates[$key] = $state;
         }
@@ -676,7 +706,7 @@ class Client {
      * @param Request $request
      * @return Request
      */
-    public function normalizeRequestHeaders(Request $request) {
+    protected function normalizeRequestHeaders(Request $request) {
         $mutable = new MutableStdRequest();
         
         $mutable->populateFromRequest($request);
@@ -825,7 +855,7 @@ class Client {
      * @param Request $request
      * @return Connection -or- null if max persistent connections already in-use for this host
      */
-    protected function getConnection($scheme, $host, $port) {
+    protected function checkoutConnection($scheme, $host, $port) {
         $authority = "$host:$port";
         $openAuthorityConnections = 0;
         
@@ -924,7 +954,7 @@ class Client {
         $state->totalBytesSent = 0;
         $state->status = self::REQUEST_SENDING_HEADERS;
         
-        $state->conn = $this->getConnection(
+        $state->conn = $this->checkoutConnection(
             $state->request->getScheme(),
             $state->request->getHost(),
             $state->request->getPort()
@@ -961,7 +991,7 @@ class Client {
      * @throws RuntimeException
      */
     protected function openMemoryStream() {
-        if (false !== ($stream = @fopen('php://memory', 'r+'))) {
+        if (false !== ($stream = @fopen('php://temp', 'r+'))) {
             return $stream;
         }
         throw new RuntimeException('Failed opening in-memory stream');
