@@ -4,7 +4,7 @@ namespace Artax\Http;
 
 class RequestState {
     
-    public $status = Client::REQUEST_SENDING_HEADERS;
+    public $status = Client::STATE_SENDING_REQUEST_HEADERS;
     public $conn;
     public $request;
     public $response;

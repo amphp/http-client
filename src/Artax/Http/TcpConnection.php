@@ -4,7 +4,7 @@ namespace Artax\Http;
 
 use Artax\Http\Exceptions\ConnectException;
 
-class TcpConnection implements StreamConnection {
+class TcpConnection implements ClientConnection {
     
     protected $id;
     protected $authority;
