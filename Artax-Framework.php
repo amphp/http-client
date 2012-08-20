@@ -18,8 +18,8 @@
  */
 
 use Artax\Http\StatusCodes,
-    Artax\Http\MutableStdResponse,
-    Artax\Http\FormEncodedRequest,
+    Artax\Http\StdResponse,
+    Artax\Http\FormEncodableRequest,
     Artax\Http\SuperglobalRequestDetector,
     Artax\Events\Mediator,
     Artax\Framework\UnifiedErrorHandler,
@@ -55,14 +55,21 @@ require __DIR__ . '/Artax.php';
  */
 
 try {
-    $requestDetector = new SuperglobalRequestDetector();
-    $request = new FormEncodedRequest(
-        $requestDetector->detectUri($_SERVER),
-        $requestDetector->detectMethod($_SERVER),
-        $requestDetector->detectHeaders($_SERVER),
-        $requestDetector->detectBody(),
-        $requestDetector->detectHttpVersion($_SERVER)
-    );    
+    $reqDetector = new SuperglobalRequestDetector();
+    
+    $request = new FormEncodableRequest(
+        $reqDetector->detectUri($_SERVER),
+        $reqDetector->detectMethod($_SERVER)
+    );
+    
+    $request->setAllHeaders($reqDetector->detectHeaders($_SERVER));
+    
+    if ($request->allowsEntityBody()) {
+        $request->setBody(fopen('php://input'));
+    }
+    
+    $request->setHttpVersion($reqDetector->detectHttpVersion($_SERVER));
+    
 } catch (Exception $e) {
     die('URI detection failed: cannot continue');
 }
@@ -89,7 +96,7 @@ if (!defined('ARTAX_DEBUG_MODE')) {
 error_reporting(E_ALL | E_STRICT);
 ini_set('display_errors', false);
 
-$unifiedHandler = new UnifiedErrorHandler(new MutableStdResponse, $mediator, ARTAX_DEBUG_MODE);
+$unifiedHandler = new UnifiedErrorHandler(new StdResponse, $mediator, ARTAX_DEBUG_MODE);
 $unifiedHandler->register();
 
 
@@ -104,13 +111,13 @@ $mediatorDefinition = array(
 );
 $httpStatusHandlerDefinition = array(
     ':mediator' => $mediator,
-    'request'  => 'Artax\\Http\\FormEncodedRequest',
+    'request'  => 'Artax\\Http\\FormEncodableRequest',
     'response' => 'Artax\\Framework\\Http\\ObservableResponse'
 );
 $http500HandlerDefinition = array(
     ':mediator' => $mediator,
-    'request'  => 'Artax\\Http\\FormEncodedRequest',
-    'response' => 'Artax\\Http\\MutableStdResponse'
+    'request'  => 'Artax\\Http\\FormEncodableRequest',
+    'response' => 'Artax\\Http\\StdResponse'
 );
 
 $observableRoutePoolDefinition = array(

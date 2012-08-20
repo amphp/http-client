@@ -17,14 +17,17 @@ if (!defined('PHP_VERSION_ID') || PHP_VERSION_ID < 50300) {
 if (extension_loaded('mbstring')) { 
     if (ini_get('mbstring.func_overload') & 2) { 
         throw new RuntimeException(
-            'Artax requires that string functions not be overloaded by "mbstring.func_overload"'
+            'Artax cannot function in the presence of string function overloading ' .
+            'with "mbstring.func_overload"'
         );
     }
 }
 
-spl_autoload_register(function($className) {
-    if (0 === strpos($className, 'Artax\\')) {
-        $className = str_replace('\\', '/', $className);      
-        require __DIR__ . "/src/$className.php";
+spl_autoload_register(function($class) {
+    if (0 === strpos($class, 'Artax\\')) {
+        $normalizedClass = str_replace('\\', '/', $class);
+        require __DIR__ . "/src/{$normalizedClass}.php";
     }
 });
+
+require __DIR__ . '/vendor/PHP-Datastructures/bootstrap.php';

@@ -4,7 +4,7 @@ namespace Artax\Http;
 
 interface StreamConnection {
     
-    function connect($flags);
+    function connect();
     function getUri();
     function isConnected();
     function close();
@@ -12,5 +12,6 @@ interface StreamConnection {
     function getAuthority();
     function getStream();
     function setConnectTimeout($seconds);
+    function setConnectFlags($flags);
     function __toString();
 }

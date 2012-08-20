@@ -12,7 +12,6 @@ $cfg->requiredFiles = array(
 
 $cfg->plugins = array(
     'Artax/RouteShortcuts'        => true,
-    'Artax/ResponseContentLength' => true,
     'Artax/ResponseStatus'        => true,
     'Artax/ResponseDate'          => true,
     'Artax/ResponseEncoder'       => true
@@ -42,6 +41,5 @@ $cfg->eventListeners = array(
 );
 
 $cfg->injectionImplementations = array(
-    'Artax\\Http\\FormEncodableRequest' => 'Artax\\Http\\FormEncodedRequest',
     'Artax\\Events\\Mediator' => 'Artax\\Framework\\Events\\ProvisionedNotifier'
 );

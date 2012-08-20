@@ -2,11 +2,13 @@
 
 namespace Artax\Http;
 
-use StdClass,
+use Spl\Mediator,
+    StdClass,
     Traversable,
     Exception,
     RuntimeException,
     Artax\Http\Exceptions\ConnectException,
+    Artax\Http\Exceptions\TimeoutException,
     Artax\Http\Exceptions\TransferException,
     Artax\Http\Exceptions\InfiniteRedirectException;
 
@@ -22,13 +24,15 @@ class Client {
     const STATE_RESPONSE_COMPLETE = 256;
     const STATE_ERROR = 512;
     
-    const NOTIFY_CONNECT_OPEN = 2;
-    const NOTIFY_CONNECT_CLOSE = 4;
-    const NOTIFY_CONNECT_ERROR = 8;
-    const NOTIFY_IO_READ = 16;
-    const NOTIFY_IO_WRITE = 32;
-    const NOTIFY_IO_ERROR = 64;
-    const NOTIFY_REDIRECT = 128;
+    const EVENT_CONNECT_OPEN = 2;
+    const EVENT_CONNECT_CLOSE = 4;
+    const EVENT_CONNECT_ERROR = 8;
+    const EVENT_IO_READ = 16;
+    const EVENT_IO_WRITE = 32;
+    const EVENT_IO_TIMEOUT = 64;
+    const EVENT_IO_ERROR = 128;
+    const EVENT_REDIRECT = 256;
+    const EVENT_RESPONSE_COMPLETE = 512;
     
     /**
      * @var string
@@ -38,7 +42,12 @@ class Client {
     /**
      * @var int
      */
-    protected $connectTimeout = 30;
+    protected $connectTimeout = 120;
+    
+    /**
+     * @var int
+     */
+    protected $activityTimeout = 30;
     
     /**
      * @var int
@@ -88,12 +97,35 @@ class Client {
     /**
      * @var string
      */
-    protected $acceptedEncodings;
+    protected $acceptedEncodings = 'identity';
     
     /**
      * @var array
      */
     protected $connectionPool = array();
+    
+    /**
+     * @var Spl\Mediator
+     */
+    protected $mediator;
+    
+    /**
+     * @param Mediator $mediator
+     * @return void
+     */
+    public function __construct(Mediator $mediator) {
+        $this->mediator = $mediator;
+    }
+    
+    /**
+     * Attach a callable event handler to listen for Client notifications
+     * 
+     * @param mixed $callable
+     * @return void
+     */
+    public function addListener($callable) {
+        $this->mediator->addListener('artax.http.client', $callable);
+    }
     
     /**
      * Request an HTTP resource and retrieve the response
@@ -172,8 +204,8 @@ class Client {
         $port = $request->getPort();
         
         $state->conn = $this->makeConnection($scheme, $host, $port);
-        
-        $this->doConnect($state->conn, STREAM_CONNECT | STREAM_ASYNC_CONNECT);
+        $state->conn->setConnectFlags(STREAM_CLIENT_CONNECT | STREAM_CLIENT_ASYNC_CONNECT);
+        $this->doConnect($state->conn);
         
         while ($state->status < self::STATE_READING_RESPONSE_HEADERS) {
             $this->sendRequest($state);
@@ -193,16 +225,52 @@ class Client {
     }
     
     /**
-     * Whether or not the client should request and decompress encoded entity bodies
+     * Set the number of seconds between reads/writes before an IO timeout occurs on a connection
+     * 
+     * @param int $seconds
+     * @return void
+     */
+    public function setActivityTimeout($seconds) {
+        $this->activityTimeout = $seconds;
+    }
+    
+    /**
+     * Whether or not the client should accept encoded (gzip/deflate compressed) entity bodies
      * 
      * This option is disabled by default. Note that even if this option is enabled, the client 
      * will only request encoded messages if PHP's zlib extension is installed.
      * 
      * @param bool $boolFlag
-     * @return void
+     * @return string The Accept-Encoding header value that will be used for requests
      */
     public function allowContentEncoding($boolFlag) {
-        $this->allowContentEncoding = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
+        $filteredBool = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
+        $this->allowContentEncoding = $filteredBool;
+        
+        $acceptedEncodings = $filteredBool ? $this->determineAcceptedEncodings() : 'identity';
+        $this->acceptedEncodings = $acceptedEncodings;
+        
+        return $acceptedEncodings;
+    }
+    
+    /**
+     * Determine which content encodings the current environment can support
+     * 
+     * @return string
+     */
+    protected function determineAcceptedEncodings() {
+        $encodingsWeCanHandle = array();
+        
+        if (function_exists('gzdecode')) {
+            $encodingsWeCanHandle[] = 'gzip';
+        }
+        if (function_exists('gzinflate')) {
+            $encodingsWeCanHandle[] = 'deflate';
+        }
+        
+        $encodingsWeCanHandle[] = 'identity';
+        
+        return implode(',', $encodingsWeCanHandle);
     }
 
     /**
@@ -300,15 +368,22 @@ class Client {
     protected function doStreamSelect($requests) {
         list($requestStates, $requestQueue) = $this->buildStreamSelectStateMap($requests);
         $readArr = $writeArr = $this->buildStreamSelectArray($requestStates);
+        
         $ex = null;
         
         while (true) {
-            if (false === stream_select($readArr, $writeArr, $ex, 30)) {
+            
+            if ($this->allRequestStatesHaveCompleted($requestStates)) {
+                return $requestStates;
+            }
+            
+            if (false === stream_select($readArr, $writeArr, $ex, 1)) {
                 continue;
             }
-        
+            
             foreach ($writeArr as $stateKey => $stream) {
                 $state = $requestStates[$stateKey];
+                $state->lastActivity = microtime(true);
                 try {
                     $this->sendRequest($state);
                 } catch (Exception $e) {
@@ -319,6 +394,7 @@ class Client {
             
             foreach ($readArr as $stateKey => $stream) {
                 $state = $requestStates[$stateKey];
+                $state->lastActivity = microtime(true);
                 try {
                     $this->readResponse($state);
                 } catch (Exception $e) {
@@ -331,20 +407,42 @@ class Client {
                 list($map, $queue) = $this->buildStreamSelectStateMap($requestQueue);
                 $requestQueue = $queue;
                 $requestStates = array_merge($requestStates, $map);
-            } elseif ($this->allRequestStatesHaveCompleted($requestStates)) {
-                return $requestStates;
             }
             
             $readArr = $writeArr = array();
             
             foreach ($requestStates as $stateKey => $state) {
-                if ($state->status < self::STATE_READING_RESPONSE_HEADERS) {
+                if ($this->isComplete($state)) {
+                    continue;
+                } elseif ($this->hasExceededActivityTimeOut($state)) {
+                    $this->handleActivityTimeout($state);
+                } elseif ($state->status < self::STATE_READING_RESPONSE_HEADERS) {
                     $writeArr[$stateKey] = $state->conn->getStream();
                 } elseif ($state->status < self::STATE_RESPONSE_COMPLETE) {
                     $readArr[$stateKey] = $state->conn->getStream();
                 }
             }
         }
+    }
+    
+    /**
+     * 
+     */
+    protected function hasExceededActivityTimeOut(RequestState $state) {
+        $now = microtime(true);
+        $diff = $now - $state->lastActivity;
+        return $diff > $this->activityTimeout;
+    }
+    
+    /**
+     * 
+     */
+    protected function handleActivityTimeout(RequestState $state) {
+        $this->closeConnection($state->conn);
+        $state->status = self::STATE_ERROR;
+        $msg = "Inactivity timeout exceeded on connection to {$state->conn}";
+        $this->notify(self::EVENT_IO_TIMEOUT, $msg);
+        $state->response = new TimeoutException($msg);
     }
     
     /**
@@ -401,16 +499,15 @@ class Client {
             $dataToSend = substr($rawHeaders, $state->totalBytesSent);
             
             if ($bytesSent = $this->writeDataToStream($state->conn->getStream(), $dataToSend)) {
-            
                 $state->totalBytesSent += $bytesSent;
                 $actualDataSent = substr($dataToSend, 0, $bytesSent);
-                $this->notify(self::NOTIFY_IO_WRITE, $actualDataSent, $bytesSent);
+                $this->notify(self::EVENT_IO_WRITE, $actualDataSent);
                 
             } elseif (false === $bytesSent) {
             
                 $failedWriteLength = strlen($dataToSend);
                 $msg = "Failed writing $failedWriteLength bytes to " . $state->conn->getAuthority();
-                $this->notify(self::NOTIFY_IO_ERROR, $msg);
+                $this->notify(self::EVENT_IO_ERROR, $msg);
                 throw new TransferException($msg);
             }
         }
@@ -446,11 +543,11 @@ class Client {
             if ($bytesSent = $this->writeDataToStream($state->conn->getStream(), $dataToSend)) {
                 $state->totalBytesSent += $bytesSent;
                 $actualDataSent = substr($dataToSend, 0, $bytesSent);
-                $this->notify(self::NOTIFY_IO_WRITE, $actualDataSent, $bytesSent);
+                $this->notify(self::EVENT_IO_WRITE, $actualDataSent);
             } elseif (false === $bytesSent) {
                 $failedWriteLength = strlen($dataToSend);
                 $msg = "Failed writing $failedWriteLength bytes to " . $state->conn->getAuthority();
-                $this->notify(self::NOTIFY_IO_ERROR, $msg);
+                $this->notify(self::EVENT_IO_ERROR, $msg);
                 throw new TransferException($msg);
             }
         }
@@ -546,7 +643,7 @@ class Client {
             $this->decodeEntityBody($encoding, $state->response->getBody());
         }
         
-        if ($this->shouldCloseConnection($state->response)) {
+        if ($this->shouldResponseCloseConnection($state->response)) {
             $this->closeConnection($state->conn);
         } else {
             $state->conn->setInUseFlag(false);
@@ -554,6 +651,8 @@ class Client {
         
         if ($this->canRedirect($state)) {
             $this->redirect($state);
+        } else {
+            $this->notify(self::EVENT_RESPONSE_COMPLETE, $state->response);
         }
     }
     
@@ -570,7 +669,7 @@ class Client {
             $state->responseHeaderBytes += $bytesRecieved;
             $state->responseTotalBytes += $bytesRecieved;
             
-            $this->notify(self::NOTIFY_IO_READ, $line, $bytesRecieved);
+            $this->notify(self::EVENT_IO_READ, $line);
             
             if (substr($state->buffer, -4) !== "\r\n\r\n") {
                 continue;
@@ -596,7 +695,7 @@ class Client {
         
         if (false === $line) {
             $msg = "{$state->responseTotalBytes} response bytes received before transfer failure";
-            $this->notify(self::NOTIFY_IO_ERROR, $msg);
+            $this->notify(self::EVENT_IO_ERROR, $msg);
             throw new TransferException($msg);
         }
         
@@ -616,7 +715,7 @@ class Client {
             $dataBytes = strlen($readData);
             fwrite($state->responseBodyStream, $readData);
             $state->responseTotalBytes += $dataBytes;
-            $this->notify(self::NOTIFY_IO_READ, $readData, $dataBytes);
+            $this->notify(self::EVENT_IO_READ, $readData);
         }
         
         if ($state->status == self::STATE_READING_RESPONSE_TO_LENGTH) {
@@ -644,7 +743,7 @@ class Client {
         
         if (false === $readData) {
             $msg = "{$state->responseTotalBytes} response bytes received before transfer failure";
-            $this->notify(self::NOTIFY_IO_ERROR, $msg);
+            $this->notify(self::EVENT_IO_ERROR, $msg);
             throw new TransferException($msg);
         }
         
@@ -670,7 +769,7 @@ class Client {
             $state->request = $this->normalizeRequestHeaders($request);
             
             try {
-                $connection = $this->checkoutConnectionForRequest($state->request);
+                $connection = $this->checkoutConnection($state->request);
             } catch (ConnectException $e) {
                 $state->status = self::STATE_ERROR;
                 $state->response = $e;
@@ -685,7 +784,7 @@ class Client {
             } else {
                 $state->status = self::STATE_SENDING_REQUEST_HEADERS;
                 $state->conn = $connection;
-                $state->response = new ClientResponse();
+                $state->response = $this->makeClientResponse();
                 $state->responseBodyStream = $this->openMemoryStream();
                 
                 $requestStates[$stateKey] = $state;
@@ -693,6 +792,15 @@ class Client {
         }
         
         return array($requestStates, $requestQueue);
+    }
+    
+    /**
+     * A factory method test seam for generating ClientResponse instances
+     * 
+     * @return Artax\Http\ClientResponse
+     */
+    protected function makeClientResponse() {
+        return new ClientResponse();
     }
     
     /**
@@ -724,66 +832,12 @@ class Client {
      * @param Response $response
      * @return bool
      */
-    protected function shouldCloseConnection(Response $response) {
+    protected function shouldResponseCloseConnection(Response $response) {
         if (!$response->hasHeader('Connection')) {
             return false;
         }
         
-        return ('close' == $response->getHeader('Connection'));
-    }
-    
-    /**
-     * @param Request $request
-     * @return Request
-     */
-    protected function normalizeRequestHeaders(Request $request) {
-        $mutable = new MutableStdRequest();
-        
-        $mutable->populateFromRequest($request);
-        $mutable->setHeader('User-Agent', $this->userAgent);
-        
-        if ($this->allowContentEncoding) {
-            $acceptEncoding = $this->determineAcceptedEncodings();
-            if ('identity' !== $acceptEncoding) {
-                $mutable->setHeader('Accept-Encoding', $acceptEncoding);
-            }
-        }
-        
-        if ($mutable->getBodyStream()) {
-            $mutable->setHeader('Transfer-Encoding', 'chunked');
-        } elseif (!in_array($request->getMethod(), array('GET', 'HEAD'))) {
-            $mutable->setHeader('Content-Length', strlen($mutable->getBody()));
-        } else {
-            $mutable->removeHeader('Content-Length');
-            $mutable->removeHeader('Transfer-Encoding');
-        }
-        
-        return $mutable;
-    }
-    
-    /**
-     * @return void
-     */
-    protected function determineAcceptedEncodings() {
-        if ($this->acceptedEncodings) {
-            return $this->acceptedEncodings;
-        }
-        
-        $encodings = array();
-        
-        if (function_exists('gzdecode')) {
-            $encodings[] = 'gzip';
-        }
-        if (function_exists('gzinflate')) {
-            $encodings[] = 'deflate';
-        }
-        
-        $encodings[] = 'identity';
-        
-        $encodingsWeCanHandle = implode(',', $encodings);
-        $this->acceptedEncodings = $encodingsWeCanHandle;
-        
-        return $encodingsWeCanHandle;
+        return !strcmp($response->getHeader('Connection'), 'close');
     }
     
     /**
@@ -791,28 +845,46 @@ class Client {
      * @return string
      */
     protected function buildRawRequestHeaders(Request $request) {
-        $rawHeaders = '';
+        $rawHeaders = $request->getRequestLine() . "\r\n";
         
-        if (!$this->useProxyRequestLine) {
-            $rawHeaders.= $request->getRequestLine() . "\r\n";
-            $rawHeaders.= 'HOST: ' . $request->getAuthority() . "\r\n";
-            
-            $headers = $request->getAllHeaders();
-            unset($headers['HOST']);
-            foreach ($headers as $header => $value) {
-                $rawHeaders.= "$header: $value\r\n";
-            }
-            
-        } else {
-            $rawHeaders.= $request->getProxyRequestLine() . "\r\n";
-            foreach ($request->getAllHeaders() as $header => $value) {
-                $rawHeaders.= "$header: $value\r\n";
-            }
+        foreach ($request->getAllHeaders() as $header => $value) {
+            $rawHeaders.= "$header: $value\r\n";
         }
         
         $rawHeaders.= "\r\n";
         
         return $rawHeaders;
+    }
+    
+    /**
+     * @param Request $request
+     * @return Request
+     */
+    protected function normalizeRequestHeaders(Request $request) {
+        $request->setHeader('User-Agent', $this->userAgent);
+        
+        if (!$this->useProxyRequestLine) {
+            $request->setHeader('Host', $request->getAuthority());
+        } else {
+            $request->removeHeader('Host');
+        }
+        
+        if ($this->allowContentEncoding) {
+            $request->setHeader('Accept-Encoding', $this->acceptEncoding);
+        } else {
+            $request->removeHeader('Accept-Encoding');
+        }
+        
+        if ($request->getBodyStream()) {
+            $request->setHeader('Transfer-Encoding', 'chunked');
+        } elseif ($request->allowsEntityBody() && $entityBody = $request->getBody()) {
+            $request->setHeader('Content-Length', strlen($entityBody));
+        } else {
+            $request->removeHeader('Content-Length');
+            $request->removeHeader('Transfer-Encoding');
+        }
+        
+        return $request;
     }
     
     /**
@@ -879,7 +951,7 @@ class Client {
      * 
      * @return ClientConnection -or- null if no connection slots are available
      */
-    protected function checkoutConnectionForRequest(Request $request) {
+    protected function checkoutConnection(Request $request) {
         $host = $request->getHost();
         $port = $request->getPort();
         $authority = "$host:$port";
@@ -926,48 +998,26 @@ class Client {
      */
     protected function makeConnection($scheme, $host, $port) {
         if (strcmp('https', $scheme)) {
-            $connection = new TcpConnection("$host:$port");
+            $conn = new TcpConnection("$host:$port");
         } else {
-            $connection = new SslConnection("$host:$port");
-            $connection->setSslOptions($this->sslOptions);
+            $conn = new SslConnection("$host:$port");
+            $conn->setSslOptions($this->sslOptions);
         }
         
-        $connection->setConnectTimeout($this->connectTimeout);
+        $conn->setConnectTimeout($this->connectTimeout);
         
-        return $connection;
+        return $conn;
     }
     
-    /**
-     * 
-     */
-    protected function doConnect(StreamConnection $conn, $flags = STREAM_CLIENT_CONNECT) {
+    protected function doConnect(StreamConnection $conn) {
         try {
-            $conn->connect($flags);
+            $conn->connect();
         } catch (ConnectException $e) {
-            $this->notify(
-                self::NOTIFY_CONNECT_ERROR,
-                'Connection FAILURE: ' . $e->getMessage()
-            );
+            $this->notify(self::EVENT_CONNECT_ERROR, 'Connection FAILURE: ' . $e->getMessage());
             throw $e;
         }
         
-        $this->notify(
-            self::NOTIFY_CONNECT_OPEN,
-            'Connection OPENED: ' . $conn->getAuthority() . ' (ID# '.$conn->getId().')'
-        );
-    }
-    
-    /**
-     * Close any open connections (with notification) on object destruction
-     * 
-     * @return void
-     */
-    public function __destruct() {
-        foreach ($this->connectionPool as $authority => $connArr) {
-            foreach ($connArr as $conn) {
-                $this->closeConnection($conn);
-            }
-        }
+        $this->notify(self::EVENT_CONNECT_OPEN, "Connection OPENED: $conn");
     }
     
     /**
@@ -980,14 +1030,13 @@ class Client {
         $conn->close();
         $authority = $conn->getAuthority();
         
-        if (false !== ($key = array_search($conn, $this->connectionPool[$authority]))) {
+        if (!empty($this->connectionPool[$authority])
+         && false !== ($key = array_search($conn, $this->connectionPool[$authority]))
+        ) {
             unset($this->connectionPool[$authority][$key]);
         }
         
-        $this->notify(
-            self::NOTIFY_CONNECT_CLOSE,
-            "Connection CLOSED: $authority (ID# " . $conn->getId() . ')'
-        );
+        $this->notify(self::EVENT_CONNECT_CLOSE, "Connection CLOSED: $conn");
     }
 
     /**
@@ -1031,34 +1080,34 @@ class Client {
             );
         }
         
-        $entityBody = $state->request->getBodyStream() ?: $state->request->getBody();
+        $newRequest = new StdRequest($newLocation, $state->request->getMethod());
+        $newRequest->setAllHeaders($state->request->getAllHeaders());
+        if ($newRequest->allowsEntityBody()) {
+            $entityBody = $state->request->getBodyStream() ?: $state->request->getBody();
+            $newRequest->setBody($entityBody);
+        }
+        $newRequest->setHttpVersion($state->request->getHttpVersion());
         
-        $state->request = new StdRequest(
-            $newLocation,
-            $state->request->getMethod(),
-            $state->request->getAllHeaders(),
-            $entityBody,
-            $state->request->getHttpVersion()
-        );
+        $state->request = $newRequest;
         
-        $previousResponse = $state->response;
-        $state->response = new ClientResponse();
-        $state->response->setPreviousResponse($previousResponse);
+        $newResponse = $this->makeClientResponse();
+        $newResponse->setPreviousResponse($state->response);
+        
+        $state->response = $newResponse;
+        
         
         $state->buffer = '';
         $state->bufferSize = 0;
         $state->totalBytesSent = 0;
         $state->status = self::STATE_SENDING_REQUEST_HEADERS;
         
-        $this->notify(self::NOTIFY_REDIRECT, "REDIRECTING $oldLocation ---> $newLocation");
+        $this->notify(self::EVENT_REDIRECT, "REDIRECTING $oldLocation ---> $newLocation");
         
-        $state->conn = $this->checkoutConnectionForRequest($state->request);
+        $state->conn = $this->checkoutConnection($state->request);
     }
 
     /**
      * Correct invalid Location headers that specify relative URI paths
-     * 
-     * 
      * 
      * @param Request $lastRequest
      * @param Response $lastResponse
@@ -1108,13 +1157,23 @@ class Client {
     }
     
     /**
-     * 
+     * @param int $eventCode
+     * @param mixed $data
      */
-    protected function notify($notificationCode, $message, $bytesTransferred = null) {
-        if ($notificationCode === self::NOTIFY_IO_WRITE) {
-            echo $message;
-        } elseif ($notificationCode !== self::NOTIFY_IO_READ) {
-            echo PHP_EOL . "~~~ $message" . PHP_EOL;
+    protected function notify($eventCode, $data) {
+        return $this->mediator->notify('artax.http.client', $eventCode, $data);
+    }
+    
+    /**
+     * Close any open connections (with notification) on object destruction
+     * 
+     * @return void
+     */
+    public function __destruct() {
+        foreach ($this->connectionPool as $authority => $connArr) {
+            foreach ($connArr as $conn) {
+                $this->closeConnection($conn);
+            }
         }
     }
 }

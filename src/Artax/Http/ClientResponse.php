@@ -4,7 +4,7 @@ namespace Artax\Http;
 
 use Artax\Http\Exceptions\NotRedirectedException;
 
-class ClientResponse extends MutableStdResponse implements RedirectionResponse {
+class ClientResponse extends StdResponse implements RedirectionResponse {
     
     protected $redirectedFrom;
     

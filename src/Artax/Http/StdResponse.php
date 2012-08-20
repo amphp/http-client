@@ -2,18 +2,15 @@
 
 namespace Artax\Http;
 
-use StdClass,
-    Traversable,
-    LogicException,
-    RuntimeException,
-    InvalidArgumentException;
+use RuntimeException,
+    Artax\Http\Exceptions\MessageParseException;
 
 class StdResponse extends StdMessage implements Response {
 
     /**
-     * @var string
+     * @var int
      */
-    protected $statusCode;
+    protected $statusCode = 200;
 
     /**
      * @var string
@@ -26,37 +23,17 @@ class StdResponse extends StdMessage implements Response {
     protected $wasSent = false;
     
     /**
-     * 
-     */
-    public function __construct(
-        $statusCode,
-        $statusDescription,
-        $headers = array(),
-        $body = '',
-        $httpVersion = '1.1'
-    ) {
-        $this->statusCode = $statusCode;
-        $this->statusDescription = $statusDescription;
-        if ($headers) {
-            $this->assignAllHeaders($headers);
-        }
-        $this->body = $body;
-        $this->httpVersion = $httpVersion;
-    }
-    
-    /**
      * @return string
      */
     public function __toString() {
-        $msg = 'HTTP/' . $this->getHttpVersion() . ' ' . $this->getStatusCode();
-        $msg.= ' ' . $this->getStatusDescription() . "\r\n";
+        $msg = $this->getStartLine() . "\r\n";
         
-        foreach ($this->getAllHeaders() as $header => $value) {
+        foreach ($this->headers as $header => $value) {
             $msg.= "$header: $value\r\n";
         }
         
         $msg.= "\r\n";
-        $msg.= $this->getBodyStream() ? stream_get_contents($this->body) :$this->body;
+        $msg.= $this->getBody();
         
         return $msg;
     }
@@ -69,6 +46,14 @@ class StdResponse extends StdMessage implements Response {
     }
 
     /**
+     * @param string $httpStatusCode
+     * @return void
+     */
+    public function setStatusCode($httpStatusCode) {
+        $this->statusCode = (int) $httpStatusCode;
+    }
+
+    /**
      * @return string
      */
     public function getStatusDescription() {
@@ -76,10 +61,40 @@ class StdResponse extends StdMessage implements Response {
     }
 
     /**
+     * @param string $httpStatusDescription
+     * @return void
+     */
+    public function setStatusDescription($httpStatusDescription) {
+        $this->statusDescription = $httpStatusDescription;
+    }
+
+    /**
      * @return string
      */
     public function getStartLine() {
         return "HTTP/{$this->httpVersion} {$this->statusCode} {$this->statusDescription}";
+    }
+    
+    /**
+     * Parses and assigns start line values according to RFC 2616 Section 6.1
+     * 
+     * @param string $rawStartLineStr
+     * @return void
+     * @throws MessageParseException
+     * @todo Determine if generic "InvalidFormatException" might be a better option
+     */
+    public function setStartLine($rawStartLineStr) {
+        $startLinePattern = ',^HTTP/(\d+\.\d+) (\d{3}) (.+)$,';
+        
+        if (!preg_match($startLinePattern, trim($rawStartLineStr), $match)) {
+            throw new MessageParseException(
+                'Invalid HTTP start line: ' . trim($rawStartLineStr)
+            );
+        }
+        
+        $this->httpVersion = $match[1];
+        $this->statusCode = $match[2];
+        $this->statusDescription = $match[3];
     }
 
     /**
@@ -90,14 +105,14 @@ class StdResponse extends StdMessage implements Response {
     }
 
     /**
-     * Formats and sends all headers prior to outputting the message body.
+     * Formats and sends all headers AND outputs the message entity body.
      * 
      * @return void
      * @throws RuntimeException
      */
     public function send() {
-        $this->removeContentLengthForChunkedBody();
         $this->sendHeaders();
+        
         if ($this->body) {
             $this->sendBody();
         }
@@ -106,29 +121,35 @@ class StdResponse extends StdMessage implements Response {
     }
     
     /**
-     * It's important not to send a Content-Length header with a streamed response body.
-     * PHP automatically sends a chunked message if no Content-Length header is sent,
-     * so we don't need to bother with adding a Transfer-Encoding header here.
+     * Formats and sends all headers
      * 
      * @return void
      */
-    protected function removeContentLengthForChunkedBody() {
-        if ($this->getBodyStream() && $this->hasHeader('Content-Length')) {
-            unset($this->headers['CONTENT-LENGTH']);
+    protected function sendHeaders() {
+        $this->normalizeContentLengthForSend();
+        
+        header($this->getStartLine());
+        
+        foreach ($this->headers as $header => $value) {
+            header($header . ': ' . $value);
         }
     }
     
     /**
+     * Ensure Content-Length header is appropriate given the message entity body
+     * 
+     * PHP will automatically chunk the response output if no Content-Length header is sent by the
+     * user. This is desirable behavior when using a streaming entity body and is protected by
+     * removing the Content-Length header when the entity body is a stream resource. Otherwise,
+     * we ensure that a valid Content-Length header is specified for non-streaming entity bodies.
+     * 
      * @return void
      */
-    protected function sendHeaders() {
-        $startLine = 'HTTP/' . $this->getHttpVersion() . ' ' . $this->getStatusCode() . ' ';
-        $startLine.= $this->getStatusDescription();
-        
-        header($startLine);
-        
-        foreach ($this->headers as $header => $value) {
-            header($header . ': ' . $value);
+    protected function normalizeContentLengthForSend() {
+        if ($this->body && !$this->getBodyStream()) {
+            $this->setHeader('Content-Length', strlen($this->body));
+        } else {
+            $this->removeHeader('Content-Length');
         }
     }
     
@@ -137,19 +158,17 @@ class StdResponse extends StdMessage implements Response {
      * @throws RuntimeException
      */
     protected function sendBody() {
-        if (!is_resource($this->body)) {
+        if (!$entityBodyStream = $this->getBodyStream()) {
             echo $this->body;
             return;
         }
         
-        rewind($this->body);
-        
-        while (!feof($this->body)) {
-            if (false !== ($chunk = $this->outputBodyChunk())) {
-                echo $chunk;
+        while (!feof($entityBodyStream)) {
+            if (false !== ($bodyChunk = $this->outputBodyChunk())) {
+                echo $bodyChunk;
             } else {
                 throw new RuntimeException(
-                    "Failed reading response body from {$this->body}"
+                    "Failed reading response body from $entityBodyStream"
                 );
             }
         }

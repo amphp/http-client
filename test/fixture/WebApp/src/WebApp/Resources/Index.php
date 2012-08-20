@@ -18,6 +18,7 @@ class Index {
     
     public function get() {
         $body = 'Index::get';
+        
         $this->response->setBody($body);
         $this->response->setStatusCode(200);
         $this->response->setStatusDescription('OK');

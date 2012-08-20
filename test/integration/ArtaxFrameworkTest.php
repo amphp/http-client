@@ -16,7 +16,7 @@ class ArtaxFrameworkTest extends PHPUnit_Framework_TestCase {
     public function testOkayResponse() {
         $request = new StdRequest('http://localhost:8096', 'GET');
         
-        $response = $this->client->request($request);
+        $response = $this->client->send($request);
         $this->assertEquals(200, $response->getStatusCode());
         $this->assertEquals('Index::get', $response->getBody());
         
@@ -28,7 +28,7 @@ class ArtaxFrameworkTest extends PHPUnit_Framework_TestCase {
         $request = new StdRequest('http://localhost:8096/post-only', 'POST', $headers,
             urlencode($body)
         );
-        $response = $this->client->request($request);
+        $response = $this->client->send($request);
         
         $this->assertEquals(200, $response->getStatusCode());
         $this->assertEquals("PostOnly::post - $body", $response->getBody());
@@ -48,7 +48,7 @@ class ArtaxFrameworkTest extends PHPUnit_Framework_TestCase {
             $body
         );
         
-        $response = $this->client->request($request);
+        $response = $this->client->send($request);
         
         $this->assertEquals(200, $response->getStatusCode());
         $this->assertEquals("PostOnly::post - $body", $response->getBody());
@@ -57,7 +57,7 @@ class ArtaxFrameworkTest extends PHPUnit_Framework_TestCase {
     public function testNotFoundResponse() {
         $request = new StdRequest('http://localhost:8096/nonexistent', 'GET');
         
-        $response = $this->client->request($request);
+        $response = $this->client->send($request);
         
         $this->assertEquals(404, $response->getStatusCode());
         $this->assertEquals('not found', $response->getBody());
@@ -66,7 +66,7 @@ class ArtaxFrameworkTest extends PHPUnit_Framework_TestCase {
     public function testMethodNotAllowedResponse() {
         $request = new StdRequest('http://localhost:8096/post-only', 'GET');
         
-        $response = $this->client->request($request);
+        $response = $this->client->send($request);
         
         $this->assertEquals(405, $response->getStatusCode());
         $this->assertEquals('method not allowed', $response->getBody());
@@ -75,7 +75,7 @@ class ArtaxFrameworkTest extends PHPUnit_Framework_TestCase {
     public function testErrorResponse() {
         $request = new StdRequest('http://localhost:8096/error', 'GET');
         
-        $response = $this->client->request($request);
+        $response = $this->client->send($request);
         
         $this->assertEquals(500, $response->getStatusCode());
         $this->assertEquals('error', $response->getBody());
@@ -84,7 +84,7 @@ class ArtaxFrameworkTest extends PHPUnit_Framework_TestCase {
     public function testExceptionResponse() {
         $request = new StdRequest('http://localhost:8096/exception', 'GET');
         
-        $response = $this->client->request($request);
+        $response = $this->client->send($request);
         
         $this->assertEquals(500, $response->getStatusCode());
         $this->assertEquals('exception', $response->getBody());
@@ -93,7 +93,7 @@ class ArtaxFrameworkTest extends PHPUnit_Framework_TestCase {
     public function testFatalResponse() {
         $request = new StdRequest('http://localhost:8096/fatal-error', 'GET');
         
-        $response = $this->client->request($request);
+        $response = $this->client->send($request);
         
         $this->assertEquals(500, $response->getStatusCode());
         $this->assertEquals('fatal', $response->getBody());
@@ -102,7 +102,7 @@ class ArtaxFrameworkTest extends PHPUnit_Framework_TestCase {
     public function testExceptionResponseOnIllegalSystemEventDelta() {
         $request = new StdRequest('http://localhost:8096/sysevent', 'GET');
         
-        $response = $this->client->request($request);
+        $response = $this->client->send($request);
         
         $this->assertEquals(500, $response->getStatusCode());
         $this->assertEquals('illegal sysevent delta', $response->getBody());
@@ -111,7 +111,7 @@ class ArtaxFrameworkTest extends PHPUnit_Framework_TestCase {
     public function testAutoStatusPluginIntegration() {
         $request = new StdRequest('http://localhost:8096/auto-status', 'GET');
         
-        $response = $this->client->request($request);
+        $response = $this->client->send($request);
         
         $this->assertEquals(200, $response->getStatusCode());
         $this->assertEquals(StatusCodes::HTTP_200, $response->getStatusDescription());
@@ -120,7 +120,7 @@ class ArtaxFrameworkTest extends PHPUnit_Framework_TestCase {
     public function testAutoContentLengthPluginIntegration() {
         $request = new StdRequest('http://localhost:8096/auto-length', 'GET');
         
-        $response = $this->client->request($request);
+        $response = $this->client->send($request);
         
         $this->assertTrue($response->hasHeader('Content-Length'));
         $this->assertEquals(strlen($response->getBody()), $response->getHeader('Content-Length'));

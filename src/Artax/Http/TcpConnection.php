@@ -10,7 +10,7 @@ class TcpConnection implements ClientConnection {
     protected $authority;
     protected $stream;
     protected $inUse = false;
-    protected $closed = false;
+    protected $connectFlags = STREAM_CLIENT_CONNECT;
     protected $connectTimeout = 30;
     protected $transport = 'tcp';
     
@@ -19,9 +19,14 @@ class TcpConnection implements ClientConnection {
         $this->authority = $authority;
     }
     
-    public function connect($flags = STREAM_CLIENT_CONNECT) {
-        $uri = $this->getUri();
-        $stream = @stream_socket_client($uri, $errNo, $errStr, $this->connectTimeout, $flags);
+    public function connect() {
+        $stream = @stream_socket_client(
+            $this->getUri(),
+            $errNo,
+            $errStr,
+            $this->connectTimeout,
+            $this->connectFlags
+        );
         
         if ($stream) {
             stream_set_blocking($stream, 0);
@@ -42,12 +47,12 @@ class TcpConnection implements ClientConnection {
     }
     
     public function isConnected() {
-        return $this->stream && !$this->closed;
+        return $this->stream;
     }
     
     public function close() {
         @fclose($this->stream);
-        $this->closed = true;
+        $this->stream = null;
     }
     
     public function getId() {
@@ -68,6 +73,10 @@ class TcpConnection implements ClientConnection {
     
     public function setInUseFlag($inUseFlag) {
         $this->inUse = (bool) $inUseFlag;
+    }
+    
+    public function setConnectFlags($flags) {
+        $this->connectFlags = $flags;
     }
     
     public function __toString() {

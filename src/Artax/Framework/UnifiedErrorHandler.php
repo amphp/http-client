@@ -13,7 +13,7 @@ namespace Artax\Framework;
 use Exception,
     ErrorException,
     Artax\Events\Mediator,
-    Artax\Http\MutableResponse,
+    Artax\Http\Response,
     Artax\Http\StatusCodes;
 
 /**
@@ -47,11 +47,11 @@ class UnifiedErrorHandler {
     protected $shutdownRoutineInvoked = false;
     
     /**
-     * @param MutableResponse $response
+     * @param Response $response
      * @param Mediator $mediator
      * @param int $debugMode
      */
-    public function __construct(MutableResponse $response, Mediator $mediator, $debugMode) {
+    public function __construct(Response $response, Mediator $mediator, $debugMode) {
         $this->response = $response;
         $this->mediator = $mediator;
         $this->debugMode = $debugMode;

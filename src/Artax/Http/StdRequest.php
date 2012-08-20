@@ -26,25 +26,15 @@ class StdRequest extends StdMessage implements Request {
     /**
      * @param mixed $uri A valid URI string or instance of Artax\Http\Uri
      * @param string $method
-     * @param mixed $headers
-     * @param string $body
-     * @param string $httpVersion
      * @return void
      * @throws InvalidArgumentException
      */
-    public function __construct($uri, $method, $headers = array(), $body = '', $httpVersion = '1.1') {
+    public function __construct($uri, $method) {
         $this->uri = $uri instanceof Uri ? $uri : $this->buildUriFromString($uri);
-        $this->method = strtoupper($method);
         
-        if ($headers) {
-            $this->assignAllHeaders($headers);
-        }
-        
-        if ($body && $this->acceptsEntityBody()) {
-            $this->body = $body;
-        }
-        
-        $this->httpVersion = $httpVersion ?: '1.1';
+        // http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html#sec5.1.1
+        // "The method is case-sensitive"
+        $this->method = $method;
         
         $this->queryParameters = $this->parseParametersFromString($this->uri->getQuery());
     }
@@ -58,21 +48,9 @@ class StdRequest extends StdMessage implements Request {
             return new StdUri($uri);
         } catch (InvalidArgumentException $e) {
             throw new InvalidArgumentException(
-                'Invalid URI specified at Argument 1 in ' . get_class($this) . '::__construct: ' .
-                "$uri. Please specify a valid URI string or instance of Artax\\Http\\Uri",
-                null,
-                $e
+                "Invalid URI specified at Argument 1 in " . get_class($this) . "::__construct: $uri"
             );
         }
-    }
-    
-    /**
-     * @param string $httpMethod
-     * @return bool
-     */
-    protected function acceptsEntityBody() {
-        $methodsDisallowingEntityBody = array('GET', 'HEAD', 'DELETE', 'TRACE', 'CONNECT');
-        return !in_array($this->getMethod(), $methodsDisallowingEntityBody);
     }
     
     /**
@@ -80,20 +58,49 @@ class StdRequest extends StdMessage implements Request {
      * @return array
      */
     protected function parseParametersFromString($paramString) {
-        parse_str($paramString, $parameters);
-        return array_map('urldecode', $parameters);
+        if ($paramString) {
+            parse_str($paramString, $parameters);
+            return array_map('urldecode', $parameters);
+        } else {
+            return array();
+        }
     }
     
     /**
-     * Access the entity body
+     * Assign an entity body to the HTTP message
+     * 
+     * @param string $body
+     * @return void
+     * @todo Determine the best exception to throw if message method doesn't support an entity body
+     */
+    public function setBody($body) {
+        if ($body && !$this->allowsEntityBody()) {
+            throw new RuntimeException();
+        } else {
+            parent::setBody($body);
+        }
+    }
+    
+    /**
+     * Does the request method support an entity body?
+     * 
+     * @return bool
+     */
+    public function allowsEntityBody() {
+        $dontAcceptBody = array('GET', 'HEAD', 'DELETE', 'TRACE', 'CONNECT');
+        return !in_array($this->getMethod(), $dontAcceptBody);
+    }
+    
+    /**
+     * Retrieve the HTTP message entity body in string form
      * 
      * If a resource stream is assigned to the body property, its entire contents will be read into
      * memory and returned as a string. To access the stream resource directly without buffering
      * its contents, use Message::getBodyStream().
      * 
      * In web environments, php://input is a stream to the HTTP request body, but it can only be
-     * read once and is not seekable. So we load it into our own stream if php://input is our 
-     * request body property.
+     * read once and is not seekable. As a result, we load it into our own stream if php://input
+     * is our request body property.
      * 
      * @return string
      */
@@ -102,19 +109,19 @@ class StdRequest extends StdMessage implements Request {
             return $this->body;
         }
         
-        if (!is_null($this->cachedBodyFromStream)) {
-            return $this->cachedBodyFromStream;
+        if (!is_null($this->cachedStreamBody)) {
+            return $this->cachedStreamBody;
         }
         
         $meta = stream_get_meta_data($this->body);
         
         if ($meta['uri'] == 'php://input') {
-            $this->cachedBodyFromStream = '';
+            $this->cachedStreamBody = '';
             
             $tempStream = fopen('php://memory', 'r+');
             while (!feof($this->body)) {
                 $data = fread($this->body, 8192);
-                $this->cachedBodyFromStream .= $data;
+                $this->cachedStreamBody .= $data;
                 fwrite($tempStream, $data);
             }
             rewind($tempStream);
@@ -122,11 +129,11 @@ class StdRequest extends StdMessage implements Request {
             $this->body = $tempStream;
             
         } else {
-            $this->cachedBodyFromStream = stream_get_contents($this->body);
+            $this->cachedStreamBody = stream_get_contents($this->body);
             rewind($this->body);
         }
         
-        return $this->cachedBodyFromStream;
+        return $this->cachedStreamBody;
     }
     
     /**
@@ -148,6 +155,13 @@ class StdRequest extends StdMessage implements Request {
         }
         
         return $this->body;
+    }
+
+    /**
+     * @return string The HTTP method, upper-cased.
+     */
+    public function getMethod() {
+        return $this->method;
     }
     
     /**
@@ -233,13 +247,6 @@ class StdRequest extends StdMessage implements Request {
     public function getRawUserInfo() {
         return $this->uri->getRawUserInfo();
     }
-
-    /**
-     * @return string The HTTP method, upper-cased.
-     */
-    public function getMethod() {
-        return $this->method;
-    }
     
     /**
      * @param string $parameter
@@ -296,15 +303,7 @@ class StdRequest extends StdMessage implements Request {
     }
     
     /**
-     * Returns a fully stringified HTTP request message to be sent to an HTTP/1.1 server
-     * 
-     * This method will read the entire contents of a stream body into memory to output as a string.
-     * If a streamed body is preferred, manually output the raw message headers using
-     * StdRequest::getMessageHeaderStr(), get the entity body stream with StdRequest::getBodyStream
-     * and manually send the contents of the body resource stream.
-     * 
-     * Messages generated in accordance with RFC2616 section 5:
-     * http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html#sec5
+     * Returns a fully stringified HTTP request message
      * 
      * @return string
      */

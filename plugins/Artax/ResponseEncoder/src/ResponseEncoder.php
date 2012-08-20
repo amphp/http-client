@@ -11,7 +11,7 @@ namespace ArtaxPlugins;
 
 use InvalidArgumentException,
     Artax\Http\Request,
-    Artax\Http\MutableResponse,
+    Artax\Http\Response,
     Artax\MediaRangeFactory,
     Artax\MimeTypeFactory,
     Artax\Encoding\CodecFactory,
@@ -67,11 +67,11 @@ class ResponseEncoder {
         $this->encodableMediaRanges = $customRanges;
     }
     
-    public function __invoke(MutableResponse $response) {
+    public function __invoke(Response $response) {
         $this->encode($response);
     }
     
-    public function encode(MutableResponse $response) {
+    public function encode(Response $response) {
         if (!($response->hasHeader('Content-Type') && $response->hasHeader('Content-Encoding'))) {
             return;
         }
@@ -102,7 +102,7 @@ class ResponseEncoder {
         $this->setVaryHeader($response);
     }
     
-    protected function getEncodableMimeType(MutableResponse $response) {
+    protected function getEncodableMimeType(Response $response) {
         $rawHeader = $response->getHeader('Content-Type');
         
         if (strpos($rawHeader, ';')) {
@@ -154,7 +154,7 @@ class ResponseEncoder {
         return true;
     }
     
-    protected function setVaryHeader(MutableResponse $response) {
+    protected function setVaryHeader(Response $response) {
         if (!$response->hasHeader('Vary')) {
             $response->setHeader('Vary', 'Accept-Encoding,User-Agent');
             return;

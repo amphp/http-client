@@ -23,6 +23,8 @@ class RequestState {
     public $requestBodyStreamBuffer = null;
     public $requestBodyStreamLength = 0;
     
+    public $lastActivity;
+    
     public function __toString() {
         return (string) $this->status;
     }

@@ -10,7 +10,7 @@ interface RedirectionResponse extends Response {
     function resultedFromRedirection();
     
     /**
-     * Retrieve the final, redirected URI of the resource returned by this response
+     * Retrieve the final, redirected URI of the resource modelled by this response
      */
     function getRedirectionUri();
     

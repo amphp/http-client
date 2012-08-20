@@ -9,10 +9,10 @@
  */
 namespace ArtaxPlugins;
 
-use Artax\Http\MutableResponse;
+use Artax\Http\Response;
 
 /**
- * -adds HTTP status code and description to outgoing responses if needed
+ * Auto-adds HTTP status code and description to outgoing responses if missing
  * 
  * Built-in Artax response implementations will throw a LogicException if a response is sent without
  * an HTTP status code assigned. The plugin listens for outbound responses and adds the default
@@ -27,19 +27,19 @@ use Artax\Http\MutableResponse;
  */
 class ResponseStatus {
     
-    public function __invoke(MutableResponse $response) {
+    public function __invoke(Response $response) {
         $this->setStatusCode($response);
         $this->setStatusDescription($response);
     }
     
-    public function setStatusCode(MutableResponse $response) {
+    public function setStatusCode(Response $response) {
         if (!$response->getStatusCode()) {
             $response->setStatusCode(200);
         }
     }
     
-    public function setStatusDescription(MutableResponse $response) {
-        if (null === $response->getStatusDescription()) {
+    public function setStatusDescription(Response $response) {
+        if (!$response->getStatusDescription()) {
             $constantName = 'HTTP_' . $response->getStatusCode();
             if ($description = constant("Artax\\Http\\StatusCodes::$constantName")) {
                 $response->setStatusDescription($description);

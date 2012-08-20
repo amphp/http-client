@@ -9,10 +9,15 @@ namespace Artax\Http;
 interface Request extends Message {
     
     /**
-     * Access the all-caps HTTP method verb
+     * Access the HTTP method verb
      */
     function getMethod();
-
+    
+    /**
+     * Does the request's HTTP method verb support an entity body?
+     */
+    function allowsEntityBody();
+    
     /**
      * Retrive a specific URI query parameter by name
      * 
@@ -21,7 +26,7 @@ interface Request extends Message {
     function getQueryParameter($parameterName);
     
     /**
-     * Does the request contain query parameters?
+     * Does the request contain the specified query parameter?
      * 
      * @param string $parameterName
      */
@@ -33,12 +38,12 @@ interface Request extends Message {
     function getAllQueryParameters();
     
     /**
-     * Build a raw HTTP message request line
+     * Get the HTTP message request line
      */
     function getRequestLine();
     
     /**
-     * Build a raw HTTP message request line using the proxy-style absolute URI
+     * Get the HTTP message request line with a proxy-style absolute URI
      */
     function getProxyRequestLine();
     
