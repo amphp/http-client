@@ -24,15 +24,15 @@ class Client {
     const STATE_RESPONSE_COMPLETE = 256;
     const STATE_ERROR = 512;
     
-    const EVENT_CONNECT_OPEN = 2;
-    const EVENT_CONNECT_CLOSE = 4;
-    const EVENT_CONNECT_ERROR = 8;
-    const EVENT_IO_READ = 16;
-    const EVENT_IO_WRITE = 32;
-    const EVENT_IO_TIMEOUT = 64;
-    const EVENT_IO_ERROR = 128;
-    const EVENT_REDIRECT = 256;
-    const EVENT_RESPONSE_COMPLETE = 512;
+    const EVENT_CONNECT_OPEN = 'artax.http.client.connect.open';
+    const EVENT_CONNECT_CLOSE = 'artax.http.client.connect.close';
+    const EVENT_CONNECT_ERROR = 'artax.http.client.connect.error';
+    const EVENT_IO_READ = 'artax.http.client.io.read';
+    const EVENT_IO_WRITE = 'artax.http.client.io.write';
+    const EVENT_IO_TIMEOUT = 'artax.http.client.io.timeout';
+    const EVENT_IO_ERROR = 'artax.http.client.io.error';
+    const EVENT_REDIRECT = 'artax.http.client.redirect';
+    const EVENT_RESPONSE_COMPLETE = 'artax.http.client.response.complete';
     
     /**
      * @var string
@@ -115,16 +115,6 @@ class Client {
      */
     public function __construct(Mediator $mediator) {
         $this->mediator = $mediator;
-    }
-    
-    /**
-     * Attach a callable event handler to listen for Client notifications
-     * 
-     * @param mixed $callable
-     * @return void
-     */
-    public function addListener($callable) {
-        $this->mediator->addListener('artax.http.client', $callable);
     }
     
     /**
@@ -441,7 +431,7 @@ class Client {
         $this->closeConnection($state->conn);
         $state->status = self::STATE_ERROR;
         $msg = "Inactivity timeout exceeded on connection to {$state->conn}";
-        $this->notify(self::EVENT_IO_TIMEOUT, $msg);
+        $this->mediator->notify(self::EVENT_IO_TIMEOUT, $msg);
         $state->response = new TimeoutException($msg);
     }
     
@@ -501,13 +491,13 @@ class Client {
             if ($bytesSent = $this->writeDataToStream($state->conn->getStream(), $dataToSend)) {
                 $state->totalBytesSent += $bytesSent;
                 $actualDataSent = substr($dataToSend, 0, $bytesSent);
-                $this->notify(self::EVENT_IO_WRITE, $actualDataSent);
+                $this->mediator->notify(self::EVENT_IO_WRITE, $actualDataSent);
                 
             } elseif (false === $bytesSent) {
             
                 $failedWriteLength = strlen($dataToSend);
                 $msg = "Failed writing $failedWriteLength bytes to " . $state->conn->getAuthority();
-                $this->notify(self::EVENT_IO_ERROR, $msg);
+                $this->mediator->notify(self::EVENT_IO_ERROR, $msg);
                 throw new TransferException($msg);
             }
         }
@@ -543,11 +533,11 @@ class Client {
             if ($bytesSent = $this->writeDataToStream($state->conn->getStream(), $dataToSend)) {
                 $state->totalBytesSent += $bytesSent;
                 $actualDataSent = substr($dataToSend, 0, $bytesSent);
-                $this->notify(self::EVENT_IO_WRITE, $actualDataSent);
+                $this->mediator->notify(self::EVENT_IO_WRITE, $actualDataSent);
             } elseif (false === $bytesSent) {
                 $failedWriteLength = strlen($dataToSend);
                 $msg = "Failed writing $failedWriteLength bytes to " . $state->conn->getAuthority();
-                $this->notify(self::EVENT_IO_ERROR, $msg);
+                $this->mediator->notify(self::EVENT_IO_ERROR, $msg);
                 throw new TransferException($msg);
             }
         }
@@ -652,7 +642,7 @@ class Client {
         if ($this->canRedirect($state)) {
             $this->redirect($state);
         } else {
-            $this->notify(self::EVENT_RESPONSE_COMPLETE, $state->response);
+            $this->mediator->notify(self::EVENT_RESPONSE_COMPLETE, $state->response);
         }
     }
     
@@ -669,7 +659,7 @@ class Client {
             $state->responseHeaderBytes += $bytesRecieved;
             $state->responseTotalBytes += $bytesRecieved;
             
-            $this->notify(self::EVENT_IO_READ, $line);
+            $this->mediator->notify(self::EVENT_IO_READ, $line);
             
             if (substr($state->buffer, -4) !== "\r\n\r\n") {
                 continue;
@@ -695,7 +685,7 @@ class Client {
         
         if (false === $line) {
             $msg = "{$state->responseTotalBytes} response bytes received before transfer failure";
-            $this->notify(self::EVENT_IO_ERROR, $msg);
+            $this->mediator->notify(self::EVENT_IO_ERROR, $msg);
             throw new TransferException($msg);
         }
         
@@ -715,7 +705,7 @@ class Client {
             $dataBytes = strlen($readData);
             fwrite($state->responseBodyStream, $readData);
             $state->responseTotalBytes += $dataBytes;
-            $this->notify(self::EVENT_IO_READ, $readData);
+            $this->mediator->notify(self::EVENT_IO_READ, $readData);
         }
         
         if ($state->status == self::STATE_READING_RESPONSE_TO_LENGTH) {
@@ -743,7 +733,7 @@ class Client {
         
         if (false === $readData) {
             $msg = "{$state->responseTotalBytes} response bytes received before transfer failure";
-            $this->notify(self::EVENT_IO_ERROR, $msg);
+            $this->mediator->notify(self::EVENT_IO_ERROR, $msg);
             throw new TransferException($msg);
         }
         
@@ -1013,11 +1003,11 @@ class Client {
         try {
             $conn->connect();
         } catch (ConnectException $e) {
-            $this->notify(self::EVENT_CONNECT_ERROR, 'Connection FAILURE: ' . $e->getMessage());
+            $this->mediator->notify(self::EVENT_CONNECT_ERROR, 'Connection FAILURE: ' . $e->getMessage());
             throw $e;
         }
         
-        $this->notify(self::EVENT_CONNECT_OPEN, "Connection OPENED: $conn");
+        $this->mediator->notify(self::EVENT_CONNECT_OPEN, "Connection OPENED: $conn");
     }
     
     /**
@@ -1036,7 +1026,7 @@ class Client {
             unset($this->connectionPool[$authority][$key]);
         }
         
-        $this->notify(self::EVENT_CONNECT_CLOSE, "Connection CLOSED: $conn");
+        $this->mediator->notify(self::EVENT_CONNECT_CLOSE, "Connection CLOSED: $conn");
     }
 
     /**
@@ -1101,7 +1091,7 @@ class Client {
         $state->totalBytesSent = 0;
         $state->status = self::STATE_SENDING_REQUEST_HEADERS;
         
-        $this->notify(self::EVENT_REDIRECT, "REDIRECTING $oldLocation ---> $newLocation");
+        $this->mediator->notify(self::EVENT_REDIRECT, "REDIRECTING $oldLocation ---> $newLocation");
         
         $state->conn = $this->checkoutConnection($state->request);
     }
@@ -1154,14 +1144,6 @@ class Client {
     
     protected function readLineFromStream($resource) {
         return @fgets($resource);
-    }
-    
-    /**
-     * @param int $eventCode
-     * @param mixed $data
-     */
-    protected function notify($eventCode, $data) {
-        return $this->mediator->notify('artax.http.client', $eventCode, $data);
     }
     
     /**
