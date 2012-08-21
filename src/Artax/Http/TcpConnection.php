@@ -2,7 +2,8 @@
 
 namespace Artax\Http;
 
-use Artax\Http\Exceptions\ConnectException;
+use Artax\Http\Exceptions\ConnectException,
+    Artax\Http\Exceptions\TimeoutException;
 
 class TcpConnection implements ClientConnection {
     
@@ -11,8 +12,10 @@ class TcpConnection implements ClientConnection {
     protected $stream;
     protected $inUse = false;
     protected $connectFlags = STREAM_CLIENT_CONNECT;
-    protected $connectTimeout = 30;
+    protected $connectTimeout = 60;
+    protected $activityTimeout = 60;
     protected $transport = 'tcp';
+    protected $lastActivity;
     
     public function __construct($authority) {
         $this->id = uniqid();
@@ -31,6 +34,7 @@ class TcpConnection implements ClientConnection {
         if ($stream) {
             stream_set_blocking($stream, 0);
             $this->stream = $stream;
+            $this->lastActivity = microtime(true);
         } else {
             throw new ConnectException(
                 "Connection to {$this->authority} failed: [Error $errNo] $errStr"
@@ -71,12 +75,55 @@ class TcpConnection implements ClientConnection {
         $this->connectTimeout = (int) $seconds;
     }
     
-    public function setInUseFlag($inUseFlag) {
-        $this->inUse = (bool) $inUseFlag;
+    public function setActivityTimeout($seconds) {
+        $this->activityTimeout = (int) $seconds;
     }
     
     public function setConnectFlags($flags) {
         $this->connectFlags = $flags;
+    }
+    
+    public function setInUseFlag($inUseFlag) {
+        $this->inUse = (bool) $inUseFlag;
+    }
+    
+    public function resetActivityTimeout() {
+        $this->lastActivity = microtime(true);
+    }
+    
+    public function hasTimedOut() {
+        return (microtime(true) - $this->lastActivity) > $this->activityTimeout;
+    }
+    
+    public function writeData($data) {
+        if ($bytesWritten = @fwrite($this->stream, $data)) {
+            $this->lastActivity = microtime(true);
+        } elseif ($this->hasTimedOut()) {
+            throw new TimeoutException();
+        }
+        
+        
+        return $bytesWritten; 
+    }
+    
+    public function readBytes($bytes) {
+        if ($readData = @fread($this->stream, $bytes)) {
+            $this->lastActivity = microtime(true);
+        } elseif ($this->hasTimedOut()) {
+            throw new TimeoutException();
+        }
+        
+        return $readData;
+    }
+    
+    public function readLine() {
+        if ($readLine = @fgets($this->stream)) {
+            $this->lastActivity = microtime(true);
+        } elseif ($this->hasTimedOut()) {
+            throw new TimeoutException();
+        }
+        
+        return $readLine;
     }
     
     public function __toString() {
