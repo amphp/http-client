@@ -8,18 +8,26 @@ use Artax\Http\Exceptions\ConnectException,
 class TcpConnection implements ClientConnection {
     
     protected $id;
-    protected $authority;
+    protected $host;
+    protected $port;
     protected $stream;
-    protected $inUse = false;
     protected $connectFlags = STREAM_CLIENT_CONNECT;
     protected $connectTimeout = 60;
-    protected $activityTimeout = 60;
     protected $transport = 'tcp';
     protected $lastActivity;
     
-    public function __construct($authority) {
+    public function __construct($host, $port) {
         $this->id = uniqid();
-        $this->authority = $authority;
+        $this->host = $host;
+        $this->port = $port;
+    }
+    
+    public function setConnectTimeout($seconds) {
+        $this->connectTimeout = (int) $seconds;
+    }
+    
+    public function setConnectFlags($flags) {
+        $this->connectFlags = $flags;
     }
     
     public function connect() {
@@ -37,21 +45,13 @@ class TcpConnection implements ClientConnection {
             $this->lastActivity = microtime(true);
         } else {
             throw new ConnectException(
-                "Connection to {$this->authority} failed: [Error $errNo] $errStr"
+                "Connection failure: {$this->host}:{$this->port}; [$errNo] $errStr"
             );
         }
     }
     
-    public function getUri() {
-        return "{$this->transport}://{$this->authority}/{$this->id}";
-    }
-    
-    public function isInUse() {
-        return $this->inUse;
-    }
-    
     public function isConnected() {
-        return $this->stream;
+        return !empty($this->stream);
     }
     
     public function close() {
@@ -59,58 +59,50 @@ class TcpConnection implements ClientConnection {
         $this->stream = null;
     }
     
+    public function resetActivityTimestamp() {
+        $this->lastActivity = microtime(true);
+    }
+    
+    public function hasBeenIdleFor($secondsOfInactivity) {
+        $normalized = (int) $secondsOfInactivity;
+        return (microtime(true) - $this->lastActivity) > $normalized;
+    }
+    
     public function getId() {
         return $this->id;
     }
     
+    public function getHost() {
+        return $this->host;
+    }
+    
+    public function getPort() {
+        return $this->port;
+    }
+    
     public function getAuthority() {
-        return $this->authority;
+        return $this->host . ':' . $this->port;
+    }
+    
+    public function getUri() {
+        return "{$this->transport}://{$this->host}:{$this->port}/{$this->id}";
     }
     
     public function getStream() {
         return $this->stream;
     }
     
-    public function setConnectTimeout($seconds) {
-        $this->connectTimeout = (int) $seconds;
-    }
-    
-    public function setActivityTimeout($seconds) {
-        $this->activityTimeout = (int) $seconds;
-    }
-    
-    public function setConnectFlags($flags) {
-        $this->connectFlags = $flags;
-    }
-    
-    public function setInUseFlag($inUseFlag) {
-        $this->inUse = (bool) $inUseFlag;
-    }
-    
-    public function resetActivityTimeout() {
-        $this->lastActivity = microtime(true);
-    }
-    
-    public function hasTimedOut() {
-        return (microtime(true) - $this->lastActivity) > $this->activityTimeout;
-    }
-    
     public function writeData($data) {
         if ($bytesWritten = @fwrite($this->stream, $data)) {
             $this->lastActivity = microtime(true);
-        } elseif ($this->hasTimedOut()) {
-            throw new TimeoutException();
         }
         
-        
-        return $bytesWritten; 
+        return $bytesWritten;
     }
     
     public function readBytes($bytes) {
         if ($readData = @fread($this->stream, $bytes)) {
             $this->lastActivity = microtime(true);
-        } elseif ($this->hasTimedOut()) {
-            throw new TimeoutException();
         }
         
         return $readData;
@@ -119,8 +111,6 @@ class TcpConnection implements ClientConnection {
     public function readLine() {
         if ($readLine = @fgets($this->stream)) {
             $this->lastActivity = microtime(true);
-        } elseif ($this->hasTimedOut()) {
-            throw new TimeoutException();
         }
         
         return $readLine;

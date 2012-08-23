@@ -2,7 +2,7 @@
 
 namespace Artax\Http;
 
-class RequestState {
+class ClientRequestState {
     
     public $status = Client::STATE_SENDING_REQUEST_HEADERS;
     public $conn;

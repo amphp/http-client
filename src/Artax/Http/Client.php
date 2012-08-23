@@ -3,10 +3,12 @@
 namespace Artax\Http;
 
 use Spl\Mediator,
+    Spl\TypeException,
     StdClass,
     Traversable,
     Exception,
     RuntimeException,
+    Artax\Http\Exceptions\ClientException,
     Artax\Http\Exceptions\ConnectException,
     Artax\Http\Exceptions\TimeoutException,
     Artax\Http\Exceptions\TransferException,
@@ -24,13 +26,10 @@ class Client {
     const STATE_RESPONSE_COMPLETE = 256;
     const STATE_ERROR = 512;
     
-    const EVENT_CONNECT_OPEN = 'artax.http.client.connect.open';
-    const EVENT_CONNECT_CLOSE = 'artax.http.client.connect.close';
-    const EVENT_CONNECT_ERROR = 'artax.http.client.connect.error';
-    const EVENT_IO_READ = 'artax.http.client.io.read';
-    const EVENT_IO_WRITE = 'artax.http.client.io.write';
-    const EVENT_IO_TIMEOUT = 'artax.http.client.io.timeout';
-    const EVENT_IO_ERROR = 'artax.http.client.io.error';
+    const EVENT_IO_READ_HEADERS = 'artax.http.client.io.read.headers';
+    const EVENT_IO_READ_BODY = 'artax.http.client.io.read.body';
+    const EVENT_IO_WRITE_HEADERS = 'artax.http.client.io.write.headers';
+    const EVENT_IO_WRITE_BODY = 'artax.http.client.io.write.body';
     const EVENT_REDIRECT = 'artax.http.client.redirect';
     const EVENT_RESPONSE_COMPLETE = 'artax.http.client.response.complete';
     
@@ -38,11 +37,6 @@ class Client {
      * @var string
      */
     protected $userAgent = 'Artax-Http/0.1 (PHP5.3+)';
-    
-    /**
-     * @var int
-     */
-    protected $connectTimeout = 120;
     
     /**
      * @var int
@@ -85,24 +79,9 @@ class Client {
     protected $chunkSize = 8192;
     
     /**
-     * @var int
-     */
-    protected $hostConcurrencyLimit = 5;
-    
-    /**
-     * @var array
-     */
-    protected $sslOptions = array();
-    
-    /**
      * @var string
      */
     protected $acceptedEncodings = 'identity';
-    
-    /**
-     * @var array
-     */
-    protected $connectionPool = array();
     
     /**
      * @var Spl\Mediator
@@ -110,10 +89,16 @@ class Client {
     protected $mediator;
     
     /**
+     * @var ConnectionManager
+     */
+    protected $connMgr;
+    
+    /**
      * @param Mediator $mediator
      * @return void
      */
-    public function __construct(Mediator $mediator) {
+    public function __construct(ConnectionManager $connMgr, Mediator $mediator) {
+        $this->connMgr = $connMgr;
         $this->mediator = $mediator;
     }
     
@@ -124,55 +109,12 @@ class Client {
      * @return Response
      */
     public function send(Request $request) {
-        $completedRequestStates = $this->doStreamSelect(array($request));
-        return $completedRequestStates[0]->response;
-    }
-    
-    /**
-     * Retrieve multiple HTTP resources in parallel
-     * 
-     * Responses are returned in an array with the same "keys" as the original request list. If an
-     * error occurs during the retrieval of one resource, the relevant exception will be returned
-     * in place of a Response object for that key.
-     * 
-     * @param mixed $requests An array, StdClass or Traversable object
-     * @return array
-     * @throws InvalidArgumentException
-     */
-    public function sendMulti($requests) {
-        $this->validateMultiRequestTraversable($requests);
-        $completedRequestStates = $this->doStreamSelect($requests);
-        $responses = array_map(function($s) { return $s->response; }, $completedRequestStates);
-        
-        return $responses;
-    }
-    
-    /**
-     * @param mixed $requests An array, StdClass or Traversable object
-     * @return void
-     * @throws InvalidArgumentException
-     */
-    private function validateMultiRequestTraversable($requests) {
-        if (!(is_array($requests)
-            || $requests instanceof Traversable
-            || $requests instanceof StdClass
-        )) {
-            $type = is_object($requests) ? get_class($requests) : gettype($requests);
-            throw new InvalidArgumentException(
-                "Client::sendMulti expects an array, StdClass or Traversable object at Argument " .
-                "1; $type provided"
-            );
-        }
-        
-        foreach ($requests as $request) {
-            if ($request instanceof Request) {
-                continue;
-            }
-            $type = is_object($request) ? get_class($requests) : gettype($request);
-            throw new InvalidArgumentException(
-                "Client::sendMulti requires that each element of the list passed to Argument " .
-                "1 implement Artax\\Http\\Request; $type provided"
-            );
+        $completedStates = $this->doMultiStreamSelect(array($request));
+        if ($completedStates[0]->response instanceof Response) {
+            return $completedStates[0]->response;
+        } else {
+            $e = $completedStates[0]->response;
+            throw new ClientException($e->getMessage(), null, $e);
         }
     }
     
@@ -185,43 +127,174 @@ class Client {
      * @throws Artax\Http\Exceptions\TransferException
      */
     public function sendAsync(Request $request) {
-        $state = new RequestState();
+        $state = new ClientRequestState();
         
         $state->request = $this->normalizeRequestHeaders($request);
         
         $scheme = $request->getScheme();
         $host = $request->getHost();
         $port = $request->getPort();
+        $flags = STREAM_CLIENT_CONNECT | STREAM_CLIENT_ASYNC_CONNECT;
         
-        $state->conn = $this->makeConnection($scheme, $host, $port);
-        $state->conn->setConnectFlags(STREAM_CLIENT_CONNECT | STREAM_CLIENT_ASYNC_CONNECT);
-        $this->doConnect($state->conn);
+        $state->conn = $this->connMgr->makeConnection($scheme, $host, $port, $flags);
+        $state->conn->connect();
         
         while ($state->status < self::STATE_READING_RESPONSE_HEADERS) {
             $this->sendRequest($state);
         }
         
-        $this->closeConnection($state->conn);
+        $this->connMgr->close($state->conn);
+    }
+    
+    /**
+     * Retrieve multiple HTTP resources in parallel
+     * 
+     * Responses are returned in an array with the same "keys" as the original request list. If an
+     * error occurs during the retrieval of one resource, the relevant exception will be returned
+     * in place of a Response object for that key.
+     * 
+     * @param mixed $requests An array, StdClass or Traversable object
+     * @return ClientMultiResponse
+     */
+    public function sendMulti($requests) {
+        $this->validateMultiRequestTraversable($requests);
+        $completedStates = $this->doMultiStreamSelect($requests);
+        $responsesAndErrors = array_map(function($s) { return $s->response; }, $completedStates);
+        
+        return new ClientMultiResponse($responsesAndErrors);
+    }
+    
+    /**
+     * @param mixed $requests An array, StdClass or Traversable object
+     * @return void
+     * @throws Spl\TypeException
+     */
+    private function validateMultiRequestTraversable($requests) {
+        if (!(is_array($requests)
+            || $requests instanceof Traversable
+            || $requests instanceof StdClass
+        )) {
+            $type = is_object($requests) ? get_class($requests) : gettype($requests);
+            throw new TypeException(
+                "Client::sendMulti expects an array, StdClass or Traversable object at Argument " .
+                "1; $type provided"
+            );
+        }
+        
+        foreach ($requests as $request) {
+            if ($request instanceof Request) {
+                continue;
+            }
+            $type = is_object($request) ? get_class($requests) : gettype($request);
+            throw new TypeException(
+                "Client::sendMulti requires that each element of the list passed to Argument " .
+                "1 implement Artax\\Http\\Request; $type provided"
+            );
+        }
     }
 
     /**
      * Set the number of seconds before a socket connection attempt times out.
      * 
+     * 
      * @param int $seconds
      * @return void
      */
     public function setConnectTimout($seconds) {
-        $this->connectTimeout = (int) $seconds;
+        $this->connMgr->setConnectTimeout($seconds);
     }
     
     /**
-     * Set the number of seconds between reads/writes before an IO timeout occurs on a connection
+     * Set the amount of time without data transfer before an IO timeout occurs on a connection
+     * 
+     * Any value of zero or less will be interpreted as "no timeout."
      * 
      * @param int $seconds
      * @return void
      */
     public function setActivityTimeout($seconds) {
-        $this->activityTimeout = $seconds;
+        $this->activityTimeout = (int) $seconds;
+    }
+
+    /**
+     * Set custom SSL request options
+     * 
+     * To customize SSL connections, assign a key-value associative array of option values:
+     * 
+     *     $options = array(
+     *         'verify_peer'       => true,
+     *         'allow_self_signed' => true,
+     *         'cafile'            => '/hard/path/to/cert/authority/file'
+     *     );
+     *     
+     *     $client->setOptions($options);
+     *  
+     * 
+     * A full list of available options may be viewed here:
+     * http://www.php.net/manual/en/context.ssl.php
+     * 
+     * @param array $options
+     * @return void
+     */
+    public function setSslOptions(array $options) {
+        $this->connMgr->setSslOptions = $options;
+    }
+
+    /**
+     * Set the maximum number of redirects allowed to fulfill a request. Defaults to 10.
+     * 
+     * Infinite redirection loops are detected immediately regardless of this setting.
+     * 
+     * @param int $maxRedirects
+     * @return void
+     */
+    public function setMaxRedirects($maxRedirects) {
+        $this->maxRedirects = (int) $maxRedirects;
+    }
+
+    /**
+     * Set the maximum number of simultaneous connections allowed per host
+     * 
+     * The default value is 5. If the maximum number of simultaneous connections to a specific host
+     * are already in use during a `Client::sendMulti` operation, further requests to that host are
+     * queued until one of the existing in-use connections to that host becomes available.
+     * 
+     * Asynchronous requests are not subject to the concurrency limit. They always open a new 
+     * request in asynchronous mode and close the connection immediately after a request is sent.
+     * 
+     * @param int $maxConnections
+     * @return void
+     */
+    public function setHostConcurrencyLimit($maxConnections) {
+        $this->connMgr->setHostConcurrencyLimit($maxConnections);
+    }
+    
+    /**
+     * Should the client transparently redirect requests not using GET or HEAD? Defaults to false.
+     * 
+     * According to RFC2616-10.3, "If the 301 status code is received in response to a request other
+     * than GET or HEAD, the user agent MUST NOT automatically redirect the request unless it can be
+     * confirmed by the user, since this might change the conditions under which the request was
+     * issued."
+     * 
+     * This directive, if set to true, serves as confirmation that requests made using methods other
+     * than GET/HEAD may be redirected automatically.
+     * 
+     * @param bool $boolFlag
+     * @return void
+     */
+    public function allowNonStandardRedirects($boolFlag) {
+        $this->nonStandardRedirectFlag = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    /**
+     * Enable/disable the use of proxy-style absolute URI request lines when sending requests
+     * 
+     * @param bool $boolFlag
+     * @return void
+     */
+    public function useProxyRequestLine($boolFlag) {
+        $this->useProxyRequestLine = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
     }
     
     /**
@@ -262,100 +335,13 @@ class Client {
         
         return implode(',', $encodingsWeCanHandle);
     }
-
-    /**
-     * Set custom SSL request options
-     * 
-     * To customize SSL connections, assign a key-value associative array of option values:
-     * 
-     *     $options = array(
-     *         'verify_peer'       => true,
-     *         'allow_self_signed' => true,
-     *         'cafile'            => '/hard/path/to/cert/authority/file'
-     *     );
-     *     
-     *     $client->setOptions($options);
-     *  
-     * 
-     * A full list of available options may be viewed here:
-     * http://www.php.net/manual/en/context.ssl.php
-     * 
-     * @param array $options
-     * @return void
-     */
-    public function setSslOptions(array $options) {
-        $this->sslOptions = $options;
-    }
-
-    /**
-     * Enable/disable the use of proxy-style absolute URI request lines when sending requests
-     * 
-     * @param bool $boolFlag
-     * @return void
-     */
-    public function useProxyRequestLine($boolFlag) {
-        $this->useProxyRequestLine = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
-    }
-    
-    /**
-     * Should the client transparently redirect requests not using GET or HEAD? Defaults to false.
-     * 
-     * According to RFC2616-10.3, "If the 301 status code is received in response to a request other
-     * than GET or HEAD, the user agent MUST NOT automatically redirect the request unless it can be
-     * confirmed by the user, since this might change the conditions under which the request was
-     * issued."
-     * 
-     * This directive, if set to true, serves as confirmation that requests made using methods other
-     * than GET/HEAD may be redirected automatically.
-     * 
-     * @param bool $boolFlag
-     * @return void
-     */
-    public function allowNonStandardRedirects($boolFlag) {
-        $this->nonStandardRedirectFlag = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
-    }
-
-    /**
-     * Set the maximum number of redirects allowed to fulfill a request. Defaults to 10.
-     * 
-     * Infinite redirection loops are detected immediately regardless of this setting.
-     * 
-     * @param int $maxRedirects
-     * @return void
-     */
-    public function setMaxRedirects($maxRedirects) {
-        $this->maxRedirects = (int) $maxRedirects;
-    }
-
-    /**
-     * Set the maximum number of sumultaneous connections allowed per host
-     * 
-     * The default value is 5. If the maximum number of simultaneous connections to a specific host
-     * are already in use during a `Client::sendMulti` operation, further requests to that host are
-     * queued until one of the existing in-use connections to that host becomes available.
-     * 
-     * Note: asynchronous requests are not subject to the concurrency limit because they always 
-     * open a new request in asynchronous mode and close the connection immediately after a request
-     * is sent.
-     * 
-     * @param int $maxConnections
-     * @return void
-     */
-    public function setHostConcurrencyLimit($maxConnections) {
-        $maxConnections = (int) $maxConnections;
-        if ($maxConnections < 1) {
-            $maxConnections = 1;
-        }
-        
-        $this->hostConcurrencyLimit = $maxConnections;
-    }
     
     /**
      * Dispatch state holders to the appropriate machine as reads/writes become available
      * 
      * @param mixed $requests A traversable list of Request objects
      */
-    protected function doStreamSelect($requests) {
+    protected function doMultiStreamSelect($requests, $dontCatchExceptions = false) {
         list($requestStates, $requestQueue) = $this->buildStreamSelectStateMap($requests);
         $readArr = $writeArr = $this->buildStreamSelectArray($requestStates);
         
@@ -363,20 +349,19 @@ class Client {
         
         while (true) {
             
-            if ($this->allRequestStatesHaveCompleted($requestStates)) {
+            if ($this->allClientRequestStatesHaveCompleted($requestStates)) {
                 return $requestStates;
             }
             
-            if (false === stream_select($readArr, $writeArr, $ex, 1)) {
+            if (false === stream_select($readArr, $writeArr, $ex, 0, 500000)) {
                 continue;
             }
             
             foreach ($writeArr as $stateKey => $stream) {
                 $state = $requestStates[$stateKey];
-                $state->lastActivity = microtime(true);
                 try {
                     $this->sendRequest($state);
-                } catch (Exception $e) {
+                } catch (ClientException $e) {
                     $state->status = self::STATE_ERROR;
                     $state->response = $e;
                 }
@@ -384,10 +369,9 @@ class Client {
             
             foreach ($readArr as $stateKey => $stream) {
                 $state = $requestStates[$stateKey];
-                $state->lastActivity = microtime(true);
                 try {
                     $this->readResponse($state);
-                } catch (Exception $e) {
+                } catch (ClientException $e) {
                     $state->status = self::STATE_ERROR;
                     $state->response = $e;
                 }
@@ -400,12 +384,15 @@ class Client {
             }
             
             $readArr = $writeArr = array();
+            $checkMe = array_filter($requestStates, function($s){ return !$this->isComplete($s); });
             
-            foreach ($requestStates as $stateKey => $state) {
-                if ($this->isComplete($state)) {
-                    continue;
-                } elseif ($this->hasExceededActivityTimeOut($state)) {
-                    $this->handleActivityTimeout($state);
+            foreach ($checkMe as $stateKey => $state) {
+                if ($this->activityTimeout > 0
+                    && $state->conn->hasBeenIdleFor($this->activityTimeout)
+                ) {
+                    throw new TimeoutException(
+                        "{$state->conn} exceeded activity timeout: {$this->activityTimeout} seconds"
+                    );
                 } elseif ($state->status < self::STATE_READING_RESPONSE_HEADERS) {
                     $writeArr[$stateKey] = $state->conn->getStream();
                 } elseif ($state->status < self::STATE_RESPONSE_COMPLETE) {
@@ -416,23 +403,21 @@ class Client {
     }
     
     /**
+     * Build an array of streams to select against from a map of request state holders
      * 
+     * @param array $requestStates
+     * @return array
      */
-    protected function hasExceededActivityTimeOut(RequestState $state) {
-        $now = microtime(true);
-        $diff = $now - $state->lastActivity;
-        return $diff > $this->activityTimeout;
-    }
-    
-    /**
-     * 
-     */
-    protected function handleActivityTimeout(RequestState $state) {
-        $this->closeConnection($state->conn);
-        $state->status = self::STATE_ERROR;
-        $msg = "Inactivity timeout exceeded on connection to {$state->conn}";
-        $this->mediator->notify(self::EVENT_IO_TIMEOUT, $msg);
-        $state->response = new TimeoutException($msg);
+    protected function buildStreamSelectArray(array $requestStates) {
+        $streams = array();
+        
+        foreach ($requestStates as $stateKey => $state) {
+            if ($state && !$this->isComplete($state)) {
+                $streams[$stateKey] = $state->conn->getStream();
+            }
+        }
+        
+        return $streams;
     }
     
     /**
@@ -441,7 +426,7 @@ class Client {
      * @param array $requestStates
      * @return bool
      */
-    protected function allRequestStatesHaveCompleted(array $requestStates) {
+    protected function allClientRequestStatesHaveCompleted(array $requestStates) {
         $complete = array_map(array($this, 'isComplete'), $requestStates);
         return array_sum($complete) == count($requestStates);
     }
@@ -451,17 +436,17 @@ class Client {
      * 
      * @return bool
      */
-    protected function isComplete(RequestState $state) {
+    protected function isComplete(ClientRequestState $state) {
         return $state->status >= self::STATE_RESPONSE_COMPLETE;
     }
     
     /**
      * A state machine to send raw HTTP requests to a socket stream
      * 
-     * @param RequestState $state
+     * @param ClientRequestState $state
      * @return void
      */
-    protected function sendRequest(RequestState $state) {
+    protected function sendRequest(ClientRequestState $state) {
         if ($state->status == self::STATE_SENDING_REQUEST_HEADERS) {
             $this->writeRequestHeaders($state);
         }
@@ -478,27 +463,28 @@ class Client {
     /**
      * Send request headers
      * 
-     * @param RequestState $state
+     * @param ClientRequestState $state
      * @return void
      */
-    protected function writeRequestHeaders(RequestState $state) {
+    protected function writeRequestHeaders(ClientRequestState $state) {
         $rawHeaders = $this->buildRawRequestHeaders($state->request);
         $totalBytesToWrite = strlen($rawHeaders);
         
         if ($state->totalBytesSent < $totalBytesToWrite) {
             $dataToSend = substr($rawHeaders, $state->totalBytesSent);
             
-            if ($bytesSent = $this->writeDataToStream($state->conn->getStream(), $dataToSend)) {
+            if ($bytesSent = $state->conn->writeData($dataToSend)) {
                 $state->totalBytesSent += $bytesSent;
                 $actualDataSent = substr($dataToSend, 0, $bytesSent);
-                $this->mediator->notify(self::EVENT_IO_WRITE, $actualDataSent);
+                
+                $this->mediator->notify(
+                    self::EVENT_IO_WRITE_HEADERS,
+                    $this->getInitialRequestFromState($state),
+                    $actualDataSent
+                );
                 
             } elseif (false === $bytesSent) {
-            
-                $failedWriteLength = strlen($dataToSend);
-                $msg = "Failed writing $failedWriteLength bytes to " . $state->conn->getAuthority();
-                $this->mediator->notify(self::EVENT_IO_ERROR, $msg);
-                throw new TransferException($msg);
+                throw new TransferException();
             }
         }
         
@@ -520,25 +506,27 @@ class Client {
     /**
      * Send buffered request body
      * 
-     * @param RequestState $state
+     * @param ClientRequestState $state
      * @return void
      */
-    protected function writeBufferedRequestBody(RequestState $state) {
+    protected function writeBufferedRequestBody(ClientRequestState $state) {
         $entityBody = $state->request->getBody();
         $totalBytesToWrite = strlen($entityBody);
         
         if ($state->totalBytesSent < $totalBytesToWrite) {
             $dataToSend = substr($entityBody, $state->totalBytesSent);
             
-            if ($bytesSent = $this->writeDataToStream($state->conn->getStream(), $dataToSend)) {
+            if ($bytesSent = $state->conn->writeData($dataToSend)) {
                 $state->totalBytesSent += $bytesSent;
                 $actualDataSent = substr($dataToSend, 0, $bytesSent);
-                $this->mediator->notify(self::EVENT_IO_WRITE, $actualDataSent);
+                
+                $this->mediator->notify(
+                    self::EVENT_IO_WRITE_BODY,
+                    $this->getInitialRequestFromState($state),
+                    $actualDataSent
+                );
             } elseif (false === $bytesSent) {
-                $failedWriteLength = strlen($dataToSend);
-                $msg = "Failed writing $failedWriteLength bytes to " . $state->conn->getAuthority();
-                $this->mediator->notify(self::EVENT_IO_ERROR, $msg);
-                throw new TransferException($msg);
+                throw new TransferException();
             }
         }
         
@@ -552,10 +540,10 @@ class Client {
     /**
      * Send streaming request entity body
      * 
-     * @param RequestState $state
+     * @param ClientRequestState $state
      * @return void
      */
-    protected function writeStreamingRequestBody(RequestState $state) {
+    protected function writeStreamingRequestBody(ClientRequestState $state) {
         
         $entityBody = $state->request->getBodyStream();
         
@@ -564,7 +552,7 @@ class Client {
             if (!$state->requestBodyStreamBuffer) {
                 if (false === ($data = @fread($entityBody, $this->chunkSize))) {
                     throw new RuntimeException(
-                        "Failed reading data from request body $entityBody"
+                        "Failed reading data from request entity body $entityBody"
                     );
                 }
                 
@@ -577,10 +565,7 @@ class Client {
                 }
             }
             
-            if ($bytesSent = $this->writeDataToStream(
-                $state->conn->getStream(),
-                $state->requestBodyStreamBuffer
-            )) {
+            if ($bytesSent = $state->conn->writeData($state->requestBodyStreamBuffer)) {
                 $state->requestBodyStreamPos += $bytesSent;
                 
                 if ($state->requestBodyStreamPos == $state->requestBodyStreamLength) {
@@ -589,7 +574,7 @@ class Client {
                 }
                 
                 if ($state->totalBytesSent == ftell($entityBody)) {
-                    $this->writeDataToStream($state->conn->getStream(), "0\r\n\r\n");
+                    $state->conn->writeData("0\r\n\r\n");
                     $state->status = self::STATE_READING_RESPONSE_HEADERS;
                     return;
                 }
@@ -606,11 +591,10 @@ class Client {
     /**
      * Pass a state holder to the response state machine when its stream is ready for reading
      * 
-     * @param RequestState $state
+     * @param ClientRequestState $state
      * @return void
      */
-    protected function readResponse(RequestState $state) {
-        
+    protected function readResponse(ClientRequestState $state) {
         if ($state->status == self::STATE_READING_RESPONSE_HEADERS) {
             if (!$this->receiveHeaders($state)) {
                 return;
@@ -623,43 +607,52 @@ class Client {
             }
         }
         
-        rewind($state->responseBodyStream);
-        $entityBody = stream_get_contents($state->responseBodyStream);
-        $state->response->setBody($entityBody);
-        
+        if ($state->responseBodyStream) {
+            rewind($state->responseBodyStream);
+            $state->response->setBody($state->responseBodyStream);
+        }
         
         if ($state->response->hasHeader('Content-Encoding')) {
             $encoding = strtolower($state->response->getHeader('Content-Encoding'));
-            $this->decodeEntityBody($encoding, $state->response->getBody());
+            $decoded = $this->decodeEntityBody($encoding, $state->response->getBody());
+            $state->response->setBody($decoded);
         }
         
-        if ($this->shouldResponseCloseConnection($state->response)) {
-            $this->closeConnection($state->conn);
+        if ($this->shouldCloseConnection($state->response)) {
+            $this->connMgr->close($state->conn);
         } else {
-            $state->conn->setInUseFlag(false);
+            $this->connMgr->checkin($state->conn);
         }
         
         if ($this->canRedirect($state)) {
             $this->redirect($state);
         } else {
-            $this->mediator->notify(self::EVENT_RESPONSE_COMPLETE, $state->response);
+            $this->mediator->notify(
+                self::EVENT_RESPONSE_COMPLETE,
+                $this->getInitialRequestFromState($state),
+                $state->response
+            );
         }
     }
     
     /**
-     * Receives HTTP message headers, returning true if header retrieval is complete
+     * Receives HTTP message headers, returning true if response header retrieval is complete
      * 
-     * RequestState $state
+     * ClientRequestState $state
      * @return bool
      */
-    protected function receiveHeaders(RequestState $state) {
-        while ($line = $this->readLineFromStream($state->conn->getStream())) {
+    protected function receiveHeaders(ClientRequestState $state) {
+        while ($line = $state->conn->readLine()) {
             $state->buffer .= $line;
             $bytesRecieved = strlen($line);
             $state->responseHeaderBytes += $bytesRecieved;
             $state->responseTotalBytes += $bytesRecieved;
             
-            $this->mediator->notify(self::EVENT_IO_READ, $line);
+            $this->mediator->notify(
+                self::EVENT_IO_READ_HEADERS,
+                $this->getInitialRequestFromState($state),
+                $line
+            );
             
             if (substr($state->buffer, -4) !== "\r\n\r\n") {
                 continue;
@@ -670,7 +663,7 @@ class Client {
             $state->response->setStartLine($startLine);
             $state->response->setAllRawHeaders($headers);
             
-            if (!$this->allowsEntityBody($state->response)) {
+            if (!$this->responseAllowsEntityBody($state->response)) {
                 $state->status = self::STATE_RESPONSE_COMPLETE;
             } elseif ($this->isChunked($state->response)) {
                 $state->status = self::STATE_READING_RESPONSE_CHUNKS;
@@ -684,28 +677,37 @@ class Client {
         }
         
         if (false === $line) {
-            $msg = "{$state->responseTotalBytes} response bytes received before transfer failure";
-            $this->mediator->notify(self::EVENT_IO_ERROR, $msg);
-            throw new TransferException($msg);
+            throw new TransferException(
+                "Response retrieval failed: connection lost after {$state->responseTotalBytes} " .
+                "bytes receved"
+            );
         }
         
         return false;
     }
     
     /**
-     * Receives HTTP message entity-body, returning true if body retrieval complete
+     * Receives HTTP message entity-body, returning true if entity body retrieval is complete
      * 
-     * RequestState $state
+     * ClientRequestState $state
      * @return bool
      */
-    protected function receiveBody(RequestState $state) {
-        $connectionStream = $state->conn->getStream();
+    protected function receiveBody(ClientRequestState $state) {
+        if (!$this->requestAllowsResponseBody($state->request)) {
+            $state->status = self::STATE_RESPONSE_COMPLETE;
+            return true;
+        }
         
-        while ($readData = $this->readBytesFromStream($connectionStream, $this->chunkSize)) {
+        while ($readData = $state->conn->readBytes($this->chunkSize)) {
             $dataBytes = strlen($readData);
             fwrite($state->responseBodyStream, $readData);
             $state->responseTotalBytes += $dataBytes;
-            $this->mediator->notify(self::EVENT_IO_READ, $readData);
+            
+            $this->mediator->notify(
+                self::EVENT_IO_READ_BODY,
+                $this->getInitialRequestFromState($state),
+                $readData
+            );
         }
         
         if ($state->status == self::STATE_READING_RESPONSE_TO_LENGTH) {
@@ -732,9 +734,10 @@ class Client {
         }
         
         if (false === $readData) {
-            $msg = "{$state->responseTotalBytes} response bytes received before transfer failure";
-            $this->mediator->notify(self::EVENT_IO_ERROR, $msg);
-            throw new TransferException($msg);
+            throw new TransferException(
+                "Response retrieval failed: connection lost after {$state->responseTotalBytes} " .
+                "bytes receved"
+            );
         }
         
         return false;
@@ -755,11 +758,14 @@ class Client {
         $requestQueue = array();
         
         foreach ($requests as $stateKey => $request) {
-            $state = new RequestState();
+            $state = new ClientRequestState();
             $state->request = $this->normalizeRequestHeaders($request);
             
             try {
-                $connection = $this->checkoutConnection($state->request);
+                $scheme = $request->getScheme();
+                $host = $request->getHost();
+                $port = $request->getPort();
+                $conn = $this->connMgr->checkout($scheme, $host, $port);
             } catch (ConnectException $e) {
                 $state->status = self::STATE_ERROR;
                 $state->response = $e;
@@ -767,13 +773,13 @@ class Client {
                 continue;
             }
             
-            if (!$connection) {
+            if (!$conn) {
                 $requestStates[$stateKey] = null;
                 $requestQueue[$stateKey] = $request;
                 continue;
             } else {
                 $state->status = self::STATE_SENDING_REQUEST_HEADERS;
-                $state->conn = $connection;
+                $state->conn = $conn;
                 $state->response = $this->makeClientResponse();
                 $state->responseBodyStream = $this->openMemoryStream();
                 
@@ -794,40 +800,17 @@ class Client {
     }
     
     /**
-     * Build an array of streams to select against from a map of request state holders
-     * 
-     * @param array $requestStates
-     * @return array
-     */
-    protected function buildStreamSelectArray(array $requestStates) {
-        $streams = array();
-        
-        foreach ($requestStates as $stateKey => $state) {
-            if ($state && !$this->isComplete($state)) {
-                $streams[$stateKey] = $state->conn->getStream();
-            }
-        }
-        
-        return $streams;
-    }
-    
-    /**
-     * Whether or not a Response should result in a closed connection
-     * 
-     * "... unless otherwise indicated, the client SHOULD assume that the server will maintain "
-     * a persistent connection"
-     * 
-     * http://www.w3.org/Protocols/rfc2616/rfc2616-sec8.html#sec8.1.2
-     * 
      * @param Response $response
      * @return bool
      */
-    protected function shouldResponseCloseConnection(Response $response) {
+    protected function shouldCloseConnection(Response $response) {
         if (!$response->hasHeader('Connection')) {
             return false;
         }
-        
-        return !strcmp($response->getHeader('Connection'), 'close');
+        if (strcmp($response->getHeader('Connection'), 'close')) {
+            return false;
+        }
+        return true;
     }
     
     /**
@@ -902,12 +885,21 @@ class Client {
     }
     
     /**
-     * Is the response allowed to have an entity body?
-     * 
+     * @param Request $request
+     * @return bool
+     */
+    protected function requestAllowsResponseBody(Request $request) {
+        if ('HEAD' == $request->getMethod()) {
+            return false;
+        }
+        return true;
+    }
+    
+    /**
      * @param Response $response
      * @return bool
      */
-    protected function allowsEntityBody(Response $response) {
+    protected function responseAllowsEntityBody(Response $response) {
         $statusCode = $response->getStatusCode();
         
         if ($statusCode == 204) {
@@ -933,109 +925,14 @@ class Client {
         
         return $entityBody;
     }
-    
-    /**
-     * Checkout a new connection subject to the host concurrency limit
-     * 
-     * @param Request $request
-     * 
-     * @return ClientConnection -or- null if no connection slots are available
-     */
-    protected function checkoutConnection(Request $request) {
-        $host = $request->getHost();
-        $port = $request->getPort();
-        $authority = "$host:$port";
-        
-        $openAuthorityConnections = 0;
-        
-        if (!isset($this->connectionPool[$authority])) {
-            $this->connectionPool[$authority] = array();
-        }
-        
-        foreach ($this->connectionPool[$authority] as $key => $connection) {
-            if (!$connection->isConnected()) {
-                unset($this->connectionPool[$authority][$key]);
-            } else {
-                ++$openAuthorityConnections;
-            }
-            if (!$connection->isInUse()) {
-                $connection->setInUseFlag(true);
-                return $connection;
-            }
-        }
-        
-        if ($this->hostConcurrencyLimit > $openAuthorityConnections) {
-        
-            $connection = $this->makeConnection($request->getScheme(), $host, $port);
-            $connection->setInUseFlag(true);
-            $this->doConnect($connection);
-            $this->connectionPool[$authority][] = $connection;
-            
-            return $connection;
-        }
-        
-        return null;
-    }
-    
-    /**
-     * Create a new connection with no regard for the host concurrency limit
-     * 
-     * @param string $scheme
-     * @param string $host
-     * @param int $port
-     * 
-     * @return ClientConnection
-     */
-    protected function makeConnection($scheme, $host, $port) {
-        if (strcmp('https', $scheme)) {
-            $conn = new TcpConnection("$host:$port");
-        } else {
-            $conn = new SslConnection("$host:$port");
-            $conn->setSslOptions($this->sslOptions);
-        }
-        
-        $conn->setConnectTimeout($this->connectTimeout);
-        
-        return $conn;
-    }
-    
-    protected function doConnect(StreamConnection $conn) {
-        try {
-            $conn->connect();
-        } catch (ConnectException $e) {
-            $this->mediator->notify(self::EVENT_CONNECT_ERROR, 'Connection FAILURE: ' . $e->getMessage());
-            throw $e;
-        }
-        
-        $this->mediator->notify(self::EVENT_CONNECT_OPEN, "Connection OPENED: $conn");
-    }
-    
-    /**
-     * Close the specified connection and send notification of the event
-     * 
-     * @param StreamConnection $conn
-     * @return void
-     */
-    protected function closeConnection(StreamConnection $conn) {
-        $conn->close();
-        $authority = $conn->getAuthority();
-        
-        if (!empty($this->connectionPool[$authority])
-         && false !== ($key = array_search($conn, $this->connectionPool[$authority]))
-        ) {
-            unset($this->connectionPool[$authority][$key]);
-        }
-        
-        $this->mediator->notify(self::EVENT_CONNECT_CLOSE, "Connection CLOSED: $conn");
-    }
 
     /**
      * Is it possible to redirect the current state's response?
      * 
-     * RequestState $state
+     * ClientRequestState $state
      * @return bool
      */
-    protected function canRedirect(RequestState $state) {
+    protected function canRedirect(ClientRequestState $state) {
         if (!$state->response->hasHeader('Location')) {
             return false;
         }
@@ -1055,16 +952,16 @@ class Client {
     /**
      * Adjust the request state to redirect using the response's Location header
      * 
-     * @param RequestState $state
+     * @param ClientRequestState $state
      * @return void
      */
-    protected function redirect(RequestState $state) {
+    protected function redirect(ClientRequestState $state) {
         $oldLocation = $state->request->getRawUri();
         $newLocation = $this->normalizeRedirectLocation($state->request, $state->response);
         
-        $state->redirectHistory[] = $oldLocation;
+        $state->redirectHistory[$oldLocation] = $state->request;
         
-        if (in_array($newLocation, $state->redirectHistory)) {
+        if (isset($state->redirectHistory[$newLocation])) {
             throw new InfiniteRedirectException(
                 "Infinite redirect loop detected: cannot redirect to $newLocation"
             );
@@ -1085,15 +982,31 @@ class Client {
         
         $state->response = $newResponse;
         
-        
         $state->buffer = '';
         $state->bufferSize = 0;
         $state->totalBytesSent = 0;
         $state->status = self::STATE_SENDING_REQUEST_HEADERS;
         
-        $this->mediator->notify(self::EVENT_REDIRECT, "REDIRECTING $oldLocation ---> $newLocation");
+        $this->mediator->notify(
+            self::EVENT_REDIRECT,
+            $this->getInitialRequestFromState($state),
+            "REDIRECTING $oldLocation ---> $newLocation"
+        );
         
-        $state->conn = $this->checkoutConnection($state->request);
+        $scheme = $newRequest->getScheme();
+        $host = $newRequest->getHost();
+        $port = $newRequest->getPort();
+        $state->conn = $this->connMgr->checkout($scheme, $host, $port);
+    }
+    
+    /**
+     * Retrieves the initial request in a redirection chain from a request state holder
+     * 
+     * @param ClientRequestState $state
+     * @return Request
+     */
+    protected function getInitialRequestFromState(ClientRequestState $state) {
+        return reset($state->redirectHistory) ?: $state->request;
     }
 
     /**
@@ -1134,28 +1047,12 @@ class Client {
         throw new RuntimeException('Failed opening in-memory stream');
     }
     
-    protected function writeDataToStream($resource, $data) {
-        return @fwrite($resource, $data);
-    }
-    
-    protected function readBytesFromStream($resource, $bytes) {
-        return @fread($resource, $bytes);
-    }
-    
-    protected function readLineFromStream($resource) {
-        return @fgets($resource);
-    }
-    
     /**
-     * Close any open connections (with notification) on object destruction
+     * Close all open connections on object destruction
      * 
      * @return void
      */
     public function __destruct() {
-        foreach ($this->connectionPool as $authority => $connArr) {
-            foreach ($connArr as $conn) {
-                $this->closeConnection($conn);
-            }
-        }
+        $this->connMgr->closeAll();
     }
 }
