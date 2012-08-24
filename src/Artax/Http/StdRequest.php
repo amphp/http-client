@@ -106,10 +106,10 @@ class StdRequest extends StdMessage implements Request {
      */
     public function getBody() {
         if (!is_resource($this->body)) {
-            return $this->body;
+            return (string) $this->body;
         }
         
-        if (!is_null($this->cachedStreamBody)) {
+        if (!empty($this->cachedStreamBody)) {
             return $this->cachedStreamBody;
         }
         
@@ -129,6 +129,7 @@ class StdRequest extends StdMessage implements Request {
             $this->body = $tempStream;
             
         } else {
+            rewind($this->body);
             $this->cachedStreamBody = stream_get_contents($this->body);
             rewind($this->body);
         }

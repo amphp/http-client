@@ -126,7 +126,7 @@ class StdResponse extends StdMessage implements Response {
      * @return void
      */
     protected function sendHeaders() {
-        $this->normalizeContentLengthForSend();
+        $this->normalizeHeadersForSend();
         
         header($this->getStartLine());
         
@@ -136,26 +136,19 @@ class StdResponse extends StdMessage implements Response {
     }
     
     /**
-     * Ensure Content-Length header is appropriate given the message entity body
-     * 
-     * PHP will automatically chunk the response output if no Content-Length header is sent by the
-     * user. This is desirable behavior when using a streaming entity body and is protected by
-     * removing the Content-Length header when the entity body is a stream resource. Otherwise,
-     * we ensure that a valid Content-Length header is specified for non-streaming entity bodies.
-     * 
      * @return void
      */
-    protected function normalizeContentLengthForSend() {
+    protected function normalizeHeadersForSend() {
         if ($this->body && !$this->getBodyStream()) {
             $this->setHeader('Content-Length', strlen($this->body));
         } else {
+            $this->setHeader('Transfer-Encoding', 'chunked');
             $this->removeHeader('Content-Length');
         }
     }
     
     /**
      * @return void
-     * @throws RuntimeException
      */
     protected function sendBody() {
         if (!$entityBodyStream = $this->getBodyStream()) {
@@ -164,20 +157,13 @@ class StdResponse extends StdMessage implements Response {
         }
         
         while (!feof($entityBodyStream)) {
-            if (false !== ($bodyChunk = $this->outputBodyChunk())) {
-                echo $bodyChunk;
-            } else {
-                throw new RuntimeException(
-                    "Failed reading response body from $entityBodyStream"
-                );
+            if ($bodyChunk = @fread($this->body, 4096)) {
+                $chunkLength = strlen($bodyChunk);
+                echo dechex($chunkLength) . "\r\n$bodyChunk\r\n";
+                flush();
             }
         }
-    }
-    
-    /**
-     * @return int Returns false on error
-     */
-    protected function outputBodyChunk() {
-        return @fread($this->body, 8192);
+        
+        echo "0\r\n\r\n";
     }
 }

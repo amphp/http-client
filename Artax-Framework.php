@@ -65,7 +65,7 @@ try {
     $request->setAllHeaders($reqDetector->detectHeaders($_SERVER));
     
     if ($request->allowsEntityBody()) {
-        $request->setBody(fopen('php://input'));
+        $request->setBody($reqDetector->detectBody());
     }
     
     $request->setHttpVersion($reqDetector->detectHttpVersion($_SERVER));
