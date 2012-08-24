@@ -2,22 +2,56 @@
 
 namespace Artax\Http;
 
+use Spl\Mediator,
+    Artax\Http\Exceptions\MaxConcurrencyException;
+
 class ConnectionManager {
-    
+
+    /**
+     * @var array
+     */
     private $connPool = array();
+    
+    /**
+     * @var array
+     */
     private $connsInUse = array();
+    
+    /**
+     * @var array
+     */
     private $sslOptions = array();
+    
+    /**
+     * @var int
+     */
     private $connectTimeout = 60;
+    
+    /**
+     * @var int
+     */
     private $hostConcurrencyLimit = 5;
     
+    /**
+     * @param array $options
+     * @return void
+     */
     public function setSslOptions(array $options) {
         $this->sslOptions = $options;
     }
     
+    /**
+     * @param int $seconds
+     * @return void
+     */
     public function setConnectTimout($seconds) {
         $this->connectTimeout = (int) $seconds;
     }
     
+    /**
+     * @param int $maxConnections
+     * @return void
+     */
     public function setHostConcurrencyLimit($maxConnections) {
         $integerized = (int) $maxConnections;
         $normalized = $integerized < 1 ? 1 : $integerized;
@@ -55,9 +89,12 @@ class ConnectionManager {
             $this->doCheckout($conn);
             return $conn;
             
-        } else {
-            return null;
         }
+        
+        throw new MaxConcurrencyException(
+            "Cannot connect to $authority: the maximum number of allowed concurrent connections " .
+            "for this authority are already in use ({$this->hostConcurrencyLimit})"
+        );
     }
     
     /**
@@ -188,7 +225,7 @@ class ConnectionManager {
     }
     
     /**
-     * Close connections that have been idle longer than the specified number of seconds
+     * Close all connections that have been idle longer than the specified number of seconds
      * 
      * @param int $maxInactivitySeconds
      * @return int Returns the number of connections closed

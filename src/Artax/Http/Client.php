@@ -12,25 +12,84 @@ use Spl\Mediator,
     Artax\Http\Exceptions\ConnectException,
     Artax\Http\Exceptions\TimeoutException,
     Artax\Http\Exceptions\TransferException,
-    Artax\Http\Exceptions\InfiniteRedirectException;
+    Artax\Http\Exceptions\InfiniteRedirectException,
+    Artax\Http\Exceptions\MaxConcurrencyException;
 
 class Client {
     
+    /**
+     * @var string
+     */
     const STATE_SENDING_REQUEST_HEADERS = 2;
+    
+    /**
+     * @var string
+     */
     const STATE_SENDING_BUFFERED_REQUEST_BODY = 4;
+    
+    /**
+     * @var string
+     */
     const STATE_STREAMING_REQUEST_BODY = 8;
+    
+    /**
+     * @var string
+     */
     const STATE_READING_RESPONSE_HEADERS = 16;
+    
+    /**
+     * @var string
+     */
     const STATE_READING_RESPONSE_TO_CLOSE = 32;
+    
+    /**
+     * @var string
+     */
     const STATE_READING_RESPONSE_TO_LENGTH = 64;
+    
+    /**
+     * @var string
+     */
     const STATE_READING_RESPONSE_CHUNKS = 128;
+    
+    /**
+     * @var string
+     */
     const STATE_RESPONSE_COMPLETE = 256;
+    
+    /**
+     * @var string
+     */
     const STATE_ERROR = 512;
     
+    /**
+     * @var string
+     */
     const EVENT_IO_READ_HEADERS = 'artax.http.client.io.read.headers';
+    
+    /**
+     * @var string
+     */
     const EVENT_IO_READ_BODY = 'artax.http.client.io.read.body';
+    
+    /**
+     * @var string
+     */
     const EVENT_IO_WRITE_HEADERS = 'artax.http.client.io.write.headers';
+    
+    /**
+     * @var string
+     */
     const EVENT_IO_WRITE_BODY = 'artax.http.client.io.write.body';
+    
+    /**
+     * @var string
+     */
     const EVENT_REDIRECT = 'artax.http.client.redirect';
+    
+    /**
+     * @var string
+     */
     const EVENT_RESPONSE_COMPLETE = 'artax.http.client.response.complete';
     
     /**
@@ -66,11 +125,6 @@ class Client {
     /**
      * @var bool
      */
-    protected $allowContentEncoding = false;
-    
-    /**
-     * @var bool
-     */
     protected $useProxyRequestLine = false;
     
     /**
@@ -81,7 +135,7 @@ class Client {
     /**
      * @var string
      */
-    protected $acceptedEncodings = 'identity';
+    protected $acceptEncoding = 'identity';
     
     /**
      * @var Spl\Mediator
@@ -94,6 +148,17 @@ class Client {
     protected $connMgr;
     
     /**
+     * @var array
+     */
+    protected $multiStateMap;
+    
+    /**
+     * @var array
+     */
+    protected $multiRequestQueue;
+    
+    /**
+     * @param ConnectionManager $connMgr
      * @param Mediator $mediator
      * @return void
      */
@@ -109,11 +174,13 @@ class Client {
      * @return Response
      */
     public function send(Request $request) {
-        $completedStates = $this->doMultiStreamSelect(array($request));
-        if ($completedStates[0]->response instanceof Response) {
-            return $completedStates[0]->response;
+        $this->doMultiStreamSelect(array($request));
+        $stateHolder = reset($this->multiStateMap);
+        
+        if ($stateHolder->response instanceof Response) {
+            return $stateHolder->response;
         } else {
-            $e = $completedStates[0]->response;
+            $e = $stateHolder->response;
             throw new ClientException($e->getMessage(), null, $e);
         }
     }
@@ -158,10 +225,10 @@ class Client {
      */
     public function sendMulti($requests) {
         $this->validateMultiRequestTraversable($requests);
-        $completedStates = $this->doMultiStreamSelect($requests);
-        $responsesAndErrors = array_map(function($s) { return $s->response; }, $completedStates);
+        $this->doMultiStreamSelect($requests);
+        $responses = array_map(function($s) { return $s->response; }, $this->multiStateMap);
         
-        return new ClientMultiResponse($responsesAndErrors);
+        return new ClientMultiResponse($responses);
     }
     
     /**
@@ -196,7 +263,6 @@ class Client {
     /**
      * Set the number of seconds before a socket connection attempt times out.
      * 
-     * 
      * @param int $seconds
      * @return void
      */
@@ -227,7 +293,7 @@ class Client {
      *         'cafile'            => '/hard/path/to/cert/authority/file'
      *     );
      *     
-     *     $client->setOptions($options);
+     *     $client->setSslOptions($options);
      *  
      * 
      * A full list of available options may be viewed here:
@@ -259,8 +325,7 @@ class Client {
      * are already in use during a `Client::sendMulti` operation, further requests to that host are
      * queued until one of the existing in-use connections to that host becomes available.
      * 
-     * Asynchronous requests are not subject to the concurrency limit. They always open a new 
-     * request in asynchronous mode and close the connection immediately after a request is sent.
+     * Asynchronous requests are not subject to the concurrency limit.
      * 
      * @param int $maxConnections
      * @return void
@@ -298,7 +363,7 @@ class Client {
     }
     
     /**
-     * Whether or not the client should accept encoded (gzip/deflate compressed) entity bodies
+     * Whether or not the client should request compressed (gzip/deflate) entity bodies
      * 
      * This option is disabled by default. Note that even if this option is enabled, the client 
      * will only request encoded messages if PHP's zlib extension is installed.
@@ -306,10 +371,8 @@ class Client {
      * @param bool $boolFlag
      * @return string The Accept-Encoding header value that will be used for requests
      */
-    public function allowContentEncoding($boolFlag) {
+    public function acceptEncodedContent($boolFlag) {
         $filteredBool = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
-        $this->allowContentEncoding = $filteredBool;
-        
         $acceptedEncodings = $filteredBool ? $this->determineAcceptedEncodings() : 'identity';
         $this->acceptedEncodings = $acceptedEncodings;
         
@@ -317,8 +380,6 @@ class Client {
     }
     
     /**
-     * Determine which content encodings the current environment can support
-     * 
      * @return string
      */
     protected function determineAcceptedEncodings() {
@@ -337,28 +398,27 @@ class Client {
     }
     
     /**
-     * Dispatch state holders to the appropriate machine as reads/writes become available
-     * 
      * @param mixed $requests A traversable list of Request objects
+     * @return void
      */
-    protected function doMultiStreamSelect($requests, $dontCatchExceptions = false) {
-        list($requestStates, $requestQueue) = $this->buildStreamSelectStateMap($requests);
-        $readArr = $writeArr = $this->buildStreamSelectArray($requestStates);
+    protected function doMultiStreamSelect($requests) {
+        $this->multiStateMap = array();
+        $this->multiRequestQueue = array();
+        $this->buildMultiStateMap($requests);
         
+        $readArr = $writeArr = $this->buildSelectableStreamArray();
         $ex = null;
         
         while (true) {
-            
-            if ($this->allClientRequestStatesHaveCompleted($requestStates)) {
-                return $requestStates;
+            if ($this->allRequestStatesAreComplete()) {
+                return;
             }
-            
-            if (false === stream_select($readArr, $writeArr, $ex, 0, 500000)) {
+            if (!stream_select($readArr, $writeArr, $ex, 1)) {
                 continue;
             }
             
             foreach ($writeArr as $stateKey => $stream) {
-                $state = $requestStates[$stateKey];
+                $state = $this->multiStateMap[$stateKey];
                 try {
                     $this->sendRequest($state);
                 } catch (ClientException $e) {
@@ -368,7 +428,7 @@ class Client {
             }
             
             foreach ($readArr as $stateKey => $stream) {
-                $state = $requestStates[$stateKey];
+                $state = $this->multiStateMap[$stateKey];
                 try {
                     $this->readResponse($state);
                 } catch (ClientException $e) {
@@ -377,23 +437,16 @@ class Client {
                 }
             }
             
-            if ($requestQueue) {
-                list($map, $queue) = $this->buildStreamSelectStateMap($requestQueue);
-                $requestQueue = $queue;
-                $requestStates = array_merge($requestStates, $map);
+            if (!empty($this->multiRequestQueue)) {
+                $this->buildMultiStateMap($this->multiRequestQueue);
             }
             
             $readArr = $writeArr = array();
-            $checkMe = array_filter($requestStates, function($s){ return !$this->isComplete($s); });
             
-            foreach ($checkMe as $stateKey => $state) {
-                if ($this->activityTimeout > 0
-                    && $state->conn->hasBeenIdleFor($this->activityTimeout)
-                ) {
-                    throw new TimeoutException(
-                        "{$state->conn} exceeded activity timeout: {$this->activityTimeout} seconds"
-                    );
-                } elseif ($state->status < self::STATE_READING_RESPONSE_HEADERS) {
+            foreach ($this->getIncompleteStatesFromMultiStateMap() as $stateKey => $state) {
+                $this->validateActivityTimeout($state->conn);
+                
+                if ($state->status < self::STATE_READING_RESPONSE_HEADERS) {
                     $writeArr[$stateKey] = $state->conn->getStream();
                 } elseif ($state->status < self::STATE_RESPONSE_COMPLETE) {
                     $readArr[$stateKey] = $state->conn->getStream();
@@ -403,15 +456,70 @@ class Client {
     }
     
     /**
-     * Build an array of streams to select against from a map of request state holders
-     * 
-     * @param array $requestStates
+     * @param ClientConnection $conn
+     * @throws TimeoutException
+     */
+    protected function validateActivityTimeout(ClientConnection $conn) {
+        if ($this->activityTimeout < 1) {
+            return;
+        }
+        if ($conn->hasBeenIdleFor($this->activityTimeout)) {
+            throw new TimeoutException(
+                'Connection to ' . $state->conn->getUri() . 'exceeded the max allowable ' .
+                "activity timeout of {$this->activityTimeout} seconds"
+            );
+        }
+    }
+    
+    /**
      * @return array
      */
-    protected function buildStreamSelectArray(array $requestStates) {
+    protected function getIncompleteStatesFromMultiStateMap() {
+        return array_filter($this->multiStateMap, function($s){ return !$this->isComplete($s); });
+    }
+    
+    /**
+     * @param mixed $requests A traversable array/StdClass/Traversable of Request instances
+     * @return array
+     */
+    protected function buildMultiStateMap($requests) {
+        foreach ($requests as $stateKey => $request) {
+            $scheme = $request->getScheme();
+            $host = $request->getHost();
+            $port = $request->getPort();
+            
+            $state = new ClientRequestState();
+            
+            try {
+                $conn = $this->connMgr->checkout($scheme, $host, $port);
+                unset($this->multiRequestQueue[$stateKey]);
+            } catch (ConnectException $e) {
+                $state->status = self::STATE_ERROR;
+                $state->response = $e;
+                $this->multiStateMap[$stateKey] = $state;
+                continue;
+            } catch (MaxConcurrencyException $e) {
+                $this->multiStateMap[$stateKey] = null;
+                $this->multiRequestQueue[$stateKey] = $request;
+                continue;
+            }
+            
+            $state->conn = $conn;
+            $state->status = self::STATE_SENDING_REQUEST_HEADERS;
+            $state->request = $this->normalizeRequestHeaders($request);
+            $state->response = new ClientResponse();
+            $state->responseBodyStream = $this->openMemoryStream();
+            
+            $this->multiStateMap[$stateKey] = $state;
+        }
+    }
+    
+    /**
+     * @return array
+     */
+    protected function buildSelectableStreamArray() {
         $streams = array();
-        
-        foreach ($requestStates as $stateKey => $state) {
+        foreach ($this->multiStateMap as $stateKey => $state) {
             if ($state && !$this->isComplete($state)) {
                 $streams[$stateKey] = $state->conn->getStream();
             }
@@ -421,19 +529,14 @@ class Client {
     }
     
     /**
-     * Determines if retrieval for all states in the array has completed
-     * 
-     * @param array $requestStates
      * @return bool
      */
-    protected function allClientRequestStatesHaveCompleted(array $requestStates) {
-        $complete = array_map(array($this, 'isComplete'), $requestStates);
-        return array_sum($complete) == count($requestStates);
+    protected function allRequestStatesAreComplete() {
+        $completedStates = array_map(array($this, 'isComplete'), $this->multiStateMap);
+        return array_sum($completedStates) == count($this->multiStateMap);
     }
     
     /**
-     * Is retrieval complete for the specified state?
-     * 
      * @return bool
      */
     protected function isComplete(ClientRequestState $state) {
@@ -441,8 +544,6 @@ class Client {
     }
     
     /**
-     * A state machine to send raw HTTP requests to a socket stream
-     * 
      * @param ClientRequestState $state
      * @return void
      */
@@ -461,8 +562,6 @@ class Client {
     }
     
     /**
-     * Send request headers
-     * 
      * @param ClientRequestState $state
      * @return void
      */
@@ -504,8 +603,6 @@ class Client {
     }
     
     /**
-     * Send buffered request body
-     * 
      * @param ClientRequestState $state
      * @return void
      */
@@ -538,8 +635,6 @@ class Client {
     }
     
     /**
-     * Send streaming request entity body
-     * 
      * @param ClientRequestState $state
      * @return void
      */
@@ -589,8 +684,6 @@ class Client {
     }
     
     /**
-     * Pass a state holder to the response state machine when its stream is ready for reading
-     * 
      * @param ClientRequestState $state
      * @return void
      */
@@ -636,9 +729,7 @@ class Client {
     }
     
     /**
-     * Receives HTTP message headers, returning true if response header retrieval is complete
-     * 
-     * ClientRequestState $state
+     * @param ClientRequestState $state
      * @return bool
      */
     protected function receiveHeaders(ClientRequestState $state) {
@@ -687,9 +778,7 @@ class Client {
     }
     
     /**
-     * Receives HTTP message entity-body, returning true if entity body retrieval is complete
-     * 
-     * ClientRequestState $state
+     * @param ClientRequestState $state
      * @return bool
      */
     protected function receiveBody(ClientRequestState $state) {
@@ -744,62 +833,6 @@ class Client {
     }
     
     /**
-     * Build an array of request states for use with parallel stream selects
-     * 
-     * Returns a two-element array: the first element is a map of state objects; the second is
-     * an array of Request objects that had to be queued because the maximum number of persistent
-     * connections were already in use for the respective target host of each Request.
-     * 
-     * @param mixed $requests A traversable array/StdClass/Traversable of Request instances
-     * @return array
-     */
-    protected function buildStreamSelectStateMap($requests) {
-        $requestStates = array();
-        $requestQueue = array();
-        
-        foreach ($requests as $stateKey => $request) {
-            $state = new ClientRequestState();
-            $state->request = $this->normalizeRequestHeaders($request);
-            
-            try {
-                $scheme = $request->getScheme();
-                $host = $request->getHost();
-                $port = $request->getPort();
-                $conn = $this->connMgr->checkout($scheme, $host, $port);
-            } catch (ConnectException $e) {
-                $state->status = self::STATE_ERROR;
-                $state->response = $e;
-                $requestStates[$stateKey] = $state;
-                continue;
-            }
-            
-            if (!$conn) {
-                $requestStates[$stateKey] = null;
-                $requestQueue[$stateKey] = $request;
-                continue;
-            } else {
-                $state->status = self::STATE_SENDING_REQUEST_HEADERS;
-                $state->conn = $conn;
-                $state->response = $this->makeClientResponse();
-                $state->responseBodyStream = $this->openMemoryStream();
-                
-                $requestStates[$stateKey] = $state;
-            }
-        }
-        
-        return array($requestStates, $requestQueue);
-    }
-    
-    /**
-     * A factory method test seam for generating ClientResponse instances
-     * 
-     * @return Artax\Http\ClientResponse
-     */
-    protected function makeClientResponse() {
-        return new ClientResponse();
-    }
-    
-    /**
      * @param Response $response
      * @return bool
      */
@@ -842,7 +875,7 @@ class Client {
             $request->removeHeader('Host');
         }
         
-        if ($this->allowContentEncoding) {
+        if ($this->acceptEncoding == 'identity') {
             $request->setHeader('Accept-Encoding', $this->acceptEncoding);
         } else {
             $request->removeHeader('Accept-Encoding');
@@ -861,8 +894,6 @@ class Client {
     }
     
     /**
-     * Does the response utilize chunked transfer-encoding?
-     * 
      * @param Response $response
      * @return bool
      */
@@ -915,6 +946,11 @@ class Client {
         return true;
     }
     
+    /**
+     * @param string $encoding
+     * @param string $entityBody
+     * @return string
+     */
     protected function decodeEntityBody($encoding, $entityBody) {
         switch ($encoding) {
             case 'gzip':
@@ -927,9 +963,7 @@ class Client {
     }
 
     /**
-     * Is it possible to redirect the current state's response?
-     * 
-     * ClientRequestState $state
+     * @param ClientRequestState $state
      * @return bool
      */
     protected function canRedirect(ClientRequestState $state) {
@@ -950,8 +984,6 @@ class Client {
     }
 
     /**
-     * Adjust the request state to redirect using the response's Location header
-     * 
      * @param ClientRequestState $state
      * @return void
      */
@@ -977,7 +1009,7 @@ class Client {
         
         $state->request = $newRequest;
         
-        $newResponse = $this->makeClientResponse();
+        $newResponse = new ClientResponse();
         $newResponse->setPreviousResponse($state->response);
         
         $state->response = $newResponse;
@@ -1000,8 +1032,6 @@ class Client {
     }
     
     /**
-     * Retrieves the initial request in a redirection chain from a request state holder
-     * 
      * @param ClientRequestState $state
      * @return Request
      */
@@ -1010,8 +1040,6 @@ class Client {
     }
 
     /**
-     * Correct invalid Location headers that specify relative URI paths
-     * 
      * @param Request $lastRequest
      * @param Response $lastResponse
      * @return string
@@ -1035,8 +1063,6 @@ class Client {
     }
     
     /**
-     * Open a writable in-memory stream
-     * 
      * @return resource
      * @throws RuntimeException
      */
@@ -1048,8 +1074,6 @@ class Client {
     }
     
     /**
-     * Close all open connections on object destruction
-     * 
      * @return void
      */
     public function __destruct() {
