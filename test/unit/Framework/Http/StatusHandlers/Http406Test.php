@@ -11,7 +11,7 @@ class Http406Test extends PHPUnit_Framework_TestCase {
     public function testBeginsEmpty() {
         $mediator = $this->getMock('Artax\\Events\\Mediator');
         $request  = $this->getMock('Artax\\Http\\Request');
-        $response = $this->getMock('Artax\\Http\\MutableResponse');
+        $response = $this->getMock('Artax\\Http\\Response');
         
         $handler = new Http406($mediator, $request, $response);
         $this->assertInstanceOf(
@@ -27,7 +27,7 @@ class Http406Test extends PHPUnit_Framework_TestCase {
         $e = new NotAcceptableException('message');
         
         $request  = $this->getMock('Artax\\Http\\Request');
-        $response = $this->getMock('Artax\\Http\\MutableResponse');
+        $response = $this->getMock('Artax\\Http\\Response');
         $response->expects($this->once())
                  ->method('setStatusCode')
                  ->with(406);
@@ -57,7 +57,7 @@ class Http406Test extends PHPUnit_Framework_TestCase {
         $e = new NotAcceptableException('message');
         
         $request  = $this->getMock('Artax\\Http\\Request');
-        $response = $this->getMock('Artax\\Http\\MutableResponse');
+        $response = $this->getMock('Artax\\Http\\Response');
         
         $mediator = $this->getMock('Artax\\Events\\Mediator');
         $mediator->expects($this->once())

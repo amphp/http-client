@@ -12,7 +12,7 @@ class UnifiedErrorHandlerTest extends PHPUnit_Framework_TestCase {
      */
     public function testErrorHandlerThrowsAndShutsDownIfNoUserListenersExistToHandleIt() {
         $mediator = $this->getMock('Artax\\Events\\Mediator');
-        $response = $this->getMock('Artax\\Http\\MutableResponse');
+        $response = $this->getMock('Artax\\Http\\Response');
         $debugMode = 1;
         
         $mediator->expects($this->once())
@@ -45,7 +45,7 @@ class UnifiedErrorHandlerTest extends PHPUnit_Framework_TestCase {
      */
     public function testErrorHandlerNotifiesListenersIfAvailable() {
         $mediator = $this->getMock('Artax\\Events\\Mediator');
-        $response = $this->getMock('Artax\\Http\\MutableResponse');
+        $response = $this->getMock('Artax\\Http\\Response');
         $debugMode = 1;
         
         $e = new ErrorException('test error in /path on line 42', E_WARNING);
@@ -66,7 +66,7 @@ class UnifiedErrorHandlerTest extends PHPUnit_Framework_TestCase {
      */
     public function testErrorHandlerReturnsOnSuppressedError() {
         $mediator = $this->getMock('Artax\\Events\\Mediator');
-        $response = $this->getMock('Artax\\Http\\MutableResponse');
+        $response = $this->getMock('Artax\\Http\\Response');
         $debugMode = 1;
         
         $handler = $this->getMock(
@@ -87,7 +87,7 @@ class UnifiedErrorHandlerTest extends PHPUnit_Framework_TestCase {
      */
     public function testExceptionHandlerIgnoresScriptHaltException() {
         $mediator = $this->getMock('Artax\\Events\\Mediator');
-        $response = $this->getMock('Artax\\Http\\MutableResponse');
+        $response = $this->getMock('Artax\\Http\\Response');
         $debugMode = 1;
         
         $handler = new UnifiedErrorHandler($response, $mediator, $debugMode);
@@ -105,7 +105,7 @@ class UnifiedErrorHandlerTest extends PHPUnit_Framework_TestCase {
                  ->with('__sys.exception', new Exception, 1)
                  ->will($this->returnValue(1));
                  
-        $response = $this->getMock('Artax\\Http\\MutableResponse');
+        $response = $this->getMock('Artax\\Http\\Response');
         $debugMode = 1;
         
         $handler = new UnifiedErrorHandler($response, $mediator, $debugMode);
@@ -123,7 +123,7 @@ class UnifiedErrorHandlerTest extends PHPUnit_Framework_TestCase {
                  ->with('__sys.exception', new Exception, 1)
                  ->will($this->returnValue(0));
                  
-        $response = $this->getMock('Artax\\Http\\MutableResponse');
+        $response = $this->getMock('Artax\\Http\\Response');
         $debugMode = 1;
         
         $mock = $this->getMock('Artax\\Framework\\UnifiedErrorHandler',
@@ -148,7 +148,7 @@ class UnifiedErrorHandlerTest extends PHPUnit_Framework_TestCase {
                  ->with('__sys.exception', new Exception, 1)
                  ->will($this->throwException(new ScriptHaltException));
                  
-        $response = $this->getMock('Artax\\Http\\MutableResponse');
+        $response = $this->getMock('Artax\\Http\\Response');
         $debugMode = 1;
         
         $handler = new UnifiedErrorHandler($response, $mediator, $debugMode);
@@ -168,7 +168,7 @@ class UnifiedErrorHandlerTest extends PHPUnit_Framework_TestCase {
                  ->with('__sys.exception', new Exception, 1)
                  ->will($this->throwException(new Exception));
                  
-        $response = $this->getMock('Artax\\Http\\MutableResponse');
+        $response = $this->getMock('Artax\\Http\\Response');
         $debugMode = 1;
         
         $handler = new UnifiedErrorHandler($response, $mediator, $debugMode);
@@ -188,7 +188,7 @@ class UnifiedErrorHandlerTest extends PHPUnit_Framework_TestCase {
                  ->with('__sys.exception', new Exception, 1)
                  ->will($this->throwException(new Exception));
                  
-        $response = $this->getMock('Artax\\Http\\MutableResponse');
+        $response = $this->getMock('Artax\\Http\\Response');
         $response->expects($this->once())
                  ->method('wasSent')
                  ->will($this->returnValue(true));
@@ -206,7 +206,7 @@ class UnifiedErrorHandlerTest extends PHPUnit_Framework_TestCase {
      */
     public function testRegisterReturnsNull() {
         $mediator = $this->getMock('Artax\\Events\\Mediator');
-        $response = $this->getMock('Artax\\Http\\MutableResponse');
+        $response = $this->getMock('Artax\\Http\\Response');
         $debugMode = 1;
         
         $handler = new UnifiedErrorHandler($response, $mediator, $debugMode);
@@ -224,7 +224,7 @@ class UnifiedErrorHandlerTest extends PHPUnit_Framework_TestCase {
                  ->method('notify')
                  ->with('__sys.shutdown');
                  
-        $response = $this->getMock('Artax\\Http\\MutableResponse');
+        $response = $this->getMock('Artax\\Http\\Response');
         $debugMode = 1;
         
         $handler = $this->getMock(
@@ -247,7 +247,7 @@ class UnifiedErrorHandlerTest extends PHPUnit_Framework_TestCase {
                  ->with('__sys.shutdown')
                  ->will($this->throwException(new ScriptHaltException));
                  
-        $response = $this->getMock('Artax\\Http\\MutableResponse');
+        $response = $this->getMock('Artax\\Http\\Response');
         $debugMode = 1;
         
         $handler = $this->getMock(
@@ -269,7 +269,7 @@ class UnifiedErrorHandlerTest extends PHPUnit_Framework_TestCase {
                  ->with('__sys.shutdown')
                  ->will($this->throwException(new Exception));
                  
-        $response = $this->getMock('Artax\\Http\\MutableResponse');
+        $response = $this->getMock('Artax\\Http\\Response');
         $debugMode = 1;
         
         $handler = $this->getMock(
@@ -289,7 +289,7 @@ class UnifiedErrorHandlerTest extends PHPUnit_Framework_TestCase {
      */
     public function testHandleShutdownInvokesExceptionHandlerForFatalErrors() {
         $mediator = $this->getMock('Artax\\Events\\Mediator');
-        $response = $this->getMock('Artax\\Http\\MutableResponse');
+        $response = $this->getMock('Artax\\Http\\Response');
         $debugMode = 1;
         
         $handler = $this->getMock(

@@ -11,7 +11,7 @@ class AutoResponseDateTest extends PHPUnit_Framework_TestCase {
      * @covers ArtaxPlugins\ResponseDate::buildRfc1123Date
      */
     public function testMagicInvokeCallsPrimaryWorkMethod() {
-        $response = $this->getMock('Artax\\Http\\MutableResponse');
+        $response = $this->getMock('Artax\\Http\\Response');
         $pluginMock = $this->getMock(
             'ArtaxPlugins\\ResponseDate',
             array('setDateHeader')
@@ -27,7 +27,7 @@ class AutoResponseDateTest extends PHPUnit_Framework_TestCase {
      * @covers ArtaxPlugins\ResponseDate::buildRfc1123Date
      */
     public function testUnmockedPluginIntegration() {
-        $response = $this->getMock('Artax\\Http\\MutableResponse');
+        $response = $this->getMock('Artax\\Http\\Response');
         $plugin = new ResponseDate;
         $plugin($response);
     }
@@ -36,7 +36,7 @@ class AutoResponseDateTest extends PHPUnit_Framework_TestCase {
      * @covers ArtaxPlugins\ResponseDate::setDateHeader
      */
     public function testSetDateHeaderAssignsResponseBodyLengthToResponseHeader() {
-        $response = $this->getMock('Artax\\Http\\MutableResponse');
+        $response = $this->getMock('Artax\\Http\\Response');
         $response->expects($this->once())
                  ->method('setHeader')
                  ->with('Date', 'test');

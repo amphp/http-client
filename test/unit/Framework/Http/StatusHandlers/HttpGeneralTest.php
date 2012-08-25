@@ -11,7 +11,7 @@ class HttpGeneralTest extends PHPUnit_Framework_TestCase {
     public function testBeginsEmpty() {
         $mediator = $this->getMock('Artax\\Events\\Mediator');
         $request  = $this->getMock('Artax\\Http\\Request');
-        $response = $this->getMock('Artax\\Http\\MutableResponse');
+        $response = $this->getMock('Artax\\Http\\Response');
         
         $handler = new HttpGeneral($mediator, $request, $response);
         $this->assertInstanceOf(
@@ -27,7 +27,7 @@ class HttpGeneralTest extends PHPUnit_Framework_TestCase {
         $e = new HttpStatusException('message', 499);
         
         $request  = $this->getMock('Artax\\Http\\Request');
-        $response = $this->getMock('Artax\\Http\\MutableResponse');
+        $response = $this->getMock('Artax\\Http\\Response');
         $response->expects($this->once())
                  ->method('setStatusCode')
                  ->with(499);
@@ -58,7 +58,7 @@ class HttpGeneralTest extends PHPUnit_Framework_TestCase {
         $e = new HttpStatusException('message', 499);
         
         $request  = $this->getMock('Artax\\Http\\Request');
-        $response = $this->getMock('Artax\\Http\\MutableResponse');
+        $response = $this->getMock('Artax\\Http\\Response');
         
         $mediator = $this->getMock('Artax\\Events\\Mediator');
         $mediator->expects($this->once())

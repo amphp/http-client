@@ -10,7 +10,7 @@ class Http500Test extends PHPUnit_Framework_TestCase {
     public function testBeginsEmpty() {
         $mediator = $this->getMock('Artax\\Events\\Mediator');
         $request  = $this->getMock('Artax\\Http\\Request');
-        $response = $this->getMock('Artax\\Http\\MutableResponse');
+        $response = $this->getMock('Artax\\Http\\Response');
         
         $handler = new Http500($mediator, $request, $response);
         $this->assertInstanceOf(
@@ -26,7 +26,7 @@ class Http500Test extends PHPUnit_Framework_TestCase {
         $e = new Exception('message');
         
         $request  = $this->getMock('Artax\\Http\\Request');
-        $response = $this->getMock('Artax\\Http\\MutableResponse');
+        $response = $this->getMock('Artax\\Http\\Response');
         $response->expects($this->once())
                  ->method('setStatusCode')
                  ->with(500);
@@ -56,7 +56,7 @@ class Http500Test extends PHPUnit_Framework_TestCase {
         $e = new Exception('message');
         
         $request  = $this->getMock('Artax\\Http\\Request');
-        $response = $this->getMock('Artax\\Http\\MutableResponse');
+        $response = $this->getMock('Artax\\Http\\Response');
         
         $mediator = $this->getMock('Artax\\Events\\Mediator');
         $mediator->expects($this->exactly(2))

@@ -1,6 +1,6 @@
 <?php
 
-use Artax\Http\MutableStdResponse;
+use Artax\Http\StdResponse;
 
 class StdMessageTest extends PHPUnit_Framework_TestCase {
     
@@ -8,7 +8,7 @@ class StdMessageTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdMessage::getHttpVersion
      */
     public function testHttpVersionAccessors() {
-        $response = new MutableStdResponse;
+        $response = new StdResponse;
         $this->assertEquals('1.1', $response->getHttpVersion());
         $this->assertNull($response->setHttpVersion('1.0'));
         $this->assertEquals('1.0', $response->getHttpVersion());
@@ -18,7 +18,7 @@ class StdMessageTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdMessage::getBody
      */
     public function testBodyAccessorReturnsStringEntityBodyIfAssigned() {
-        $response = new MutableStdResponse;
+        $response = new StdResponse;
         $this->assertEquals('', $response->getBody());
         $this->assertNull($response->setBody('entity body'));
         $this->assertEquals('entity body', $response->getBody());
@@ -32,7 +32,7 @@ class StdMessageTest extends PHPUnit_Framework_TestCase {
         fwrite($body, 'test');
         rewind($body);
         
-        $response = new MutableStdResponse();
+        $response = new StdResponse();
         $response->setBody($body);
         $this->assertEquals('test', $response->getBody());
         
@@ -48,7 +48,7 @@ class StdMessageTest extends PHPUnit_Framework_TestCase {
         fwrite($body, 'test');
         rewind($body);
         
-        $response = new MutableStdResponse();
+        $response = new StdResponse();
         $response->setBody($body);
         $this->assertTrue(is_resource($response->getBodyStream()));
         $this->assertEquals('test', stream_get_contents($response->getBodyStream()));
@@ -60,7 +60,7 @@ class StdMessageTest extends PHPUnit_Framework_TestCase {
     public function testBodyStreamAccessorReturnsNullIfNotAResource() {
         $body = 'test';
         
-        $response = new MutableStdResponse();
+        $response = new StdResponse();
         $response->setBody($body);
         $this->assertNull($response->getBodyStream());
     }
@@ -70,7 +70,7 @@ class StdMessageTest extends PHPUnit_Framework_TestCase {
      * @expectedException RuntimeException
      */
     public function testHeaderGetterThrowsExceptionOnInvalidHeaderRequest() {
-        $response = new MutableStdResponse;
+        $response = new StdResponse;
         $response->getHeader('Doesnt-Exist');
     }
     
@@ -78,7 +78,7 @@ class StdMessageTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdMessage::getHeader
      */
     public function testHeaderAccessors() {
-        $response = new MutableStdResponse;
+        $response = new StdResponse;
         $this->assertNull($response->setHeader('Content-Type', 'text/html'));
         $this->assertEquals('text/html', $response->getHeader('Content-Type'));
         
@@ -90,7 +90,7 @@ class StdMessageTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdMessage::hasHeader
      */
     public function testHasHeaderReturnsBoolOnHeaderExistence() {
-        $response = new MutableStdResponse;
+        $response = new StdResponse;
         $this->assertFalse($response->hasHeader('Content-Type'));
         $response->setHeader('Content-Type', 'text/html');
         $this->assertTrue($response->hasHeader('Content-TYPE'));
@@ -100,7 +100,7 @@ class StdMessageTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdMessage::getAllHeaders
      */
     public function testGetAllHeadersReturnsHeaderStorageArray() {
-        $response = new MutableStdResponse;
+        $response = new StdResponse;
         $response->setHeader('Content-Type', 'text/html');
         $response->setHeader('Content-Length', 42);
         
@@ -113,11 +113,11 @@ class StdMessageTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers Artax\Http\StdMessage::assignAllHeaders
+     * @covers Artax\Http\StdMessage::setAllHeaders
      * @expectedException InvalidArgumentException
      */
-    public function testAssignAllHeadersThrowsExceptionOnInvalidIterable() {
-        $response = new MutableStdResponse();
+    public function testSetAllHeadersThrowsExceptionOnInvalidIterable() {
+        $response = new StdResponse();
         $response->setAllHeaders('not an iterable -- should throw exception');
     }
 }

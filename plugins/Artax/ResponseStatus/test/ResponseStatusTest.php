@@ -1,6 +1,6 @@
 <?php
 
-use Artax\Http\MutableStdResponse,
+use Artax\Http\StdResponse,
     Artax\Http\StatusCodes,
     ArtaxPlugins\ResponseStatus;
 
@@ -12,7 +12,7 @@ class ResponseStatusTest extends PHPUnit_Framework_TestCase {
      * @covers ArtaxPlugins\ResponseStatus::__invoke
      */
     public function testMagicInvokeCallsWorkMethods() {
-        $response = $this->getMock('Artax\\Http\\MutableResponse');
+        $response = $this->getMock('Artax\\Http\\Response');
         
         $pluginMock = $this->getMock(
             'ArtaxPlugins\ResponseStatus',
@@ -38,7 +38,7 @@ class ResponseStatusTest extends PHPUnit_Framework_TestCase {
      * @covers ArtaxPlugins\ResponseStatus::setStatusCode
      */
     public function testSetStatusCodeAssigns200CodeIfNoneHasYetBeenAssigned() {
-        $response = new MutableStdResponse;
+        $response = new StdResponse;
         $plugin = new ResponseStatus;
         
         $this->assertNull($response->getStatusCode());
@@ -50,7 +50,7 @@ class ResponseStatusTest extends PHPUnit_Framework_TestCase {
      * @covers ArtaxPlugins\ResponseStatus::setStatusDescription
      */
     public function testSetStatusDescriptionAssignsConstantDefaultIfAvailable() {
-        $response = new MutableStdResponse;
+        $response = new StdResponse;
         $plugin = new ResponseStatus;
         
         $response->setStatusCode(404);
