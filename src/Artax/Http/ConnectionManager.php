@@ -6,7 +6,12 @@ use Spl\Mediator,
     Artax\Http\Exceptions\MaxConcurrencyException;
 
 class ConnectionManager {
-
+    
+    /**
+     * @var Spl\Mediator
+     */
+    protected $mediator;
+    
     /**
      * @var array
      */
@@ -31,6 +36,14 @@ class ConnectionManager {
      * @var int
      */
     private $hostConcurrencyLimit = 5;
+    
+    /**
+     * @param Mediator $mediator
+     * @return void
+     */
+    public function __construct(Mediator $mediator) {
+        $this->mediator = $mediator;
+    }
     
     /**
      * @param array $options
@@ -72,7 +85,7 @@ class ConnectionManager {
             $this->connPool[$authority] = array();
         }
         
-        foreach ($this->connPool[$authority] as $key => $conn) {
+        foreach ($this->connPool[$authority] as $conn) {
             if (!$this->isCheckedOut($conn)) {
                 $this->doCheckout($conn);
                 return $conn;
@@ -87,6 +100,7 @@ class ConnectionManager {
             $conn->connect();
             $this->connPool[$authority][$conn->getId()] = $conn;
             $this->doCheckout($conn);
+            
             return $conn;
             
         }
@@ -112,6 +126,7 @@ class ConnectionManager {
     protected function doCheckout(ClientConnection $conn) {
         $this->connsInUse[] = $conn->getUri();
         $conn->resetActivityTimestamp();
+        $this->mediator->notify(Client::EVENT_CONN_CHECKOUT, $conn);
     }
     
     /**
@@ -123,6 +138,7 @@ class ConnectionManager {
     public function checkin(ClientConnection $conn) {
         $key = array_search($conn->getUri(), $this->connsInUse);
         unset($this->connsInUse[$key]);
+        $this->mediator->notify(Client::EVENT_CONN_CHECKIN, $conn);
     }
     
     /**
@@ -137,9 +153,9 @@ class ConnectionManager {
     public function makeConnection($scheme, $host, $port, $flags = STREAM_CLIENT_CONNECT) {
         
         if (strcmp('https', $scheme)) {
-            $conn = new TcpConnection($host, $port);
+            $conn = new TcpConnection($this->mediator, $host, $port);
         } else {
-            $conn = new SslConnection($host, $port);
+            $conn = new SslConnection($this->mediator, $host, $port);
             $conn->setSslOptions($this->sslOptions);
         }
         
@@ -156,7 +172,9 @@ class ConnectionManager {
      * @return void
      */
     public function close(ClientConnection $conn) {
-        $this->checkin($conn);
+        if ($this->isCheckedOut($conn)) {
+            $this->checkin($conn);
+        }
         $conn->close();
         $authority = $conn->getAuthority();
         $id = $conn->getId();

@@ -2,10 +2,17 @@
 
 namespace Artax\Http;
 
-use Artax\Http\Exceptions\ConnectException,
+use Spl\Mediator,
+    Artax\Http\Exceptions\ConnectException,
     Artax\Http\Exceptions\TimeoutException;
 
 class TcpConnection implements ClientConnection {
+    
+    /**
+     * @var Spl\Mediator
+     */
+    protected $mediator;
+    
     
     protected $id;
     protected $host;
@@ -16,10 +23,17 @@ class TcpConnection implements ClientConnection {
     protected $transport = 'tcp';
     protected $lastActivity;
     
-    public function __construct($host, $port) {
-        $this->id = uniqid();
+    /**
+     * @param Mediator $mediator
+     * @param string $host
+     * @param int $port
+     * @return void
+     */
+    public function __construct(Mediator $mediator, $host, $port) {
+        $this->mediator = $mediator;
         $this->host = $host;
         $this->port = $port;
+        $this->id = uniqid();
     }
     
     public function setConnectTimeout($seconds) {
@@ -43,6 +57,7 @@ class TcpConnection implements ClientConnection {
             stream_set_blocking($stream, 0);
             $this->stream = $stream;
             $this->lastActivity = microtime(true);
+            $this->mediator->notify(Client::EVENT_CONN_OPEN, $this);
         } else {
             throw new ConnectException(
                 "Connection failure: {$this->host}:{$this->port}; [$errNo] $errStr"
@@ -57,6 +72,7 @@ class TcpConnection implements ClientConnection {
     public function close() {
         @fclose($this->stream);
         $this->stream = null;
+        $this->mediator->notify(Client::EVENT_CONN_CLOSE, $this);
     }
     
     public function resetActivityTimestamp() {

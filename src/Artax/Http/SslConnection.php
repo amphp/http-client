@@ -24,6 +24,8 @@ class SslConnection extends TcpConnection {
         if ($stream) {
             stream_set_blocking($stream, 0);
             $this->stream = $stream;
+            $this->lastActivity = microtime(true);
+            $this->notify(self::EVENT_CONN_OPEN);
         } else {
             throw new ConnectException(
                 "Connection to {$this->authority} failed: [Error $errNo] $errStr"

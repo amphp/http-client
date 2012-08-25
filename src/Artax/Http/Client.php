@@ -18,47 +18,47 @@ use Spl\Mediator,
 class Client {
     
     /**
-     * @var string
+     * @var int
      */
     const STATE_SENDING_REQUEST_HEADERS = 2;
     
     /**
-     * @var string
+     * @var int
      */
     const STATE_SENDING_BUFFERED_REQUEST_BODY = 4;
     
     /**
-     * @var string
+     * @var int
      */
     const STATE_STREAMING_REQUEST_BODY = 8;
     
     /**
-     * @var string
+     * @var int
      */
     const STATE_READING_RESPONSE_HEADERS = 16;
     
     /**
-     * @var string
+     * @var int
      */
     const STATE_READING_RESPONSE_TO_CLOSE = 32;
     
     /**
-     * @var string
+     * @var int
      */
     const STATE_READING_RESPONSE_TO_LENGTH = 64;
     
     /**
-     * @var string
+     * @var int
      */
     const STATE_READING_RESPONSE_CHUNKS = 128;
     
     /**
-     * @var string
+     * @var int
      */
     const STATE_RESPONSE_COMPLETE = 256;
     
     /**
-     * @var string
+     * @var int
      */
     const STATE_ERROR = 512;
     
@@ -95,12 +95,32 @@ class Client {
     /**
      * @var string
      */
+    const EVENT_CONN_CHECKOUT = 'artax.http.client.connection.checkout';
+    
+    /**
+     * @var string
+     */
+    const EVENT_CONN_CHECKIN = 'artax.http.client.connection.checkin';
+    
+    /**
+     * @var string
+     */
+    const EVENT_CONN_OPEN = 'artax.http.client.connection.open';
+    
+    /**
+     * @var string
+     */
+    const EVENT_CONN_CLOSE = 'artax.http.client.connection.close';
+    
+    /**
+     * @var string
+     */
     protected $userAgent = 'Artax-Http/0.1 (PHP5.3+)';
     
     /**
      * @var int
      */
-    protected $activityTimeout = 30;
+    protected $activityTimeout = 10;
     
     /**
      * @var int
@@ -138,16 +158,6 @@ class Client {
     protected $acceptEncoding = 'identity';
     
     /**
-     * @var Spl\Mediator
-     */
-    protected $mediator;
-    
-    /**
-     * @var ConnectionManager
-     */
-    protected $connMgr;
-    
-    /**
      * @var array
      */
     protected $multiStateMap;
@@ -156,6 +166,16 @@ class Client {
      * @var array
      */
     protected $multiRequestQueue;
+    
+    /**
+     * @var Spl\Mediator
+     */
+    protected $mediator;
+    
+    /**
+     * @var ConnectionManager
+     */
+    protected $connMgr;
     
     /**
      * @param ConnectionManager $connMgr
@@ -467,7 +487,7 @@ class Client {
         }
         if ($conn->hasBeenIdleFor($this->activityTimeout)) {
             throw new TimeoutException(
-                'Connection to ' . $state->conn->getUri() . 'exceeded the max allowable ' .
+                'Connection to ' . $conn->getUri() . 'exceeded the max allowable ' .
                 "activity timeout of {$this->activityTimeout} seconds"
             );
         }
@@ -478,7 +498,8 @@ class Client {
      */
     protected function getIncompleteStatesFromMultiStateMap() {
         $incompletes = array();
-        foreach ($this->multiStateMap as $key => $state) {
+        $queuedStatesRemoved = array_filter($this->multiStateMap);
+        foreach ($queuedStatesRemoved as $key => $state) {
             if (!$this->isComplete($state)) {
                 $incompletes[$key] = $state;
             }
@@ -539,7 +560,8 @@ class Client {
      * @return bool
      */
     protected function allRequestStatesAreComplete() {
-        $completedStates = array_map(array($this, 'isComplete'), $this->multiStateMap);
+        $queuedStatesRemoved = array_filter($this->multiStateMap);
+        $completedStates = array_map(array($this, 'isComplete'), $queuedStatesRemoved);
         return array_sum($completedStates) == count($this->multiStateMap);
     }
     
@@ -823,14 +845,14 @@ class Client {
             
             return true;
         }
-        /*
+        
         if (false === $line) {
             throw new TransferException(
                 "Response retrieval error: transfer failed after {$state->totalBytesReceived} " .
                 "bytes received"
             );
         }
-        */
+        
         return false;
     }
     
@@ -887,14 +909,14 @@ class Client {
             unset($state->bodyBytesReceived);
             return true;
         }
-        /*
+        
         if (false === $readData) {
             throw new TransferException(
                 "Response retrieval error: transfer failed after {$state->totalBytesReceived} " .
                 "bytes received"
             );
         }
-        */
+        
         return false;
     }
     
