@@ -477,7 +477,13 @@ class Client {
      * @return array
      */
     protected function getIncompleteStatesFromMultiStateMap() {
-        return array_filter($this->multiStateMap, function($s){ return !$this->isComplete($s); });
+        $incompletes = array();
+        foreach ($this->multiStateMap as $key => $state) {
+            if (!$this->isComplete($state)) {
+                $incompletes[$key] = $state;
+            }
+        }
+        return $incompletes;
     }
     
     /**

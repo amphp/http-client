@@ -111,6 +111,7 @@ class StdResponse extends StdMessage implements Response {
      * @throws RuntimeException
      */
     public function send() {
+        $this->normalizeHeadersForSend();
         $this->sendHeaders();
         
         if ($this->body) {
@@ -126,10 +127,7 @@ class StdResponse extends StdMessage implements Response {
      * @return void
      */
     protected function sendHeaders() {
-        $this->normalizeHeadersForSend();
-        
         header($this->getStartLine());
-        
         foreach ($this->headers as $header => $value) {
             header($header . ': ' . $value);
         }

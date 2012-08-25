@@ -3,7 +3,6 @@
 namespace Artax\Http;
 
 interface ClientConnection {
-    
     function setConnectTimeout($seconds);
     function setConnectFlags($flags);
     function connect();
