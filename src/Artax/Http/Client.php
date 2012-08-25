@@ -776,6 +776,10 @@ class Client {
      */
     protected function receiveHeaders(StdClass $state) {
         
+        $state->totalBytesReceived = isset($state->totalBytesReceived)
+            ? $state->totalBytesReceived
+            : 0;
+        
         $state->responseHeaderBuffer = isset($state->responseHeaderBuffer)
             ? $state->responseHeaderBuffer
             : '';
@@ -819,14 +823,14 @@ class Client {
             
             return true;
         }
-        
+        /*
         if (false === $line) {
             throw new TransferException(
                 "Response retrieval error: transfer failed after {$state->totalBytesReceived} " .
                 "bytes received"
             );
         }
-        
+        */
         return false;
     }
     
@@ -883,14 +887,14 @@ class Client {
             unset($state->bodyBytesReceived);
             return true;
         }
-        
+        /*
         if (false === $readData) {
             throw new TransferException(
                 "Response retrieval error: transfer failed after {$state->totalBytesReceived} " .
                 "bytes received"
             );
         }
-        
+        */
         return false;
     }
     
@@ -1078,6 +1082,7 @@ class Client {
         $state->response = $newResponse;
         
         $state->totalBytesSent = 0;
+        $state->totalBytesReceived = 0;
         $state->status = self::STATE_SENDING_REQUEST_HEADERS;
         
         $this->mediator->notify(
