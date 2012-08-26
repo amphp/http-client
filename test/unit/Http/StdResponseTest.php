@@ -8,12 +8,14 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdResponse::__toString
      */
     public function testToStringBuildsRawHttpResponseMessage() {
-        $headers = array(
+        $response = new StdResponse();
+        $response->setStatusCode(200);
+        $response->setStatusDescription('OK');
+        $response->setAllHeaders(array(
             'CONTENT-TYPE' => 'text/html',
             'CONTENT-LENGTH' => 42
-        );
-        
-        $response = new StdResponse(200, 'OK', $headers, 'test');
+        ));
+        $response->setBody('test');
         
         $expected = '' .
             "HTTP/1.1 200 OK\r\n" .
@@ -30,7 +32,9 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdResponse::getStatusCode
      */
     public function testStatusCodeAccessorMethodReturnsStatusCode() {
-        $response = new StdResponse(404, 'Not Found');
+        $response = new StdResponse();
+        $this->assertEquals(200, $response->getStatusCode());
+        $response->setStatusCode(404);
         $this->assertEquals(404, $response->getStatusCode());
     }
     
@@ -38,7 +42,9 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdResponse::getStatusDescription
      */
     public function testStatusDescriptionAccessorReturnsDescription() {
-        $response = new StdResponse(404, 'Not Found');
+        $response = new StdResponse();
+        $this->assertNull($response->getStatusDescription());
+        $response->setStatusDescription('Not Found');
         $this->assertEquals('Not Found', $response->getStatusDescription());
     }
     
@@ -88,12 +94,12 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdResponse::sendBody
      */
     public function testSendOutputsStringBody() {
-        $body = 'test';
         $response = $this->getMock(
             'Artax\\Http\\StdResponse',
             array('sendHeaders')
         );
-        
+        $body = 'test';
+        $response->setBody($body);
         $this->expectOutputString($body);
         $response->send();
     }
@@ -111,33 +117,11 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
         $expectedOutput = dechex(strlen($contents)) . "\r\n$contents\r\n0\r\n\r\n";
         
         $response = $this->getMock('Artax\\Http\\StdResponse', array('sendHeaders'));
-        
+        $response->setBody($body);
         $this->expectOutputString($expectedOutput);
         $response->send();
         
         fclose($body);
-    }
-    
-    /**
-     * @covers Artax\Http\StdResponse::send
-     * @covers Artax\Http\StdResponse::sendBody
-     * @expectedException RuntimeException
-     */
-    public function testSendThrowsExceptionOnStreamBodyOutputFailure() {
-        $body = fopen('php://memory', 'r+');
-        fwrite($body, 'test');
-        rewind($body);
-        
-        $response = $this->getMock(
-            'Artax\\Http\\StdResponse',
-            array('sendHeaders', 'outputBodyChunk')
-        );
-        
-        $response->expects($this->any())
-                 ->method('outputBodyChunk')
-                 ->will($this->returnValue(false));
-        
-        $response->send();
     }
     
     
@@ -233,7 +217,7 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
      * @expectedException Artax\Http\Exceptions\MessageParseException
      */
     public function testSetStartLineThrowsExceptionOnInvalidArgumentFormat($startLineStr) {
-        $response = new StdResponse;
+        $response = new StdResponse();
         $response->setStartLine($startLineStr);
     }
     
@@ -241,48 +225,11 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdResponse::setStartLine
      */
     public function testSetStartLineAssignsComponentProperties() {
-        $response = new StdResponse;
+        $response = new StdResponse();
         $response->setStartLine('HTTP/1.0 500 Internal Server Error');
         
         $this->assertEquals('1.0', $response->getHttpVersion());
         $this->assertEquals('500', $response->getStatusCode());
         $this->assertEquals('Internal Server Error', $response->getStatusDescription());
-    }
-    
-    public function provideInvalidRawHeaders() {
-        return array(
-            array('When in the chronicle of wasted time, I see descriptions of the fairest wights'),
-            array('X-Responseed-By'),
-            array("Content-Type: text/html\r\nContent-Length: 42"),
-            array("Vary: Accept,Accept-Charset,\r\nAccept-Encoding")
-        );
-    }
-    
-    /**
-     * @dataProvider provideInvalidRawHeaders
-     * @covers Artax\Http\StdResponse::setRawHeader
-     * @expectedException Artax\Http\Exceptions\MessageParseException
-     */
-    public function testSetRawHeaderThrowsExceptionOnInvalidFormat($rawHeaderStr) {
-        $response = new StdResponse;
-        $response->setRawHeader($rawHeaderStr);
-    }
-    
-    /**
-     * @covers Artax\Http\StdResponse::setRawHeader
-     */
-    public function testSetRawHeaderParsesValidFormats() {
-        $response = new StdResponse;
-        
-        $response->setRawHeader("Content-Type: text/html;q=0.9,\r\n\t*/*");
-        $this->assertEquals('text/html;q=0.9, */*', $response->getHeader('Content-Type'));
-        
-        $response->setRawHeader('Content-Encoding: gzip');
-        $this->assertEquals('gzip', $response->getHeader('Content-Encoding'));
-        
-        $response->setRawHeader("Content-Type: text/html;q=0.9,\r\n\t   application/json,\r\n */*");
-        $this->assertEquals('text/html;q=0.9, application/json, */*',
-            $response->getHeader('Content-Type')
-        );
     }
 }

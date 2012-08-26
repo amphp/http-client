@@ -41,7 +41,9 @@ class ResponseStatusTest extends PHPUnit_Framework_TestCase {
         $response = new StdResponse;
         $plugin = new ResponseStatus;
         
-        $this->assertNull($response->getStatusCode());
+        $response->setStatusCode(0);
+        
+        $this->assertEquals(0, $response->getStatusCode());
         $this->assertNull($plugin->setStatusCode($response));
         $this->assertEquals(200, $response->getStatusCode());
     }

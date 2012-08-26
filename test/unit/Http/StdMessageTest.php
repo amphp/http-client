@@ -120,4 +120,41 @@ class StdMessageTest extends PHPUnit_Framework_TestCase {
         $response = new StdResponse();
         $response->setAllHeaders('not an iterable -- should throw exception');
     }
+    
+    public function provideInvalidRawHeaders() {
+        return array(
+            array('When in the chronicle of wasted time, I see descriptions of the fairest wights'),
+            array('X-Responseed-By'),
+            array("Content-Type: text/html\r\nContent-Length: 42"),
+            array("Vary: Accept,Accept-Charset,\r\nAccept-Encoding")
+        );
+    }
+    
+    /**
+     * @dataProvider provideInvalidRawHeaders
+     * @covers Artax\Http\StdMessage::setRawHeader
+     * @expectedException Spl\ValueException
+     */
+    public function testSetRawHeaderThrowsExceptionOnInvalidFormat($rawHeaderStr) {
+        $response = new StdResponse;
+        $response->setRawHeader($rawHeaderStr);
+    }
+    
+    /**
+     * @covers Artax\Http\StdResponse::setRawHeader
+     */
+    public function testSetRawHeaderParsesValidFormats() {
+        $response = new StdResponse;
+        
+        $response->setRawHeader("Content-Type: text/html;q=0.9,\r\n\t*/*");
+        $this->assertEquals('text/html;q=0.9, */*', $response->getHeader('Content-Type'));
+        
+        $response->setRawHeader('Content-Encoding: gzip');
+        $this->assertEquals('gzip', $response->getHeader('Content-Encoding'));
+        
+        $response->setRawHeader("Content-Type: text/html;q=0.9,\r\n\t   application/json,\r\n */*");
+        $this->assertEquals('text/html;q=0.9, application/json, */*',
+            $response->getHeader('Content-Type')
+        );
+    }
 }

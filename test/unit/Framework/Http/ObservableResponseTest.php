@@ -1,6 +1,7 @@
 <?php
 
-use Artax\Framework\Http\ObservableResponse;
+use Artax\Framework\Http\ObservableResponse,
+    Artax\Events\Notifier;
 
 class ObservableResponseTest extends PHPUnit_Framework_TestCase {
     
@@ -123,14 +124,27 @@ class ObservableResponseTest extends PHPUnit_Framework_TestCase {
      * @runInSeparateProcess
      */
     public function testSendNotifiesListenersBeforeAndAfterOutput() {
-        $mediator = $this->getMock('Artax\\Events\\Mediator');
+        $mediator = new Notifier();
+        
+        $state = new \StdClass;
+        $state->before = false;
+        $state->after = false;
+        
+        $mediator->push('__sys.response.beforeSend', function() use ($state) {
+            $state->before = true;
+        });
+        
+        $mediator->push('__sys.response.afterSend', function() use ($state) {
+            $state->after = true;
+        });
+        
         $response = new ObservableResponse($mediator);
         $response->setStatusCode(200);
-        
-        $mediator->expects($this->exactly(2))
-                 ->method('notify')
-                 ->with($this->logicalOr('__sys.response.beforeSend', '__sys.response.afterSend'));
+        $response->setStatusDescription('OK');
         
         $response->send();
+        
+        $this->assertTrue($state->before);
+        $this->assertTrue($state->after);
     }
 }

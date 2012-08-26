@@ -10,10 +10,24 @@ if (!defined('ARTAX_SYSTEM_DIR')) {
  * --------------------------------------------------------------------
  */
 
-spl_autoload_register(function($cls) {
-    if (0 === strpos($cls, 'Artax\\')) {
-        $cls = str_replace('\\', '/', $cls);        
-        require ARTAX_SYSTEM_DIR . "/src/$cls.php";
+spl_autoload_register(function($class) {
+    if (0 === strpos($class, 'Artax\\')) {
+        $class = str_replace('\\', '/', $class);        
+        require ARTAX_SYSTEM_DIR . "/src/$class.php";
+    }
+});
+
+/*
+ * --------------------------------------------------------------------
+ * Register PHP-Datastructures autoloader.
+ * --------------------------------------------------------------------
+ */
+
+spl_autoload_register(function($class) {
+    if (0 === strpos($class, 'Spl\\')) {
+        $file = ARTAX_SYSTEM_DIR . "/vendor/PHP-Datastructures/src/";
+        $file.= str_replace('\\', '/', $class) . '.php';
+        require $file;
     }
 });
 
@@ -23,9 +37,9 @@ spl_autoload_register(function($cls) {
  * --------------------------------------------------------------------
  */
 
-spl_autoload_register(function($cls) {
-    if (0 === strpos($cls, 'org\\bovigo\\vfs\\')) {
-        $cls = str_replace('\\', '/', $cls);        
-        require ARTAX_SYSTEM_DIR . "/vendor/vfsStream/src/main/php/$cls.php";
+spl_autoload_register(function($class) {
+    if (0 === strpos($class, 'org\\bovigo\\vfs\\')) {
+        $class = str_replace('\\', '/', $class);        
+        require ARTAX_SYSTEM_DIR . "/vendor/vfsStream/src/main/php/$class.php";
     }
 });

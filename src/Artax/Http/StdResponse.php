@@ -114,7 +114,7 @@ class StdResponse extends StdMessage implements Response {
         $this->normalizeHeadersForSend();
         $this->sendHeaders();
         
-        if ($this->body) {
+        if (!empty($this->body)) {
             $this->sendBody();
         }
         
@@ -149,7 +149,8 @@ class StdResponse extends StdMessage implements Response {
      * @return void
      */
     protected function sendBody() {
-        if (!$entityBodyStream = $this->getBodyStream()) {
+        $entityBodyStream = $this->getBodyStream();
+        if (empty($entityBodyStream)) {
             echo $this->body;
             return;
         }

@@ -4,6 +4,7 @@ namespace Artax\Http;
 
 use RuntimeException,
     InvalidArgumentException,
+    Spl\ValueException,
     Artax\Http\Exceptions\MessageParseException;
 
 abstract class StdMessage implements Message {
@@ -152,7 +153,7 @@ abstract class StdMessage implements Message {
     /**
      * @param string $rawHeaderStr
      * @return void
-     * @throws InvalidArgumentException
+     * @throws Spl\ValueException
      * @todo Determine if generic "InvalidFormatException" might be a better option
      */
     public function setRawHeader($rawHeaderStr) {
@@ -171,7 +172,7 @@ abstract class StdMessage implements Message {
         }
         
         if (!preg_match(",^([^\s:]+):[ \t]*(.+)$,", $normalizedHeaderStr, $match)) {
-            throw new InvalidArgumentException(
+            throw new ValueException(
                 "Invalid raw header: $rawHeaderStr"
             );
         }

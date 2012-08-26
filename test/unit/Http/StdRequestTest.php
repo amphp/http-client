@@ -145,16 +145,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      */
     public function testMethodGetterReturnsMethodProperty() {
         $uri = $this->getMock('Artax\\Http\\Uri');
-        $request = new StdRequest($uri, 'delete', array());
-        $this->assertEquals('DELETE', $request->getMethod());
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::__construct
-     */
-    public function testNormalizeMethodUppercasesMethodArg() {
-        $uri = $this->getMock('Artax\\Http\\Uri');
-        $request = new StdRequest($uri, 'delete', array());
+        $request = new StdRequest($uri, 'DELETE', array());
         $this->assertEquals('DELETE', $request->getMethod());
     }
     
@@ -459,51 +450,5 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
             array("Content-Type: text/html\r\nContent-Length: 42"),
             array("Vary: Accept,Accept-Charset,\r\nAccept-Encoding")
         );
-    }
-    
-    /**
-     * @dataProvider provideInvalidRawHeaders
-     * @covers Artax\Http\StdRequest::setRawHeader
-     * @expectedException InvalidArgumentException
-     */
-    public function testSetRawHeaderThrowsExceptionOnInvalidArgumentFormat($rawHeaderStr) {
-        $request = new StdRequest('http://localhost', 'GET');
-        $request->setRawHeader($rawHeaderStr);
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::setRawHeader
-     */
-    public function testSetRawHeaderParsesValidFormats() {
-        $request = new StdRequest('http://localhost', 'GET');
-        
-        $request->setRawHeader("Content-Type: text/html;q=0.9,\r\n\t*/*");
-        $this->assertEquals('text/html;q=0.9, */*', $request->getHeader('Content-Type'));
-        
-        $request->setRawHeader('Content-Encoding: gzip');
-        $this->assertEquals('gzip', $request->getHeader('Content-Encoding'));
-        
-        $request->setRawHeader("Content-Type: text/html;q=0.9,\r\n\t   application/json,\r\n */*");
-        $this->assertEquals('text/html;q=0.9, application/json, */*',
-            $request->getHeader('Content-Type')
-        );
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::__toString
-     */
-    public function testToStringReturnsRawMessageStringOnSuccessfulValidation() {
-        $request = new StdRequest('http://localhost', 'POST');
-        $request->setBody('test');
-        $request->setHttpVersion('1.0');
-        $request->setHeader('Content-Type', 'text/plain');
-        
-        $expected = "POST / HTTP/1.0\r\n";
-        $expected.= "HOST: localhost\r\n";
-        $expected.= "CONTENT-TYPE: text/plain\r\n";
-        $expected.= "\r\n";
-        $expected.= "test";
-        
-        $this->assertEquals($expected, $request->__toString());
     }
 }
