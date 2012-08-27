@@ -441,9 +441,6 @@ class Client {
             
             foreach ($writeArr as $stateKey => $stream) {
                 $state = $this->multiStateMap[$stateKey];
-                if  (is_null($state)) {
-                    continue;
-                }
                 try {
                     $this->sendRequest($state);
                 } catch (ClientException $e) {
@@ -454,9 +451,6 @@ class Client {
             
             foreach ($readArr as $stateKey => $stream) {
                 $state = $this->multiStateMap[$stateKey];
-                if  (is_null($state)) {
-                    continue;
-                }
                 try {
                     $this->readResponse($state);
                 } catch (ClientException $e) {
