@@ -4,15 +4,16 @@ namespace Artax\Http;
 
 use RuntimeException,
     InvalidArgumentException,
+    Spl\TypeException,
     Spl\ValueException,
     Artax\Http\Exceptions\MessageParseException;
 
 abstract class StdMessage implements Message {
 
     /**
-     * @var array
+     * @var Artax\Http\HeaderCollection
      */
-    protected $headers = array();
+    protected $headers;
     
     /**
      * @var mixed
@@ -30,6 +31,13 @@ abstract class StdMessage implements Message {
     protected $httpVersion = '1.1';
     
     /**
+     * @return void
+     */
+    public function __construct() {
+        $this->headers = new HeaderCollection();
+    }
+    
+    /**
      * Assign an entity body to the HTTP message
      * 
      * @param mixed $bodyStringOrResource A string or stream resource
@@ -44,8 +52,8 @@ abstract class StdMessage implements Message {
      * Retrieve the HTTP message entity body in string form
      * 
      * If a resource stream is assigned to the body property, its entire contents will be read into
-     * memory and returned as a string. To access the stream resource directly without buffering
-     * its contents, use Message::getBodyStream().
+     * memory, cached for future reads and returned in string form. To access the stream resource
+     * directly without buffering its contents, use Message::getBodyStream().
      * 
      * @return string
      */
@@ -71,6 +79,25 @@ abstract class StdMessage implements Message {
     public function getBodyStream() {
         return is_resource($this->body) ? $this->body : null;
     }
+    
+    /**
+     * Assign the HTTP version adhered to by the message (without the "HTTP/" prefix)
+     * 
+     * @param string $httpVersion
+     * @return string
+     */
+    public function setHttpVersion($httpVersion) {
+        $this->httpVersion = $httpVersion;
+    }
+    
+    /**
+     * Retrieve the numerical HTTP version adhered to by the message (without the "HTTP/" prefix)
+     * 
+     * @return string
+     */
+    public function getHttpVersion() {
+        return $this->httpVersion;
+    }
 
     /**
      * Does the HTTP message contain the specified header field?
@@ -79,10 +106,7 @@ abstract class StdMessage implements Message {
      * @return bool
      */
     public function hasHeader($headerName) {
-        // Headers are case-insensitive:
-        // http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
-        $capsHeader = strtoupper($headerName);
-        return array_key_exists($capsHeader, $this->headers);
+        return $this->headers->hasHeader($headerName);
     }
 
     /**
@@ -90,63 +114,119 @@ abstract class StdMessage implements Message {
      * 
      * @param string $headerName
      * @return string
-     * @throws RuntimeException
+     * @throws Spl\DomainException
      * @todo Determine the best exception to throw
      */
     public function getHeader($headerName) {
-        if (!$this->hasHeader($headerName)) {
-            throw new RuntimeException();
-        }
-        
-        // Headers are case-insensitive:
-        // http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
-        $capsHeader = strtoupper($headerName);
-        return $this->headers[$capsHeader];
+        return $this->headers->getHeader($headerName);
     }
 
     /**
-     * Retrieve a traversable key-value list of header fields and their values
+     * Retrieve an array of header fields and their associated values
+     * 
+     * Headers with multiple values will be returned as an array. All others will be in string form.
      * 
      * @return array
      */
-    public function getAllHeaders() {
-        return $this->headers;
+    public function getHeadersArray() {
+        $return = array();
+        foreach ($this->headers as $header) {
+            $key = $header->getName();
+            $return[$key] = count($header) == 1 ? $header->getValue() : $header->getValueArray();
+        }
+        return $return;
     }
     
     /**
-     * Assign a message header
+     * Retrieve the message headers as they would appear in an HTTP message
+     * 
+     * @return string
+     */
+    public function getRawHeadersString() {
+        return $this->headers->__toString();
+    }
+    
+    /**
+     * Assign a message header (replaces previous assignment)
      * 
      * @param string $headerName
      * @param string $value
      * @return void
+     * @throws Spl\TypeException
+     * @throws Spl\ValueException
      */
     public function setHeader($headerName, $value) {
-        // Headers are case-insensitive as per the HTTP spec:
-        // http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
-        $normalizedHeader = rtrim(strtoupper($headerName), ': ');
-        $this->headers[$normalizedHeader] = $value;
+        $this->headers->setHeader($headerName, $value);
     }
     
     /**
-     * Assign all header values from a traversable key-value list of header fields and their values
+     * Assign header or append to a matching previously assigned header if already set
+     * 
+     * If the header is already assigned, the new value will be appended to the current value
+     * using a leading comma. Otherwise, this method behaves the same as `setHeader()`.
+     * 
+     * @param string $headerName
+     * @param string $value
+     * @return void
+     * @throws Spl\TypeException
+     * @throws Spl\ValueException
+     */
+    public function appendHeader($headerName, $value) {
+        $this->headers->appendHeader($headerName, $value);
+    }
+    
+    /**
+     * Clears previously assigned values and adds new headers from a key-value traversable
+     * 
+     * Any previously assigned headers are cleared.
      * 
      * @param mixed $iterable
      * @return void
-     * @throws InvalidArgumentException
+     * @throws Spl\TypeException
+     * @throws Spl\ValueException
      */
     public function setAllHeaders($iterable) {
-        if (!($iterable instanceof Traversable
-            || $iterable instanceof StdClass
-            || is_array($iterable)
-        )) {
+        if (!$this->validateIterable($iterable)) {
             $type = is_object($iterable) ? get_class($iterable) : gettype($iterable);
-            throw new InvalidArgumentException(
-                'Only an array, StdClass or Traversable object may be used to assign headers: ' .
-                "$type specified"
+            throw new TypeException(
+                get_class($this) . '::setAllHeaders expects an array, StdClass or Traversable ' .
+                "at Argument 1: $type specified"
             );
         }
+        
+        $this->headers->removeAllHeaders();
+        
         foreach ($iterable as $headerName => $value) {
-            $this->setHeader($headerName, $value);
+            $this->headers->setHeader($headerName, $value);
+        }
+    }
+    
+    /**
+     * @param mixed $iterable
+     * @return bool
+     */
+    protected function validateIterable($iter) {
+        return $iter instanceof Traversable || $iter instanceof StdClass || is_array($iter);
+    }
+    
+    /**
+     * Assign or append headers from a key-value traversable
+     * 
+     * @param mixed $iterable
+     * @return void
+     * @throws Spl\TypeException
+     */
+    public function appendAllHeaders($iterable) {
+        if (!$this->validateIterable($iterable)) {
+            $type = is_object($iterable) ? get_class($iterable) : gettype($iterable);
+            throw new TypeException(
+                get_class($this) . '::appendAllHeaders expects an array, StdClass or Traversable ' .
+                "at Argument 1: $type specified"
+            );
+        }
+        
+        foreach ($iterable as $headerName => $value) {
+            $this->headers->appendHeader($headerName, $value);
         }
     }
     
@@ -154,7 +234,6 @@ abstract class StdMessage implements Message {
      * @param string $rawHeaderStr
      * @return void
      * @throws Spl\ValueException
-     * @todo Determine if generic "InvalidFormatException" might be a better option
      */
     public function setRawHeader($rawHeaderStr) {
         // rfc2616-4.2:
@@ -171,41 +250,41 @@ abstract class StdMessage implements Message {
             $normalizedHeaderStr = rtrim($rawHeaderStr);
         }
         
-        if (!preg_match(",^([^\s:]+):[ \t]*(.+)$,", $normalizedHeaderStr, $match)) {
+        if (!preg_match(",^([^\s:]+):[ \t]*(.+)?$,", $normalizedHeaderStr, $match)) {
             throw new ValueException(
                 "Invalid raw header: $rawHeaderStr"
             );
         }
         
-        $this->setHeader($match[1], $match[2]);
+        $header = $match[1];
+        $value = isset($match[2]) ? $match[2] : '';
+        $this->headers->setHeader($header, $value);
     }
     
     /**
-     * Set all message headers from a raw string -- will clear all previously assigned headers.
+     * Set all message headers from a raw string
+     * 
+     * Any previously assigned headers are cleared.
      * 
      * @param string $rawHeaderStr
      * @return void
-     * @throws MessageParseException
+     * @throws Spl\ValueException
      */
     public function setAllRawHeaders($rawHeaderStr) {
-        $this->headers = array();
+        $this->headers->removeAllHeaders();
         
         $normalized = preg_replace(",\r\n[ \t]+,", ' ', $rawHeaderStr);
         
-        if (!preg_match_all(",^([^\s:]+):[ \t]*(.+)$,m", $normalized, $matches, PREG_SET_ORDER)) {
-            throw new MessageParseException(
+        if (!preg_match_all(",^([^\s:]+):[ \t]*(.+)?$,m", $normalized, $matches, PREG_SET_ORDER)) {
+            throw new ValueException(
                 "Invalid raw headers: no valid headers found"
             );
         }
         
         foreach ($matches as $match) {
             $header = $match[1];
-            $value  = rtrim($match[2]);
-            if ($this->hasHeader($header)) {
-                $this->setHeader($header, $this->getHeader($header) . ',' . $value);
-            } else {
-                $this->setHeader($header, $value);
-            }
+            $value = isset($match[2]) ? rtrim($match[2]) : '';
+            $this->headers->appendHeader($header, $value);
         }
     }
     
@@ -216,10 +295,7 @@ abstract class StdMessage implements Message {
      * @return void
      */
     public function removeHeader($headerName) {
-        // Headers are case-insensitive as per the HTTP spec:
-        // http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
-        $capsHeader = strtoupper($headerName);
-        unset($this->headers[$capsHeader]);
+        $this->headers->removeHeader($headerName);
     }
     
     /**
@@ -227,26 +303,7 @@ abstract class StdMessage implements Message {
      * 
      * @return void
      */
-    public function clearAllHeaders() {
-        $this->headers = array();
-    }
-    
-    /**
-     * Retrieve the numerical HTTP version adhered to by the message (without the "HTTP/" prefix)
-     * 
-     * @return string
-     */
-    public function getHttpVersion() {
-        return $this->httpVersion;
-    }
-    
-    /**
-     * Assign the HTTP version adhered to by the message (without the "HTTP/" prefix)
-     * 
-     * @param string $httpVersion
-     * @return string
-     */
-    public function setHttpVersion($httpVersion) {
-        $this->httpVersion = $httpVersion;
+    public function removeAllHeaders() {
+        $this->headers->removeAllHeaders();
     }
 }

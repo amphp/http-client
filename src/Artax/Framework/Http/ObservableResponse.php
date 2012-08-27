@@ -33,6 +33,8 @@ class ObservableResponse extends StdResponse {
      * @notifies sys.response.new(StdResponse $response)
      */
     public function __construct(Mediator $mediator) {
+        parent::__construct();
+        
         $this->mediator = $mediator;
         $this->notify('__sys.response.new');
     }

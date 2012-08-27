@@ -42,7 +42,12 @@ interface Message {
     /**
      * Retrieve a traversable key-value list of header fields and their values
      */
-    function getAllHeaders();
+    function getHeadersArray();
+    
+    /**
+     * Retrieve the message headers as they would appear in an HTTP message
+     */
+    function getRawHeadersString();
 
     /**
      * Assign a message header
@@ -81,9 +86,9 @@ interface Message {
     function removeHeader($headerName);
     
     /**
-     * Clear all assigned headers from the message
+     * Remove all assigned headers from the message
      */
-    function clearAllHeaders();
+    function removeAllHeaders();
     
     /**
      * Retrieve the numerical HTTP version supported by the message (without the "HTTP/" prefix)

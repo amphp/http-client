@@ -68,25 +68,28 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdResponse::send
      * @covers Artax\Http\StdResponse::normalizeHeadersForSend
      */
-    public function testSendSetsTransferEncodingHeaderOnStreamableResponseBody() {
+    public function testSendSetsTransferEncodingChunkedHeaderOnStreamableResponseBody() {
         $body = fopen('php://memory', 'r+');
         fwrite($body, 'test');
         rewind($body);
         
-        $response = $this->getMock('Artax\\Http\\StdResponse', array('sendHeaders', 'sendBody'));
+        $response = $this->getMock(
+            'Artax\\Http\\StdResponse',
+            array('sendHeaders', 'sendBody')
+        );
         $response->setAllHeaders(array(
-            'CONTENT-TYPE' => 'text/html',
+            'Content-Type' => 'text/html',
             'CONTENT-LENGTH' => 42
         ));
         $response->setBody($body);
         $response->send();
         
         $expectedHeaders = array(
-            'CONTENT-TYPE' => 'text/html',
-            'TRANSFER-ENCODING' => 'chunked'
+            'Content-Type' => 'text/html',
+            'Transfer-Encoding' => 'chunked'
         );
         
-        $this->assertEquals($expectedHeaders, $response->getAllHeaders());
+        $this->assertEquals($expectedHeaders, $response->getHeadersArray());
     }
     
     /**

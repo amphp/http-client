@@ -67,7 +67,7 @@ class StdMessageTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Http\StdMessage::getHeader
-     * @expectedException RuntimeException
+     * @expectedException Spl\DomainException
      */
     public function testHeaderGetterThrowsExceptionOnInvalidHeaderRequest() {
         $response = new StdResponse;
@@ -97,7 +97,7 @@ class StdMessageTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers Artax\Http\StdMessage::getAllHeaders
+     * @covers Artax\Http\StdMessage::getHeadersArray
      */
     public function testGetAllHeadersReturnsHeaderStorageArray() {
         $response = new StdResponse;
@@ -105,16 +105,16 @@ class StdMessageTest extends PHPUnit_Framework_TestCase {
         $response->setHeader('Content-Length', 42);
         
         $expected = array(
-            'CONTENT-TYPE' => 'text/html',
-            'CONTENT-LENGTH' => 42
+            'Content-Type' => 'text/html',
+            'Content-Length' => 42
         );
         
-        $this->assertEquals($expected, $response->getAllHeaders());
+        $this->assertEquals($expected, $response->getHeadersArray());
     }
     
     /**
      * @covers Artax\Http\StdMessage::setAllHeaders
-     * @expectedException InvalidArgumentException
+     * @expectedException Spl\TypeException
      */
     public function testSetAllHeadersThrowsExceptionOnInvalidIterable() {
         $response = new StdResponse();

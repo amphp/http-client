@@ -939,12 +939,7 @@ class Client {
      * @return string
      */
     protected function buildRawRequestHeaders(Request $request) {
-        $rawHeaders = $request->getRequestLine() . "\r\n";
-        foreach ($request->getAllHeaders() as $header => $value) {
-            $rawHeaders.= "$header: $value\r\n";
-        }
-        
-        return "$rawHeaders\r\n";
+        return $request->getRequestLine() . "\r\n" . $request->getRawHeadersString() . "\r\n";
     }
     
     /**
@@ -1084,7 +1079,7 @@ class Client {
         }
         
         $newRequest = new StdRequest($newLocation, $state->request->getMethod());
-        $newRequest->setAllHeaders($state->request->getAllHeaders());
+        $newRequest->setAllHeaders($state->request->getHeadersArray());
         $newRequest->setHttpVersion($state->request->getHttpVersion());
         
         if ($newRequest->allowsEntityBody()) {

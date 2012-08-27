@@ -29,7 +29,6 @@ $requests = array(
     new StdRequest('http://stackoverflow.com/questions/tagged/http', 'GET'),
     new StdRequest('http://stackoverflow.com/questions/tagged/http', 'GET'),
     new StdRequest('http://stackoverflow.com/questions/tagged/xml', 'GET'),
-
     new StdRequest('http://www.google.com', 'GET'),
     new StdRequest('http://www.wikipedia.org', 'GET'),
     new StdRequest('http://www.nytimes.com', 'GET'),
@@ -49,7 +48,10 @@ $ioWriteListener = function($request, $data) use ($aggregates) {
     echo $data;
     $aggregates->bytesSent += strlen($data);
 };
-$ioReadListener = function($request, $data) use ($aggregates) {
+$ioReadBodyListener = function($request, $data) use ($aggregates) {
+    $aggregates->bytesRecd += strlen($data);
+};
+$ioReadHeaderListener = function($request, $data) use ($aggregates) {
     $aggregates->bytesRecd += strlen($data);
 };
 $redirectListener = function($request, $data) use ($aggregates) {
@@ -78,8 +80,8 @@ $mediator->addListener(Client::EVENT_CONN_CHECKOUT, $connCheckoutListener);
 $mediator->addListener(Client::EVENT_CONN_CHECKIN, $connCheckinListener);
 $mediator->addListener(Client::EVENT_IO_WRITE_HEADERS, $ioWriteListener);
 $mediator->addListener(Client::EVENT_IO_WRITE_BODY, $ioWriteListener);
-$mediator->addListener(Client::EVENT_IO_READ_HEADERS, $ioReadListener);
-$mediator->addListener(Client::EVENT_IO_READ_BODY, $ioReadListener);
+$mediator->addListener(Client::EVENT_IO_READ_HEADERS, $ioReadHeaderListener);
+$mediator->addListener(Client::EVENT_IO_READ_BODY, $ioReadBodyListener);
 $mediator->addListener(Client::EVENT_REDIRECT, $redirectListener);
 //$mediator->addListener(Client::EVENT_RESPONSE_COMPLETE, $responseListener);
 

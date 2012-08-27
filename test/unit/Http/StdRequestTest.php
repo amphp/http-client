@@ -272,27 +272,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
         $request = new StdRequest($uri, 'CONNECT');
         $request->setHeader('Content-Type', 'test');
         
-        $expected = "CONNECT localhost:8096 HTTP/1.1\r\nCONTENT-TYPE: test\r\n\r\n";
-        $this->assertEquals($expected, $request->__toString());
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::__toString
-     * @covers Artax\Http\StdRequest::getRequestLine
-     */
-    public function testToStringAutoAppliesHostFromUri() {
-        $uri = new StdUri('http://user:pass@localhost:8096/test.html?var=42');
-        $headers = array('Accept' => 'text/*', 'Host' => 'invalid');
-        $body = 'We few, we happy few';
-        $request = new StdRequest($uri, 'POST');
-        $request->setAllHeaders($headers);
-        $request->setBody($body);
-        
-        $expected = "POST /test.html?var=42 HTTP/1.1\r\n";
-        $expected.= "HOST: user:********@localhost:8096\r\n";
-        $expected.= "ACCEPT: text/*\r\n\r\n";
-        $expected.= $body;
-        
+        $expected = "CONNECT localhost:8096 HTTP/1.1\r\nContent-Type: test\r\n\r\n";
         $this->assertEquals($expected, $request->__toString());
     }
     
@@ -414,7 +394,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdRequest::__construct
      * @covers Artax\Http\StdRequest::setHeader
      * @covers Artax\Http\StdRequest::setAllHeaders
-     * @expectedException InvalidArgumentException
+     * @expectedException Spl\TypeException
      */
     public function testSetAllHeadersThrowsExceptionOnInvalidIterable() {
         $request = new StdRequest('http://localhost', 'GET');

@@ -30,6 +30,8 @@ class StdRequest extends StdMessage implements Request {
      * @throws InvalidArgumentException
      */
     public function __construct($uri, $method) {
+        parent::__construct();
+        
         $this->uri = $uri instanceof Uri ? $uri : $this->buildUriFromString($uri);
         
         // http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html#sec5.1.1
@@ -311,14 +313,7 @@ class StdRequest extends StdMessage implements Request {
     public function __toString() {
         if (strcmp('CONNECT', $this->getMethod())) {
             $msg = $this->getRequestLine() . "\r\n";
-            $msg.= 'HOST: ' . $this->getAuthority() . "\r\n";
-            
-            $headers = $this->getAllHeaders();
-            unset($headers['HOST']);
-            foreach ($headers as $header => $value) {
-                $msg.= "$header: $value\r\n";
-            }
-            
+            $msg.= $this->headers->__toString();
             $msg.= "\r\n";
             $msg.= $this->body ? $this->getBody() : '';
             
@@ -335,10 +330,7 @@ class StdRequest extends StdMessage implements Request {
     protected function buildConnectMessage() {
         $msg = 'CONNECT ' . $this->getAuthority() . ' ';
         $msg.= 'HTTP/' . $this->getHttpVersion() . "\r\n";
-        
-        foreach ($this->getAllHeaders() as $header => $value) {
-            $msg.= "$header: $value\r\n";
-        }
+        $msg.= $this->headers->__toString();
         $msg.= "\r\n";
         
         return $msg;

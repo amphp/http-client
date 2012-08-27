@@ -27,11 +27,7 @@ class StdResponse extends StdMessage implements Response {
      */
     public function __toString() {
         $msg = $this->getStartLine() . "\r\n";
-        
-        foreach ($this->headers as $header => $value) {
-            $msg.= "$header: $value\r\n";
-        }
-        
+        $msg.= $this->headers->__toString();
         $msg.= "\r\n";
         $msg.= $this->getBody();
         
@@ -122,18 +118,6 @@ class StdResponse extends StdMessage implements Response {
     }
     
     /**
-     * Formats and sends all headers
-     * 
-     * @return void
-     */
-    protected function sendHeaders() {
-        header($this->getStartLine());
-        foreach ($this->headers as $header => $value) {
-            header($header . ': ' . $value);
-        }
-    }
-    
-    /**
      * @return void
      */
     protected function normalizeHeadersForSend() {
@@ -143,6 +127,16 @@ class StdResponse extends StdMessage implements Response {
             $this->setHeader('Transfer-Encoding', 'chunked');
             $this->removeHeader('Content-Length');
         }
+    }
+    
+    /**
+     * Formats and sends all headers
+     * 
+     * @return void
+     */
+    protected function sendHeaders() {
+        header($this->getStartLine());
+        $this->headers->send();
     }
     
     /**
