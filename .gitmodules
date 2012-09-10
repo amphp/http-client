@@ -1,6 +1,4 @@
-[submodule "vendor/vfsStream"]
-	path = vendor/vfsStream
-	url = git://github.com/mikey179/vfsStream.git
+
 [submodule "vendor/PHP-Datastructures"]
 	path = vendor/PHP-Datastructures
 	url = git://github.com/morrisonlevi/PHP-Datastructures.git
