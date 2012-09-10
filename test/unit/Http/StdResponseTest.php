@@ -89,7 +89,34 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
             'Transfer-Encoding' => 'chunked'
         );
         
-        $this->assertEquals($expectedHeaders, $response->getHeadersArray());
+        $this->assertEquals($expectedHeaders, $response->getAllHeaders());
+    }
+    
+    /**
+     * @covers Artax\Http\StdResponse::send
+     * @covers Artax\Http\StdResponse::normalizeHeadersForSend
+     */
+    public function testSendAddsContentLengthHeaderForNonStreamEntityBody() {
+        $body = 'body text';
+        $response = $this->getMock(
+            'Artax\\Http\\StdResponse',
+            array('sendHeaders', 'sendBody')
+        );
+        $response->setBody($body);
+        $response->send();
+        $this->assertEquals(strlen($body), $response->getHeader('Content-Length'));
+    }
+    
+    /**
+     * @covers Artax\Http\StdResponse::getStartLine
+     */
+    public function testStartLineGetterReturnsRawStartLineString() {
+        $response = new StdResponse();
+        $response->setStatusCode(405);
+        $response->setStatusDescription('Method Not Allowed');
+        $response->setHttpVersion('1.0');
+        
+        $this->assertEquals('HTTP/1.0 405 Method Not Allowed', $response->getStartLine());
     }
     
     /**
@@ -197,7 +224,7 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
     /**
      * @covers Artax\Http\StdResponse::setBody
      */
-    public function testSetBodyDoesAndReturnsNull() {
+    public function testSetBodyAssignsEntityBodyAndReturnsNull() {
         $response = new StdResponse();
         $this->assertNull($response->setBody('We few, we happy few.'));
         $this->assertEquals('We few, we happy few.', $response->getBody());

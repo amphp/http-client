@@ -2,7 +2,8 @@
 
 namespace Artax\Http;
 
-use RuntimeException;
+use RuntimeException,
+    Artax\Uri;
 
 class SuperglobalRequestDetector {
     
@@ -68,10 +69,10 @@ class SuperglobalRequestDetector {
     }
     
     /**
-     * Generates a StdUri from a superglobal $_SERVER array
+     * Generates a Uri from a superglobal $_SERVER array
      * 
      * @param array $_server
-     * @return StdUri
+     * @return Uri
      */
     public function detectUri($_server) {
         
@@ -87,12 +88,12 @@ class SuperglobalRequestDetector {
         $uri = "$scheme://$host" . $path;
         $uri.= $query ? "?$query" : '';
         
-        return new StdUri($uri);
+        return new Uri($uri);
     }
     
     /**
      * @param array $_server
-     * @return StdUri
+     * @return Uri
      */
     private function attemptProxyStyleParse($_server) {
         // If the raw HTTP request message arrives with a proxy-style absolute URI in the
@@ -101,7 +102,7 @@ class SuperglobalRequestDetector {
         if (isset($_server['REQUEST_URI'])
             && parse_url($_server['REQUEST_URI'], PHP_URL_SCHEME)
         ) {
-            return new StdUri($_server['REQUEST_URI']);
+            return new Uri($_server['REQUEST_URI']);
         }
         
         return null;

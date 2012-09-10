@@ -27,7 +27,7 @@ class StdResponse extends StdMessage implements Response {
      */
     public function __toString() {
         $msg = $this->getStartLine() . "\r\n";
-        $msg.= $this->headers->__toString();
+        $msg.= $this->getRawHeaders();
         $msg.= "\r\n";
         $msg.= $this->getBody();
         
@@ -136,7 +136,9 @@ class StdResponse extends StdMessage implements Response {
      */
     protected function sendHeaders() {
         header($this->getStartLine());
-        $this->headers->send();
+        foreach ($this->headers as $header) {
+            $header->send();
+        }
     }
     
     /**

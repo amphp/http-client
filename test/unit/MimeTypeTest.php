@@ -32,7 +32,7 @@ class MimeTypeTest extends PHPUnit_Framework_TestCase {
      * @dataProvider provideInvalidMimeTypes
      * @covers Artax\MimeType::__construct
      * @covers Artax\MimeType::parse
-     * @expectedException InvalidArgumentException
+     * @expectedException Spl\ValueException
      */
     public function testConstructorThrowsExceptionOnInvalidMimeFormat($invalidMime) {
         $mimeType = new MimeType($invalidMime);

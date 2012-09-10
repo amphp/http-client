@@ -2,4 +2,6 @@
 
 namespace Artax\Http\Exceptions;
 
-class NotRedirectedException extends ClientException {}
+use RuntimeException;
+
+class NotRedirectedException extends RuntimeException {}

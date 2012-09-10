@@ -1,34 +1,19 @@
 <?php
-/**
- * MIME Type MediaRange Class File
- * 
- * PHP 5.3+
- * 
- * @category     Artax
- * @author       Daniel Lowrey <rdlowrey@gmail.com>
- * @license      All code subject to the terms of the LICENSE file in the project root
- * @version      ${project.version}
- */
+
 namespace Artax;
 
-use InvalidArgumentException;
+use Spl\ValueException;
 
-/**
- * Extends MimeType to allow wildcards to specify MIME media ranges
- * 
- * @category     Artax
- * @author       Daniel Lowrey <rdlowrey@gmail.com>
- */
 class MediaRange extends MimeType {
-    
+
     /**
      * @param string $mediaRangeStr
      * @return void
-     * @throws InvalidArgumentException
+     * @throws Spl\ValueException
      */
     public function __construct($mediaRangeStr) {
         // rfc3023-sec7: No */*+suffix ranges:
-        // Section 14.1 of HTTP[RFC2616] does not support Accept headers of the form 
+        // Section 14.1 of HTTP[RFC2616] does not support Accept headers of the form
         // "Accept: */*+xml" and so this header MUST NOT be used in this way.
         $this->matchPattern = (
             '{^'.
@@ -38,12 +23,14 @@ class MediaRange extends MimeType {
             '$}'
         );
         $this->parse($mediaRangeStr);
-        
+
         if ('*' == $this->getTopLevelType() && '*' !== $this->getSubType()) {
-            throw new InvalidArgumentException("Invalid MIME type specified: $mediaRangeStr");
+            throw new ValueException(
+                "Invalid MIME type specified: $mediaRangeStr"
+            );
         }
     }
-    
+
     /**
      * @param MimeType $mimeType
      * @return bool
@@ -52,11 +39,11 @@ class MediaRange extends MimeType {
         if ($this->__toString() == '*/*'
             || $this->__toString() == $mimeType->__toString()
             || ('*' == $this->getSubType()
-                && $mimeType->getTopLevelType() == $this->getTopLevelType())
-        ) {
+                && $mimeType->getTopLevelType() == $this->getTopLevelType()
+        )) {
             return true;
         }
-        
+
         return false;
     }
 }

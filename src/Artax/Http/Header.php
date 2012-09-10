@@ -27,14 +27,14 @@ class Header implements Iterator, Countable {
      * @throws Spl\ValueException
      */
     public function __construct($name, $value) {
-        if (!is_string($name)) {
+        if (!(is_string($name) || (is_object($name) && method_exists($name, '__toString')))) {
             $type = is_object($name) ? get_class($name) : gettype($name);
             throw new TypeException(
                 get_class($this) . '::__construct expects a string value at Argument 1: ' .
                 "$type provided"
             );
         }
-        $this->name = $name;
+        $this->name = rtrim($name, ': ');
         $this->setValue($value);
     }
     
@@ -85,9 +85,11 @@ class Header implements Iterator, Countable {
             return true;
         } elseif (!is_array($value)) {
             return false;
+        } elseif (empty($value)) {
+            return false;
         }
         
-        return $value === array_filter($value, 'is_string');
+        return $value === array_filter($value, 'is_scalar');
     }
     
     /**

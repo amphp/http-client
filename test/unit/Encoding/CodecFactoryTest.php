@@ -34,7 +34,7 @@ class CodecFactoryTest extends BaseEncodingTest {
     
     /**
      * @covers Artax\Encoding\CodecFactory::make
-     * @expectedException DomainException
+     * @expectedException Spl\DomainException
      */
     public function testMakeThrowsExceptionOnInvalidCodecTypeArgument() {
         $codecFactory = new CodecFactory;

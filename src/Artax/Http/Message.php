@@ -42,12 +42,12 @@ interface Message {
     /**
      * Retrieve a traversable key-value list of header fields and their values
      */
-    function getHeadersArray();
+    function getAllHeaders();
     
     /**
      * Retrieve the message headers as they would appear in an HTTP message
      */
-    function getRawHeadersString();
+    function getRawHeaders();
 
     /**
      * Assign a message header

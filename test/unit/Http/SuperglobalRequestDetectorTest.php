@@ -1,7 +1,7 @@
 <?php
 
 use Artax\Http\SuperglobalRequestDetector,
-    Artax\Http\StdUri;
+    Artax\Uri;
 
 class SuperglobalRequestDetectorTest extends PHPUnit_Framework_TestCase {
     

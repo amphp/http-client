@@ -22,7 +22,7 @@ class MediaRangeTest extends PHPUnit_Framework_TestCase {
      * @dataProvider provideInvalidMediaRanges
      * @covers Artax\MediaRange::__construct
      * @covers Artax\MediaRange::parse
-     * @expectedException InvalidArgumentException
+     * @expectedException Spl\ValueException
      */
     public function testConstructorThrowsExceptionOnInvalidMediaRangeFormat($invalidRange) {
         $mediaRange = new MediaRange($invalidRange);

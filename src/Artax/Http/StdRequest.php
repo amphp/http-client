@@ -2,14 +2,14 @@
 
 namespace Artax\Http;
 
-use DomainException,
-    RuntimeException,
-    InvalidArgumentException;
+use Spl\DomainException,
+    Artax\Http\Exceptions\RequestBodyNotAllowedException,
+    Artax\Uri;
 
 class StdRequest extends StdMessage implements Request {
     
     /**
-     * @var StdUri
+     * @var Artax\Uri
      */
     protected $uri;
     
@@ -24,35 +24,15 @@ class StdRequest extends StdMessage implements Request {
     protected $queryParameters;
 
     /**
-     * @param mixed $uri A valid URI string or instance of Artax\Http\Uri
+     * @param string $uri
      * @param string $method
      * @return void
-     * @throws InvalidArgumentException
+     * @throws Spl\ValueException
      */
     public function __construct($uri, $method) {
-        parent::__construct();
-        
-        $this->uri = $uri instanceof Uri ? $uri : $this->buildUriFromString($uri);
-        
-        // http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html#sec5.1.1
-        // "The method is case-sensitive"
+        $this->uri = new Uri($uri);
         $this->method = $method;
-        
         $this->queryParameters = $this->parseParametersFromString($this->uri->getQuery());
-    }
-    
-    /**
-     * @param string $uri
-     * @return Artax\Http\StdUri
-     */
-    protected function buildUriFromString($uri) {
-        try {
-            return new StdUri($uri);
-        } catch (InvalidArgumentException $e) {
-            throw new InvalidArgumentException(
-                "Invalid URI specified at Argument 1 in " . get_class($this) . "::__construct: $uri"
-            );
-        }
     }
     
     /**
@@ -73,11 +53,13 @@ class StdRequest extends StdMessage implements Request {
      * 
      * @param string $body
      * @return void
-     * @todo Determine the best exception to throw if message method doesn't support an entity body
+     * @throws Artax\Http\Exceptions\RequestBodyNotAllowedException
      */
     public function setBody($body) {
         if ($body && !$this->allowsEntityBody()) {
-            throw new RuntimeException();
+            throw new RequestBodyNotAllowedException(
+                "Entity bodies are disabled for requests made via the {$this->method} method"
+            );
         } else {
             parent::setBody($body);
         }
@@ -177,13 +159,6 @@ class StdRequest extends StdMessage implements Request {
     /**
      * @return string
      */
-    public function getRawUri() {
-        return $this->uri->getRawUri();
-    }
-    
-    /**
-     * @return string
-     */
     public function getScheme() {
         return $this->uri->getScheme();
     }
@@ -233,22 +208,8 @@ class StdRequest extends StdMessage implements Request {
     /**
      * @return string
      */
-    public function getRawAuthority() {
-        return $this->uri->getRawAuthority();
-    }
-    
-    /**
-     * @return string
-     */
     public function getUserInfo() {
         return $this->uri->getUserInfo();
-    }
-    
-    /**
-     * @return string
-     */
-    public function getRawUserInfo() {
-        return $this->uri->getRawUserInfo();
     }
     
     /**
@@ -262,11 +223,13 @@ class StdRequest extends StdMessage implements Request {
     /**
      * @param string $parameter
      * @return string
-     * @todo Determine appropriate exception for invalid parameter request
+     * @throws Spl\DomainException
      */
     public function getQueryParameter($parameter) {
         if (!$this->hasQueryParameter($parameter)) {
-            throw new RuntimeException;
+            throw new DomainException(
+                "The specified query parameter does not exist: $parameter"
+            );
         }
         return $this->queryParameters[$parameter];
     }
@@ -313,7 +276,7 @@ class StdRequest extends StdMessage implements Request {
     public function __toString() {
         if (strcmp('CONNECT', $this->getMethod())) {
             $msg = $this->getRequestLine() . "\r\n";
-            $msg.= $this->headers->__toString();
+            $msg.= $this->getRawHeaders();
             $msg.= "\r\n";
             $msg.= $this->body ? $this->getBody() : '';
             
@@ -330,7 +293,7 @@ class StdRequest extends StdMessage implements Request {
     protected function buildConnectMessage() {
         $msg = 'CONNECT ' . $this->getAuthority() . ' ';
         $msg.= 'HTTP/' . $this->getHttpVersion() . "\r\n";
-        $msg.= $this->headers->__toString();
+        $msg.= $this->getRawHeaders();
         $msg.= "\r\n";
         
         return $msg;
