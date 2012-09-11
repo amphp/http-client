@@ -12,14 +12,14 @@ class FormEncodedBody {
     protected $bodyParameters = array();
 
     /**
-     * @param Request $request
+     * @param Artax\Http\Request $request
      */
     public function __construct(Request $request) {
         $this->assignValuesFromEntityBody($request);
     }
 
     /**
-     * @param Request $request
+     * @param Artax\Http\Request $request
      * @return void
      */
     protected function assignValuesFromEntityBody(Request $request) {
@@ -31,7 +31,7 @@ class FormEncodedBody {
     }
 
     /**
-     * @param Request $request
+     * @param Artax\Http\Request $request
      * @return bool
      */
     protected function hasFormEncodedBody(Request $request) {
@@ -57,10 +57,13 @@ class FormEncodedBody {
      *
      * @param string $parameterName
      * @return string
+     * @throws Spl\DomainException
      */
     public function getBodyParameter($parameterName) {
         if (!$this->hasBodyParameter($parameterName)) {
-            throw new DomainException;
+            throw new DomainException(
+                "The specified body parameter does not exist: $parameterName"
+            );
         }
         return $this->bodyParameters[$parameterName];
     }
