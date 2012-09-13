@@ -4,20 +4,20 @@ namespace Artax\Http;
 
 use Artax\Http\Exceptions\NotRedirectedException;
 
-class RedirectionResponse extends StdResponse {
+class ChainableResponse extends StdResponse {
     
     /**
-     * @var RedirectionResponse
+     * @var ChainableResponse
      */
     protected $redirectedFrom;
     
     /**
      * Assign the response object from which this response was redirected
      * 
-     * @param RedirectionResponse $redirectedFrom
+     * @param ChainableResponse $redirectedFrom
      * @return void
      */
-    public function setPreviousResponse(RedirectionResponse $redirectedFrom) {
+    public function setPreviousResponse(ChainableResponse $redirectedFrom) {
         $this->redirectedFrom = $redirectedFrom;
     }
     
@@ -49,7 +49,7 @@ class RedirectionResponse extends StdResponse {
     /**
      * Get the response whose redirection resulted in the current response
      * 
-     * @return RedirectionResponse
+     * @return ChainableResponse
      * @throws NotRedirectedException
      */
     public function getPreviousResponse() {

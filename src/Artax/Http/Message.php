@@ -78,6 +78,21 @@ interface Message {
      */
     function setAllRawHeaders($rawHeaderStr);
     
+	/**
+     * Append a header to the existing collection
+     *
+     * @param string $headerName
+     * @param mixed $value A string or single-dimensional array of strings
+     */
+    function appendHeader($headerName, $value);
+	
+	/**
+     * Assign or append headers from a traversable without clearing previously assigned values
+     *
+     * @param mixed $iterable
+     */
+    function appendAllHeaders($iterable);
+	
     /**
      * Remove the specified header from the message
      * 
