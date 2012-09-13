@@ -4,22 +4,22 @@ namespace Artax;
 
 use Iterator,
     Countable,
-	Exception,
+    Exception,
     Spl\DomainException,
     Artax\Http\Response;
 
 class MultiResponse implements Iterator, Countable {
-	
-	/**
-	 * @var array
-	 */
-	private $responses;
+    
+    /**
+     * @var array
+     */
+    private $responses;
     
     /**
      * @param array $responsesAndErrors
      */
     public function __construct(array $responsesAndErrors) {
-		$this->responses = $responsesAndErrors;
+        $this->responses = $responsesAndErrors;
     }
     
     /**
@@ -42,18 +42,18 @@ class MultiResponse implements Iterator, Countable {
      * @throws Spl\DomainException
      */
     public function getError($requestKey) {
-		if (!isset($this->responses[$requestKey])) {
-			throw new DomainException(
-				"No request assigned to key: $requestKey"
-			);
-		}
+        if (!isset($this->responses[$requestKey])) {
+            throw new DomainException(
+                "No request assigned to key: $requestKey"
+            );
+        }
         if (!$this->responses[$requestKey] instanceof Exception) {
             throw new DomainException(
-				"The request at key $requestKey did not encounter any errors"
-			);
+                "The request at key $requestKey did not encounter any errors"
+            );
         }
         
-		return $this->responses[$requestKey];
+        return $this->responses[$requestKey];
     }
     
     /**
@@ -70,38 +70,38 @@ class MultiResponse implements Iterator, Countable {
      */
     public function getResponse($requestKey) {
         if (!isset($this->responses[$requestKey])) {
-			throw new DomainException(
-				"No request assigned to key: $requestKey"
-			);
-		}
+            throw new DomainException(
+                "No request assigned to key: $requestKey"
+            );
+        }
         if (!$this->responses[$requestKey] instanceof Response) {
             throw new DomainException(
-				"The request at key $requestKey encountered an error and no response is available"
-			);
+                "The request at key $requestKey encountered an error and no response is available"
+            );
         }
         
-		return $this->responses[$requestKey];
+        return $this->responses[$requestKey];
     }
     
-	/**
-	 * Is the request result at the current iterator entry an exception object?
-	 * 
-	 * @return bool
-	 */
-	public function isError() {
-		$current = $this->current();
-		return $current instanceof Exception;
-	}
-	
-	/**
-	 * Is the request result at the current iterator entry a response object?
-	 * 
-	 * @return bool
-	 */
-	public function isResponse() {
-		$current = $this->current();
-		return $current instanceof Response;
-	}
+    /**
+     * Is the request result at the current iterator entry an exception object?
+     * 
+     * @return bool
+     */
+    public function isError() {
+        $current = $this->current();
+        return $current instanceof Exception;
+    }
+    
+    /**
+     * Is the request result at the current iterator entry a response object?
+     * 
+     * @return bool
+     */
+    public function isResponse() {
+        $current = $this->current();
+        return $current instanceof Response;
+    }
     
     /**
      * @return int
@@ -109,7 +109,7 @@ class MultiResponse implements Iterator, Countable {
     public function count() {
         return count($this->responses);
     }
-	
+    
     public function rewind() {
         return reset($this->responses);
     }

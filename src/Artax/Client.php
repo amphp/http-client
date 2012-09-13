@@ -3,7 +3,7 @@
 namespace Artax;
 
 use Exception,
-	StdClass,
+    StdClass,
     Traversable,
     SplObjectStorage,
     Spl\Mediator,
@@ -24,8 +24,8 @@ class Client {
      * @var string
      */
     const USER_AGENT = 'Artax/0.1 (PHP5.3+)';
-	
-	/**
+    
+    /**
      * @var string
      */
     const EVENT_ERROR = 'artax.client.error';
@@ -39,13 +39,13 @@ class Client {
      * @var string
      */
     const EVENT_RESPONSE = 'artax.client.response';
-	
-	/**
+    
+    /**
      * @var string
      */
     const EVENT_STREAM_CHECKOUT = 'artax.client.conn.checkout';
-	
-	/**
+    
+    /**
      * @var string
      */
     const EVENT_STREAM_CHECKIN = 'artax.client.conn.checkin';
@@ -110,8 +110,8 @@ class Client {
     
     /**
      * Set the number of seconds to wait before a socket connection attempt times out.
-	 * 
-	 * @param int $secondsUntilTimeout
+     * 
+     * @param int $secondsUntilTimeout
      * @return void
      */
     public function setConnectTimout($secondsUntilTimeout) {
@@ -134,8 +134,8 @@ class Client {
      * 
      * A full list of available options may be viewed here:
      * http://www.php.net/manual/en/context.ssl.php
-	 * 
-	 * @param array $options
+     * 
+     * @param array $options
      * @return void
      */
     public function setSslOptions(array $options) {
@@ -147,9 +147,9 @@ class Client {
      * 
      * The default value is 5. If the maximum number of simultaneous connections to a specific host
      * are already in use, further requests to that host are queued until one of the existing in-use
-	 * connections to that host becomes available.
-	 * 
-	 * @param int $maxConnections
+     * connections to that host becomes available.
+     * 
+     * @param int $maxConnections
      * @return void
      */
     public function setHostConcurrencyLimit($maxConnections) {
@@ -203,31 +203,31 @@ class Client {
      * 
      * @param Artax\Http\Request $request
      * @return Artax\Http\ChainableResponse
-	 * @throws Artax\ClientException
+     * @throws Artax\ClientException
      */
     public function send(Request $request) {
         $this->mapRequestStates(array($request));
         $this->doStreamSelect();
-		
-		$this->requestStateMap->rewind();
-		$s = $this->requestStateMap->getInfo();
-		
-		if (!empty($s->error)) {
-			throw new ClientException($s->error->getMessage(), null, $s->error);
-		} else {
-			return $s->response;
-		}
+        
+        $this->requestStateMap->rewind();
+        $s = $this->requestStateMap->getInfo();
+        
+        if (!empty($s->error)) {
+            throw new ClientException($s->error->getMessage(), null, $s->error);
+        } else {
+            return $s->response;
+        }
     }
-	
-	/**
+    
+    /**
      * Make multiple HTTP requests in parallel
      * 
      * @param mixed $requests An array, StdClass or Traversable list of requests
      * @return Artax\Http\MultiResponse
      */
-	public function sendMulti($requests) {
-		$this->validateRequestTraversable($requests);
-		$this->mapRequestStates($requests);
+    public function sendMulti($requests) {
+        $this->validateRequestTraversable($requests);
+        $this->mapRequestStates($requests);
         $this->doStreamSelect();
         
         $responses = array();
@@ -237,7 +237,7 @@ class Client {
         }
         
         return new MultiResponse($responses);
-	}
+    }
     
     /**
      * @param mixed $requests An array, StdClass or Traversable object
@@ -292,7 +292,7 @@ class Client {
         $s = new StdClass;
         
         $s->key = $key;
-		$s->stream = null;
+        $s->stream = null;
         $s->error = null;
         $s->state = ClientState::AWAITING_SOCKET;
         $s->response = new ChainableResponse();
@@ -317,7 +317,7 @@ class Client {
         } else {
             $request->setHeader('Host', $request->getAuthority());
         }
-		
+        
         if ($request->getBodyStream()) {
             $request->setHeader('Transfer-Encoding', 'chunked');
         } elseif ($request->allowsEntityBody() && $entityBody = $request->getBody()) {
@@ -342,22 +342,22 @@ class Client {
                 return true;
             }
         } catch (ConnectException $e) {
-			$this->setErrorState($s, $e);
+            $this->setErrorState($s, $e);
         }
         return false;
     }
     
-	/**
-	 * @param StdClass $s
-	 * @param Exception $e
-	 * @return void
-	 */
-	protected function setErrorState(StdClass $s, Exception $e) {
-		$s->state = ClientState::ERROR;
+    /**
+     * @param StdClass $s
+     * @param Exception $e
+     * @return void
+     */
+    protected function setErrorState(StdClass $s, Exception $e) {
+        $s->state = ClientState::ERROR;
         $s->error = $e;
-		$this->mediator->notify(self::EVENT_ERROR, $s->key, $e);
-	}
-	
+        $this->mediator->notify(self::EVENT_ERROR, $s->key, $e);
+    }
+    
     /**
      * @return void
      */
@@ -366,13 +366,13 @@ class Client {
             if ($this->isFinished()) {
                 return;
             }
-			
-			$ex = null;
+            
+            $ex = null;
             list($read, $write) = $this->getSelectableStreams();
-			if (!($read || $write)) {
-				continue;
-			}
-			
+            if (!($read || $write)) {
+                continue;
+            }
+            
             if (!stream_select($read, $write, $ex, 3)) {
                 continue;
             }
@@ -398,10 +398,10 @@ class Client {
         
         foreach ($this->requestStateMap as $request) {
             $s = $this->requestStateMap->getInfo();
-			
-			if ($s->state >= ClientState::RESPONSE_RECEIVED) {
-				continue;
-			} elseif ($s->state == ClientState::AWAITING_SOCKET) {
+            
+            if ($s->state >= ClientState::RESPONSE_RECEIVED) {
+                continue;
+            } elseif ($s->state == ClientState::AWAITING_SOCKET) {
                 if (!$this->assignStreamToRequestState($request, $s)) {
                     continue;
                 }
@@ -409,7 +409,7 @@ class Client {
             
             $stream = $s->stream->getStream();
             $streamKey = (int) $stream;
-			
+            
             if ($s->state < ClientState::READING_HEADERS) {
                 $write[$streamKey] = $stream;
             } elseif ($s->state < ClientState::RESPONSE_RECEIVED) {
@@ -473,7 +473,7 @@ class Client {
             $isInUse = $this->sockPool[$socketUriString]->getInfo();
             if (!$isInUse) {
                 $this->sockPool[$socketUriString]->setInfo(true);
-				$this->mediator->notify(self::EVENT_STREAM_CHECKOUT, $stream);
+                $this->mediator->notify(self::EVENT_STREAM_CHECKOUT, $stream);
                 return $stream;
             }
         }
@@ -486,7 +486,7 @@ class Client {
             $stream->connect();
             
             $this->sockPool[$socketUriString]->attach($stream, true);
-			$this->mediator->notify(self::EVENT_STREAM_CHECKOUT, $stream);
+            $this->mediator->notify(self::EVENT_STREAM_CHECKOUT, $stream);
             return $stream;
         } else {
             return null;
@@ -527,7 +527,7 @@ class Client {
     protected function checkinStream(Stream $stream) {
         $socketUriString = $stream->getUri();
         $this->sockPool[$socketUriString]->attach($stream, false);
-		$this->mediator->notify(self::EVENT_STREAM_CHECKIN, $stream);
+        $this->mediator->notify(self::EVENT_STREAM_CHECKIN, $stream);
     }
     
     /**
@@ -540,44 +540,44 @@ class Client {
         $this->sockPool[$socketUriString]->detach($stream);
     }
     
-	/**
-	 * Close all open socket streams
-	 * 
-	 * @return int Returns the number of socket connections closed
-	 */
-	public function closeAllStreams() {
-		$connsClosed = 0;
-		foreach ($this->sockPool as $objStorage) {
-			foreach ($objStorage as $stream) {
-				$stream->close();
-				++$connsClosed;
-			}
-		}
-		$this->sockPool = array();
-		return $connsClosed;
-	}
-	
-	/**
-	 * Close any open socket streams to the specified host
-	 * 
-	 * @param string $host
-	 * @return int Returns the number of socket connections closed
-	 */
-	public function closeStreamsByHost($host) {
-		$connsClosed = 0;
-		foreach ($this->sockPool as $objStorage) {
-			foreach ($objStorage as $stream) {
-				if ($stream->getHost() == $host) {
-					$stream->close();
-					++$connsClosed;
-				}
-			}
-		}
-		$this->sockPool = array_filter($this->sockPool);
-		return $connsClosed;
-	}
-	
-	/**
+    /**
+     * Close all open socket streams
+     * 
+     * @return int Returns the number of socket connections closed
+     */
+    public function closeAllStreams() {
+        $connsClosed = 0;
+        foreach ($this->sockPool as $objStorage) {
+            foreach ($objStorage as $stream) {
+                $stream->close();
+                ++$connsClosed;
+            }
+        }
+        $this->sockPool = array();
+        return $connsClosed;
+    }
+    
+    /**
+     * Close any open socket streams to the specified host
+     * 
+     * @param string $host
+     * @return int Returns the number of socket connections closed
+     */
+    public function closeStreamsByHost($host) {
+        $connsClosed = 0;
+        foreach ($this->sockPool as $objStorage) {
+            foreach ($objStorage as $stream) {
+                if ($stream->getHost() == $host) {
+                    $stream->close();
+                    ++$connsClosed;
+                }
+            }
+        }
+        $this->sockPool = array_filter($this->sockPool);
+        return $connsClosed;
+    }
+    
+    /**
      * Close all socket streams that have been idle longer than the specified number of seconds
      * 
      * @param int $maxInactivitySeconds
@@ -587,19 +587,19 @@ class Client {
         $maxInactivitySeconds = (int) $maxInactivitySeconds;
         $connsClosed = 0;
         $now = time();
-		
-		foreach ($this->sockPool as $objStorage) {
-			foreach ($objStorage as $stream) {
-				if ($now - $stream->getLastActivityTimestamp() > $maxInactivitySeconds) {
-					$stream->close();
-					++$connsClosed;
-				}
-			}
-		}
+        
+        foreach ($this->sockPool as $objStorage) {
+            foreach ($objStorage as $stream) {
+                if ($now - $stream->getLastActivityTimestamp() > $maxInactivitySeconds) {
+                    $stream->close();
+                    ++$connsClosed;
+                }
+            }
+        }
         
         return $connsClosed;
     }
-	
+    
     /**
      * @param Artax\Http\Request $request
      * @return void
@@ -953,7 +953,7 @@ class Client {
     
     /**
      * @param Artax\Http\Request $request
-	 * @param StdClass $s
+     * @param StdClass $s
      * @return void
      */
     protected function redirect(Request $request, StdClass $s) {
@@ -963,17 +963,17 @@ class Client {
         $s->redirectHistory[] = $oldLocation;
         
         if (in_array($newLocation, $s->redirectHistory)) {
-			$s->response->appendHeader(
+            $s->response->appendHeader(
                 'Warning',
                 "199 Infinite redirect loop detected: cannot redirect to $newLocation"
             );
-			return;
+            return;
         }
         
         $newRequest = new StdRequest($newLocation, $request->getMethod());
         $newRequest->setHttpVersion($request->getHttpVersion());
         $newRequest->setAllHeaders($request->getAllHeaders());
-		$newRequest->setHeader('Host', $newRequest->getAuthority());
+        $newRequest->setHeader('Host', $newRequest->getAuthority());
         
         if ($newRequest->allowsEntityBody()) {
             $streamBody = $request->getBodyStream();

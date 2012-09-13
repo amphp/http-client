@@ -13,17 +13,17 @@ $mediator = new HashingMediator();
 $client = new Client($mediator);
 
 $requests = array(
-	new StdRequest('http://stackoverflow.com', 'GET'),
-	new StdRequest('http://stackoverflow.com/questions/tagged/php', 'GET'),
+    new StdRequest('http://stackoverflow.com', 'GET'),
+    new StdRequest('http://stackoverflow.com/questions/tagged/php', 'GET'),
     new StdRequest('http://stackoverflow.com/questions/tagged/python', 'GET'),
-	new StdRequest('http://stackoverflow.com/questions/tagged/http', 'GET'),
-	new StdRequest('http://stackoverflow.com/questions/tagged/html', 'GET'),
-	new StdRequest('http://stackoverflow.com/questions/tagged/css', 'GET'),
-	new StdRequest('http://stackoverflow.com/questions/tagged/java', 'GET'),
-	new StdRequest('http://stackoverflow.com/questions/tagged/javascript', 'GET'),
-	new StdRequest('http://stackoverflow.com/questions/tagged/sql', 'GET'),
-	new StdRequest('http://www.google.com', 'GET'),
-	new StdRequest('http://www.yahoo.com', 'GET'),
+    new StdRequest('http://stackoverflow.com/questions/tagged/http', 'GET'),
+    new StdRequest('http://stackoverflow.com/questions/tagged/html', 'GET'),
+    new StdRequest('http://stackoverflow.com/questions/tagged/css', 'GET'),
+    new StdRequest('http://stackoverflow.com/questions/tagged/java', 'GET'),
+    new StdRequest('http://stackoverflow.com/questions/tagged/javascript', 'GET'),
+    new StdRequest('http://stackoverflow.com/questions/tagged/sql', 'GET'),
+    new StdRequest('http://www.google.com', 'GET'),
+    new StdRequest('http://www.yahoo.com', 'GET'),
     new StdRequest('http://wikipedia.org', 'GET'),
     new StdRequest('http://www.espn.com', 'GET'),
     new StdRequest('http://prototype.php.net/', 'GET')
@@ -40,7 +40,7 @@ $aggregates->redirections = 0;;
 
 $ioWriteListener = function($key, $data, $bytes) use ($aggregates) {
     echo $data;
-	$aggregates->bytesSent += $bytes;
+    $aggregates->bytesSent += $bytes;
 };
 $ioReadListener = function($key, $data, $bytes) use ($aggregates) {
     $aggregates->bytesRecd += $bytes;

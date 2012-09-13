@@ -28,11 +28,11 @@ class SocketStream implements Stream {
      * @var int
      */
     private $connectTimeout = 60;
-	
-	/**
-	 * @var int
-	 */
-	private $lastIoActivity;
+    
+    /**
+     * @var int
+     */
+    private $lastIoActivity;
     
     /**
      * @var int
@@ -182,7 +182,7 @@ class SocketStream implements Stream {
             );
         } elseif (!empty($readData)) {
             $this->lastIoActivity = time();
-			$this->mediator->notify(self::EVENT_READ, $this, $readData, strlen($readData));
+            $this->mediator->notify(self::EVENT_READ, $this, $readData, strlen($readData));
         }
         
         return $readData;
@@ -209,31 +209,31 @@ class SocketStream implements Stream {
         } else {
             $actualDataWritten = substr($dataToWrite, 0, $bytesWritten);
         }
-		
+        
         $this->lastIoActivity = time();
         $this->mediator->notify(self::EVENT_WRITE, $this, $actualDataWritten, $bytesWritten);
         
         return $bytesWritten;
     }
     
-	/**
-	 * @return int
-	 */
-	public function getLastActivityTimestamp() {
-		return $this->lastIoActivity;
-	}
-	
+    /**
+     * @return int
+     */
+    public function getLastActivityTimestamp() {
+        return $this->lastIoActivity;
+    }
+    
     /**
      * @return string
      */
     public function __toString() {
         return $this->uri->__toString();
     }
-	
-	/**
-	 * @return void
-	 */
-	public function __destruct() {
-		$this->close();
-	}
+    
+    /**
+     * @return void
+     */
+    public function __destruct() {
+        $this->close();
+    }
 }
