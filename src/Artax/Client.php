@@ -326,6 +326,8 @@ class Client {
             $request->removeHeader('Content-Length');
             $request->removeHeader('Transfer-Encoding');
         }
+        
+        $request->removeHeader('Accept-Encoding');
     }
     
     /**
