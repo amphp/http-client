@@ -379,13 +379,13 @@ class Client {
                 continue;
             }
             
-            foreach ($write as $streamKey => $stream) {
-                $request = $this->streamIdRequestMap[$streamKey];
+            foreach ($write as $stream) {
+                $request = $this->streamIdRequestMap[(int) $stream];
                 $this->doSelectWrite($request);
             }
             
-            foreach ($read as $streamKey => $stream) {
-                $request = $this->streamIdRequestMap[$streamKey];
+            foreach ($read as $stream) {
+                $request = $this->streamIdRequestMap[(int) $stream];
                 $this->doSelectRead($request);
             }
         }
