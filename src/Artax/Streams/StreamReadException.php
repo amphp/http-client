@@ -1,5 +1,5 @@
 <?php
 
-namespace Artax\Network;
+namespace Artax\Streams;
 
 class StreamReadException extends NetworkException {}

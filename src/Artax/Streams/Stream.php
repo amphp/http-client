@@ -1,6 +1,6 @@
 <?php
 
-namespace Artax\Network;
+namespace Artax\Streams;
 
 interface Stream {
     

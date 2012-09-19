@@ -1,6 +1,6 @@
 <?php
 
-namespace Artax\Network;
+namespace Artax\Streams;
 
 use Spl\Mediator,
     Spl\ValueException,
@@ -31,7 +31,7 @@ class SslSocketStream extends SocketStream {
     
     /**
      * @return resource
-     * @throws Artax\Network\ConnectException
+     * @throws Artax\Streams\ConnectException
      */
     protected function doConnect() {
         $sslContext = stream_context_create(array('ssl' => $this->sslOptions));

@@ -1,6 +1,6 @@
 <?php
 
-namespace Artax\Network;
+namespace Artax\Streams;
 
 use Spl\Mediator,
     Spl\TypeException,
@@ -72,7 +72,7 @@ class SocketStream implements Stream {
      * @param int $timeout
      * @param int $flags
      * @return void
-     * @throws Artax\Network\ConnectException
+     * @throws Artax\Streams\ConnectException
      */
     public function connect() {
         $stream = $this->doConnect();
@@ -83,7 +83,7 @@ class SocketStream implements Stream {
     
     /**
      * @return resource
-     * @throws Artax\Network\ConnectException
+     * @throws Artax\Streams\ConnectException
      */
     protected function doConnect() {
         $stream = @stream_socket_client(
@@ -173,7 +173,7 @@ class SocketStream implements Stream {
     /**
      * @param int $bytesToRead
      * @return string
-     * @throws Artax\Network\StreamReadException
+     * @throws Artax\Streams\StreamReadException
      */
     public function read($bytesToRead) {
         if (false === ($readData = @fread($this->stream, $bytesToRead))) {
@@ -191,7 +191,7 @@ class SocketStream implements Stream {
     /**
      * @param string $dataToWrite
      * @return int
-     * @throws Artax\Network\StreamWriteException
+     * @throws Artax\Streams\StreamWriteException
      */
     public function write($dataToWrite) {
         $dataToWriteLength = strlen($dataToWrite);
