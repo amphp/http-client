@@ -40,6 +40,11 @@ class SocketStream implements Stream {
     protected $connectFlags = STREAM_CLIENT_CONNECT;
     
     /**
+     * @var array
+     */
+    private $contextOptions = array();
+    
+    /**
      * @param Mediator $mediator
      * @param Uri $uri
      * @return void
@@ -69,29 +74,30 @@ class SocketStream implements Stream {
     }
     
     /**
+     * Assign connection context options
+     * 
+     * @array $options
+     * @return void
+     */
+    public function setContextOptions(array $options) {
+        $this->contextOptions = $options;
+    }
+    
+    /**
      * @param int $timeout
      * @param int $flags
      * @return void
      * @throws Artax\Streams\ConnectException
      */
     public function connect() {
-        $stream = $this->doConnect();
-        stream_set_blocking($stream, 0);
-        $this->stream = $stream;
-        $this->mediator->notify(self::EVENT_OPEN, $this);
-    }
-    
-    /**
-     * @return resource
-     * @throws Artax\Streams\ConnectException
-     */
-    protected function doConnect() {
+        $context = stream_context_create($this->contextOptions);
         $stream = @stream_socket_client(
             $this->getUri(),
             $errNo,
             $errStr,
             $this->connectTimeout,
-            $this->connectFlags
+            $this->connectFlags,
+            $context
         );
         
         if (false === $stream) {
@@ -100,7 +106,9 @@ class SocketStream implements Stream {
             );
         }
         
-        return $stream;
+        stream_set_blocking($stream, 0);
+        $this->stream = $stream;
+        $this->mediator->notify(self::EVENT_OPEN, $this);
     }
     
     /**

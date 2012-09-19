@@ -8,11 +8,11 @@ use Exception,
     SplObjectStorage,
     Spl\Mediator,
     Spl\TypeException,
-    Artax\Network\Stream,
-    Artax\Network\SocketStream,
-    Artax\Network\SslSocketStream,
-    Artax\Network\NetworkException,
-    Artax\Network\ConnectException,
+    Artax\Streams\Stream,
+    Artax\Streams\SocketStream,
+    Artax\Streams\TlsSocketStream,
+    Artax\Streams\NetworkException,
+    Artax\Streams\ConnectException,
     Artax\Http\Request,
     Artax\Http\StdRequest,
     Artax\Http\Response,
@@ -38,6 +38,11 @@ class Client {
     /**
      * @var string
      */
+    const EVENT_REQUEST = 'artax.client.request';
+    
+    /**
+     * @var string
+     */
     const EVENT_RESPONSE = 'artax.client.response';
     
     /**
@@ -51,9 +56,9 @@ class Client {
     const EVENT_STREAM_CHECKIN = 'artax.client.conn.checkin';
     
     /**
-     * @var Spl\Mediator
+     * @var int
      */
-    private $mediator;
+    protected $ioChunkSize = 8192;
     
     /**
      * @var array
@@ -91,14 +96,14 @@ class Client {
     private $allowNonStandardRedirects = false;
     
     /**
-     * @var int
-     */
-    private $ioChunkSize = 8192;
-    
-    /**
      * @var SplObjectStorage
      */
     private $requestStateMap;
+    
+    /**
+     * @var Spl\Mediator
+     */
+    private $mediator;
     
     /**
      * @param Spl\Mediator $mediator
@@ -109,7 +114,7 @@ class Client {
     }
     
     /**
-     * Set the number of seconds to wait before a socket connection attempt times out.
+     * Set the number of seconds to wait before a connection attempt times out.
      * 
      * @param int $secondsUntilTimeout
      * @return void
@@ -126,7 +131,7 @@ class Client {
      *     $options = array(
      *         'verify_peer'       => true,
      *         'allow_self_signed' => true,
-     *         'cafile'            => '/hard/path/to/cert/authority/file'
+     *         'cafile'            => '/hard/path/to/cert/authority/ca.pem'
      *     );
      *     
      *     $client->setSslOptions($options);
@@ -147,7 +152,8 @@ class Client {
      * 
      * The default value is 5. If the maximum number of simultaneous connections to a specific host
      * are already in use, further requests to that host are queued until one of the existing in-use
-     * connections to that host becomes available.
+     * connections to that host becomes available. This directive only applies when requesting
+     * multiple resources using `Client::sendMulti`.
      * 
      * @param int $maxConnections
      * @return void
@@ -251,7 +257,7 @@ class Client {
         )) {
             $type = is_object($requests) ? get_class($requests) : gettype($requests);
             throw new TypeException(
-                "Client::send expects an array, StdClass or Traversable object at Argument " .
+                "Client::sendMulti expects an array, StdClass or Traversable object at Argument " .
                 "1; $type provided"
             );
         }
@@ -268,7 +274,7 @@ class Client {
     }
     
     /**
-     * @param mixed $requests An array, StdClass or Traversable object
+     * @param mixed $requests
      * @return array
      */
     protected function mapRequestStates($requests) {
@@ -276,8 +282,8 @@ class Client {
         $this->streamIdRequestMap = array();
         
         foreach ($requests as $key => $request) {
-            $request = clone $request;
             $this->normalizeRequestHeaders($request);
+            $this->mediator->notify(self::EVENT_REQUEST, $request);
             $s = $this->makeStateObj($key);
             $this->assignStreamToRequestState($request, $s);
             $this->requestStateMap->attach($request, $s);
@@ -344,7 +350,7 @@ class Client {
                 return true;
             }
         } catch (ConnectException $e) {
-            $this->setErrorState($s, $e);
+            $this->markStateCompleteWithError($s, $e);
         }
         return false;
     }
@@ -354,7 +360,7 @@ class Client {
      * @param Exception $e
      * @return void
      */
-    protected function setErrorState(StdClass $s, Exception $e) {
+    protected function markStateCompleteWithError(StdClass $s, Exception $e) {
         $s->state = ClientState::ERROR;
         $s->error = $e;
         $this->mediator->notify(self::EVENT_ERROR, $s->key, $e);
@@ -430,7 +436,7 @@ class Client {
             $this->writeRequest($request);
         } catch (Exception $e) {
             $s = $this->requestStateMap->offsetGet($request);
-            $this->setErrorState($s, $e);
+            $this->markStateCompleteWithError($s, $e);
         }
     }
     
@@ -442,7 +448,7 @@ class Client {
             $this->readResponse($request);
         } catch (Exception $e) {
             $s = $this->requestStateMap->offsetGet($request);
-            $this->setErrorState($s, $e);
+            $this->markStateCompleteWithError($s, $e);
         }
     }
     
@@ -460,8 +466,8 @@ class Client {
     
     /**
      * @param Artax\Http\Request $request
-     * @return Artax\Network\Stream Returns null if max concurrency limit already reached
-     * @throws Artax\Network\ConnectException
+     * @return Artax\Streams\Stream Returns null if max concurrency limit already reached
+     * @throws Artax\Streams\ConnectException
      */
     protected function checkoutStream(Request $request) {
         $socketUri = $this->buildSocketUriFromRequest($request);
@@ -501,29 +507,40 @@ class Client {
      */
     protected function buildSocketUriFromRequest(Request $request) {
         $requestScheme = strtolower($request->getScheme());
-        if ($requestScheme == 'https') {
-            $scheme = 'ssl';
-        } else {
-             $scheme = 'tcp';
+        switch ($requestScheme) {
+            case 'http':
+                $scheme = 'tcp';
+                break;
+            case 'https':
+                $scheme = 'tls';
+                break;
+            default:
+                throw new ValueException(
+                    "Invalid request URI scheme: $requestScheme. http:// or https:// required."
+                );
         }
-        $uriStr = "$scheme://" . $request->getHost() . ':' . $request->getPort();
+        
+        $uriStr = $scheme . '://' . $request->getHost() . ':' . $request->getPort();
+        
         return new Uri($uriStr);
     }
     
     /**
      * @param Artax\Uri $socketUri
-     * @return Artax\Network\Stream
+     * @return Artax\Streams\SocketStream
      */
     protected function makeStream(Uri $socketUri) {
-        if (strcmp('ssl', $socketUri->getScheme())) {
-            return new SocketStream($this->mediator, $socketUri);
-        } else {
-            return new SslSocketStream($this->mediator, $socketUri, $this->sslOptions);
+        $stream = new SocketStream($this->mediator, $socketUri);
+        
+        if (0 === strcmp('tls', $socketUri->getScheme())) {
+            $stream->setContextOptions(array('ssl' => $this->sslOptions));
         }
+        
+        return $stream;
     }
     
     /**
-     * @param Artax\Network\Stream $stream
+     * @param Artax\Streams\Stream $stream
      * @return void
      */
     protected function checkinStream(Stream $stream) {
@@ -533,7 +550,7 @@ class Client {
     }
     
     /**
-     * @param Artax\Network\Stream $stream
+     * @param Artax\Streams\Stream $stream
      * @return void
      */
     protected function closeStream(Stream $stream) {
@@ -636,7 +653,10 @@ class Client {
             if ($bytesSent = $s->stream->write($dataToSend)) {
                 $s->headerBytesSent += $bytesSent;
             } elseif (false === $bytesSent) {
-                throw new NetworkException();
+                throw new NetworkException(
+                'Transfer failure: connection to ' . $s->stream->getHost() . ' lost after ' .
+                "{$s->headerBytesSent} header bytes sent"
+            );
             }
         }
         
@@ -899,7 +919,10 @@ class Client {
         }
         
         if (false === $readData) {
-            throw new NetworkException();
+            throw new NetworkException(
+                'Transfer failure: connection to ' . $s->stream->getHost() . ' lost after ' .
+                ftell($responseBodyStream) . ' entity body bytes read'
+            );
         }
         
         return false;
