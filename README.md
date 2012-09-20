@@ -28,25 +28,6 @@ Artax requires PHP 5.3 or higher and depends on the [PHP-Datastructures][datastr
  - Standardized event broadcasts allow custom plugins like caching, cookie storage, etc.
  - Send requests through proxy servers
 
-### BASIC HTTP CLIENT USAGE
-
-```
-<?php
-
-use Spl\HashingMediator, Artax\Client, Artax\ClientException, Artax\Http\StdRequest;
-require 'bootstrap.php'; // hard path to the Artax bootstrap file
-
-$mediator = new HashingMediator();
-$client = new Client($mediator);
-$request = new StdRequest('http://www.google.com', 'GET');
-
-try {
-    $response = $client->send($request);
-} catch (ClientException $e) {
-    echo $e->getMessage() . PHP_EOL;
-}
-```
-
 ### PROJECT GOALS
 
 * Provide an object-oriented modeling of the HTTP protocol as outlined in [RFC 2616][rfc2616]
