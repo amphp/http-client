@@ -8,9 +8,9 @@ use Exception,
     SplObjectStorage,
     Spl\Mediator,
     Spl\TypeException,
+    Spl\ValueException,
     Artax\Streams\Stream,
     Artax\Streams\SocketStream,
-    Artax\Streams\TlsSocketStream,
     Artax\Streams\NetworkException,
     Artax\Streams\ConnectException,
     Artax\Http\Request,
@@ -20,50 +20,40 @@ use Exception,
 
 class Client {
     
-    /**
-     * @var string
-     */
     const USER_AGENT = 'Artax/0.1 (PHP5.3+)';
     
-    /**
-     * @var string
-     */
+    const ATTR_CONNECT_TIMEOUT =  105;
+    const ATTR_FOLLOW_LOCATION = 110;
+    const ATTR_HOST_CONCURRENCY_LIMIT = 115;
+    const ATTR_IO_BUFFER_SIZE = 120;
+    const ATTR_KEEP_ALIVES = 125;
+	const ATTR_SSL_VERIFY_PEER = 900;
+	const ATTR_SSL_ALLOW_SELF_SIGNED = 905;
+	const ATTR_SSL_CA_FILE = 910;
+	const ATTR_SSL_CA_PATH = 915;
+	const ATTR_SSL_LOCAL_CERT = 920;
+	const ATTR_SSL_LOCAL_CERT_PASSPHRASE = 925;
+	const ATTR_SSL_CN_MATCH = 930;
+	const ATTR_SSL_VERIFY_DEPTH = 935;
+	const ATTR_SSL_CIPHERS = 940;
+    
+    const FOLLOW_LOCATION_NONE = 0;
+    const FOLLOW_LOCATION_ON_3XX = 1;
+    const FOLLOW_LOCATION_ON_2XX = 2;
+    const FOLLOW_LOCATION_ON_UNSAFE_METHOD = 4;
+    const FOLLOW_LOCATION_ALL = 7;
+    
     const EVENT_ERROR = 'artax.client.error';
-    
-    /**
-     * @var string
-     */
     const EVENT_REDIRECT = 'artax.client.redirect';
-    
-    /**
-     * @var string
-     */
     const EVENT_REQUEST = 'artax.client.request';
-    
-    /**
-     * @var string
-     */
     const EVENT_RESPONSE = 'artax.client.response';
-    
-    /**
-     * @var string
-     */
     const EVENT_STREAM_CHECKOUT = 'artax.client.conn.checkout';
-    
-    /**
-     * @var string
-     */
     const EVENT_STREAM_CHECKIN = 'artax.client.conn.checkin';
     
     /**
-     * @var int
+     * @var bool
      */
-    protected $ioChunkSize = 8192;
-    
-    /**
-     * @var array
-     */
-    private $sockPool = array();
+    private $useKeepAlives = true;
     
     /**
      * @var int
@@ -78,22 +68,62 @@ class Client {
     /**
      * @var int
      */
-    private $maxRedirects = 10;
+    private $ioBufferSize = 8192;
+    
+    /**
+     * @var int
+     */
+    private $followLocation = self::FOLLOW_LOCATION_ON_3XX;
+    
+    /**
+     * @var bool
+     */
+    private $sslVerifyPeer = true;
+    
+    /**
+     * @var bool
+     */
+    private $sslAllowSelfSigned = false;
+    
+    /**
+     * @var string
+     */
+    private $sslCertAuthorityFile = ARTAX_CERT_AUTHORITY;
+    
+    /**
+     * @var string
+     */
+    private $sslCertAuthorityDirPath;
+    
+    /**
+     * @var string
+     */
+    private $sslLocalCertFile;
+    
+    /**
+     * @var string
+     */
+    private $sslLocalCertPassphrase;
+    
+    /**
+     * @var string
+     */
+    private $sslCommonNameMatch;
+    
+    /**
+     * @var int
+     */
+    private $sslVerifyDepth = 5;
+    
+    /**
+     * @var string
+     */
+    private $sslCiphers = 'DEFAULT';
     
     /**
      * @var array
      */
-    private $sslOptions = array();
-    
-    /**
-     * @var bool
-     */
-    private $useProxyStyleRequests = false;
-    
-    /**
-     * @var bool
-     */
-    private $allowNonStandardRedirects = false;
+    private $sockPool = array();
     
     /**
      * @var SplObjectStorage
@@ -113,95 +143,184 @@ class Client {
         $this->mediator = $mediator;
     }
     
+    public function setAllAttributes($arrayOrTraversable) {
+        foreach ($arrayOrTraversable as $attr => $val) {
+            $this->setAttribute($attr, $val);
+        }
+    }
+    
     /**
-     * Set the number of seconds to wait before a connection attempt times out.
+     * Assign optional Client attributes
      * 
+     * @param int $attr
+     * @param mixed $val
+     * @return void
+     * @throws Spl\ValueException
+     */
+    public function setAttribute($attr, $val) {
+        switch ($attr) {
+            case self::ATTR_KEEP_ALIVES:
+                $this->setKeepAlives($val);
+                break;
+            case self::ATTR_CONNECT_TIMEOUT:
+                $this->setConnectTimeout($val);
+                break;
+            case self::ATTR_HOST_CONCURRENCY_LIMIT:
+                $this->setHostConcurrencyLimit($val);
+                break;
+            case self::ATTR_IO_BUFFER_SIZE:
+                $this->setIoBufferSize($val);
+                break;
+            case self::ATTR_FOLLOW_LOCATION:
+                $this->setFollowLocation($val);
+                break;
+            case self::ATTR_SSL_VERIFY_PEER:
+                $this->setSslVerifyPeer($val);
+                break;
+            case self::ATTR_SSL_ALLOW_SELF_SIGNED:
+                $this->setSslAllowSelfSigned($val);
+                break;
+            case self::ATTR_SSL_CA_FILE:
+                $this->setSslCertAuthorityFile($val);
+                break;
+            case self::ATTR_SSL_CA_PATH:
+                $this->setSslCertAuthorityDirPath($val);
+                break;
+            case self::ATTR_SSL_LOCAL_CERT:
+                $this->setSslLocalCertFile($val);
+                break;
+            case self::ATTR_SSL_LOCAL_CERT_PASSPHRASE:
+                $this->setSslLocalCertPassphrase($val);
+                break;
+            case self::ATTR_SSL_CN_MATCH:
+                $this->setSslCommonNameMatch($val);
+                break;
+            case self::ATTR_SSL_VERIFY_DEPTH:
+                $this->setSslVerifyDepth($val);
+                break;
+            case self::ATTR_SSL_CIPHERS:
+                $this->setSslCiphers($val);
+                break;
+            default:
+                throw new ValueException(
+                    "Invalid attribute: {$attr} is not a valid Client attribute"
+                );
+        }
+    }
+    
+    /**
+     * @param bool $boolFlag
+     * @return void
+     */
+    private function setKeepAlives($boolFlag) {
+        $this->useKeepAlives = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
+    }
+    
+    /**
      * @param int $secondsUntilTimeout
      * @return void
      */
-    public function setConnectTimout($secondsUntilTimeout) {
+    private function setConnectTimout($secondsUntilTimeout) {
         $this->connectTimeout = (int) $secondsUntilTimeout;
     }
     
     /**
-     * Set custom SSL request options
-     * 
-     * To customize SSL connections, assign a key-value associative array of option values:
-     * 
-     *     $options = array(
-     *         'verify_peer'       => true,
-     *         'allow_self_signed' => true,
-     *         'cafile'            => '/hard/path/to/cert/authority/ca.pem'
-     *     );
-     *     
-     *     $client->setSslOptions($options);
-     *  
-     * 
-     * A full list of available options may be viewed here:
-     * http://www.php.net/manual/en/context.ssl.php
-     * 
-     * @param array $options
+     * @param int $maxConcurrentConnections
      * @return void
      */
-    public function setSslOptions(array $options) {
-        $this->sslOptions = $options;
-    }
-    
-    /**
-     * Set the maximum number of simultaneous connections allowed per host
-     * 
-     * The default value is 5. If the maximum number of simultaneous connections to a specific host
-     * are already in use, further requests to that host are queued until one of the existing in-use
-     * connections to that host becomes available. This directive only applies when requesting
-     * multiple resources using `Client::sendMulti`.
-     * 
-     * @param int $maxConnections
-     * @return void
-     */
-    public function setHostConcurrencyLimit($maxConnections) {
+    private function setHostConcurrencyLimit($maxConcurrentConnections) {
         $maxConnections = (int) $maxConnections;
         $maxConnections = $maxConnections < 1 ? 1 : $maxConnections;
         $this->hostConcurrencyLimit = $maxConnections;
     }
     
     /**
-     * Set the maximum number of redirects allowed to fulfill a request. Defaults to 10.
-     * 
-     * Infinite redirection loops are detected immediately regardless of this value.
-     * 
-     * @param int $maxRedirects
+     * @param int $bytes
      * @return void
      */
-    public function setMaxRedirects($maxRedirects) {
-        $this->maxRedirects = (int) $maxRedirects;
+    private function setIoBufferSize($bytes) {
+        $bytes = (int) $bytes;
+        $this->ioBufferSize = $bytes <= 0 ? self::DEFAULT_IO_BUFFER_SIZE : $bytes;
     }
     
     /**
-     * Enable this option if your script must connect through a proxy server
-     * 
-     * @param bool $trueOrFalse
+     * @param int $bitmask
      * @return void
      */
-    public function useProxyStyleRequests($trueOrFalse) {
-        $this->useProxyStyleRequests = filter_var($trueOrFalse, FILTER_VALIDATE_BOOLEAN);
+    private function setFollowLocation($bitmask) {
+        $this->followLocation = (int) $bitmask;
     }
     
     /**
-     * Should the client transparently redirect requests made using methods other than GET or HEAD?
-     * 
-     * According to RFC2616-10.3, "If the 301 status code is received in response to a request other
-     * than GET or HEAD, the user agent MUST NOT automatically redirect the request unless it can be
-     * confirmed by the user, since this might change the conditions under which the request was
-     * issued."
-     * 
-     * This directive, if set to true, serves as confirmation that requests made using methods other
-     * than GET/HEAD may be redirected automatically.
-     * 
-     * @param bool $trueOrFalse
+     * @param bool $boolFlag
      * @return void
      */
-    public function allowNonStandardRedirects($trueOrFalse) {
-        $this->allowNonStandardRedirects = filter_var($trueOrFalse, FILTER_VALIDATE_BOOLEAN);
+    private function setSslVerifyPeer($boolFlag) {
+        $this->sslVerifyPeer = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
+    }
+    
+    /**
+     * @param bool $boolFlag
+     * @return void
+     */
+    private function setSslAllowSelfSigned($boolFlag) {
+        $this->sslAllowSelfSigned = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
+    }
+    
+    /**
+     * @param string $certAuthorityFilePath
+     * @return void
+     */
+    private function setSslCertAuthorityFile($certAuthorityFilePath) {
+        $this->sslCertAuthorityFile = $certAuthorityFilePath;
+    }
+    
+    /**
+     * @param string $certAuthorityDirPath
+     * @return void
+     */
+    private function setSslCertAuthorityDirPath($certAuthorityDirPath) {
+        $this->sslCertAuthorityDirPath = $certAuthorityDirPath;
+    }
+    
+    /**
+     * @param string $localCertFilePath
+     * @return void
+     */
+    private function setSslLocalCertFile($localCertFilePath) {
+        $this->sslLocalCertFile = $localCertFilePath;
+    }
+    
+    /**
+     * @param string $localCertPassphrase
+     * @return void
+     */
+    private function setSslLocalCertPassphrase($localCertPassphrase) {
+        $this->sslLocalCertPassphrase = $localCertPassphrase;
+    }
+    
+    /**
+     * @param string $commonNameMatch
+     * @return void
+     */
+    private function setSslCommonNameMatch($commonNameMatch) {
+        $this->sslCommonNameMatch = $commonNameMatch;
+    }
+    
+    /**
+     * @param int $depth
+     * @return void
+     */
+    private function setSslVerifyDepth($depth) {
+        $this->sslVerifyDepth = (int) $depth;
+    }
+    
+    /**
+     * @param string $cipherList
+     * @return void
+     */
+    private function setSslCiphers($cipherList) {
+        $this->sslCiphers = $cipherList;
     }
     
     /**
@@ -317,12 +436,7 @@ class Client {
      */
     protected function normalizeRequestHeaders(Request $request) {
         $request->setHeader('User-Agent', self::USER_AGENT);
-        
-        if ($this->useProxyStyleRequests) {
-            $request->removeHeader('Host');
-        } else {
-            $request->setHeader('Host', $request->getAuthority());
-        }
+        $request->setHeader('Host', $request->getAuthority());
         
         if ($request->getBodyStream()) {
             $request->setHeader('Transfer-Encoding', 'chunked');
@@ -334,6 +448,10 @@ class Client {
         }
         
         $request->removeHeader('Accept-Encoding');
+        
+        if (!$this->useKeepAlives) {
+            $request->setHeader('Connection', 'close');
+        }
     }
     
     /**
@@ -533,7 +651,26 @@ class Client {
         $stream = new SocketStream($this->mediator, $socketUri);
         
         if (0 === strcmp('tls', $socketUri->getScheme())) {
-            $stream->setContextOptions(array('ssl' => $this->sslOptions));
+            $opts = array(
+                'verify_peer' => $this->sslVerifyPeer,
+                'allow_self_signed' => $this->sslAllowSelfSigned,
+                'verify_depth' => $this->sslVerifyDepth,
+                'cafile' => $this->sslCertAuthorityFile,
+                'CN_match' => $this->sslCommonNameMatch ?: $socketUri->getHost(),
+                'ciphers' => $this->sslCiphers
+            );
+            
+            if ($this->sslCertAuthorityDirPath) {
+                $opts['capath'] = $this->sslCertAuthorityDirPath;
+            }
+            if ($this->sslLocalCertFile) {
+                $opts['local_cert'] = $this->sslLocalCertFile;
+            }
+            if ($this->sslLocalCertPassphrase) {
+                $opts['passphrase'] = $this->sslLocalCertPassphrase;
+            }
+            
+            $stream->setContextOptions(array('ssl' => $opts));
         }
         
         return $stream;
@@ -679,14 +816,7 @@ class Client {
      * @return string
      */
     protected function buildRawRequestHeaders(Request $request) {
-        if ($this->useProxyStyleRequests) {
-            $requestLine = $request->getProxyRequestLine();
-        } else {
-            $requestLine = $request->getRequestLine();
-        }
-        $rawHeaders = $request->getRawHeaders();
-        
-        return "$requestLine\r\n$rawHeaders\r\n";
+        return $request->getRequestLine() . "\r\n" . $request->getRawHeaders() . "\r\n";
     }
     
     /**
@@ -729,7 +859,7 @@ class Client {
         
         while (true) {
             if (is_null($bodyBuffer)) {
-                $readData = @fread($requestBody, $this->ioChunkSize);
+                $readData = @fread($requestBody, $this->ioBufferSize);
                 if (false === $readData) {
                     throw new RuntimeException(
                         "Failed reading request body from $requestBody"
@@ -801,7 +931,7 @@ class Client {
      * @return bool
      */
     protected function readHeaders(StdClass $s) {
-        while ($readData = $s->stream->read($this->ioChunkSize)) {
+        while ($readData = $s->stream->read($this->ioBufferSize)) {
             $s->responseBuffer .= $readData;
             $s->responseBuffer = ltrim($s->responseBuffer);
             
@@ -892,7 +1022,7 @@ class Client {
             }
         }
         
-        while ($readData = $s->stream->read($this->ioChunkSize)) {
+        while ($readData = $s->stream->read($this->ioBufferSize)) {
             if (false === @fwrite($responseBodyStream, $readData)) {
                 throw new RuntimeException("Failed writing to memory stream $responseBodyStream");
             }
@@ -933,6 +1063,9 @@ class Client {
      * @return bool
      */
     protected function shouldCloseConnection(Response $response) {
+        if (!$this->useKeepAlives) {
+            return true;
+        }
         if (!$response->hasHeader('Connection')) {
             return false;
         }
@@ -960,16 +1093,39 @@ class Client {
      * @return bool
      */
     protected function canRedirect(Request $request, Response $response, array $redirectHistory) {
+        if ($this->followLocation == self::FOLLOW_LOCATION_NONE) {
+            return false;
+        }
+        
         if (!$response->hasHeader('Location')) {
             return false;
         }
         
-        if (!empty($redirectHistory) && count($redirectHistory) >= $this->maxRedirects) {
-            return false;
+        $this->normalizeRedirectLocation($request, $response);
+        
+        $statusCode = $response->getStatusCode();
+        
+        $canFollow3xx = self::FOLLOW_LOCATION_ON_3XX;
+        if ($statusCode >= 300
+            && $statusCode < 400
+            && !(($this->followLocation | $canFollow3xx) == $this->followLocation)
+        ) {
+           return false; 
+        }
+        
+        $canFollow2xx = self::FOLLOW_LOCATION_ON_2XX;
+        if ($statusCode >= 200
+            && $statusCode < 300
+            && !(($this->followLocation | $canFollow2xx) == $this->followLocation)
+        ) {
+           return false; 
         }
         
         $requestMethod = $request->getMethod();
-        if (!$this->allowNonStandardRedirects && !in_array($requestMethod, array('GET', 'HEAD'))) {
+        $canFollowUnsafe = self::FOLLOW_LOCATION_ON_UNSAFE_METHOD;
+        if (!in_array($requestMethod, array('GET', 'HEAD'))
+            && !(($this->followLocation | $canFollowUnsafe) == $this->followLocation)
+        ) {
             return false;
         }
         
@@ -983,7 +1139,7 @@ class Client {
      */
     protected function redirect(Request $request, StdClass $s) {
         $oldLocation = $request->getUri();
-        $newLocation = $this->normalizeRedirectLocation($request, $s->response);
+        $newLocation = $s->response->getHeader('Location');
         
         $s->redirectHistory[] = $oldLocation;
         
@@ -1023,23 +1179,19 @@ class Client {
     /**
      * @param Artax\Http\Request $prevRequest
      * @param Artax\Http\Response $prevResponse
-     * @return string
+     * @return void
      */
     protected function normalizeRedirectLocation(Request $prevRequest, Response $prevResponse) {
         $locationHeader = $prevResponse->getHeader('Location');
         
         if (!@parse_url($locationHeader,  PHP_URL_HOST)) {
-            $newLocation = $prevRequest->getScheme() . '://' . $prevRequest->getRawAuthority();
+            $newLocation = $prevRequest->getScheme() . '://' . $prevRequest->getAuthority();
             $newLocation.= '/' . ltrim($locationHeader, '/');
             $prevResponse->setHeader('Location', $newLocation);
             $prevResponse->appendHeader(
                 'Warning',
                 "299 Invalid Location header: $locationHeader; $newLocation assumed"
             );
-        } else {
-            $newLocation = $locationHeader;
         }
-        
-        return $newLocation;
     }
 }

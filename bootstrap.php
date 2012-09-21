@@ -15,10 +15,8 @@ if (extension_loaded('mbstring')) {
     }
 }
 
-spl_autoload_register(function($class) {
-    if (0 === strpos($class, 'Artax\\')) {
-        require __DIR__ . "/src/$class.php";
-    }
-});
+define('ARTAX_SYSTEM_DIR', __DIR__);
+define('ARTAX_CERT_AUTHORITY', __DIR__ . '/ca/cacert.pem');
 
+require __DIR__ . '/autoload.php';
 require __DIR__ . '/vendor/PHP-Datastructures/bootstrap.php';
