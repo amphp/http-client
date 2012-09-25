@@ -27,6 +27,9 @@ class Client {
     const ATTR_HOST_CONCURRENCY_LIMIT = 115;
     const ATTR_IO_BUFFER_SIZE = 120;
     const ATTR_KEEP_ALIVES = 125;
+    const ATTR_THROW_ON_ERROR_STATUS = 130;
+    const ATTR_AUTO_REFERER_ON_FOLLOW = 135;
+    
 	const ATTR_SSL_VERIFY_PEER = 900;
 	const ATTR_SSL_ALLOW_SELF_SIGNED = 905;
 	const ATTR_SSL_CA_FILE = 910;
@@ -74,6 +77,16 @@ class Client {
      * @var int
      */
     private $followLocation = self::FOLLOW_LOCATION_ON_3XX;
+    
+    /**
+     * @var bool
+     */
+    private $throwOnErrorStatus = true;
+    
+    /**
+     * @var bool
+     */
+    private $autoRefererOnFollow = true;
     
     /**
      * @var bool
@@ -174,6 +187,12 @@ class Client {
             case self::ATTR_FOLLOW_LOCATION:
                 $this->setFollowLocation($val);
                 break;
+            case self::ATTR_THROW_ON_ERROR_STATUS:
+                $this->setThrowOnErrorStatus($val);
+                break;
+            case self::ATTR_AUTO_REFERER_ON_FOLLOW:
+                $this->setAutoRefererOnFollow($val);
+                break;
             case self::ATTR_SSL_VERIFY_PEER:
                 $this->setSslVerifyPeer($val);
                 break;
@@ -249,6 +268,22 @@ class Client {
      */
     private function setFollowLocation($bitmask) {
         $this->followLocation = (int) $bitmask;
+    }
+    
+    /**
+     * @param bool $boolFlag
+     * @return void
+     */
+    private function setThrowOnErrorStatus($boolFlag) {
+        $this->throwOnErrorStatus = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
+    }
+    
+    /**
+     * @param bool $boolFlag
+     * @return void
+     */
+    private function setAutoRefererOnFollow($boolFlag) {
+        $this->autoRefererOnFollow = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
     }
     
     /**
@@ -897,6 +932,7 @@ class Client {
     /**
      * @param Artax\Http\Request $request
      * @return void
+     * @throws Artax\ResponseStatusException
      */
     protected function readResponse(Request $request) {
         $s = $this->requestStateMap->offsetGet($request);
@@ -923,6 +959,13 @@ class Client {
             $this->redirect($request, $s);
         } else {
             $this->mediator->notify(self::EVENT_RESPONSE, $s->key, $s->response);
+        }
+        
+        if ($this->throwOnErrorStatus && $s->response->getStatusCode() >= 400) {
+            throw new ResponseStatusException(
+                $s->response->getStatusLine(),
+                $s->response->getStatusCode()
+            );
         }
     }
     
@@ -1155,6 +1198,10 @@ class Client {
         $newRequest->setHttpVersion($request->getHttpVersion());
         $newRequest->setAllHeaders($request->getAllHeaders());
         $newRequest->setHeader('Host', $newRequest->getAuthority());
+        
+        if ($this->autoRefererOnFollow) {
+            $newRequest->setHeader('Referer', $oldLocation);
+        }
         
         if ($newRequest->allowsEntityBody()) {
             $streamBody = $request->getBodyStream();
