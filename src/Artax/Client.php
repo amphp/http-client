@@ -81,7 +81,7 @@ class Client {
     /**
      * @var bool
      */
-    private $throwOnErrorStatus = true;
+    private $throwOnErrorStatus = false;
     
     /**
      * @var bool
@@ -222,7 +222,7 @@ class Client {
                 break;
             default:
                 throw new ValueException(
-                    "Invalid attribute: {$attr} is not a valid Client attribute"
+                    'Invalid attribute: Client::' . $attr . ' does not exist'
                 );
         }
     }
