@@ -4,4 +4,4 @@ namespace Artax\Streams;
 
 use RuntimeException;
 
-class NetworkException extends RuntimeException {}
+class StreamException extends RuntimeException {}

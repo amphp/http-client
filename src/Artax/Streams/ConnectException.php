@@ -2,4 +2,4 @@
 
 namespace Artax\Streams;
 
-class ConnectException extends NetworkException {}
+class ConnectException extends StreamException {}

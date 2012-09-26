@@ -10,49 +10,49 @@ use Spl\Mediator,
 class SocketStream implements Stream {
     
     /**
-     * @var Spl\Mediator
-     */
-    protected $mediator;
-    
-    /**
      * @var Uri
      */
     private $uri;
     
     /**
+     * @var int
+     */
+    private $lastActivityTime;
+    
+    /**
+     * @var int
+     */
+    private $bytesSent = 0;
+    
+    /**
+     * @var int
+     */
+    private $bytesRecd = 0;
+    
+    /**
+     * @var Spl\Mediator
+     */
+    private $mediator;
+    
+    /**
      * @var resource
      */
-    private $stream;
+    private $resource;
     
     /**
      * @var int
      */
-    private $connectTimeout = 60;
-    
-    /**
-     * @var int
-     */
-    private $lastIoActivity;
-    
-    /**
-     * @var int
-     */
-    protected $connectFlags = STREAM_CLIENT_CONNECT;
-    
-    /**
-     * @var array
-     */
-    private $contextOptions = array();
+    protected $defaultConnectTimeout = 60;
     
     /**
      * @param Mediator $mediator
-     * @param Uri $uri
+     * @param mixed $uri
      * @return void
      * @throws Spl\ValueException
      */
-    public function __construct(Mediator $mediator, Uri $uri) {
+    public function __construct(Mediator $mediator, $uri) {
         $this->mediator = $mediator;
-        $this->uri = $uri;
+        $this->uri = $uri instanceof Uri ? $uri : new Uri($uri);
         
         if (!$this->uri->wasExplicitPortSpecified()) {
             throw new ValueException(
@@ -62,71 +62,147 @@ class SocketStream implements Stream {
     }
     
     /**
-     * Number of seconds until the connect() system call should timeout.
+     * Make socket connection
      * 
-     * This parameter only applies when not making asynchronous connection attempts.
-     * 
-     * @param int $seconds
-     * @return void
-     */
-    public function setConnectTimeout($seconds) {
-        $this->timeout = (int) $seconds;
-    }
-    
-    /**
-     * Assign connection context options
-     * 
-     * @array $options
-     * @return void
-     */
-    public function setContextOptions(array $options) {
-        $this->contextOptions = $options;
-    }
-    
-    /**
+     * @param int $flagBitmask
      * @param int $timeout
-     * @param int $flags
-     * @return void
+     * @param array $contextOptions
+     * @return resource
      * @throws Artax\Streams\ConnectException
      */
-    public function connect() {
-        $context = stream_context_create($this->contextOptions);
+    public function connect(
+        $flagBitmask = STREAM_CLIENT_CONNECT,
+        $timeout = 60,
+        array $contextOptions = array()
+    ) {
+        $flagBitmask = empty($flagBitmask) ? STREAM_CLIENT_CONNECT : (int) $flagBitmask;
+        $timeout = empty($timeout) ? $this->defaultConnectTimeout : (int) $timeout;
+        
+        list($stream, $errNo, $errStr) = $this->doConnect($flagBitmask, $timeout, $contextOptions);
+        
+        if (false !== $stream) {
+            $this->resource = $stream;
+            $this->lastActivityTime = microtime(true);
+            $this->mediator->notify(self::EVENT_OPEN, $this);
+            return $stream;
+        } else {
+            $errorMsg = 'Connection failure: ' . $this->getUri();
+            $errorMsg .= !empty($errNo) ? "; [Error# $errNo] $errStr" : '';
+            throw new ConnectException($errorMsg);
+        }
+    }
+    
+    /**
+     * A test "seam" for mocking stream_socket_client results
+     * 
+     * @param int $flagBitmask
+     * @param int $timeout
+     * @param array $contextOptions
+     * @return array
+     */
+    protected function doConnect($flagBitmask, $timeout, $contextOptions) {
+        $context = stream_context_create($contextOptions);
+        
         $stream = @stream_socket_client(
             $this->getUri(),
             $errNo,
             $errStr,
-            $this->connectTimeout,
-            $this->connectFlags,
+            $timeout,
+            $flagBitmask,
             $context
         );
         
-        if (false === $stream) {
-            throw new ConnectException(
-                'Connection failure: ' . $this->getUri() . "; [$errNo] $errStr"
-            );
-        }
-        
-        stream_set_blocking($stream, 0);
-        $this->stream = $stream;
-        $this->mediator->notify(self::EVENT_OPEN, $this);
+        // stream_socket_client is stupid and modifies $errNo + $errStr by reference, so if we
+        // don't want to throw an exception here on connection failures we need to return these
+        // values along with the $stream return value.
+        return array($stream, $errNo, $errStr);
     }
     
     /**
      * @return void
      */
     public function close() {
-        if (!empty($this->stream)) {
-            @fclose($this->stream);
-            $this->stream = null;
+        if (!empty($this->resource)) {
+            @fclose($this->resource);
+            $this->resource = null;
             $this->mediator->notify(self::EVENT_CLOSE, $this);
         }
+    }
+    
+    /**
+     * @param int $bytesToRead
+     * @return string
+     * @throws Artax\Streams\IoException
+     */
+    public function read($bytesToRead) {
+        $readData = $this->doRead($bytesToRead);
+        
+        if (false === $readData) {
+            throw new IoException(
+                "Failed reading $bytesToRead bytes from " . $this->getUri()
+            );
+        } elseif (!empty($readData)) {
+            $bytesRecd = strlen($readData);
+            $this->bytesRecd += $bytesRecd;
+            $this->lastActivityTime = microtime(true);
+            $this->mediator->notify(self::EVENT_READ, $this, $readData, $bytesRecd);
+        }
+        
+        return $readData;
+    }
+    
+    /**
+     * A test "seam" for mocking fread results
+     * 
+     * @return mixed Returns read data or FALSE on error
+     */
+    protected function doRead($bytes) {
+        return @fread($this->resource, $bytes);
+    }
+    
+    /**
+     * @param string $dataToWrite
+     * @return int
+     * @throws Artax\Streams\IoException
+     */
+    public function write($dataToWrite) {
+        $bytesWritten = $this->doWrite($dataToWrite);
+        $dataToWriteLength = strlen($dataToWrite);
+        
+        if (false === $bytesWritten) {
+            throw new IoException(
+                "Failed writing $dataToWriteLength bytes to " . $this->getUri()
+            );
+        }
+        
+        $this->bytesSent += $bytesWritten;
+        
+        if ($bytesWritten == $dataToWriteLength) {
+            $actualDataWritten = $dataToWrite;
+        } else {
+            $actualDataWritten = substr($dataToWrite, 0, $bytesWritten);
+        }
+        
+        $this->lastActivityTime = microtime(true);
+        $this->mediator->notify(self::EVENT_WRITE, $this, $actualDataWritten, $bytesWritten);
+        
+        return $bytesWritten;
+    }
+    
+    /**
+     * A test "seam" for mocking fwrite results
+     * 
+     * @return mixed Returns the number of bytes written or FALSE on error
+     */
+    protected function doWrite($data) {
+        return @fwrite($this->resource, $data);
     }
     
     /**
      * @return bool
      */
     public function isConnected() {
-        return !empty($this->stream);
+        return !empty($this->resource);
     }
     
     /**
@@ -174,68 +250,29 @@ class SocketStream implements Stream {
     /**
      * @return resource
      */
-    public function getStream() {
-        return $this->stream;
-    }
-    
-    /**
-     * @param int $bytesToRead
-     * @return string
-     * @throws Artax\Streams\StreamReadException
-     */
-    public function read($bytesToRead) {
-        if (false === ($readData = @fread($this->stream, $bytesToRead))) {
-            throw new StreamReadException(
-                "Failed reading $bytesToRead bytes from " . $this->getUri()
-            );
-        } elseif (!empty($readData)) {
-            $this->lastIoActivity = time();
-            $this->mediator->notify(self::EVENT_READ, $this, $readData, strlen($readData));
-        }
-        
-        return $readData;
-    }
-    
-    /**
-     * @param string $dataToWrite
-     * @return int
-     * @throws Artax\Streams\StreamWriteException
-     */
-    public function write($dataToWrite) {
-        $dataToWriteLength = strlen($dataToWrite);
-        
-        if (false === ($bytesWritten = @fwrite($this->stream, $dataToWrite))) {
-            throw new StreamWriteException(
-                "Failed writing $dataToWriteLength bytes to " . $this->getUri()
-            );
-        }
-        
-        if ($bytesWritten === 0) {
-            return 0;
-        } elseif ($bytesWritten == $dataToWriteLength) {
-            $actualDataWritten = $dataToWrite;
-        } else {
-            $actualDataWritten = substr($dataToWrite, 0, $bytesWritten);
-        }
-        
-        $this->lastIoActivity = time();
-        $this->mediator->notify(self::EVENT_WRITE, $this, $actualDataWritten, $bytesWritten);
-        
-        return $bytesWritten;
+    public function getResource() {
+        return $this->resource;
     }
     
     /**
      * @return int
      */
-    public function getLastActivityTimestamp() {
-        return $this->lastIoActivity;
+    public function getActivityTimestamp() {
+        return $this->lastActivityTime;
     }
     
     /**
-     * @return string
+     * @return int
      */
-    public function __toString() {
-        return $this->uri->__toString();
+    public function getBytesSent() {
+        return $this->bytesSent;
+    }
+    
+    /**
+     * @return int
+     */
+    public function getBytesRecd() {
+        return $this->bytesRecd;
     }
     
     /**

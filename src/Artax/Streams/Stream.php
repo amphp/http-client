@@ -10,12 +10,6 @@ interface Stream {
     const EVENT_WRITE = 'artax.network.stream.io.write';
     
     /**
-     * @param int $seconds
-     * @return void
-     */
-    function setConnectTimeout($seconds);
-    
-    /**
      * @return void
      */
     function connect();
@@ -70,10 +64,10 @@ interface Stream {
     /**
      * @return resource
      */
-    function getStream();
+    function getResource();
     
     /**
-     * @return string
+     * @return int
      */
-    function __toString();
+    function getActivityTimestamp();
 }

@@ -11,7 +11,7 @@ use Exception,
     Spl\ValueException,
     Artax\Streams\Stream,
     Artax\Streams\SocketStream,
-    Artax\Streams\NetworkException,
+    Artax\Streams\StreamException,
     Artax\Streams\ConnectException,
     Artax\Http\Request,
     Artax\Http\StdRequest,
@@ -499,7 +499,7 @@ class Client {
             if ($stream = $this->checkoutStream($request)) {
                 $s->stream = $stream;
                 $s->state = ClientState::SENDING_REQUEST_HEADERS;
-                $this->streamIdRequestMap[(int) $stream->getStream()] = $request;
+                $this->streamIdRequestMap[(int) $stream->getResource()] = $request;
                 return true;
             }
         } catch (ConnectException $e) {
@@ -568,13 +568,13 @@ class Client {
                 }
             }
             
-            $stream = $s->stream->getStream();
+            $stream = $s->stream->getResource();
             $streamKey = (int) $stream;
             
             if ($s->state < ClientState::READING_HEADERS) {
                 $write[$streamKey] = $stream;
             } elseif ($s->state < ClientState::RESPONSE_RECEIVED) {
-                $read[$streamKey] = $s->stream->getStream();
+                $read[$streamKey] = $s->stream->getResource();
             }
         }
         
@@ -643,11 +643,19 @@ class Client {
         
         if ($this->hostConcurrencyLimit > $openHostStreams) {
             $stream = $this->makeStream($socketUri);
-            $stream->setConnectTimeout($this->connectTimeout);
-            $stream->connect();
+            
+            if (0 === strcmp('tls', $socketUri->getScheme())) {
+                $contextOpts = $this->buildSslContextOptionArray($socketUri);
+            } else {
+                $contextOpts = array();
+            }
+            
+            $stream->connect(null, $this->connectTimeout, $contextOpts);
+            stream_set_blocking($stream->getResource(), 0);
             
             $this->sockPool[$socketUriString]->attach($stream, true);
             $this->mediator->notify(self::EVENT_STREAM_CHECKOUT, $stream);
+            
             return $stream;
         } else {
             return null;
@@ -683,32 +691,33 @@ class Client {
      * @return Artax\Streams\SocketStream
      */
     protected function makeStream(Uri $socketUri) {
-        $stream = new SocketStream($this->mediator, $socketUri);
+        return new SocketStream($this->mediator, $socketUri);
+    }
+    
+    /**
+     * @return array
+     */
+    protected function buildSslContextOptionArray(Uri $socketUri) {
+        $opts = array(
+            'verify_peer' => $this->sslVerifyPeer,
+            'allow_self_signed' => $this->sslAllowSelfSigned,
+            'verify_depth' => $this->sslVerifyDepth,
+            'cafile' => $this->sslCertAuthorityFile,
+            'CN_match' => $this->sslCommonNameMatch ?: $socketUri->getHost(),
+            'ciphers' => $this->sslCiphers
+        );
         
-        if (0 === strcmp('tls', $socketUri->getScheme())) {
-            $opts = array(
-                'verify_peer' => $this->sslVerifyPeer,
-                'allow_self_signed' => $this->sslAllowSelfSigned,
-                'verify_depth' => $this->sslVerifyDepth,
-                'cafile' => $this->sslCertAuthorityFile,
-                'CN_match' => $this->sslCommonNameMatch ?: $socketUri->getHost(),
-                'ciphers' => $this->sslCiphers
-            );
-            
-            if ($this->sslCertAuthorityDirPath) {
-                $opts['capath'] = $this->sslCertAuthorityDirPath;
-            }
-            if ($this->sslLocalCertFile) {
-                $opts['local_cert'] = $this->sslLocalCertFile;
-            }
-            if ($this->sslLocalCertPassphrase) {
-                $opts['passphrase'] = $this->sslLocalCertPassphrase;
-            }
-            
-            $stream->setContextOptions(array('ssl' => $opts));
+        if ($this->sslCertAuthorityDirPath) {
+            $opts['capath'] = $this->sslCertAuthorityDirPath;
         }
-        
-        return $stream;
+        if ($this->sslLocalCertFile) {
+            $opts['local_cert'] = $this->sslLocalCertFile;
+        }
+        if ($this->sslLocalCertPassphrase) {
+            $opts['passphrase'] = $this->sslLocalCertPassphrase;
+        }
+       
+        return array('ssl' => $opts);
     }
     
     /**
@@ -781,7 +790,7 @@ class Client {
         
         foreach ($this->sockPool as $objStorage) {
             foreach ($objStorage as $stream) {
-                if ($now - $stream->getLastActivityTimestamp() > $maxInactivitySeconds) {
+                if ($now - $stream->getActivityTimestamp() > $maxInactivitySeconds) {
                     $stream->close();
                     ++$connsClosed;
                 }
@@ -825,7 +834,7 @@ class Client {
             if ($bytesSent = $s->stream->write($dataToSend)) {
                 $s->headerBytesSent += $bytesSent;
             } elseif (false === $bytesSent) {
-                throw new NetworkException(
+                throw new StreamException(
                 'Transfer failure: connection to ' . $s->stream->getHost() . ' lost after ' .
                 "{$s->headerBytesSent} header bytes sent"
             );
@@ -869,7 +878,7 @@ class Client {
             if ($bytesSent = $s->stream->write($dataToSend)) {
                 $s->bodyBytesSent += $bytesSent;
             } elseif (false === $bytesSent) {
-                throw new NetworkException();
+                throw new StreamException();
             }
         }
         
@@ -924,7 +933,7 @@ class Client {
                     $bodyBuffer = null;
                 }
             } elseif (false === $bytesSent) {
-                throw new NetworkException();
+                throw new StreamException();
             }
         }
     }
@@ -1004,7 +1013,7 @@ class Client {
         }
         
         if (false === $readData) {
-            throw new NetworkException();
+            throw new StreamException();
         }
         
         return false;
@@ -1092,7 +1101,7 @@ class Client {
         }
         
         if (false === $readData) {
-            throw new NetworkException(
+            throw new StreamException(
                 'Transfer failure: connection to ' . $s->stream->getHost() . ' lost after ' .
                 ftell($responseBodyStream) . ' entity body bytes read'
             );
@@ -1123,10 +1132,13 @@ class Client {
      * @throws RuntimeException
      */
     protected function openMemoryStream() {
-        if (false !== ($stream = @fopen('php://temp', 'r+'))) {
+        $stream = $stream = @fopen('php://temp', 'r+');
+        
+        if (false !== $stream) {
             return $stream;
+        } else {
+            throw new RuntimeException('Failed opening in-memory stream');
         }
-        throw new RuntimeException('Failed opening in-memory stream');
     }
     
     /**
