@@ -1086,8 +1086,8 @@ class Client {
                 $s->state = ClientState::RESPONSE_RECEIVED;
             }
         } elseif ($s->state == ClientState::READING_CHUNKS) {
-            fseek($responseBodyStream, -7, SEEK_END);
-            if ("\r\n0\r\n\r\n" == stream_get_contents($responseBodyStream)) {
+            fseek($responseBodyStream, -1024, SEEK_END);
+            if (preg_match(",\r\n0+\r\n\r\n$,", stream_get_contents($responseBodyStream), $m)) {
                 stream_filter_prepend($responseBodyStream, 'dechunk');
                 $s->state = ClientState::RESPONSE_RECEIVED;
             }
