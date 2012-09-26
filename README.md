@@ -5,15 +5,11 @@ implementations make writing S.O.L.I.D. web applications in PHP almost impossibl
 the HTTP protocol using objects to maximize testability and avoid the pitfalls of littering OO code
 with unencapsulated superglobals.
 
-The Artax Client acts as a drop-in replacement for the woeful `curl_*` API to allow intuitive, 
-object-oriented and standards-compliant HTTP resource traversal. Artax makes consuming RESTful web
-services a triviality.
+##### HTTP Client
 
-### DEPENDENCIES
-
-Artax requires PHP 5.3 or higher and depends on the [PHP-Datastructures][datastructures] repository.
-
-### CLIENT FEATURES
+The Artax HTTP Client acts as a drop-in replacement for the `curl_*` API enabling intuitive, 
+standards-compliant HTTP resource traversal and RESTful web service consumption a triviality. Some
+features of the HTTP Client include:
 
  - No `cURL` or `libcurl` required; Artax uses sockets directly instead of tittering with PHP's
 `curl_*` bindings
@@ -27,6 +23,16 @@ Artax requires PHP 5.3 or higher and depends on the [PHP-Datastructures][datastr
  - Advanced persistent connection management for long-running CLI applications
  - Standardized event broadcasts allow custom plugins like caching, cookie storage, etc.
  - Send requests through proxy servers
+ - Secure SSL/TLS protocol *by default* (in contrast to the default PHP socket implementation)
+
+##### Content Negotiation
+
+Artax provides a simple HTTP content negotiation module for negotiating appropriate language,
+character set, content-encoding and content-type from HTTP requests.
+
+### DEPENDENCIES
+
+Artax requires PHP 5.3 or higher and depends on the [PHP-Datastructures][datastructures] repository.
 
 ### PROJECT GOALS
 
