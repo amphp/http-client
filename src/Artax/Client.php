@@ -11,7 +11,7 @@ use Exception,
     Spl\ValueException,
     Artax\Streams\Stream,
     Artax\Streams\SocketStream,
-    Artax\Streams\StreamException,
+    Artax\Streams\IoException,
     Artax\Streams\ConnectException,
     Artax\Http\Request,
     Artax\Http\StdRequest,
@@ -156,6 +156,13 @@ class Client {
         $this->mediator = $mediator;
     }
     
+    /**
+     * Assign multiple Client attributes at once
+     * 
+     * @param mixed $arrayOrTraversable
+     * @return void
+     * @throws Spl\ValueException On invalid attribute constant
+     */
     public function setAllAttributes($arrayOrTraversable) {
         foreach ($arrayOrTraversable as $attr => $val) {
             $this->setAttribute($attr, $val);
@@ -168,7 +175,7 @@ class Client {
      * @param int $attr
      * @param mixed $val
      * @return void
-     * @throws Spl\ValueException
+     * @throws Spl\ValueException On invalid attribute constant
      */
     public function setAttribute($attr, $val) {
         switch ($attr) {
@@ -411,8 +418,8 @@ class Client {
         )) {
             $type = is_object($requests) ? get_class($requests) : gettype($requests);
             throw new TypeException(
-                "Client::sendMulti expects an array, StdClass or Traversable object at Argument " .
-                "1; $type provided"
+                get_class($this) . ':sendMulti expects an array, StdClass or Traversable object ' .
+                "at Argument 1; $type provided"
             );
         }
         
@@ -834,10 +841,10 @@ class Client {
             if ($bytesSent = $s->stream->write($dataToSend)) {
                 $s->headerBytesSent += $bytesSent;
             } elseif (false === $bytesSent) {
-                throw new StreamException(
-                'Transfer failure: connection to ' . $s->stream->getHost() . ' lost after ' .
-                "{$s->headerBytesSent} header bytes sent"
-            );
+                throw new IoException(
+                    'Transfer failure: connection to ' . $s->stream->getHost() . ' lost after ' .
+                    "{$s->headerBytesSent} header bytes sent"
+                );
             }
         }
         
@@ -878,7 +885,7 @@ class Client {
             if ($bytesSent = $s->stream->write($dataToSend)) {
                 $s->bodyBytesSent += $bytesSent;
             } elseif (false === $bytesSent) {
-                throw new StreamException();
+                throw new IoException();
             }
         }
         
@@ -933,7 +940,7 @@ class Client {
                     $bodyBuffer = null;
                 }
             } elseif (false === $bytesSent) {
-                throw new StreamException();
+                throw new IoException();
             }
         }
     }
@@ -1013,7 +1020,10 @@ class Client {
         }
         
         if (false === $readData) {
-            throw new StreamException();
+            throw new IoException(
+                'Transfer failure: connection to ' . $s->stream->getHost() . ' lost before ' .
+                'headers were fully received'
+            );
         }
         
         return false;
@@ -1101,7 +1111,7 @@ class Client {
         }
         
         if (false === $readData) {
-            throw new StreamException(
+            throw new IoException(
                 'Transfer failure: connection to ' . $s->stream->getHost() . ' lost after ' .
                 ftell($responseBodyStream) . ' entity body bytes read'
             );
