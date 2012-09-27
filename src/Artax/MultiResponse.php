@@ -5,7 +5,7 @@ namespace Artax;
 use Iterator,
     Countable,
     Exception,
-    Spl\DomainException,
+    Spl\ValueException,
     Artax\Http\Response;
 
 class MultiResponse implements Iterator, Countable {
@@ -17,9 +17,37 @@ class MultiResponse implements Iterator, Countable {
     
     /**
      * @param array $responsesAndErrors
+     * @return void
+     * @throws Spl\ValueException
      */
     public function __construct(array $responsesAndErrors) {
+        if (!$this->validateResponses($responsesAndErrors)) {
+            throw new ValueException(
+                get_class($this) . "::__construct expects an array of Responses and/or " .
+                'exceptions at Argument 1'
+            );
+        }
         $this->responses = $responsesAndErrors;
+    }
+    
+    /**
+     * @param array $responses
+     * @return bool
+     */
+    protected function validateResponses(array $responses) {
+        if (!$responses) {
+            return false;
+        }
+        
+        foreach ($responses as $response) {
+            if ($response instanceof Response || $response instanceof Exception) {
+                continue;
+            } else {
+                return false;
+            }
+        }
+        
+        return true;
     }
     
     /**
@@ -37,50 +65,10 @@ class MultiResponse implements Iterator, Countable {
     }
     
     /**
-     * @param string $requestKey
-     * @return Exception
-     * @throws Spl\DomainException
-     */
-    public function getError($requestKey) {
-        if (!isset($this->responses[$requestKey])) {
-            throw new DomainException(
-                "No request assigned to key: $requestKey"
-            );
-        }
-        if (!$this->responses[$requestKey] instanceof Exception) {
-            throw new DomainException(
-                "The request at key $requestKey did not encounter any errors"
-            );
-        }
-        
-        return $this->responses[$requestKey];
-    }
-    
-    /**
      * @return array
      */
     public function getAllResponses() {
         return array_filter($this->responses, function($x){ return $x instanceof Response; });
-    }
-    
-    /**
-     * @param string $requestKey
-     * @return Artax\Http\Response
-     * @throws Spl\DomainException
-     */
-    public function getResponse($requestKey) {
-        if (!isset($this->responses[$requestKey])) {
-            throw new DomainException(
-                "No request assigned to key: $requestKey"
-            );
-        }
-        if (!$this->responses[$requestKey] instanceof Response) {
-            throw new DomainException(
-                "The request at key $requestKey encountered an error and no response is available"
-            );
-        }
-        
-        return $this->responses[$requestKey];
     }
     
     /**
@@ -104,6 +92,8 @@ class MultiResponse implements Iterator, Countable {
     }
     
     /**
+     * Returns a combined count of responses and errors
+     * 
      * @return int
      */
     public function count() {
