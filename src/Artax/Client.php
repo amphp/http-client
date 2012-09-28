@@ -153,10 +153,10 @@ class Client {
      * @var Mediator
      */
     private $mediator;
-    
+
     /**
-     * @param Mediator $mediator
-     * @return void
+     * @param \Spl\Mediator $mediator
+     * @return \Artax\Client
      */
     public function __construct(Mediator $mediator) {
         $this->mediator = $mediator;
@@ -541,7 +541,7 @@ class Client {
                 return;
             }
             
-            $ex = NULL;
+            $ex = array();
             list($read, $write) = $this->getSelectableStreams();
             if (!($read || $write)) {
                 continue;
