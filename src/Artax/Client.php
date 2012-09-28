@@ -145,6 +145,11 @@ class Client {
     private $requestStateMap;
     
     /**
+     * @var array
+     */
+    private $streamIdRequestMap;
+    
+    /**
      * @var Mediator
      */
     private $mediator;
