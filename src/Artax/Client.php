@@ -4,6 +4,7 @@ namespace Artax;
 
 use Exception,
     StdClass,
+    RuntimeException,
     Traversable,
     SplObjectStorage,
     Spl\Mediator,
@@ -56,7 +57,7 @@ class Client {
     /**
      * @var bool
      */
-    private $useKeepAlives = true;
+    private $useKeepAlives = TRUE;
     
     /**
      * @var int
@@ -81,22 +82,22 @@ class Client {
     /**
      * @var bool
      */
-    private $throwOnErrorStatus = false;
+    private $throwOnErrorStatus = FALSE;
     
     /**
      * @var bool
      */
-    private $autoRefererOnFollow = true;
+    private $autoRefererOnFollow = TRUE;
     
     /**
      * @var bool
      */
-    private $sslVerifyPeer = true;
+    private $sslVerifyPeer = TRUE;
     
     /**
      * @var bool
      */
-    private $sslAllowSelfSigned = false;
+    private $sslAllowSelfSigned = FALSE;
     
     /**
      * @var string
@@ -144,12 +145,12 @@ class Client {
     private $requestStateMap;
     
     /**
-     * @var Spl\Mediator
+     * @var Mediator
      */
     private $mediator;
     
     /**
-     * @param Spl\Mediator $mediator
+     * @param Mediator $mediator
      * @return void
      */
     public function __construct(Mediator $mediator) {
@@ -161,7 +162,7 @@ class Client {
      * 
      * @param mixed $arrayOrTraversable
      * @return void
-     * @throws Spl\ValueException On invalid attribute constant
+     * @throws ValueException On invalid attribute constant
      */
     public function setAllAttributes($arrayOrTraversable) {
         foreach ($arrayOrTraversable as $attr => $val) {
@@ -175,7 +176,7 @@ class Client {
      * @param int $attr
      * @param mixed $val
      * @return void
-     * @throws Spl\ValueException On invalid attribute constant
+     * @throws ValueException On invalid attribute constant
      */
     public function setAttribute($attr, $val) {
         switch ($attr) {
@@ -246,15 +247,15 @@ class Client {
      * @param int $secondsUntilTimeout
      * @return void
      */
-    private function setConnectTimout($secondsUntilTimeout) {
+    private function setConnectTimeout($secondsUntilTimeout) {
         $this->connectTimeout = (int) $secondsUntilTimeout;
     }
     
     /**
-     * @param int $maxConcurrentConnections
+     * @param int $maxConnections
      * @return void
      */
-    private function setHostConcurrencyLimit($maxConcurrentConnections) {
+    private function setHostConcurrencyLimit($maxConnections) {
         $maxConnections = (int) $maxConnections;
         $maxConnections = $maxConnections < 1 ? 1 : $maxConnections;
         $this->hostConcurrencyLimit = $maxConnections;
@@ -266,7 +267,7 @@ class Client {
      */
     private function setIoBufferSize($bytes) {
         $bytes = (int) $bytes;
-        $this->ioBufferSize = $bytes <= 0 ? self::DEFAULT_IO_BUFFER_SIZE : $bytes;
+        $this->ioBufferSize = $bytes <= 0 ? self::ATTR_IO_BUFFER_SIZE : $bytes;
     }
     
     /**
@@ -368,9 +369,9 @@ class Client {
     /**
      * Make an HTTP request
      * 
-     * @param Artax\Http\Request $request
-     * @return Artax\Http\ChainableResponse
-     * @throws Artax\ClientException
+     * @param Http\Request $request
+     * @return Http\ChainableResponse
+     * @throws ClientException
      */
     public function send(Request $request) {
         $this->mapRequestStates(array($request));
@@ -380,7 +381,7 @@ class Client {
         $s = $this->requestStateMap->getInfo();
         
         if (!empty($s->error)) {
-            throw new ClientException($s->error->getMessage(), null, $s->error);
+            throw new ClientException($s->error->getMessage(), 0, $s->error);
         } else {
             return $s->response;
         }
@@ -390,7 +391,7 @@ class Client {
      * Make multiple HTTP requests in parallel
      * 
      * @param mixed $requests An array, StdClass or Traversable list of requests
-     * @return Artax\Http\MultiResponse
+     * @return MultiResponse
      */
     public function sendMulti($requests) {
         $this->validateRequestTraversable($requests);
@@ -409,7 +410,7 @@ class Client {
     /**
      * @param mixed $requests An array, StdClass or Traversable object
      * @return void
-     * @throws Spl\TypeException
+     * @throws TypeException
      */
     protected function validateRequestTraversable($requests) {
         if (!(is_array($requests)
@@ -459,8 +460,8 @@ class Client {
         $s = new StdClass;
         
         $s->key = $key;
-        $s->stream = null;
-        $s->error = null;
+        $s->stream = NULL;
+        $s->error = NULL;
         $s->state = ClientState::AWAITING_SOCKET;
         $s->response = new ChainableResponse();
         $s->headerBytesSent = 0;
@@ -473,7 +474,7 @@ class Client {
     }
     
     /**
-     * @param Artax\Http\Request $request
+     * @param Http\Request $request
      * @return void
      */
     protected function normalizeRequestHeaders(Request $request) {
@@ -497,7 +498,7 @@ class Client {
     }
     
     /**
-     * @param Artax\Http\Request $request
+     * @param Http\Request $request
      * @param StdClass $s
      * @return bool
      */
@@ -507,12 +508,12 @@ class Client {
                 $s->stream = $stream;
                 $s->state = ClientState::SENDING_REQUEST_HEADERS;
                 $this->streamIdRequestMap[(int) $stream->getResource()] = $request;
-                return true;
+                return TRUE;
             }
         } catch (ConnectException $e) {
             $this->markStateCompleteWithError($s, $e);
         }
-        return false;
+        return FALSE;
     }
     
     /**
@@ -530,12 +531,12 @@ class Client {
      * @return void
      */
     protected function doStreamSelect() {
-        while (true) {
+        while (TRUE) {
             if ($this->isFinished()) {
                 return;
             }
             
-            $ex = null;
+            $ex = NULL;
             list($read, $write) = $this->getSelectableStreams();
             if (!($read || $write)) {
                 continue;
@@ -589,7 +590,7 @@ class Client {
     }
     
     /**
-     * @param Artax\Http\Request $request
+     * @param Http\Request $request
      */
     protected function doSelectWrite(Request $request) {
         try {
@@ -601,7 +602,7 @@ class Client {
     }
     
     /**
-     * @param Artax\Http\Request $request
+     * @param Http\Request $request
      */
     protected function doSelectRead(Request $request) {
         try {
@@ -625,9 +626,9 @@ class Client {
     }
     
     /**
-     * @param Artax\Http\Request $request
-     * @return Artax\Streams\Stream Returns null if max concurrency limit already reached
-     * @throws Artax\Streams\ConnectException
+     * @param Http\Request $request
+     * @return Streams\Stream Returns null if max concurrency limit already reached
+     * @throws Streams\ConnectException
      */
     protected function checkoutStream(Request $request) {
         $socketUri = $this->buildSocketUriFromRequest($request);
@@ -640,7 +641,7 @@ class Client {
         foreach ($this->sockPool[$socketUriString] as $stream) {
             $isInUse = $this->sockPool[$socketUriString]->getInfo();
             if (!$isInUse) {
-                $this->sockPool[$socketUriString]->setInfo(true);
+                $this->sockPool[$socketUriString]->setInfo(TRUE);
                 $this->mediator->notify(self::EVENT_STREAM_CHECKOUT, $stream);
                 return $stream;
             }
@@ -657,21 +658,21 @@ class Client {
                 $contextOpts = array();
             }
             
-            $stream->connect(null, $this->connectTimeout, $contextOpts);
+            $stream->connect(NULL, $this->connectTimeout, $contextOpts);
             stream_set_blocking($stream->getResource(), 0);
             
-            $this->sockPool[$socketUriString]->attach($stream, true);
+            $this->sockPool[$socketUriString]->attach($stream, TRUE);
             $this->mediator->notify(self::EVENT_STREAM_CHECKOUT, $stream);
             
             return $stream;
         } else {
-            return null;
+            return NULL;
         }
     }
     
     /**
-     * @param Artax\Http\Request $request
-     * @return Artax\Uri
+     * @param Http\Request $request
+     * @return Uri
      */
     protected function buildSocketUriFromRequest(Request $request) {
         $requestScheme = strtolower($request->getScheme());
@@ -694,8 +695,8 @@ class Client {
     }
     
     /**
-     * @param Artax\Uri $socketUri
-     * @return Artax\Streams\SocketStream
+     * @param Uri $socketUri
+     * @return Streams\SocketStream
      */
     protected function makeStream(Uri $socketUri) {
         return new SocketStream($this->mediator, $socketUri);
@@ -728,17 +729,17 @@ class Client {
     }
     
     /**
-     * @param Artax\Streams\Stream $stream
+     * @param Streams\Stream $stream
      * @return void
      */
     protected function checkinStream(Stream $stream) {
         $socketUriString = $stream->getUri();
-        $this->sockPool[$socketUriString]->attach($stream, false);
+        $this->sockPool[$socketUriString]->attach($stream, FALSE);
         $this->mediator->notify(self::EVENT_STREAM_CHECKIN, $stream);
     }
     
     /**
-     * @param Artax\Streams\Stream $stream
+     * @param Streams\Stream $stream
      * @return void
      */
     protected function closeStream(Stream $stream) {
@@ -792,23 +793,23 @@ class Client {
      */
     public function closeIdleStreams($maxInactivitySeconds) {
         $maxInactivitySeconds = (int) $maxInactivitySeconds;
-        $connsClosed = 0;
+        $connectionsClosed = 0;
         $now = time();
         
         foreach ($this->sockPool as $objStorage) {
             foreach ($objStorage as $stream) {
                 if ($now - $stream->getActivityTimestamp() > $maxInactivitySeconds) {
                     $stream->close();
-                    ++$connsClosed;
+                    ++$connectionsClosed;
                 }
             }
         }
         
-        return $connsClosed;
+        return $connectionsClosed;
     }
     
     /**
-     * @param Artax\Http\Request $request
+     * @param Http\Request $request
      * @return void
      */
     protected function writeRequest(Request $request) {
@@ -828,7 +829,7 @@ class Client {
     }
     
     /**
-     * @param Artax\Http\Request $request
+     * @param Http\Request $request
      * @param StdClass $s
      * @return void
      */
@@ -840,7 +841,7 @@ class Client {
             $dataToSend = substr($rawHeaders, $s->headerBytesSent);
             if ($bytesSent = $s->stream->write($dataToSend)) {
                 $s->headerBytesSent += $bytesSent;
-            } elseif (false === $bytesSent) {
+            } elseif (FALSE === $bytesSent) {
                 throw new IoException(
                     'Transfer failure: connection to ' . $s->stream->getHost() . ' lost after ' .
                     "{$s->headerBytesSent} header bytes sent"
@@ -863,7 +864,7 @@ class Client {
     }
     
     /**
-     * @param Artax\Http\Request $request
+     * @param Http\Request $request
      * @return string
      */
     protected function buildRawRequestHeaders(Request $request) {
@@ -871,7 +872,7 @@ class Client {
     }
     
     /**
-     * @param Artax\Http\Request $request
+     * @param Http\Request $request
      * @param StdClass $s
      * @return void
      */
@@ -884,7 +885,7 @@ class Client {
             
             if ($bytesSent = $s->stream->write($dataToSend)) {
                 $s->bodyBytesSent += $bytesSent;
-            } elseif (false === $bytesSent) {
+            } elseif (FALSE === $bytesSent) {
                 throw new IoException();
             }
         }
@@ -893,10 +894,12 @@ class Client {
             $s->state = ClientState::READING_HEADERS;
         }
     }
-    
+
     /**
-     * @param Artax\Http\Request $request
+     * @param Http\Request $request
      * @param StdClass $s
+     * @throws \RuntimeException
+     * @throws Streams\IoException
      * @return void
      */
     protected function writeStreamingRequestBody(Request $request, StdClass $s) {
@@ -906,12 +909,12 @@ class Client {
         $requestBodyBytes = ftell($requestBody);
         rewind($requestBody);
         
-        $bodyBuffer = null;
+        $bodyBuffer = NULL;
         
-        while (true) {
+        while (TRUE) {
             if (is_null($bodyBuffer)) {
                 $readData = @fread($requestBody, $this->ioBufferSize);
-                if (false === $readData) {
+                if (FALSE === $readData) {
                     throw new RuntimeException(
                         "Failed reading request body from $requestBody"
                     );
@@ -937,18 +940,18 @@ class Client {
                     $s->state = ClientState::READING_HEADERS;
                     return;
                 } else {
-                    $bodyBuffer = null;
+                    $bodyBuffer = NULL;
                 }
-            } elseif (false === $bytesSent) {
+            } elseif (FALSE === $bytesSent) {
                 throw new IoException();
             }
         }
     }
     
     /**
-     * @param Artax\Http\Request $request
+     * @param Http\Request $request
      * @return void
-     * @throws Artax\ResponseStatusException
+     * @throws ResponseStatusException
      */
     protected function readResponse(Request $request) {
         $s = $this->requestStateMap->offsetGet($request);
@@ -994,7 +997,7 @@ class Client {
             $s->responseBuffer .= $readData;
             $s->responseBuffer = ltrim($s->responseBuffer);
             
-            if (false === ($bodyStartPos = strpos($s->responseBuffer, "\r\n\r\n"))) {
+            if (FALSE === ($bodyStartPos = strpos($s->responseBuffer, "\r\n\r\n"))) {
                 continue;
             }
             
@@ -1016,46 +1019,46 @@ class Client {
                 $s->state = ClientState::READING_UNTIL_CLOSE;
             }
             
-            return true;
+            return TRUE;
         }
         
-        if (false === $readData) {
+        if (FALSE === $readData) {
             throw new IoException(
                 'Transfer failure: connection to ' . $s->stream->getHost() . ' lost before ' .
                 'headers were fully received'
             );
         }
         
-        return false;
+        return FALSE;
     }
     
     /**
-     * @param Artax\Http\Response $response
+     * @param Http\Response $response
      * @return bool
      */
     protected function responseAllowsEntityBody(Response $response) {
         $statusCode = $response->getStatusCode();
         
         if ($statusCode == 204) {
-            return false;
+            return FALSE;
         }
         if ($statusCode == 304) {
-            return false;
+            return FALSE;
         }
         if ($statusCode >= 100 && $statusCode < 200) {
-            return false;
+            return FALSE;
         }
         
-        return true;
+        return TRUE;
     }
     
     /**
-     * @param Artax\Http\Response $response
+     * @param Http\Response $response
      * @return bool
      */
     protected function isChunked(Response $response) {
         if (!$response->hasHeader('Transfer-Encoding')) {
-            return false;
+            return FALSE;
         }
         
         $transferEncoding = $response->getHeader('Transfer-Encoding');
@@ -1070,22 +1073,24 @@ class Client {
         
         return $isChunked;
     }
-    
+
     /**
      * @param StdClass $s
+     * @throws \RuntimeException
+     * @throws Streams\IoException
      * @return bool
      */
     protected function readBody(StdClass $s) {
         if (!$responseBodyStream = $s->response->getBodyStream()) {
             $responseBodyStream = $this->openMemoryStream();
             $s->response->setBody($responseBodyStream);
-            if (false === @fwrite($responseBodyStream, $s->responseBuffer)) {
+            if (FALSE === @fwrite($responseBodyStream, $s->responseBuffer)) {
                 throw new RuntimeException("Failed writing to memory stream $responseBodyStream");
             }
         }
         
         while ($readData = $s->stream->read($this->ioBufferSize)) {
-            if (false === @fwrite($responseBodyStream, $readData)) {
+            if (FALSE === @fwrite($responseBodyStream, $readData)) {
                 throw new RuntimeException("Failed writing to memory stream $responseBodyStream");
             }
         }
@@ -1107,34 +1112,34 @@ class Client {
         
         if ($s->state == ClientState::RESPONSE_RECEIVED) {
             rewind($responseBodyStream);
-            return true;
+            return TRUE;
         }
         
-        if (false === $readData) {
+        if (FALSE === $readData) {
             throw new IoException(
                 'Transfer failure: connection to ' . $s->stream->getHost() . ' lost after ' .
                 ftell($responseBodyStream) . ' entity body bytes read'
             );
         }
         
-        return false;
+        return FALSE;
     }
     
     /**
-     * @param Artax\Http\Response $response
+     * @param Http\Response $response
      * @return bool
      */
     protected function shouldCloseConnection(Response $response) {
         if (!$this->useKeepAlives) {
-            return true;
+            return TRUE;
         }
         if (!$response->hasHeader('Connection')) {
-            return false;
+            return FALSE;
         }
         if (strcmp($response->getHeader('Connection'), 'close')) {
-            return false;
+            return FALSE;
         }
-        return true;
+        return TRUE;
     }
     
     /**
@@ -1144,7 +1149,7 @@ class Client {
     protected function openMemoryStream() {
         $stream = $stream = @fopen('php://temp', 'r+');
         
-        if (false !== $stream) {
+        if (FALSE !== $stream) {
             return $stream;
         } else {
             throw new RuntimeException('Failed opening in-memory stream');
@@ -1152,18 +1157,18 @@ class Client {
     }
     
     /**
-     * @param Artax\Http\Request $request
-     * @param Artax\Http\Response $response
+     * @param Http\Request $request
+     * @param Http\Response $response
      * @param array $redirectHistory
      * @return bool
      */
     protected function canRedirect(Request $request, Response $response, array $redirectHistory) {
         if ($this->followLocation == self::FOLLOW_LOCATION_NONE) {
-            return false;
+            return FALSE;
         }
         
         if (!$response->hasHeader('Location')) {
-            return false;
+            return FALSE;
         }
         
         $this->normalizeRedirectLocation($request, $response);
@@ -1175,7 +1180,7 @@ class Client {
             && $statusCode < 400
             && !(($this->followLocation | $canFollow3xx) == $this->followLocation)
         ) {
-           return false; 
+           return FALSE;
         }
         
         $canFollow2xx = self::FOLLOW_LOCATION_ON_2XX;
@@ -1183,7 +1188,7 @@ class Client {
             && $statusCode < 300
             && !(($this->followLocation | $canFollow2xx) == $this->followLocation)
         ) {
-           return false; 
+           return FALSE;
         }
         
         $requestMethod = $request->getMethod();
@@ -1191,14 +1196,14 @@ class Client {
         if (!in_array($requestMethod, array('GET', 'HEAD'))
             && !(($this->followLocation | $canFollowUnsafe) == $this->followLocation)
         ) {
-            return false;
+            return FALSE;
         }
         
-        return true;
+        return TRUE;
     }
     
     /**
-     * @param Artax\Http\Request $request
+     * @param Http\Request $request
      * @param StdClass $s
      * @return void
      */
@@ -1246,8 +1251,8 @@ class Client {
     }
 
     /**
-     * @param Artax\Http\Request $prevRequest
-     * @param Artax\Http\Response $prevResponse
+     * @param Http\Request $prevRequest
+     * @param Http\Response $prevResponse
      * @return void
      */
     protected function normalizeRedirectLocation(Request $prevRequest, Response $prevResponse) {
