@@ -404,12 +404,10 @@ class Client {
         $this->doStreamSelect();
         
         $responses = array();
-        $this->requestStateMap->rewind();
-        
-        while($this->requestStateMap->valid()) {
-            $s = $this->requestStateMap->getInfo();
+        $stateMap = $this->requestStateMap;
+        for ($stateMap->rewind(); $stateMap->valid(); $stateMap->next()) {
+            $s = $stateMap->getInfo();
             $responses[$s->key] = $s->error ?: $s->response;
-            $this->requestStateMap->next();
         }
         
         return new MultiResponse($responses);
@@ -626,8 +624,9 @@ class Client {
      */
     protected function isFinished() {
         $completedCount = 0;
-        foreach ($this->requestStateMap as $request) {
-            $s = $this->requestStateMap->getInfo();
+        $stateMap = $this->requestStateMap;
+        for ($stateMap->rewind(); $stateMap->valid; $stateMap->next()) {
+            $s = $stateMap->getInfo();
             $completedCount += $s->state >= ClientState::RESPONSE_RECEIVED;
         }
         return $completedCount == count($this->requestStateMap);
@@ -677,9 +676,10 @@ class Client {
             return NULL;
         }
     }
-    
+
     /**
      * @param Http\Request $request
+     * @throws ValueException
      * @return Uri
      */
     protected function buildSocketUriFromRequest(Request $request) {
@@ -709,8 +709,9 @@ class Client {
     protected function makeStream(Uri $socketUri) {
         return new SocketStream($this->mediator, $socketUri);
     }
-    
+
     /**
+     * @param Uri $socketUri
      * @return array
      */
     protected function buildSslContextOptionArray(Uri $socketUri) {
@@ -835,10 +836,11 @@ class Client {
             $this->writeStreamingRequestBody($request, $s);
         }
     }
-    
+
     /**
      * @param Http\Request $request
      * @param StdClass $s
+     * @throws Streams\IoException
      * @return void
      */
     protected function writeRequestHeaders(Request $request, StdClass $s) {
@@ -878,10 +880,11 @@ class Client {
     protected function buildRawRequestHeaders(Request $request) {
         return $request->getRequestLine() . "\r\n" . $request->getRawHeaders() . "\r\n";
     }
-    
+
     /**
      * @param Http\Request $request
      * @param StdClass $s
+     * @throws Streams\IoException
      * @return void
      */
     protected function writeBufferedRequestBody(Request $request, StdClass $s) {
