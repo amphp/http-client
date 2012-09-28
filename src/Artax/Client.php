@@ -625,7 +625,7 @@ class Client {
     protected function isFinished() {
         $completedCount = 0;
         $stateMap = $this->requestStateMap;
-        for ($stateMap->rewind(); $stateMap->valid; $stateMap->next()) {
+        for ($stateMap->rewind(); $stateMap->valid(); $stateMap->next()) {
             $s = $stateMap->getInfo();
             $completedCount += $s->state >= ClientState::RESPONSE_RECEIVED;
         }
