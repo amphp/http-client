@@ -404,9 +404,12 @@ class Client {
         $this->doStreamSelect();
         
         $responses = array();
-        foreach ($this->requestStateMap as $request) {
+        $this->requestStateMap->rewind();
+        
+        while($this->requestStateMap->valid()) {
             $s = $this->requestStateMap->getInfo();
             $responses[$s->key] = $s->error ?: $s->response;
+            $this->requestStateMap->next();
         }
         
         return new MultiResponse($responses);
