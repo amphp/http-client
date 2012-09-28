@@ -17,7 +17,7 @@ class SocketStream implements Stream {
     /**
      * @var int
      */
-    private $lastActivityTime;
+    private $activityTimestamp;
     
     /**
      * @var int
@@ -82,7 +82,7 @@ class SocketStream implements Stream {
         
         if (false !== $stream) {
             $this->resource = $stream;
-            $this->lastActivityTime = microtime(true);
+            $this->activityTimestamp = microtime(true);
             $this->mediator->notify(self::EVENT_OPEN, $this);
             return $stream;
         } else {
@@ -144,7 +144,7 @@ class SocketStream implements Stream {
         } elseif (!empty($readData)) {
             $bytesRecd = strlen($readData);
             $this->bytesRecd += $bytesRecd;
-            $this->lastActivityTime = microtime(true);
+            $this->activityTimestamp = microtime(true);
             $this->mediator->notify(self::EVENT_READ, $this, $readData, $bytesRecd);
         }
         
@@ -183,7 +183,7 @@ class SocketStream implements Stream {
             $actualDataWritten = substr($dataToWrite, 0, $bytesWritten);
         }
         
-        $this->lastActivityTime = microtime(true);
+        $this->activityTimestamp = microtime(true);
         $this->mediator->notify(self::EVENT_WRITE, $this, $actualDataWritten, $bytesWritten);
         
         return $bytesWritten;
@@ -258,7 +258,7 @@ class SocketStream implements Stream {
      * @return int
      */
     public function getActivityTimestamp() {
-        return $this->lastActivityTime;
+        return $this->activityTimestamp;
     }
     
     /**
