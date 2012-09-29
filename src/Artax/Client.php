@@ -244,7 +244,7 @@ class Client {
      * @param bool $boolFlag
      * @return void
      */
-    private function setKeepAlives($boolFlag) {
+    protected function setKeepAlives($boolFlag) {
         $this->useKeepAlives = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
     }
     
@@ -252,7 +252,7 @@ class Client {
      * @param int $secondsUntilTimeout
      * @return void
      */
-    private function setConnectTimeout($secondsUntilTimeout) {
+    protected function setConnectTimeout($secondsUntilTimeout) {
         $this->connectTimeout = (int) $secondsUntilTimeout;
     }
     
@@ -260,7 +260,7 @@ class Client {
      * @param int $maxConnections
      * @return void
      */
-    private function setHostConcurrencyLimit($maxConnections) {
+    protected function setHostConcurrencyLimit($maxConnections) {
         $maxConnections = (int) $maxConnections;
         $maxConnections = $maxConnections < 1 ? 1 : $maxConnections;
         $this->hostConcurrencyLimit = $maxConnections;
@@ -270,7 +270,7 @@ class Client {
      * @param int $bytes
      * @return void
      */
-    private function setIoBufferSize($bytes) {
+    protected function setIoBufferSize($bytes) {
         $bytes = (int) $bytes;
         $this->ioBufferSize = $bytes <= 0 ? self::ATTR_IO_BUFFER_SIZE : $bytes;
     }
@@ -279,7 +279,7 @@ class Client {
      * @param int $bitmask
      * @return void
      */
-    private function setFollowLocation($bitmask) {
+    protected function setFollowLocation($bitmask) {
         $this->followLocation = (int) $bitmask;
     }
     
@@ -287,7 +287,7 @@ class Client {
      * @param bool $boolFlag
      * @return void
      */
-    private function setThrowOnErrorStatus($boolFlag) {
+    protected function setThrowOnErrorStatus($boolFlag) {
         $this->throwOnErrorStatus = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
     }
     
@@ -295,7 +295,7 @@ class Client {
      * @param bool $boolFlag
      * @return void
      */
-    private function setAutoRefererOnFollow($boolFlag) {
+    protected function setAutoRefererOnFollow($boolFlag) {
         $this->autoRefererOnFollow = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
     }
     
@@ -303,7 +303,7 @@ class Client {
      * @param bool $boolFlag
      * @return void
      */
-    private function setSslVerifyPeer($boolFlag) {
+    protected function setSslVerifyPeer($boolFlag) {
         $this->sslVerifyPeer = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
     }
     
@@ -311,7 +311,7 @@ class Client {
      * @param bool $boolFlag
      * @return void
      */
-    private function setSslAllowSelfSigned($boolFlag) {
+    protected function setSslAllowSelfSigned($boolFlag) {
         $this->sslAllowSelfSigned = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
     }
     
@@ -319,7 +319,7 @@ class Client {
      * @param string $certAuthorityFilePath
      * @return void
      */
-    private function setSslCertAuthorityFile($certAuthorityFilePath) {
+    protected function setSslCertAuthorityFile($certAuthorityFilePath) {
         $this->sslCertAuthorityFile = $certAuthorityFilePath;
     }
     
@@ -327,7 +327,7 @@ class Client {
      * @param string $certAuthorityDirPath
      * @return void
      */
-    private function setSslCertAuthorityDirPath($certAuthorityDirPath) {
+    protected function setSslCertAuthorityDirPath($certAuthorityDirPath) {
         $this->sslCertAuthorityDirPath = $certAuthorityDirPath;
     }
     
@@ -335,7 +335,7 @@ class Client {
      * @param string $localCertFilePath
      * @return void
      */
-    private function setSslLocalCertFile($localCertFilePath) {
+    protected function setSslLocalCertFile($localCertFilePath) {
         $this->sslLocalCertFile = $localCertFilePath;
     }
     
@@ -343,7 +343,7 @@ class Client {
      * @param string $localCertPassphrase
      * @return void
      */
-    private function setSslLocalCertPassphrase($localCertPassphrase) {
+    protected function setSslLocalCertPassphrase($localCertPassphrase) {
         $this->sslLocalCertPassphrase = $localCertPassphrase;
     }
     
@@ -351,7 +351,7 @@ class Client {
      * @param string $commonNameMatch
      * @return void
      */
-    private function setSslCommonNameMatch($commonNameMatch) {
+    protected function setSslCommonNameMatch($commonNameMatch) {
         $this->sslCommonNameMatch = $commonNameMatch;
     }
     
@@ -359,7 +359,7 @@ class Client {
      * @param int $depth
      * @return void
      */
-    private function setSslVerifyDepth($depth) {
+    protected function setSslVerifyDepth($depth) {
         $this->sslVerifyDepth = (int) $depth;
     }
     
@@ -367,7 +367,7 @@ class Client {
      * @param string $cipherList
      * @return void
      */
-    private function setSslCiphers($cipherList) {
+    protected function setSslCiphers($cipherList) {
         $this->sslCiphers = $cipherList;
     }
     
@@ -380,7 +380,7 @@ class Client {
      */
     public function send(Request $request) {
         $this->mapRequestStates(array($request));
-        $this->doStreamSelect();
+        $this->executeHttpRequests();
         
         $this->requestStateMap->rewind();
         $s = $this->requestStateMap->getInfo();
@@ -401,7 +401,7 @@ class Client {
     public function sendMulti($requests) {
         $this->validateRequestTraversable($requests);
         $this->mapRequestStates($requests);
-        $this->doStreamSelect();
+        $this->executeHttpRequests();
         
         $responses = array();
         $stateMap = $this->requestStateMap;
@@ -430,6 +430,7 @@ class Client {
             );
         }
         
+        $count = 0;
         foreach ($requests as $request) {
             if (!$request instanceof Request) {
                 $type = is_object($request) ? get_class($requests) : gettype($request);
@@ -438,6 +439,15 @@ class Client {
                     "1 implement Artax\\Http\\Request; $type provided"
                 );
             }
+            ++$count;
+        }
+        
+        // This test may seem redundant but an empty() or count() check will not work on a StdClass
+        if (!$count) {
+            throw new TypeException(
+                "Client::sendMulti requires a non-empty array, StdClass or Traversable request " .
+                "list at Argument 1"
+            );
         }
     }
     
@@ -536,38 +546,58 @@ class Client {
     /**
      * @return void
      */
-    protected function doStreamSelect() {
-        while (TRUE) {
-            if ($this->isFinished()) {
-                return;
-            }
-            
-            $ex = array();
-            list($read, $write) = $this->getSelectableStreams();
+    protected function executeHttpRequests() {
+        while (!$this->hasCompletedAllRequests()) {
+        
+            list($read, $write) = $this->getSelectableIoStreams();
             if (!($read || $write)) {
                 continue;
             }
             
-            if (!stream_select($read, $write, $ex, 3)) {
+            list($result, $read, $write) = $this->doStreamSelect($read, $write);
+            if (empty($result)) {
                 continue;
             }
             
             foreach ($write as $stream) {
                 $request = $this->streamIdRequestMap[(int) $stream];
-                $this->doSelectWrite($request);
+                try {
+                    $this->writeRequest($request);
+                } catch (Exception $e) {
+                    $s = $this->requestStateMap->offsetGet($request);
+                    $this->markStateCompleteWithError($s, $e);
+                }
             }
             
             foreach ($read as $stream) {
                 $request = $this->streamIdRequestMap[(int) $stream];
-                $this->doSelectRead($request);
+                try {
+                    $this->readResponse($request);
+                } catch (Exception $e) {
+                    $s = $this->requestStateMap->offsetGet($request);
+                    $this->markStateCompleteWithError($s, $e);
+                }
             }
         }
     }
     
     /**
+     * @return bool
+     */
+    protected function hasCompletedAllRequests() {
+        $completedCount = 0;
+        $stateMap = $this->requestStateMap;
+        for ($stateMap->rewind(); $stateMap->valid(); $stateMap->next()) {
+            $s = $stateMap->getInfo();
+            $completedCount += $s->state >= ClientState::RESPONSE_RECEIVED;
+        }
+        return $completedCount == count($this->requestStateMap);
+    }
+    
+    /**
      * @return array
      */
-    protected function getSelectableStreams() {
+    protected function getSelectableIoStreams() {
         $read = array();
         $write = array();
         
@@ -596,40 +626,36 @@ class Client {
     }
     
     /**
-     * @param Http\Request $request
+     * A test seam for mocking stream_select results
+     * 
+     * The native stream_select function takes arrays of open stream resources (both readable and 
+     * writable) and modifies those arrays by reference to return only those streams on which IO 
+     * actions may be taken without blocking. Because the native stream_select modifies the supplied
+     * stream  resource arrays by reference, we simplify test mocking by returning an array 
+     * containing the select results as well as the read and write arrays of actionable IO streams.
+     * 
+     * By setting all of our socket streams to non-blocking mode, we're able to utilize stream_select
+     * to execute many requests in parallel in an infinite loop. See the relevant manual entry for 
+     * the full stream_select reference:
+     * 
+     * http://us.php.net/manual/en/function.stream-select.php
+     * 
+     * @param array $read
+     * @param array $write
+     * @param array $ex
+     * @param int $tvsec
+     * @param int $tvusec
+     * @return array
      */
-    protected function doSelectWrite(Request $request) {
-        try {
-            $this->writeRequest($request);
-        } catch (Exception $e) {
-            $s = $this->requestStateMap->offsetGet($request);
-            $this->markStateCompleteWithError($s, $e);
-        }
-    }
-    
-    /**
-     * @param Http\Request $request
-     */
-    protected function doSelectRead(Request $request) {
-        try {
-            $this->readResponse($request);
-        } catch (Exception $e) {
-            $s = $this->requestStateMap->offsetGet($request);
-            $this->markStateCompleteWithError($s, $e);
-        }
-    }
-    
-    /**
-     * @return bool
-     */
-    protected function isFinished() {
-        $completedCount = 0;
-        $stateMap = $this->requestStateMap;
-        for ($stateMap->rewind(); $stateMap->valid(); $stateMap->next()) {
-            $s = $stateMap->getInfo();
-            $completedCount += $s->state >= ClientState::RESPONSE_RECEIVED;
-        }
-        return $completedCount == count($this->requestStateMap);
+    protected function doStreamSelect(
+        array $read,
+        array $write,
+        array $ex = array(),
+        $tvsec = 3,
+        $tvusec = 0
+    ) {
+        $result = @stream_select($read, $write, $ex, $tvsec, $tvusec);
+        return array($result, $read, $write);
     }
     
     /**
@@ -979,14 +1005,14 @@ class Client {
             }
         }
         
-        if ($this->shouldCloseConnection($s->response)) {
+        if ($this->shouldCloseConnectionOnCompletion($s->response)) {
             $this->closeStream($s->stream);
         } else {
             $this->checkinStream($s->stream);
         }
         
         if ($this->canRedirect($request, $s->response, $s->redirectHistory)) {
-            $this->redirect($request, $s);
+            $this->doRedirect($request, $s);
         } else {
             $this->mediator->notify(self::EVENT_RESPONSE, $s->key, $s->response);
         }
@@ -1022,7 +1048,7 @@ class Client {
             
             if (!$this->responseAllowsEntityBody($s->response)) {
                 $s->state = ClientState::RESPONSE_RECEIVED;
-            } if ($this->isChunked($s->response)) {
+            } elseif ($this->isChunked($s->response)) {
                 $s->state = ClientState::READING_CHUNKS;
             } elseif ($s->response->hasHeader('Content-Length')) {
                 $s->state = ClientState::READING_UNTIL_LENGTH_REACHED;
@@ -1140,11 +1166,11 @@ class Client {
      * @param Http\Response $response
      * @return bool
      */
-    protected function shouldCloseConnection(Response $response) {
+    protected function shouldCloseConnectionOnCompletion(Response $response) {
         if (!$this->useKeepAlives) {
             return TRUE;
         }
-        if (!$response->hasHeader('Connection')) {
+        if (!$response->hasHeader('Connection') && $response->getHttpVersion() == '1.1') {
             return FALSE;
         }
         if (strcmp($response->getHeader('Connection'), 'close')) {
@@ -1158,12 +1184,14 @@ class Client {
      * @throws RuntimeException
      */
     protected function openMemoryStream() {
-        $stream = $stream = @fopen('php://temp', 'r+');
+        $stream = @fopen('php://temp', 'r+');
         
         if (FALSE !== $stream) {
             return $stream;
         } else {
-            throw new RuntimeException('Failed opening in-memory stream');
+            throw new RuntimeException(
+                'Failed opening in-memory stream'
+            );
         }
     }
     
@@ -1218,7 +1246,7 @@ class Client {
      * @param StdClass $s
      * @return void
      */
-    protected function redirect(Request $request, StdClass $s) {
+    protected function doRedirect(Request $request, StdClass $s) {
         $oldLocation = $request->getUri();
         $newLocation = $s->response->getHeader('Location');
         
