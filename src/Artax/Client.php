@@ -618,7 +618,7 @@ class Client {
             if ($s->state < ClientState::READING_HEADERS) {
                 $write[$streamKey] = $stream;
             } elseif ($s->state < ClientState::RESPONSE_RECEIVED) {
-                $read[$streamKey] = $s->stream->getResource();
+                $read[$streamKey] = $stream;
             }
         }
         
