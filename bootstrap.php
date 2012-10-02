@@ -15,8 +15,23 @@ if (extension_loaded('mbstring')) {
     }
 }
 
-define('ARTAX_SYSTEM_DIR', __DIR__);
-define('ARTAX_CERT_AUTHORITY', __DIR__ . '/ca/cacert.pem');
+if (!defined('ARTAX_CERT_AUTHORITY')) {
+    define('ARTAX_CERT_AUTHORITY', __DIR__ . '/certs/cacert.pem');
+}
 
-require __DIR__ . '/autoload.php';
-require __DIR__ . '/vendor/PHP-Datastructures/bootstrap.php';
+spl_autoload_register(function($class) {
+    if (0 === strpos($class, 'Artax\\')) {
+        $class = str_replace('\\', DIRECTORY_SEPARATOR, $class);
+        require __DIR__ . "/src/$class.php";
+    }
+});
+
+spl_autoload_register(function($class) {
+    if (0 === strpos($class, 'Spl\\')) {
+        $class = str_replace('\\', DIRECTORY_SEPARATOR, $class);
+        $file = __DIR__ . "/vendor/PHP-Datastructures/src/$class.php";
+        if (file_exists($file)) {
+            require $file;
+        }
+    }
+});
