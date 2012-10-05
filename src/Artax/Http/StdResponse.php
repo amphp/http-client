@@ -121,11 +121,15 @@ class StdResponse extends StdMessage implements Response {
      * @return void
      */
     protected function normalizeHeadersForSend() {
-        if ($this->body && !$this->getBodyStream()) {
-            $this->setHeader('Content-Length', strlen($this->body));
-        } else {
+        if ($this->getBodyStream()) {
             $this->setHeader('Transfer-Encoding', 'chunked');
             $this->removeHeader('Content-Length');
+        } elseif ($this->body) {
+            $this->setHeader('Content-Length', strlen($this->body));
+            $this->removeHeader('Transfer-Encoding');
+        } else {
+            $this->removeHeader('Content-Length');
+            $this->removeHeader('Transfer-Encoding');
         }
     }
     
@@ -139,6 +143,7 @@ class StdResponse extends StdMessage implements Response {
         foreach ($this->headers as $header) {
             $header->send();
         }
+        flush();
     }
     
     /**

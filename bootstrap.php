@@ -14,11 +14,14 @@ if (extension_loaded('mbstring')) {
         );
     }
 }
-
-if (!defined('ARTAX_CERT_AUTHORITY')) {
-    define('ARTAX_CERT_AUTHORITY', __DIR__ . '/certs/cacert.pem');
+/*
+if (extension_loaded('openssl')) { 
+    throw new RuntimeException(
+        'Artax cannot function in the presence of string function overloading ' .
+        'with "mbstring.func_overload"'
+    );
 }
-
+*/
 spl_autoload_register(function($class) {
     if (0 === strpos($class, 'Artax\\')) {
         $class = str_replace('\\', DIRECTORY_SEPARATOR, $class);

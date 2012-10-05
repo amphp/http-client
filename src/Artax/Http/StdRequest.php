@@ -274,7 +274,7 @@ class StdRequest extends StdMessage implements Request {
      * @return string
      */
     public function __toString() {
-        if (strcmp('CONNECT', $this->getMethod())) {
+        if ('CONNECT' != $this->getMethod()) {
             $msg = $this->getRequestLine() . "\r\n";
             $msg.= $this->getRawHeaders();
             $msg.= "\r\n";

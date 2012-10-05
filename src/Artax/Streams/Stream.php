@@ -2,72 +2,140 @@
 
 namespace Artax\Streams;
 
-interface Stream {
-    
-    const EVENT_OPEN = 'artax.network.stream.open';
-    const EVENT_CLOSE = 'artax.network.stream.close';
-    const EVENT_READ = 'artax.network.stream.io.read';
-    const EVENT_WRITE = 'artax.network.stream.io.write';
+use Spl\TypeException;
+
+class Stream implements Resource {
     
     /**
+     * @var resource
+     */
+    protected $resource;
+    
+    /**
+     * @var string
+     */
+    private $path;
+    
+    /**
+     * @var string
+     */
+    private $mode;
+    
+    /**
+     * @param string $path
+     * @param string $mode
      * @return void
      */
-    function connect();
+    public function __construct($path, $mode) {
+        $this->path = $path;
+        $this->mode = $mode;
+    }
     
     /**
+     * @throws StreamException
      * @return void
      */
-    function close();
+    public function open() {
+        if (!$this->resource = $this->doOpen($this->path, $this->mode)) {
+            throw new StreamException(
+                'Failed opening stream: fopen(' . $this->path . ', ' . $this->mode . ')'
+            );
+        }
+    }
     
     /**
+     * A test seam for mocking fopen results
+     * 
+     * @param string $path
+     * @param string $mode
+     * @return mixed Returns stream resource on success or FALSE on failure
+     */
+    protected function doOpen($path, $mode) {
+        return @fopen($path, $mode);
+    }
+    
+    /**
+     * Close the stream resource (fclose)
+     * 
+     * @return void
+     */
+    public function close() {
+        if (!empty($this->resource)) {
+            @fclose($this->resource);
+            $this->resource = null;
+        }
+    }
+    
+    /**
+     * Read data from the stream resource (fread)
+     * 
      * @param int $bytesToRead
+     * @throws IoException
      * @return string
      */
-    function read($bytesToRead);
+    public function read($bytesToRead) {
+        $readData = $this->doRead($bytesToRead);
+        
+        if (false === $readData) {
+            $resourceId = $this->getResourceId() ?: '(none)';
+            throw new IoException(
+                'Failed reading ' . $bytesToRead . ' bytes from resource ID# ' . $resourceId
+            );
+        }
+        
+        return $readData;
+    }
     
     /**
+     * A test seam for mocking fread results
+     * 
+     * @return mixed Returns read data or FALSE on error
+     */
+    protected function doRead($bytes) {
+        return @fread($this->resource, $bytes);
+    }
+    
+    /**
+     * @return int
+     */
+    private function getResourceId() {
+        return empty($this->resource) ? 0 : (int) $this->resource;
+    }
+    
+    /**
+     * Write data to the stream resource (fwrite)
+     * 
      * @param string $dataToWrite
-     * @return int
+     * @throws IoException
+     * @return int Returns the number of bytes written
      */
-    function write($dataToWrite);
+    public function write($dataToWrite) {
+        $bytesWritten = $this->doWrite($dataToWrite);
+        
+        if (false === $bytesWritten) {
+            $length = strlen($dataToWrite);
+            $resourceId = $this->getResourceId() ?: '(none)';
+            throw new IoException(
+                'Failed writing ' . $length . ' bytes to resource ID# ' . $resourceId
+            );
+        }
+        
+        return $bytesWritten;
+    }
     
     /**
-     * @return string
+     * A test seam for mocking fwrite results
+     * 
+     * @return mixed Returns the number of bytes written or FALSE on error
      */
-    function getScheme();
-    
-    /**
-     * @return string
-     */
-    function getHost();
-    
-    /**
-     * @return int
-     */
-    function getPort();
-    
-    /**
-     * @return string
-     */
-    function getAuthority();
-    
-    /**
-     * @return string
-     */
-    function getPath();
-    
-    /**
-     * @return string
-     */
-    function getUri();
+    protected function doWrite($data) {
+        return @fwrite($this->resource, $data);
+    }
     
     /**
      * @return resource
      */
-    function getResource();
-    
-    /**
-     * @return int
-     */
-    function getActivityTimestamp();
+    public function getResource() {
+        return $this->resource;
+    }
 }

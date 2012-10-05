@@ -2,6 +2,4 @@
 
 namespace Artax\Streams;
 
-use RuntimeException;
-
-class StreamException extends RuntimeException {}
+class StreamException extends \RuntimeException {}
