@@ -8,9 +8,8 @@ class SocketStreamTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Streams\SocketStream::__construct
      */
     public function testBeginsEmpty() {
-        $mediator = $this->getMock('Spl\\Mediator');
         $uri = new Artax\Uri('tcp://localhost:80');
-        $stream = new SocketStream($mediator, $uri);
+        $stream = new SocketStream($uri);
         $this->assertInstanceOf('Artax\\Streams\\SocketStream', $stream);
     }
     
@@ -19,18 +18,16 @@ class SocketStreamTest extends PHPUnit_Framework_TestCase {
      * @expectedException Spl\ValueException
      */
     public function testConstructorThrowsExceptionIfNoPortSpecifiedInUri() {
-        $mediator = $this->getMock('Spl\\Mediator');
         $uri = new Artax\Uri('tcp://localhost');
-        $stream = new SocketStream($mediator, $uri);
+        $stream = new SocketStream($uri);
     }
     
     /**
      * @covers Artax\Streams\SocketStream::getScheme
      */
     public function testSchemeGetterReturnsComposedUriScheme() {
-        $mediator = $this->getMock('Spl\\Mediator');
         $uri = new Artax\Uri('tls://localhost:80');
-        $stream = new SocketStream($mediator, $uri);
+        $stream = new SocketStream($uri);
         $this->assertEquals('tls', $stream->getScheme());
     }
     
@@ -38,9 +35,8 @@ class SocketStreamTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Streams\SocketStream::getHost
      */
     public function testHostGetterReturnsComposedUriHost() {
-        $mediator = $this->getMock('Spl\\Mediator');
         $uri = new Artax\Uri('tcp://localhost:8096');
-        $stream = new SocketStream($mediator, $uri);
+        $stream = new SocketStream($uri);
         $this->assertEquals('localhost', $stream->getHost());
     }
     
@@ -48,9 +44,8 @@ class SocketStreamTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Streams\SocketStream::getPort
      */
     public function testPortGetterReturnsComposedUriPort() {
-        $mediator = $this->getMock('Spl\\Mediator');
         $uri = new Artax\Uri('tcp://localhost:8096');
-        $stream = new SocketStream($mediator, $uri);
+        $stream = new SocketStream($uri);
         $this->assertEquals(8096, $stream->getPort());
     }
     
@@ -58,9 +53,8 @@ class SocketStreamTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Streams\SocketStream::getPath
      */
     public function testPathGetterReturnsComposedUriPath() {
-        $mediator = $this->getMock('Spl\\Mediator');
         $uri = new Artax\Uri('tcp://localhost:8096/path');
-        $stream = new SocketStream($mediator, $uri);
+        $stream = new SocketStream($uri);
         $this->assertEquals('/path', $stream->getPath());
     }
     
@@ -68,9 +62,8 @@ class SocketStreamTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Streams\SocketStream::getUri
      */
     public function testUriGetterReturnsComposedUriString() {
-        $mediator = $this->getMock('Spl\\Mediator');
         $uri = new Artax\Uri('tcp://localhost:8096/path');
-        $stream = new SocketStream($mediator, $uri);
+        $stream = new SocketStream($uri);
         $this->assertEquals('tcp://localhost:8096/path', $stream->getUri());
     }
     
@@ -78,9 +71,8 @@ class SocketStreamTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Streams\SocketStream::getAuthority
      */
     public function testAuthorityGetterReturnsComposedAuthority() {
-        $mediator = $this->getMock('Spl\\Mediator');
         $uri = new Artax\Uri('tcp://localhost:8096/path');
-        $stream = new SocketStream($mediator, $uri);
+        $stream = new SocketStream($uri);
         $this->assertEquals('localhost:8096', $stream->getAuthority());
     }
     
@@ -88,12 +80,11 @@ class SocketStreamTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Streams\SocketStream::isConnected
      */
     public function testIsConnectedReturnsBooleanOnConnectionStatus() {
-        $mediator = $this->getMock('Spl\\Mediator');
         $uri = new Artax\Uri('tcp://localhost:8096/path');
         $stream = $this->getMock(
             'Artax\\Streams\\SocketStream',
             array('doConnect'),
-            array($mediator, $uri)
+            array($uri)
         );
         
         $memoryStream = fopen('php://temp', 'r+');
@@ -101,7 +92,8 @@ class SocketStreamTest extends PHPUnit_Framework_TestCase {
                ->method('doConnect')
                ->will($this->returnValue(array($memoryStream, 0, '')));
         
-        $stream->connect();
+        $this->assertFalse($stream->isConnected());
+        $stream->open();
         $this->assertTrue($stream->isConnected());
     }
     
@@ -109,12 +101,11 @@ class SocketStreamTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Streams\SocketStream::getResource
      */
     public function testGetResourceReturnsConnectedSocketStreamResource() {
-        $mediator = $this->getMock('Spl\\Mediator');
         $uri = new Artax\Uri('tcp://localhost:8096/path');
         $stream = $this->getMock(
             'Artax\\Streams\\SocketStream',
             array('doConnect'),
-            array($mediator, $uri)
+            array($uri)
         );
         
         $memoryStream = fopen('php://temp', 'r+');
@@ -122,7 +113,7 @@ class SocketStreamTest extends PHPUnit_Framework_TestCase {
                ->method('doConnect')
                ->will($this->returnValue(array($memoryStream, 0, '')));
         
-        $stream->connect();
+        $stream->open();
         $this->assertEquals($memoryStream, $stream->getResource());
     }
     
@@ -130,12 +121,11 @@ class SocketStreamTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Streams\SocketStream::close
      */
     public function testCloseSetsStreamPropertyToNull() {
-        $mediator = $this->getMock('Spl\\Mediator');
         $uri = new Artax\Uri('tcp://localhost:8096/path');
         $stream = $this->getMock(
             'Artax\\Streams\\SocketStream',
             array('doConnect'),
-            array($mediator, $uri)
+            array($uri)
         );
         
         $memoryStream = fopen('php://temp', 'r+');
@@ -143,73 +133,21 @@ class SocketStreamTest extends PHPUnit_Framework_TestCase {
                ->method('doConnect')
                ->will($this->returnValue(array($memoryStream, 0, '')));
         
-        $stream->connect();
+        $stream->open();
         $this->assertEquals($memoryStream, $stream->getResource());
         $stream->close();
         $this->assertNull($stream->getResource());
     }
     
     /**
-     * @covers Artax\Streams\SocketStream::close
-     */
-    public function testCloseNotifiesListeners() {
-        $mediator = $this->getMock('Spl\\Mediator');
-        $uri = new Artax\Uri('tcp://localhost:8096/path');
-        $stream = $this->getMock(
-            'Artax\\Streams\\SocketStream',
-            array('doConnect'),
-            array($mediator, $uri)
-        );
-        
-        $memoryStream = fopen('php://temp', 'r+');
-        
-        $stream->expects($this->once())
-               ->method('doConnect')
-               ->will($this->returnValue(array($memoryStream, 0, '')));
-        
-        $stream->connect();
-        
-        $mediator->expects($this->once())
-                 ->method('notify')
-                 ->with(SocketStream::EVENT_CLOSE, $stream);
-        
-        $stream->close();
-    }
-    
-    /**
-     * @covers Artax\Streams\SocketStream::connect
+     * @covers Artax\Streams\SocketStream::open
      * @covers Artax\Streams\SocketStream::doConnect
      * @expectedException Artax\Streams\ConnectException
      */
     public function testConnectThrowsExceptionOnFailedSocketConnectionAttempt() {
-        $mediator = $this->getMock('Spl\\Mediator');
         $uri = new Artax\Uri('tcp://some-url-that-should-definitely-not-exist:8042');
-        $stream = new SocketStream($mediator, $uri);
-        $stream->connect();
-    }
-    
-    /**
-     * @covers Artax\Streams\SocketStream::connect
-     */
-    public function testConnectNotifiesListener() {
-        $mediator = $this->getMock('Spl\\Mediator');
-        $uri = new Artax\Uri('tcp://localhost:8042');
-        $stream = $this->getMock(
-            'Artax\\Streams\\SocketStream',
-            array('doConnect'),
-            array($mediator, $uri)
-        );
-        
-        $memoryStream = fopen('php://temp', 'r+');
-        $stream->expects($this->once())
-               ->method('doConnect')
-               ->will($this->returnValue(array($memoryStream, 0, '')));
-        
-        $mediator->expects($this->once())
-                 ->method('notify')
-                 ->with(SocketStream::EVENT_OPEN, $stream);
-        
-        $stream->connect();
+        $stream = new SocketStream($uri);
+        $stream->open();
     }
     
     /**
@@ -218,12 +156,11 @@ class SocketStreamTest extends PHPUnit_Framework_TestCase {
      * @expectedException Artax\Streams\IoException
      */
     public function testReadThrowsExceptionOnFailure() {
-        $mediator = $this->getMock('Spl\\Mediator');
         $uri = new Artax\Uri('tcp://localhost:8042');
         $stream = $this->getMock(
             'Artax\\Streams\\SocketStream',
             array('doConnect', 'doRead'),
-            array($mediator, $uri)
+            array($uri)
         );
         
         $stream->expects($this->once())
@@ -234,44 +171,8 @@ class SocketStreamTest extends PHPUnit_Framework_TestCase {
                ->method('doRead')
                ->will($this->returnValue(false));
         
-        $stream->connect();
+        $stream->open();
         $stream->read(4096);
-    }
-    
-    /**
-     * @covers Artax\Streams\SocketStream::read
-     * @covers Artax\Streams\SocketStream::getBytesRecd
-     * @covers Artax\Streams\SocketStream::getActivityTimestamp
-     */
-    public function testReadNotifiesListenersAndUpdatesActivityTimestampOnSuccess() {
-        $mediator = $this->getMock('Spl\\Mediator');
-        $uri = new Artax\Uri('tcp://localhost:8042');
-        $stream = $this->getMock(
-            'Artax\\Streams\\SocketStream',
-            array('doConnect', 'doRead', '__destruct'),
-            array($mediator, $uri)
-        );
-        
-        $stream->expects($this->once())
-               ->method('doConnect')
-               ->will($this->returnValue(array(42, 0, '')));
-        
-        $readData = 'Eddard Stark';
-        $readDataLen = strlen($readData);
-        $stream->expects($this->once())
-               ->method('doRead')
-               ->will($this->returnValue($readData));
-        
-        $stream->connect();
-        
-        $mediator->expects($this->once())
-                 ->method('notify')
-                 ->with(SocketStream::EVENT_READ, $stream, $readData, $readDataLen);
-        
-        $oldActivityTimestamp = $stream->getActivityTimestamp();
-        $this->assertEquals($readData, $stream->read(4096));
-        $this->assertTrue($stream->getActivityTimestamp() > $oldActivityTimestamp);
-        $this->assertEquals($readDataLen, $stream->getBytesRecd());
     }
     
     /**
@@ -279,12 +180,11 @@ class SocketStreamTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Streams\SocketStream::doRead
      */
     public function testReadReturnsStringReadBufferOnSuccess() {
-        $mediator = $this->getMock('Spl\\Mediator');
         $uri = new Artax\Uri('tcp://localhost:8042');
         $stream = $this->getMock(
             'Artax\\Streams\\SocketStream',
             array('doConnect', '__destruct'),
-            array($mediator, $uri)
+            array($uri)
         );
         
         $readData = 'Eddard Stark';
@@ -296,8 +196,35 @@ class SocketStreamTest extends PHPUnit_Framework_TestCase {
                ->method('doConnect')
                ->will($this->returnValue(array($memoryStream, 0, '')));
         
-        $stream->connect();
+        $stream->open();
         $this->assertEquals($readData, $stream->read(4096));
+    }
+    
+    /**
+     * @covers Artax\Streams\SocketStream::read
+     * @covers Artax\Streams\SocketStream::doRead
+     * @covers Artax\Streams\SocketStream::getBytesRecd
+     */
+    public function testReadUpdatesBytesRecdTotal() {
+        $uri = new Artax\Uri('tcp://localhost:8042');
+        $stream = $this->getMock(
+            'Artax\\Streams\\SocketStream',
+            array('doConnect', '__destruct'),
+            array($uri)
+        );
+        
+        $readData = 'Eddard Stark';
+        $memoryStream = fopen('php://temp', 'r+');
+        fwrite($memoryStream, $readData);
+        rewind($memoryStream);
+        
+        $stream->expects($this->once())
+               ->method('doConnect')
+               ->will($this->returnValue(array($memoryStream, 0, '')));
+        
+        $stream->open();
+        $stream->read(4096);
+        $this->assertEquals(strlen($readData), $stream->getBytesRecd());
     }
     
     /**
@@ -305,12 +232,11 @@ class SocketStreamTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Streams\SocketStream::doWrite
      */
     public function testWriteReturnsNumberOfBytesWrittenOnSuccess() {
-        $mediator = $this->getMock('Spl\\Mediator');
         $uri = new Artax\Uri('tcp://localhost:8042');
         $stream = $this->getMock(
             'Artax\\Streams\\SocketStream',
             array('doConnect', '__destruct'),
-            array($mediator, $uri)
+            array($uri)
         );
         
         $writeData = 'Eddard Stark';
@@ -320,7 +246,7 @@ class SocketStreamTest extends PHPUnit_Framework_TestCase {
                ->method('doConnect')
                ->will($this->returnValue(array($memoryStream, 0, '')));
         
-        $stream->connect();
+        $stream->open();
         $this->assertEquals($writeDataLen, $stream->write($writeData));
         rewind($memoryStream);
         $this->assertEquals($writeData, stream_get_contents($memoryStream));
@@ -331,12 +257,11 @@ class SocketStreamTest extends PHPUnit_Framework_TestCase {
      * @expectedException Artax\Streams\IoException
      */
     public function testWriteThrowsExceptionOnFailure() {
-        $mediator = $this->getMock('Spl\\Mediator');
         $uri = new Artax\Uri('tcp://localhost:8042');
         $stream = $this->getMock(
             'Artax\\Streams\\SocketStream',
             array('doConnect', 'doWrite', '__destruct'),
-            array($mediator, $uri)
+            array($uri)
         );
         
         $stream->expects($this->once())
@@ -347,7 +272,7 @@ class SocketStreamTest extends PHPUnit_Framework_TestCase {
                ->method('doWrite')
                ->will($this->returnValue(false));
         
-        $stream->connect();
+        $stream->open();
         $stream->write('test');
     }
     
@@ -356,13 +281,12 @@ class SocketStreamTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Streams\SocketStream::getBytesSent
      * @covers Artax\Streams\SocketStream::getActivityTimestamp
      */
-    public function testWriteNotifiesListenersAndUpdatesActivityTimestampOnSuccess() {
-        $mediator = $this->getMock('Spl\\Mediator');
+    public function testWriteUpdatesActivityTimestampOnSuccess() {
         $uri = new Artax\Uri('tcp://localhost:8042');
         $stream = $this->getMock(
             'Artax\\Streams\\SocketStream',
             array('doConnect', 'doWrite', '__destruct'),
-            array($mediator, $uri)
+            array($uri)
         );
         
         $stream->expects($this->once())
@@ -374,11 +298,7 @@ class SocketStreamTest extends PHPUnit_Framework_TestCase {
                ->method('doWrite')
                ->will($this->returnValue(6));
         
-        $stream->connect();
-        
-        $mediator->expects($this->once())
-                 ->method('notify')
-                 ->with(SocketStream::EVENT_WRITE, $stream, 'Eddard', 6);
+        $stream->open();
         
         $oldActivityTimestamp = $stream->getActivityTimestamp();
         $this->assertEquals(6, $stream->write($writeData));
@@ -390,12 +310,11 @@ class SocketStreamTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Streams\SocketStream::__destruct
      */
     public function testDestructorClosesConnection() {
-        $mediator = $this->getMock('Spl\\Mediator');
         $uri = new Artax\Uri('tcp://localhost:8042');
         $stream = $this->getMock(
             'Artax\\Streams\\SocketStream',
             array('close'),
-            array($mediator, $uri)
+            array($uri)
         );
         
         $stream->expects($this->once())

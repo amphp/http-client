@@ -48,22 +48,22 @@ class SocketStream extends Stream implements SocketResource {
     private $bytesRecd = 0;
     
     /**
-     * @param mixed $uri
-     * @throws ValueException
+     * @param string $uri
+     * @throws ValueException On invalid URI string
      * @return void
      */
     public function __construct($uri) {
-        $this->uri = $uri instanceof Uri ? $uri : new Uri($uri);
+        $this->uri = new Uri($uri);
         
         if (!$this->uri->wasExplicitPortSpecified()) {
             throw new ValueException(
-                "Invalid URI: {$uri}; explicit port value required"
+                'Invalid URI: ' . $uri . ' explicit port value required'
             );
         }
     }
     
     /**
-     * 
+     * Specify the number of seconds before a connection attempt times out (defaults to 60)
      * 
      * @param int $seconds
      * @return void
@@ -86,6 +86,8 @@ class SocketStream extends Stream implements SocketResource {
     }
     
     /**
+     * Set optional context options to apply on the socket stream when opened
+     * 
      * @param array $options
      * @return void
      */
@@ -94,14 +96,12 @@ class SocketStream extends Stream implements SocketResource {
     }
     
     /**
-     * Open the socket connection (stream_socket_client)
+     * Open a socket stream to the URI specified in the constructor
      * 
-     * @throws ConnectException
+     * @throws ConnectException On socket connect failure
      * @return void
      */
     public function open() {
-        $this->clearSslErrorBuffer();
-        
         list($stream, $errNo, $errStr) = $this->doConnect(
             $this->connectFlags,
             $this->connectTimeout,
@@ -112,8 +112,8 @@ class SocketStream extends Stream implements SocketResource {
             $this->resource = $stream;
             $this->activityTimestamp = microtime(true);
         } elseif ($sslError = $this->getOpenSslError()) {
-            throw new SslConnectException(
-                'Connection failure: ' . $this->getUri() . '. OpenSSL error: "' . $sslError . '"'
+            throw new ConnectException(
+                'SSL Connection failure: ' . $this->getUri() . ' -- "' . $sslError . '"'
             );
         } else {
             $errorMsg = 'Connection failure: ' . $this->getUri();
@@ -122,10 +122,11 @@ class SocketStream extends Stream implements SocketResource {
         }
     }
     
-    protected function clearSslErrorBuffer() {
-        while ($err = openssl_error_string());
-    }
-    
+    /**
+     * Returns the most recent error message in the openssl error message queue
+     * 
+     * @return string
+     */
     protected function getOpenSslError() {
         if ($tmpSslError = openssl_error_string()) {
             $sslError = $tmpSslError;
@@ -166,9 +167,12 @@ class SocketStream extends Stream implements SocketResource {
     /**
      * Read data from the stream resource (fread)
      * 
+     * Socket stream reads can return an empty string ad infinitum once the connection goes away.
+     * When the read method returns an empty value users should utilize SocketStream::isConnected()
+     * to discern whether the read actually produced no results or if the connection has died.
+     * 
      * @param int $bytesToRead
      * @throws IoException
-     * @throws SocketDisconnectedException
      * @return string
      */
     public function read($bytesToRead) {
@@ -176,10 +180,6 @@ class SocketStream extends Stream implements SocketResource {
             $bytesRecd = strlen($readData);
             $this->bytesRecd += $bytesRecd;
             $this->activityTimestamp = microtime(true);
-        } elseif ('' === $readData && feof($this->getResource())) {
-            throw new SocketDisconnectedException(
-                'The connection to ' . $this->getHost() . ' has gone away'
-            );
         }
         
         return $readData;
@@ -188,9 +188,13 @@ class SocketStream extends Stream implements SocketResource {
     /**
      * Write data to the stream resource (fwrite)
      * 
+     * Note that the full string may not be written at one time when using non-blocking streams and
+     * users should check the return value to ascertain how many bytes were actually written to the
+     * socket stream.
+     * 
      * @param string $dataToWrite
-     * @return int
      * @throws IoException
+     * @return int Returns the number of bytes actually written
      */
     public function write($dataToWrite) {
         $bytesWritten = parent::write($dataToWrite);
@@ -198,6 +202,46 @@ class SocketStream extends Stream implements SocketResource {
         $this->bytesSent += $bytesWritten;
         
         return $bytesWritten;
+    }
+    
+    /**
+     * Determine if the socket connection is currently alive
+     * 
+     * @return bool
+     */
+    public function isConnected() {
+        $resource = $this->getResource();
+        return is_resource($resource) && !feof($resource);
+    }
+    
+    /**
+     * Get the number of bytes written to this socket since the connection was first opened
+     * 
+     * @return int
+     */
+    public function getBytesSent() {
+        return $this->bytesSent;
+    }
+    
+    /**
+     * Get the number of bytes read from this socket since the connection was first opened
+     * 
+     * @return int
+     */
+    public function getBytesRecd() {
+        return $this->bytesRecd;
+    }
+    
+    /**
+     * Return the micro-timestamp of the last activity on this socket
+     * 
+     * This value is first populated when the socket stream connection is opened. The timestamp
+     * is subsequently updated on any IO read or write action.
+     * 
+     * @return float
+     */
+    public function getActivityTimestamp() {
+        return $this->activityTimestamp;
     }
     
     /**
@@ -240,27 +284,6 @@ class SocketStream extends Stream implements SocketResource {
      */
     public function getUri() {
         return $this->uri->__toString();
-    }
-    
-    /**
-     * @return int
-     */
-    public function getBytesSent() {
-        return $this->bytesSent;
-    }
-    
-    /**
-     * @return int
-     */
-    public function getBytesRecd() {
-        return $this->bytesRecd;
-    }
-    
-    /**
-     * @return int
-     */
-    public function getActivityTimestamp() {
-        return $this->activityTimestamp;
     }
     
     /**

@@ -32,6 +32,8 @@ class Stream implements Resource {
     }
     
     /**
+     * Open the stream resource specified by the path and mode passed to the constructor
+     * 
      * @throws StreamException
      * @return void
      */
@@ -133,6 +135,8 @@ class Stream implements Resource {
     }
     
     /**
+     * Access the raw stream resource
+     * 
      * @return resource
      */
     public function getResource() {

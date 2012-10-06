@@ -13,7 +13,7 @@ use Exception,
     Artax\Streams\Stream,
     Artax\Streams\SocketStream,
     Artax\Streams\IoException,
-    Artax\Streams\SocketDisconnectedException,
+    Artax\Streams\SocketDisconnectException,
     Artax\Streams\ConnectException,
     Artax\Http\Request,
     Artax\Http\StdRequest,
@@ -1155,20 +1155,18 @@ class Client {
             $responseBodyStream = $this->responseBodyStreamMap->offsetGet($response);
         }
         
-        try {
-            $readData = $stream->read($this->ioBufferSize);
-            if ($readData) {
-                $responseBodyStream->write($readData);
-                $requestKey = $this->requestKeyMap->offsetGet($request);
-                $this->mediator->notify(
-                    self::EVENT_SOCK_IO_READ,
-                    $requestKey,
-                    $readData,
-                    strlen($readData)
-                );
-            }
-        } catch (SocketDisconnectedException $e) {
+        $readData = $stream->read($this->ioBufferSize);
+        if (!$readData && !$stream->isConnected()) {
             $progress->state = ClientRequestState::RESPONSE_RECEIVED;
+        } else {
+            $responseBodyStream->write($readData);
+            $requestKey = $this->requestKeyMap->offsetGet($request);
+            $this->mediator->notify(
+                self::EVENT_SOCK_IO_READ,
+                $requestKey,
+                $readData,
+                strlen($readData)
+            );
         }
         
         if ($progress->state == ClientRequestState::READING_UNTIL_LENGTH_REACHED) {

@@ -7,11 +7,10 @@ interface SocketResource extends Resource {
     function setConnectTimeout($seconds);
     function setConnectFlags($flagBitmask);
     function setContextOptions(array $options);
-    
     function getActivityTimestamp();
     function getBytesSent();
     function getBytesRecd();
-    
+    function isConnected();
     function getScheme();
     function getHost();
     function getPort();
