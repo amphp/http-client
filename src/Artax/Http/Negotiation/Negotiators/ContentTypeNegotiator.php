@@ -2,7 +2,7 @@
 
 namespace Artax\Http\Negotiation\Negotiators;
 
-use Artax\MimeType,
+use Artax\Http\Negotiation\MimeType,
     Artax\Http\Negotiation\Parsers\HeaderParser,
     Artax\Http\Negotiation\NotAcceptableException;
 

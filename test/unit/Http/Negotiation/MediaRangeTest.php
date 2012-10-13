@@ -1,7 +1,7 @@
 <?php
 
-use Artax\MimeType,
-    Artax\MediaRange;
+use Artax\Http\Negotiation\MimeType,
+    Artax\Http\Negotiation\MediaRange;
 
 class MediaRangeTest extends PHPUnit_Framework_TestCase {
     
@@ -20,8 +20,8 @@ class MediaRangeTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideInvalidMediaRanges
-     * @covers Artax\MediaRange::__construct
-     * @covers Artax\MediaRange::parse
+     * @covers Artax\Http\Negotiation\MediaRange::__construct
+     * @covers Artax\Http\Negotiation\MediaRange::parse
      * @expectedException Spl\ValueException
      */
     public function testConstructorThrowsExceptionOnInvalidMediaRangeFormat($invalidRange) {
@@ -45,16 +45,16 @@ class MediaRangeTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideValidMediaRanges
-     * @covers Artax\MediaRange::__construct
-     * @covers Artax\MediaRange::parse
+     * @covers Artax\Http\Negotiation\MediaRange::__construct
+     * @covers Artax\Http\Negotiation\MediaRange::parse
      */
     public function testConstructorInitializesValidMediaRange($validRange) {
         $mediaRange = new MediaRange($validRange);
-        $this->assertInstanceOf('Artax\\MediaRange', $mediaRange);
+        $this->assertInstanceOf('Artax\\Http\\Negotiation\\MediaRange', $mediaRange);
     }
     
     /**
-     * @covers Artax\MediaRange::matches
+     * @covers Artax\Http\Negotiation\MediaRange::matches
      */
     public function testMatchesReturnsTrueOnExactMimeTypeMatch() {
         $mediaRange = new MediaRange('application/json');
@@ -63,7 +63,7 @@ class MediaRangeTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers Artax\MediaRange::matches
+     * @covers Artax\Http\Negotiation\MediaRange::matches
      */
     public function testMatchesReturnsTrueOnTopLevelMimeTypeMatch() {
         $mediaRange = new MediaRange('application/*');
@@ -72,7 +72,7 @@ class MediaRangeTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers Artax\MediaRange::matches
+     * @covers Artax\Http\Negotiation\MediaRange::matches
      */
     public function testMatchesReturnsTrueOnWildcardMimeTypeMatch() {
         $mediaRange = new MediaRange('*/*');
@@ -92,7 +92,7 @@ class MediaRangeTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideUnmatchingMimeTypes
-     * @covers Artax\MediaRange::matches
+     * @covers Artax\Http\Negotiation\MediaRange::matches
      */
     public function testMatchesReturnsFalseOnMatchFailure($mimeStr) {
         $mediaRange = new MediaRange('text/*');

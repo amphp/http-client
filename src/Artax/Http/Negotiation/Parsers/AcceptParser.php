@@ -11,8 +11,8 @@
 namespace Artax\Http\Negotiation\Parsers;
 
 use Spl\ValueException,
-    Artax\MimeType,
-    Artax\MediaRange,
+    Artax\Http\Negotiation\MimeType,
+    Artax\Http\Negotiation\MediaRange,
     Artax\Http\Negotiation\NegotiableTerm,
     Artax\Http\Negotiation\MediaRangeTerm;
 

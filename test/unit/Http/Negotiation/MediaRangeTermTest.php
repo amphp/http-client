@@ -1,6 +1,6 @@
 <?php
 
-use Artax\MediaRange,
+use Artax\Http\Negotiation\MediaRange,
     Artax\Http\Negotiation\MediaRangeTerm;
 
 class MediaRangeTermTest extends PHPUnit_Framework_TestCase {

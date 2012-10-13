@@ -1,6 +1,6 @@
 <?php
 
-namespace Artax;
+namespace Artax\Http\Negotiation;
 
 use Spl\ValueException;
 

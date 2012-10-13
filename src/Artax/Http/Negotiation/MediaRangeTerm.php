@@ -13,8 +13,8 @@
 namespace Artax\Http\Negotiation;
 
 use InvalidArgumentException,
-    Artax\MimeType,
-    Artax\MediaRange;
+    Artax\Http\Negotiation\MimeType,
+    Artax\Http\Negotiation\MediaRange;
 
 /**
  * Models negotiable media-range terms parsed from HTTP Accept headers

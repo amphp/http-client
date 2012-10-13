@@ -15,7 +15,7 @@ class AcceptParserTest extends PHPUnit_Framework_TestCase {
         
         $rawHeader = 'text/*, text/html, text/html;level=1, */*';
         $terms = $parser->parse($rawHeader);
-        $this->assertInstanceOf('Artax\\MediaRange', $terms[0]->getType());
+        $this->assertInstanceOf('Artax\\Http\\Negotiation\\MediaRange', $terms[0]->getType());
         
         $expected = array('text/html', 'text/html', 'text/*', '*/*');
         $actual = array(
