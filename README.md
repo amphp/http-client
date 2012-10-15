@@ -52,7 +52,7 @@ var_dump(extension_loaded('openssl')); // bool(true)
 > **IMPORTANT:** The Artax Client will not function correctly in the presence of string function overloading 
 via the `mbstring.func_overload` php.ini directive. This directive is an *ugly hack* for handling
 multi-byte strings and you should not be using it! If you're unsure about whether or not you've
-enabled string function overloading, you can check that the following statement evaluates to `false`:
+enabled string function overloading you can check the status using the following snippet:
 
 ```php
 <?php
@@ -65,7 +65,7 @@ the Artax Client will yield dubious results at best.
 
 ### OTHER NOTES
 
-> **NOTE:** Auryn follows the Semantic Versioning Specification (SemVer) laid out at [semver.org](http://semver.org/)
+> **NOTE:** Artax follows the Semantic Versioning Specification (SemVer) laid out at [semver.org](http://semver.org/)
 
 
 ### WHAT'S WITH THE NAME?
