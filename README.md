@@ -1,6 +1,6 @@
 ### WHAT IS IT?
 
-Artax offers a full-featured HTTP/1.1 client, an object-oriented toolkit modeling the official HTTP
+Artax offers a full-featured HTTP/1.1 client, an object-oriented toolkit modeling the HTTP/1.1
 protocol and a spec-compliant content-negotiation API for PHP 5.3+.
 
 ##### HTTP Client
