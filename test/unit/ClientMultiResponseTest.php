@@ -1,45 +1,45 @@
 <?php
 
-use Artax\MultiResponse,
+use Artax\ClientMultiResponse,
     Artax\Http\Response;
 
-class MultiResponseTest extends PHPUnit_Framework_TestCase {
+class ClientMultiResponseTest extends PHPUnit_Framework_TestCase {
     
     /**
-     * @covers Artax\MultiResponse::__construct
-     * @covers Artax\MultiResponse::validateResponses
+     * @covers Artax\ClientMultiResponse::__construct
+     * @covers Artax\ClientMultiResponse::validateResponses
      */
     public function testBeginsEmpty() {
         $arr = array(
             $this->getMock('Artax\\Http\\Response'),
             $this->getMock('Exception')
         );
-        $multiResponse = new MultiResponse($arr);
-        $this->assertInstanceOf('Artax\\MultiResponse', $multiResponse);
+        $multiResponse = new ClientMultiResponse($arr);
+        $this->assertInstanceOf('Artax\\ClientMultiResponse', $multiResponse);
     }
     
     /**
-     * @covers Artax\MultiResponse::__construct
-     * @covers Artax\MultiResponse::validateResponses
-     * @expectedException Spl\ValueException
+     * @covers Artax\ClientMultiResponse::__construct
+     * @covers Artax\ClientMultiResponse::validateResponses
+     * @expectedException Spl\TypeException
      */
     public function testConstructorThrowsExceptionOnEmptyResponseArray() {
         $arr = array();
-        $multiResponse = new MultiResponse($arr);
+        $multiResponse = new ClientMultiResponse($arr);
     }
     
     /**
-     * @covers Artax\MultiResponse::__construct
-     * @covers Artax\MultiResponse::validateResponses
-     * @expectedException Spl\ValueException
+     * @covers Artax\ClientMultiResponse::__construct
+     * @covers Artax\ClientMultiResponse::validateResponses
+     * @expectedException Spl\TypeException
      */
     public function testConstructorThrowsExceptionOnInvalidTypesWithinResponseArray() {
         $arr = array(new StdClass, 42);
-        $multiResponse = new MultiResponse($arr);
+        $multiResponse = new ClientMultiResponse($arr);
     }
     
     /**
-     * @covers Artax\MultiResponse::getErrorCount
+     * @covers Artax\ClientMultiResponse::getErrorCount
      */
     public function testErrorCountGetterReturnsTheNumberOfExceptionObjectsInTheResponseArray() {
         $arr = array(
@@ -48,12 +48,12 @@ class MultiResponseTest extends PHPUnit_Framework_TestCase {
             $this->getMock('Exception'),
             $this->getMock('Exception')
         );
-        $multiResponse = new MultiResponse($arr);
+        $multiResponse = new ClientMultiResponse($arr);
         $this->assertEquals(3, $multiResponse->getErrorCount());
     }
     
     /**
-     * @covers Artax\MultiResponse::getAllErrors
+     * @covers Artax\ClientMultiResponse::getAllErrors
      */
     public function testGetAllErrorsReturnsArrayOfErrorsInTheResponseArray() {
         $e1 = new Exception('e1');
@@ -66,12 +66,12 @@ class MultiResponseTest extends PHPUnit_Framework_TestCase {
             $e3,
             $this->getMock('Artax\\Http\\Response'),
         );
-        $multiResponse = new MultiResponse($arr);
+        $multiResponse = new ClientMultiResponse($arr);
         $this->assertEquals(array($e1, $e2, $e3), $multiResponse->getAllErrors());
     }
     
     /**
-     * @covers Artax\MultiResponse::getAllResponses
+     * @covers Artax\ClientMultiResponse::getAllResponses
      */
     public function testGetAllResponsesReturnsArrayOfResponsesInTheOriginalArray() {
         $r1 = $this->getMock('Artax\\Http\\Response');
@@ -87,7 +87,7 @@ class MultiResponseTest extends PHPUnit_Framework_TestCase {
             $e2,
             $e3
         );
-        $multiResponse = new MultiResponse($arr);
+        $multiResponse = new ClientMultiResponse($arr);
         $this->assertEquals(array($r1, $r2), $multiResponse->getAllResponses());
         
         return $multiResponse;
@@ -95,7 +95,7 @@ class MultiResponseTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @depends testGetAllResponsesReturnsArrayOfResponsesInTheOriginalArray
-     * @covers Artax\MultiResponse::count
+     * @covers Artax\ClientMultiResponse::count
      */
     public function testCountReturnsTotalNumberOfResponsesAndErrors($multiResponse) {
         $this->assertEquals(5, count($multiResponse));
@@ -103,13 +103,13 @@ class MultiResponseTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @depends testGetAllResponsesReturnsArrayOfResponsesInTheOriginalArray
-     * @covers Artax\MultiResponse::rewind
-     * @covers Artax\MultiResponse::current
-     * @covers Artax\MultiResponse::key
-     * @covers Artax\MultiResponse::next
-     * @covers Artax\MultiResponse::valid
-     * @covers Artax\MultiResponse::isError
-     * @covers Artax\MultiResponse::isResponse
+     * @covers Artax\ClientMultiResponse::rewind
+     * @covers Artax\ClientMultiResponse::current
+     * @covers Artax\ClientMultiResponse::key
+     * @covers Artax\ClientMultiResponse::next
+     * @covers Artax\ClientMultiResponse::valid
+     * @covers Artax\ClientMultiResponse::isError
+     * @covers Artax\ClientMultiResponse::isResponse
      */
     public function testResponseIteration($multiResponse) {
         foreach ($multiResponse as $key => $value) {
