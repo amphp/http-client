@@ -20,7 +20,7 @@ use Exception,
     
 class Client {
     
-    const USER_AGENT = 'Artax/0.1.0 (PHP5.3+)';
+    const USER_AGENT = 'Artax/1.0.0-rc.1 (PHP5.3+)';
     
     const ATTR_KEEP_CONNS_ALIVE = 'keepConnsAlive';
     const ATTR_CONNECT_TIMEOUT = 'connectTimeout';

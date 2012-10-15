@@ -8,7 +8,7 @@ use Spl\DomainException,
 class StdRequest extends StdMessage implements Request {
     
     /**
-     * @var Artax\Uri
+     * @var \Artax\Uri
      */
     protected $uri;
     
@@ -23,10 +23,13 @@ class StdRequest extends StdMessage implements Request {
     protected $queryParameters;
 
     /**
+     * Note that request methods ARE case-sensitive as per RFC2616. Users should specify all-caps
+     * strings for standard request method names like GET, POST, etc.
+     * 
      * @param string $uri
      * @param string $method
+     * @throws \Spl\ValueException
      * @return void
-     * @throws Spl\ValueException
      */
     public function __construct($uri, $method) {
         $this->uri = new Uri($uri);
@@ -45,6 +48,15 @@ class StdRequest extends StdMessage implements Request {
         } else {
             return array();
         }
+    }
+    
+    /**
+     * Retrieve the request's HTTP method verb
+     * 
+     * @return string
+     */
+    public function getMethod() {
+        return $this->method;
     }
     
     /**
@@ -139,13 +151,6 @@ class StdRequest extends StdMessage implements Request {
         }
         
         return $this->body;
-    }
-
-    /**
-     * @return string The HTTP method, upper-cased.
-     */
-    public function getMethod() {
-        return $this->method;
     }
     
     /**

@@ -124,7 +124,7 @@ class StdMessageTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Http\StdMessage::setAllHeaders
-     * @covers Artax\Http\StdMessage::validateIterable
+     * @covers Artax\Http\StdMessage::isValidIterable
      * @expectedException Spl\TypeException
      */
     public function testSetAllHeadersThrowsExceptionOnInvalidIterable() {
@@ -251,7 +251,7 @@ class StdMessageTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Http\StdMessage::appendAllHeaders
-     * @covers Artax\Http\StdMessage::validateIterable
+     * @covers Artax\Http\StdMessage::isValidIterable
      * @expectedException Spl\TypeException
      */
     public function testAppendAllHeadersThrowsExceptionOnInvalidIterable() {

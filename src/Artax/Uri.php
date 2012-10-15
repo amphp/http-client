@@ -59,7 +59,8 @@ class Uri {
 
     /**
      * @param string $uri
-     * @throws Spl\ValueException
+     * @throws \Spl\ValueException
+     * @return void
      */
     public function __construct($uri) {
         $uri = (string) $uri;
@@ -68,7 +69,7 @@ class Uri {
 
     /**
      * @param string $uri
-     * @throws Spl\ValueException
+     * @throws \Spl\ValueException
      */
     protected function parseUri($uri) {
         $uriParts = @parse_url($uri);

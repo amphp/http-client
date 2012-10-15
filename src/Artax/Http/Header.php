@@ -4,8 +4,7 @@ namespace Artax\Http;
 
 use Iterator,
     Countable,
-    Spl\TypeException,
-    Spl\ValueException;
+    Spl\TypeException;
 
 class Header implements Iterator, Countable {
     
@@ -22,9 +21,8 @@ class Header implements Iterator, Countable {
     /**
      * @param string $name
      * @param mixed $value A scalar value or one-dimensional array of scalars
+     * @throws \Spl\TypeException
      * @return void
-     * @throws Spl\TypeException
-     * @throws Spl\ValueException
      */
     public function __construct($name, $value) {
         if (!(is_string($name) || (is_object($name) && method_exists($name, '__toString')))) {
@@ -54,42 +52,37 @@ class Header implements Iterator, Countable {
     /**
      * Assign a value to the header -- replaces previous value(s)
      * 
-     * @param mixed $value A scalar value or one-dimensional array of scalars
+     * @param mixed $value A scalar value or a one-dimensional array of scalars
      * @return void
-     * @throws Spl\TypeException
-     * @throws Spl\ValueException
+     * @throws \Spl\TypeException
      */
     public function setValue($value) {
-        if ($this->validateValue($value)) {
+        if ($this->isHeaderValueValid($value)) {
             $this->value = is_array($value) ? array_values($value) : array($value);
         } elseif (is_array($value)) {
-            throw new ValueException(
-                get_class($this) . '::setValue expects a scalar value or a one-dimensional ' .
+            throw new TypeException(
+                get_class($this) . '::setValue requires a scalar value or a one-dimensional ' .
                 'array of scalars at Argument 1: invalid array provided'
             );
         } else {
             $type = is_object($value) ? get_class($value) : gettype($value);
             throw new TypeException(
-                get_class($this) . '::setValue expects a scalar value or a one-dimensional ' .
+                get_class($this) . '::setValue requires a scalar value or a one-dimensional ' .
                 "array of scalars at Argument 1: $type provided"
             );
         }
     }
     
-    /**
-     * @param mixed $value
-     * @return bool
-     */
-    private function validateValue($value) {
+    private function isHeaderValueValid($value) {
         if (is_scalar($value)) {
             return true;
         } elseif (!is_array($value)) {
             return false;
         } elseif (empty($value)) {
             return false;
+        } else {
+            return ($value === array_filter($value, 'is_scalar'));
         }
-        
-        return $value === array_filter($value, 'is_scalar');
     }
     
     /**
@@ -97,18 +90,17 @@ class Header implements Iterator, Countable {
      * 
      * @param mixed $value A scalar value or one-dimensional array of scalars
      * @return void
-     * @throws Spl\TypeException
-     * @throws Spl\ValueException
+     * @throws \Spl\TypeException
      */
     public function appendValue($value) {
-        if ($this->validateValue($value)) {
+        if ($this->isHeaderValueValid($value)) {
             if (is_array($value)) {
                 $this->value = array_merge($this->value, array_values($value));
             } else {
                 $this->value[] = $value;
             }
         } elseif (is_array($value)) {
-            throw new ValueException(
+            throw new TypeException(
                 get_class($this) . '::appendValue expects a scalar value or a one-dimensional ' .
                 'array of scalars at Argument 1: invalid array provided'
             );
@@ -159,9 +151,6 @@ class Header implements Iterator, Countable {
         }
     }
     
-    /**
-     * @return int
-     */
     public function count() {
         return count($this->value);
     }

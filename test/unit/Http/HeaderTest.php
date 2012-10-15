@@ -31,7 +31,7 @@ class HeaderTest extends PHPUnit_Framework_TestCase {
      * @dataProvider provideInvalidHeaderValueTypes
      * @covers Artax\Http\Header::__construct
      * @covers Artax\Http\Header::setValue
-     * @covers Artax\Http\Header::validateValue
+     * @covers Artax\Http\Header::isHeaderValueValid
      * @expectedException Spl\TypeException
      */
     public function testConstructorThrowsExceptionOnNonScalarOrNonArrayValue($value) {
@@ -50,8 +50,8 @@ class HeaderTest extends PHPUnit_Framework_TestCase {
      * @dataProvider provideInvalidHeaderValueArrays
      * @covers Artax\Http\Header::__construct
      * @covers Artax\Http\Header::setValue
-     * @covers Artax\Http\Header::validateValue
-     * @expectedException Spl\ValueException
+     * @covers Artax\Http\Header::isHeaderValueValid
+     * @expectedException Spl\TypeException
      */
     public function testConstructorThrowsExceptionOnInvalidArrayValue($value) {
         $header = new Header('X-MyHeader', $value);
@@ -89,7 +89,7 @@ class HeaderTest extends PHPUnit_Framework_TestCase {
     /**
      * @covers Artax\Http\Header::__toString
      * @covers Artax\Http\Header::setValue
-     * @covers Artax\Http\Header::validateValue
+     * @covers Artax\Http\Header::isHeaderValueValid
      */
     public function testToStringReturnsRawMessageStyleStringWithTrailingCRLF() {
         $header = new Header('X-MyHeader', '42');
@@ -100,7 +100,7 @@ class HeaderTest extends PHPUnit_Framework_TestCase {
     /**
      * @covers Artax\Http\Header::__toString
      * @covers Artax\Http\Header::setValue
-     * @covers Artax\Http\Header::validateValue
+     * @covers Artax\Http\Header::isHeaderValueValid
      */
     public function testToStringTurnsMultipleValuesIntoMultipleHeaderLines() {
         $header = new Header('Set-Cookie', array('cookie1', 'cookie2'));
@@ -226,7 +226,7 @@ class HeaderTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Http\Header::appendValue
-     * @expectedException Spl\ValueException
+     * @expectedException Spl\TypeException
      */
     public function testAppendValueThrowsExceptionOnInvalidArrayValue() {
         $header = new Header('X-MyHeader', 'test');

@@ -12,14 +12,15 @@ class FormEncodedBody {
     protected $bodyParameters = array();
 
     /**
-     * @param Artax\Http\Request $request
+     * @param Request $request
+     * @return void
      */
     public function __construct(Request $request) {
         $this->assignValuesFromEntityBody($request);
     }
 
     /**
-     * @param Artax\Http\Request $request
+     * @param Request $request
      * @return void
      */
     protected function assignValuesFromEntityBody(Request $request) {
@@ -31,7 +32,7 @@ class FormEncodedBody {
     }
 
     /**
-     * @param Artax\Http\Request $request
+     * @param Request $request
      * @return bool
      */
     protected function hasFormEncodedBody(Request $request) {
@@ -56,8 +57,8 @@ class FormEncodedBody {
      * Access the specified body parameter value
      *
      * @param string $parameterName
+     * @throws \Spl\DomainException
      * @return string
-     * @throws Spl\DomainException
      */
     public function getBodyParameter($parameterName) {
         if (!$this->hasBodyParameter($parameterName)) {
@@ -69,7 +70,7 @@ class FormEncodedBody {
     }
 
     /**
-     * Access an array of all form-encoded body parameters
+     * Access a name-value array of all form-encoded body parameters
      *
      * @return array
      */

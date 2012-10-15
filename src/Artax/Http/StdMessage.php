@@ -46,7 +46,7 @@ abstract class StdMessage implements Message {
      *
      * If a resource stream is assigned to the body property, its entire contents will be read into
      * memory, cached for future reads and returned in string form. To access the stream resource
-     * directly without buffering its contents, use Message::getBodyStream().
+     * directly without buffering its contents, use Message::getBodyStream() instead.
      *
      * @return string
      */
@@ -65,7 +65,7 @@ abstract class StdMessage implements Message {
     /**
      * Retrieve the HTTP message entity body as a stream resource (if available)
      *
-     * If the assigned entity body is not a stream, null is returned.
+     * If the assigned entity body is not a stream, NULL is returned.
      *
      * @return resource
      */
@@ -77,7 +77,7 @@ abstract class StdMessage implements Message {
      * Assign the HTTP version adhered to by the message (without the "HTTP/" prefix)
      *
      * @param string $httpVersion
-     * @return string
+     * @return void
      */
     public function setHttpVersion($httpVersion) {
         $this->httpVersion = $httpVersion;
@@ -103,10 +103,6 @@ abstract class StdMessage implements Message {
         return isset($this->headers[$normalizedHeaderName]);
     }
 
-    /**
-     * @param string $headerName
-     * @return string
-     */
     private function normalizeHeaderName($headerName) {
         return strtoupper(rtrim($headerName, ': '));
     }
@@ -118,8 +114,8 @@ abstract class StdMessage implements Message {
      * and delimited by commas.
      *
      * @param string $headerName
+     * @throws \Spl\DomainException
      * @return string
-     * @throws Spl\DomainException
      */
     public function getHeader($headerName) {
         if ($this->hasHeader($headerName)) {
@@ -137,8 +133,8 @@ abstract class StdMessage implements Message {
      * Retrieve an array of all values assigned to the specified header
      *
      * @param string $headerName
+     * @throws \Spl\DomainException
      * @return array
-     * @throws Spl\DomainException
      */
     public function getHeaderValueArray($headerName) {
         if ($this->hasHeader($headerName)) {
@@ -156,8 +152,8 @@ abstract class StdMessage implements Message {
      * Does the specified header have multiple values assigned to it?
      *
      * @param string $headerName
+     * @throws \Spl\DomainException
      * @return bool
-     * @throws Spl\DomainException
      */
     public function isMultiHeader($headerName) {
         $normalizedHeaderName = $this->normalizeHeaderName($headerName);
@@ -203,9 +199,8 @@ abstract class StdMessage implements Message {
     /**
      * @param string $headerName
      * @param mixed $value A string or single-dimensional array of strings
+     * @throws \Spl\TypeException On invalid header value
      * @return void
-     * @throws Spl\TypeException
-     * @throws Spl\ValueException
      */
     public function setHeader($headerName, $value) {
         $header = new Header($headerName, $value);
@@ -220,9 +215,8 @@ abstract class StdMessage implements Message {
      *
      * @param string $headerName
      * @param mixed $value A string or single-dimensional array of strings
+     * @throws \Spl\TypeException On invalid header value
      * @return void
-     * @throws Spl\TypeException
-     * @throws Spl\ValueException
      */
     public function appendHeader($headerName, $value) {
         $normalizedHeaderName = $this->normalizeHeaderName($headerName);
@@ -240,12 +234,11 @@ abstract class StdMessage implements Message {
      * All previously assigned headers are cleared.
      *
      * @param mixed $iterable
+     * @throws \Spl\TypeException On invalid header value
      * @return void
-     * @throws Spl\TypeException
-     * @throws Spl\ValueException
      */
     public function setAllHeaders($iterable) {
-        if (!$this->validateIterable($iterable)) {
+        if (!$this->isValidIterable($iterable)) {
             $type = is_object($iterable) ? get_class($iterable) : gettype($iterable);
             throw new TypeException(
                 get_class($this) . '::setAllHeaders expects an array, StdClass or Traversable ' .
@@ -260,11 +253,7 @@ abstract class StdMessage implements Message {
         }
     }
 
-    /**
-     * @param mixed $iterable
-     * @return bool
-     */
-    protected function validateIterable($iter) {
+    protected function isValidIterable($iter) {
         return $iter instanceof Traversable || $iter instanceof StdClass || is_array($iter);
     }
 
@@ -272,11 +261,11 @@ abstract class StdMessage implements Message {
      * Assign or append headers from a traversable without clearing previously assigned values
      *
      * @param mixed $iterable
+     * @throws \Spl\TypeException On invalid header value
      * @return void
-     * @throws Spl\TypeException
      */
     public function appendAllHeaders($iterable) {
-        if (!$this->validateIterable($iterable)) {
+        if (!$this->isValidIterable($iterable)) {
             $type = is_object($iterable) ? get_class($iterable) : gettype($iterable);
             throw new TypeException(
                 get_class($this) . '::appendAllHeaders expects an array, StdClass or Traversable ' .
@@ -293,8 +282,8 @@ abstract class StdMessage implements Message {
      * Assign or replace an existing header from a raw string
      *
      * @param string $rawHeaderStr
+     * @throws \Spl\ValueException On invalid raw header string
      * @return void
-     * @throws Spl\ValueException
      */
     public function setRawHeader($rawHeaderStr) {
         // rfc2616-4.2:
@@ -328,8 +317,8 @@ abstract class StdMessage implements Message {
      * All previously assigned headers are cleared when headers are assigned with this method.
      *
      * @param string $rawHeaderStr
+     * @throws \Spl\ValueException
      * @return void
-     * @throws Spl\ValueException
      */
     public function setAllRawHeaders($rawHeaderStr) {
         $this->removeAllHeaders();
