@@ -126,7 +126,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
                ->will($this->returnValue($socket));
         
         // Force the Client to add `Connection: close` headers to requests
-        $client->setAttribute(Client::ATTR_KEEP_ALIVES, false);
+        $client->setAttribute(Client::ATTR_KEEP_CONNS_ALIVE, false);
         $client->setAttribute(Client::ATTR_IO_BUFFER_SIZE, 4);
         
         $client->send($request);

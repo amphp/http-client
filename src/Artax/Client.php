@@ -22,7 +22,7 @@ class Client {
     
     const USER_AGENT = 'Artax/0.1.0 (PHP5.3+)';
     
-    const ATTR_KEEP_ALIVES = 'useKeepAlives';
+    const ATTR_KEEP_CONNS_ALIVE = 'keepConnsAlive';
     const ATTR_CONNECT_TIMEOUT = 'connectTimeout';
     const ATTR_FOLLOW_LOCATION = 'followLocation';
     const ATTR_AUTO_REFERER_ON_FOLLOW = 'autoRefererOnFollow';
@@ -68,7 +68,7 @@ class Client {
      * @var array
      */
     private $attributes = array(
-        self::ATTR_KEEP_ALIVES => true,
+        self::ATTR_KEEP_CONNS_ALIVE => true,
         self::ATTR_CONNECT_TIMEOUT => 60,
         self::ATTR_FOLLOW_LOCATION => self::FOLLOW_LOCATION_ON_3XX,
         self::ATTR_AUTO_REFERER_ON_FOLLOW => true,
@@ -199,9 +199,9 @@ class Client {
         }
     }
     
-    private function setUseKeepAlives($boolFlag) {
+    private function setKeepConnsAlive($boolFlag) {
         $boolFlag = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
-        $this->attributes[self::ATTR_KEEP_ALIVES] = $boolFlag;
+        $this->attributes[self::ATTR_KEEP_CONNS_ALIVE] = $boolFlag;
     }
     
 	private function setConnectTimeout($secondsUntilTimeout) {
@@ -359,7 +359,7 @@ class Client {
      * 
      * User-Agent           - Always added
      * Host                 - Added if missing
-     * Connection           - Set to "close" if the Client::ATTR_KEEP_ALIVES is set to FALSE
+     * Connection           - Set to "close" if the Client::ATTR_KEEP_CONNS_ALIVE is set to FALSE
      * Accept-Encoding      - Always removed
      * Content-Length       - Set or removed automatically based on the request entity body
      * Transfer-Encoding    - Set or removed automatically based on the request entity body
@@ -387,7 +387,7 @@ class Client {
         
         $request->removeHeader('Accept-Encoding');
         
-        if (!$this->getAttribute(self::ATTR_KEEP_ALIVES)) {
+        if (!$this->getAttribute(self::ATTR_KEEP_CONNS_ALIVE)) {
             $request->setHeader('Connection', 'close');
         }
     }
@@ -1282,7 +1282,7 @@ class Client {
     public function shouldKeepConnectionAlive($requestKey) {
         $response = $this->responses[$requestKey];
         
-        if (!$this->getAttribute(self::ATTR_KEEP_ALIVES)) {
+        if (!$this->getAttribute(self::ATTR_KEEP_CONNS_ALIVE)) {
             return false;
         }
         
