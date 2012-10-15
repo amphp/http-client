@@ -28,15 +28,15 @@ class Client {
     const ATTR_AUTO_REFERER_ON_FOLLOW = 'autoRefererOnFollow';
     const ATTR_HOST_CONCURRENCY_LIMIT = 'hostConcurrencyLimit';
     const ATTR_IO_BUFFER_SIZE = 'ioBufferSize';
-	const ATTR_SSL_VERIFY_PEER = 'sslVerifyPeer';
-	const ATTR_SSL_ALLOW_SELF_SIGNED = 'sslAllowsSelfSigned';
-	const ATTR_SSL_CA_FILE = 'sslCertAuthorityFile';
-	const ATTR_SSL_CA_PATH = 'sslCertAuthorityDirPath';
-	const ATTR_SSL_LOCAL_CERT = 'sslLocalCertFile';
-	const ATTR_SSL_LOCAL_CERT_PASSPHRASE = 'sslLocalCertPassphrase';
-	const ATTR_SSL_CN_MATCH = 'sslCommonNameMatch';
-	const ATTR_SSL_VERIFY_DEPTH = 'sslVerifyDepth';
-	const ATTR_SSL_CIPHERS = 'sslCiphers';
+    const ATTR_SSL_VERIFY_PEER = 'sslVerifyPeer';
+    const ATTR_SSL_ALLOW_SELF_SIGNED = 'sslAllowsSelfSigned';
+    const ATTR_SSL_CA_FILE = 'sslCertAuthorityFile';
+    const ATTR_SSL_CA_PATH = 'sslCertAuthorityDirPath';
+    const ATTR_SSL_LOCAL_CERT = 'sslLocalCertFile';
+    const ATTR_SSL_LOCAL_CERT_PASSPHRASE = 'sslLocalCertPassphrase';
+    const ATTR_SSL_CN_MATCH = 'sslCommonNameMatch';
+    const ATTR_SSL_VERIFY_DEPTH = 'sslVerifyDepth';
+    const ATTR_SSL_CIPHERS = 'sslCiphers';
     
     const FOLLOW_LOCATION_NONE = 0;
     const FOLLOW_LOCATION_ON_3XX = 1;
@@ -204,7 +204,7 @@ class Client {
         $this->attributes[self::ATTR_KEEP_CONNS_ALIVE] = $boolFlag;
     }
     
-	private function setConnectTimeout($secondsUntilTimeout) {
+    private function setConnectTimeout($secondsUntilTimeout) {
         $this->attributes[self::ATTR_CONNECT_TIMEOUT] = (int) $secondsUntilTimeout;
     }
     
