@@ -5,7 +5,7 @@ namespace Artax\Streams;
 use Artax\Uri,
     Spl\ValueException;
 
-class SocketStream extends Stream implements SocketResource {
+class Socket extends Stream implements SocketResource {
     
     /**
      * @var resource
@@ -168,8 +168,8 @@ class SocketStream extends Stream implements SocketResource {
      * Read data from the stream resource (fread)
      * 
      * Socket stream reads can return an empty string ad infinitum once the connection goes away.
-     * When the read method returns an empty value users should utilize SocketStream::isConnected()
-     * to discern whether the read actually produced no results or if the connection has died.
+     * To avoid confusion, read attempts made to a socket that has been disconnected will throw
+     * the SocketGoneException. This exception subclasses the usual IoException.
      * 
      * @param int $bytesToRead
      * @throws IoException
@@ -180,6 +180,10 @@ class SocketStream extends Stream implements SocketResource {
             $bytesRecd = strlen($readData);
             $this->bytesRecd += $bytesRecd;
             $this->activityTimestamp = microtime(true);
+        } elseif (!$this->isConnected()) {
+            throw new SocketGoneException(
+                'Socket read failure: the connection to ' . $this->getUri() . ' has gone away'
+            );
         }
         
         return $readData;

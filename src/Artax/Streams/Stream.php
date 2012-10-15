@@ -93,8 +93,8 @@ class Stream implements Resource {
      * 
      * @return mixed Returns read data or FALSE on error
      */
-    protected function doRead($bytes) {
-        return @fread($this->resource, $bytes);
+    protected function doRead($bytesToRead) {
+        return @fread($this->resource, $bytesToRead);
     }
     
     /**
