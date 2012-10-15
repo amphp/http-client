@@ -5,6 +5,7 @@ use Artax\ChainableResponse;
 class ChainableResponseTest extends PHPUnit_Framework_TestCase {
     
     /**
+     * @covers Artax\ChainableResponse::__construct
      * @covers Artax\ChainableResponse::setPreviousResponse
      * @covers Artax\ChainableResponse::hasPreviousResponse
      */
@@ -33,6 +34,7 @@ class ChainableResponseTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
+     * @covers Artax\ChainableResponse::__construct
      * @covers Artax\ChainableResponse::getPreviousResponse
      * @expectedException LogicException
      */

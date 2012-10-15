@@ -2,6 +2,9 @@
 
 use Artax\Negotiation\Parsers\AcceptCharsetParser;
 
+/**
+ * @covers Artax\Negotiation\Parsers\AcceptCharsetParser<extended>
+ */
 class AcceptCharsetTest extends PHPUnit_Framework_TestCase {
     
     /**

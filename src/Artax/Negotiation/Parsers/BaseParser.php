@@ -1,13 +1,5 @@
 <?php
-/**
- * BaseParser Class File
- *
- * @category    Artax
- * @package     Negotiation
- * @author      Daniel Lowrey <rdlowrey@gmail.com>
- * @license     All code subject to the terms of the LICENSE file in the project root
- * @version     ${project.version}
- */
+
 namespace Artax\Negotiation\Parsers;
 
 use StdClass,
@@ -16,10 +8,6 @@ use StdClass,
 
 /**
  * Parses a raw Accept header into an array of AcceptTerm ordered by client preference
- *
- * @category    Artax
- * @package     Negotiation
- * @author      Daniel Lowrey <rdlowrey@gmail.com>
  */
 abstract class BaseParser implements HeaderParser {
 

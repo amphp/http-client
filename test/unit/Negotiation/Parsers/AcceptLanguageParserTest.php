@@ -2,6 +2,9 @@
 
 use Artax\Negotiation\Parsers\AcceptLanguageParser;
 
+/**
+ * @covers Artax\Negotiation\Parsers\AcceptLanguageParser<extended>
+ */
 class AcceptLanguageTest extends PHPUnit_Framework_TestCase {
     
     /**

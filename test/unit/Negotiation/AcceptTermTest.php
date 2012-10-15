@@ -2,6 +2,9 @@
 
 use Artax\Negotiation\AcceptTerm;
 
+/**
+ * @covers Artax\Negotiation\AcceptTerm<extended>
+ */
 class AcceptTermTest extends PHPUnit_Framework_TestCase {
     
     public function providesValidTermConstructorArgs() {

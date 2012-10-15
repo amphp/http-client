@@ -3,7 +3,7 @@
 use Artax\Negotiation\Parsers\AcceptEncodingParser;
 
 /**
- * @covers Artax\Negotiation\Parsers\AcceptEncodingParser
+ * @covers Artax\Negotiation\Parsers\AcceptEncodingParser<extended>
  */
 class AcceptEncodingParserTest extends PHPUnit_Framework_TestCase {
     
