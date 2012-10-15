@@ -3,43 +3,40 @@
 namespace Artax;
 
 use Exception,
-    StdClass,
     Traversable,
     SplObjectStorage,
     Spl\Mediator,
     Spl\TypeException,
     Spl\ValueException,
-    Artax\Streams\StreamException,
     Artax\Streams\Stream,
-    Artax\Streams\SocketStream,
-    Artax\Streams\IoException,
-    Artax\Streams\SocketDisconnectException,
+    Artax\Streams\Socket,
+    Artax\Streams\Resource,
+    Artax\Streams\StreamException,
     Artax\Streams\ConnectException,
+    Artax\Streams\SocketGoneException,
     Artax\Http\Request,
     Artax\Http\StdRequest,
-    Artax\Http\Response,
-    Artax\Http\ChainableResponse;
-
+    Artax\Http\Response;
+    
 class Client {
     
-    const USER_AGENT = 'Artax/0.1 (PHP5.3+)';
+    const USER_AGENT = 'Artax/0.1.0 (PHP5.3+)';
     
-    const ATTR_CONNECT_TIMEOUT =  105;
-    const ATTR_FOLLOW_LOCATION = 110;
-    const ATTR_HOST_CONCURRENCY_LIMIT = 115;
-    const ATTR_IO_BUFFER_SIZE = 120;
-    const ATTR_KEEP_ALIVES = 125;
-    const ATTR_AUTO_REFERER_ON_FOLLOW = 130;
-    
-	const ATTR_SSL_VERIFY_PEER = 900;
-	const ATTR_SSL_ALLOW_SELF_SIGNED = 905;
-	const ATTR_SSL_CA_FILE = 910;
-	const ATTR_SSL_CA_PATH = 915;
-	const ATTR_SSL_LOCAL_CERT = 920;
-	const ATTR_SSL_LOCAL_CERT_PASSPHRASE = 925;
-	const ATTR_SSL_CN_MATCH = 930;
-	const ATTR_SSL_VERIFY_DEPTH = 935;
-	const ATTR_SSL_CIPHERS = 940;
+    const ATTR_KEEP_ALIVES = 'useKeepAlives';
+    const ATTR_CONNECT_TIMEOUT = 'connectTimeout';
+    const ATTR_FOLLOW_LOCATION = 'followLocation';
+    const ATTR_AUTO_REFERER_ON_FOLLOW = 'autoRefererOnFollow';
+    const ATTR_HOST_CONCURRENCY_LIMIT = 'hostConcurrencyLimit';
+    const ATTR_IO_BUFFER_SIZE = 'ioBufferSize';
+	const ATTR_SSL_VERIFY_PEER = 'sslVerifyPeer';
+	const ATTR_SSL_ALLOW_SELF_SIGNED = 'sslAllowsSelfSigned';
+	const ATTR_SSL_CA_FILE = 'sslCertAuthorityFile';
+	const ATTR_SSL_CA_PATH = 'sslCertAuthorityDirPath';
+	const ATTR_SSL_LOCAL_CERT = 'sslLocalCertFile';
+	const ATTR_SSL_LOCAL_CERT_PASSPHRASE = 'sslLocalCertPassphrase';
+	const ATTR_SSL_CN_MATCH = 'sslCommonNameMatch';
+	const ATTR_SSL_VERIFY_DEPTH = 'sslVerifyDepth';
+	const ATTR_SSL_CIPHERS = 'sslCiphers';
     
     const FOLLOW_LOCATION_NONE = 0;
     const FOLLOW_LOCATION_ON_3XX = 1;
@@ -57,85 +54,36 @@ class Client {
     const EVENT_SOCK_IO_READ = 'artax.client.socket.io.read';
     const EVENT_SOCK_IO_WRITE = 'artax.client.socket.io.write';
     
-    /**
-     * @var bool
-     */
-    private $useKeepAlives = true;
-    
-    /**
-     * @var int
-     */
-    private $connectTimeout = 60;
-    
-    /**
-     * @var int
-     */
-    private $hostConcurrencyLimit = 5;
-    
-    /**
-     * @var int
-     */
-    private $ioBufferSize = 8192;
-    
-    /**
-     * @var int
-     */
-    private $followLocation = self::FOLLOW_LOCATION_ON_3XX;
-    
-    /**
-     * @var bool
-     */
-    private $autoRefererOnFollow = true;
-    
-    /**
-     * @var bool
-     */
-    private $sslVerifyPeer = true;
-    
-    /**
-     * @var bool
-     */
-    private $sslAllowSelfSigned = false;
-    
-    /**
-     * @var string
-     */
-    private $sslCertAuthorityFile;
-    
-    /**
-     * @var string
-     */
-    private $sslCertAuthorityDirPath;
-    
-    /**
-     * @var string
-     */
-    private $sslLocalCertFile = '';
-    
-    /**
-     * @var string
-     */
-    private $sslLocalCertPassphrase;
-    
-    /**
-     * @var string
-     */
-    private $sslCommonNameMatch;
-    
-    /**
-     * @var int
-     */
-    private $sslVerifyDepth = 5;
-    
-    /**
-     * @var string
-     */
-    private $sslCiphers = 'DEFAULT';
+    const STATE_NEEDS_SOCKET = 0;
+    const STATE_SEND_REQUEST_HEADERS = 1;
+    const STATE_SEND_BUFFERED_REQUEST_BODY = 2;
+    const STATE_SEND_STREAM_REQUEST_BODY = 4;
+    const STATE_READ_HEADERS = 8;
+    const STATE_READ_TO_SOCKET_CLOSE = 16;
+    const STATE_READ_TO_CONTENT_LENGTH = 32;
+    const STATE_READ_CHUNKS = 64;
+    const STATE_COMPLETE = 128;
     
     /**
      * @var array
      */
-    private $sockPool = array();
+    private $attributes = array(
+        self::ATTR_KEEP_ALIVES => true,
+        self::ATTR_CONNECT_TIMEOUT => 60,
+        self::ATTR_FOLLOW_LOCATION => self::FOLLOW_LOCATION_ON_3XX,
+        self::ATTR_AUTO_REFERER_ON_FOLLOW => true,
+        self::ATTR_HOST_CONCURRENCY_LIMIT => 5,
+        self::ATTR_IO_BUFFER_SIZE => 8192,
+        self::ATTR_SSL_VERIFY_PEER => true,
+        self::ATTR_SSL_ALLOW_SELF_SIGNED => false,
+        self::ATTR_SSL_CA_FILE => null,
+        self::ATTR_SSL_CA_PATH => null,
+        self::ATTR_SSL_LOCAL_CERT => '',
+        self::ATTR_SSL_LOCAL_CERT_PASSPHRASE => null,
+        self::ATTR_SSL_CN_MATCH => null,
+        self::ATTR_SSL_VERIFY_DEPTH => 5,
+        self::ATTR_SSL_CIPHERS => 'DEFAULT'
+    );
     
     /**
      * @var \Spl\Mediator
@@ -143,52 +91,54 @@ class Client {
     private $mediator;
     
     /**
-     * Maps request instances to the corresponding keys from the original request list
-     * @var SplObjectStorage
-     */
-    private $requestKeyMap;
-    
-    /**
-     * A list of requests waiting for socket connection assignment
-     * @var SplObjectStorage
-     */
-    private $queuedRequests;
-    
-    /**
-     * Maps request instances to their assigned socket connection
-     * @var SplObjectStorage
-     */
-    private $requestSocketMap;
-    
-    /**
-     * Maps request instances to state/progress metrics during the retrieval process
-     * @var SplObjectStorage
-     */
-    private $requestProgressMap;
-    
-    /**
-     * Maps request instances to their corresponding response object
-     * @var SplObjectStorage
-     */
-    private $requestResponseMap;
-    
-    /**
-     * Maps response objects to the memory stream used to store the entity body during retrieval
-     * @var SplObjectStorage
-     */
-    private $responseBodyStreamMap;
-    
-    /**
-     * Maps socket stream resource IDs to in-progress request instances
      * @var array
      */
-    private $resourceRequestMap;
+    private $requestKeys;
     
     /**
-     * Maintains the order of requests from the original list
      * @var array
      */
-    private $requestKeyOrder;
+    private $requests;
+    
+    /**
+     * @var array
+     */
+    private $responses;
+    
+    /**
+     * @var array
+     */
+    private $sockets;
+    
+    /**
+     * @var array
+     */
+    private $errors;
+    
+    /**
+     * @var array
+     */
+    private $states;
+    
+    /**
+     * @var array
+     */
+    private $resourceKeyMap;
+    
+    /**
+     * @var array
+     */
+    private $redirectHistory;
+    
+    /**
+     * @var array
+     */
+    private $sockPool = array();
+    
+    /**
+     * @var bool
+     */
+    private $isInMultiMode;
     
     /**
      * @param \Spl\Mediator $mediator
@@ -199,258 +149,224 @@ class Client {
     }
     
     /**
+     * Retrieve a Client attribute value
+     * 
+     * @param string $attribute
+     * @throws \Spl\ValueException On non-existent attribute
+     * @return mixed Returns the requested attribute's current value
+     */
+    public function getAttribute($attribute) {
+        if (array_key_exists($attribute, $this->attributes)) {
+            return $this->attributes[$attribute];
+        }
+        throw new ValueException(
+            'Invalid Client attribute: ' . $attribute . ' does not exist'
+        );
+    }
+    
+    /**
+     * Assign optional Client attributes
+     * 
+     * @param int $attribute
+     * @param mixed $value
+     * @throws \Spl\ValueException On invalid attribute
+     * @return void
+     */
+    public function setAttribute($attribute, $value) {
+        if (!array_key_exists($attribute, $this->attributes)) {
+            throw new ValueException(
+                'Invalid Client attribute: ' . $attribute . ' does not exist'
+            );
+        }
+        
+        $setterMethod = 'set' . ucfirst($attribute);
+        if (method_exists($this, $setterMethod)) {
+            $this->$setterMethod($value);
+        } else {
+            $this->attributes[$attribute] = $value;
+        }
+    }
+    
+    /**
      * Assign multiple Client attributes at once
      * 
      * @param mixed $arrayOrTraversable
      * @return void
      */
     public function setAllAttributes($arrayOrTraversable) {
-        foreach ($arrayOrTraversable as $attr => $val) {
-            $this->setAttribute($attr, $val);
+        foreach ($arrayOrTraversable as $attribute => $value) {
+            $this->setAttribute($attribute, $value);
         }
     }
     
-    /**
-     * Assign optional Client attributes
-     * 
-     * @param int $attr
-     * @param mixed $val
-     * @return void
-     * @throws ValueException On invalid attribute
-     */
-    public function setAttribute($attr, $val) {
-        switch ($attr) {
-            case self::ATTR_KEEP_ALIVES:
-                $this->setKeepAlives($val);
-                break;
-            case self::ATTR_CONNECT_TIMEOUT:
-                $this->setConnectTimeout($val);
-                break;
-            case self::ATTR_HOST_CONCURRENCY_LIMIT:
-                $this->setHostConcurrencyLimit($val);
-                break;
-            case self::ATTR_IO_BUFFER_SIZE:
-                $this->setIoBufferSize($val);
-                break;
-            case self::ATTR_FOLLOW_LOCATION:
-                $this->setFollowLocation($val);
-                break;
-            case self::ATTR_AUTO_REFERER_ON_FOLLOW:
-                $this->setAutoRefererOnFollow($val);
-                break;
-            case self::ATTR_SSL_VERIFY_PEER:
-                $this->setSslVerifyPeer($val);
-                break;
-            case self::ATTR_SSL_ALLOW_SELF_SIGNED:
-                $this->setSslAllowSelfSigned($val);
-                break;
-            case self::ATTR_SSL_CA_FILE:
-                $this->setSslCertAuthorityFile($val);
-                break;
-            case self::ATTR_SSL_CA_PATH:
-                $this->setSslCertAuthorityDirPath($val);
-                break;
-            case self::ATTR_SSL_LOCAL_CERT:
-                $this->setSslLocalCertFile($val);
-                break;
-            case self::ATTR_SSL_LOCAL_CERT_PASSPHRASE:
-                $this->setSslLocalCertPassphrase($val);
-                break;
-            case self::ATTR_SSL_CN_MATCH:
-                $this->setSslCommonNameMatch($val);
-                break;
-            case self::ATTR_SSL_VERIFY_DEPTH:
-                $this->setSslVerifyDepth($val);
-                break;
-            case self::ATTR_SSL_CIPHERS:
-                $this->setSslCiphers($val);
-                break;
-            default:
-                throw new ValueException(
-                    'Invalid attribute: Client::' . $attr . ' does not exist'
-                );
-        }
+    private function setUseKeepAlives($boolFlag) {
+        $boolFlag = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
+        $this->attributes[self::ATTR_KEEP_ALIVES] = $boolFlag;
     }
     
-    /**
-     * @param bool $boolFlag
-     * @return void
-     */
-    private function setKeepAlives($boolFlag) {
-        $this->useKeepAlives = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
+	private function setConnectTimeout($secondsUntilTimeout) {
+        $this->attributes[self::ATTR_CONNECT_TIMEOUT] = (int) $secondsUntilTimeout;
     }
     
-    /**
-     * @param int $secondsUntilTimeout
-     * @return void
-     */
-    private function setConnectTimeout($secondsUntilTimeout) {
-        $this->connectTimeout = (int) $secondsUntilTimeout;
+    private function setFollowLocation($bitmask) {
+        $this->attributes[self::ATTR_FOLLOW_LOCATION] = (int) $bitmask;
     }
     
-    /**
-     * @param int $maxConnections
-     * @return void
-     */
+    private function setAutoRefererOnFollow($boolFlag) {
+        $boolFlag = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
+        $this->attributes[self::ATTR_AUTO_REFERER_ON_FOLLOW] = $boolFlag;
+    }
+    
     private function setHostConcurrencyLimit($maxConnections) {
         $maxConnections = (int) $maxConnections;
         $maxConnections = $maxConnections < 1 ? 1 : $maxConnections;
-        $this->hostConcurrencyLimit = $maxConnections;
+        $this->attributes[self::ATTR_HOST_CONCURRENCY_LIMIT] = $maxConnections;
     }
     
-    /**
-     * @param int $bytes
-     * @return void
-     */
     private function setIoBufferSize($bytes) {
         $bytes = (int) $bytes;
-        $this->ioBufferSize = $bytes <= 0 ? self::ATTR_IO_BUFFER_SIZE : $bytes;
+        if ($bytes > 0) {
+            $this->attributes[self::ATTR_IO_BUFFER_SIZE] = $bytes;
+        }
     }
     
-    /**
-     * @param int $bitmask
-     * @return void
-     */
-    private function setFollowLocation($bitmask) {
-        $this->followLocation = (int) $bitmask;
-    }
-    
-    /**
-     * @param bool $boolFlag
-     * @return void
-     */
-    private function setAutoRefererOnFollow($boolFlag) {
-        $this->autoRefererOnFollow = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
-    }
-    
-    /**
-     * @param bool $boolFlag
-     * @return void
-     */
     private function setSslVerifyPeer($boolFlag) {
-        $this->sslVerifyPeer = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
+        $boolFlag = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
+        $this->attributes[self::ATTR_SSL_VERIFY_PEER] = $boolFlag;
     }
     
-    /**
-     * @param bool $boolFlag
-     * @return void
-     */
     private function setSslAllowSelfSigned($boolFlag) {
-        $this->sslAllowSelfSigned = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
+        $boolFlag = filter_var($boolFlag, FILTER_VALIDATE_BOOLEAN);
+        $this->attributes[self::ATTR_SSL_ALLOW_SELF_SIGNED] = $boolFlag;
     }
     
-    /**
-     * @param string $certAuthorityFilePath
-     * @return void
-     */
-    private function setSslCertAuthorityFile($certAuthorityFilePath) {
-        $this->sslCertAuthorityFile = $certAuthorityFilePath;
-    }
-    
-    /**
-     * @param string $certAuthorityDirPath
-     * @return void
-     */
-    private function setSslCertAuthorityDirPath($certAuthorityDirPath) {
-        $this->sslCertAuthorityDirPath = $certAuthorityDirPath;
-    }
-    
-    /**
-     * @param string $localCertFilePath
-     * @return void
-     */
-    private function setSslLocalCertFile($localCertFilePath) {
-        $this->sslLocalCertFile = $localCertFilePath;
-    }
-    
-    /**
-     * @param string $localCertPassphrase
-     * @return void
-     */
-    private function setSslLocalCertPassphrase($localCertPassphrase) {
-        $this->sslLocalCertPassphrase = $localCertPassphrase;
-    }
-    
-    /**
-     * @param string $commonNameMatch
-     * @return void
-     */
-    private function setSslCommonNameMatch($commonNameMatch) {
-        $this->sslCommonNameMatch = $commonNameMatch;
-    }
-    
-    /**
-     * @param int $depth
-     * @return void
-     */
     private function setSslVerifyDepth($depth) {
         $this->sslVerifyDepth = (int) $depth;
-    }
-    
-    /**
-     * @param string $cipherList
-     * @return void
-     */
-    private function setSslCiphers($cipherList) {
-        $this->sslCiphers = $cipherList;
+        $this->attributes[self::ATTR_SSL_VERIFY_DEPTH] = $boolFlag;
     }
     
     /**
      * Make an HTTP request
      * 
      * @param Http\Request $request
-     * @return Http\ChainableResponse
+     * @return ChainableResponse
      * @throws ClientException
      */
     public function send(Request $request) {
+        $this->isInMultiMode = false;
         $this->buildRequestMaps(array($request));
         $this->execute();
         
-        $this->requestResponseMap->rewind();
-        $response = $this->requestResponseMap->getInfo();
+        return $this->responses[0];
+    }
+    
+    /**
+     * Make multiple HTTP requests in parallel
+     * 
+     * @param mixed $requests An array or Traversable list of requests
+     * @throws \Spl\TypeException
+     * @return ClientMultiResponse
+     */
+    public function sendMulti($requests) {
+        $this->isInMultiMode = true;
+        $this->validateRequestList($requests);
+        $this->buildRequestMaps($requests);
+        $this->execute();
         
-        if ($response instanceof ChainableResponse) {
-            return $response;
-        } elseif ($response instanceof ClientException) {
-            throw $response;
-        } elseif ($response instanceof Exception) {
-            throw new ClientException(
-                $response->getMessage(),
-                null,
-                $response
+        $responsesAndErrors = array();
+        foreach ($this->requestKeys as $requestKey) {
+            if (isset($this->errors[$requestKey])) {
+                $responsesAndErrors[$requestKey] = $this->errors[$requestKey];
+            } else {
+                $responsesAndErrors[$requestKey] = $this->responses[$requestKey];
+            }
+        }
+        
+        return new ClientMultiResponse($responsesAndErrors);
+    }
+    
+    /**
+     * Validates the request list passed to Client::sendMulti
+     * 
+     * @param mixed $requests An array or Traversable object
+     * @return void
+     * @throws \Spl\TypeException
+     */
+    private function validateRequestList($requests) {
+        if (!($requests instanceof Traversable || is_array($requests))) {
+            $type = is_object($requests) ? get_class($requests) : gettype($requests);
+            throw new TypeException(
+                get_class($this) . '::sendMulti expects an array or Traversable object ' .
+                "at Argument 1; $type provided"
+            );
+        }
+        
+        if (!count($requests)) {
+            throw new TypeException(
+                'No requests specified'
+            );
+        }
+        
+        foreach ($requests as $request) {
+            if (!$request instanceof Request) {
+                $type = is_object($request) ? get_class($requests) : gettype($request);
+                throw new TypeException(
+                    get_class($this) . '::sendMulti requires that each element of the list passed ' .
+                    'to Argument 1 implement Artax\\Http\\Request; ' . $type . ' provided'
+                );
+            }
+        }
+    }
+    
+    /**
+     * Initializes all request-key maps for this batch of requests.
+     * 
+     * @param mixed $requests[Request]
+     * @throws ClientException (only if not in multi-mode)
+     * @return void
+     */
+    private function buildRequestMaps($requests) {
+        $this->requestKeys = array();
+        
+        $this->requests = array();
+        $this->responses = array();
+        $this->sockets = array();
+        $this->errors = array();
+        $this->states = array();
+        
+        $this->resourceKeyMap = array();
+        $this->redirectHistory = array();
+        
+        foreach ($requests as $requestKey => $request) {
+            $this->normalizeRequestHeaders($request);
+            
+            $this->requestKeys[] = $requestKey;
+            $this->requests[$requestKey] = $request;
+            $this->responses[$requestKey] = new ChainableResponse($request->getUri());
+            $this->redirectHistory[$requestKey] = array();
+            $this->states[$requestKey] = new ClientState();
+            
+            $this->mediator->notify(
+                self::EVENT_REQUEST,
+                $requestKey,
+                $request
             );
         }
     }
     
     /**
-     * @param mixed $requests
-     * @return array
-     */
-    private function buildRequestMaps($requests) {
-        $this->requestKeyMap = new SplObjectStorage();
-        $this->queuedRequests = new SplObjectStorage();
-        $this->requestSocketMap = new SplObjectStorage();
-        $this->requestResponseMap = new SplObjectStorage();
-        $this->requestProgressMap = new SplObjectStorage();
-        $this->responseBodyStreamMap = new SplObjectStorage();
-        
-        $this->resourceRequestMap = array();
-        $this->requestKeyOrder = array();
-        
-        foreach ($requests as $key => $request) {
-            $this->normalizeRequestHeaders($request);
-            $this->mediator->notify(self::EVENT_REQUEST, $key, $request);
-            
-            $this->requestKeyOrder[$key] = null;
-            $this->requestKeyMap->attach($request, $key);
-            $this->queuedRequests->attach($request);
-            $this->requestProgressMap->attach($request, new ClientRequestState());
-            $this->requestResponseMap->attach($request, new ChainableResponse());
-            $this->assignStreamToRequest($request);
-        }
-    }
-    
-    /**
+     * Normalizes requests header values prior to sending to ensure the validity of certain fields.
+     * 
+     * User-Agent           - Always added
+     * Host                 - Added if missing
+     * Connection           - Set to "close" if the Client::ATTR_KEEP_ALIVES is set to FALSE
+     * Accept-Encoding      - Always removed
+     * Content-Length       - Set or removed automatically based on the request entity body
+     * Transfer-Encoding    - Set or removed automatically based on the request entity body
+     * 
+     * NOTE: requests may be modified AFTER normalization by attaching listeners to the 
+     * Client::EVENT_REQUEST event.
+     * 
      * @param Http\Request $request
      * @return void
      */
@@ -460,8 +376,10 @@ class Client {
         
         if ($request->getBodyStream()) {
             $request->setHeader('Transfer-Encoding', 'chunked');
+            $request->removeHeader('Content-Length');
         } elseif ($entityBody = $request->getBody()) {
             $request->setHeader('Content-Length', strlen($entityBody));
+            $request->removeHeader('Transfer-Encoding');
         } else {
             $request->removeHeader('Content-Length');
             $request->removeHeader('Transfer-Encoding');
@@ -469,322 +387,174 @@ class Client {
         
         $request->removeHeader('Accept-Encoding');
         
-        if (!$this->useKeepAlives) {
+        if (!$this->getAttribute(self::ATTR_KEEP_ALIVES)) {
             $request->setHeader('Connection', 'close');
         }
     }
     
     /**
-     * @param Http\Request $request
+     * Is this request waiting for a socket connection?
+     * 
+     * @param string $requestKey
      * @return bool
      */
-    private function assignStreamToRequest(Request $request) {
-        try {
-            $stream = $this->checkoutStream($request);
-            if ($stream) {
-                $this->queuedRequests->detach($request);
-                $this->requestSocketMap->attach($request, $stream);
-                $this->resourceRequestMap[(int) $stream->getResource()] = $request;
-                $progress = $this->requestProgressMap->offsetGet($request);
-                $progress->state = ClientRequestState::SENDING_REQUEST_HEADERS;
-            }
-        } catch (ConnectException $e) {
-            $this->queuedRequests->detach($request);
-            $this->requestResponseMap->attach($request, $e);
-            $progress = $this->requestProgressMap->offsetGet($request);
-            $progress->state = ClientRequestState::ERROR;
-        }
+    protected function needsSocket($requestKey) {
+        $state = $this->states[$requestKey];
+        return $state->state == self::STATE_NEEDS_SOCKET;
     }
     
     /**
-     * @param Http\Request $request
-     * @throws Streams\ConnectException
-     * @return Streams\SocketStream Returns NULL if max concurrency limit already reached
-     */
-    private function checkoutStream(Request $request) {
-        $socketUri = $this->buildSocketUri($request);
-        $socketUriString = $socketUri->__toString();
-        
-        if (!isset($this->sockPool[$socketUriString])) {
-            $this->sockPool[$socketUriString] = new SplObjectStorage();
-        }
-        
-        foreach ($this->sockPool[$socketUriString] as $stream) {
-            $isInUse = $this->sockPool[$socketUriString]->getInfo();
-            if (!$isInUse) {
-                $this->sockPool[$socketUriString]->setInfo(true);
-                $requestKey = $this->requestKeyMap->offsetGet($request);
-                $this->mediator->notify(self::EVENT_SOCK_CHECKOUT, $requestKey, $stream);
-                return $stream;
-            }
-        }
-        
-        $openHostStreams = count($this->sockPool[$socketUriString]);
-        
-        if ($this->hostConcurrencyLimit > $openHostStreams) {
-            $stream = $this->makeStream($socketUri);
-            
-            if (0 === strcmp('tls', $socketUri->getScheme())) {
-                $contextOpts = $this->buildSslContext($socketUri);
-            } else {
-                $contextOpts = array();
-            }
-            
-            $stream->setConnectTimeout($this->connectTimeout);
-            $stream->setContextOptions($contextOpts);
-            $stream->open();
-            
-            stream_set_blocking($stream->getResource(), 0);
-            
-            $requestKey = $this->requestKeyMap->offsetGet($request);
-            $this->mediator->notify(self::EVENT_SOCK_OPEN, $requestKey, $stream);
-            
-            $this->sockPool[$socketUriString]->attach($stream, true);
-            $this->mediator->notify(self::EVENT_SOCK_CHECKOUT, $requestKey, $stream);
-            
-            return $stream;
-        } else {
-            return null;
-        }
-    }
-
-    /**
-     * @param Http\Request $request
-     * @throws ValueException
-     * @return Uri
-     */
-    private function buildSocketUri(Request $request) {
-        $requestScheme = strtolower($request->getScheme());
-        switch ($requestScheme) {
-            case 'http':
-                $scheme = 'tcp';
-                break;
-            case 'https':
-                $scheme = 'tls';
-                break;
-            default:
-                throw new ValueException(
-                    "Invalid request URI scheme: $requestScheme. http:// or https:// required."
-                );
-        }
-        
-        $uriStr = $scheme . '://' . $request->getHost() . ':' . $request->getPort();
-        
-        return new Uri($uriStr);
-    }
-    
-    /**
-     * @param Uri $socketUri
-     * @return Streams\SocketStream
-     */
-    protected function makeStream(Uri $socketUri) {
-        return new SocketStream($socketUri);
-    }
-
-    /**
-     * @param Uri $socketUri
-     * @return array
-     */
-    private function buildSslContext(Uri $socketUri) {
-        $opts = array(
-            'verify_peer' => $this->sslVerifyPeer,
-            'allow_self_signed' => $this->sslAllowSelfSigned,
-            'verify_depth' => $this->sslVerifyDepth,
-            'cafile' => $this->sslCertAuthorityFile,
-            'CN_match' => $this->sslCommonNameMatch ?: $socketUri->getHost(),
-            'ciphers' => $this->sslCiphers
-        );
-        
-        if ($this->sslCertAuthorityDirPath) {
-            $opts['capath'] = $this->sslCertAuthorityDirPath;
-        }
-        if ($this->sslLocalCertFile) {
-            $opts['local_cert'] = $this->sslLocalCertFile;
-        }
-        if ($this->sslLocalCertPassphrase) {
-            $opts['passphrase'] = $this->sslLocalCertPassphrase;
-        }
-       
-        return array('ssl' => $opts);
-    }
-    
-    /**
-     * @param Streams\SocketStream $stream
-     * @return void
-     */
-    private function checkinStream(SocketStream $stream) {
-        $requestKey = $this->getRequestKeyFromSocketStream($stream);
-        $socketUriString = $stream->getUri();
-        $this->sockPool[$socketUriString]->attach($stream, false);
-        $this->mediator->notify(self::EVENT_SOCK_CHECKIN, $requestKey, $stream);
-    }
-    
-    /**
-     * @param Streams\SocketStream $stream
-     * @return string
-     */
-    private function getRequestKeyFromSocketStream(SocketStream $stream) {
-        $streamId = (int) $stream->getResource();
-        $request = $this->resourceRequestMap[$streamId];
-        
-        return $this->requestKeyMap->offsetGet($request);
-    }
-    
-    /**
-     * @param Streams\SocketStream $stream
-     * @return void
-     */
-    private function closeStream(SocketStream $stream) {
-        $requestKey = $this->getRequestKeyFromSocketStream($stream);
-        $socketUriString = $stream->getUri();
-        $this->sockPool[$socketUriString]->detach($stream);
-        
-        $stream->close();
-        $this->mediator->notify(self::EVENT_SOCK_CLOSE, $requestKey, $stream);
-    }
-    
-    /**
-     * Close all open socket streams
+     * Are we currently sending this request's raw HTTP message?
      * 
-     * @return int Returns the number of socket connections closed
+     * @param string $requestKey
+     * @return bool
      */
-    public function closeAllStreams() {
-        $connsClosed = 0;
-        
-        foreach ($this->sockPool as $objStorage) {
-            foreach ($objStorage as $stream) {
-                $stream->close();
-                ++$connsClosed;
-            }
-        }
-        $this->sockPool = array();
-        
-        return $connsClosed;
+    protected function isWriting($requestKey) {
+        $state = $this->states[$requestKey];
+        return $state->state && $state->state < self::STATE_READ_HEADERS;
     }
     
     /**
-     * Close any open socket streams to the specified host
+     * Are we currently reading this request's raw HTTP response message?
      * 
-     * @param string $host
-     * @return int Returns the number of socket connections closed
+     * @param string $requestKey
+     * @return bool
      */
-    public function closeStreamsByHost($host) {
-        $connsClosed = 0;
-        foreach ($this->sockPool as $objStorage) {
-            foreach ($objStorage as $stream) {
-                if ($stream->getHost() == $host) {
-                    $stream->close();
-                    ++$connsClosed;
-                }
-            }
-        }
-        $this->sockPool = array_filter($this->sockPool);
-        return $connsClosed;
+    protected function isReading($requestKey) {
+        $state = $this->states[$requestKey];
+        return $state->state >= self::STATE_READ_HEADERS && $state->state < self::STATE_COMPLETE;
     }
     
     /**
-     * Close all socket streams that have been idle longer than the specified number of seconds
+     * Has the HTTP response for this request been fully received?
      * 
-     * @param int $maxInactivitySeconds
-     * @return int Returns the number of socket connections closed
+     * @param string $requestKey
+     * @return bool
      */
-    public function closeIdleStreams($maxInactivitySeconds) {
-        $maxInactivitySeconds = (int) $maxInactivitySeconds;
-        $connectionsClosed = 0;
-        $now = time();
-        
-        foreach ($this->sockPool as $objStorage) {
-            foreach ($objStorage as $stream) {
-                if ($now - $stream->getActivityTimestamp() > $maxInactivitySeconds) {
-                    $stream->close();
-                    ++$connectionsClosed;
-                }
-            }
-        }
-        
-        return $connectionsClosed;
+    protected function isComplete($requestKey) {
+        $state = $this->states[$requestKey];
+        return $state->state == self::STATE_COMPLETE;
     }
     
     /**
+     * Has this request encountered an error?
+     * 
+     * @param string $requestKey
+     * @return bool
+     */
+    protected function hasError($requestKey) {
+        return isset($this->errors[$requestKey]);
+    }
+    
+    /**
+     * The primary work method: sends/receives HTTP requests until all requests have completed.
+     * 
+     * @throws ClientException (only if not in multi-mode)
      * @return void
      */
     private function execute() {
-        while (!$this->hasCompletedAllRequests()) {
-            
+        while ($this->getIncompleteRequestKeys()) {
             list($read, $write) = $this->getSelectableStreams();
-            if (empty($read) &&  empty($write)) {
+            
+            if (empty($read) && empty($write)) {
                 continue;
             }
             
             list($read, $write) = $this->doStreamSelect($read, $write);
             
             foreach ($write as $resource) {
-                $request = $this->resourceRequestMap[(int) $resource];
-                try {
-                    $this->doRequestWrite($request);
-                } catch (Exception $e) {
-                    $this->requestResponseMap->attach($request, $e);
-                    $progress = $this->requestProgressMap->offsetGet($request);
-                    $progress->state = ClientRequestState::ERROR;
-                }
+                $requestKey = $this->resourceKeyMap[(int) $resource];
+                $this->doMultiSafeWrite($requestKey);
             }
             
             foreach ($read as $resource) {
-                $request = $this->resourceRequestMap[(int) $resource];
-                try {
-                    $this->doResponseRead($request);
-                } catch (Exception $e) {
-                    $this->requestResponseMap->attach($request, $e);
-                    $progress = $this->requestProgressMap->offsetGet($request);
-                    $progress->state = ClientRequestState::ERROR;
+                $requestKey = $this->resourceKeyMap[(int) $resource];
+                $this->doMultiSafeRead($requestKey);
+                
+                if ($this->isComplete($requestKey)) {
+                    $this->completeResponse($requestKey);
                 }
             }
         }
     }
     
     /**
-     * @return bool
+     * Retrieve an array of incomplete request keys
+     * 
+     * @return array
      */
-    private function hasCompletedAllRequests() {
-        $completedCount = 0;
-        $this->requestProgressMap->rewind();
-        foreach ($this->requestProgressMap as $request) {
-            $progress = $this->requestProgressMap->getInfo();
-            $isComplete = ($progress->state >= ClientRequestState::RESPONSE_RECEIVED);
-            $completedCount += $isComplete;
+    private function getIncompleteRequestKeys() {
+        $incompletes = array();
+        foreach ($this->requestKeys as $requestKey) {
+            if (!($this->hasError($requestKey) || $this->isComplete($requestKey))) {
+                $incompletes[] = $requestKey;
+            }
         }
-        
-        return $completedCount == count($this->requestProgressMap);
+        return $incompletes;
     }
     
     /**
+     * Retrieves an array holding lists of readable and writable request sockets.
+     * 
+     * @throws ClientException (only if not in multi-mode)
      * @return array
      */
     private function getSelectableStreams() {
-        $read = $write = array();
+        $read = array();
+        $write = array();
         
-        foreach ($this->queuedRequests as $request) {
-            $this->assignStreamToRequest($request);
-        }
+        $this->assignRequestSockets();
         
-        foreach ($this->requestSocketMap as $request) {
-            $progress = $this->requestProgressMap->offsetGet($request);
-            $state = $progress->state;
-            
-            if ($state >= ClientRequestState::RESPONSE_RECEIVED) {
-                continue;   
-            }
-            
-            $stream = $this->requestSocketMap->getInfo();
-            
-            if ($state < ClientRequestState::READING_HEADERS) {
-                $write[] = $stream->getResource();
-            } elseif ($state < ClientRequestState::RESPONSE_RECEIVED) {
-                $read[] = $stream->getResource();
+        foreach ($this->getIncompleteRequestKeys() as $requestKey) {
+            if ($this->needsSocket($requestKey)) {
+                continue;
+            } elseif ($this->isWriting($requestKey)) {
+                $write[] = $this->sockets[$requestKey]->getResource();
+            } elseif ($this->isReading($requestKey)) {
+                $read[] = $this->sockets[$requestKey]->getResource();
             }
         }
         
         return array($read, $write);
+    }
+    
+    /**
+     * Checks-out and assigns sockets to requests awaiting a connection. Connection failures are
+     * caught in multi-request mode but allowed to bubble up otherwise.
+     * 
+     * @throws ClientException (only if not in multi-mode)
+     * @return void
+     */
+    private function assignRequestSockets() {
+        foreach ($this->requestKeys as $requestKey) {
+            if (!$this->needsSocket($requestKey)) {
+                continue;
+            } elseif ($socket = $this->doMultiSafeSocketCheckout($requestKey)){
+                $this->states[$requestKey]->state = self::STATE_SEND_REQUEST_HEADERS;
+                $this->resourceKeyMap[(int) $socket->getResource()] = $requestKey;
+                $this->sockets[$requestKey] = $socket;
+            }
+        }
+    }
+    
+    /**
+     * Checks out a request socket. Exceptions are prevented from bubbling up when in
+     * multi-request mode.
+     * 
+     * @param string $requestKey
+     * @throws ClientException (only if not in multi-mode)
+     * @return mixed Returns Socket or NULL on host concurrency limiting
+     */
+    protected function doMultiSafeSocketCheckout($requestKey) {
+        if ($this->isInMultiMode) {
+            try {
+                return $this->checkoutSocket($requestKey);
+            } catch (ClientException $e) {
+                $this->errors[$requestKey] = $e;
+            }
+        } else {
+            return $this->checkoutSocket($requestKey);
+        }
     }
     
     /**
@@ -821,287 +591,377 @@ class Client {
     }
     
     /**
-     * @param Http\Request $request
+     * Allows socket IO write errors to bubble up when processing a single request. Exceptions
+     * thrown when in multi-request mode are caught and stored for use in a multi-response.
+     * 
+     * @param string $requestKey
+     * @throws ClientException (only if not in multi-mode)
      * @return void
      */
-    private function doRequestWrite($request) {
-        $progress = $this->requestProgressMap->offsetGet($request);
-        $stream = $this->requestSocketMap->offsetGet($request);
-        
-        switch ($progress->state) {
-            case ClientRequestState::SENDING_REQUEST_HEADERS:
-                $this->writeRequestHeaders($request, $stream, $progress);
-                break;
-            case ClientRequestState::SENDING_BUFFERED_REQUEST_BODY:
-                $this->writeBufferedRequestBody($request, $stream, $progress);
-                break;
-            case ClientRequestState::SENDING_STREAM_REQUEST_BODY:
-                $this->writeStreamingRequestBody($request, $stream, $progress);
-                break;
+    private function doMultiSafeWrite($requestKey) {
+        if ($this->isInMultiMode) {
+            try {
+                $this->write($requestKey);
+            } catch (ClientException $e) {
+                $this->errors[$requestKey] = $e;
+            }
+        } else {
+            $this->write($requestKey);
         }
     }
     
     /**
-     * @param Http\Request $request
-     * @param Streams\SocketStream
-     * @param ClientRequestState $progress
-     * @throws Streams\IoException
+     * Delegates IO writes to the appropriate method based on the current request state
+     * 
+     * @param string $requestKey
+     * @throws ClientException
      * @return void
      */
-    private function writeRequestHeaders($request, $stream, $progress) {
+    public function write($requestKey) {
+        $currentState = $this->states[$requestKey]->state;
+        
+        switch ($currentState) {
+            case self::STATE_SEND_REQUEST_HEADERS:
+                $this->writeRequestHeaders($requestKey);
+                break;
+            case self::STATE_SEND_BUFFERED_REQUEST_BODY:
+                $this->writeBufferedRequestBody($requestKey);
+                break;
+            case self::STATE_SEND_STREAM_REQUEST_BODY:
+                $this->writeStreamingRequestBody($requestKey);
+                break;
+            default:
+                throw new ClientException(
+                    'Unexpected request state encountered while writing to socket'
+                );
+        }
+    }
+    
+    /**
+     * Writes request headers to socket, updating the request state upon completion
+     * 
+     * @param string $requestKey
+     * @throws ClientException
+     * @return void
+     */
+    private function writeRequestHeaders($requestKey) {
+        $state = $this->states[$requestKey];
+        $socket = $this->sockets[$requestKey];
+        $request = $this->requests[$requestKey];
+        
         $data = $this->buildRawRequestHeaders($request);
         $dataLen = strlen($data);
-        $dataToWrite = substr($data, $progress->headerBytesSent);
+        $dataToWrite = substr($data, $state->headerBytesSent);
         
-        $bytesWritten = $stream->write($dataToWrite);
-        $actualDataWritten = substr($data, 0, $bytesWritten);
-        $requestKey = $this->requestKeyMap->offsetGet($request);
-        
-        $this->mediator->notify(
-            self::EVENT_SOCK_IO_WRITE,
-            $requestKey,
-            $actualDataWritten,
-            $bytesWritten
-        );
-        
-        $progress->headerBytesSent += $bytesWritten;
-        
-        if ($progress->headerBytesSent >= $dataLen) {
-            if ($request->getBodyStream()) {
-                $progress->state = ClientRequestState::SENDING_STREAM_REQUEST_BODY;
-            } elseif ($request->getBody()) {
-                $progress->state = ClientRequestState::SENDING_BUFFERED_REQUEST_BODY;
-            } else {
-                $progress->state = ClientRequestState::READING_HEADERS;
-            }
-        }
-    }
-    
-    /**
-     * @param Http\Request $request
-     * @return string
-     */
-    private function buildRawRequestHeaders(Request $request) {
-        if ('CONNECT' != $request->getMethod()) {
-            $data = $request->getRequestLine() . "\r\n" . $request->getRawHeaders() . "\r\n";
-        } else {
-            $data = 'CONNECT ' . $request->getAuthority() . 'HTTP/' . $request->getHttpVersion();
-            $data.= "\r\n" . $request->getRawHeaders() . "\r\n";
+        try {
+            $bytesWritten = $socket->write($dataToWrite);
+        } catch (StreamException $e) {
+            throw new ClientException(
+                'Socket write failure while sending headers',
+                null,
+                $e
+            );
         }
         
-        return $data;
-    }
-    
-    /**
-     * @param Http\Request $request
-     * @param Streams\SocketStream
-     * @param ClientRequestState $progress
-     * @throws Streams\IoException
-     * @return void
-     */
-    private function writeBufferedRequestBody($request, $stream, $progress) {
-        $data = $request->getBody();
-        $dataLen = strlen($data);
-        $dataToWrite = substr($data, $progress->bodyBytesSent);
-        
-        $bytesWritten = $stream->write($dataToWrite);
-        $actualDataWritten = substr($data, 0, $bytesWritten);
-        $requestKey = $this->requestKeyMap->offsetGet($request);
-        
-        $this->mediator->notify(
-            self::EVENT_SOCK_IO_WRITE,
-            $requestKey,
-            $actualDataWritten,
-            $bytesWritten
-        );
-        
-        $progress->bodyBytesSent += $bytesWritten;
-        
-        if ($progress->bodyBytesSent >= $dataLen) {
-            $progress->state = ClientRequestState::READING_HEADERS;
-        }
-    }
-
-    /**
-     * @param Http\Request $request
-     * @param Streams\SocketStream
-     * @param ClientRequestState $progress
-     * @throws Streams\StreamException
-     * @throws Streams\IoException
-     * @return void
-     */
-    private function writeStreamingRequestBody($request, $stream, $progress) {
-        $dataStream = $request->getBodyStream();
-        fseek($data, 0, SEEK_END);
-        $dataStreamLen = ftell($dataStream);
-        rewind($dataStream);
-        
-        $bodyBuffer = null;
-        while (true) {
-            if (is_null($bodyBuffer)) {
-                $data = @fread($dataStream, $this->ioBufferSize);
-                if (false === $data) {
-                    throw new StreamException(
-                        "Failed reading request body from $data"
-                    );
-                }
-                
-                $chunkLength = strlen($data);
-                $bodyBuffer = dechex($chunkLength) . "\r\n$readData\r\n";
-                $bodyBufferBytes = strlen($bodyBuffer);
-                $bodyBufferBytesSent = 0;
-            }
-            
-            $dataToWrite = substr($bodyBuffer, $bodyBufferBytesSent);
-            
-            $bytesWritten = $stream->write($dataToWrite);
-            if (empty($bytesWritten)) {
-                continue;
-            }
-            
-            $actualDataWritten = substr($dataToWrite, 0, $bytesWritten);
-            $requestKey = $this->requestKeyMap->offsetGet($request);
-            
+        if ($bytesWritten) {
+            $actualDataWritten = substr($data, 0, $bytesWritten);
+            $state->headerBytesSent += $bytesWritten;
             $this->mediator->notify(
                 self::EVENT_SOCK_IO_WRITE,
                 $requestKey,
                 $actualDataWritten,
                 $bytesWritten
             );
-            
-            $bodyBufferBytesSent += $bytesWritten;
-            if ($bodyBufferBytesSent < $bodyBufferBytes) {
-                continue;
-            }
-            
-            $progress->bodyBytesSent += $chunkLength;
-            
-            if ($progress->bodyBytesSent == ftell($dataStream) && $bodyBuffer == "0\r\n\r\n") {
-                $progress->state = ClientRequestState::READING_HEADERS;
-                break;
+        }
+        
+        if ($state->headerBytesSent >= $dataLen) {
+            if ($request->getBodyStream()) {
+                $state->state = self::STATE_SEND_STREAM_REQUEST_BODY;
+                $this->initializeOutboundBodyStream($requestKey);
+            } elseif ($request->getBody()) {
+                $state->state = self::STATE_SEND_BUFFERED_REQUEST_BODY;
             } else {
-                $bodyBuffer = null;
+                $state->state = self::STATE_READ_HEADERS;
             }
         }
     }
     
     /**
+     * Generates and returns raw request headers in string form
+     * 
      * @param Http\Request $request
+     * @return string
+     */
+    private function buildRawRequestHeaders(Request $request) {
+        if ('CONNECT' !== $request->getMethod()) {
+            $headers = $request->getRequestLine() . "\r\n";
+            $headers.= $request->getRawHeaders() . "\r\n";
+        } else {
+            $headers = 'CONNECT ' . $request->getAuthority();
+            $headers.= 'HTTP/' . $request->getHttpVersion();
+            $headers.= "\r\n" . $request->getRawHeaders() . "\r\n";
+        }
+        
+        return $headers;
+    }
+    
+    /**
+     * @param string $requestKey
      * @return void
      */
-    private function doResponseRead(Request $request) {
-        $progress = $this->requestProgressMap->offsetGet($request);
-        $stream = $this->requestSocketMap->offsetGet($request);
-        $response = $this->requestResponseMap->offsetGet($request);
+    private function initializeOutboundBodyStream($requestKey) {
+        $state = $this->states[$requestKey];
+        $request = $this->requests[$requestKey];
         
-        if ($progress->state == ClientRequestState::READING_HEADERS) {
-            $this->readHeaders($request, $response, $stream, $progress);
-        }
+        $outboundBodyStream = $request->getBodyStream();
+        fseek($outboundBodyStream, 0, SEEK_END);
+        $state->streamRequestBodyLength = ftell($outboundBodyStream);
         
-        if ($progress->state > ClientRequestState::READING_HEADERS
-            && $progress->state < ClientRequestState::RESPONSE_RECEIVED
-        ) {
-            $this->readBody($request, $response, $stream, $progress);
-        }
-        
-        if ($progress->state == ClientRequestState::RESPONSE_RECEIVED) {
-            $this->validateResponseContentLength($response);
-            
-            if ($this->shouldKeepAlive($response)) {
-                $this->checkinStream($stream);
-            } else {
-                $this->closeStream($stream);
-            }
-            
-            if ($this->canRedirect($request, $response)) {
-                $this->doRedirect($request, $response, $progress);
-            } else {
-                $requestKey = $this->requestKeyMap->offsetGet($request);
-                $this->mediator->notify(
-                    self::EVENT_RESPONSE,
-                    $requestKey,
-                    $response
-                );
-            }
-        }
+        rewind($outboundBodyStream);
     }
     
     /**
-     * @param Http\Response $response
+     * Writes a buffered request body to the socket, updating the request state upon completion
+     * 
+     * @param string $requestKey
      * @throws ClientException
      * @return void
      */
-    private function validateResponseContentLength(Response $response) {
-        if (!$response->hasHeader('Content-Length')) {
+    private function writeBufferedRequestBody($requestKey) {
+        $state = $this->states[$requestKey];
+        $socket = $this->sockets[$requestKey];
+        $request = $this->requests[$requestKey];
+        
+        $data = $request->getBody();
+        $dataLen = strlen($data);
+        $dataToWrite = substr($data, $state->bodyBytesSent);
+        
+        try {
+            $bytesWritten = $socket->write($dataToWrite);
+        } catch (StreamException $e) {
+            throw new ClientException(
+                'Socket write failure while sending request body',
+                null,
+                $e
+            );
+        }
+        
+        if ($bytesWritten) {
+            $actualDataWritten = substr($data, 0, $bytesWritten);
+            $state->bodyBytesSent += $bytesWritten;
+            $this->mediator->notify(
+                self::EVENT_SOCK_IO_WRITE,
+                $requestKey,
+                $actualDataWritten,
+                $bytesWritten
+            );
+        }
+        
+        if ($state->bodyBytesSent >= $dataLen) {
+            $state->state = self::STATE_READ_HEADERS;
+        }
+    }
+    
+    /**
+     * Writes a streaming request body using a chunked Transfer-Encoding.
+     * 
+     * Chunks of the entity body stream are sized according to the Client::ATTR_IO_BUFFER_SIZE 
+     * attribute.
+     * 
+     * @param string $requestKey
+     * @throws ClientException
+     * @return void
+     */
+    private function writeStreamingRequestBody($requestKey) {
+        $state = $this->states[$requestKey];
+        $request = $this->requests[$requestKey];
+        $socket = $this->sockets[$requestKey];
+        
+        $outboundBodyStream = $request->getBodyStream();
+        
+        if ($state->streamRequestBodyChunkPos >= $state->streamRequestBodyChunkLength) {
+            fseek($outboundBodyStream, $state->streamRequestBodyPos, SEEK_SET);
+            $ioBufferSize = $this->getAttribute(self::ATTR_IO_BUFFER_SIZE);
+            $chunk = @fread($outboundBodyStream, $ioBufferSize);
+            if (false === $chunk) {
+                throw new ClientException(
+                    "Failed reading request body from $outboundBodyStream"
+                );
+            }
+            
+            $rawChunkSize = strlen($chunk);
+            
+            $state->streamRequestBodyChunk = dechex($rawChunkSize) . "\r\n$chunk\r\n";
+            $state->streamRequestBodyChunkPos = 0;
+            $state->streamRequestBodyChunkLength = strlen($state->streamRequestBodyChunk);
+            $state->streamRequestBodyChunkRawLength = $rawChunkSize;
+        }
+        
+        $dataToWrite = substr($state->streamRequestBodyChunk, $state->streamRequestBodyChunkPos);
+        
+        try {
+            $bytesWritten = $socket->write($dataToWrite);
+        } catch (StreamException $e) {
+            throw new ClientException(
+                '',
+                null,
+                $e
+            );
+        }
+        
+        if ($bytesWritten) {
+            $actualDataWritten = substr($dataToWrite, 0, $bytesWritten);
+            $state->streamRequestBodyChunkPos += $bytesWritten;
+            $this->mediator->notify(
+                self::EVENT_SOCK_IO_WRITE,
+                $requestKey,
+                $actualDataWritten,
+                $bytesWritten
+            );
+        }
+        
+        // Is there more of this chunk to write?
+        if ($state->streamRequestBodyChunkPos < $state->streamRequestBodyChunkLength) {
             return;
         }
         
-        $entityBodyStream = $response->getBodyStream();
-        fseek($entityBodyStream, 0, SEEK_END);
-        $actualLength = ftell($entityBodyStream);
-        $expectedLength = $response->getHeader('Content-Length');
-        rewind($entityBodyStream);
+        $state->streamRequestBodyPos += $state->streamRequestBodyChunkRawLength;
         
-        if ($actualLength != $expectedLength) {
+        // If we just wrote the last chunk, change the state to "reading"
+        if ($state->streamRequestBodyPos >= $state->streamRequestBodyLength
+            && $state->streamRequestBodyChunk == "0\r\n\r\n"
+        ) {
+            $state->state = self::STATE_READ_HEADERS;
+        }
+    }
+    
+    /**
+     * Allows socket IO read errors to bubble up when processing a single request. Exceptions
+     * thrown when in multi-request mode are caught and stored for use in a multi-response.
+     * 
+     * @param string $requestKey
+     * @throws ClientException (only if not in multi-mode)
+     * @return void
+     */
+    private function doMultiSafeRead($requestKey) {
+        if ($this->isInMultiMode) {
+            try {
+                $this->read($requestKey);
+            } catch (ClientException $e) {
+                $this->errors[$requestKey] = $e;
+            }
+        } else {
+            $this->read($requestKey);
+        }
+    }
+    
+    /**
+     * Delegates IO reads to the appropriate method based on the current request state
+     * 
+     * @param string $requestKey
+     * @throws ClientException
+     * @return void
+     */
+    public function read($requestKey) {
+        $state = $this->states[$requestKey];
+        
+        if ($state->state == self::STATE_READ_HEADERS) {
+            $this->readHeaders($requestKey);
+        } elseif ($state->state > self::STATE_READ_HEADERS
+            && $state->state < self::STATE_COMPLETE
+        ) {
+            $this->readBody($requestKey);
+        } else {
             throw new ClientException(
-                'Content-Length mismatch: ' . $expectedLength . ' bytes expected, ' .
-                $actualLength . ' bytes received'
+                'Unexpected request state encountered while reading from socket'
             );
         }
     }
     
     /**
-     * @param Http\Request $request
-     * @param Http\Response $response
-     * @param Streams\SocketStream
-     * @param ClientRequestState $progress
-     * @throws Streams\IoException
+     * Reads response headers from socket, updating the request state upon completion
+     * 
+     * @param string $requestKey
+     * @throws ClientException
      * @return void
      */
-    private function readHeaders($request, $response, $stream, $progress) {
-        if (!$readData = $stream->read($this->ioBufferSize)) {
-            return;
-        }
-        $progress->buffer .= $readData;
+    private function readHeaders($requestKey) {
+        $state = $this->states[$requestKey];
+        $socket = $this->sockets[$requestKey];
         
-        $requestKey = $this->requestKeyMap->offsetGet($request);
-        
-        $this->mediator->notify(
-            self::EVENT_SOCK_IO_READ,
-            $requestKey,
-            $readData,
-            strlen($readData)
-        );
-        
-        $bodyStartPos = strpos(ltrim($progress->buffer), "\r\n\r\n");
-        if (false === $bodyStartPos) {
-            return;
+        try {
+            $ioBufferSize = $this->getAttribute(self::ATTR_IO_BUFFER_SIZE);
+            $readData = $socket->read($ioBufferSize);
+        } catch (StreamException $e) {
+            throw new ClientException(
+                'Socket read failure while retrieving response headers',
+                null,
+                $e
+            );
         }
         
-        $startLineAndHeaders = substr($progress->buffer, 0, $bodyStartPos);
-        list($startLine, $headers) = explode("\r\n", $startLineAndHeaders, 2);
-        $progress->buffer = substr($progress->buffer, $bodyStartPos + 4);
+        // Remove leading line-breaks from the response message as per RFC2616 Section 4.1
+        if (empty($state->buffer) && !empty($readData)) {
+            $readData = ltrim($readData);
+        }
         
-        $response->setStartLine($startLine);
-        $response->setAllRawHeaders($headers);
-        
-        if (!$this->allowsEntityBody($request, $response)) {
-            $progress->state = ClientRequestState::RESPONSE_RECEIVED;
-        } elseif ($this->responseIsChunked($response)) {
-            $progress->state = ClientRequestState::READING_CHUNKS;
-        } elseif ($response->hasHeader('Content-Length')) {
-            $progress->state = ClientRequestState::READING_UNTIL_LENGTH_REACHED;
+        if ($readData) {
+            $this->mediator->notify(
+                self::EVENT_SOCK_IO_READ,
+                $requestKey,
+                $readData,
+                strlen($readData)
+            );
+            $state->buffer .= $readData;
         } else {
-            $progress->state = ClientRequestState::READING_UNTIL_CLOSE;
+            return;
+        }
+        
+        if (!$this->assignRawHeadersToResponse($requestKey)) {
+            return;
+        } elseif ($this->isResponseBodyAllowed($requestKey)) {
+            $this->initializeResponseBodyRetrieval($requestKey);
+        } else {
+            $state->state = self::COMPLETE;
         }
     }
     
     /**
-     * @param Http\Request $request
-     * @param Http\Response $response
+     * Assign raw response headers (if fully received) to the request-key's response object
+     * 
+     * @param string $requestKey
+     * @return bool Returns true if headers assigned or FALSE if full headers not yet received
+     */
+    private function assignRawHeadersToResponse($requestKey) {
+        $state = $this->states[$requestKey];
+        
+        $bodyStartPos = strpos($state->buffer, "\r\n\r\n");
+        
+        if (false === $bodyStartPos) {
+            return false;
+        } else {
+            $startLineAndHeaders = substr($state->buffer, 0, $bodyStartPos);
+            list($startLine, $headers) = explode("\r\n", $startLineAndHeaders, 2);
+            $state->buffer = substr($state->buffer, $bodyStartPos + 4);
+            
+            $response = $this->responses[$requestKey];
+            $response->setStartLine($startLine);
+            $response->setAllRawHeaders($headers);
+            
+            return true;
+        }
+    }
+    
+    /**
+     * Do the relevant request method and response status code allow an entity body?
+     * 
+     * @param string $requestKey
      * @return bool
      */
-    private function allowsEntityBody(Request $request, Response $response) {
+    private function isResponseBodyAllowed($requestKey) {
+        $request = $this->requests[$requestKey];
+        $response = $this->responses[$requestKey];
+        
         if ('HEAD' == $request->getMethod()) {
             return false;
         }
@@ -1118,15 +978,81 @@ class Client {
     }
     
     /**
-     * @param Http\Response $response
+     * Determine which entity body retrieval mode to use (chunked/content-length/socket-close) and
+     * initialize a temporary stream in which to store the response body.
+     * 
+     * @param string $requestKey
+     * @throws ClientException
+     * @return void
+     */
+    private function initializeResponseBodyRetrieval($requestKey) {
+        $state = $this->states[$requestKey];
+        $response = $this->responses[$requestKey];
+        
+        $state->responseBody = new Stream('php://temp', 'r+');
+        
+        try {
+            $state->responseBody->open();
+        } catch (StreamException $e) {
+            throw new ClientException(
+                'Failed opening temporary response body stream',
+                null,
+                $e
+            );
+        }
+        
+        try {
+            $state->responseBody->write($state->buffer);
+        } catch (StreamException $e) {
+            throw new ClientException(
+                'Failed writing '.strlen($state->buffer).' bytes to temporary response body stream',
+                null,
+                $e
+            );
+        }
+        
+        $hasContentLength = $response->hasHeader('Content-Length');
+        
+        if ($hasContentLength && $this->receivedFullEntityBodyFromHeaderRead($requestKey)) {
+            $state->state = self::STATE_COMPLETE;
+        } elseif ($hasContentLength) {
+            $state->state = self::STATE_READ_TO_CONTENT_LENGTH;
+        } elseif ($this->isResponseChunked($response)) {
+            $state->state = self::STATE_READ_CHUNKS;
+        } else {
+            $state->state = self::STATE_READ_TO_SOCKET_CLOSE;
+        }
+        
+        $state->buffer = null;
+    }
+    
+    /**
+     * Determine if the full entity body was received from the final response header IO read. This
+     * check is only necessary when a response specifies a Content-Length header.
+     * 
+     * @param string $requestKey
      * @return bool
      */
-    private function responseIsChunked(Response $response) {
+    private function receivedFullEntityBodyFromHeaderRead($requestKey) {
+        $state = $this->states[$requestKey];
+        $response = $this->responses[$requestKey];
+        
+        $bufferLength = strlen($state->buffer);
+        $expectedLength = $response->getHeader('Content-Length');
+        
+        return ($bufferLength >= $expectedLength);
+    }
+    
+    /**
+     * Do the response headers indicate a Transfer-Encoding value other than 'identity'?
+     * 
+     * @param Response $response
+     * @return bool
+     */
+    private function isResponseChunked(Response $response) {
         if (!$response->hasHeader('Transfer-Encoding')) {
             return false;
         }
-        
-        $transferEncoding = $response->getHeader('Transfer-Encoding');
         
         // http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.4
         // 
@@ -1134,134 +1060,301 @@ class Client {
         // than "identity", then the transfer-length is defined by use of the "chunked" 
         // transfer-coding (section 3.6), unless the message is terminated by closing the 
         // connection.
+        $transferEncoding = $response->getHeader('Transfer-Encoding');
+        
         return strcmp($transferEncoding, 'identity');
     }
     
     /**
-     * @param Http\Request $request
-     * @param Http\Response $response
-     * @param Streams\SocketStream
-     * @param ClientRequestState $progress
-     * @throws Streams\IoException
-     * @return bool
+     * Incrementally read the response body, updating the request state after each read.
+     * 
+     * The max number of bytes to read in one pass is controlled by the Client::ATTR_IO_BUFFER_SIZE
+     * attribute.
+     * 
+     * @param string $requestKey
+     * @throws ClientException
+     * @return void
      */
-    private function readBody($request, $response, $stream, $progress) {
-        if (!$this->responseBodyStreamMap->contains($response)) {
-            $responseBodyStream = $this->openMemoryStream();
-            $responseBodyStream->write($progress->buffer);
-            $progress->buffer = '';
-            $this->responseBodyStreamMap->attach($response, $responseBodyStream);
-        } else {
-            $responseBodyStream = $this->responseBodyStreamMap->offsetGet($response);
+    private function readBody($requestKey) {
+        $state = $this->states[$requestKey];
+        $socket = $this->sockets[$requestKey];
+        
+        try {
+            $ioBufferSize = $this->getAttribute(self::ATTR_IO_BUFFER_SIZE);
+            $readData = $socket->read($ioBufferSize);
+        } catch (SocketGoneException $e) {
+            if ($state->state == self::READ_CHUNKS) {
+                throw new ClientException(
+                    'Socket connection lost before chunked response body fully retrieved'
+                );
+            } else {
+                $state->state = self::COMPLETE;
+                $this->finalizeResponseBody($requestKey);
+                return;
+            }
+        } catch (StreamException $e) {
+            throw new ClientException(
+                'Socket read failure while retrieving response body',
+                null,
+                $e
+            );
         }
         
-        $readData = $stream->read($this->ioBufferSize);
-        if (!$readData && !$stream->isConnected()) {
-            $progress->state = ClientRequestState::RESPONSE_RECEIVED;
-        } else {
-            $responseBodyStream->write($readData);
-            $requestKey = $this->requestKeyMap->offsetGet($request);
+        if (!empty($readData)) {
             $this->mediator->notify(
                 self::EVENT_SOCK_IO_READ,
                 $requestKey,
                 $readData,
                 strlen($readData)
             );
-        }
-        
-        if ($progress->state == ClientRequestState::READING_UNTIL_LENGTH_REACHED) {
-            $bytesRecd = ftell($responseBodyStream->getResource());
-            if ($bytesRecd >= $response->getHeader('Content-Length')) {
-                $progress->state = ClientRequestState::RESPONSE_RECEIVED;
-            }
-        } elseif ($progress->state == ClientRequestState::READING_CHUNKS) {
-            fseek($responseBodyStream->getResource(), -1024, SEEK_END);
-            $endOfStream = stream_get_contents($responseBodyStream->getResource());
-            if (preg_match(",\r\n0+\r\n\r\n$,", $endOfStream)) {
-                stream_filter_prepend($responseBodyStream->getResource(), 'dechunk');
-                $progress->state = ClientRequestState::RESPONSE_RECEIVED;
+            
+            try {
+                $state->responseBody->write($readData);
+            } catch (StreamException $e) {
+                throw new ClientException(
+                    'Failed writing to temporary response body stream',
+                    null,
+                    $e
+                );
             }
         }
         
-        if ($progress->state == ClientRequestState::RESPONSE_RECEIVED) {
-            rewind($responseBodyStream->getResource());
-            $response->setBody($responseBodyStream->getResource());
-            $this->responseBodyStreamMap->detach($response);
+        if ($state->state == self::STATE_READ_TO_CONTENT_LENGTH) {
+            $this->markResponseCompleteIfLengthReached($requestKey);
+        } elseif ($state->state == self::STATE_READ_CHUNKS) {
+            $this->markResponseCompleteIfFinalChunkReceived($requestKey);
+        }
+        
+        if ($state->state == self::STATE_COMPLETE) {
+            $this->finalizeResponseBodyStream($requestKey);
         }
     }
     
     /**
-     * @return resource
-     * @throws Streams\StreamException
+     * Mark the response complete if the response body size reaches the expected Content-Length
+     * 
+     * @param string $requestKey
+     * @return void
      */
-    protected function openMemoryStream() {
-        $stream = new Stream('php://temp', 'r+');
-        $stream->open();
-        return $stream;
+    private function markResponseCompleteIfLengthReached($requestKey) {
+        $state = $this->states[$requestKey];
+        $response = $this->responses[$requestKey];
+        
+        $totalBytesRecd = ftell($state->responseBody->getResource());
+        if ($totalBytesRecd >= $response->getHeader('Content-Length')) {
+            $state->state = self::STATE_COMPLETE;
+        }
     }
     
     /**
+     * Mark the response complete if the the final response body chunk has been read.
+     * 
+     * @param string $requestKey
+     * @return void
+     */
+    private function markResponseCompleteIfFinalChunkReceived($requestKey) {
+        $state = $this->states[$requestKey];
+        
+        fseek($state->responseBody->getResource(), -1024, SEEK_END);
+        $endOfStream = stream_get_contents($state->responseBody->getResource());
+        if (preg_match(",\r\n0+\r\n\r\n$,", $endOfStream)) {
+            stream_filter_prepend($state->responseBody->getResource(), 'dechunk');
+            $state->state = self::STATE_COMPLETE;
+        }
+    }
+    
+    /**
+     * Validate the response entity body and assign it to the response object
+     * 
+     * @param string $requestKey
+     * @throws ClientException
+     * @return void
+     */
+    private function finalizeResponseBodyStream($requestKey) {
+        $state = $this->states[$requestKey];
+        $response = $this->responses[$requestKey];
+        $responseBody = $state->responseBody->getResource();
+        
+        $this->validateContentLength($response, $responseBody);
+        $this->validateContentMd5($response, $responseBody);
+        
+        rewind($responseBody);
+        $response->setBody($responseBody);
+    }
+    
+    /**
+     * Verify the received response body against the Content-Length header if applicable
+     * 
      * @param Http\Response $response
+     * @param resource $responseBody
+     * @throws ClientException
+     * @return void
+     */
+    private function validateContentLength(Response $response, $responseBody) {
+        if (!$response->hasHeader('Content-Length')) {
+            return;
+        }
+        
+        fseek($responseBody, 0, SEEK_END);
+        $actualLength = ftell($responseBody);
+        $expectedLength = $response->getHeader('Content-Length');
+        rewind($responseBody);
+        
+        if (!($actualLength == $expectedLength)) {
+            throw new ClientException(
+                'Content-Length mismatch: ' . $expectedLength . ' bytes expected, ' .
+                $actualLength . ' bytes received'
+            );
+        }
+    }
+    
+    /**
+     * Verify the received response body against the Content-MD5 header if applicable
+     * 
+     * @param Http\Response $response
+     * @param resource $responseBody
+     * @throws ClientException
+     * @return void
+     */
+    private function validateContentMd5(Response $response, $responseBody) {
+        if (!$response->hasHeader('Content-MD5')) {
+            return;
+        }
+        
+        $ioBufferSize = $this->getAttribute(self::ATTR_IO_BUFFER_SIZE);
+        $context = hash_init('md5');
+        rewind($responseBody);
+        
+        while (!feof($responseBody)) {
+            hash_update_stream($context, $responseBody, $ioBufferSize);
+        }
+        
+        $expectedMd5 = $response->getHeader('Content-MD5');
+        $actualMd5 = hash_final($context);
+        
+        if ($actualMd5 != $expectedMd5) {
+            throw new ClientException(
+                'Content-MD5 mismatch: response body checksum verification failure'
+            );
+        }
+    }
+    
+    /**
+     * Check-in/close sockets, perform redirects and notify listeners on response completion
+     * 
+     * @param string $requestKey
+     * @return void
+     */
+    private function completeResponse($requestKey) {
+        if ($this->shouldKeepConnectionAlive($requestKey)) {
+            $this->checkinSocket($requestKey);
+        } else {
+            $this->closeSocket($requestKey);
+        }
+        
+        if ($this->isInMultiMode) {
+            try {
+                $canRedirect = $this->canRedirect($requestKey);
+            } catch (ClientException $e) {
+                $this->errors[$requestKey] = $e;
+            }
+        } else {
+            $canRedirect = $this->canRedirect($requestKey);
+        }
+        
+        if ($canRedirect) {
+            $this->doRedirect($requestKey);
+        } else {
+            $this->mediator->notify(
+                self::EVENT_RESPONSE,
+                $requestKey,
+                $this->responses[$requestKey]
+            );
+        }
+    }
+    
+    /**
+     * Should we keep this connection alive once the response is received?
+     * 
+     * @param string $requestKey
      * @return bool
      */
-    private function shouldKeepAlive(Response $response) {
-        if (!$this->useKeepAlives) {
+    public function shouldKeepConnectionAlive($requestKey) {
+        $response = $this->responses[$requestKey];
+        
+        if (!$this->getAttribute(self::ATTR_KEEP_ALIVES)) {
             return false;
         }
-        if (!$response->hasHeader('Connection') && $response->getHttpVersion() == '1.1') {
+        
+        $hasConnectionHeader = $response->hasHeader('Connection');
+        
+        if (!$hasConnectionHeader && $response->getHttpVersion() == '1.1') {
             return true;
-        }
-        if ($response->hasHeader('Connection')
-            && strcmp($response->getHeader('Connection'), 'close')
-        ) {
-            return true;
+        } elseif ($hasConnectionHeader) {
+            return !strcmp($response->getHeader('Connection'), 'close');
         }
         
         return false;
     }
     
     /**
-     * @param Http\Request $request
-     * @param Http\Response $response
-     * @param array $redirectHistory
+     * If this response has a Location header are we capable of following it?
+     * 
+     * @param string $requestKey
+     * @throws ClientException
      * @return bool
      */
-    private function canRedirect(Request $request, Response $response) {
-        if ($this->followLocation == self::FOLLOW_LOCATION_NONE
-            || !$response->hasHeader('Location')
-        ) {
+    private function canRedirect($requestKey) {
+        $request = $this->requests[$requestKey];
+        $response = $this->responses[$requestKey];
+        
+        $followLocation = $this->getAttribute(self::ATTR_FOLLOW_LOCATION);
+        
+        if ($followLocation == self::FOLLOW_LOCATION_NONE) {
             return false;
         }
-        
-        $this->normalizeRedirectLocation($request, $response);
+        if (!$response->hasHeader('Location')) {
+            return false;
+        }
         
         $statusCode = $response->getStatusCode();
         
         $canFollow3xx = self::FOLLOW_LOCATION_ON_3XX;
-        if ($statusCode >= 300 && $statusCode < 400 && !($canFollow3xx & $this->followLocation)) {
+        if ($statusCode >= 300 && $statusCode < 400 && !($canFollow3xx & $followLocation)) {
            return false;
         }
         
         $canFollow2xx = self::FOLLOW_LOCATION_ON_2XX;
-        if ($statusCode >= 200 && $statusCode < 300 && !($canFollow2xx & $this->followLocation)) {
+        if ($statusCode >= 200 && $statusCode < 300 && !($canFollow2xx & $followLocation)) {
            return false;
         }
         
         $requestMethod = $request->getMethod();
         $canFollowUnsafe = self::FOLLOW_LOCATION_ON_UNSAFE_METHOD;
         if (!in_array($requestMethod, array('GET', 'HEAD'))
-            && !($canFollowUnsafe & $this->followLocation)
+            && !($canFollowUnsafe & $followLocation)
         ) {
             return false;
+        }
+        
+        $redirectLocation = $this->normalizeRedirectLocation($request, $response);
+        if (in_array($requestKey, $this->redirectHistory)) {
+            throw new ClientException(
+                "Infinite redirect loop detected; cannot redirect to $redirectLocation"
+            );
+        } else {
+            $this->redirectHistory[$requestKey][] = $redirectLocation;
         }
         
         return true;
     }
 
     /**
+     * Fix invalid Location headers that don't use an absolute URI.
+     * 
      * @param Http\Request $request
      * @param Http\Response $response
-     * @return void
+     * @return string
      */
     private function normalizeRedirectLocation(Request $request, Response $response) {
         $locationHeader = $response->getHeader('Location');
@@ -1274,127 +1367,338 @@ class Client {
                 'Warning',
                 "299 Invalid Location header: $locationHeader; $newLocation assumed"
             );
+            
+            return $newLocation;
+        } else {
+            return $locationHeader;
         }
     }
     
     /**
-     * @param Http\Request $request
-     * @param Http\Response $response
-     * @param ClientRequestState $progress
+     * Generate a new set of request map values so we can follow the response's Location header
+     * 
+     * @param string $requestKey
      * @return void
      */
-    private function doRedirect(Request $request, Response $response, ClientRequestState $progress) {
-        $oldLocation = $request->getUri();
-        $newLocation = $response->getHeader('Location');
+    private function doRedirect($requestKey) {
+        $request = $this->requests[$requestKey];
+        $response = $this->responses[$requestKey];
         
-        $progress->redirectHistory[] = $oldLocation;
-        
-        if (in_array($newLocation, $progress->redirectHistory)) {
-            $response->appendHeader(
-                'Warning',
-                "199 Infinite redirect loop detected: cannot redirect to $newLocation"
-            );
-            return;
-        }
-        
-        $newRequest = new StdRequest($newLocation, $request->getMethod());
+        $newRequest = new StdRequest($response->getHeader('Location'), $request->getMethod());
         $newRequest->setHttpVersion($request->getHttpVersion());
         $newRequest->setAllHeaders($request->getAllHeaders());
         $newRequest->setHeader('Host', $newRequest->getAuthority());
         
-        if ($this->autoRefererOnFollow) {
-            $newRequest->setHeader('Referer', $oldLocation);
+        if ($this->getAttribute(self::ATTR_AUTO_REFERER_ON_FOLLOW)) {
+            $newRequest->setHeader('Referer', $request->getUri());
         }
         
         if ($newRequest->allowsEntityBody()) {
-            $streamBody = $request->getBodyStream();
-            if ($streamBody) {
+            if ($streamBody = $request->getBodyStream()) {
                 $newRequest->setBody($streamBody);
             } else {
                 $newRequest->setBody($request->getBody());
             }
         }
         
-        $progress->resetForRedirect();
-        $newResponse = new ChainableResponse();
+        $newResponse = new ChainableResponse($newRequest->getUri());
         $newResponse->setPreviousResponse($response);
         
-        $requestKey = $this->requestKeyMap->offsetGet($request);
-        $this->requestKeyMap->detach($request);
-        $this->requestKeyMap->attach($newRequest, $requestKey);
+        $this->requests[$requestKey] = $newRequest;
+        $this->responses[$requestKey] = $newResponse;
+        $this->states[$requestKey] = new ClientState();
         
-        $this->queuedRequests->attach($newRequest);
-        
-        $this->requestProgressMap->detach($request);
-        $this->requestProgressMap->attach($newRequest, $progress);
-        
-        $this->requestSocketMap->detach($request);
-        
-        $this->requestResponseMap->detach($request);
-        $this->requestResponseMap->attach($newRequest, $newResponse);
-        
-        $this->mediator->notify(self::EVENT_REDIRECT, $requestKey, $oldLocation, $newLocation);
+        $this->mediator->notify(
+            self::EVENT_REDIRECT,
+            $requestKey,
+            $request->getUri(),
+            $newRequest->getUri()
+        );
     }
     
     /**
-     * Make multiple HTTP requests in parallel
+     * Get a socket for use subject to the Client's host concurrency limit.
      * 
-     * @param mixed $requests An array, StdClass or Traversable list of requests
-     * @throws Streams\StreamException
-     * @throws TypeException
-     * @return Http\MultiResponse
+     * @param string $requestKey
+     * @throws ClientException
+     * @return Streams\Socket Returns NULL if max connections already in use for the request host
      */
-    public function sendMulti($requests) {
-        $this->validateRequestList($requests);
-        $this->buildRequestMaps($requests);
-        $this->execute();
+    private function checkoutSocket($requestKey) {
+        $request = $this->requests[$requestKey];
+        $socketUri = $this->buildSocketUri($request);
+        $sockPoolKey = $socketUri->__toString();
         
-        $responses = $this->requestKeyOrder;
-        
-        foreach ($this->requestKeyMap as $request) {
-            $key = $this->requestKeyMap->getInfo();
-            $responses[$key] = $this->requestResponseMap->offsetGet($request);
+        if (!isset($this->sockPool[$sockPoolKey])) {
+            $this->sockPool[$sockPoolKey] = new SplObjectStorage();
+        } elseif ($socket = $this->checkoutExistingSocket($requestKey, $sockPoolKey)) {
+            return $socket;
+        } elseif ($this->hostConcurrencyLimitAllowsNewConnection($sockPoolKey)) {
+            return $this->checkoutNewSocket($requestKey, $socketUri, $sockPoolKey);
+        } else {
+            return null;
         }
-        
-        return new MultiResponse($responses);
     }
     
     /**
-     * @param mixed $requests An array, StdClass or Traversable object
-     * @return void
-     * @throws TypeException
+     * Attempt to use an existing Keep-Alive socket connection before making a new connection
+     * 
+     * @param string $sockPoolKey
+     * @return SocketResource Returns SocketResource or NULL if no existing sockets are available
      */
-    private function validateRequestList($requests) {
-        if (!(is_array($requests)
-            || $requests instanceof Traversable
-            || $requests instanceof StdClass
-        )) {
-            $type = is_object($requests) ? get_class($requests) : gettype($requests);
-            throw new TypeException(
-                get_class($this) . '::sendMulti expects an array, StdClass or Traversable object ' .
-                "at Argument 1; $type provided"
-            );
-        }
-        
-        $count = 0;
-        foreach ($requests as $request) {
-            if (!$request instanceof Request) {
-                $type = is_object($request) ? get_class($requests) : gettype($request);
-                throw new TypeException(
-                    get_class($this) . '::sendMulti requires that each element of the list passed ' .
-                    'to Argument 1 implement Artax\\Http\\Request; ' . $type . ' provided'
+    private function checkoutExistingSocket($requestKey, $sockPoolKey) {
+        foreach ($this->sockPool[$sockPoolKey] as $socket) {
+            $isInUse = $this->sockPool[$sockPoolKey]->getInfo();
+            
+            if (!$isInUse) {
+                $this->sockPool[$sockPoolKey]->setInfo(true);
+                $this->mediator->notify(
+                    self::EVENT_SOCK_CHECKOUT,
+                    $requestKey,
+                    $socket
                 );
+                return $socket;
             }
-            ++$count;
         }
         
-        // This test may seem redundant but the standard empty() or count() checks will not work on
-        // a StdClass. We use the generated $count value to verify that the list isn't empty.
-        if (!$count) {
-            throw new TypeException(
-                get_class($this) . '::sendMulti requires a non-empty array, StdClass or ' .
-                'Traversable request list at Argument 1'
+        return null;
+    }
+    
+    /**
+     * Do our host concurrency limit settings allow a new connection to the relevant host?
+     * 
+     * @param string $sockPoolKey
+     * @return bool
+     */
+    private function hostConcurrencyLimitAllowsNewConnection($sockPoolKey) {
+        $currentHostSocks = count($this->sockPool[$sockPoolKey]);
+        return $this->getAttribute(self::ATTR_HOST_CONCURRENCY_LIMIT) > $currentHostSocks;
+    }
+    
+    /**
+     * Open a new non-blocking socket connection, notifying listeners of the socket's status
+     * 
+     * @param string $requestKey
+     * @param Uri $socketUri
+     * @param $sockPoolKey
+     * @throws ClientException On connection failure
+     * @return Streams\Socket
+     */
+    private function checkoutNewSocket($requestKey, Uri $socketUri, $sockPoolKey) {
+        $request = $this->requests[$requestKey];
+        $socket = $this->makeSocket($socketUri);
+        $socket->setConnectTimeout($this->getAttribute(self::ATTR_CONNECT_TIMEOUT));
+        
+        if ('tls' == $socketUri->getScheme()) {
+            $socketContext = $this->buildSslContext($socketUri);
+            $socket->setContextOptions($socketContext);
+        }
+        
+        try {
+            $socket->open();
+        } catch (ConnectException $e) {
+            throw new ClientException(
+                "Failed opening socket connection to $socketUri",
+                null,
+                $e
             );
         }
+        
+        stream_set_blocking($socket->getResource(), 0);
+        
+        $this->mediator->notify(
+            self::EVENT_SOCK_OPEN,
+            $requestKey,
+            $socket
+        );
+        
+        $this->sockPool[$sockPoolKey]->attach($socket, true);
+        
+        $this->mediator->notify(
+            self::EVENT_SOCK_CHECKOUT,
+            $requestKey,
+            $socket
+        );
+        
+        return $socket;
+    }
+    
+    /**
+     * Generate the appropriate socket URI given a Request instance
+     * 
+     * @param Http\Request $request
+     * @throws ClientException
+     * @return Uri
+     */
+    private function buildSocketUri(Request $request) {
+        $requestScheme = strtolower($request->getScheme());
+        switch ($requestScheme) {
+            case 'http':
+                $scheme = 'tcp';
+                break;
+            case 'https':
+                $scheme = 'tls';
+                break;
+            default:
+                throw new ClientException(
+                    "Invalid request URI scheme: $requestScheme. http:// or https:// required."
+                );
+        }
+        
+        $uriStr = $scheme . '://' . $request->getHost() . ':' . $request->getPort();
+        
+        try {
+            $uri = new Uri($uriStr);
+        } catch (ValueException $e) {
+            throw new ClientException(
+                'An error occurred while generating a socket URI for ' . $request->getUri(),
+                null,
+                $e
+            );
+        }
+        
+        return $uri;
+    }
+    
+    /**
+     * IMPORTANT: this is a test seam allowing us to mock the sockets in our HTTP transfers.
+     * 
+     * @param string $socketUri
+     * @return Streams\Socket
+     */
+    protected function makeSocket($socketUri) {
+        return new Socket($socketUri);
+    }
+
+    /**
+     * Build context options for TLS connections according to our Client SSL attributes
+     * 
+     * @param Uri $socketUri
+     * @return array
+     */
+    private function buildSslContext(Uri $socketUri) {
+        $opts = array(
+            'verify_peer' => $this->getAttribute(self::ATTR_SSL_VERIFY_PEER),
+            'allow_self_signed' => $this->getAttribute(self::ATTR_SSL_ALLOW_SELF_SIGNED),
+            'verify_depth' => $this->getAttribute(self::ATTR_SSL_VERIFY_DEPTH),
+            'cafile' => $this->getAttribute(self::ATTR_SSL_CA_FILE),
+            'CN_match' => $this->getAttribute(self::ATTR_SSL_CN_MATCH) ?: $socketUri->getHost(),
+            'ciphers' => $this->getAttribute(self::ATTR_SSL_CIPHERS)
+        );
+        
+        if ($caDirPath = $this->getAttribute(self::ATTR_SSL_CA_PATH)) {
+            $opts['capath'] = $caDirPath;
+        }
+        if ($localCert = $this->getAttribute(self::ATTR_SSL_LOCAL_CERT)) {
+            $opts['local_cert'] = $localCert;
+        }
+        if ($localCertPassphrase = $this->getAttribute(self::ATTR_SSL_LOCAL_CERT_PASSPHRASE)) {
+            $opts['passphrase'] = $localCertPassphrase;
+        }
+       
+        return array('ssl' => $opts);
+    }
+    
+    /**
+     * Mark a socket connection as "available for use" by future or queued requests
+     * 
+     * @param Streams\Socket $socket
+     * @return void
+     */
+    private function checkinSocket($requestKey) {
+        $socket = $this->sockets[$requestKey];
+        $sockPoolKey = $socket->getUri();
+        $this->sockPool[$sockPoolKey]->attach($socket, false);
+        
+        unset($this->resourceKeyMap[(int)$socket->getResource()]);
+        
+        $this->mediator->notify(
+            self::EVENT_SOCK_CHECKIN,
+            $requestKey,
+            $socket
+        );
+    }
+    
+    /**
+     * Close a socket connection
+     * 
+     * @param Streams\Socket $socket
+     * @return void
+     */
+    private function closeSocket($requestKey) {
+        $socket = $this->sockets[$requestKey];
+        $sockPoolKey = $socket->getUri();
+        $this->sockPool[$sockPoolKey]->detach($socket);
+        
+        unset($this->resourceKeyMap[(int)$socket->getResource()]);
+        
+        $socket->close();
+        
+        $this->mediator->notify(
+            self::EVENT_SOCK_CLOSE,
+            $requestKey,
+            $socket
+        );
+    }
+    
+    /**
+     * Close all open socket streams
+     * 
+     * @return int Returns the number of socket connections closed
+     */
+    public function closeAllSockets() {
+        $connsClosed = 0;
+        
+        foreach ($this->sockPool as $objStorage) {
+            foreach ($objStorage as $socket) {
+                $socket->close();
+                ++$connsClosed;
+            }
+        }
+        $this->sockPool = array();
+        
+        return $connsClosed;
+    }
+    
+    /**
+     * Close any open socket streams to the specified host
+     * 
+     * @param string $host
+     * @return int Returns the number of socket connections closed
+     */
+    public function closeSocketsByHost($host) {
+        $connsClosed = 0;
+        foreach ($this->sockPool as $objStorage) {
+            foreach ($objStorage as $socket) {
+                if ($socket->getHost() == $host) {
+                    $socket->close();
+                    ++$connsClosed;
+                }
+            }
+        }
+        
+        return $connsClosed;
+    }
+    
+    /**
+     * Close all socket streams that have been idle longer than the specified number of seconds
+     * 
+     * @param int $maxInactivitySeconds
+     * @return int Returns the number of socket connections closed
+     */
+    public function closeIdleSockets($maxInactivitySeconds) {
+        $maxInactivitySeconds = (int) $maxInactivitySeconds;
+        $connectionsClosed = 0;
+        $now = time();
+        
+        foreach ($this->sockPool as $objStorage) {
+            foreach ($objStorage as $socket) {
+                if ($now - $socket->getActivityTimestamp() > $maxInactivitySeconds) {
+                    $socket->close();
+                    ++$connectionsClosed;
+                }
+            }
+        }
+        
+        return $connectionsClosed;
     }
 }
