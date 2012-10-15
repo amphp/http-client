@@ -8,30 +8,26 @@
         <whitelist addUncoveredFilesFromWhitelist="true">
             <directory>../src/Artax</directory>
             <exclude>
-                
-                <directory>../src/Artax/Http/Exceptions</directory>
-                
+                <!--
                 <file>../src/Artax/Http/Message.php</file>
                 <file>../src/Artax/Http/Request.php</file>
                 <file>../src/Artax/Http/Response.php</file>
                 <file>../src/Artax/Http/StatusCodes.php</file>
 
-                <file>../src/Artax/Http/Negotiation/NegotiableTerm.php</file>
-                <file>../src/Artax/Http/Negotiation/Parsers/HeaderParser.php</file>
-                <file>../src/Artax/Http/Negotiation/Negotiators/HeaderNegotiator.php</file>
-                <file>../src/Artax/Http/Negotiation/Parsers/AcceptEncodingParser.php</file>
-                <file>../src/Artax/Http/Negotiation/Parsers/AcceptLanguageParser.php</file>
+                <file>../src/Artax/Negotiation/NegotiableTerm.php</file>
+                <file>../src/Artax/Negotiation/Negotiators/HeaderNegotiator.php</file>
+                <file>../src/Artax/Negotiation/Parsers/HeaderParser.php</file>
+                <file>../src/Artax/Negotiation/Parsers/AcceptEncodingParser.php</file>
+                <file>../src/Artax/Negotiation/Parsers/AcceptLanguageParser.php</file>
                 
                 <file>../src/Artax/ClientState.php</file>
                 
-                <file>../src/Artax/Streams/Stream.php</file>
+                <file>../src/Artax/Streams/Resource.php</file>
+                <file>../src/Artax/Streams/SocketResource.php</file>
                 <file>../src/Artax/Streams/ConnectException.php</file>
                 <file>../src/Artax/Streams/StreamException.php</file>
                 <file>../src/Artax/Streams/IoException.php</file>
-                
-                <file>../src/Artax/Encoding/Codec.php</file>
-                <file>../src/Artax/Encoding/Decoder.php</file>
-                <file>../src/Artax/Encoding/Encoder.php</file>
+                -->
             </exclude>
         </whitelist>
     </filter>
