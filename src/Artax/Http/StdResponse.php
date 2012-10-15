@@ -2,9 +2,6 @@
 
 namespace Artax\Http;
 
-use RuntimeException,
-    Artax\Http\Exceptions\MessageParseException;
-
 class StdResponse extends StdMessage implements Response {
 
     /**
@@ -76,15 +73,14 @@ class StdResponse extends StdMessage implements Response {
      * 
      * @param string $rawStartLineStr
      * @return void
-     * @throws MessageParseException
-     * @todo Determine if generic "InvalidFormatException" might be a better option
+     * @throws HttpException
      */
     public function setStartLine($rawStartLineStr) {
         $startLinePattern = ',^HTTP/(\d+\.\d+) (\d{3}) (.+)$,';
         
         if (!preg_match($startLinePattern, trim($rawStartLineStr), $match)) {
-            throw new MessageParseException(
-                'Invalid HTTP start line: ' . trim($rawStartLineStr)
+            throw new HttpException(
+                'Invalid HTTP start line: ' . $rawStartLineStr
             );
         }
         
@@ -94,6 +90,8 @@ class StdResponse extends StdMessage implements Response {
     }
 
     /**
+     * Has this response been sent?
+     * 
      * @return bool
      */
     public function wasSent() {
@@ -101,10 +99,9 @@ class StdResponse extends StdMessage implements Response {
     }
 
     /**
-     * Formats and sends all headers AND outputs the message entity body.
+     * Formats/sends all headers and the response message entity body.
      * 
      * @return void
-     * @throws RuntimeException
      */
     public function send() {
         $this->normalizeHeadersForSend();
@@ -117,9 +114,6 @@ class StdResponse extends StdMessage implements Response {
         $this->wasSent = true;
     }
     
-    /**
-     * @return void
-     */
     protected function normalizeHeadersForSend() {
         if ($this->getBodyStream()) {
             $this->setHeader('Transfer-Encoding', 'chunked');
@@ -133,11 +127,6 @@ class StdResponse extends StdMessage implements Response {
         }
     }
     
-    /**
-     * Formats and sends all headers
-     * 
-     * @return void
-     */
     protected function sendHeaders() {
         header($this->getStartLine());
         foreach ($this->headers as $header) {
@@ -146,9 +135,6 @@ class StdResponse extends StdMessage implements Response {
         flush();
     }
     
-    /**
-     * @return void
-     */
     protected function sendBody() {
         $entityBodyStream = $this->getBodyStream();
         if (empty($entityBodyStream)) {

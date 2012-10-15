@@ -6,8 +6,7 @@ use RuntimeException,
     InvalidArgumentException,
     Spl\TypeException,
     Spl\ValueException,
-    Spl\DomainException,
-    Artax\Http\Exceptions\MessageParseException;
+    Spl\DomainException;
 
 abstract class StdMessage implements Message {
 

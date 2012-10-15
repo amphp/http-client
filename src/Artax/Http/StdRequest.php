@@ -3,7 +3,6 @@
 namespace Artax\Http;
 
 use Spl\DomainException,
-    Artax\Http\Exceptions\RequestBodyNotAllowedException,
     Artax\Uri;
 
 class StdRequest extends StdMessage implements Request {
@@ -53,12 +52,12 @@ class StdRequest extends StdMessage implements Request {
      * 
      * @param string $body
      * @return void
-     * @throws Artax\Http\Exceptions\RequestBodyNotAllowedException
+     * @throws HttpException
      */
     public function setBody($body) {
         if ($body && !$this->allowsEntityBody()) {
-            throw new RequestBodyNotAllowedException(
-                "Entity bodies are disabled for requests made via the {$this->method} method"
+            throw new HttpException(
+                $this->method . ' requests may not carry an entity body'
             );
         } else {
             parent::setBody($body);

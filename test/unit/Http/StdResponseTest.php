@@ -244,7 +244,7 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
     /**
      * @dataProvider provideInvalidStartLines
      * @covers Artax\Http\StdResponse::setStartLine
-     * @expectedException Artax\Http\Exceptions\MessageParseException
+     * @expectedException Artax\Http\HttpException
      */
     public function testSetStartLineThrowsExceptionOnInvalidArgumentFormat($startLineStr) {
         $response = new StdResponse();
