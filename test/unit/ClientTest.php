@@ -8,6 +8,10 @@ use Spl\HashingMediator,
     Artax\Streams\Stream,
     Artax\Streams\SocketResource;
 
+/**
+ * @covers Artax\ClientState
+ * @covers Artax\Client
+ */
 class ClientTest extends PHPUnit_Framework_TestCase {
     
     protected function setUp() {
@@ -20,6 +24,47 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         ClientSocketStreamWrapper::reset();
         stream_wrapper_restore('http');
     }
+    
+    /**
+     * @expectedException Spl\ValueException
+     */
+    public function testSetAttributeThrowsExceptionOnInvalidAttribute() {
+        $mediator = $this->getMock('Spl\\Mediator');
+        $client = new Client($mediator);
+        $client->setAttribute('some attribute that doesnt exist', true);
+    }
+    
+    public function provideAttributeValues() {
+        return array(
+            array(Client::ATTR_KEEP_CONNS_ALIVE, 0, false),
+            array(Client::ATTR_CONNECT_TIMEOUT, 42, 42),
+            array(Client::ATTR_FOLLOW_LOCATION, 0, 0),
+            array(Client::ATTR_AUTO_REFERER_ON_FOLLOW, 'yes', true),
+            array(Client::ATTR_HOST_CONCURRENCY_LIMIT, 1, 1),
+            array(Client::ATTR_IO_BUFFER_SIZE, 512, 512),
+            array(Client::ATTR_SSL_VERIFY_PEER, 1, true),
+            array(Client::ATTR_SSL_ALLOW_SELF_SIGNED, 'no', false),
+            array(Client::ATTR_SSL_CA_FILE, '/path1', '/path1'),
+            array(Client::ATTR_SSL_CA_PATH, '/path2', '/path2'),
+            array(Client::ATTR_SSL_LOCAL_CERT, '/path3', '/path3'),
+            array(Client::ATTR_SSL_LOCAL_CERT_PASSPHRASE, 'pass', 'pass'),
+            array(Client::ATTR_SSL_CN_MATCH, '*.google.com', '*.google.com'),
+            array(Client::ATTR_SSL_VERIFY_DEPTH, 10, 10), 
+            array(Client::ATTR_SSL_CIPHERS, 'NOT DEFAULT', 'NOT DEFAULT')
+        );
+    }
+    
+    /**
+     * @dataProvider provideAttributeValues
+     * @covers Artax\Client::setAttribute
+     */
+    public function testSetAttributeAssignsValue($attribute, $value, $expectedResult) {
+        $mediator = $this->getMock('Spl\\Mediator');
+        $client = new Client($mediator);
+        $client->setAttribute($attribute, $value);
+        $this->assertEquals($expectedResult, $client->getAttribute($attribute));
+    }
+    
     
     public function provideInvalidMultiRequestLists() {
         return array(

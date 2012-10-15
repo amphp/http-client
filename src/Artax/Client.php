@@ -29,7 +29,7 @@ class Client {
     const ATTR_HOST_CONCURRENCY_LIMIT = 'hostConcurrencyLimit';
     const ATTR_IO_BUFFER_SIZE = 'ioBufferSize';
     const ATTR_SSL_VERIFY_PEER = 'sslVerifyPeer';
-    const ATTR_SSL_ALLOW_SELF_SIGNED = 'sslAllowsSelfSigned';
+    const ATTR_SSL_ALLOW_SELF_SIGNED = 'sslAllowSelfSigned';
     const ATTR_SSL_CA_FILE = 'sslCertAuthorityFile';
     const ATTR_SSL_CA_PATH = 'sslCertAuthorityDirPath';
     const ATTR_SSL_LOCAL_CERT = 'sslLocalCertFile';
@@ -242,7 +242,7 @@ class Client {
     
     private function setSslVerifyDepth($depth) {
         $this->sslVerifyDepth = (int) $depth;
-        $this->attributes[self::ATTR_SSL_VERIFY_DEPTH] = $boolFlag;
+        $this->attributes[self::ATTR_SSL_VERIFY_DEPTH] = $depth;
     }
     
     /**
