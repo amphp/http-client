@@ -5,21 +5,19 @@ protocol and a spec-compliant content-negotiation API for PHP 5.3+.
 
 ##### HTTP Client
 
-The Artax HTTP Client is an object-oriented API enabling intuitive, standards-compliant HTTP 
-resource traversal and RESTful web service consumption a triviality. Some of the HTTP Client's
-features include:
+The Artax HTTP Client API is designed for standards-compliant HTTP resource traversal and RESTful web 
+service consumption. Some of the Client's features include:
 
- - No `cURL` or `libcurl` required; Artax uses sockets directly instead of fiddling with PHP's `curl_*` bindings
+ - No `cURL` or `libcurl` required; Artax uses sockets directly instead of PHP's `curl_*` bindings
  - Send and receive multiple requests in parallel for maximum throughput
- - Transparently follow redirects, chaining redirected responses for a full-view of the request location history
+ - Transparently follow redirects, chaining responses for access to the full request redirect history
  - Access all request/response headers as well as all raw HTTP message data
- - Fully customizable SSL (https) support
+ - Fully customizable SSL/TLS (https://) support
  - Stream request and response entity bodies for high-performance memory management
- - All connections are kept-alive and reused unless closed by the remote server
- - Supports all HTTP/1.1 methods as well as custom methods
- - Advanced persistent connection management for long-running CLI applications
+ - Maintain HTTP/1.1-compliant persistent connections with advanced connection management for 
+long-running CLI applications
+ - Support all standard HTTP/1.1 methods and custom methods
  - Standardized event broadcasts allow custom plugins like caching, cookie storage, etc.
- - Secure SSL/TLS protocol implementation *by default*
 
 ##### Content Negotiation
 
