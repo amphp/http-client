@@ -54,8 +54,9 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdResponse::sendHeaders
      * @runInSeparateProcess
      */
-    public function testSendOutputsHeadersAndBodyAnReturnsNull() {
-        $response = new StdResponse(200, 'OK', array(
+    public function testSendOutputsHeadersAndBodyAndReturnsNull() {
+        $response = new StdResponse(200, 'OK');
+        $response->setAllHeaders(array(
             'CONTENT-TYPE' => 'text/html',
             'CONTENT-LENGTH' => 42
         ));
@@ -176,13 +177,6 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals($expected, $response->getRawStartLineAndHeaders());
     }
     
-    
-    
-    
-    
-    
-    
-    
     /**
      * @covers Artax\Http\StdResponse::setStatusCode
      */
@@ -264,7 +258,7 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
     /**
      * @dataProvider provideInvalidStartLines
      * @covers Artax\Http\StdResponse::setStartLine
-     * @expectedException Artax\Http\HttpException
+     * @expectedException Spl\ValueException
      */
     public function testSetStartLineThrowsExceptionOnInvalidArgumentFormat($startLineStr) {
         $response = new StdResponse();
@@ -281,5 +275,20 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals('1.0', $response->getHttpVersion());
         $this->assertEquals('500', $response->getStatusCode());
         $this->assertEquals('Internal Server Error', $response->getStatusDescription());
+    }
+    
+    /**
+     * @covers Artax\Http\StdResponse::normalizeHeadersForSend
+     */
+    public function testSendRemovesInvalidTransferEncodingAndContentLengthHeaders() {
+        $response = $this->getMock('Artax\\Http\\StdResponse', array('sendHeaders'));
+        
+        $response->setStartLine('HTTP/1.0 201 Created');
+        $response->setHeader('Content-Length', 42);
+        $response->setHeader('Transfer-Encoding', 'chunked');
+        $response->send();
+        
+        $this->assertFalse($response->hasHeader('Content-Length'));
+        $this->assertFalse($response->hasHeader('Transfer-Encoding'));
     }
 }

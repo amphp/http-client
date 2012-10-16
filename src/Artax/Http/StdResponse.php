@@ -2,6 +2,8 @@
 
 namespace Artax\Http;
 
+use Spl\ValueException;
+
 class StdResponse extends StdMessage implements Response {
 
     /**
@@ -88,13 +90,13 @@ class StdResponse extends StdMessage implements Response {
      * 
      * @param string $rawStartLineStr
      * @return void
-     * @throws HttpException
+     * @throws \Spl\ValueException
      */
     public function setStartLine($rawStartLineStr) {
         $startLinePattern = ',^HTTP/(\d+\.\d+) (\d{3}) (.+)$,';
         
         if (!preg_match($startLinePattern, trim($rawStartLineStr), $match)) {
-            throw new HttpException(
+            throw new ValueException(
                 'Invalid HTTP start line: ' . $rawStartLineStr
             );
         }
@@ -102,15 +104,6 @@ class StdResponse extends StdMessage implements Response {
         $this->httpVersion = $match[1];
         $this->statusCode = $match[2];
         $this->statusDescription = $match[3];
-    }
-
-    /**
-     * Has this response been sent?
-     * 
-     * @return bool
-     */
-    public function wasSent() {
-        return $this->wasSent;
     }
 
     /**
@@ -166,5 +159,14 @@ class StdResponse extends StdMessage implements Response {
         }
         
         echo "0\r\n\r\n";
+    }
+
+    /**
+     * Has this response been sent?
+     * 
+     * @return bool
+     */
+    public function wasSent() {
+        return $this->wasSent;
     }
 }

@@ -16,13 +16,16 @@ class ClientTest extends PHPUnit_Framework_TestCase {
     
     protected function setUp() {
         stream_wrapper_unregister('http');
+        stream_wrapper_unregister('https');
         stream_wrapper_register('http', 'ClientSocketStreamWrapper');
+        stream_wrapper_register('https', 'ClientSocketStreamWrapper');
         ClientSocketStreamWrapper::reset();
     }
     
     public function tearDown() {
         ClientSocketStreamWrapper::reset();
         stream_wrapper_restore('http');
+        stream_wrapper_restore('https');
     }
     
     /**
@@ -294,32 +297,32 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         
         // ------------------------------------------------------------------------
         
-        return $return;
+        $request = new StdRequest('https://localhost:443', 'GET');
         
-        
-        
-        $body = fopen('php://memory', 'r+');
-        fwrite($body, '12345678');
-        rewind($body);
-        $request = new StdRequest('http://localhost', 'POST');
-        $request->setBody($body);
         $expectedWrite = '' .
-            "POST / HTTP/1.1\r\n" .
+            "GET / HTTP/1.1\r\n" .
             "User-Agent: ".Client::USER_AGENT."\r\n" .
             "Host: ".$request->getAuthority()."\r\n" .
-            "Transfer-Encoding: chunked\r\n" .
             "Connection: close\r\n" .
-            "\r\n" .
-            "4\r\n" .
-            "1234" .
-            "\r\n" .
-            "4\r\n" .
-            "5678" .
-            "\r\n" .
-            "0\r\n" .
             "\r\n";
-        $return[] = array($request, $expectedWrite);
+        $rawReturnResponse = '' .
+            "HTTP/1.1 200 OK\r\n" .
+            "Date: Sun, 14 Oct 2012 06:00:46 GMT\r\n" .
+            "Content-Length: 0\r\n" .
+            "\r\n";
         
+        $response = new ChainableResponse($request->getUri());
+        $response->setStartLine("HTTP/1.1 200 OK\r\n");
+        $response->setAllHeaders(array(
+            'Date' => 'Sun, 14 Oct 2012 06:00:46 GMT',
+            'Content-Length' => 0,
+        ));
+        
+        $return[] = array($request, $expectedWrite, $rawReturnResponse, $response);
+        
+        // ------------------------------------------------------------------------
+        
+        return $return;
     }
     
     /**
@@ -329,7 +332,10 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         ClientSocketStreamWrapper::$body = $rawReturnResponse;
         
         $client = $this->getMock('Artax\Client', array('makeSocket'), array(new HashingMediator));
-        $socket = new StubSocket('http://localhost', 'r+', new Uri('tcp://localhost:80'));
+        
+        $scheme = $request->getScheme() == 'http' ? 'tcp' : 'tls';
+        $socketUri = $scheme . '://' . $request->getHost() . ':' . $request->getPort();
+        $socket = new StubSocket($request->getUri(), 'r+', new Uri($socketUri));
         $client->expects($this->once())
                ->method('makeSocket')
                ->will($this->returnValue($socket));
@@ -350,14 +356,16 @@ class ClientTest extends PHPUnit_Framework_TestCase {
     public function testSendMulti($request, $expectedWrite, $rawReturnResponse, $expectedResponse) {
         ClientSocketStreamWrapper::$body = $rawReturnResponse;
         
+        $scheme = $request->getScheme() == 'http' ? 'tcp' : 'tls';
+        $socketUri = $scheme . '://' . $request->getHost() . ':' . $request->getPort();
+        $socket = new StubSocket($request->getUri(), 'r+', new Uri($socketUri));
+        
         $client = $this->getMock('Artax\Client', array('makeSocket'), array(new HashingMediator));
-        $socket = new StubSocket('http://localhost', 'r+', new Uri('tcp://localhost:80'));
+        $client->setAttribute(Client::ATTR_IO_BUFFER_SIZE, 1);
         $client->expects($this->once())
                ->method('makeSocket')
                ->will($this->returnValue($socket));
         
-        // Force the Client to read multiple times to receive the full response
-        $client->setAttribute(Client::ATTR_IO_BUFFER_SIZE, 1);
         
         $multiResponse = $client->sendMulti(array($request));
         $actualResponse = $multiResponse->current();
@@ -485,14 +493,16 @@ class ClientTest extends PHPUnit_Framework_TestCase {
      * @expectedException Artax\ClientException
      */
     public function testSendThrowsExceptionOnSocketConnectFailure() {
-        ClientSocketStreamWrapper::$openReturn = false;
-        
         $mediator = new HashingMediator;
-        $client = $this->getMock('Artax\\Client', array('makeSocket'), array($mediator));
+        
         $socket = new StubSocket('http://localhost', 'r+', new Uri('tcp://localhost:80'));
+        
+        $client = $this->getMock('Artax\\Client', array('makeSocket'), array($mediator));
         $client->expects($this->once())
                ->method('makeSocket')
                ->will($this->returnValue($socket));
+        
+        ClientSocketStreamWrapper::$failOnOpen = true;
         
         $request = new StdRequest('http://localhost', 'GET');
         $response = $client->send($request);
@@ -503,15 +513,15 @@ class ClientTest extends PHPUnit_Framework_TestCase {
      */
     public function testSendMultiCatchesExceptionOnSocketConnectFailure() {
         $mediator = new HashingMediator;
-        $client = $this->getMock('Artax\\Client', array('makeSocket'), array($mediator));
+        
         $socket = new StubSocket('http://localhost', 'r+', new Uri('tcp://localhost:80'));
+        
+        $client = $this->getMock('Artax\\Client', array('makeSocket'), array($mediator));
         $client->expects($this->once())
                ->method('makeSocket')
                ->will($this->returnValue($socket));
         
-        // Tell our mock stream wrapper to return false on connect -- this will cause a Stream
-        // exception which should in turn result in a caught ClientException
-        ClientSocketStreamWrapper::$openReturn = false;
+        ClientSocketStreamWrapper::$failOnOpen = true;
         
         $request = new StdRequest('http://localhost', 'GET');
         $multiResponse = $client->sendMulti(array($request));
@@ -576,6 +586,40 @@ class ClientTest extends PHPUnit_Framework_TestCase {
     /**
      * @expectedException Artax\ClientException
      */
+    public function testSendThrowsExceptionOnBufferedBodyWriteFailureToSocket() {
+        $this->markTestSkipped();
+        return;
+
+        $mediator = new HashingMediator;
+        
+        // Have the stream wrapper return false on write when we near completion of the entity body
+        $bytesWritten = 0;
+        $mediator->addListener(Client::EVENT_SOCK_IO_WRITE, function($key, $data, $bytes) use (&$bytesWritten) {
+            $bytesWritten += $bytes;
+            if ($bytesWritten > 75) {
+                ClientSocketStreamWrapper::$failOnWrite = true;
+            }
+        });
+        
+        $client = $this->getMock('Artax\\Client', array('makeSocket'), array($mediator));
+        $socket = new StubSocket('http://localhost', 'r+', new Uri('tcp://localhost:80'));
+        $client->expects($this->once())
+               ->method('makeSocket')
+               ->will($this->returnValue($socket));
+        
+        $request = new StdRequest('http://localhost', 'POST');
+        $request->setBody(
+            'When in the chronicle of wasted time ' .
+            'I see descriptions of the fairest wights ' .
+            'And beauty making beautiful old rhyme ' .
+            'In praise of ladies dead and lovely knights '
+        );
+        $response = $client->send($request);
+    }
+    
+    /**
+     * @expectedException Artax\ClientException
+     */
     public function testSendThrowsExceptionOnContentMd5Mismatch() {
         ClientSocketStreamWrapper::$body = '' .
             "HTTP/1.1 200 OK\r\n" .
@@ -597,6 +641,112 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $response = $client->send($request);
     }
     
+    /**
+     * @expectedException Artax\ClientException
+     */
+    public function testSendThrowsExceptionOnRequestUriWithNonHttpOrHttpsScheme() {
+        $mediator = new HashingMediator;
+        $client = new Client($mediator);
+        $request = new StdRequest('ws://someurl', 'GET');
+        $client->send($request);
+    }
+    
+    /**
+     * @expectedException Artax\ClientException
+     */
+    public function testSendThrowsExceptionOnContentLengthMismatch() {
+        ClientSocketStreamWrapper::$body = '' .
+            "HTTP/1.1 200 OK\r\n" .
+            "Content-Length: 22\r\n" .
+            "\r\n" .
+            "You'll never see this!";
+        
+        $mediator = new HashingMediator;
+        
+        // Simulate a disconnected socket connection after X bytes read
+        $bytesRead = 0;
+        $totalBytes = strlen(ClientSocketStreamWrapper::$body);
+        $mediator->addListener(Client::EVENT_SOCK_IO_READ, function($key, $data, $bytes) use (&$bytesRead, $totalBytes) {
+            $bytesRead += $bytes;
+            if ($bytesRead > $totalBytes - 10) {
+                ClientSocketStreamWrapper::$socketGoneOnRead = true;
+            }
+        });
+        
+        $socket = new StubSocket('http://localhost', 'r+', new Uri('tcp://localhost:80'));
+        
+        $client = $this->getMock('Artax\\Client', array('makeSocket'), array($mediator));
+        $client->setAttribute(Client::ATTR_IO_BUFFER_SIZE, 1);
+        $client->expects($this->once())
+               ->method('makeSocket')
+               ->will($this->returnValue($socket));
+        
+        $request = new StdRequest('http://localhost', 'GET');
+        $client->send($request);
+    }
+    
+    /**
+     * @expectedException Artax\ClientException
+     */
+    public function testSendThrowsExceptionOnTempResponseBodyStreamOpenFailure() {
+        ClientSocketStreamWrapper::$body = '' .
+            "HTTP/1.1 200 OK\r\n" .
+            "Content-Length: 22\r\n" .
+            "\r\n" .
+            "You'll never see this!";
+        
+        $mediator = new HashingMediator;
+        
+        $stream = $this->getMock('Artax\\Streams\\Stream', array('doOpen'), array('php://temp', 'r+'));
+        $stream->expects($this->once())
+               ->method('doOpen')
+               ->will($this->returnValue(false));
+        
+        $socket = new StubSocket('http://localhost', 'r+', new Uri('tcp://localhost:80'));
+        $client = $this->getMock('Artax\\Client', array('makeSocket', 'makeResponseBodyStream'), array($mediator));
+        $client->setAttribute(Client::ATTR_IO_BUFFER_SIZE, 1);
+        $client->expects($this->once())
+               ->method('makeSocket')
+               ->will($this->returnValue($socket));
+        $client->expects($this->once())
+               ->method('makeResponseBodyStream')
+               ->will($this->returnValue($stream));
+        
+        $request = new StdRequest('http://localhost', 'GET');
+        $client->send($request);
+    }
+    
+    /**
+     * @expectedException Artax\ClientException
+     */
+    public function testSendThrowsExceptionOnTempResponseBodyStreamWriteFailure() {
+        ClientSocketStreamWrapper::$body = '' .
+            "HTTP/1.1 200 OK\r\n" .
+            "Content-Length: 22\r\n" .
+            "\r\n" .
+            "You'll never see this!";
+        
+        $mediator = new HashingMediator;
+        
+        $stream = $this->getMock('Artax\\Streams\\Stream', array('doWrite'), array('php://temp', 'r+'));
+        $stream->expects($this->once())
+               ->method('doWrite')
+               ->will($this->returnValue(false));
+        
+        $socket = new StubSocket('http://localhost', 'r+', new Uri('tcp://localhost:80'));
+        $client = $this->getMock('Artax\\Client', array('makeSocket', 'makeResponseBodyStream'), array($mediator));
+        $client->setAttribute(Client::ATTR_IO_BUFFER_SIZE, 1);
+        $client->expects($this->once())
+               ->method('makeSocket')
+               ->will($this->returnValue($socket));
+        $client->expects($this->once())
+               ->method('makeResponseBodyStream')
+               ->will($this->returnValue($stream));
+        
+        $request = new StdRequest('http://localhost', 'GET');
+        $client->send($request);
+    }
+    
     
     
     public function testSendingRequestWithoutBodyParsesResponseTerminatedByContentLength() {
@@ -609,7 +759,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
                ->will($this->returnValue($socket));
         
         // Force multiple reads to retrieve full response
-        $client->setAttribute(Client::ATTR_IO_BUFFER_SIZE, 4);
+        $client->setAttribute(Client::ATTR_IO_BUFFER_SIZE, 1);
         
         $request = new StdRequest('http://localhost', 'GET');
         $request->setAllHeaders(array(
@@ -702,33 +852,65 @@ class ClientTest extends PHPUnit_Framework_TestCase {
 
 class StubSocket extends Stream implements SocketResource {
     protected $uri;
-    function __construct($path, $mode, Uri $uri) {
+    
+    public function __construct($path, $mode, Uri $uri) {
         parent::__construct($path, $mode);
         $this->uri = $uri;
     }
-    function setConnectTimeout($seconds) {}
-    function setConnectFlags($flagBitmask) {}
-    function setContextOptions(array $options) {}
-    function getActivityTimestamp() {}
-    function getBytesSent(){}
-    function getBytesRecd(){}
-    function isConnected(){}
-    function getScheme(){
+    
+    protected function doOpen($path, $mode) {
+        if (ClientSocketStreamWrapper::$failOnOpen) {
+            return false;
+        } else {
+            return parent::doOpen($path, $mode);
+        }
+    }
+    
+    public function read($bytesToRead) {
+        if (ClientSocketStreamWrapper::$failOnRead) {
+            return false;
+        } elseif (ClientSocketStreamWrapper::$socketGoneOnRead) {
+            throw new \Artax\Streams\SocketGoneException();
+        } elseif (!is_null(ClientSocketStreamWrapper::$readReturn)){
+            return ClientSocketStreamWrapper::$readReturn;
+        } else {
+            return parent::read($bytesToRead);
+        }
+    }
+    
+    public function write($dataToWrite) {
+        if (ClientSocketStreamWrapper::$failOnWrite) {
+            return false;
+        } elseif (!is_null(ClientSocketStreamWrapper::$writeReturn)){
+            return ClientSocketStreamWrapper::$writeReturn;
+        } else {
+            return parent::write($dataToWrite);
+        }
+    }
+    
+    public function setConnectTimeout($seconds) {}
+    public function setConnectFlags($flagBitmask) {}
+    public function setContextOptions(array $options) {}
+    public function getActivityTimestamp() {}
+    public function getBytesSent(){}
+    public function getBytesRecd(){}
+    public function isConnected(){}
+    public function getScheme(){
         return $this->uri->getScheme();
     }
-    function getHost(){
+    public function getHost(){
         return $this->uri->getHost();
     }
-    function getPort(){
+    public function getPort(){
         return $this->uri->getPort();
     }
-    function getAuthority(){
+    public function getAuthority(){
         return $this->uri->getAuthority();
     }
-    function getPath(){
+    public function getPath(){
         return $this->uri->getPath();
     }
-    function getUri(){
+    public function getUri(){
         return $this->uri->__toString();
     }
 }
@@ -739,34 +921,53 @@ class ClientSocketStreamWrapper {
     
     public static $position = 0;
     public static $body = '';
-    public static $openReturn = null;
-    public static $readReturn = null;
-    public static $writeReturn = null;
-    public static $eofReturn = null;
     public static $writtenData = '';
     
+    public static $failOnOpen = false;
+    public static $readReturn = null;
+    public static $writeReturn = null;
+    public static $failOnRead = false;
+    public static $failOnWrite = false;
+    public static $socketGoneOnRead = false;
+    public static $ftellReturn = null;
+    
+    /**
+     * Reset mocking flags and aggregation values for each test
+     */
     public static function reset() {
         static::$position = 0;
         static::$body = '';
-        static::$openReturn = null;
-        static::$readReturn = null;
-        static::$writeReturn = null;
-        static::$eofReturn = null;
         static::$writtenData = '';
+        
+        static::$failOnOpen = false;
+        static::$readReturn = null;
+        static::$failOnRead = false;
+        static::$socketGoneOnRead = false;
+        static::$writeReturn = null;
+        static::$failOnWrite = false;
+        static::$ftellReturn = null;
+        
     }
     
+    /**
+     * Mock the return value of the fopen operation on the stream
+     */
     public function stream_open($path, $mode, $options, &$opened_path) {
-        if (is_null(static::$openReturn)) {
-            return true;
+        if (static::$failOnOpen) {
+            // Doesn't work for fopen operations -- we must instead check this flag in our socket
+            // stub's open method and return false from the stub to mock an fopen failure.
         } else {
-            return static::$openReturn;
+            return true;
         }
     }
     
-    public function stream_close() {}
-
+    /**
+     * Mock the return value of the fread operations on the stream
+     */
     public function stream_read($bytes) {
-        if (!is_null(static::$readReturn)) {
+        if (static::$failOnRead) {
+            return false;
+        } elseif (!is_null(static::$readReturn)) {
             return static::$readReturn;
         } else {
             $chunk = substr(static::$body, static::$position, $bytes);
@@ -775,29 +976,35 @@ class ClientSocketStreamWrapper {
         }
     }
     
+    /**
+     * Mock the return value of the fwrite operations on the stream
+     */
     public function stream_write($data) {
-        if (is_null(static::$writeReturn)) {
+        if (static::$failOnWrite) {
+            // Doesn't work because custom stream wrapper return values from this method are cast 
+            // to an integer. As a result, we can't return false from the stream wrapper and this 
+            // value must be checked and handled by the stub socket class.
+            return false;
+        } elseif (is_null(static::$writeReturn)) {
             static::$writtenData .= $data;
             return strlen($data);
         } else {
             return static::$writeReturn;
         }
     }
-
-    public function stream_eof() {
-        if (is_null(static::$eofReturn)) {
-            return static::$position >= strlen(static::$body);
+    
+    /**
+     * Mock the return value of the ftell operations on the stream
+     */
+    public function stream_tell() {
+        if (is_null(static::$ftellReturn)) {
+            return static::$position;
         } else {
-            return static::$eofReturn;
+            return static::$ftellReturn;
         }
     }
     
-    public function stream_tell() {
-        return static::$position;
-    }
-    
+    public function stream_close() {}
     public function stream_set_option($option, $arg1, $arg2) {}
+    public function stream_eof() {}
 }
-
-
-

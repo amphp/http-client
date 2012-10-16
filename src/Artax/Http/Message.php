@@ -103,7 +103,7 @@ interface Message {
      * @param mixed $value A string or single-dimensional array of strings
      * @return void
      */
-    function appendHeader($headerName, $value);
+    function addHeader($headerName, $value);
     
     /**
      * Assign or append headers from a traversable without clearing previously assigned values
@@ -111,7 +111,7 @@ interface Message {
      * @param mixed $iterable
      * @return void
      */
-    function appendAllHeaders($iterable);
+    function addAllHeaders($iterable);
     
     /**
      * Remove the specified header from the message
@@ -142,7 +142,7 @@ interface Message {
      * @return void
      */
     function setHttpVersion($decimalVersionNumer);
-
+    
     /**
      * Retrieve the HTTP message formatted for transport
      * 

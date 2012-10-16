@@ -867,7 +867,7 @@ class Client {
             $readData = $socket->read($ioBufferSize);
         } catch (StreamException $e) {
             throw new ClientException(
-                'Socket read failure while retrieving response headers',
+                'Socket read failure while retrieving response headers: ' . $state->buffer,
                 null,
                 $e
             );
@@ -963,7 +963,7 @@ class Client {
         $state = $this->states[$requestKey];
         $response = $this->responses[$requestKey];
         
-        $state->responseBody = new Stream('php://temp', 'r+');
+        $state->responseBody = $this->makeResponseBodyStream();
         
         try {
             $state->responseBody->open();
@@ -1057,13 +1057,13 @@ class Client {
             $ioBufferSize = $this->getAttribute(self::ATTR_IO_BUFFER_SIZE);
             $readData = $socket->read($ioBufferSize);
         } catch (SocketGoneException $e) {
-            if ($state->state == self::READ_CHUNKS) {
+            if ($state->state == self::STATE_READ_CHUNKS) {
                 throw new ClientException(
                     'Socket connection lost before chunked response body fully retrieved'
                 );
             } else {
-                $state->state = self::COMPLETE;
-                $this->finalizeResponseBody($requestKey);
+                $state->state = self::STATE_COMPLETE;
+                $this->finalizeResponseBodyStream($requestKey);
                 return;
             }
         } catch (StreamException $e) {
@@ -1342,7 +1342,7 @@ class Client {
             $newLocation = $request->getScheme() . '://' . $request->getAuthority();
             $newLocation.= '/' . ltrim($locationHeader, '/');
             $response->setHeader('Location', $newLocation);
-            $response->appendHeader(
+            $response->addHeader(
                 'Warning',
                 "299 Invalid Location header: $locationHeader; $newLocation assumed"
             );
@@ -1537,6 +1537,15 @@ class Client {
      */
     protected function makeSocket($socketUri) {
         return new Socket($socketUri);
+    }
+    
+    /**
+     * IMPORTANT: this is a test seam allowing us to mock local stream storage of response bodies.
+     * 
+     * @return Streams\Stream
+     */
+    protected function makeResponseBodyStream() {
+        return new Stream('php://temp', 'r+');
     }
 
     /**

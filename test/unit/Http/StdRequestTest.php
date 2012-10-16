@@ -204,7 +204,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Http\StdRequest::setBody
-     * @expectedException Artax\Http\HttpException
+     * @expectedException LogicException
      */
     public function testSetBodyThrowsExceptionIfRequestMethodDoesntAllowEntityBody() {
         $uri = new Uri('http://localhost');

@@ -250,26 +250,26 @@ class StdMessageTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers Artax\Http\StdMessage::appendAllHeaders
+     * @covers Artax\Http\StdMessage::addAllHeaders
      * @covers Artax\Http\StdMessage::isValidIterable
      * @expectedException Spl\TypeException
      */
     public function testAppendAllHeadersThrowsExceptionOnInvalidIterable() {
         $response = new StdResponse();
-        $response->appendAllHeaders('not an iterable -- should throw exception');
+        $response->addAllHeaders('not an iterable -- should throw exception');
     }
     
     /**
      * @covers Artax\Http\StdMessage::setHeader
-     * @covers Artax\Http\StdMessage::appendHeader
-     * @covers Artax\Http\StdMessage::appendAllHeaders
+     * @covers Artax\Http\StdMessage::addHeader
+     * @covers Artax\Http\StdMessage::addAllHeaders
      */
     public function testAppendAllHeadersAssignsValuesAndReturnsNull() {
         $response = new StdResponse();
-        $this->assertNull($response->appendAllHeaders(array('Accept'=>'text/*')));
+        $this->assertNull($response->addAllHeaders(array('Accept'=>'text/*')));
         $this->assertEquals('text/*', $response->getHeader('accept'));
         
-        $this->assertNull($response->appendAllHeaders(array('Accept'=>'*/*')));
+        $this->assertNull($response->addAllHeaders(array('Accept'=>'*/*')));
         $this->assertEquals('text/*,*/*', $response->getHeader('accept'));
         $this->assertEquals(array('text/*','*/*'), $response->getHeaderValueArray('accept'));
     }
@@ -291,6 +291,120 @@ class StdMessageTest extends PHPUnit_Framework_TestCase {
         $cookieHeaders = array('header1', 'header2');
         $response->setHeader('Set-Cookie', $cookieHeaders);
         $this->assertEquals($cookieHeaders, $response->getHeaderValueArray('Set-Cookie'));
+    }
+    
+    public function provideValidRawHeaders() {
+        $return = array();
+        
+        // --------------------------------------------------------------------------
+        
+        $raw = '' .
+            "Content-Type: text/html; charset=iso-8859-1\r\n" .
+            "Cache-Control: max-age=15\r\n" .
+            "Transfer-Encoding: chunked\r\n" .
+            "Date: Tue, 16 Oct 2012 04:02:32 GMT\r\n" .
+            "Age: 13\r\n" .
+            "Connection: keep-alive\r\n" .
+            "Vary: Accept-Encoding\r\n"
+        ;
+        $expected = new StdResponse();
+        $expected->setAllHeaders(array(
+            "Content-Type" => "text/html; charset=iso-8859-1",
+            "Cache-Control" => "max-age=15",
+            "Transfer-Encoding" => "chunked",
+            "Date" => "Tue, 16 Oct 2012 04:02:32 GMT",
+            "Age" => "13",
+            "Connection" => "keep-alive",
+            "Vary" => "Accept-Encoding"
+        ));
+        
+        $return[] = array($raw, $expected->getAllHeaders());
+        
+        // --------------------------------------------------------------------------
+        
+        $raw = '' .
+            "Cache-Control: public, max-age=55\r\n" .
+            "Content-Type: text/html; charset=utf-8\r\n" .
+            "Expires: Tue, 16 Oct 2012 04:03:23 GMT\r\n" .
+            "Last-Modified: Tue, 16 Oct 2012 04:02:23 GMT\r\n" .
+            "Vary: *\r\n" .
+            "Date: Tue, 16 Oct 2012 04:02:26 GMT\r\n" .
+            "Content-Length: 213851\r\n"
+        ;
+        $expected = new StdResponse();
+        $expected->setAllHeaders(array(
+            "Cache-Control" => "public, max-age=55\r\n",
+            "Content-Type" => "text/html; charset=utf-8\r\n",
+            "Expires" => "Tue, 16 Oct 2012 04:03:23 GMT\r\n",
+            "Last-Modified" => "Tue, 16 Oct 2012 04:02:23 GMT\r\n",
+            "Vary" => "*\r\n" ,
+            "Date" => "Tue, 16 Oct 2012 04:02:26 GMT\r\n",
+            "Content-Length" => "213851\r\n"
+        ));
+        
+        $return[] = array($raw, $expected->getAllHeaders());
+        
+        // --------------------------------------------------------------------------
+        
+        $raw = '' .
+            "Cache-Control:public, max-age=55\r\n" .
+            "Vary:\r\n"
+        ;
+        $expected = new StdResponse();
+        $expected->setAllHeaders(array(
+            "Cache-Control" => "public, max-age=55\r\n",
+            "Vary" => ""
+        ));
+        
+        $return[] = array($raw, $expected->getAllHeaders());
+        
+        // --------------------------------------------------------------------------
+        
+        $raw = '' .
+            "Vary: Accept-Charset\r\n" .
+            "Vary: Accept\r\n\tAccept-Encoding\r\n\tAccept-Language\r\n" .
+            "Cache-Control:public, max-age=55\r\n"
+        ;
+        $expected = new StdResponse();
+        $expected->setHeader('Vary', 'Accept-Charset');
+        $expected->addAllHeaders(array(
+            "Vary" => "Accept Accept-Encoding Accept-Language",
+            "Cache-Control" => "public, max-age=55\r\n",
+        ));
+        
+        $return[] = array($raw, $expected->getAllHeaders());
+        
+        // --------------------------------------------------------------------------
+        
+        return $return;
+    }
+    
+    /**
+     * @dataProvider provideValidRawHeaders
+     * @covers Artax\Http\StdMessage::setAllRawHeaders
+     */
+    public function testSetAllRawHeaders($rawHeaders, $expected) {
+        $response = new StdResponse();
+        $response->setAllRawHeaders($rawHeaders);
+        $this->assertEquals($expected, $response->getAllHeaders());
+    }
+    
+    public function provideInvalidFullMessageRawHeaders() {
+        return array(
+            array(''),
+            array(42),
+            array('Content-Length')
+        );
+    }
+    
+    /**
+     * @dataProvider provideInvalidFullMessageRawHeaders
+     * @covers Artax\Http\StdMessage::setAllRawHeaders
+     * @expectedException Spl\ValueException
+     */
+    public function testSetAllRawHeadersThrowsExceptionOnInvalidMessageString($invalidHeaders) {
+        $response = new StdResponse();
+        $response->setAllRawHeaders($invalidHeaders);
     }
 }
 

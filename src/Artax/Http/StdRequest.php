@@ -2,7 +2,8 @@
 
 namespace Artax\Http;
 
-use Spl\DomainException,
+use LogicException,
+    Spl\DomainException,
     Artax\Uri;
 
 class StdRequest extends StdMessage implements Request {
@@ -64,11 +65,11 @@ class StdRequest extends StdMessage implements Request {
      * 
      * @param string $body
      * @return void
-     * @throws HttpException
+     * @throws \LogicException
      */
     public function setBody($body) {
         if ($body && !$this->allowsEntityBody()) {
-            throw new HttpException(
+            throw new LogicException(
                 $this->method . ' requests may not carry an entity body'
             );
         } else {

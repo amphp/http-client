@@ -52,13 +52,16 @@ class Header implements Iterator, Countable {
     /**
      * Assign a value to the header -- replaces previous value(s)
      * 
+     * Trailing spaces and CR/LF characters are trimmed from header values.
+     * 
      * @param mixed $value A scalar value or a one-dimensional array of scalars
      * @return void
      * @throws \Spl\TypeException
      */
     public function setValue($value) {
         if ($this->isHeaderValueValid($value)) {
-            $this->value = is_array($value) ? array_values($value) : array($value);
+            $value = is_array($value) ? array_values($value) : array($value);
+            $this->value = array_map('rtrim', $value);
         } elseif (is_array($value)) {
             throw new TypeException(
                 get_class($this) . '::setValue requires a scalar value or a one-dimensional ' .

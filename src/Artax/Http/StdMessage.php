@@ -104,7 +104,9 @@ abstract class StdMessage implements Message {
     }
 
     private function normalizeHeaderName($headerName) {
-        return strtoupper(rtrim($headerName, ': '));
+        $headerName = rtrim($headerName, ': ');
+        $headerName = strtoupper($headerName);
+        return $headerName;
     }
 
     /**
@@ -218,13 +220,34 @@ abstract class StdMessage implements Message {
      * @throws \Spl\TypeException On invalid header value
      * @return void
      */
-    public function appendHeader($headerName, $value) {
+    public function addHeader($headerName, $value) {
         $normalizedHeaderName = $this->normalizeHeaderName($headerName);
         if (isset($this->headers[$normalizedHeaderName])) {
             $header = $this->headers[$normalizedHeaderName];
             $header->appendValue($value);
         } else {
             $this->setHeader($headerName, $value);
+        }
+    }
+
+    /**
+     * Assign or append headers from a traversable without clearing previously assigned values
+     *
+     * @param mixed $iterable
+     * @throws \Spl\TypeException On invalid header value
+     * @return void
+     */
+    public function addAllHeaders($iterable) {
+        if (!$this->isValidIterable($iterable)) {
+            $type = is_object($iterable) ? get_class($iterable) : gettype($iterable);
+            throw new TypeException(
+                get_class($this) . '::addAllHeaders expects an array, StdClass or Traversable ' .
+                "at Argument 1: $type specified"
+            );
+        }
+
+        foreach ($iterable as $headerName => $value) {
+            $this->addHeader($headerName, $value);
         }
     }
 
@@ -255,27 +278,6 @@ abstract class StdMessage implements Message {
 
     protected function isValidIterable($iter) {
         return $iter instanceof Traversable || $iter instanceof StdClass || is_array($iter);
-    }
-
-    /**
-     * Assign or append headers from a traversable without clearing previously assigned values
-     *
-     * @param mixed $iterable
-     * @throws \Spl\TypeException On invalid header value
-     * @return void
-     */
-    public function appendAllHeaders($iterable) {
-        if (!$this->isValidIterable($iterable)) {
-            $type = is_object($iterable) ? get_class($iterable) : gettype($iterable);
-            throw new TypeException(
-                get_class($this) . '::appendAllHeaders expects an array, StdClass or Traversable ' .
-                "at Argument 1: $type specified"
-            );
-        }
-
-        foreach ($iterable as $headerName => $value) {
-            $this->appendHeader($headerName, $value);
-        }
     }
 
     /**
@@ -334,7 +336,7 @@ abstract class StdMessage implements Message {
         foreach ($matches as $match) {
             $header = $match[1];
             $value = isset($match[2]) ? rtrim($match[2]) : '';
-            $this->appendHeader($header, $value);
+            $this->addHeader($header, $value);
         }
     }
 
