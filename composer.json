@@ -1,0 +1,30 @@
+{
+  "name": "rdlowrey/artax",
+  "type": "library",
+  "description": "Artax offers a full-featured HTTP/1.1 client, an object-oriented toolkit modeling the HTTP/1.1 protocol and a spec-compliant content-negotiation API for PHP 5.3+.",
+  "keywords": ["rest client", "http client"],
+  "homepage": "https://github.com/rdlowrey/Artax",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Daniel Lowrey",
+      "email": "rdlowrey@gmail.com",
+      "role": "Creator/Developer"
+    },
+    {
+      "name": "Levi Morrison",
+      "email": "levim@php.net",
+      "homepage": "http://morrisonlevi.github.com/",
+      "role": "Developer"
+    }
+  ],
+  "require": {
+    "morrisonlevi/spl": "0.1",
+    "php": ">=5.3"
+  },
+  "autoload": {
+    "psr-0": {
+      "Artax": "src/"
+    }
+  }
+}
