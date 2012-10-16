@@ -61,33 +61,6 @@ class StdRequest extends StdMessage implements Request {
     }
     
     /**
-     * Assign an entity body to the HTTP message
-     * 
-     * @param string $body
-     * @return void
-     * @throws \LogicException
-     */
-    public function setBody($body) {
-        if ($body && !$this->allowsEntityBody()) {
-            throw new LogicException(
-                $this->method . ' requests may not carry an entity body'
-            );
-        } else {
-            parent::setBody($body);
-        }
-    }
-    
-    /**
-     * Does the request method support an entity body?
-     * 
-     * @return bool
-     */
-    public function allowsEntityBody() {
-        $dontAcceptBody = array('GET', 'HEAD', 'DELETE', 'TRACE', 'CONNECT');
-        return !in_array($this->getMethod(), $dontAcceptBody);
-    }
-    
-    /**
      * Retrieve the HTTP message entity body in string form
      * 
      * If a resource stream is assigned to the body property, its entire contents will be read into

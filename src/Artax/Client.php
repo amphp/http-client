@@ -364,6 +364,9 @@ class Client {
      * Content-Length       - Set or removed automatically based on the request entity body
      * Transfer-Encoding    - Set or removed automatically based on the request entity body
      * 
+     * Additionally, TRACE requests have their entity bodies removed as per RFC2616-Sec9.8:
+     * "A TRACE request MUST NOT include an entity."
+     * 
      * NOTE: requests may be modified AFTER normalization by attaching listeners to the 
      * Client::EVENT_REQUEST event.
      * 
@@ -389,6 +392,10 @@ class Client {
         
         if (!$this->getAttribute(self::ATTR_KEEP_CONNS_ALIVE)) {
             $request->setHeader('Connection', 'close');
+        }
+        
+        if ('TRACE' == $request->getMethod()) {
+            $request->setBody(null);
         }
     }
     
@@ -1372,13 +1379,8 @@ class Client {
             $newRequest->setHeader('Referer', $request->getUri());
         }
         
-        if ($newRequest->allowsEntityBody()) {
-            if ($streamBody = $request->getBodyStream()) {
-                $newRequest->setBody($streamBody);
-            } else {
-                $newRequest->setBody($request->getBody());
-            }
-        }
+        $body = $request->getBodyStream() ?: $request->getBody();
+        $newRequest->setBody($body);
         
         $newResponse = new ChainableResponse($newRequest->getUri());
         $newResponse->setPreviousResponse($response);

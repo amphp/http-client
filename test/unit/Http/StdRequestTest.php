@@ -203,45 +203,6 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers Artax\Http\StdRequest::setBody
-     * @expectedException LogicException
-     */
-    public function testSetBodyThrowsExceptionIfRequestMethodDoesntAllowEntityBody() {
-        $uri = new Uri('http://localhost');
-        $request = new StdRequest($uri, 'GET');
-        $request->setBody('test');
-    }
-    
-    public function provideMethodVerbsThatDontAllowEntityBody() {
-        return array(
-            array('GET'),
-            array('HEAD'),
-            array('DELETE'),
-            array('TRACE'),
-            array('CONNECT')
-        );
-    }
-    
-    /**
-     * @dataProvider provideMethodVerbsThatDontAllowEntityBody
-     * @covers Artax\Http\StdRequest::allowsEntityBody
-     */
-    public function testAllowsEntityBodyReturnsFalseForDisallowedMethods($method) {
-        $uri = new Uri('http://localhost');
-        $request = new StdRequest($uri, $method);
-        $this->assertFalse($request->allowsEntityBody());
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::allowsEntityBody
-     */
-    public function testAllowsEntityBodyReturnsTrueForAllowedMethods() {
-        $uri = new Uri('http://localhost');
-        $request = new StdRequest($uri, 'POST');
-        $this->assertTrue($request->allowsEntityBody());
-    }
-    
-    /**
      * @covers Artax\Http\StdRequest::__toString
      */
     public function testToStringReturnsRawHttpMessage() {

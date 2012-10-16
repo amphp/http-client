@@ -14,11 +14,6 @@ interface Request extends Message {
     function getMethod();
 
     /**
-     * Does the request's HTTP method verb support an entity body?
-     */
-    function allowsEntityBody();
-
-    /**
      * Retrive a specific URI query parameter by name
      *
      * @param string $parameterName
