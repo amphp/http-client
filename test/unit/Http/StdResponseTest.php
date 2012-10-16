@@ -154,7 +154,27 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
         fclose($body);
     }
     
-    
+    /**
+     * @covers Artax\Http\StdResponse::getRawStartLineAndHeaders
+     */
+    public function testGetRawStartLineAndHeaders() {
+        $response = new StdResponse();
+        $response->setStartLine('HTTP/1.1 200 OK');
+        $response->setAllHeaders(array(
+            'Content-Length' => 5,
+            'Connection' => 'close'
+        ));
+        $response->setBody('woot!');
+        
+        $expected = '' .
+            "HTTP/1.1 200 OK\r\n" .
+            "Content-Length: 5\r\n" .
+            "Connection: close\r\n" .
+            "\r\n"
+        ;
+        
+        $this->assertEquals($expected, $response->getRawStartLineAndHeaders());
+    }
     
     
     

@@ -62,10 +62,25 @@ class StdResponse extends StdMessage implements Response {
     }
 
     /**
+     * Build a raw HTTP response start line (without trailing CRLF)
+     * 
      * @return string
      */
     public function getStartLine() {
         return "HTTP/{$this->httpVersion} {$this->statusCode} {$this->statusDescription}";
+    }
+    
+    /**
+     * Get the raw HTTP response data up to and including the terminating header CRLFs
+     * 
+     * @return string
+     */
+    public function getRawStartLineAndHeaders() {
+        $msg = $this->getStartLine() . "\r\n";
+        $msg.= $this->getRawHeaders();
+        $msg.= "\r\n";
+        
+        return $msg;
     }
     
     /**

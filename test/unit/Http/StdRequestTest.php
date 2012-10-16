@@ -10,9 +10,48 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdRequest::parseParametersFromString
      */
     public function testThatNoQueryParamsAreParsedOnEmptyUriQueryString() {
-        $uri = new Uri('http://localhost');
-        $request = new StdRequest($uri, 'GET');
+        $request = new StdRequest('http://localhost', 'GET');
         $this->assertEquals(array(), $request->getAllQueryParameters());
+    }
+    
+    public function provideRequestsForRequestLineComparisons() {
+        $r1 = new StdRequest('http://localhost/some-url?myVar=42', 'GET');
+        $r1->setHttpVersion('1.0');
+        $e1 = 'GET /some-url?myVar=42 HTTP/1.0';
+        
+        $r2 = new StdRequest('http://localhost:8096', 'CONNECT');
+        $e2 = 'CONNECT '.$r2->getAuthority().' HTTP/1.1';
+        
+        return array(
+            array($r1, $e1),
+            array($r2, $e2)
+        );
+    }
+    
+    /**
+     * @dataProvider provideRequestsForRequestLineComparisons
+     * @covers Artax\Http\StdRequest::getRequestLine
+     */
+    public function testGetRequestLine($request, $expectedRequestLine) {
+        $this->assertEquals($expectedRequestLine, $request->getRequestLine());
+    }
+    
+    /**
+     * @covers Artax\Http\StdRequest::getRawRequestLineAndHeaders
+     */
+    public function testGetRawRequestLineAndHeaders() {
+        $request = new StdRequest('http://localhost', 'GET');
+        $request->setHeader('Host', 'localhost');
+        $request->setHeader('Date', 'Sun, 14 Oct 2012 06:00:46 GMT');
+        
+        $expected = '' .
+            "GET / HTTP/1.1\r\n" .
+            "Host: localhost\r\n" .
+            "Date: Sun, 14 Oct 2012 06:00:46 GMT\r\n" .
+            "\r\n"
+        ;
+        
+        $this->assertEquals($expected, $request->getRawRequestLineAndHeaders());
     }
     
     /**
@@ -223,7 +262,6 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Http\StdRequest::__toString
-     * @covers Artax\Http\StdRequest::buildConnectMessage
      */
     public function testToStringConnectOutput() {
         $uri = new Uri('http://localhost:8096');
@@ -322,16 +360,5 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
             array("Content-Type: text/html\r\nContent-Length: 42"),
             array("Vary: Accept,Accept-Charset,\r\nAccept-Encoding")
         );
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::getRequestLine
-     */
-    public function testGetRequestLineReturnsExpectedValues() {
-        $uri = new Uri('http://localhost/some-url?myVar=42');
-        $request = new StdRequest($uri, 'GET');
-        $request->setHttpVersion('1.0');
-        $expected = 'GET /some-url?myVar=42 HTTP/1.0';
-        $this->assertEquals($expected, $request->getRequestLine());
     }
 }

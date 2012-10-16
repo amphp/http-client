@@ -184,7 +184,7 @@ abstract class StdMessage implements Message {
     }
 
     /**
-     * Retrieve all message headers as they would appear in a raw HTTP message
+     * Retrieve all raw message headers (including trailing CRLF)
      *
      * @return string
      */

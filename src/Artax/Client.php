@@ -630,10 +630,6 @@ class Client {
             case self::STATE_SEND_STREAM_REQUEST_BODY:
                 $this->writeStreamingRequestBody($requestKey);
                 break;
-            default:
-                throw new ClientException(
-                    'Unexpected request state encountered while writing to socket'
-                );
         }
     }
     
@@ -649,7 +645,7 @@ class Client {
         $socket = $this->sockets[$requestKey];
         $request = $this->requests[$requestKey];
         
-        $data = $this->buildRawRequestHeaders($request);
+        $data = $request->getRawRequestLineAndHeaders();
         $dataLen = strlen($data);
         $dataToWrite = substr($data, $state->headerBytesSent);
         
@@ -684,25 +680,6 @@ class Client {
                 $state->state = self::STATE_READ_HEADERS;
             }
         }
-    }
-    
-    /**
-     * Generates and returns raw request headers in string form
-     * 
-     * @param Http\Request $request
-     * @return string
-     */
-    private function buildRawRequestHeaders(Request $request) {
-        if ('CONNECT' !== $request->getMethod()) {
-            $headers = $request->getRequestLine() . "\r\n";
-            $headers.= $request->getRawHeaders() . "\r\n";
-        } else {
-            $headers = 'CONNECT ' . $request->getAuthority();
-            $headers.= 'HTTP/' . $request->getHttpVersion();
-            $headers.= "\r\n" . $request->getRawHeaders() . "\r\n";
-        }
-        
-        return $headers;
     }
     
     /**
@@ -871,10 +848,6 @@ class Client {
             && $state->state < self::STATE_COMPLETE
         ) {
             $this->readBody($requestKey);
-        } else {
-            throw new ClientException(
-                'Unexpected request state encountered while reading from socket'
-            );
         }
     }
     
@@ -900,22 +873,23 @@ class Client {
             );
         }
         
+        if ($readData === '') {
+            return;
+        }
+        
         // Remove leading line-breaks from the response message as per RFC2616 Section 4.1
-        if (empty($state->buffer) && !empty($readData)) {
+        if (!$state->buffer) {
             $readData = ltrim($readData);
         }
         
-        if ($readData) {
-            $this->mediator->notify(
-                self::EVENT_SOCK_IO_READ,
-                $requestKey,
-                $readData,
-                strlen($readData)
-            );
-            $state->buffer .= $readData;
-        } else {
-            return;
-        }
+        $state->buffer .= $readData;
+        
+        $this->mediator->notify(
+            self::EVENT_SOCK_IO_READ,
+            $requestKey,
+            $readData,
+            strlen($readData)
+        );
         
         if (!$this->assignRawHeadersToResponse($requestKey)) {
             return;
@@ -1100,23 +1074,25 @@ class Client {
             );
         }
         
-        if (!empty($readData)) {
-            $this->mediator->notify(
-                self::EVENT_SOCK_IO_READ,
-                $requestKey,
-                $readData,
-                strlen($readData)
+        if ($readData === '') {
+            return;
+        }
+        
+        $this->mediator->notify(
+            self::EVENT_SOCK_IO_READ,
+            $requestKey,
+            $readData,
+            strlen($readData)
+        );
+        
+        try {
+            $state->responseBody->write($readData);
+        } catch (StreamException $e) {
+            throw new ClientException(
+                'Failed writing to temporary response body stream',
+                null,
+                $e
             );
-            
-            try {
-                $state->responseBody->write($readData);
-            } catch (StreamException $e) {
-                throw new ClientException(
-                    'Failed writing to temporary response body stream',
-                    null,
-                    $e
-                );
-            }
         }
         
         if ($state->state == self::STATE_READ_TO_CONTENT_LENGTH) {
@@ -1141,7 +1117,9 @@ class Client {
         $response = $this->responses[$requestKey];
         
         $totalBytesRecd = ftell($state->responseBody->getResource());
-        if ($totalBytesRecd >= $response->getHeader('Content-Length')) {
+        $expectedLength = (int) $response->getHeader('Content-Length');
+        
+        if ($totalBytesRecd >= $expectedLength) {
             $state->state = self::STATE_COMPLETE;
         }
     }
@@ -1257,6 +1235,7 @@ class Client {
                 $canRedirect = $this->canRedirect($requestKey);
             } catch (ClientException $e) {
                 $this->errors[$requestKey] = $e;
+                return;
             }
         } else {
             $canRedirect = $this->canRedirect($requestKey);
@@ -1288,13 +1267,11 @@ class Client {
         
         $hasConnectionHeader = $response->hasHeader('Connection');
         
-        if (!$hasConnectionHeader && $response->getHttpVersion() == '1.1') {
-            return true;
-        } elseif ($hasConnectionHeader) {
+        if ($response->hasHeader('Connection')) {
             return !strcmp($response->getHeader('Connection'), 'close');
         }
         
-        return false;
+        return true;
     }
     
     /**
@@ -1338,7 +1315,9 @@ class Client {
         }
         
         $redirectLocation = $this->normalizeRedirectLocation($request, $response);
-        if (in_array($requestKey, $this->redirectHistory)) {
+        if ($redirectLocation == $request->getUri()
+            || in_array($requestKey, $this->redirectHistory)
+        ) {
             throw new ClientException(
                 "Infinite redirect loop detected; cannot redirect to $redirectLocation"
             );
@@ -1495,7 +1474,7 @@ class Client {
         
         try {
             $socket->open();
-        } catch (ConnectException $e) {
+        } catch (StreamException $e) {
             throw new ClientException(
                 "Failed opening socket connection to $socketUri",
                 null,
@@ -1545,16 +1524,7 @@ class Client {
         }
         
         $uriStr = $scheme . '://' . $request->getHost() . ':' . $request->getPort();
-        
-        try {
-            $uri = new Uri($uriStr);
-        } catch (ValueException $e) {
-            throw new ClientException(
-                'An error occurred while generating a socket URI for ' . $request->getUri(),
-                null,
-                $e
-            );
-        }
+        $uri = new Uri($uriStr);
         
         return $uri;
     }

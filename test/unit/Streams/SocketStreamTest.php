@@ -72,13 +72,14 @@ class SocketTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Streams\Socket::open
+     * @covers Artax\Streams\Socket::getOpenSslError
      * @expectedException Artax\Streams\ConnectException
      */
     public function testOpenThrowsExceptionOnOpenSslError() {
         $uri = new Artax\Uri('tcp://localhost:80');
         $stream = $this->getMock(
-            'Artax\\Streams\\Socket',
-            array('doConnect', 'getOpenSslError'),
+            'OpenSslFailureStub',
+            array('doConnect'),
             array($uri)
         );
         
@@ -87,9 +88,6 @@ class SocketTest extends PHPUnit_Framework_TestCase {
         $stream->expects($this->once())
                ->method('doConnect')
                ->will($this->returnValue($doConnectReturn));
-        $stream->expects($this->once())
-               ->method('getOpenSslError')
-               ->will($this->returnValue('test error'));
         
         $stream->open();
     }
@@ -214,6 +212,8 @@ class SocketTest extends PHPUnit_Framework_TestCase {
     /**
      * @covers Artax\Streams\Socket::open
      * @covers Artax\Streams\Socket::doConnect
+     * @covers Artax\Streams\Socket::getOpenSslError
+     * @covers Artax\Streams\Socket::nativeOpenSslErrorSeam
      * @expectedException Artax\Streams\ConnectException
      */
     public function testConnectThrowsExceptionOnFailedSocketConnectionAttempt() {
@@ -241,6 +241,31 @@ class SocketTest extends PHPUnit_Framework_TestCase {
         
         $stream->expects($this->once())
                ->method('doRead')
+               ->will($this->returnValue(false));
+        
+        $stream->open();
+        $stream->read(4096);
+    }
+    
+    /**
+     * @covers Artax\Streams\Socket::read
+     * @expectedException Artax\Streams\SocketGoneException
+     */
+    public function testReadThrowsExceptionOnDisconnectedSocket() {
+        $uri = new Artax\Uri('tcp://localhost:8042');
+        $stream = $this->getMock(
+            'Artax\\Streams\\Socket',
+            array('doConnect', 'isConnected', 'doRead'),
+            array($uri)
+        );
+        $stream->expects($this->once())
+               ->method('doConnect')
+               ->will($this->returnValue(array(42, 0, '')));
+        $stream->expects($this->once())
+               ->method('doRead')
+               ->will($this->returnValue(''));
+        $stream->expects($this->once())
+               ->method('isConnected')
                ->will($this->returnValue(false));
         
         $stream->open();
@@ -397,26 +422,13 @@ class SocketTest extends PHPUnit_Framework_TestCase {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+class OpenSslFailureStub extends Socket {
+    private $calls = 0;
+    protected function nativeOpenSslErrorSeam() {
+        if ($this->calls < 2) {
+            ++$this->calls;
+            return 'test error';
+        }
+        return null;
+    }
+}

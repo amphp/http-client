@@ -128,15 +128,22 @@ class Socket extends Stream implements SocketResource {
      * @return string
      */
     protected function getOpenSslError() {
-        if ($tmpSslError = openssl_error_string()) {
+        if ($tmpSslError = $this->nativeOpenSslErrorSeam()) {
             $sslError = $tmpSslError;
-            while ($tmpSslError = openssl_error_string()) {
+            while ($tmpSslError = $this->nativeOpenSslErrorSeam()) {
                 $sslError = $tmpSslError;
             }
             return $sslError;
         } else {
             return null;
         }
+    }
+    
+    /**
+     * A test-seam for the native global ssl error retrieval function
+     */
+    protected function nativeOpenSslErrorSeam() {
+        return openssl_error_string();
     }
     
     /**

@@ -14,6 +14,11 @@ interface Response extends Message {
     function getStartLine();
     
     /**
+     * Get the raw HTTP response data up to and including terminating header CRLFs
+     */
+    function getRawStartLineAndHeaders();
+    
+    /**
      * Get the status code (100-599) assigned to the response
      */
     function getStatusCode();

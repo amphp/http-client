@@ -36,7 +36,12 @@ interface Request extends Message {
      * Access an associative array of query string parameters
      */
     function getAllQueryParameters();
-
+    
+    /**
+     * Get the raw HTTP message contents up to and including the terminating header CRLFs
+     */
+    function getRawRequestLineAndHeaders();
+    
     /**
      * Get the HTTP message request line
      */

@@ -246,22 +246,26 @@ class StdRequest extends StdMessage implements Request {
     }
     
     /**
-     * Build a raw HTTP message request line
+     * Build a raw HTTP message request line (without trailing CRLF)
      * 
      * @return string
      */
     public function getRequestLine() {
-        $msg = $this->getMethod() . ' ' . $this->getPath();
-        if ($queryStr = $this->getQuery()) {
-            $msg.= "?$queryStr";
+        if ('CONNECT' != $this->getMethod()) {
+            $msg = $this->getMethod() . ' ' . $this->getPath();
+            $msg.= ($queryStr = $this->getQuery()) ? "?$queryStr" : '';
+        } else {
+            $msg = 'CONNECT ' . $this->getAuthority();
         }
-        $msg.= ' HTTP/' . $this->getHttpVersion();
+        
+        // The leading space before "HTTP" matters! Don't delete it!
+        $msg .= ' HTTP/' . $this->getHttpVersion();
         
         return $msg;
     }
     
     /**
-     * Build a raw HTTP message request line using the proxy-style absolute URI
+     * Build a raw HTTP request line using the proxy-style absolute URI
      * 
      * @return string
      */
@@ -273,32 +277,26 @@ class StdRequest extends StdMessage implements Request {
     }
     
     /**
+     * Get the raw HTTP message contents up to and including the terminating header CRLFs
+     * 
+     * @return string
+     */
+    public function getRawRequestLineAndHeaders() {
+        $msg = $this->getRequestLine() . "\r\n";
+        $msg.= $this->getRawHeaders();
+        $msg.= "\r\n";
+        
+        return $msg;
+    }
+    
+    /**
      * Returns a fully stringified HTTP request message
      * 
      * @return string
      */
     public function __toString() {
-        if ('CONNECT' != $this->getMethod()) {
-            $msg = $this->getRequestLine() . "\r\n";
-            $msg.= $this->getRawHeaders();
-            $msg.= "\r\n";
-            $msg.= $this->body ? $this->getBody() : '';
-            
-            return $msg;
-            
-        } else {
-            return $this->buildConnectMessage();
-        }
-    }
-    
-    /**
-     * @return string
-     */
-    protected function buildConnectMessage() {
-        $msg = 'CONNECT ' . $this->getAuthority() . ' ';
-        $msg.= 'HTTP/' . $this->getHttpVersion() . "\r\n";
-        $msg.= $this->getRawHeaders();
-        $msg.= "\r\n";
+        $msg = $this->getRawRequestLineAndHeaders();
+        $msg.= $this->body ? $this->getBody() : '';
         
         return $msg;
     }

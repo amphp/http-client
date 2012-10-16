@@ -34,6 +34,31 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $client->setAttribute('some attribute that doesnt exist', true);
     }
     
+    /**
+     * @expectedException Spl\ValueException
+     */
+    public function testGetAttributeThrowsExceptionOnInvalidAttribute() {
+        $mediator = $this->getMock('Spl\\Mediator');
+        $client = new Client($mediator);
+        $client->getAttribute('some attribute that doesnt exist');
+    }
+    
+    /**
+     * @covers Artax\Client::setAllAttributes
+     */
+    public function testSetAllAttributesDelegatesToSetAttribute() {
+        $mediator = $this->getMock('Spl\\Mediator');
+        $client = $this->getMock('Artax\\Client', array('setAttribute'), array($mediator));
+        $client->expects($this->exactly(3))
+               ->method('setAttribute');
+        
+        $client->setAllAttributes(array(
+            'attr1' => 1,
+            'attr2' => 2,
+            'attr3' => 3
+        ));
+    }
+    
     public function provideAttributeValues() {
         return array(
             array(Client::ATTR_KEEP_CONNS_ALIVE, 0, false),
@@ -197,18 +222,23 @@ class ClientTest extends PHPUnit_Framework_TestCase {
             "User-Agent: ".Client::USER_AGENT."\r\n" .
             "Host: ".$request->getAuthority()."\r\n" .
             "\r\n";
+        
+        $body = "12345678901234567890";
+        $md5 = md5($body);
         $rawReturnResponse = '' .
             "HTTP/1.1 200 OK\r\n" .
             "Date: Sun, 14 Oct 2012 06:00:46 GMT\r\n" .
             "Content-Length: 20\r\n" .
+            "Content-MD5: $md5\r\n" .
             "\r\n" .
-            "12345678901234567890";
+            "$body";
         
         $response = new ChainableResponse($request->getUri());
         $response->setStartLine("HTTP/1.1 200 OK\r\n");
         $response->setAllHeaders(array(
             'Date' => 'Sun, 14 Oct 2012 06:00:46 GMT',
             'Content-Length' => 20,
+            'Content-MD5' => $md5
         ));
         
         $body = fopen('php://memory', 'r+');
@@ -298,14 +328,14 @@ class ClientTest extends PHPUnit_Framework_TestCase {
     public function testSend($request, $expectedWrite, $rawReturnResponse, $expectedResponse) {
         ClientSocketStreamWrapper::$body = $rawReturnResponse;
         
-        $client = $this->getMock('Artax\\Client', array('makeSocket'), array(new HashingMediator));
+        $client = $this->getMock('Artax\Client', array('makeSocket'), array(new HashingMediator));
         $socket = new StubSocket('http://localhost', 'r+', new Uri('tcp://localhost:80'));
         $client->expects($this->once())
                ->method('makeSocket')
                ->will($this->returnValue($socket));
         
         // Force the Client to read multiple times to receive the full response
-        $client->setAttribute(Client::ATTR_IO_BUFFER_SIZE, 2);
+        $client->setAttribute(Client::ATTR_IO_BUFFER_SIZE, 1);
         
         $actualResponse = $client->send($request);
         
@@ -320,14 +350,14 @@ class ClientTest extends PHPUnit_Framework_TestCase {
     public function testSendMulti($request, $expectedWrite, $rawReturnResponse, $expectedResponse) {
         ClientSocketStreamWrapper::$body = $rawReturnResponse;
         
-        $client = $this->getMock('Artax\\Client', array('makeSocket'), array(new HashingMediator));
+        $client = $this->getMock('Artax\Client', array('makeSocket'), array(new HashingMediator));
         $socket = new StubSocket('http://localhost', 'r+', new Uri('tcp://localhost:80'));
         $client->expects($this->once())
                ->method('makeSocket')
                ->will($this->returnValue($socket));
         
         // Force the Client to read multiple times to receive the full response
-        $client->setAttribute(Client::ATTR_IO_BUFFER_SIZE, 4);
+        $client->setAttribute(Client::ATTR_IO_BUFFER_SIZE, 1);
         
         $multiResponse = $client->sendMulti(array($request));
         $actualResponse = $multiResponse->current();
@@ -338,8 +368,237 @@ class ClientTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * 
+     * @expectedException Artax\ClientException
      */
+    public function testSendThrowsExceptionWhenInfiniteRedirectLoopDetected() {
+        ClientSocketStreamWrapper::$body = '' .
+            "HTTP/1.1 301 Moved Permanently\r\n" .
+            "Location: http://localhost\r\n" .
+            "Content-Length: 6\r\n" .
+            "\r\n" .
+            "Moved!";
+        
+        $mediator = new HashingMediator;
+        $client = $this->getMock('Artax\\Client', array('makeSocket'), array($mediator));
+        $socket = new StubSocket('http://localhost', 'r+', new Uri('tcp://localhost:80'));
+        $client->expects($this->once())
+               ->method('makeSocket')
+               ->will($this->returnValue($socket));
+        
+        $client->send(new StdRequest('http://localhost', 'GET'));
+    }
+    
+    /**
+     * @covers Artax\Client::sendMulti
+     */
+    public function testSendMultiPreventsExceptionFromBubblingUp() {
+        ClientSocketStreamWrapper::$body = '' .
+            "HTTP/1.1 301 Moved Permanently\r\n" .
+            "Location: http://localhost\r\n" .
+            "Content-Length: 6\r\n" .
+            "\r\n" .
+            "Moved!";
+        
+        $mediator = new HashingMediator;
+        $client = $this->getMock('Artax\\Client', array('makeSocket'), array($mediator));
+        $socket = new StubSocket('http://localhost', 'r+', new Uri('tcp://localhost:80'));
+        $client->expects($this->once())
+               ->method('makeSocket')
+               ->will($this->returnValue($socket));
+        
+        $request = new StdRequest('http://localhost', 'GET');
+        $multiResponse = $client->sendMulti(array($request));
+        
+        $this->assertEquals(1, $multiResponse->getErrorCount());
+    }
+    
+    public function testRedirect() {
+        ClientSocketStreamWrapper::$body = '' .
+            "HTTP/1.1 301 Moved Permanently\r\n" .
+            "Location: http://localhost/redirect\r\n" .
+            "Content-Length: 6\r\n" .
+            "\r\n" .
+            "Moved!";
+        
+        $mediator = new HashingMediator;
+        $mediator->addListener(Client::EVENT_REDIRECT, function($key, $old, $new) {
+            ClientSocketStreamWrapper::reset();
+            ClientSocketStreamWrapper::$body = '' .
+                "HTTP/1.1 200 OK\r\n" .
+                "Date: Sun, 14 Oct 2012 06:00:46 GMT\r\n" .
+                "Content-Length: 20\r\n" .
+                "\r\n" .
+                "12345678901234567890";
+        });
+        $client = $this->getMock('Artax\\Client', array('makeSocket'), array($mediator));
+        $socket = new StubSocket('http://localhost', 'r+', new Uri('tcp://localhost:80'));
+        $client->expects($this->once())
+               ->method('makeSocket')
+               ->will($this->returnValue($socket));
+        
+        $request = new StdRequest('http://localhost', 'GET');
+        $response = $client->send($request);
+        
+        $this->assertEquals('http://localhost/redirect', $response->getRequestUri());
+    }
+    
+    /**
+     * @covers Artax\Client::send
+     * @covers Artax\Client::completeResponse
+     * @covers Artax\Client::canRedirect
+     * @covers Artax\Client::doRedirect
+     */
+    public function testRedirectAddsWarningOnInvalidRelativeLocationHeader() {
+        ClientSocketStreamWrapper::$body = '' .
+            "HTTP/1.1 301 Moved Permanently\r\n" .
+            "Location: /redirect\r\n" .
+            "Content-Length: 6\r\n" .
+            "\r\n" .
+            "Moved!";
+        
+        $mediator = new HashingMediator;
+        $mediator->addListener(Client::EVENT_REDIRECT, function($key, $old, $new) {
+            ClientSocketStreamWrapper::reset();
+            ClientSocketStreamWrapper::$body = '' .
+                "HTTP/1.1 200 OK\r\n" .
+                "Date: Sun, 14 Oct 2012 06:00:46 GMT\r\n" .
+                "Content-Length: 20\r\n" .
+                "\r\n" .
+                "12345678901234567890";
+        });
+        $client = $this->getMock('Artax\\Client', array('makeSocket'), array($mediator));
+        $socket = new StubSocket('http://localhost', 'r+', new Uri('tcp://localhost:80'));
+        $client->expects($this->once())
+               ->method('makeSocket')
+               ->will($this->returnValue($socket));
+        
+        $request = new StdRequest('http://localhost', 'GET');
+        $response = $client->send($request);
+        
+        $this->assertEquals('http://localhost/redirect', $response->getRequestUri());
+        
+        $originalResponse = $response->getPreviousResponse();
+        $this->assertTrue($originalResponse->hasHeader('Warning'));
+    }
+    
+    /**
+     * @expectedException Artax\ClientException
+     */
+    public function testSendThrowsExceptionOnSocketConnectFailure() {
+        ClientSocketStreamWrapper::$openReturn = false;
+        
+        $mediator = new HashingMediator;
+        $client = $this->getMock('Artax\\Client', array('makeSocket'), array($mediator));
+        $socket = new StubSocket('http://localhost', 'r+', new Uri('tcp://localhost:80'));
+        $client->expects($this->once())
+               ->method('makeSocket')
+               ->will($this->returnValue($socket));
+        
+        $request = new StdRequest('http://localhost', 'GET');
+        $response = $client->send($request);
+    }
+    
+    /**
+     * @covers Artax\Client::doMultiSafeSocketCheckout
+     */
+    public function testSendMultiCatchesExceptionOnSocketConnectFailure() {
+        $mediator = new HashingMediator;
+        $client = $this->getMock('Artax\\Client', array('makeSocket'), array($mediator));
+        $socket = new StubSocket('http://localhost', 'r+', new Uri('tcp://localhost:80'));
+        $client->expects($this->once())
+               ->method('makeSocket')
+               ->will($this->returnValue($socket));
+        
+        // Tell our mock stream wrapper to return false on connect -- this will cause a Stream
+        // exception which should in turn result in a caught ClientException
+        ClientSocketStreamWrapper::$openReturn = false;
+        
+        $request = new StdRequest('http://localhost', 'GET');
+        $multiResponse = $client->sendMulti(array($request));
+        
+        $this->assertEquals(1, $multiResponse->getErrorCount());
+        $this->assertInstanceOf('Artax\\ClientException', $multiResponse->current());
+    }
+    
+    /**
+     * Mocking write failures cannot be done at the stream wrapper level because all writes
+     * through the custom wrapper have their return values cast to an integer. This precludes
+     * us from simply having the stream wrapper return FALSE on a write to generate an error.
+     * Instead, we need to mock the Socket class so that it will return FALSE independently of 
+     * the stream's write result.
+     * 
+     * @expectedException Artax\ClientException
+     */
+    public function testSendThrowsExceptionOnSocketWriteFailure() {
+        $mediator = new HashingMediator;
+        $client = $this->getMock('Artax\\Client', array('makeSocket'), array($mediator));
+        $socket = $this->getMock(
+            'StubSocket',
+            array('doWrite'),
+            array('http://localhost', 'r+', new Uri('tcp://localhost:80'))
+        );
+        $socket->expects($this->once())
+               ->method('doWrite')
+               ->will($this->returnValue(false));
+        $client->expects($this->once())
+               ->method('makeSocket')
+               ->will($this->returnValue($socket));
+        
+        $request = new StdRequest('http://localhost', 'GET');
+        $response = $client->send($request);
+    }
+    
+    /**
+     * @covers Artax\Client::doMultiSafeWrite
+     */
+    public function testSendMultiCatchesExceptionOnSocketWriteFailure() {
+        $mediator = new HashingMediator;
+        $client = $this->getMock('Artax\\Client', array('makeSocket'), array($mediator));
+        $socket = $this->getMock(
+            'StubSocket',
+            array('doWrite'),
+            array('http://localhost', 'r+', new Uri('tcp://localhost:80'))
+        );
+        $socket->expects($this->once())
+               ->method('doWrite')
+               ->will($this->returnValue(false));
+        $client->expects($this->once())
+               ->method('makeSocket')
+               ->will($this->returnValue($socket));
+        
+        $request = new StdRequest('http://localhost', 'GET');
+        $multiResponse = $client->sendMulti(array($request));
+        
+        $this->assertEquals(1, $multiResponse->getErrorCount());
+        $this->assertInstanceOf('Artax\\ClientException', $multiResponse->current());
+    }
+    
+    /**
+     * @expectedException Artax\ClientException
+     */
+    public function testSendThrowsExceptionOnContentMd5Mismatch() {
+        ClientSocketStreamWrapper::$body = '' .
+            "HTTP/1.1 200 OK\r\n" .
+            "Date: Sun, 14 Oct 2012 06:00:46 GMT\r\n" .
+            "Content-Length: 20\r\n" .
+            "Content-MD5: some-invalid-md5-hash\r\n" .
+            "\r\n" .
+            "12345678901234567890";
+        
+        $mediator = new HashingMediator;
+        $client = $this->getMock('Artax\\Client', array('makeSocket'), array($mediator));
+        $client->setAttribute(Client::ATTR_IO_BUFFER_SIZE, 1);
+        $socket = new StubSocket('http://localhost', 'r+', new Uri('tcp://localhost:80'));
+        $client->expects($this->once())
+               ->method('makeSocket')
+               ->will($this->returnValue($socket));
+        
+        $request = new StdRequest('http://localhost', 'GET');
+        $response = $client->send($request);
+    }
+    
+    
+    
     public function testSendingRequestWithoutBodyParsesResponseTerminatedByContentLength() {
         $mediator = new HashingMediator();
         
@@ -517,9 +776,8 @@ class ClientSocketStreamWrapper {
     }
     
     public function stream_write($data) {
-        static::$writtenData .= $data;
-        
         if (is_null(static::$writeReturn)) {
+            static::$writtenData .= $data;
             return strlen($data);
         } else {
             return static::$writeReturn;
