@@ -377,6 +377,10 @@ class Client {
         $request->setHeader('User-Agent', self::USER_AGENT);
         $request->setHeader('Host', $request->getAuthority());
         
+        if ('TRACE' == $request->getMethod()) {
+            $request->setBody(null);
+        }
+        
         if ($request->getBodyStream()) {
             $request->setHeader('Transfer-Encoding', 'chunked');
             $request->removeHeader('Content-Length');
@@ -392,10 +396,6 @@ class Client {
         
         if (!$this->getAttribute(self::ATTR_KEEP_CONNS_ALIVE)) {
             $request->setHeader('Connection', 'close');
-        }
-        
-        if ('TRACE' == $request->getMethod()) {
-            $request->setBody(null);
         }
     }
     
@@ -762,11 +762,11 @@ class Client {
         $socket = $this->sockets[$requestKey];
         
         $outboundBodyStream = $request->getBodyStream();
-        
         if ($state->streamRequestBodyChunkPos >= $state->streamRequestBodyChunkLength) {
             fseek($outboundBodyStream, $state->streamRequestBodyPos, SEEK_SET);
             $ioBufferSize = $this->getAttribute(self::ATTR_IO_BUFFER_SIZE);
             $chunk = @fread($outboundBodyStream, $ioBufferSize);
+            
             if (false === $chunk) {
                 throw new ClientException(
                     "Failed reading request body from $outboundBodyStream"
@@ -880,10 +880,6 @@ class Client {
             );
         }
         
-        if ($readData === '') {
-            return;
-        }
-        
         // Remove leading line-breaks from the response message as per RFC2616 Section 4.1
         if (!$state->buffer) {
             $readData = ltrim($readData);
@@ -903,7 +899,7 @@ class Client {
         } elseif ($this->isResponseBodyAllowed($requestKey)) {
             $this->initializeResponseBodyRetrieval($requestKey);
         } else {
-            $state->state = self::COMPLETE;
+            $state->state = self::STATE_COMPLETE;
         }
     }
     
@@ -1079,10 +1075,6 @@ class Client {
                 null,
                 $e
             );
-        }
-        
-        if ($readData === '') {
-            return;
         }
         
         $this->mediator->notify(
@@ -1415,8 +1407,6 @@ class Client {
             return $socket;
         } elseif ($this->hostConcurrencyLimitAllowsNewConnection($sockPoolKey)) {
             return $this->checkoutNewSocket($requestKey, $socketUri, $sockPoolKey);
-        } else {
-            return null;
         }
     }
     
