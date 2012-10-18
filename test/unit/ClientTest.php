@@ -915,7 +915,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         
         $redirectCount = 0;
         $mediator = new HashingMediator;
-        $mediator->addListener(Client::EVENT_REDIRECT, function($key, $old, $new) use (&$redirectCount) {
+        $mediator->addListener(Client::EVENT_REDIRECT, function($key, $response) use (&$redirectCount) {
             ++$redirectCount;
             SocketStreamWrapper::reset();
             
@@ -1026,7 +1026,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
             "Moved!";
         
         $mediator = new HashingMediator;
-        $mediator->addListener(Client::EVENT_REDIRECT, function($key, $old, $new) {
+        $mediator->addListener(Client::EVENT_REDIRECT, function($key, $response) {
             SocketStreamWrapper::reset();
             SocketStreamWrapper::$rawResponse = '' .
                 "HTTP/1.1 200 OK\r\n" .
@@ -1058,7 +1058,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         
         $redirectCount = 0;
         $mediator = new HashingMediator;
-        $mediator->addListener(Client::EVENT_REDIRECT, function($key, $old, $new) use (&$redirectCount) {
+        $mediator->addListener(Client::EVENT_REDIRECT, function($key, $response) use (&$redirectCount) {
             ++$redirectCount;
             SocketStreamWrapper::reset();
             
@@ -1173,6 +1173,216 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $this->assertInstanceOf('Artax\\Http\\Response', $response);
     }
     
+    public function testSendThrowsExceptionOnReadIoListenerException() {
+        SocketStreamWrapper::$rawResponse = '' .
+            "HTTP/1.1 200 OK\r\n" .
+            "Date: Sun, 14 Oct 2012 06:00:46 GMT\r\n" .
+            "Content-Length: 4\r\n" .
+            "\r\n" .
+            "done";
+        
+        $testException = new Exception('test exception');
+        
+        $mediator = new HashingMediator;
+        $mediator->addListener(Client::EVENT_IO_READ, function() use ($testException) {
+            throw $testException;
+        });
+        
+        $client = new ClientStub($mediator);
+        $client->setAttribute(Client::ATTR_IO_BUFFER_SIZE, 1);
+        
+        try {
+            $client->send(new StdRequest('http://localhost'));
+            $this->fail('Expected event listener exception was not thrown!');
+        } catch (Artax\ClientException $e) {
+            $this->assertEquals($testException, $e->getPrevious());
+        }
+    }
+    
+    public function testSendMultiCatchesReadIoListenerException() {
+        SocketStreamWrapper::$rawResponse = '' .
+            "HTTP/1.1 200 OK\r\n" .
+            "Date: Sun, 14 Oct 2012 06:00:46 GMT\r\n" .
+            "Content-Length: 4\r\n" .
+            "\r\n" .
+            "done";
+        
+        $testException = new Exception('test exception');
+        
+        $mediator = new HashingMediator;
+        $mediator->addListener(Client::EVENT_IO_READ, function() use ($testException) {
+            throw $testException;
+        });
+        
+        $client = new ClientStub($mediator);
+        $client->setAttribute(Client::ATTR_IO_BUFFER_SIZE, 1);
+        
+        $multiResponse = $client->sendMulti(array(
+            new StdRequest('http://localhost')
+        ));
+        
+        $this->assertTrue($multiResponse->hasErrors());
+        $e = $multiResponse->current();
+        $this->assertEquals($testException, $e->getPrevious());
+    }
+    
+    public function testSendThrowsExceptionOnWriteIoListenerException() {
+        SocketStreamWrapper::$rawResponse = '' .
+            "HTTP/1.1 200 OK\r\n" .
+            "Date: Sun, 14 Oct 2012 06:00:46 GMT\r\n" .
+            "Content-Length: 4\r\n" .
+            "\r\n" .
+            "done";
+        
+        $testException = new Exception('test exception');
+        
+        $mediator = new HashingMediator;
+        $mediator->addListener(Client::EVENT_IO_WRITE, function() use ($testException) {
+            throw $testException;
+        });
+        
+        $client = new ClientStub($mediator);
+        $client->setAttribute(Client::ATTR_IO_BUFFER_SIZE, 1);
+        
+        try {
+            $client->send(new StdRequest('http://localhost'));
+            $this->fail('Expected event listener exception was not thrown!');
+        } catch (Artax\ClientException $e) {
+            $this->assertEquals($testException, $e->getPrevious());
+        }
+    }
+    
+    public function testSendMultiCatchesWriteIoListenerException() {
+        SocketStreamWrapper::$rawResponse = '' .
+            "HTTP/1.1 200 OK\r\n" .
+            "Date: Sun, 14 Oct 2012 06:00:46 GMT\r\n" .
+            "Content-Length: 4\r\n" .
+            "\r\n" .
+            "done";
+        
+        $testException = new Exception('test exception');
+        
+        $mediator = new HashingMediator;
+        $mediator->addListener(Client::EVENT_IO_WRITE, function() use ($testException) {
+            throw $testException;
+        });
+        
+        $client = new ClientStub($mediator);
+        $client->setAttribute(Client::ATTR_IO_BUFFER_SIZE, 1);
+        
+        $multiResponse = $client->sendMulti(array(
+            new StdRequest('http://localhost')
+        ));
+        
+        $this->assertTrue($multiResponse->hasErrors());
+        $e = $multiResponse->current();
+        $this->assertEquals($testException, $e->getPrevious());
+    }
+    
+    public function testSendThrowsExceptionOnRedirectListenerException() {
+        SocketStreamWrapper::$rawResponse = '' .
+            "HTTP/1.1 301 Moved Permanently\r\n" .
+            "Date: Sun, 14 Oct 2012 06:00:46 GMT\r\n" .
+            "Location: http://localhost/redirect\r\n" .
+            "Content-Length: 5\r\n" .
+            "\r\n" .
+            "moved";
+        
+        $testException = new Exception('test exception');
+        
+        $mediator = new HashingMediator;
+        $mediator->addListener(Client::EVENT_REDIRECT, function() use ($testException) {
+            throw $testException;
+        });
+        
+        $client = new ClientStub($mediator);
+        
+        try {
+            $client->send(new StdRequest('http://localhost'));
+            $this->fail('Expected event listener exception was not thrown!');
+        } catch (Artax\ClientException $e) {
+            $this->assertEquals($testException, $e->getPrevious());
+        }
+    }
+    
+    public function testSendMultiCatchesRedirectListenerException() {
+        SocketStreamWrapper::$rawResponse = '' .
+            "HTTP/1.1 301 Moved Permanently\r\n" .
+            "Date: Sun, 14 Oct 2012 06:00:46 GMT\r\n" .
+            "Location: http://localhost/redirect\r\n" .
+            "Content-Length: 5\r\n" .
+            "\r\n" .
+            "moved";
+        
+        $testException = new Exception('test exception');
+        
+        $mediator = new HashingMediator;
+        $mediator->addListener(Client::EVENT_REDIRECT, function() use ($testException) {
+            throw $testException;
+        });
+        
+        $client = new ClientStub($mediator);
+        
+        $multiResponse = $client->sendMulti(array(
+            new StdRequest('http://localhost')
+        ));
+        
+        $this->assertTrue($multiResponse->hasErrors());
+        $e = $multiResponse->current();
+        $this->assertEquals($testException, $e->getPrevious());
+    }
+    
+    public function testSendThrowsExceptionOnResponseListenerException() {
+        SocketStreamWrapper::$rawResponse = '' .
+            "HTTP/1.1 200 OK\r\n" .
+            "Date: Sun, 14 Oct 2012 06:00:46 GMT\r\n" .
+            "Content-Length: 4\r\n" .
+            "\r\n" .
+            "done";
+        
+        $testException = new Exception('test exception');
+        
+        $mediator = new HashingMediator;
+        $mediator->addListener(Client::EVENT_RESPONSE, function() use ($testException) {
+            throw $testException;
+        });
+        
+        $client = new ClientStub($mediator);
+        
+        try {
+            $client->send(new StdRequest('http://localhost'));
+            $this->fail('Expected event listener exception was not thrown!');
+        } catch (Artax\ClientException $e) {
+            $this->assertEquals($testException, $e->getPrevious());
+        }
+    }
+    
+    public function testSendMultiCatchesResponseListenerException() {
+        SocketStreamWrapper::$rawResponse = '' .
+            "HTTP/1.1 200 OK\r\n" .
+            "Date: Sun, 14 Oct 2012 06:00:46 GMT\r\n" .
+            "Content-Length: 4\r\n" .
+            "\r\n" .
+            "done";
+        
+        $testException = new Exception('test exception');
+        
+        $mediator = new HashingMediator;
+        $mediator->addListener(Client::EVENT_RESPONSE, function() use ($testException) {
+            throw $testException;
+        });
+        
+        $client = new ClientStub($mediator);
+        $client->setAttribute(Client::ATTR_IO_BUFFER_SIZE, 1);
+        
+        $multiResponse = $client->sendMulti(array(
+            new StdRequest('http://localhost')
+        ));
+        
+        $this->assertTrue($multiResponse->hasErrors());
+        $e = $multiResponse->current();
+        $this->assertEquals($testException, $e->getPrevious());
+    }
 }
 
 

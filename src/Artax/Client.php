@@ -108,7 +108,7 @@ class Client {
     /**
      * @var array
      */
-    private $requestSockets;
+    private $requestKeyToSocketMap;
     
     /**
      * @var array
@@ -121,9 +121,17 @@ class Client {
     private $socketPool = array();
     
     /**
+     * When true, ClientExceptions are caught to avoid bringing down all requests in the
+     * multi-request group.
+     * 
      * @var bool
      */
     private $isInMultiMode;
+    
+    /**
+     * @var array
+     */
+    private $requestStatistics;
     
     /**
      * @param \Spl\Mediator $mediator
@@ -315,7 +323,7 @@ class Client {
         
         $this->requests = array();
         $this->responses = array();
-        $this->requestSockets = array();
+        $this->requestKeyToSocketMap = array();
         $this->errors = array();
         $this->states = array();
         
@@ -499,9 +507,9 @@ class Client {
             if ($this->needsSocket($requestKey)) {
                 continue;
             } elseif ($this->isWriting($requestKey)) {
-                $write[] = $this->requestSockets[$requestKey];
+                $write[] = $this->requestKeyToSocketMap[$requestKey];
             } elseif ($this->isReading($requestKey)) {
-                $read[] = $this->requestSockets[$requestKey];
+                $read[] = $this->requestKeyToSocketMap[$requestKey];
             }
         }
         
@@ -520,9 +528,23 @@ class Client {
             if (!$this->needsSocket($requestKey)) {
                 continue;
             } elseif ($socket = $this->doMultiSafeSocketCheckout($requestKey)){
+                $socketId = (int) $socket;
                 $this->states[$requestKey]->state = self::STATE_SEND_REQUEST_HEADERS;
-                $this->socketIdToRequestKeyMap[(int) $socket] = $requestKey;
-                $this->requestSockets[$requestKey] = $socket;
+                $this->socketIdToRequestKeyMap[$socketId] = $requestKey;
+                $this->requestKeyToSocketMap[$requestKey] = $socket;
+                
+                $this->requestStatistics[$requestKey] = array(
+                    'connectedAt' => microtime(true),
+                    'sendCompletedAt' => null,
+                    'lastBytesSentAt' => null,
+                    'lastBytesRecdAt' => null,
+                    'bytesSent' => 0,
+                    'bytesRecd' => 0,
+                    'avgUpKbs' => null,     // kilobytes per second (KB/s)
+                    'avgUpKbps' => null,    // kiloBITS per second (kbps)
+                    'avgDownKbs' => null,   // kilobytes per second (KB/s)
+                    'avgDownKbps' => null   // kiloBITS per second (kbps)
+                );
             }
         }
     }
@@ -761,13 +783,13 @@ class Client {
      * @return void
      */
     private function checkinSocket($requestKey) {
-        $socket = $this->requestSockets[$requestKey];
+        $socket = $this->requestKeyToSocketMap[$requestKey];
         $socketId = (int) $socket;
         
 
         unset(
             $this->socketIdToRequestKeyMap[$socketId],
-            $this->requestSockets[$requestKey]
+            $this->requestKeyToSocketMap[$requestKey]
         );
     }
     
@@ -778,14 +800,14 @@ class Client {
      * @return void
      */
     private function closeSocket($requestKey) {
-        $socket = $this->requestSockets[$requestKey];
+        $socket = $this->requestKeyToSocketMap[$requestKey];
         $socketId = (int) $socket;
         
         @fclose($socket);
         
         unset(
             $this->socketIdToRequestKeyMap[$socketId],
-            $this->requestSockets[$requestKey],
+            $this->requestKeyToSocketMap[$requestKey],
             $this->socketPool[$socketId]
         );
     }
@@ -875,7 +897,7 @@ class Client {
      */
     private function writeRequestHeaders($requestKey) {
         $state = $this->states[$requestKey];
-        $socket = $this->requestSockets[$requestKey];
+        $socket = $this->requestKeyToSocketMap[$requestKey];
         $request = $this->requests[$requestKey];
         
         $data = $request->getRawRequestLineAndHeaders();
@@ -894,13 +916,23 @@ class Client {
         if ($state->headerBytesSent >= $dataLen) {
             if ($request->getBodyStream()) {
                 $state->state = self::STATE_SEND_STREAM_REQUEST_BODY;
-                $this->initializeOutboundBodyStream($requestKey);
+                $this->initializeStreamingRequestBodySend($requestKey);
             } elseif ($request->getBody()) {
                 $state->state = self::STATE_SEND_BUFFERED_REQUEST_BODY;
             } else {
-                $state->state = self::STATE_READ_HEADERS;
+                $this->markRequestSendComplete($requestKey);
             }
         }
+    }
+    
+    /**
+     * @param string $requestKey
+     * @return void
+     */
+    private function markRequestSendComplete($requestKey) {
+        $state = $this->states[$requestKey];
+        $state->state = self::STATE_READ_HEADERS;
+        $this->requestStatistics[$requestKey]['sendCompletedAt'] = microtime(true);
     }
     
     /**
@@ -912,28 +944,84 @@ class Client {
      */
     protected function doSockWrite($socket, $dataToWrite) {
         if ($bytesWritten = @fwrite($socket, $dataToWrite)) {
-            $socketId = (int)$socket;
-            $this->socketPool[$socketId]['bytesSent'] += $bytesWritten;
-            $this->socketPool[$socketId]['activity'] = microtime(true);
+            $socketId = (int) $socket;
+            $requestKey = $this->socketIdToRequestKeyMap[$socketId];
             
             $actualDataWritten = substr($dataToWrite, 0, $bytesWritten);
             
-            $this->mediator->notify(
-                self::EVENT_IO_WRITE,
-                $requestKey = $this->socketIdToRequestKeyMap[(int) $socket],
-                $actualDataWritten,
-                $bytesWritten
-            );
+            $this->updateStatsOnWrite($socketId, $requestKey, $bytesWritten);
+            $this->doWriteNotify($requestKey, $actualDataWritten, $bytesWritten);
         }
         
         return $bytesWritten;
     }
     
     /**
+     * Update request stats when data is written to a socket
+     * 
+     * @param int $socketId
+     * @param string $requestKey
+     * @param int $writeDataLength
+     * @return void
+     */
+    private function updateStatsOnWrite($socketId, $requestKey, $writeDataLength) {
+        $now = microtime(true);
+        
+        $this->socketPool[$socketId]['bytesSent'] += $writeDataLength;
+        $this->socketPool[$socketId]['activity'] = $now;
+        
+        $this->requestStatistics[$requestKey]['bytesSent'] += $writeDataLength;
+        $this->requestStatistics[$requestKey]['lastBytesSentAt'] = $now;
+        
+        $elapsedTime = ($now - $this->requestStatistics[$requestKey]['connectedAt']);
+        $bytesPerSecond = ($this->requestStatistics[$requestKey]['bytesSent'] / $elapsedTime);
+        
+        // kiloBYTES per second (KB/s)
+        $kBs = ($bytesPerSecond/1024);
+        $this->requestStatistics[$requestKey]['avgUpKbs'] = round($kBs, 2);
+        
+        // kiloBITS per second (kbps)
+        $kbps = ($kBs * 8.192);
+        $this->requestStatistics[$requestKey]['avgUpKbps'] = round($kbps, 2);
+    }
+    
+    /**
+     * Notify event listeners of new data written to the socket
+     * 
+     * @param string $requestKey
+     * @param string $writeData
+     * @param int $writeDataLength
+     * @throws \Exception (only if not in multi-mode)
+     * @return void
+     */
+    private function doWriteNotify($requestKey, $writeData, $writeDataLength) {
+        try {
+            $this->mediator->notify(
+                self::EVENT_IO_WRITE,
+                $requestKey,
+                $writeData,
+                $writeDataLength,
+                $this->requestStatistics[$requestKey]
+            );
+        } catch (Exception $e) {
+            $listenerException = new ClientException(
+                'An event listener threw an exception while responding to EVENT_IO_WRITE',
+                null,
+                $e
+            );
+            if ($this->isInMultiMode) {
+                $this->errors[$requestKey] = $listenerException;
+            } else {
+                throw $listenerException;
+            }
+        }
+    }
+    
+    /**
      * @param string $requestKey
      * @return void
      */
-    private function initializeOutboundBodyStream($requestKey) {
+    private function initializeStreamingRequestBodySend($requestKey) {
         $state = $this->states[$requestKey];
         $request = $this->requests[$requestKey];
         
@@ -953,7 +1041,7 @@ class Client {
      */
     private function writeBufferedRequestBody($requestKey) {
         $state = $this->states[$requestKey];
-        $socket = $this->requestSockets[$requestKey];
+        $socket = $this->requestKeyToSocketMap[$requestKey];
         $request = $this->requests[$requestKey];
         
         $data = $request->getBody();
@@ -970,7 +1058,7 @@ class Client {
         $state->bodyBytesSent += $bytesWritten;
         
         if ($state->bodyBytesSent >= $dataLen) {
-            $state->state = self::STATE_READ_HEADERS;
+            $this->markRequestSendComplete($requestKey);
         }
     }
     
@@ -986,7 +1074,7 @@ class Client {
      */
     private function writeStreamingRequestBody($requestKey) {
         $state = $this->states[$requestKey];
-        $socket = $this->requestSockets[$requestKey];
+        $socket = $this->requestKeyToSocketMap[$requestKey];
         
         if ($state->streamRequestBodyChunkPos >= $state->streamRequestBodyChunkLength) {
             $chunk = $this->readChunkFromStreamRequestBody($requestKey);
@@ -1023,7 +1111,7 @@ class Client {
         if ($state->streamRequestBodyPos >= $state->streamRequestBodyLength
             && $state->streamRequestBodyChunk == "0\r\n\r\n"
         ) {
-            $state->state = self::STATE_READ_HEADERS;
+            $this->markRequestSendComplete($requestKey);
         }
     }
     
@@ -1092,7 +1180,7 @@ class Client {
      */
     private function readHeaders($requestKey) {
         $state = $this->states[$requestKey];
-        $socket = $this->requestSockets[$requestKey];
+        $socket = $this->requestKeyToSocketMap[$requestKey];
         
         list($readData, $readDataLength) = $this->doSockRead($socket);
         
@@ -1134,20 +1222,75 @@ class Client {
         // (such as the one-byte string, "0") can yield false positives.
         if ($readDataLength) {
             $socketId = (int) $socket;
-            $this->socketPool[$socketId]['bytesRecd'] += $readDataLength;
-            $this->socketPool[$socketId]['activity'] = microtime(true);
+            $requestKey = $this->socketIdToRequestKeyMap[$socketId];
             
-            $this->mediator->notify(
-                self::EVENT_IO_READ,
-                $this->socketIdToRequestKeyMap[(int) $socket],
-                $readData,
-                $readDataLength
-            );
+            $this->updateStatsOnRead($socketId, $requestKey, $readDataLength);
+            $this->doReadNotify($requestKey, $readData, $readDataLength);
         }
         
         return array($readData, $readDataLength);
     }
     
+    /**
+     * Update request stats when data is read from a socket
+     * 
+     * @param int $socketId
+     * @param string $requestKey
+     * @param int $readDataLength
+     * @return void
+     */
+    private function updateStatsOnRead($socketId, $requestKey, $readDataLength) {
+        $now = microtime(true);
+        
+        $this->socketPool[$socketId]['bytesRecd'] += $readDataLength;
+        $this->socketPool[$socketId]['activity'] = $now;
+        
+        $this->requestStatistics[$requestKey]['bytesRecd'] += $readDataLength;
+        $this->requestStatistics[$requestKey]['lastBytesRecdAt'] = $now;
+        
+        $elapsedTime = ($now - $this->requestStatistics[$requestKey]['sendCompletedAt']);
+        $bytesPerSecond = ($this->requestStatistics[$requestKey]['bytesRecd'] / $elapsedTime);
+        
+        // kiloBYTES per second (KB/s)
+        $kBs = ($bytesPerSecond/1024);
+        $this->requestStatistics[$requestKey]['avgDownKbs'] = round($kBs, 2);
+        
+        // kiloBITS per second (kbps)
+        $kbps = ($kBs * 8.192);
+        $this->requestStatistics[$requestKey]['avgDownKbps'] = round($kbps, 2);
+    }
+    
+    /**
+     * Notify event listeners of new data read from the socket
+     * 
+     * @param string $requestKey
+     * @param string $readData
+     * @param int $readDataLength
+     * @throws \Exception (only if not in multi-mode)
+     * @return void
+     */
+    private function doReadNotify($requestKey, $readData, $readDataLength) {
+        try {
+            $this->mediator->notify(
+                self::EVENT_IO_READ,
+                $requestKey,
+                $readData,
+                $readDataLength,
+                $this->requestStatistics[$requestKey]
+            );
+        } catch (Exception $e) {
+            $listenerException = new ClientException(
+                'An event listener threw an exception while responding to EVENT_IO_READ',
+                null,
+                $e
+            );
+            if ($this->isInMultiMode) {
+                $this->errors[$requestKey] = $listenerException;
+            } else {
+                throw $listenerException;
+            }
+        }
+    }
     /**
      * Assign raw response headers (if fully received) to the request-key's response object
      * 
@@ -1319,7 +1462,7 @@ class Client {
      */
     private function readBody($requestKey) {
         $state = $this->states[$requestKey];
-        $socket = $this->requestSockets[$requestKey];
+        $socket = $this->requestKeyToSocketMap[$requestKey];
         $response = $this->responses[$requestKey];
         
         list($readData, $readDataLength) = $this->doSockRead($socket);
@@ -1502,11 +1645,36 @@ class Client {
         if ($canRedirect) {
             $this->doRedirect($requestKey);
         } else {
+            $this->doResponseNotify($requestKey);
+        }
+    }
+    
+    /**
+     * Notify event listeners that a response has completed
+     * 
+     * @param string $requestKey
+     * @throws \Exception (only if not in multi-mode)
+     * @return void
+     */
+    private function doResponseNotify($requestKey) {
+        try {
             $this->mediator->notify(
                 self::EVENT_RESPONSE,
                 $requestKey,
-                $this->responses[$requestKey]
+                $this->responses[$requestKey],
+                $this->requestStatistics[$requestKey]
             );
+        } catch (Exception $e) {
+            $listenerException = new ClientException(
+                'An event listener threw an exception while responding to EVENT_RESPONSE',
+                null,
+                $e
+            );
+            if ($this->isInMultiMode) {
+                $this->errors[$requestKey] = $listenerException;
+            } else {
+                throw $listenerException;
+            }
         }
     }
     
@@ -1656,12 +1824,36 @@ class Client {
         $this->responses[$requestKey] = $newResponse;
         $this->states[$requestKey] = new ClientState();
         
-        $this->mediator->notify(
-            self::EVENT_REDIRECT,
-            $requestKey,
-            $request->getUri(),
-            $newRequest->getUri()
-        );
+        $this->doRedirectNotify($requestKey);
+    }
+    
+    /**
+     * Notify event listeners that a redirect has occurred
+     * 
+     * @param string $requestKey
+     * @throws \Exception (only if not in multi-mode)
+     * @return void
+     */
+    private function doRedirectNotify($requestKey) {
+        try {
+            $this->mediator->notify(
+                self::EVENT_REDIRECT,
+                $requestKey,
+                $this->responses[$requestKey],
+                $this->requestStatistics[$requestKey]
+            );
+        } catch (Exception $e) {
+            $listenerException = new ClientException(
+                'An event listener threw an exception while responding to EVENT_REDIRECT',
+                null,
+                $e
+            );
+            if ($this->isInMultiMode) {
+                $this->errors[$requestKey] = $listenerException;
+            } else {
+                throw $listenerException;
+            }
+        }
     }
     
     /**
