@@ -1,0 +1,892 @@
+HTTP/1.1 200 OK
+Date: Thu, 18 Oct 2012 04:54:16 GMT
+Status: 200 OK
+X-Frame-Options: SAMEORIGIN
+ETag: "25c8ab4045920149b168ebfadb808b3f"
+Strict-Transport-Security: max-age=631138519
+Content-Type: text/html; charset=utf-8
+Content-Length: 57568
+X-MID: 51c9dfb07a97df41c1c485c824321a0e0d45b631
+Pragma: no-cache
+X-Transaction: 9444af25b51980f1
+Last-Modified: Thu, 18 Oct 2012 04:54:16 GMT
+Cache-Control: no-cache, no-store, must-revalidate, pre-check=0, post-check=0
+Expires: Tue, 31 Mar 1981 05:00:00 GMT
+X-Runtime: 0.06927
+Set-Cookie: k=10.35.62.137.1350536056594884; path=/; expires=Thu, 25-Oct-12 04:54:16 GMT; domain=.twitter.com
+Set-Cookie: guest_id=v1%3A135053605659771661; domain=.twitter.com; path=/; expires=Sat, 18-Oct-2014 16:54:16 GMT
+Set-Cookie: _twitter_sess=BAh7CToPY3JlYXRlZF9hdGwrCBbPOHI6AToMY3NyZl9pZCIlZDZhYjJkYTAy%250AYzJiMmJmYmE2ZTZmOGZhODg2YjY3OTY6B2lkIiVmMzJiNWQyMGI1ZWU3MmYx%250AZjcyNTQzMzE2YjVkOTFhZiIKZmxhc2hJQzonQWN0aW9uQ29udHJvbGxlcjo6%250ARmxhc2g6OkZsYXNoSGFzaHsABjoKQHVzZWR7AA%253D%253D--aeb4dabf903564891bd5bcdb2342b0b4454e4a1e; domain=.twitter.com; path=/; HttpOnly
+X-XSS-Protection: 1; mode=block
+Vary: Accept-Encoding
+Server: tfe
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    
+    <script>document.domain='twitter.com'</script>
+
+      <title>Twitter</title>
+
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    
+      <meta name="description" content="Instantly connect to what&#39;s most important to you. Follow your friends, experts, favorite celebrities, and breaking news.">
+    
+    
+      <link href="/favicons/favicon.ico" rel="shortcut icon" type="image/x-icon">
+    
+    
+    
+    <link rel="search" type="application/opensearchdescription+xml" href="/opensearch.xml" title="Twitter">      <link rel="stylesheet" href="https://si0.twimg.com/a/1350417493/t1/css/t1_core_logged_out.bundle.css" type="text/css" media="screen">
+    
+        <link rel="stylesheet" href="https://si0.twimg.com/a/1350417493/t1/css/t1_more.bundle.css" type="text/css" media="screen">
+    
+          <script>
+      (function() {
+        function getPhxPath(){var a=l.href.match(/#(.)(.*)$/);return a&&a[1]=="!"&&a[2].replace(/^\//,"")}function getEvent(a){return a?(a=a.replace(/^#|\/$/,"").toLowerCase(),a.match(/^[a-z0-9_]+$/)?a:!1):!1}function redirectEventPath(a){var a=getEvent(a);if(a){var b=document.referrer||"none",c="ev_redir_"+a+"="+b+"; path=/";document.cookie=c,l.replace("/hashtag/"+a)}}function resolveInlineRedirects(){var a=getPhxPath();a&&l.replace("//"+l.host+"/"+a),l.hash!=""&&redirectEventPath(l.hash.substr(1).toLowerCase())}var l=window.location;resolveInlineRedirects(),window.addEventListener?window.addEventListener("hashchange",resolveInlineRedirects,!1):window.attachEvent&&window.attachEvent("onhashchange",resolveInlineRedirects);
+      }());
+      </script>
+    
+    <script>
+      
+      
+      (function(){function a(){document.write="",window.top.location=window.self.location,setTimeout(function(){document.body.innerHTML=""},0),window.self.onload=function(a){document.body.innerHTML=""}}if(window.top!==window.self)try{window.top.location.host||a()}catch(b){a()}})();
+    </script>
+    
+    <script>(function(){function f(a){a=a||window.event;if(!a)return;!a.target&&a.srcElement&&(a.target=a.srcElement);if(!j(a))return;if(!document.addEventListener){var b={};for(var c in a)b[c]=a[c];a=b}return a.preventDefault=a.stopPropagation=a.stopImmediatePropagation=function(){},d.push(a),!1}function g($){i();for(var b=0,c;c=d[b];b++){var e=$(c.target);if(c.type=="click"&&c.target.tagName.toLowerCase()=="a"){var f=$.data(e.get(0),"events"),g=f&&f.click,j=!c.target.hostname.match(a)||!c.target.href.match(/#$/);if(!g&&j){window.location=c.target.href;continue}}e.trigger(c)}window.swiftActionQueue.wasFlushed=!0}function i(){e&&clearTimeout(e);for(var a=0;a<c.length;a++)document["on"+c[a]]=null}function j(c){var d=c.target.tagName.toLowerCase();if(d=="label")if(c.target.getAttribute("for")){var e=document.getElementById(c.target.getAttribute("for"));if(e.getAttribute("type")=="checkbox")return!1}else for(var f=0;f<c.target.childNodes.length;f++)if((c.target.childNodes[f].tagName||"").toLowerCase()=="input"&&c.target.childNodes[f].getAttribute("type")=="checkbox")return!1;if(d=="textarea"||d=="input"&&c.target.getAttribute("type")=="text")if(c.type.match(b))return!1;return c.metaKey?!1:c.clientX&&c.shiftKey&&d=="a"?!1:c.target&&c.target.hostname&&!c.target.hostname.match(a)?!1:!0}var a=/^([^\.]+\.)*twitter.com$/,b=/^key/,c=["click","keydown","keypress","keyup"],d=[],e=null;for(var k=0;k<c.length;k++)document["on"+c[k]]=f;setTimeout(i,1e4),window.swiftActionQueue={flush:g,wasFlushed:!1}})();</script>  </head>
+  <body class="t1 logged-out ms-windows front-random-image-cricket front-page"
+    >
+    <div id="doc" class="">
+        <div class="push-loader" id="pushStateSpinner"></div>
+        
+        <div class="topbar js-topbar">
+          <div id="banners" class="js-banners">
+          </div>
+          <div class="global-nav" data-section-term="top_nav">
+            <div class="global-nav-inner">
+              <div class="container">
+                
+        
+                <ul class="nav js-global-actions">
+                  <li class="home" data-global-action="t1home">
+                      <a class="nav-logo-link" href="/" data-nav="front">
+                        <i class="bird-topbar-blue"></i>
+                      </a>
+                  </li>
+                </ul>
+                <ul class="nav secondary-nav session-dropdown" id="session">
+                  <li class="dropdown js-session">
+                    <a class="dropdown-toggle dropdown-signin" id="signin-link" href="#" data-nav="login">
+                      <small>Have an account?</small> Sign in <span class="caret"></span>
+                    </a>
+                    <a class="dropdown-signup" id="signup-link" href="https://twitter.com/signup?context=login" data-nav="signup">
+                      <small>New to Twitter?</small><span class="emphasize"> Join Today &raquo;</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-form" id="signin-dropdown">
+                      <li class="dropdown-caret right">
+                        <span class="caret-outer"></span>
+                        <span class="caret-inner"></span>
+                      </li>
+                      <li>
+                        <form action="https://twitter.com/sessions" class="js-signin signin" method="post">
+                  <fieldset class="textbox">
+    <label class="username js-username">
+      <span>Username or email</span>
+      <input class="js-username-field email-input" type="text" name="session[username_or_email]" autocomplete="on">
+    </label>
+    <label class="password js-password">
+      <span>Password</span>
+      <input class="js-password-field" type="password" value="" name="session[password]">
+    </label>
+  </fieldset>
+  <fieldset class="subchck">
+    <label class="remember">
+      <input type="checkbox" value="1" name="remember_me" >
+      <span>Remember me</span>
+    </label>
+    <button type="submit" class="btn submit">Sign in</button>
+  </fieldset>
+  
+  <input type="hidden" name="scribe_log">
+  <input type="hidden" name="redirect_after_login" value="/">
+  <input type="hidden" value="650fe7fc503d7c87d2155d48a7e2c837c86d858a" name="authenticity_token"/>
+  <div class="divider"></div>
+                  <p>
+                    <a class="forgot" href="/account/resend_password">Forgot password?</a><br />
+                    <a class="mobile has-sms" href="/account/complete">Already using Twitter via text message?</a>
+                  </p>
+                </form>
+              </li>
+                    </ul>
+                  </li>
+                </ul>
+        
+                <ul class="nav secondary-nav language-dropdown">
+                  <li class="dropdown js-language-dropdown">
+                    <a class="dropdown-toggle" href="javascript:;">
+                      <small>Language:</small>
+                      <span class="js-current-language">English</span>
+                      <b class="caret"></b>
+                    </a>
+                    <ul class="dropdown-menu">
+                      <li class="dropdown-caret right">
+                        <span class="caret-outer"></span>
+                        <span class="caret-inner"></span>
+                      </li>
+                        <li><a href="?lang=id" data-lang-code="id" title="Indonesian" class="js-language-link">Bahasa Indonesia</a></li>
+                        <li><a href="?lang=msa" data-lang-code="msa" title="Malay" class="js-language-link">Bahasa Melayu</a></li>
+                        <li><a href="?lang=da" data-lang-code="da" title="Danish" class="js-language-link">Dansk</a></li>
+                        <li><a href="?lang=de" data-lang-code="de" title="German" class="js-language-link">Deutsch</a></li>
+                        <li><a href="?lang=es" data-lang-code="es" title="Spanish" class="js-language-link">Español</a></li>
+                        <li><a href="?lang=eu" data-lang-code="eu" title="Basque" class="js-language-link">Euskara</a></li>
+                        <li><a href="?lang=fil" data-lang-code="fil" title="Filipino" class="js-language-link">Filipino</a></li>
+                        <li><a href="?lang=it" data-lang-code="it" title="Italian" class="js-language-link">Italiano</a></li>
+                        <li><a href="?lang=hu" data-lang-code="hu" title="Hungarian" class="js-language-link">Magyar</a></li>
+                        <li><a href="?lang=nl" data-lang-code="nl" title="Dutch" class="js-language-link">Nederlands</a></li>
+                        <li><a href="?lang=no" data-lang-code="no" title="Norwegian" class="js-language-link">Norsk</a></li>
+                        <li><a href="?lang=pl" data-lang-code="pl" title="Polish" class="js-language-link">Polski</a></li>
+                        <li><a href="?lang=pt" data-lang-code="pt" title="Portuguese" class="js-language-link">Português</a></li>
+                        <li><a href="?lang=fi" data-lang-code="fi" title="Finnish" class="js-language-link">Suomi</a></li>
+                        <li><a href="?lang=sv" data-lang-code="sv" title="Swedish" class="js-language-link">Svenska</a></li>
+                        <li><a href="?lang=tr" data-lang-code="tr" title="Turkish" class="js-language-link">Türkçe</a></li>
+                        <li><a href="?lang=ca" data-lang-code="ca" title="Catalan" class="js-language-link">català</a></li>
+                        <li><a href="?lang=fr" data-lang-code="fr" title="French" class="js-language-link">français</a></li>
+                        <li><a href="?lang=cs" data-lang-code="cs" title="Czech" class="js-language-link">Čeština</a></li>
+                        <li><a href="?lang=el" data-lang-code="el" title="Greek" class="js-language-link">Ελληνικά</a></li>
+                        <li><a href="?lang=ru" data-lang-code="ru" title="Russian" class="js-language-link">Русский</a></li>
+                        <li><a href="?lang=uk" data-lang-code="uk" title="Ukrainian" class="js-language-link">Українська мова</a></li>
+                        <li><a href="?lang=he" data-lang-code="he" title="Hebrew" class="js-language-link">עִבְרִית</a></li>
+                        <li><a href="?lang=ur" data-lang-code="ur" title="Urdu" class="js-language-link">اردو</a></li>
+                        <li><a href="?lang=ar" data-lang-code="ar" title="Arabic" class="js-language-link">العربية</a></li>
+                        <li><a href="?lang=fa" data-lang-code="fa" title="Farsi" class="js-language-link">فارسی</a></li>
+                        <li><a href="?lang=hi" data-lang-code="hi" title="Hindi" class="js-language-link">हिन्दी</a></li>
+                        <li><a href="?lang=th" data-lang-code="th" title="Thai" class="js-language-link">ภาษาไทย</a></li>
+                        <li><a href="?lang=ja" data-lang-code="ja" title="Japanese" class="js-language-link">日本語</a></li>
+                        <li><a href="?lang=zh-cn" data-lang-code="zh-cn" title="Simplified Chinese" class="js-language-link">简体中文</a></li>
+                        <li><a href="?lang=zh-tw" data-lang-code="zh-tw" title="Traditional Chinese" class="js-language-link">繁體中文</a></li>
+                        <li><a href="?lang=ko" data-lang-code="ko" title="Korean" class="js-language-link">한국어</a></li>
+                    </ul>
+                    <div class="js-front-language">
+                      <form action="/sessions/change_locale" class="language" method="POST">
+                        <input type="hidden" name="lang">
+                        <input type="hidden" name="redirect">
+                        <input type="hidden" name="authenticity_token" value="650fe7fc503d7c87d2155d48a7e2c837c86d858a">
+                      </form>
+                    </div>
+                  </li>
+                </ul>
+                <div class="pull-right">
+                  <form class="form-search js-search-form " action="/search" id="global-nav-search">
+            <label class="hidden-elements" for="search-query">Search</label>
+            <input class="search-input" type="text" id="search-query" placeholder="Search" name="q" autocomplete="off" spellcheck="false">
+            <span class="search-icon js-search-action">
+              <i class="nav-search" tabindex="0"></i>
+            </span>
+            <input disabled="disabled" class="search-input search-hinting-input" type="text" id="search-query-hint" autocomplete="off" spellcheck="false">
+              <div class="dropdown-menu typeahead">
+      <div class="dropdown-caret">
+        <div class="caret-outer"></div>
+        <div class="caret-inner"></div>
+      </div>
+      <div class="dropdown-inner js-typeahead-results">
+        <ul class="typeahead-items saved-searches-list">
+      
+      <li class="saved-search-item search-item"><a class="js-nav" href="" data-search-query="" data-query-source="" data-ds="saved_search"><i class="generic-search"></i></a></li>
+    </ul>    <ul class="typeahead-items topics-list">
+      
+      <li class="topics-item search-item"><a class="js-nav" href="" data-search-query="" data-query-source="typeahead_click" data-ds="topics"><i class="generic-search"></i></a></li>
+    </ul>    <div class="typeahead-accounts js-typeahead-accounts">
+      <ul class="typeahead-items">
+        
+        <li data-user-id="" data-user-screenname="" data-remote="true" data-score="" class="typeahead-item typeahead-account-item js-selectable">
+          
+          <a class="js-nav" data-query-source="typeahead_click" data-search-query="" data-ds="account">
+            <img width="24" height="24" class="avatar size24">
+            <span class="fullname"></span>
+            <i class="verified hidden"></i>
+            <span class="username"><s>@</s><b></b></span>
+          </a>
+        </li>
+        <li class="js-selectable typeahead-accounts-shortcut js-shortcut"><a class="js-nav" href="" data-search-query="" data-query-source="typeahead_click" data-shortcut="true" data-ds="account_search"></a></li>
+      </ul>
+    </div>  </div>
+    </div></form>
+        </div>
+        
+                
+                <a id="close-all-button" class="close-all-tweets js-close-all-tweets" href="#" title="Close all open Tweets">
+                  <i class="nav-breaker"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="page-outer">
+          <div id="page-container" class=" wrapper-front white">
+            <div class="front-container front-container-full-signup  " id="front-container">
+  <noscript>
+    <div class="front-warning">
+      <h3>Twitter.com makes heavy use of JavaScript</h3>
+      <p>If you cannot enable it in your browser's preferences, you may have a better experience on our <a href="http://m.twitter.com">mobile site</a>.</p>
+    </div>
+  </noscript>
+
+  <div class="front-warning" id="front-no-cookies-warn">
+    <h3>Twitter.com makes heavy use of browser cookies</h3>
+    <p>Please enable cookies in your browser preferences before signing in.</p>
+  </div>
+
+  <div class="front-bg">
+    <img class="front-image" src="https://si0.twimg.com/a/1350417493/t1/img/front_page/cricket@2x.jpg">
+  </div>
+
+  <div class="front-card">
+    <div class="front-welcome">
+      <div class="front-welcome-text">
+        <h1>Welcome to Twitter.</h1>
+        <p>Find out what&#8217;s happening, right now, with the people and organizations you care about.</p>
+      </div>
+
+    </div>
+
+
+    <div class="front-signin js-front-signin">
+      <form action="https://twitter.com/sessions" class="signin" method="post">
+        <div class="placeholding-input username">
+          <input type="text" id="signin-email" class="text-input email-input" name="session[username_or_email]" title="Username or email" autocomplete="on" tabindex=1>
+          <label for="signin-email" class="placeholder">Username or email</label>
+        </div>
+    
+        <table class="flex-table password-signin">
+          <tbody>
+          <tr>
+            <td class="flex-table-primary">
+              <div class="placeholding-input password flex-table-form">
+                <input type="password" id="signin-password" class="text-input flex-table-input" name="session[password]" title="Password" tabindex=2>
+                <label for="signin-password" class="placeholder">Password</label>
+              </div>
+            </td>
+            <td class="flex-table-secondary">
+              <button type="submit" class="submit btn primary-btn flex-table-btn js-submit" tabindex=4>
+                
+                Sign in
+              </button>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+    
+        <div class="remember-forgot">
+          <label class="remember">
+            <input type="checkbox" value="1" name="remember_me" tabindex=3>
+            <span>Remember me</span>
+          </label>
+          <span class="separator">&middot;</span>
+          <a class="forgot" href="/account/resend_password">Forgot password?</a>
+        </div>
+    
+        <input type="hidden" name="return_to_ssl" value="true">
+    
+        <input type="hidden" name="scribe_log">
+        <input type="hidden" name="redirect_after_login" value="/">
+        <input type="hidden" value="650fe7fc503d7c87d2155d48a7e2c837c86d858a" name="authenticity_token">
+      </form>
+    </div>
+      <div class="front-signup js-front-signup">
+        <h2><strong>New to Twitter?</strong> Sign up</h2>
+      
+        <form action="https://twitter.com/signup" class="signup" method="post">
+          <div class="placeholding-input">
+            <input type="text" id="signup-user-name" class="text-input" autocomplete="off" name="user[name]" maxlength="20">
+            <label for="signup-user-name" class="placeholder">Full name</label>
+          </div>
+          <div class="placeholding-input">
+            <input type="text" id="signup-user-email" class="text-input email-input" autocomplete="off" name="user[email]">
+            <label for="signup-user-email" class="placeholder">Email</label>
+          </div>
+          <div class="placeholding-input">
+            <input type="password" id="signup-user-password" class="text-input" name="user[user_password]">
+            <label for="signup-user-password" class="placeholder">Password</label>
+          </div>
+      
+          <input type="hidden" value="front" name="context">
+          <input type="hidden" value="650fe7fc503d7c87d2155d48a7e2c837c86d858a" name="authenticity_token">
+          <button type="submit" class="btn signup-btn">
+            Sign up for Twitter
+          </button>
+        </form>
+      </div>
+
+  </div>
+
+  <div class="footer inline-list">
+    <ul>
+      <li><a href="/about">About</a><span class="dot divider"> &middot;</span></li>
+      <li><a href="//support.twitter.com">Help</a><span class="dot divider"> &middot;</span></li>
+      <li><a href="http://blog.twitter.com">Blog</a><span class="dot divider"> &middot;</span></li>
+      <li><a href="http://status.twitter.com">Status</a><span class="dot divider"> &middot;</span></li>
+      <li><a href="/jobs">Jobs</a><span class="dot divider"> &middot;</span></li>
+      <li><a href="/tos">Terms</a><span class="dot divider"> &middot;</span></li>
+      <li><a href="/privacy">Privacy</a><span class="dot divider"> &middot;</span></li>
+      <li><a href="//business.twitter.com/en/advertise/start">Advertisers</a><span class="dot divider"> &middot;</span></li>
+      <li><a href="//business.twitter.com/index_en.html">Businesses</a><span class="dot divider"> &middot;</span></li>
+      <li><a href="http://media.twitter.com">Media</a><span class="dot divider"> &middot;</span></li>
+      <li><a href="//dev.twitter.com">Developers</a><span class="dot divider"> &middot;</span></li>
+      <li><a href="/about/resources">Resources</a><span class="dot divider"> &middot;</span></li>
+      <li><a href="/i/directory/profiles">Directory</a></a><span class="dot divider"> &middot;</span></li>
+      <li><span class="copyright">&copy; 2012 Twitter</span></li>
+    </ul>
+  </div>
+
+
+</div>
+
+          </div>
+        </div>
+    </div>
+      <div class="alert-messages hidden" id="message-drawer">
+          <div class="message ">
+      <div class="message-inside">
+        <span class="message-text"></span><a class="dismiss" href="#">&times;</a>
+      </div>
+    </div></div>
+    <div class="gallery-overlay"></div>
+<div class="gallery-container">
+  <div class="gallery-close-target"></div>
+  <div class="swift-media-gallery">
+    <div class="modal-header">
+      <a class="dismiss close-action" href="#"><i class="close-medium"></i></a>
+      <h2 class="modal-title"></h2>
+    </div>
+    <div class="gallery-media"></div>
+    <div class="gallery-nav nav-prev">
+      <span class="nav-prev-handle"></span>
+    </div>
+    <div class="gallery-nav nav-next">
+      <span class="nav-next-handle"></span>
+    </div>
+    <div class="tweet-inverted gallery-tweet"></div>
+  </div>
+</div>
+    <div class="modal-overlay"></div>
+    
+    <div class="hidden-elements">
+      <div id="flash-preload"></div>
+      <iframe class="tweet-post-iframe" name="tweet-post-iframe"></iframe>
+    
+    </div>
+    
+    
+    
+    <div id="goto-user-dialog" class="modal-container">
+  <div class="modal modal-small draggable">
+    <div class="modal-content">
+      <button type="button" class="modal-btn modal-close"><i class="close-medium"><span class="hidden-elements">Close</span></i></button>
+
+      <div class="modal-header">
+        <h3 class="modal-title">Go to a person's profile</h3>
+      </div>
+
+      <div class="modal-body">
+        <div class="modal-inner">
+          <form class="goto-user-form">
+            <input class="input-block username-input" type="text" placeholder="Start typing a name to jump to a profile">
+            <ul class="dropdown-menu autocomplete-results">
+              <li class="dropdown-link dropdown-account template-row autocomplete-item">
+                <img width="24" height="24" class="avatar size24">
+                <strong class="fullname"></strong>
+                <span class="pretty-link"><s>@</s><b class="username"></b></span>
+              </li>
+            </ul>          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+      <div id="retweet-tweet-dialog" class="modal-container">
+    <div class="close-modal-background-target"></div>
+    <div class="modal draggable">
+      <div class="modal-content">
+        <button class="modal-btn modal-close"><i class="close-medium"><span class="hidden-elements">Close</span></i></button>
+  
+        <div class="modal-header">
+          <h3 class="modal-title">Retweet this to your followers?</h3>
+        </div>
+  
+        <div class="modal-body modal-tweet"></div>
+  
+        <div class="modal-footer">
+          <button class="btn cancel-action">Cancel</button>
+          <button class="btn primary-btn retweet-action">Retweet</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="delete-tweet-dialog" class="modal-container">
+    <div class="close-modal-background-target"></div>
+    <div class="modal draggable">
+      <div class="modal-content">
+        <button class="modal-btn modal-close"><i class="close-medium"><span class="hidden-elements">Close</span></i></button>
+  
+        <div class="modal-header">
+          <h3 class="modal-title">Are you sure you want to delete this Tweet?</h3>
+        </div>
+  
+        <div class="modal-body modal-tweet"></div>
+  
+        <div class="modal-footer">
+          <button class="btn cancel-action">Cancel</button>
+          <button class="btn primary-btn delete-action">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+    
+<div id="keyboard-shortcut-dialog" class="modal-container">
+  <div class="close-modal-background-target"></div>
+  <div class="modal modal-large draggable">
+    <div class="modal-content">
+      <button type="button" class="modal-btn modal-close js-dimiss"><i class="close-medium"><span class="hidden-elements">Close</span></i></button>
+
+      
+      <div class="modal-header">
+        <h3 class="modal-title">Keyboard shortcuts</h3>
+      </div>
+
+      
+      <div class="modal-body">
+
+        <div class="keyboard-shortcuts clearfix" id="keyboard-shortcut-menu">
+
+          <table class="modal-table">
+            <tbody>
+              <tr>
+                <td class="shortcut">
+                  <b class="sc-key">Enter</b>
+                </td>
+                <td class="shortcut-label">Open Tweet details</td>
+              </tr>
+              <tr>
+                <td class="shortcut">
+                  <b class="sc-key">G</b> <b class="sc-key">F</b>
+                </td>
+                <td class="shortcut-label">Go to user...</td>
+              </tr>
+              <tr>
+                <td class="shortcut">
+                  <b class="sc-key">?</b>
+                </td>
+                <td class="shortcut-label">This menu</td>
+              </tr>
+              <tr>
+                <td class="shortcut">
+                  <b class="sc-key">J</b>
+                </td>
+                <td class="shortcut-label">Next Tweet</td>
+              </tr>
+              <tr>
+                <td class="shortcut">
+                  <b class="sc-key">K</b>
+                </td>
+                <td class="shortcut-label">Previous Tweet</td>
+              </tr>
+              <tr>
+                <td class="shortcut">
+                  <b class="sc-key">Space</b>
+                </td>
+                <td class="shortcut-label">Page down</td>
+              </tr>
+              <tr>
+                <td class="shortcut">
+                  <b class="sc-key">/</b>
+                </td>
+                <td class="shortcut-label">Search</td>
+              </tr>
+              <tr>
+                <td class="shortcut">
+                  <b class="sc-key">.</b>
+                </td>
+                <td class="shortcut-label">Load new Tweets</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+    
+      
+      
+    
+        <div id="geo-disabled-dropdown">
+          <ul class="dropdown-menu" tabindex="-1">
+        <li class="dropdown-caret">
+          <span class="caret-outer"></span>
+          <span class="caret-inner"></span>
+        </li>
+        <li class="geo-not-enabled-yet">
+          <h2>Add a location to your Tweets</h2>
+          <p>
+            When you tweet with a location, Twitter stores that location.&#32;
+            You can switch location on/off before each Tweet and always have the option to delete your location history.
+            <a href="http://support.twitter.com/forums/26810/entries/78525" target="_blank">Learn more</a>
+          </p>
+          <div>
+            <button type="button" class="geo-turn-on btn primary-btn">Turn location on</button>
+            <button type="button" class="geo-not-now btn-link">Not now</button>
+          </div>
+        </li>
+      </ul>
+    </div>
+    
+      <div id="geo-enabled-dropdown">
+        <ul class="dropdown-menu" tabindex="-1">
+      <li class="dropdown-caret">
+        <span class="caret-outer"></span>
+        <span class="caret-inner"></span>
+      </li>
+      <li class="geo-query-location">
+        <input type="text" autocomplete="off" placeholder="Search for a neighborhood or city">
+        <i class="generic-search"></i>
+      </li>
+      <li class="geo-dropdown-status"></li>
+      <li class="dropdown-link geo-turn-off-item geo-focusable">
+        <i class="close"></i>Turn off location
+      </li>
+    </ul>
+  </div>
+    
+    
+      <div id="profile_popup" class="modal-container">
+    <div class="close-modal-background-target"></div>
+    <div class="modal modal-small draggable">
+      <div class="modal-content clearfix">
+        <button class="modal-btn modal-close"><i class="close-medium"><span class="hidden-elements">Close</span></i></button>
+        <div class="modal-header">
+          <h3 class="modal-title">Profile summary</h3>
+        </div>
+  
+        <div class="modal-body profile-modal">
+  
+        </div>
+  
+        <div class="loading">
+          <img src="https://si0.twimg.com/a/1350417493/images/bigger_spinner.gif">
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="list-membership-dialog" class="modal-container">
+    <div class="close-modal-background-target"></div>
+    <div class="modal modal-small draggable">
+      <div class="modal-content">
+        <button class="modal-btn modal-close"><i class="close-medium"><span class="hidden-elements">Close</span></i></button>
+        <div class="modal-header">
+          <h3 class="modal-title">Your lists</h3>
+        </div>
+        <div class="modal-body">
+          <div class="list-membership-content"></div>
+          <span class="spinner lists-spinner" title="Loading&hellip;"></span>
+        </div>
+      </div>
+    </div>
+  </div>  <div id="list-operations-dialog" class="modal-container">
+    <div class="close-modal-background-target"></div>
+    <div class="modal modal-medium draggable">
+      <div class="modal-content">
+        <button class="modal-btn modal-close"><i class="close-medium"><span class="hidden-elements">Close</span></i></button>
+        <div class="modal-header">
+          <h3 class="modal-title">Create a new list</h3>
+        </div>
+        <div class="modal-body">
+          
+        <div class="list-editor">
+          <div class="field">
+            <label for="list-name">List name</label>
+            <input type="text" class="text" name="name" value="" />
+          </div>
+          <div class="field" style="display:none">
+            <label for="list-link">List link</label>
+            <span></span>
+          </div>
+          <hr/>
+        
+          <div class="field">
+            <label for="description">Description</label>
+            <textarea name="description"></textarea>
+            <span class="help-text">Under 100 characters, optional</span>
+          </div>
+          <hr/>
+        
+          <div class="field">
+            <label for="mode">Privacy</label>
+            <div class="options">
+              <label for="list-public-radio">
+                <input class="radio" type="radio" name="mode" id="list-public-radio" value="public" checked="checked"  />
+                <b>Public</b> &middot; Anyone can follow this list
+              </label>
+              <label for="list-private-radio">
+                <input class="radio" type="radio" name="mode" id="list-private-radio" value="private"  />
+                <b>Private</b> &middot; Only you can access this list
+              </label>
+            </div>
+          </div>
+          <hr/>
+        
+          <div class="list-editor-save">
+            <div class="button btn btn-primary update-list-button" data-list-id="">Save list</div>
+          </div>
+        
+        </div>      </div>
+      </div>
+    </div>
+  </div>
+      <div id="activity-popup-dialog" class="modal-container">
+    <div class="close-modal-background-target"></div>
+    <div class="modal draggable">
+      <div class="modal-content clearfix">
+        <button type="button" class="modal-btn modal-close"><i class="close-medium"><span class="hidden-elements">Close</span></i></button>
+  
+        <div class="modal-header">
+          <h3 class="modal-title"></h3>
+        </div>
+  
+        <div class="modal-body">
+          <div class="activity-tweet clearfix"></div>
+          <div class="loading">
+            <img src="https://si0.twimg.com/a/1350417493/images/bigger_spinner.gif">
+          </div>
+          <div class="activity-content clearfix"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <div id="confirm_dialog" class="modal-container">
+  <div class="close-modal-background-target"></div>
+  <div class="modal draggable">
+    <div class="modal-content">
+      <button class="modal-btn modal-close"><i class="close-medium"><span class="hidden-elements">Close</span></i></button>
+      <div class="modal-header">
+        <h3 class="modal-title"></h3>
+      </div>
+      <div class="modal-body">
+        <p class="modal-body-text"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="confirm_dialog_cancel_button"></button>
+        <button id="confirm_dialog_submit_button" class="btn primary-btn modal-submit"></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+      
+    <div id="signin-or-signup-dialog">
+      <div id="signin-or-signup" class="modal-container">
+        <div class="close-modal-background-target"></div>
+        <div class="modal modal-medium draggable">
+          <div class="modal-content">
+            <button class="modal-btn modal-close"><i class="close-medium"><span class="hidden-elements">Close</span></i></button>
+            <div class="modal-header">
+              <h3 class="modal-title modal-long-title signup-only">Sign up for Twitter &amp; follow @</h3>
+              <h3 class="modal-title not-signup-only">Sign in to Twitter</h3>
+            </div>
+            <div class="modal-body signup-only">
+              <form action="https://twitter.com/signup" class="clearfix signup" method="post">
+              <div class="holding name">
+                <input type="text" autocomplete="off" name="user[name]" maxlength="20">
+                <span class="holder">Full name</span>
+              </div>
+              <div class="holding email">
+                <input class="email-input" type="text" autocomplete="off" name="user[email]">
+                <span class="holder">Email</span>
+              </div>
+              <div class="holding password">
+                <input type="password" name="user[user_password]">
+                <span class="holder">Password</span>
+              </div>
+              <input type="hidden" value="front" name="context">
+              <input type="hidden" value="650fe7fc503d7c87d2155d48a7e2c837c86d858a" name="authenticity_token"/>
+              <input name="follows" type="hidden" value="">
+              <input type="submit" class="btn signup-btn js-submit js-signup-btn" value="Sign up">
+            </form>
+          </div>
+            <div class="modal-body not-signup-only">
+              <form action="https://twitter.com/sessions" class="signin" method="post">
+              <fieldset>
+  
+    <div class="clearfix holding">
+      <span class="username js-username holder">Username or email</span>
+      <input class="js-username-field email-input" type="text" name="session[username_or_email]" autocomplete="on" value="" tabindex=1>
+      <p class="help-text-inline">Forgot your <a href="/account/resend_password" title="If you remember your password, try logging in with your email" tabindex="-1">username</a>?</p>
+    </div>
+  
+    <div class="clearfix holding">
+      <span class="password holder">Password</span>
+      <input class="js-password-field" type="password" name="session[password]" tabindex=2>
+      <p class="help-text-inline">Forgot your <a href="/account/resend_password" tabindex="-1">password</a>?</p>
+    </div>
+  
+    <input type="hidden" value="650fe7fc503d7c87d2155d48a7e2c837c86d858a" name="authenticity_token"/>
+  
+  </fieldset>
+  <div class="clearfix">
+  
+    <input type="hidden" name="scribe_log">
+    <input type="hidden" name="redirect_after_login" value="/">
+    <input type="hidden" value="650fe7fc503d7c87d2155d48a7e2c837c86d858a" name="authenticity_token"/>
+    <button type="submit" class="submit btn primary-btn" tabindex=4>Sign in</button>
+  
+    <fieldset class="subchck">
+      <label class="remember">
+        <input type="checkbox" value="1" name="remember_me"  tabindex=3>
+        Remember me
+      </label>
+    </fieldset>
+  
+  </div>
+  <div class="divider"></div>
+              <p>
+                <a class="forgot" href="/account/resend_password">Forgot password?</a><br />
+                <a class="mobile has-sms" href="/account/complete">Already using Twitter via text message?</a>
+              </p>
+            </form>
+            <div class="signup">
+                <h2>Not on Twitter? Sign up, tune into the things you care about, and get updates as they happen.</h2>
+                <form action="https://twitter.com/signup" class="signup" method="get">
+                  <input type="hidden" name="context" value="front">
+                  <input type="hidden" value="650fe7fc503d7c87d2155d48a7e2c837c86d858a" name="authenticity_token"/>
+                <button class="btn promotional signup-btn" type="submit">Sign up &raquo;</button>
+              </form>
+            </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="sms-codes-dialog" class="modal-container">
+    <div class="close-modal-background-target"></div>
+    <div class="modal modal-medium draggable">
+      <div class="modal-content">
+        <button class="modal-btn modal-close"><i class="close-medium"><span class="hidden-elements">Close</span></i></button>
+        <div class="modal-header">
+          <h3 class="modal-title">Two-way (sending and receiving) short codes:</h3>
+        </div>
+        <div class="modal-body">
+          
+        <table id="sms_codes" cellpadding="0" cellspacing="0">
+          <thead>
+            <tr>
+              <th>Country</th>
+              <th>Code</th>
+              <th>For customers of</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>United States</td>
+              <td>40404</td>
+              <td>(any)</td>
+            </tr>
+            <tr>
+              <td>Canada</td>
+              <td>21212</td>
+              <td>(any)</td>
+            </tr>
+            <tr>
+              <td>United Kingdom</td>
+              <td>86444</td>
+              <td>Vodafone, Orange, 3, O2</td>
+            </tr>
+            <tr>
+              <td>Brazil</td>
+              <td>40404</td>
+              <td>Nextel, TIM</td>
+            </tr>
+            <tr>
+              <td>Haiti</td>
+              <td>40404</td>
+              <td>Digicel, Voila</td>
+            </tr>
+            <tr>
+              <td>Ireland</td>
+              <td>51210</td>
+              <td>Vodafone, O2</td>
+            </tr>
+            <tr>
+              <td>India</td>
+              <td>53000</td>
+              <td>Bharti Airtel, Videocon, Reliance</td>
+            </tr>
+            <tr>
+              <td>Indonesia</td>
+              <td>89887</td>
+              <td>AXIS, 3, Telkomsel, Indosat, XL Axiata</td>
+            </tr>
+            <tr>
+              <td rowspan="2">Italy</td>
+              <td>4880804</td>
+              <td>Wind</td>
+            </tr>
+            <tr>
+              <td>3424486444</td>
+              <td>Vodafone</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3">
+                &raquo; <a target="_blank" href="http://support.twitter.com/articles/14226-how-to-find-your-twitter-short-code-or-long-code">See SMS short codes for other countries</a>
+              </td>
+            </tr>
+          </tfoot>
+        </table>      </div>
+      </div>
+    </div>
+  </div>  </body>
+</html>
+    <script src="https://si0.twimg.com/c/swift/prereqs.bb6daa537849f734ddec310b15b98cd7da4e8d39.js"></script>
+    <script type="text/plain" id="init_data" class="json-data">{"asyncSocialProof":true,"scribeBufferSize":3,"sectionName":"front","geoEnabled":false,"researchExperiments":{},"scribeMetrics":0,"typeaheadData":{"accounts":{"blockedIds":[],"localQueriesEnabled":false,"enabled":false,"remoteQueriesEnabled":false},"savedSearches":{"items":[],"enabled":false},"showDebugInfo":false,"topics":{"localQueriesEnabled":false,"enabled":false,"remoteQueriesEnabled":false}},"href":"\/","assetsBasePath":"https:\/\/si0.twimg.com\/a\/1350417493\/","experiments":{},"environment":"production","internalReferer":null,"smsDeviceVerified":null,"routes":{"profile":"\/"},"useNewScribeEndpoint":false,"pushStatePageLimit":500000,"latest_incoming_direct_message_id":null,"formAuthenticityToken":"650fe7fc503d7c87d2155d48a7e2c837c86d858a","screenName":null,"deviceEnabled":false,"sandboxes":{"jsonp":"https:\/\/si0.twimg.com\/a\/1350417493\/jsonp_sandbox.html","detailsPane":"https:\/\/si0.twimg.com\/a\/1350417493\/details_pane_content_sandbox.html"},"loggedIn":false,"periodicScribeFlush":0,"pushState":false,"initialState":{"page_container_class_names":" wrapper-front white","cache_ttl":300,"body_class_names":"t1 logged-out ms-windows front-random-image-cricket front-page","doc_class_names":null,"module":"app\/pages\/frontpage","section":null,"title":"Twitter"},"pageName":"front","hasPushDevice":null}</script>
+    <script>
+      using.path = 'https://si0.twimg.com/c/swift/en';
+
+      using.bundles.push({"$bundle\/frontpage.c8e74de9efa9d2048bc8f73d902aa6a54be9792f.js":["app\/data\/frontpage_scribe","core\/jquery","app\/data\/settings","app\/ui\/with_password_strength","app\/utils\/common_regexp","app\/data\/signup_data","app\/ui\/signup\/with_captcha","app\/ui\/signup\/with_signup_validation","app\/ui\/signup\/frontpage_signup_form","app\/ui\/signup\/suggestions","app\/ui\/signup\/frontpage_signup_animation","app\/data\/signup_scribe","app\/pages\/frontpage","app\/pages\/login"],"$bundle\/signup.04f8ea35cd600b40d7d694046a5c8cd69231953e.js":["app\/ui\/signup\/with_captcha","core\/jquery","app\/utils\/common_regexp","app\/ui\/signup\/with_signup_validation","app\/ui\/signup\/signup_form","app\/ui\/with_password_strength","app\/data\/signup_data","app\/data\/settings","app\/data\/signup_scribe","app\/ui\/signup\/suggestions","app\/ui\/signup\/small_print_expander","app\/ui\/signin_dropdown","app\/pages\/signup\/signup"],"$bundle\/timeline.79ed9950125988e5c85401f4bec37063e1ebadd0.js":["app\/data\/trends","app\/utils\/scribe_event_initiators","app\/data\/trends_scribe","app\/ui\/trends\/trends","app\/ui\/trends\/trends_dialog","app\/boot\/trends","app\/ui\/infinite_scroll_watcher","app\/data\/timeline","app\/boot\/timeline","app\/data\/activity_popup","app\/ui\/dialogs\/activity_popup","app\/data\/activity_popup_scribe","app\/boot\/activity_popup","app\/data\/conversations","app\/data\/media_settings","app\/ui\/dialogs\/sensitive_flag_confirmation","app\/ui\/user_actions","app\/boot\/tweets","app\/data\/help_pips","app\/data\/help_pips_scribe","app\/ui\/help_pip","app\/ui\/help_pips_injector","app\/boot\/help_pips","app\/ui\/expando\/close_all_button","app\/ui\/timelines\/with_keyboard_navigation","app\/ui\/timelines\/with_base_timeline","app\/ui\/timelines\/with_timeline_tweet_spam","app\/ui\/timelines\/with_old_items","app\/utils\/chrome","app\/ui\/timelines\/with_traveling_ptw","app\/ui\/timelines\/with_autoplaying_timeline","app\/ui\/timelines\/with_polling","app\/ui\/timelines\/with_new_items","app\/ui\/timelines\/with_tweet_pagination","app\/ui\/timelines\/with_activity_supplements","app\/ui\/timelines\/tweet_timeline","app\/boot\/tweet_timeline","app\/ui\/who_to_follow\/with_user_recommendations","app\/ui\/who_to_follow\/who_to_follow_dashboard","app\/ui\/who_to_follow\/who_to_follow_timeline","app\/data\/who_to_follow","app\/data\/who_to_follow_scribe","app\/ui\/promptbird","app\/utils\/oauth_popup","app\/data\/promptbird","app\/data\/promptbird_scribe","app\/ui\/dashboard_tweetbox","app\/utils\/boomerang","app\/ui\/profile_stats","app\/pages\/home","app\/boot\/connect","app\/pages\/connect\/interactions","app\/pages\/connect\/mentions","app\/ui\/profile\/head","app\/ui\/media\/media_thumbnails","app\/data\/media_thumbnails_scribe","app\/ui\/suggested_users","app\/data\/suggested_users","app\/ui\/gallery\/gallery","app\/data\/gallery_scribe","app\/boot\/profile","app\/pages\/profile\/tweets","app\/ui\/timelines\/with_cursor_pagination","app\/ui\/timelines\/user_timeline","app\/boot\/user_timeline","app\/ui\/timelines\/follower_request_timeline","app\/data\/follower_request","app\/pages\/profile\/follower_requests","app\/pages\/profile\/followers","app\/pages\/profile\/following","app\/pages\/profile\/favorites","app\/ui\/timelines\/list_timeline","app\/boot\/list_timeline","app\/pages\/profile\/lists","app\/ui\/with_stream_users","app\/ui\/with_removable_stream_items","app\/ui\/similar_to","app\/pages\/profile\/similar_to","app\/data\/facets","app\/ui\/facets","app\/ui\/dialogs\/iph_search_result_dialog","app\/ui\/search\/uz_search_survey","app\/boot\/search","app\/data\/user_search","app\/ui\/user_search","app\/data\/saved_searches","app\/ui\/search_dropdown","app\/data\/story_scribe","app\/data\/onebox_scribe","app\/ui\/with_story_clicks","app\/utils\/ellipsis","app\/ui\/with_story_ellipsis","app\/ui\/search\/news_onebox","app\/ui\/search\/user_onebox","app\/ui\/search\/event_onebox","app\/ui\/search\/media_onebox","app\/ui\/spelling_assistance","app\/pages\/search\/search","app\/pages\/simple_t1"],"$bundle\/events.c0a091dc4267665db2553e019ffcdab06b94a038.js":["app\/ui\/timelines\/event_timeline","app\/ui\/page_visibility","app\/data\/page_visibility_scribe","app\/pages\/events\/hashtag"],"$bundle\/boot.ff20995827da317ccbe2b5e68f7a432ec0920055.js":["app\/data\/geo","app\/data\/tweet","app\/ui\/tweet_dialog","app\/ui\/new_tweet_button","app\/data\/tweet_box_scribe","lib\/twitter-text","app\/ui\/with_character_counter","app\/utils\/with_event_params","app\/utils\/caret","app\/ui\/with_rtl_tweet_box","app\/utils\/storage\/core","$lib\/gibberish-aes.js","app\/utils\/crypto\/aes","app\/utils\/storage\/with_crypto","app\/utils\/storage\/with_expiry","app\/utils\/storage\/array\/with_array","app\/utils\/storage\/array\/with_max_elements","app\/utils\/storage\/array\/with_unique_elements","app\/utils\/storage\/custom","app\/ui\/with_draft_tweets","app\/ui\/tweet_box","app\/utils\/image","app\/utils\/image_thumbnail","app\/ui\/tweet_box_thumbnails","app\/utils\/image_resize","app\/ui\/with_image_selection","app\/ui\/image_selector","app\/ui\/with_autocomplete_helpers","app\/utils\/string","app\/ui\/autocomplete_dropdown","app\/utils\/levenshtein","app\/utils\/cached_ajax","app\/data\/autocomplete","app\/ui\/with_click_outside","app\/ui\/geo_picker","app\/ui\/tweet_box_manager","app\/boot\/tweet_boxes","app\/ui\/user_dropdown","app\/ui\/signin_dropdown","app\/ui\/search_input","app\/ui\/global_nav","app\/ui\/navigation_links","app\/data\/typeahead\/with_cache","app\/utils\/typeahead_helpers","core\/jquery","app\/data\/with_datasource_helpers","app\/data\/typeahead\/accounts_datasource","app\/data\/typeahead\/saved_searches_datasource","app\/data\/typeahead\/with_external_event_listeners","app\/data\/typeahead\/topics_datasource","app\/data\/typeahead\/typeahead","app\/ui\/typeahead\/with_accounts","app\/ui\/typeahead\/with_saved_searches","app\/ui\/typeahead\/with_topics","app\/ui\/typeahead\/typeahead_dropdown","app\/ui\/typeahead\/typeahead_input","app\/data\/typeahead_scribe","app\/boot\/top_bar","app\/ui\/keyboard_shortcuts","app\/ui\/dialogs\/keyboard_shortcuts_dialog","app\/ui\/dialogs\/with_modal_tweet","app\/ui\/dialogs\/retweet_dialog","app\/ui\/dialogs\/delete_tweet_dialog","app\/ui\/dialogs\/confirm_dialog","app\/ui\/dialogs\/list_membership_dialog","app\/ui\/dialogs\/list_operations_dialog","app\/data\/direct_messages","app\/data\/direct_messages_scribe","app\/ui\/with_timestamp_updating","app\/ui\/direct_message_dialog","app\/boot\/direct_messages","app\/data\/profile_popup","app\/data\/profile_popup_scribe","app\/ui\/with_user_actions","app\/ui\/with_item_actions","app\/ui\/with_profile_stats","app\/ui\/profile_popup","app\/data\/user","app\/data\/lists","app\/boot\/profile_popup","app\/ui\/dialogs\/goto_user_dialog","app\/utils\/setup_polling_with_backoff","app\/ui\/page_title","app\/ui\/facebook_token_iframe","app\/ui\/search_query_source","app\/ui\/banners\/email_banner","app\/data\/email_banner","app\/ui\/dialogs\/share_via_email_dialog","app\/boot\/app"],"$bundle\/settings.fbc174f0ef70937c5ae03eb41ff7d4791d8b2082.js":["app\/data\/settings","app\/ui\/alert_banner","app\/boot\/settings","app\/data\/settings\/account_scribe","app\/data\/form_scribe","app\/ui\/with_forgot_password","app\/ui\/password_dialog","app\/ui\/protected_verified_dialog","app\/ui\/validating_fieldset","app\/ui\/email_confirmation","app\/ui\/timezone_detector","app\/ui\/deactivated","app\/ui\/geo_deletion","app\/ui\/settings_controls","app\/pages\/settings\/account","app\/data\/settings\/applications_scribe","app\/ui\/oauth_revoker","app\/pages\/settings\/applications","app\/data\/settings\/confirm_deactivation_scribe","app\/pages\/settings\/confirm_deactivation","app\/data\/settings\/design_scribe","app\/ui\/color_picker","app\/ui\/design","app\/ui\/theme_preview","app\/ui\/theme_picker","app\/ui\/image_uploader","$lib\/jquery_profile.js","app\/ui\/settings\/profile_jquery","app\/ui\/settings\/with_cropper","app\/ui\/settings\/with_webcam","app\/ui\/dialogs\/profile_image_upload_dialog","app\/ui\/profile_image_monitor","app\/ui\/settings\/change_photo","app\/data\/profile_header_scribe","app\/pages\/settings\/design","app\/data\/settings\/enhanced_profile_scribe","app\/ui\/capped_file_upload","app\/ui\/settings\/enhanced_profile_form","app\/pages\/settings\/enhanced_profile","app\/ui\/settings\/notifications","app\/pages\/settings\/notifications","app\/ui\/password","app\/ui\/password_match_pair","app\/ui\/with_password_strength","app\/ui\/password_strength","app\/pages\/settings\/password","app\/boot\/avatar_uploading","app\/data\/settings\/profile_scribe","app\/ui\/facebook_button","app\/ui\/field_edit_warning","app\/ui\/dialogs\/in_product_help_dialog","app\/pages\/settings\/profile","app\/data\/settings\/sms_scribe","app\/ui\/forms\/select_box","app\/ui\/settings\/sms_phone_create_form","app\/ui\/forms\/element_group_toggler","app\/ui\/settings\/device_verified_form","app\/ui\/settings\/sms_phone_verify_form","app\/pages\/settings\/sms","app\/ui\/settings\/widgets","app\/pages\/settings\/widgets","$lib\/mustache.js","debug\/mustache","app\/ui\/settings\/widgets_configurator","app\/pages\/settings\/widgets_configurator"],"$bundle\/permalink.1fb21a9c6c0dc0b3c33e104d501f6592ac71cfe6.js":["app\/ui\/permalink_keyboard_shortcuts","app\/ui\/hidden_ancestors","app\/ui\/dialogs\/sms_codes","app\/ui\/timelines\/conversations\/descendant_timeline","app\/ui\/timelines\/conversations\/ancestor_timeline","app\/data\/permalink_scribe","app\/pages\/permalink","app\/pages\/permalink_photo"],"$bundle\/accounts.b52a44944edf14dc80377f1d233838013dbe244a.js":["app\/ui\/account\/password_reset_controls","app\/ui\/password_match_pair","app\/ui\/with_password_strength","app\/ui\/password_strength","app\/pages\/account\/password_reset","app\/ui\/captcha_dialog","app\/ui\/account\/resend_password_controls","app\/ui\/validating_fieldset","app\/data\/resend_password","app\/pages\/account\/resend_password","app\/ui\/account\/verify_personal_information_controls","app\/pages\/account\/verify_personal_information","app\/ui\/account\/verify_device_token_controls","app\/pages\/account\/verify_device_token"],"$bundle\/discover.74c450c3f936ce5d2d6df64a6452ccb1bd9dea62.js":["app\/ui\/timelines\/discover_timeline","app\/boot\/discover_timeline","app\/data\/discover","app\/ui\/with_discover_expando","app\/ui\/discover","app\/ui\/discover_nav","app\/pages\/discover\/discover"],"$bundle\/boomerang.33998cff183b04aefb48b1e881dfa8f5be2cfe7b.js":["$lib\/boomerang.js","app\/utils\/boomerang_lib"],"$bundle\/signup_download.911f738343383d95f4734f900b220677e7521963.js":["app\/ui\/signup_download\/next_and_skip_buttons","app\/ui\/signup_download\/us_phone_number_checker","app\/pages\/signup_download\/download","app\/ui\/signup_download\/signup_phone_verify_form","app\/pages\/signup_download\/verify"],"$bundle\/mobile_gallery.87c90e58db759ac71099b836aeb798b810b2de35.js":["app\/ui\/dialogs\/mobile_gallery_download_dialog","app\/ui\/mobile_gallery\/gallery_buttons","app\/ui\/forms\/mobile_gallery_email_form","app\/data\/mobile_gallery\/send_download_link","app\/pages\/mobile_gallery\/gallery","app\/pages\/mobile_gallery\/apps","app\/ui\/mobile_gallery\/firefox_tweet_button","app\/pages\/mobile_gallery\/firefox"],"$bundle\/core.2e57a3273844b477b261f7b6c934094e0895ca80.js":["components\/flight\/lib\/utils","components\/flight\/lib\/registry","components\/flight\/tools\/debug\/debug","components\/flight\/lib\/compose","components\/flight\/lib\/advice","components\/flight\/lib\/component","core\/component","core\/registry","core\/clock","core\/compose","core\/advice","core\/parameterize","core\/i18n","components\/flight\/lib\/logger","core\/logger","core\/utils","debug\/debug","app\/utils\/querystring","app\/utils\/params","app\/utils\/auth_token","app\/data\/scribe_transport","app\/data\/client_event","app\/data\/with_scribe","app\/data\/scribe_monitor","app\/data\/ddg","app\/ui\/with_interaction_data","app\/utils\/scribe_item_types","app\/utils\/scribe_association_types","app\/data\/with_interaction_data_scribe","app\/data\/tweet_actions_scribe","app\/data\/user_actions_scribe","app\/data\/with_card_metadata","app\/data\/item_actions_scribe","app\/data\/navigation_scribe","app\/boot\/scribing","app\/ui\/navigation","app\/utils\/time","app\/data\/navigation","app\/ui\/with_dropdown","app\/ui\/language_dropdown","app\/ui\/google","app\/utils\/cookie","app\/ui\/impression_cookies","app\/data\/with_auth_token","app\/data\/with_data","app\/data\/promoted_logger","app\/ui\/message_drawer","$lib\/jquery_autoellipsis.js","$lib\/jquery_color_picker.js","$lib\/jquery.event.drag.js","$lib\/jquery.swfobject.js","$lib\/jquery.hashchange.js","$lib\/bootstrap_tooltip.js","app\/jquery_with_plugins","app\/ui\/tooltips","app\/boot\/common","app\/ui\/with_position","app\/ui\/with_scrollbar_width","app\/ui\/with_dialog","app\/ui\/dialogs\/signin_or_signup","app\/ui\/forms\/input_with_placeholder","app\/ui\/signup_call_out","app\/data\/signup_click_scribe","app\/boot\/logged_out","app\/utils\/ttft"],"$bundle\/directory.9c5ab0cfaa2996560eb1c8a65587bc04b031289a.js":["app\/ui\/history_back","app\/pages\/directory\/users"],"$bundle\/vitonboarding.e67d97dea973aa25dfac02d6f0c4327adf31332f.js":["app\/ui\/vit\/verification_step","app\/ui\/vit\/mobile_topbar","app\/pages\/vit\/onboarding"],"$bundle\/lists_permalink.55d78348fe014b960d29881a6d17bc9b578a8a11.js":["app\/ui\/list_members_dashboard","app\/data\/list_members_dashboard","app\/ui\/list_follow_card","app\/data\/list_follow_card","app\/boot\/list_permalink","app\/pages\/list\/permalink_tweets","app\/pages\/list\/permalink_users"],"$bundle\/welcome.03d43caef868cc2c32c1eac513239b930a59f1f3.js":["app\/ui\/welcome\/profile_popup_internal_link_disabler","app\/boot\/welcome","app\/ui\/welcome\/with_nav_buttons","app\/ui\/welcome\/flow_nav","app\/pages\/welcome\/intro","app\/ui\/welcome\/with_interests","app\/ui\/welcome\/interests_picker","app\/pages\/welcome\/interests","app\/data\/welcome\/users_cards","app\/ui\/welcome\/interests_flow_nav","app\/ui\/welcome\/with_more_results","app\/ui\/welcome\/with_similarities","app\/ui\/welcome\/with_welcome_search","app\/ui\/welcome\/users_cards","app\/pages\/welcome\/interests_category","app\/ui\/settings\/change_photo","app\/ui\/image_uploader","app\/ui\/profile_image_monitor","$lib\/jquery_profile.js","app\/ui\/settings\/profile_jquery","app\/ui\/settings\/with_cropper","app\/ui\/settings\/with_webcam","app\/ui\/dialogs\/profile_image_upload_dialog","app\/boot\/avatar_uploading","app\/data\/settings","app\/ui\/alert_banner","app\/ui\/welcome\/profile_flow_nav","app\/ui\/welcome\/profile_form","app\/pages\/welcome\/profile"],"$bundle\/search.c1b233b03e848e86bd4574f4994d254a5b33cd4b.js":["app\/ui\/dialogs\/search_operators_dialog","app\/pages\/search\/home","app\/ui\/advanced_search","app\/pages\/search\/advanced","app\/ui\/search\/user","app\/pages\/search\/users"],"$bundle\/tweets.44eed61351b4517a1d7caf9704317a0df186bb5d.js":["app\/utils\/twt","app\/ui\/dialogs\/embed_tweet","app\/data\/tweet_actions","app\/ui\/expando\/with_expanding_containers","app\/ui\/expando\/expando_helpers","app\/utils\/tweet_helper","app\/ui\/with_tweet_actions","app\/ui\/with_user_actions","app\/ui\/with_item_actions","app\/ui\/tweets","app\/ui\/tweet_injector","app\/ui\/expando\/with_expanding_social_activity","app\/utils\/caret","app\/ui\/expando\/expanding_tweets","app\/data\/url_resolver","app\/ui\/media\/phoenix_shim","app\/ui\/media\/types","$lib\/easyXDM.js","app\/utils\/easy_xdm","app\/utils\/sandboxed_ajax","app\/ui\/media\/with_legacy_icons","app\/utils\/third_party_application","app\/ui\/media\/legacy_embed","app\/ui\/media\/with_legacy_embeds","app\/ui\/media\/with_flag_action","app\/ui\/media\/with_hidden_display","app\/ui\/media\/with_legacy_media","app\/ui\/media\/with_native_media","app\/ui\/media\/media_tweets"]});
+
+      using('debug/debug', function(debug) {
+        debug.enable();
+        
+
+        
+
+        using(
+          'app/pages/frontpage',
+          
+        function(page) {
+          var jsonText = document.getElementById('init_data').innerHTML;
+          var initData = JSON.parse(jsonText);
+
+          
+          page(initData);
+
+          // set __swift_loaded
+          var $document = $(document);
+          $document.on('uiSwiftLoaded uiPageChanged', function() {
+            window.__swift_loaded = true;
+          });
+          $document.on('uiBeforeNewPageLoad', function() {
+            window.__swift_loaded = false;
+          });
+          $document.trigger('uiSwiftLoaded');
+          window.swiftActionQueue && window.swiftActionQueue.flush($);
+        });
+      });
+    </script>

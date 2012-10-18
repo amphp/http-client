@@ -1,0 +1,1089 @@
+HTTP/1.1 200 OK
+Content-Type: text/html; charset=iso-8859-1
+Cache-Control: max-age=15
+Transfer-Encoding: chunked
+Date: Thu, 18 Oct 2012 04:54:20 GMT
+Age: 3
+Connection: keep-alive
+P3P: CP="CAO DSP COR CURa ADMa DEVa TAIa PSAa PSDa IVAi IVDi CONi OUR SAMo OTRo BUS PHY ONL UNI PUR COM NAV INT DEM CNT STA PRE"
+Set-Cookie: SWID=50602B17-7E59-47D1-8BED-5216F627C643; path=/; expires=Thu, 18-Oct-2032 04:54:20 GMT; domain=go.com;
+Vary: Accept-Encoding
+
+008000
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<script type="text/javascript">(function(){var a=navigator.userAgent,b=window.location,c=document.cookie;if((a.match(/iP(od|hone)/i)||a.match(/Android/i)||a.match(/RIM Tablet/i))&&0>c.indexOf("iphone_redirect=false"))b.href="http://m.espn.go.com/wireless/?i=COMR";if(a.match(/iPad/i)||a.match(/Android/i)||a.match(/RIM Tablet/i))-1<c.indexOf("iphone_redirect=true")&&(b.href="http://m.espn.go.com/wireless/?i=COMR"),document.documentElement.className+=" tablet "})();</script><meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+<meta name="google-site-verification" content="xuj1ODRluWa0frM-BjIr_aSHoUC7HB5C1MgmYAM_GkA" />
+<meta name="msvalidate.01" content="B1FEB7C682C46C8FCDA3130F3D18AC28" />
+<meta property="fb:admins" content="771834624" />
+<meta property="fb:app_id" content="116656161708917" />
+
+				<meta name="description" CONTENT="ESPN.com provides comprehensive sports coverage.  Complete sports information including NFL, MLB, NBA, College Football, College Basketball scores and news." />
+				<meta name="keywords" CONTENT="ESPN.com, ESPN, ESPN2, ESPNews, ESPN Classic, ESPNU, Insider, sports scores, sports news, MLB scores, NFL scores, NBA scores, NHL scores, College Football scores, College Basketball scores, sports videos, sports information, Fantasy sports, Fantasy games, Fantasy football, Fantasy baseball" />
+				<script>
+					ESPN_refresh=window.setTimeout(function(){window.location.href=window.location.href},900000);
+				</script>
+				<noscript>
+					<meta http-equiv="refresh" content="900" />
+				</noscript>
+				<meta name="robots" content="index, follow" />
+				<meta name="googlebot" content="index, follow" />
+				<meta name="slice" scheme="IE" content="off" />
+				<title>ESPN: The Worldwide Leader In Sports</title>
+
+		<script>var _sf_startpt=(new Date()).getTime();</script>
+<!-- GENDATE: 1350536052962 -->
+<link rel="search" type="application/opensearchdescription+xml" href="http://a.espncdn.com/search/opensearch.xml" title="ESPN Search" />
+<link rel="stylesheet" charset="utf-8" media="screen" href="http://a.espncdn.com/combiner/c?v=20120801603&css=global_reset.r1.css,base.r236.css,modules.r453.css,global_header.r42.css,modules/global_nav.r52.css,modules/insider_enhanced.r1.css,modules/mem/mem.r8.css,modules/mem/watchmem-b.css,modules/mem/mem_espn360.r5.css,modules/facebook/button.r2.css,modules/btn-toggle-tablet.css,sprites/sn_icon_sprite.r2.css,/espn/espn/styles/frontpage_scoreboard_10,universal_overlay/universal_overlay.css,universal_overlay/media_overlay.css,universal_overlay/video_overlay.css,universal_overlay/photo_overlay.css,universal_overlay/dyk_overlay.css" />
+<link rel="stylesheet" href="http://a.espncdn.com/combiner/c/20120509325?css=sprites/teamlogos.r9.css" type="text/css" media="screen" charset="utf-8" />
+<style>h4 .il-header {background-image:url(http://a.espncdn.com/prod/assets/master-07092009.png); background-position:0 0;}h4 .il-header.sn {background-position:0 -762px; width:130px; height:22px;}h4 .il-header.insider {background-position:-130px -769px; width:130px; height:12px;}</style>
+<script src="http://a.espncdn.com/combiner/c?v=201210021111&js=jquery-1.7.1.js,plugins/json2.r3.js,plugins/teacrypt.js,plugins/jquery.metadata.js,plugins/jquery.bgiframe.r3.js,plugins/jquery.easing.1.3.js,plugins/jquery.hoverIntent.js,plugins/jquery.jcarousel.js,plugins/jquery.tinysort.r4.js,plugins%2FjQuery.bxSlider.js,plugins/jquery.pubsub.r5.js,ui/1.8.16/jquery.ui.core.js,ui/1.8.16/jquery.ui.widget.js,ui/1.8.16/jquery.ui.tabs.js,plugins/ba-debug-0.4.js,espn.l10n.r12.js,swfobject/2.2/swfobject.js,flashObjWrapper.r7.js,plugins/jquery.colorbox.1.3.14.js,plugins/jquery.ba-postmessage.js,espn.core.duo.r55.js,espn.mem.r32.js,stub.search.r9.js,espn.nav.mega.r33.js,espn.storage.r6.js,espn.p13n.r16.js,espn.video.r67.js,registration/staticLogin.r10-28.js,espn.universal.overlay.r15.js,insider/espn.insider.2012062703.js,espn.watchespn.r8.js,espn.myHeadlines.stub.r13.js,espn.myfaves.stub.r3.js,espn.scoreboard.r67.js,ie9pinning.r3.js,%2Fforesee%2Fv7%2Fforesee-alive.js&debug=false"></script>
+<script>espn.core.navVersion = 'a';</script>
+<script type="text/javascript" src="http://a.espncdn.com/prod/scripts/mbox.20.js"></script>
+
+	<script language="javascript">
+	var ad_site = 'espn.us.com.espn';
+	var ad_zone = 'espnfrontpage';
+	var ad_kvps = 'pgtyp=espnfrontpage;sp=espn;';
+	var ad_swid = '';
+	var ad_counter = 1;
+	var ad_ord = Math.floor(Math.random()*9999999999);
+	var ad_seg = '';
+
+	
+		ad_swid = jQuery.cookie('SWID');
+		if(typeof espn.core.ad_segments == 'function') {
+			ad_seg = espn.core.ad_segments();
+			if (ad_seg != null && ad_seg != '') {
+				ad_kvps = ad_kvps + ad_seg
+			}
+		}
+	
+
+	// the u
+	var ad_u = 'u=pgtyp=espnfrontpage|sp=espn';
+	var ad_seg_u = ad_seg;
+	if (ad_swid != null && ad_swid != '') {
+		if (ad_swid.length > 54) {
+			ad_swid = ad_swid.substring(0,54);
+		}
+		ad_newu = 'u=swid='+ad_swid+'|';
+		ad_u = ad_u.replace('u=',ad_newu);
+	}
+	if (ad_seg_u != null && ad_seg_u != '') {
+		while(ad_seg_u.indexOf(';')!=-1) {
+			ad_seg_u = ad_seg_u.replace(';','|');
+		}
+		ad_u = ad_u + '|' + ad_seg_u;
+	}
+	ad_u = ad_u + ';';
+	if (ad_u.length > 255) {
+		ad_u = ad_u.substring(0,254);
+	}
+	</script>
+	<link rel="alternate" type="application/rss+xml" title="RSS Feed" href="http://sports-ak.espn.go.com/espn/rss/news" />
+<link rel="alternate" media="handheld" href="http://espn.mobi/" />
+<link rel="canonical" href="http://espn.go.com/" />
+</head>
+<body class="frontpage">
+<div class="mboxDefault"></div><script>mboxCreate('ESPN_global');</script>
+
+<!-- start cnt_code -->
+
+<!-- end cnt_code -->
+<!--[if IE 6]><div class="ie ie6"><![endif]-->
+<!--[if IE 7]><div class="ie ie7"><![endif]-->
+<!--[if IE 8]><div class="ie ie8"><![endif]-->
+<div class="bg-elements">
+
+			<!-- begin ad tag -->
+			<script language="JavaScript" type="text/javascript">
+			if (typeof ad_kvps != 'undefined' && typeof ad_u != 'undefined' && typeof ad_counter != 'undefined' && typeof ad_ord != 'undefined') {
+				if (typeof ad_site == 'undefined' || typeof ad_zone == 'undefined') {
+					var ad_site = 'espn.us.com.espn';
+					var ad_zone = 'espnfrontpage';
+				}
+				var ad_finalString = 'http://ad.Doubleclick.net/adj/'+ad_site+'/'+ad_zone+';' +ad_kvps+ 'pos=Background_Skin;' +ad_u+ 'sz=1280x946,200x800,1x1;tile=' +ad_counter+ ';ord=' +ad_ord;
+				document.write('<scr'+'ipt src='+ad_finalString+'></scr'+'ipt>');
+				ad_counter++;
+			}
+			</script>
+			<noscript>
+			<a href="http://ad.Doubleclick.net/jump/espn.us.com.espn/espnfrontpage;sz=1280x946,200x800,1x1;" target="_blank">
+			<img src="http://ad.Doubleclick.net/ad/espn.us.com.espn/espnfrontpage;sz=1280x946,200x800,1x1;" border="0" alt="">
+			</a>
+			</noscript>
+			<!-- end ad tag -->
+			
+<!-- begin header -->
+<div id="header" class="container">
+<!-- begin top bar -->
+<div class="top-bar">
+<!-- begin uni login -->
+<script type="text/javascript">
+var returnURL = document.location.href;
+var anCV = "";
+var myEspnText = {'welcometext':'Welcome','register':'Register','signin':'Sign In','signout':'Sign Out','heliumdown':'Login Temporarily Unavailable','connectedfacebook':'Connected to Facebook','connectfacebook':'Connect with Facebook','activateinsider':'Activate Insider'};
+</script>
+<form id="form-memberarea">
+<input type="hidden" name="language" id="language" value="en"/>
+<input type="hidden" name="affiliateName" id="memberAreaAffiliateName" value="espn"/>
+<input type="hidden" name="regFormId" id="regFormId" value="espn"/>
+</form>
+<div class="signin" id="signin"></div>
+<script>espn.memberservices.welcome();</script>
+<div class="nav-edition editions">
+<label>EDITIONS:</label>
+<ul class="main">
+	<li class="e-usa active"><a href="http://espn.go.com/" name="&amp;lpos=editionsnav&amp;lid=usa">USA</a></li>
+	<li class="e-deportes"><a href="http://espndeportes.espn.go.com/" name="&amp;lpos=editionsnav&amp;lid=deportes">DEPORTES</a></li>
+	<li class="last dropdown">
+	<ul class="">
+	<li class="selected">More</li>
+	<li><a href="http://www.espnstar.com/" name="&amp;lpos=editionsnav&amp;lid=asia">Asia</a></li>
+	<li><a href="http://www.espn.com.au" name="&amp;lpos=editionsnav&amp;lid=australia">Australia</a></li>
+	<li><a href="http://www.espn.com.br" name="&amp;lpos=editionsnav&amp;lid=brazil">Brazil</a></li>
+	<li><a href="http://www.espn.co.uk/" name="&amp;lpos=editionsnav&amp;lid=uk">United Kingdom</a></li>
+	</ul>
+	</li>
+</ul>
+</div>
+
+<div class="nav-edition">
+<label>CITIES:</label>
+<ul class="main">
+	<li class="e-boston"><a href="http://espn.go.com/boston/" name="&amp;lpos=citynav&amp;lid=boston">BOSTON</a></li>
+	<li class="e-chicago"><a href="http://espn.go.com/chicago/" name="&amp;lpos=citynav&amp;lid=chicago">CHICAGO</a></li>
+	<li class="e-dallas"><a href="http://espn.go.com/dallas/" name="&amp;lpos=citynav&amp;lid=dallas">DALLAS</a></li>
+	<li class="e-losangeles"><a href="http://espn.go.com/los-angeles/" name="&amp;lpos=citynav&amp;lid=losangeles">LOS ANGELES</a></li>
+	<li class="last e-newyork"><a href="http://espn.go.com/new-york/" name="&amp;lpos=citynav&amp;lid=newyork">NEW YORK</a></li>
+</ul>
+</div>
+</div>
+<!-- end top bar -->
+<!-- begin logo -->
+<div class="espn-logo">
+<h1><span>ESPN</span></h1>
+</div>
+<!-- end logo -->
+<a class="btn-toggle-tablet" href="http://m.espn.go.com/wireless/index?i=COMT">Tablet Version</a><script type="text/javascript">(function(){jQuery(".btn-toggle-tablet").click(function(a){a.preventDefault();jQuery.cookie("iphone_redirect",!0,{domain:".espn.go.com",expires:30});anTrackLink(this,"","home:frontpage","toMobileWeb");window.location.href=jQuery(this).attr("href")})})();</script><div id="shop"><a class="shop-btn" href="http://espnshop.com/entry.point?target=Z&source=ESPN_HPHEADERLINK:SHOPBUTTONHEADER:SHOPBUTTONHEADER:6_1_10" name="&lpos=sitenavdefault&lid=sitenav_shopbutton">Shop</a></div><style>.ie6 #searchBox, .ie6 #searchBox div { display: inline; } </style><!-- begin search -->
+<div id="nav-main-search">
+<form id="searchBox" name="searchBox" action="http://search.espn.go.com/results" method="get" accept-charset="utf-8" style="color: #999999;">
+<div class="clearfix">
+<input autocomplete="off" class="text" type="text" placeholder="Search" name="searchString" id="searchString" />
+<input type="hidden" name="page" id="page" value="null" />
+<input type="hidden" name="fromForm" value="true" />
+<input class="submit" type="submit" value="" />
+</div>
+</form>
+</div>
+<!-- end search -->
+
+</div>
+<!-- end header --><!-- begin scoreboard -->
+
+<!-- begin scoreboard -->
+<script type="text/javascript">
+var sbMaster = {"snapshotId":19068426,"sports":[{"sport":"baseball","leagues":[{"league":"baseball3","display":"Oct. 17, 2012","sportId":10000,"date":"20121017000000","games":[{"gameId":321017121,"date":"20121017153500","tv":"","home":{"name":"SAG","score":7,"id":"21","nickname":"Saguaros","location":"Peoria"},"away":{"name":"PHX","score":3,"id":"24","nickname":"Desert Dogs","location":"Phoenix"},"status":3,"statusText":"F","settings":"0|0|1|0","details":""},{"gameId":321017123,"date":"20121017153500","tv":"","home":{"name":"JAV","score":9,"id":"23","nickname":"Javelinas","location":"Peoria"},"away":{"name":"SUR","score":12,"id":"26","nickname":"Rafters","location":"Surprise"},"status":3,"statusText":"F","settings":"0|0|1|0","details":""},{"gameId":321017125,"date":"20121017213500","tv":"","home":{"name":"SCO","score":5,"id":"25","nickname":"Scorpions","location":"Scottsdale"},"away":{"name":"MES","score":2,"id":"22","nickname":"Solar Sox","location":"Mesa"},"status":3,"statusText":"F","settings":"0|0|1|0","details":""}]},{"league":"baseball4","display":"Oct. 17, 2012","sportId":10000,"date":"20121017000000","games":[{"gameId":321017144,"date":"20121017183000","tv":"","home":{"name":"TOR","score":0,"id":"44","nickname":"Toros","location":"Toros"},"away":{"name":"GIG","score":0,"id":"48","nickname":"Gigantes","location":"Gigantes"},"status":1,"statusText":"6:30 PM","settings":"0|0|0|0","details":""},{"gameId":321017143,"date":"20121017183000","tv":"","home":{"name":"AGU","score":0,"id":"43","nickname":"Aguilas","location":"Aguilas"},"away":{"name":"ESC","score":0,"id":"45","nickname":"Escogido","location":"Escogido"},"status":6,"statusText":"Postponed","settings":"0|0|0|0","details":""},{"gameId":321017147,"date":"20121017193000","tv":"","home":{"name":"LIC","score":8,"id":"47","nickname":"Licey","location":"Licey"},"away":{"name":"EST","score":9,"id":"46","nickname":"Estrellas","location":"Estrellas"},"status":3,"statusText":"F","settings":"0|0|1|0","details":""}]},{"league":"baseball5","display":"Oct. 17, 2012","sportId":10000,"date":"20121017000000","games":[{"gameId":321017127,"date":"20121017200000","tv":"","home":{"name":"ARA","score":3,"id":"27","nickname":"Tigres","location":"Aragua"},"away":{"name":"ANZ","score":1,"id":"32","nickname":"Caribes","location":"Anzoategui"},"status":3,"statusText":"F","settings":"0|0|1|0","details":""},{"gameId":321017128,"date":"20121017200000","tv":"","home":{"name":"LEO","score":3,"id":"28","nickname":"Leones","location":"Caracas"},"away":{"name":"LAR","score":1,"id":"30","nickname":"Cardenales","location":"Lara"},"status":3,"statusText":"F","settings":"0|0|1|0","details":""},{"gameId":321017133,"date":"20121017200000","tv":"","home":{"name":"ZUL","score":4,"id":"33","nickname":"Aguilas","location":"Zulia"},"away":{"name":"MAG","score":1,"id":"31","nickname":"Navegantes","location":"Magallanes"},"status":3,"statusText":"F","settings":"0|0|1|0","details":""},{"gameId":321017134,"date":"20121017200000","tv":"","home":{"name":"MAR","score":0,"id":"34","nickname":"Bravos","location":"Margarita"},"away":{"name":"LAG","score":0,"id":"29","nickname":"Tiburones","location":"La Guaira"},"status":6,"statusText":"Postponed","settings":"0|0|0|0","details":""}]},{"league":"baseball6","display":"Oct. 17, 2012","sportId":10000,"date":"20121017000000","games":[{"gameId":321017135,"date":"20121017213000","tv":"","home":{"name":"CUL","score":0,"id":"35","nickname":"Culiacan","location":"Culiacan"},"away":{"name":"NAV","score":0,"id":"41","nickname":"Navojoa","location":"Navojoa"},"status":1,"statusText":"9:30 PM","settings":"0|0|0|0","details":""},{"gameId":321017142,"date":"20121017213000","tv":"","home":{"name":"OBR","score":0,"id":"42","nickname":"Obregon","location":"Obregon"},"away":{"name":"MEX","score":0,"id":"39","nickname":"Mexicali","location":"Mexicali"},"status":1,"statusText":"9:30 PM","settings":"0|0|0|0","details":""},{"gameId":321017240,"date":"20121017190000","tv":"","home":{"name":"MOC","score":1,"id":"40","nickname":"Mochis","location":"Mochis"},"away":{"name":"HER","score":2,"id":"37","nickname":"Hermosillo","location":"Hermosillo"},"status":3,"statusText":"F","settings":"0|0|1|0","details":""},{"gameId":321017138,"date":"20121017213000","tv":"","home":{"name":"MAZ","score":0,"id":"38","nickname":"Mazatlan","location":"Mazatlan"},"away":{"name":"GUA","score":0,"id":"36","nickname":"Guasave","location":"Guasave"},"status":6,"statusText":"Postponed","settings":"0|0|0|0","details":""},{"gameId":321017340,"date":"20121017213000","tv":"","home":{"name":"MOC","score":2,"id":"40","nickname":"Mochis","location":"Mochis"},"away":{"name":"HER","score":1,"id":"37","nickname":"Hermosillo","location":"Hermosillo"},"status":3,"statusText":"F","settings":"0|0|1|0","details":""}]}]},{"sport":"cil","events":[{"id":"1","display":"Pressbox Live","sportId":0,"entries":[{"id":"d5345151c5","pos":"0","fn":"null","ln":"null","info":"1350511283000","display":"Check out how the sights &amp; sounds from Week 7 in our <a target=_blank href='https://twitter.com/search/%23CFBmashup' target=\"_blank\" >#CFBmashup</a>: <a target=_blank href='http://t.co/tye6vpte' target=\"_blank\" >youtu.be/U2ooqKg7TC4</a> ","status":"ESPNCFB via Twitter"},{"id":"a28fb1cb16","pos":"1","fn":"null","ln":"null","info":"1321827765000","display":"Have a good rest of your Sunday everyone! ","status":"Andrew Smith"}]}]},{"sport":"cricket","leagues":[{"league":"cricket","display":"ICC World Twenty20","sportId":200,"date":"20121017000000","games":[]}]},{"sport":"irl","events":[{"id":"201205270106","display":"Indianapolis 500: Final","sportId":2040,"status":3,"entries":[{"id":"56","pos":"1","fn":"Dario","ln":"Franchitti","status":"200 Laps"},{"id":"518","pos":"2","fn":"Scott","ln":"Dixon","status":"-0.03 sec"},{"id":"45","pos":"3","fn":"Tony","ln":"Kanaan","status":"-0 Laps"},{"id":"804","pos":"4","fn":"Oriol","ln":"Servia","status":"-0 Laps"},{"id":"695","pos":"5","fn":"Ryan","ln":"Briscoe","status":"-0 Laps"},{"id":"4479","pos":"6","fn":"James","ln":"Hinchcliffe","status":"-0 Laps"},{"id":"564","pos":"7","fn":"Justin","ln":"Wilson","status":"-0 Laps"},{"id":"4477","pos":"8","fn":"Charlie","ln":"Kimball","status":"-0 Laps"},{"id":"665","pos":"9","fn":"Townsend","ln":"Bell","status":"-0 Laps"},{"id":"33","pos":"10","fn":"Helio","ln":"Castroneves","status":"-0 Laps"},{"id":"301","pos":"11","fn":"Rubens","ln":"Barrichello","status":"-0 Laps"},{"id":"543","pos":"12","fn":"Alex","ln":"Tagliani","status":"-0 Laps"},{"id":"872","pos":"13","fn":"Graham","ln":"Rahal","status":"-0 Laps"},{"id":"4438","pos":"14","fn":"JR","ln":"Hildebrand","status":"-0 Laps"},{"id":"4476","pos":"15","fn":"James","ln":"Jakes","status":"-0 Laps"},{"id":"878","pos":"16","fn":"Simon","ln":"Pagenaud","status":"-0 Laps"},{"id":"432","pos":"17","fn":"Takuma","ln":"Sato","status":"-1 Lap"},{"id":"4305","pos":"18","fn":"E.J.","ln":"Viso","status":"-1 Lap"},{"id":"534","pos":"19","fn":"Michel","ln":"Jourdain Jr.","status":"-4.9E-324 sec"},{"id":"525","pos":"20","fn":"Sebastien","ln":"Bourdais","status":"-1 Lap"},{"id":"578","pos":"21","fn":"Ed","ln":"Carpenter","status":"-1 Lap"},{"id":"808","pos":"22","fn":"Katherine","ln":"Legge","status":"-1 Lap"},{"id":"4404","pos":"23","fn":"Ana","ln":"Beatriz","status":"-10 Laps"},{"id":"775","pos":"24","fn":"Marco","ln":"Andretti","status":"-13 Laps"},{"id":"4526","pos":"25","fn":"Josef","ln":"Newgarden","status":"-39 Laps"},{"id":"4415","pos":"26","fn":"Sebastian","ln":"Saavedra","status":"-57 Laps"},{"id":"533","pos":"27","fn":"Ryan","ln":"Hunter-Reay","status":"-77 Laps"},{"id":"810","pos":"28","fn":"Will","ln":"Power","status":"-121 Laps"},{"id":"4350","pos":"29","fn":"Mike","ln":"Conway","status":"-122 Laps"},{"id":"916","pos":"30","fn":"Bryan","ln":"Clauson","status":"-154 Laps"},{"id":"4483","pos":"31","fn":"Wade","ln":"Cunningham","status":"-158 Laps"},{"id":"4402","pos":"32","fn":"Simona","ln":"De Silvestro","status":"-190 Laps"},{"id":"307","pos":"33","fn":"Jean","ln":"Alesi","status":"-191 Laps"}]}]},{"sport":"mlb","leagues":[{"league":"mlb","display":"2012 Playoffs: League Championship","sportId":10,"date":"20121017000000","games":[{"gameId":321018106,"date":"20121018160000","home":{"name":"DET","score":0,"id":"6","nickname":"Tigers","location":"Detroit"},"away":{"name":"NYY","score":0,"id":"10","nickname":"Yankees","location":"New York"},"status":1,"statusText":"Thu 4:00 PM","link":"http://espn.go.com/mlb/playoffs/2012/matchup/_/teams/tigers-yankees","settings":"0|0|0|1|0","details":"DET leads 3-0"},{"gameId":321017124,"date":"20121017160000","home":{"name":"STL","score":3,"id":"24","nickname":"Cardinals","location":"St. Louis"},"away":{"name":"SF","score":1,"id":"26","nickname":"Giants","location":"San Francisco"},"status":3,"statusText":"F","link":"http://espn.go.com/mlb/playoffs/2012/matchup/_/teams/cardinals-giants","settings":"1|1|1|1|0","details":"STL leads 2-1"}]}]},{"sport":"nba","leagues":[{"league":"nba","display":"Preseason: Oct. 17, 2012","sportId":46,"date":"20121017000000","games":[{"gameId":400400525,"date":"20121017223000","tv":"","home":{"name":"LAC","score":89,"id":"12","nickname":"Clippers","location":"Los Angeles"},"away":{"name":"UTAH","score":87,"id":"26","nickname":"Jazz","location":"Utah"},"clock":"3:16","status":2,"statusText":"4th","link":"","settings":"0|0|0|0|0","details":""},{"gameId":400400519,"date":"20121017190000","tv":"","home":{"name":"TOR","score":104,"id":"28","nickname":"Raptors","location":"Toronto"},"away":{"name":"WSH","score":101,"id":"27","nickname":"Wizards","location":"Washington"},"clock":"","status":3,"statusText":"F","link":"","settings":"0|1|1|0|0","details":""},{"gameId":400400520,"date":"20121017190000","tv":"","home":{"name":"PHI","score":113,"id":"20","nickname":"76ers","location":"Philadelphia"},"away":{"name":"CLE","score":99,"id":"5","nickname":"Cavaliers","location":"Cleveland"},"clock":"","status":3,"statusText":"F","link":"","settings":"0|1|1|0|0","details":""},{"gameId":400400521,"date":"20121017200000","tv":"","home":{"name":"HOU","score":109,"id":"10","nickname":"Rockets","location":"Houston"},"away":{"name":"MEM","score":102,"id":"29","nickname":"Grizzlies","location":"Memphis"},"clock":"","status":3,"statusText":"F","link":"","settings":"0|1|1|0|0","details":""},{"gameId":400400522,"date":"20121017203000","tv":"","home":{"name":"DAL","score":94,"id":"6","nickname":"Mavericks","location":"Dallas"},"away":{"name":"PHX","score":100,"id":"21","nickname":"Suns","location":"Phoenix"},"clock":"","status":3,"statusText":"F","link":"","settings":"0|1|1|0|0","details":""},{"gameId":400400523,"date":"20121017220000","tv":"","home":{"name":"SAC","score":88,"id":"23","nickname":"Kings","location":"Sacramento"},"away":{"name":"GS","score":98,"id":"9","nickname":"Warriors","location":"Golden State"},"clock":"","status":3,"statusText":"F","link":"","settings":"0|1|0|0|0","details":""},{"gameId":400400524,"date":"20121017220000","tv":"","home":{"name":"POR","score":97,"id":"22","nickname":"Trail Blazers","location":"Portland"},"away":{"name":"DEN","score":80,"id":"7","nickname":"Nuggets","location":"Denver"},"clock":"","status":3,"statusText":"F","link":"","settings":"0|1|0|0|0","details":""}]}]},{"sport":"nbadraft","events":[{"id":"2012","display":"2012 NBA Draft","sportId":46,"entries":[{"id":"3","pos":"PF","fn":"New Orleans","ln":"Hornets","index":"1","info":"19650","display":"UK","status":"Anthony Davis"},{"id":"30","pos":"SF","fn":"Charlotte","ln":"Bobcats","index":"2","info":"19651","display":"UK","status":"Michael Kidd-Gilchrist"},{"id":"27","pos":"SG","fn":"Washington","ln":"Wizards","index":"3","info":"19658","display":"FLA","status":"Bradley Beal"},{"id":"5","pos":"SG","fn":"Cleveland","ln":"Cavaliers","index":"4","info":"19577","display":"SYR","status":"Dion Waiters"},{"id":"23","pos":"PF","fn":"Sacramento","ln":"Kings","index":"5","info":"19459","display":"KU","status":"Thomas Robinson"},{"id":"22","pos":"PG","fn":"Portland","ln":"Trail Blazers","index":"6","info":"19747","display":"WEB","status":"Damian Lillard"},{"id":"9","pos":"SF","fn":"Golden State","ln":"Warriors","index":"7","info":"19461","display":"UNC","status":"Harrison Barnes"},{"id":"28","pos":"SG","fn":"Toronto","ln":"Raptors","index":"8","info":"19640","display":"WASH","status":"Terrence Ross"},{"id":"8","pos":"C","fn":"Detroit","ln":"Pistons","index":"9","info":"19721","display":"CONN","status":"Andre Drummond"},{"id":"3","pos":"SG","fn":"New Orleans","ln":"Hornets","index":"10","info":"19653","display":"DUKE","status":"Austin Rivers"},{"id":"22","pos":"C","fn":"Portland","ln":"Trail Blazers","index":"11","info":"19727","display":"ILL","status":"Meyers Leonard"},{"id":"10","pos":"SG","fn":"Houston","ln":"Rockets","index":"12","info":"19660","display":"CONN","status":"Jeremy Lamb"},{"id":"21","pos":"PG","fn":"Phoenix","ln":"Suns","index":"13","info":"19572","display":"UNC","status":"Kendall Marshall"},{"id":"15","pos":"PF","fn":"Milwaukee","ln":"Bucks","index":"14","info":"19381","display":"UNC","status":"John Henson"},{"id":"20","pos":"SF","fn":"Philadelphia","ln":"76ers","index":"15","info":"19780","display":"SJU","status":"Maurice Harkless"},{"id":"10","pos":"SF","fn":"Houston","ln":"Rockets","index":"16","info":"19456","display":"ISU","status":"Royce White"},{"id":"6","pos":"C","fn":"Dallas","ln":"Mavericks","index":"17","info":"19474","display":"UNC","status":"Tyler Zeller"},{"id":"10","pos":"PF","fn":"Houston","ln":"Rockets","index":"18","info":"19555","display":"UK","status":"Terrence Jones"},{"id":"19","pos":"PF","fn":"Orlando","ln":"Magic","index":"19","info":"19486","display":"SBU","status":"Andrew Nicholson"},{"id":"7","pos":"SG","fn":"Denver","ln":"Nuggets","index":"20","info":"19672","display":"FRANCE","status":"Evan Fournier"},{"id":"2","pos":"PF","fn":"Boston","ln":"Celtics","index":"21","info":"19544","display":"OHST","status":"Jared Sullinger"},{"id":"2","pos":"C","fn":"Boston","ln":"Celtics","index":"22","info":"19563","display":"SYR","status":"Fab Melo"},{"id":"1","pos":"SG","fn":"Atlanta","ln":"Hawks","index":"23","info":"19629","display":"VAN","status":"John Jenkins"},{"id":"5","pos":"SG","fn":"Cleveland","ln":"Cavaliers","index":"24","info":"19743","display":"ORST","status":"Jared Cunningham"},{"id":"29","pos":"PG","fn":"Memphis","ln":"Grizzlies","index":"25","info":"19694","display":"WASH","status":"Tony Wroten Jr."},{"id":"11","pos":"PF","fn":"Indiana","ln":"Pacers","index":"26","info":"19698","display":"DUKE","status":"Miles Plumlee"},{"id":"14","pos":"PF","fn":"Miami","ln":"Heat","index":"27","info":"19464","display":"MSU","status":"Arnett Moultrie"},{"id":"25","pos":"PF","fn":"Oklahoma City","ln":"Thunder","index":"28","info":"19543","display":"BAY","status":"Perry Jones"},{"id":"4","pos":"PG","fn":"Chicago","ln":"Bulls","index":"29","info":"19655","display":"UK","status":"Marquis Teague"},{"id":"9","pos":"C","fn":"Golden State","ln":"Warriors","index":"30","info":"19447","display":"VAN","status":"Festus Ezeli"},{"id":"30","pos":"SF","fn":"Charlotte","ln":"Bobcats","index":"31","info":"19445","display":"VAN","status":"Jeff Taylor"},{"id":"27","pos":"SG","fn":"Washington","ln":"Wizards","index":"32","info":"19434","display":"CZECH REPUBLIC","status":"Tomas Satoransky"},{"id":"5","pos":"C","fn":"Cleveland","ln":"Cavaliers","index":"33","info":"19740","display":"FSU","status":"Bernard James"},{"id":"5","pos":"SF","fn":"Cleveland","ln":"Cavaliers","index":"34","info":"19742","display":"MARQ","status":"Jae Crowder"},{"id":"9","pos":"SF","fn":"Golden State","ln":"Warriors","index":"35","info":"19611","display":"MSU","status":"Draymond Green"},{"id":"23","pos":"SG","fn":"Sacramento","ln":"Kings","index":"36","info":"19670","display":"UC SANTA BARBARA","status":"Orlando Johnson"},{"id":"28","pos":"SF","fn":"Toronto","ln":"Raptors","index":"37","info":"19533","display":"BAY","status":"Quincy Acy"},{"id":"7","pos":"SF","fn":"Denver","ln":"Nuggets","index":"38","info":"19652","display":"BAY","status":"Quincy Miller"},{"id":"8","pos":"SF","fn":"Detroit","ln":"Pistons","index":"39","info":"19622","display":"TA&M","status":"Khris Middleton"},{"id":"22","pos":"SG","fn":"Portland","ln":"Trail Blazers","index":"40","info":"19570","display":"MEM","status":"Will Barton"},{"id":"22","pos":"PG","fn":"Portland","ln":"Trail Blazers","index":"41","info":"19337","display":"KU","status":"Tyshawn Taylor"},{"id":"15","pos":"SG","fn":"Milwaukee","ln":"Bucks","index":"42","info":"19608","display":"UK","status":"Doron Lamb"},{"id":"1","pos":"PF","fn":"Atlanta","ln":"Hawks","index":"43","info":"19782","display":"UVA","status":"Mike Scott"},{"id":"8","pos":"SG","fn":"Detroit","ln":"Pistons","index":"44","info":"19669","display":"MIZZ","status":"Kim English"},{"id":"20","pos":"C","fn":"Philadelphia","ln":"76ers","index":"45","info":"19810","display":"LSU","status":"Justin Hamilton"},{"id":"3","pos":"SF","fn":"New Orleans","ln":"Hornets","index":"46","info":"19791","display":"UK","status":"Darius Miller"},{"id":"26","pos":"SF","fn":"Utah","ln":"Jazz","index":"47","info":"19784","display":"TNTC","status":"Kevin Murphy"},{"id":"18","pos":"SF","fn":"New York","ln":"Knicks","index":"48","info":"19836","display":"GREECE","status":"Kostas Papanikolaou"},{"id":"19","pos":"C","fn":"Orlando","ln":"Magic","index":"49","info":"19794","display":"NORF","status":"Kyle O'Quinn"},{"id":"7","pos":"PF","fn":"Denver","ln":"Nuggets","index":"50","info":"19843","display":"TURKEY","status":"Izzet Turkyilmaz"},{"id":"2","pos":"SF","fn":"Boston","ln":"Celtics","index":"51","info":"19532","display":"SYR","status":"Kris Joseph"},{"id":"9","pos":"C","fn":"Golden State","ln":"Warriors","index":"52","info":"19844","display":"BOSNIA","status":"Ognjen Kuzmic"},{"id":"12","pos":"PF","fn":"Los Angeles","ln":"Clippers","index":"53","info":"19688","display":"TURKEY","status":"Furkan Aldemir"},{"id":"20","pos":"SF","fn":"Philadelphia","ln":"76ers","index":"54","info":"19744","display":"GEORGIA ","status":"Tornike Shengelia"},{"id":"6","pos":"SF","fn":"Dallas","ln":"Mavericks","index":"55","info":"19649","display":"MARQ","status":"Darius Johnson-Odom"},{"id":"28","pos":"SF","fn":"Toronto","ln":"Raptors","index":"56","info":"19386","display":"CROATIA","status":"Tomislav Zubcic"},{"id":"17","pos":"PF","fn":"Brooklyn","ln":"Nets","index":"57","info":"19845","display":"TURKEY","status":"Ilkan Karaman"},{"id":"16","pos":"SF","fn":"Minnesota","ln":"Timberwolves","index":"58","info":"19243","display":"PUR","status":"Robbie Hummel"},{"id":"24","pos":"SG","fn":"San Antonio","ln":"Spurs","index":"59","info":"19768","display":"MIZZ","status":"Marcus Denmon"},{"id":"13","pos":"C","fn":"Los Angeles","ln":"Lakers","index":"60","info":"19516","display":"GONZ","status":"Robert Sacre"}],"currentPick":{"id":"13","pos":"C","fn":"Robert","ln":"Sacre","index":"61","info":"19516","display":"LAL","round":"2","pickNum":"30","proTeamId":"13","status":"last|2|30|13"}}]},{"sport":"ncb","leagues":[{"league":"ncb","display":"Preseason: Oct. 17, 2012","sportId":41,"date":"20121017000000","games":[]}]},{"sport":"ncf","leagues":[{"league":"ncf","display":"Regular Season: Week 8","sportId":23,"date":"20121017000000","games":[{"gameId":322900249,"date":"20121016210000","tv":"ESPN2","home":{"name":"UNT","score":30,"id":"249","nickname":"Mean Green","location":"North Texas"},"away":{"name":"ULL","score":23,"id":"309","nickname":"Ragin&#39; Cajuns","location":"LA-Lafayette"},"clock":"","status":3,"statusText":"F","inning":"0","period":" ","quarter":"8514390","link":"0","stats":{"display":"GAME","data":[{"id":481027,"name":"D. Thompson","stat":"282","stat2":"2"},{"id":505232,"name":"B. Byrd","stat":"88","stat2":"0"},{"id":515139,"name":"A. Jimmerson","stat":"106","stat2":"2"},{"id":503922,"name":"T. Broadway","stat":"265","stat2":"1"},{"id":503922,"name":"T. Broadway","stat":"84","stat2":"1"},{"id":512333,"name":"H. Peoples","stat":"56","stat2":"1"}]},"settings":"1|1|1|0|0|0|1"},{"gameId":322922567,"date":"20121018200000","tv":"","home":{"name":"SMU","score":0,"id":"2567","nickname":"Mustangs","location":"SMU"},"away":{"name":"HOU","score":0,"id":"248","nickname":"Cougars","location":"Houston"},"clock":"","status":1,"statusText":"Thu 8:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":480209,"name":"G. Gilbert","stat":"1393","stat2":"7"},{"id":380301,"name":"Z. Line","stat":"604","stat2":"3"},{"id":503463,"name":"J. Johnson","stat":"371","stat2":"2"},{"id":503173,"name":"D. Piland","stat":"2084","stat2":"10"},{"id":482428,"name":"C. Sims","stat":"643","stat2":"6"},{"id":480326,"name":"D. Peace","stat":"417","stat2":"2"}]},"settings":"0|0|0|0|0|0|0"},{"gameId":322920009,"date":"20121018210000","tv":"ESPN","home":{"name":"ASU","score":0,"id":"9","nickname":"Sun Devils","location":"Arizona St"},"away":{"name":"ORE","score":0,"id":"2483","rank":"3","nickname":"Ducks","location":"Oregon"},"clock":"","status":1,"statusText":"Thu 9:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":504700,"name":"T. Kelly","stat":"1600","stat2":"14"},{"id":534754,"name":"D. Foster","stat":"269","stat2":"2"},{"id":480354,"name":"C. Coyle","stat":"386","stat2":"2"},{"id":511459,"name":"M. Mariota","stat":"1301","stat2":"15"},{"id":379309,"name":"K. Barner","stat":"727","stat2":"9"},{"id":511464,"name":"D. Thomas","stat":"205","stat2":"3"}]},"settings":"0|0|0|1|0|0|1"},{"gameId":322930183,"date":"20121019200000","tv":"ESPN","home":{"name":"SYR","score":0,"id":"183","nickname":"Orange","location":"Syracuse"},"away":{"name":"CONN","score":0,"id":"41","nickname":"Huskies","location":"Connecticut"},"clock":"","status":1,"statusText":"Fri 8:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":382584,"name":"R. Nassib","stat":"1908","stat2":"11"},{"id":503810,"name":"J. Smith","stat":"355","stat2":"0"},{"id":382585,"name":"M. Sales","stat":"545","stat2":"5"},{"id":533264,"name":"C. Whitmer","sta
+008000
+t":"1535","stat2":"6"},{"id":502309,"name":"L. McCombs","stat":"484","stat2":"4"},{"id":502295,"name":"G. Davis","stat":"370","stat2":"1"}]},"settings":"0|0|0|0|0|0|1"},{"gameId":322940113,"date":"20121020120000","tv":"","home":{"name":"MASS","score":0,"id":"113","nickname":"Minutemen","location":"Massachusetts"},"away":{"name":"BGSU","score":0,"id":"189","nickname":"Falcons","location":"Bowling Green"},"clock":"","status":1,"statusText":"Sat 12:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":521269,"name":"M. Wegzyn","stat":"1022","stat2":"4"},{"id":381788,"name":"M. Cox","stat":"395","stat2":"3"},{"id":385443,"name":"D. Walker","stat":"411","stat2":"1"},{"id":482947,"name":"M. Schilz","stat":"1486","stat2":"7"},{"id":513571,"name":"A. Samuel","stat":"665","stat2":"8"},{"id":487561,"name":"S. Joplin","stat":"395","stat2":"0"}]},"settings":"0|0|0|0|0|0|0"},{"gameId":322940194,"date":"20121020120000","tv":"ABC","home":{"name":"OSU","score":0,"id":"194","nickname":"Buckeyes","location":"Ohio St"},"away":{"name":"PUR","score":0,"id":"2509","nickname":"Boilermakers","location":"Purdue"},"clock":"","status":1,"statusText":"Sat 12:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":512838,"name":"B. Miller","stat":"1271","stat2":"11"},{"id":512838,"name":"B. Miller","stat":"912","stat2":"9"},{"id":514181,"name":"D. Smith","stat":"457","stat2":"6"},{"id":382027,"name":"C. TerBush","stat":"716","stat2":"8"},{"id":514205,"name":"A. Shavers","stat":"324","stat2":"3"},{"id":482354,"name":"A. Edison","stat":"371","stat2":"5"}]},"settings":"0|0|0|1|0|0|1"},{"gameId":322940197,"date":"20121020120000","tv":"FX","home":{"name":"OKST","score":0,"id":"197","nickname":"Cowboys","location":"Oklahoma St"},"away":{"name":"ISU","score":0,"id":"66","rank":"24","nickname":"Cyclones","location":"Iowa St"},"clock":"","status":1,"statusText":"Sat 12:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":511260,"name":"J. Walsh","stat":"1052","stat2":"9"},{"id":501595,"name":"J. Randle","stat":"614","stat2":"6"},{"id":511258,"name":"J. Stewart","stat":"365","stat2":"3"},{"id":383008,"name":"S. Jantz","stat":"804","stat2":"7"},{"id":480696,"name":"J. White","stat":"264","stat2":"2"},{"id":480693,"name":"J. Lenz","stat":"279","stat2":"4"}]},"settings":"0|0|0|0|0|0|0"},{"gameId":322940218,"date":"20121020120000","tv":"Big East Network","home":{"name":"TEM","score":0,"id":"218","nickname":"Owls","location":"Temple"},"away":{"name":"RUTG","score":0,"id":"164","rank":"15","nickname":"Scarlet Knights","location":"Rutgers"},"clock":"","status":1,"statusText":"Sat 12:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":482161,"name":"C. Coyer","stat":"662","stat2":"6"},{"id":380803,"name":"M. Harris","stat":"310","stat2":"3"},{"id":513398,"name":"J. Fitzpatrick","stat":"196","stat2":"2"},{"id":518344,"name":"G. Nova","stat":"1271","stat2":"11"},{"id":503841,"name":"J. Jamison","stat":"665","stat2":"3"},{"id":503832,"name":"B. Coleman","stat":"382","stat2":"5"}]},"settings":"0|0|0|1|0|0|1"},{"gameId":322940228,"date":"20121020120000","tv":"ABC","home":{"name":"CLEM","score":0,"id":"228","rank":"19","nickname":"Tigers","location":"Clemson"},"away":{"name":"VT","score":0,"id":"259","nickname":"Hokies","location":"Virginia Tech"},"clock":"","status":1,"statusText":"Sat 12:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":480221,"name":"T. Boyd","stat":"1748","stat2":"14"},{"id":381445,"name":"A. Ellington","stat":"597","stat2":"6"},{"id":501689,"name":"D. Hopkins","stat":"777","stat2":"8"},{"id":480239,"name":"L. Thomas","stat":"1703","stat2":"12"},{"id":530522,"name":"J. Coleman","stat":"319","stat2":"2"},{"id":381545,"name":"M. Davis","stat":"585","stat2":"4"}]},"settings":"0|0|0|1|0|0|1"},{"gameId":322940245,"date":"20121020120000","tv":"ESPN","home":{"name":"TA&M","score":0,"id":"245","rank":"18","nickname":"Aggies","location":"Texas A&amp;M"},"away":{"name":"LSU","score":0,"id":"99","rank":"6","nickname":"Tigers","location":"LSU"},"clock":"","status":1,"statusText":"Sat 12:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":517475,"name":"J. Manziel","stat":"1680","stat2":"14"},{"id":517475,"name":"J. Manziel","stat":"676","stat2":"10"},{"id":517502,"name":"M. Evans","stat":"549","stat2":"2"},{"id":480251,"name":"Z. Mettenberger","stat":"1322","stat2":"6"},{"id":517214,"name":"K. Hilliard","stat":"415","stat2":"6"},{"id":517215,"name":"O. Beckham","stat":"385","stat2":"2"}]},"settings":"0|0|0|1|0|0|1"},{"gameId":322940275,"date":"20121020120000","tv":"ESPNU","home":{"name":"WIS","score":0,"id":"275","nickname":"Badgers","location":"Wisconsin"},"away":{"name":"MINN","score":0,"id":"135","nickname":"Golden Gophers","location":"Minnesota"},"clock":"","status":1,"statusText":"Sat 12:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":514230,"name":"J. Stave","stat":"871","stat2":"5"},{"id":482389,"name":"M. Ball","stat":"816","stat2":"11"},{"id":482381,"name":"J. Abbrederis","stat":"559","stat2":"5"},{"id":514502,"name":"M. Shortell","stat":"791","stat2":"6"},{"id":503233,"name":"D. Kirkwood","stat":"467","stat2":"3"},{"id":481778,"name":"A. Barker","stat":"406","stat2":"4"}]},"settings":"0|0|0|0|0|0|1"},{"gameId":322942006,"date":"20121020120000","tv":"GamePlan","home":{"name":"AKR","score":0,"id":"2006","nickname":"Zips","location":"Akron"},"away":{"name":"NIU","score":0,"id":"2459","nickname":"Huskies","location":"N Illinois"},"clock":"","status":1,"statusText":"Sat 12:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":384895,"name":"D. Williams","stat":"2205","stat2":"19"},{"id":514599,"name":"J. Chisholm","stat":"675","stat2":"2"},{"id":514629,"name":"M. Suel","stat":"506","stat2":"4"},{"id":482142,"name":"J. Lynch","stat":"1487","stat2":"11"},{"id":482142,"name":"J. Lynch","stat":"918","stat2":"11"},{"id":482143,"name":"M. Moore","stat":"543","stat2":"6"}]},"settings":"0|0|0|0|0|0|1"},{"gameId":322940238,"date":"20121020122100","tv":"SEC Network","home":{"name":"VAN","score":0,"id":"238","nickname":"Commodores","location":"Vanderbilt"},"away":{"name":"AUB","score":0,"id":"2","nickname":"Tigers","location":"Auburn"},"clock":"","status":1,"statusText":"Sat 12:21 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":500561,"name":"J. Rodgers","stat":"1068","stat2":"3"},{"id":483439,"name":"Z. Stacy","stat":"499","stat2":"4"},{"id":500884,"name":"J. Matthews","stat":"617","stat2":"3"},{"id":515946,"name":"K. Frazier","stat":"664","stat2":"2"},{"id":511828,"name":"T. Mason","stat":"389","stat2":"3"},{"id":480370,"name":"E. Blake","stat":"378","stat2":"2"}]},"settings":"0|0|0|0|0|0|1"},{"gameId":322940258,"date":"20121020123000","tv":"GamePlan","home":{"name":"UVA","score":0,"id":"258","nickname":"Cavaliers","location":"Virginia"},"away":{"name":"WAKE","score":0,"id":"154","nickname":"Demon Deacons","location":"Wake Forest"},"clock":"","status":1,"statusText":"Sat 12:30 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":501176,"name":"M. Rocco","stat":"1202","stat2":"7"},{"id":501180,"name":"K. Parks","stat":"475","stat2":"3"},{"id":511362,"name":"D. Jennings","stat":"370","stat2":"1"},{"id":500554,"name":"T. Price","stat":"1225","stat2":"7"},{"id":481643,"name":"J. Harris","stat":"377","stat2":"3"},{"id":481645,"name":"M. Campanaro","stat":"429","stat2":"3"}]},"settings":"0|0|0|0|0|0|1"},{"gameId":322942199,"date":"20121020130000","tv":"ESPN3","home":{"name":"EMU","score":0,"id":"2199","nickname":"Eagles","location":"E Michigan"},"away":{"name":"ARMY","score":0,"id":"349","nickname":"Black Knights","location":"Army"},"clock":"","status":1,"statusText":"Sat 1:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":504525,"name":"T. Benz","stat":"609","stat2":"4"},{"id":512990,"name":"B. Hill","stat":"363","stat2":"5"},{"id":482090,"name":"G. Hoskins","stat":"306","stat2":"2"},{"id":483302,"name":"T. Steelman","stat":"337","stat2":"1"},{"id":503568,"name":"R. Maples","stat":"751","stat2":"1"},{"id":515402,"name":"C. Lawrence","stat":"186","stat2":"0"}]},"settings":"0|0|0|0|0|0|1"},{"gameId":322942653,"date":"20121020130000","tv":"GamePlan","home":{"name":"TROY","score":0,"id":"2653","nickname":"Trojans","location":"Troy"},"away":{"name":"FIU","score":0,"id":"2229","nickname":"Golden Panthers","location":"Florida Int"},"clock":"","status":1,"statusText":"Sat 1:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":480981,"name":"C. Robinson","stat":"1595","stat2":"7"},{"id":480990,"name":"S. Southward","stat":"573","stat2":"5"},{"id":385129,"name":"C. Reeves","stat":"538","stat2":"3"},{"id":505663,"name":"J. Medlock","stat":"1207","stat2":"6"},{"id":505666,"name":"K. Rhodes","stat":"287","stat2":"2"},{"id":481387,"name":"W. Times","stat":"384","stat2":"0"}]},"settings":"0|0|0|0|0|0|1"},{"gameId":322942636,"date":"20121020140000","tv":"ESPN3","home":{"name":"UTSA","score":0,"id":"2636","nickname":"Roadrunners","location":"UTSA"},"away":{"name":"SJSU","score":0,"id":"23","nickname":"Spartans","location":"San Jose St"},"clock":"","status":1,"statusText":"Sat 2:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":486785,"name":"E. Soza","stat":"1077","stat2":"11"},{"id":517805,"name":"D. Glasco II","stat":"320","stat2":"4"},{"id":517795,"name":"K. Jones","stat":"205","stat2":"1"},{"id":480550,"name":"D. Fales","stat":"1867","stat2":"12"},{"id":381937,"name":"D. Eskridge","stat":"414","stat2":"3"},{"id":483549,"name":"N. Grigsby","stat":"580","stat2":"4"}]},"settings":"0|0|0|0|0|0|1"},{"gameId":322940025,"date":"20121020150000","tv":"FOX","home":{"name":"CAL","score":0,"id":"25","nickname":"Golden Bears","location":"California"},"away":{"name":"STAN","score":0,"id":"24","rank":"20","nickname":"Cardinal","location":"Stanford"},"clock":"","status":1,"statusText":"Sat 3:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":384118,"name":"Z. Maynard","stat":"1537","stat2":"10"},{"id":516996,"name":"C. Anderson","stat":"498","stat2":"4"},{"id":501550,"name":"K. Allen","stat":"633","stat2":"5"},{"id":480259,"name":"J. Nunes","stat":"1270","stat2":"8"},{"id":482574,"name":"S. Taylor","stat":"657","stat2":"5"},{"id":482590,"name":"Z. Ertz","stat":"371","stat2":"2"}]},"settings":"0|0|0|1|0|0|0"},{"gameId":322940059,"date":"20121020150000","tv":"GamePlan","home":{"name":"GT","score":0,"id":"59","nickname":"Yellow Jackets","location":"Georgia Tech"},"away":{"name":"BC","score":0,"id":"103","nickname":"Eagles","location":"Boston College"},"clock":"","status":1,"statusText":"Sat 3:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":377759,"name":"T. Washington","stat":"804","stat2":"4"},{"id":377759,"name":"T. Washington","stat":"408","stat2":"13"},{"id":513724,"name":"J. Greene","stat":"233","stat2":"2"},{"id":501665,"name":"C. Rettig","stat":"1648","stat2":"11"},{"id":501673,"name":"A. Williams","stat":"473","stat2":"4"},{"id":501644,"name":"A. Amidon","stat":"688","stat2":"4"}]},"settings":"0|0|0|0|0|0|1"},{"gameId":322940328,"date":"20121020150000","tv":"GamePlan","home":{"name":"USU","score":0,"id":"328","nickname":"Aggies","location":"Utah St"},"away":{"name":"NMSU","score":0,"id":"166","nickname":"Aggies","location":"New Mexico St"},"clock":"","status":1,"statusText":"Sat 3:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":512806,"name":"C. Keeton","stat":"1758","stat2":"14"},{"id":505058,"name":"K. Williams","stat":"713","stat2":"6"},{"id":480971,"name":"M. Austin","stat":"403","stat2":"4"},{"id":500846,"name":"A. Manley","stat":"1630","stat2":"11"},{"id":512791,"name":"G. Morrison","stat":"263","stat2":"1"},{"id":512781,"name":"A. Franklin","stat":"742","stat2":"7"}]},"settings":"0|0|0|0|0|0|1"},{"gameId":322940006,"date":"20121020153000","tv":"","home":{"name":"SOAL","score":0,"id":"6","nickname":"Jaguars","location":"South Alabama"},"away":{"name":"FAU","score":0,"id":"2226","nickname":"Owls","location":"Florida Atl"},"clock":"","status":1,"statusText":"Sat 3:30 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":481587,"name":"R. Metheny","stat":"595","stat2":"4"},{"id":512232,"name":"D. Baker","stat":"294","stat2":"1"},{"id":537388,"name":"J. Jones","stat":"204","stat2":"3"},{"id":384831,"name":"G. Wilbert","stat":"1006","stat2":"6"},{"id":482999,"name":"D. Fortner","stat":"250","stat2":"2"},{"id":515601,"name":"W. Dukes","stat":"320","stat2":"0"}]},"settings":"0|0|0|0|0|0|0"},{"gameId":322940057,"date":"20121020153000","tv":"CBS","home":{"name":"FLA","score":0,"id":"57","rank":"2","nickname":"Gators","location":"Florida"},"away":{"name":"SCAR","score":0,"id":"2579","rank":"7","nickname":"Gamecocks","location":"South Carolina"},"clock":"","status":1,"statusText":"Sat 3:30 PM","inning":"0","period":" ","quarter":"8516590","link":"0","stats":{"display":"SEASON","data":[{"id":511889,"name":"J. Driskel","stat":"836","stat2":"4"},{"id":480255,"name":"M. Gillislee","stat":"615","stat2":"7"},{"id":480262,"name":"J. Reed","stat":"237","stat2":"1"},{"id":504292,"name":"C. Shaw","stat":"910","stat2":"9"},{"id":501517,"name":"M. Lattimore","stat":"584","stat2":"10"},{"id":515818,"name":"D. Byrd","stat":"303","stat2":"2"}]},"settings":"0|0|0|1|0|0|0"},{"gameId":322940068,"date":"20121020153000","tv":"NBC Sports Network","home":{"name":"BSU","score":0,"id":"68","rank":"22","nickname":"Broncos","location":"Boise St"},"away":{"name":"UNLV","score":0,"id":"2439","nickname":"Rebels","location":"UNLV"},"clock":"","status":1,"statusText":"Sat 3:30 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":483461,"name":"J. Southwick","stat":"1237","stat2":"9"},{"id":232570,"name":"D. Harper","stat":"549","stat2":"6"},{"id":504915,"name":"M. Miller","stat":"304","stat2":"2"},{"id":517186,"name":"N. Sherry","stat":"1771","stat2":"11"},{"id":503003,"name":"T. Cornett","stat":"747","stat2":"5"},{"id":481341,"name":"M. Sullivan","stat":"506","stat2":"4"}]},"settings":"0|0|0|1|0|0|0"},{"gameId":322940077,"date":"20121020153000","tv":"ESPN2","home":{"name":"NW","score":0,"id":"77","nickname":"Wildcats","location":"Northwestern"},"away":{"name":"NEB","score":0,"id":"158","nickname":"Cornhuskers","location":"Nebraska"},"clock":"","status":1,"statusText":"Sat 3:30 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":500419,"name":"T. Siemian","stat":"811","stat2":"2"},{"id":500415,"name":"V. Mark","stat":"792","stat2":"8"},{"id":500412,"name":"T. Jones","stat":"230","stat2":"1"},{"id":481547,"name":"T. Martinez","stat":"1273","stat2":"12"},{"id":514508,"name":"A. Abdullah","stat":"514","stat2":"7"},{"id":501842,"name":"K. Bell","stat":"463","stat2":"4"}]},"settings":"0|0|0|0|0|0|1"},{"gameId":322940087,"date":"20121020153000","tv":"NBC","home":{"name":"ND","score":0,"id":"87","rank":"5","nickname":"Fighting Irish","location":"Notre Dame"},"away":{"name":"BYU","score":0,"id":"252","nickname":"Cougars","location":"BYU"},"clock":"","status":1,"statusText":"Sat 3:30 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":515409,"name":"E. Golson","stat":"968","stat2":"4"},{"id":483393,"name":"T. Riddick","stat":"308","stat2":"3"},{"id":483387,"name":"T. Eifert","stat":"246","stat2":"2"},{"id":487650,"name":"R. Nelson","stat":"1059","stat2":"6"},{"id":536136,"name":"J. Williams","stat":"345","stat2":"5"},{"id":487636,"name":"C. Hoffman","stat":"534","stat2":"2"}]},"settings":"0|0|0|1|0|0|0"},{"gameId":322940097,"date":"20121020153000","tv":"ABC","home":{"name":"LOU","score":0,"id":"97","rank":"16","nickname":"Cardinals","location":"Louisville"},"away":{"name":"USF","score":0,"id":"58","nickname":"Bulls","location":"South Florida"},"clock":"","status":1,"statusText":"Sat 3:30 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":511614,"name":"T. Bridgewater","stat":"1438","stat2":"9"},{"id":500375,"name":"S. Perry","stat":"559","stat2":"9"},{"id":511615,"name":"D. Parker","stat":"319","stat2":"2"},{"id":382201,"name":"B. Daniels","stat":"1504","stat2":"10"},{"id":382372,"name":"D. Murray","stat":"327","stat2":"4"},{"id":503117,"name":"T. Mitchell","stat":"339","stat2":"1"}]},"settings":"0|0|0|1|0|0|1"},{"gameId":322940120,"date":"20121020153000","tv":"ESPNU","home":{"name":"MD","score":0,"id":"120","nickname":"Terrapins","location":"Maryland"},"away":{"name":"NCST","score":0,"id":"152","nickname":"Wolfpack","location":"N Carolina St"},"clock":"","status":1,"statusText":"Sat 3:30 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":534317,"name":"P. Hills","stat":"1177","stat2":"8"},{"id":534242,"name":"W. Brown","stat":"150","stat2":"1"},{"id":534249,"name":"S. Diggs","stat":"453","stat2":"3"},{"id":381967,"name":"M. Glennon","stat":"1681","stat2":"12"},{"id":511297,"name":"T. Creecy","stat":"284","stat2":"3"},{"id":481478,"name":"Q. Payton","stat":"500","stat2":"1"}]},"settings":"0|0|0|0|0|0|1"},{"gameId":322940130,"date":"20121020153000","tv":"Big Ten Network","home":{"name":"MICH","score":0,"id":"130","nickname":"Wolverines","location":"Michigan"},"away":{"name":"MSU","score":0,"id":"127","nickname":"Spartans","location":"Michigan St"},"clock":"","status":1,"statusText":"Sat 3:30 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":480237,"name":"D. Robinson","stat":"1101","stat2":"9"},{"id":480237,"name":"D. Robinson","stat":"804","stat2":"6"},{"id":480899,"name":"J. Gallon","stat":"287","stat2":"1"},{"id":481710,"name":"A. Maxwell","stat":"1607","stat2":"6"},{"id":503183,"name":"L. Bell","stat":"916","stat2":"8"},{"id":503206,"name":"K. Mumphery","stat":"330","stat2":"1"}]},"settings":"0|0|0|1|0|0|0"},{"gameId":322940202,"date":"20121020153000","tv":"","home":{"name":"TLSA","score":0,"id":"202","nickname":"Golden Hurricane","location":"Tulsa"},"away":{"name":"RICE","score":0,"id":"242","nickname":"Owls","location":"Rice"},"clock":"","status":1,"statusText":"Sat 3:30 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":481555,"name":"C. Green","stat":"1329","stat2":"10"},{"id":500517,"name":"J. Douglas","stat":"533","stat2":"5"},{"id":514158,"name":"K. Garrett","stat":"325","stat2":"4"},{"id":482478,"name":"T. McHargue","stat":"1188","stat2":"7"},{"id":482483,"name":"C. Ross","stat":"452","stat2":"1"},{"id":503448,"name":"J. Taylor","stat":"411","stat2":"0"}]},"settings":"0|0|0|0|0|0|0"},{"gameId":322942084,"date":"20121020153000","tv":"Big East Network","home":{"name":"BUFF","score":0,"id":"2084","nickname":"Bulls","location":"Buffalo"},"away":{"name":"PITT","score":0,"id":"221","nickname":"Panthers","location":"Pittsburgh"},"clock":"","status":1,"statusText":"Sat 3:30 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":503736,"name":"A. Zordich","stat":"971","stat2":"8"},{"id":482259,"name":"B. Oliver","stat":"426","stat2":"3"},{"id":482272,"name":"A. Neutz","stat":"512","stat2":"7"},{"id":382104,"name":"T. Sunseri","stat":"1750","stat2":"10"},{"id":482843,"name":"R. Graham","stat":"439","stat2":"4"},{"id":382228,"name":"M. Shanahan","stat":"525","stat2":"3"}]},"settings":"0|0|0|0|0|0|1"},{"gameId":322942117,"date":"20121020153000","tv":"ESPN3","home":{"name":"CMU","score":0,"id":"2117","nickname":"Chippewas","location":"Cent Michigan"},"away":{"name":"BALL","score":0,"id":"2050","nickname":"Cardinals","location":"Ball St"},"clock":"","status":1,"statusText":"Sat 3:30 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":383499,"name":"R. Radcliff","stat":"1435","stat2":"10"},{"id":482048,"name":"Z. Tipton","stat":"502","stat2":"6"},{"id":512956,"name":"T. Davis","stat":"436","stat2":"5"},{"id":503695,"name":"K. Wenning","stat":"2005","stat2":"12"},{"id":511399,"name":"J. Edwards","stat":"673","stat2":"8"},{"id":511422,"name":"W. Snead","stat":"771","stat2":"5"}]},"settings":"0|0|0|0|0|0|1"},{"gameId":322942309,"date":"20121020153000","tv":"","home":{"name":"KENT","score":0,"id":"2309","nickname":"Golden Flashes","location":"Kent St"},"away":{"name":"WMU","score":0,"id":"2711","nickname":"Broncos","location":"W Michigan"},"clock":"","status":1,"statusText":"Sat 3:30 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":482099,"name":"S. Keith","stat":"849","stat2":"5"},{"id":482107,"name":"D. Archer","stat":"625","stat2":"6"},{"id":514251,"name":"J. Boyle","stat":"254","stat2":"1"},{"id":383521,"name":"A. Carder","stat":"1049","stat2":"8"},{"id":500428,"name":"D. Chance","stat":"558","stat2":"2"},{"id":532641,"name":"J. Wilson","stat":"681","stat2":"6"}]},"settings":"0|0|0|0|0|0|0"},{"gameId":322942426,"date":"20121020153000","tv":"CBS Sports Network","home":{"name":"NAVY","score":0,"id":"2426","nickname":"Midshipmen","location":"Navy"},"away":{"name":"IND","score":0,"id":"84","nickname":"Hoosiers","location":"Indiana"},"clock":"","status":1,"statusText":"Sat 3:30 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":503604,"name":"T. Miller","stat":"381","stat2":"1"},{"id":516220,"name":"N. Copeland","stat":"344","stat2":"1"},{"id":503611,"name":"S. Lynch","stat":"155","stat2":"1"},{"id":530691,"name":"C. Coffman","stat":"1076","stat2":"7"},{"id":513021,"name":"S. Houston","stat":"368","stat2":"6"},{"id":513025,"name":"C. Latimer","stat":"431","stat2":"2"}]},"settings":"0|0|0|0|0|0|0"},{"gameId":322942628,"date":"20121020153000","tv":"ABC","home":{"name":"TCU","score":0,"id":"2628","rank":"23","nickname":"Horned Frogs","location":"TCU"},"away":{"name":"TTU","score":0,"id":"2641","rank":"17","nickname":"Red Raiders","location":"Texas Tech"},"clock":"","status":1,"statusText":"Sat 3:30 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":481287,"name":"C. Pachall","stat":"948","stat2":"10"},{"id":531236,"name":"B. Catalon","stat":"247","stat2":"0"},{"id":517129,"name":"B. Carter","stat":"425","stat2":"4"},{"id":377942,"name":"S. Doege","stat":"1891","stat2":"21"},{"id":515808,"name":"K. Williams","stat":"376","stat2":"2"},{"id":514480,"name":"J. Amaro","stat":"394","stat2":"4"}]},"settings":"0|0|0|1|0|0|1"},{"gameId":322940098,"date":"20121020160000","tv":"ESPN3","home":{"name":"WKU","score":0,"id":"98","nickname":"Hilltoppers","location":"W Kentucky"},"away":{"name":"ULM","score":0,"id":"2433","nickname":"Warhawks","location":"LA-Monroe"},"clock":"","status":1,"statusText":"Sat 4:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":382917,"name":"K. Jakes","stat":"1079","stat2":"11"},{"id":508524,"name":"A. Andrews","stat":"655","stat2":"5"},{"id":508524,"name":"A. Andrews","stat":"249","stat2":"1"},{"id":481248,"name":"K. Browning","stat":"1606","stat2":"14"},{"id":481244,"name":"J. Edwards","stat":"404","stat2":"6"},{"id":505209,"name":"J. Hamm","stat":"415","stat2":"2"}]},"settings":"0|0|0|0|0|0|1"},{"gameId":322940030,"date":"20121020180000","tv":"Pac-12 Network","home":{"name":"USC","score":0,"id":"30","rank":"10","nickname":"Trojans","location":"USC"},"away":{"name":"COLO","score":0,"id":"38","nickname":"Buffaloes","location":"Colorado"},"clock":"","status":1,"statusText":"Sat 6:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":480322,"name":"M. Barkley","stat":"1475","stat2":"16"},{"id":503340,"name":"S. Redd","stat":"570","stat2":"6"},{"id":513334,"name":"M. Lee","stat":"681","stat2":"7"},{"id":480812,"name":"J. Webb","stat":"1141","stat2":"8"},{"id":535778,"name":"C. Powell","stat":"294","stat2":"3"},{"id":511433,"name":"N. Spruce","stat":"291","stat2":"2"}]},"settings":"0|0|0|1|0|0|0"},{"gameId":322940005,"date":"20121020190000","tv":"","home":{"name":"UAB","score":0,"id":"5","nickname":"Blazers","location":"UAB"},"away":{"name":"ECU","score":0,"id":"151","nickname":"Pirates","location":"East Carolina"},"clock":"","status":1,"statusText":"Sat 7:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":518239,"name":"A. Brown","stat":"1130","stat2":"5"},{"id":518058,"name":"D. Reaves","stat":"286","stat2":"4"},{"id":503526,"name":"J. Williams","stat":"424","stat2":"0"},{"id":500938,"name":"S. Carden","stat":"1299","stat2":"9"},{"id":536603,"name":"V. Cooper","stat":"458","stat2":"1"},{"id":505407,"name":"J. Hardy","stat":"617","stat2":"7"}]},"settings":"0|0|0|0|0|0|0"},{"gameId":322940096,"date":"20121020190000","tv":"GamePlan","home":{"name":"UK","score":0,"id":"96","nickname":"Wildcats","location":"Kentucky"},"away":{"name":"UGA","score":0,"id":"61","rank":"11","nickname":"Bulldogs","location":"Georgia"},"clock":"","status":1,"statusText":"Sat 7:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":517427,"name":"M. Smith","stat":"975","stat2":"8"},{"id":504154,"name":"R. Sanders","stat":"324","stat2":"2"},{"id":482791,"name":"L. King","stat":"351","stat2":"4"},{"id":480210,"name":"A. Murray","stat":"1487","stat2":"12"},{"id":534669,"name":"T. Gurley","stat":"575","stat2":"9"},{"id":503986,"name":"M. Bennett","stat":"345","stat2":"4"}]},"settings":"0|0|0|1|0|0|1"},{"gameId":322940150,"date":"20121020190000","tv":"ESPNU","home":{"name":"DUKE","score":0,"id":"150","nickname":"Blue Devils","location":"Duke"},"away":{"name":"UNC","score":0,"id":"153","nickname":"Tar Heels","location":"North Carolina"},"clock":"","status":1,"statusText":"Sat 7:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":381689,"name":"S. Renfree","stat":"1517","stat2":"10"},{"id":530480,"name":"J. Duncan","stat":"265","stat2":"2"},{"id":482761,"name":"C. Vernon","stat":"625","stat2":"5"},{"id":480234,"name":"B. Renner","stat":"1830","stat2":"15"},{"id":500890,"name":"G. Bernard","stat":"652","stat2":"7"},{"id":516329,"name":"E. Ebron","stat":"399","stat2":"3"}]},"settings":"0|0|0|0|0|0|1"},{"gameId":322940201,"date":"20121020190000","tv":"","home":{"name":"OKLA","score":0,"id":"201","rank":"9","nickname":"Sooners","location":"Oklahoma"},"away":{"name":"KU","score":0,"id":"2305","nickname":"Jayhawks","location":"Kansas"},"clock":"","status":1,"statusText":"Sat 7:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":377845,"name":"L. Jones","stat":"1353","stat2":"9"},{"id":534462,"name":"D. Williams","stat":"508","stat2":"6"},{"id":501915,"name":"K. Stills","stat":"381","stat2":"3"},{"id":385324,"name":"D. Crist","stat":"1088","stat2":"3"},{"id":502757,"name":"J. Sims","stat":"344","stat2":"4"},{"id":377792,"name":"K. Pick","stat":"248","stat2":"0"}]},"settings":"0|0|0|1|0|0|0"},{"gameId":322940277,"date":"20121020190000","tv":"FOX","home":{"name":"WVU","score":0,"id":"277","rank":"13","nickname":"Mountaineers","location":"West Virginia"},"away":{"name":"KSU","score":0,"id":"2306","rank":"4","nickname":"Wildcats","location":"Kansas St"},"clock":"","status":1,"statusText":"Sat 7:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":488025,"name":"G. Smith","stat":"2271","stat2":"25"},{"id":518249,"name":"A. Buie","stat":"504","stat2":"5"},{"id":487983,"name":"S. Bailey","stat":"766","stat2":"14"},{"id":381823,"name":"C. Klein","stat":"1074","stat2":"7"},{"id":481493,"name":"J. Hubert","stat":"606","stat2":"8"},{"id":481509,"name":"T. Thompson","stat":"283","stat2":"3"}]},"settings":"0|0|0|1|0|0|0"},{"gameId":322940344,"date":"20121020190000","tv":"ESPN2","home":{"name":"MSST","score":0,"id":"344","rank":"12","nickname":"Bulldogs","location":"Miss. St"},"away":{"name":"MTU","score":0,"id":"2393","nickname":"Blue Raiders","location":"Mid Tennessee"},"clock":"","status":1,"statusText":"Sat 7:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":483147,"name":"T. Russell","stat":"1382","stat2":"12"},{"id":483149,"name":"L. Perkins","stat":"600","stat2":"7"},{"id":480249,"name":"C. Bumphis","stat":"468","stat2":"6"},{"id":501571,"name":"L. Kilgore","stat":"1422","stat2":"9"},{"id":531588,"name":"B. Cunningham","stat":"600","stat2":"11"},{"id":510104,"name":"A. Amos","stat":"580","stat2":"5"}]},"settings":"0|0|0|1|0|0|1"},{"gameId":322942005,"date":"20121020190000","tv":"","home":{"name":"AFA","score":0,"id":"2005","nickname":"Falcons","location":"Air Force"},"away":{"name":"UNM","score":0,"id":"167","nickname":"Lobos","location":"New Mexico"},"clock":"","status":1,"statusText":"Sat 7:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":487624,"name":"C. Dietz","stat":"647","stat2":"5"},{"id":488588,"name":"C. Getz","stat":"928","stat2":"8"},{"id":518680,"name":"T. MacArthur","stat":"285","stat2":"1"},{"id":381195,"name":"B. Holbrook","stat":"386","stat2":"1"},{"id":481133,"name":"K. Carrier","stat":"630","stat2":"8"},{"id":381988,"name":"L. Thomas","stat":"73","stat2":"0"}]},"settings":"0|0|0|0|0|0|0"},{"gameId":322942348,"date":"20121020190000","tv":"GamePlan","home":{"name":"LT","score":0,"id":"2348","nickname":"Bulldogs","location":"Louisiana Tech"},"away":{"name":"IDHO","score":0,"id":"70","nickname":"Vandals","location":"Idaho"},"clock":"","status":1,"statusText":"Sat 7:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":385667,"name":"C. Cameron","stat":"1906","stat2":"18"},{"id":531310,"name":"K. Dixon","stat":"535","stat2":"10"},{"id":512774,"name":"Q. Patton","stat":"765","stat2":"9"},{"id":501435,"name":"D. Blackman","stat":"1406","stat2":"8"},{"id":536323,"name":"R. Bass","stat":"291","stat2":"0"},{"id":536325,"name":"J. Level","stat":"401","stat2":"2"}]},"settings":"0|0|0|0|0|0|1"},{"gameId":322942572,"date":"20121020190000","tv":"CBS Sports Network","home":{"name":"USM","score":0,"id":"2572","nickname":"Golden Eagles","location":"Southern Miss"},"away":{"name":"MRSH","score":0,"id":"276","nickname":"Thundering Herd","location":"Marshall"},"clock":"","status":1,"statusText":"Sat 7:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":531770,"name":"A. Alford","stat":"373","stat2":"0"},{"id":385721,"name":"D. Johnson","stat":"410","stat2":"1"},{"id":503489,"name":"D. Sullivan","stat":"173","stat2":"1"},{"id":518267,"name":"R. Cato","stat":"2311","stat2":"18"},{"id":535464,"name":"S. Butler","stat":"321","stat2":"2"},{"id":518274,"name":"T. Shuler","stat":"562","stat2":"1"}]},"settings":"0|0|0|0|0|0|0"},{"gameId":322942633,"date":"20121020190000","tv":"ESPN","home":{"name":"TENN","score":0,"id":"2633","nickname":"Volunteers","location":"Tennessee"},"away":{"name":"ALA","score":0,"id":"333","rank":"1","nickname":"Crimson Tide","location":"Alabama"},"clock":"","status":1,"statusText":"Sat 7:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":501546,"name":"T. Bray","stat":"1730","stat2":"16"},{"id":504322,"name":"R. Neal","stat":"500","stat2":"5"},{"id":501520,"name":"J. Hunter","stat":"497","stat2":"4"},{"id":480215,"name":"A. McCarron","stat":"1170","stat2":"12"},{"id":480263,"name":"E. Lacy","stat":"491","stat2":"7"},{"id":534458,"name":"A. Cooper","stat":"263","stat2":"3"}]},"settings":"0|0|0|1|0|0|1"},{"gameId":322942649,"date":"20121020190000","tv":"ESPN3","home":{"name":"TOL","score":0,"id":"2649","nickname":"Rockets","location":"Toledo"},"away":{"name":"CIN","score":0,"id":"2132","rank":"21","nickname":"Bearcats","location":"Cincinnati"},"clock":"","status":1,"statusText":"Sat 7:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":481228,"name":"T. Owens","stat":"1900","stat2":"12"},{"id":504624,"name":"D. Fluellen","stat":"792","stat2":"9"},{"id":504646,"name":"B. Reedy","stat":"666","stat2":"5"},{"id":502335,"name":"M. Legaux","stat":"1208","stat2":"11"},{"id":377977,"name":"G. Winn","stat":"521","stat2":"4"},{"id":502349,"name"
+008000
+:"K. Thompkins","stat":"238","stat2":"1"}]},"settings":"0|0|0|1|0|0|1"},{"gameId":322940235,"date":"20121020200000","tv":"","home":{"name":"MEM","score":0,"id":"235","nickname":"Tigers","location":"Memphis"},"away":{"name":"UCF","score":0,"id":"2116","nickname":"Knights","location":"UCF"},"clock":"","status":1,"statusText":"Sat 8:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":481854,"name":"J. Karam","stat":"940","stat2":"6"},{"id":503376,"name":"J. Rhodes","stat":"224","stat2":"2"},{"id":381659,"name":"M. Rucker","stat":"351","stat2":"3"},{"id":505719,"name":"B. Bortles","stat":"1476","stat2":"10"},{"id":501519,"name":"S. Johnson","stat":"427","stat2":"4"},{"id":516039,"name":"J. Worton","stat":"363","stat2":"1"}]},"settings":"0|0|0|0|0|0|0"},{"gameId":322940251,"date":"20121020200000","tv":"ABC","home":{"name":"TEX","score":0,"id":"251","rank":"25","nickname":"Longhorns","location":"Texas"},"away":{"name":"BAY","score":0,"id":"239","nickname":"Bears","location":"Baylor"},"clock":"","status":1,"statusText":"Sat 8:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":511262,"name":"D. Ash","stat":"1389","stat2":"11"},{"id":511263,"name":"J. Bergeron","stat":"301","stat2":"9"},{"id":501516,"name":"M. Davis","stat":"352","stat2":"3"},{"id":379895,"name":"N. Florence","stat":"1874","stat2":"18"},{"id":379880,"name":"J. Salubi","stat":"357","stat2":"2"},{"id":379892,"name":"T. Williams","stat":"830","stat2":"8"}]},"settings":"0|0|0|0|0|0|1"},{"gameId":322942294,"date":"20121020200000","tv":"Big Ten Network","home":{"name":"IOWA","score":0,"id":"2294","nickname":"Hawkeyes","location":"Iowa"},"away":{"name":"PSU","score":0,"id":"213","nickname":"Nittany Lions","location":"Penn St"},"clock":"","status":1,"statusText":"Sat 8:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":381738,"name":"J. Vandenberg","stat":"1134","stat2":"2"},{"id":518388,"name":"M. Weisman","stat":"631","stat2":"8"},{"id":480246,"name":"K. Davis","stat":"373","stat2":"0"},{"id":386880,"name":"M. McGloin","stat":"1499","stat2":"12"},{"id":503343,"name":"Z. Zwinak","stat":"317","stat2":"3"},{"id":518204,"name":"A. Robinson","stat":"524","stat2":"7"}]},"settings":"0|0|0|0|0|0|0"},{"gameId":322942390,"date":"20121020200000","tv":"ABC","home":{"name":"MIA","score":0,"id":"2390","nickname":"Hurricanes","location":"Miami (FL)"},"away":{"name":"FSU","score":0,"id":"52","rank":"14","nickname":"Seminoles","location":"Florida St"},"clock":"","status":1,"statusText":"Sat 8:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":501142,"name":"S. Morris","stat":"1991","stat2":"9"},{"id":530398,"name":"D. Johnson","stat":"428","stat2":"5"},{"id":517570,"name":"P. Dorsett","stat":"503","stat2":"3"},{"id":380849,"name":"E. Manuel","stat":"1804","stat2":"14"},{"id":480764,"name":"C. Thompson","stat":"640","stat2":"5"},{"id":501535,"name":"K. Shaw","stat":"350","stat2":"3"}]},"settings":"0|0|0|1|0|0|1"},{"gameId":322942638,"date":"20121020200000","tv":"","home":{"name":"UTEP","score":0,"id":"2638","nickname":"Miners","location":"UTEP"},"away":{"name":"TULN","score":0,"id":"2655","nickname":"Green Wave","location":"Tulane"},"clock":"","status":1,"statusText":"Sat 8:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":511557,"name":"N. Lamaison","stat":"1204","stat2":"8"},{"id":500688,"name":"N. Jeffery","stat":"410","stat2":"0"},{"id":500691,"name":"J. Leslie","stat":"587","stat2":"4"},{"id":383463,"name":"R. Griffin","stat":"616","stat2":"4"},{"id":514773,"name":"R. Kelley","stat":"149","stat2":"0"},{"id":483321,"name":"R. Grant","stat":"359","stat2":"2"}]},"settings":"0|0|0|0|0|0|0"},{"gameId":322940012,"date":"20121020220000","tv":"Pac-12 Network","home":{"name":"ARIZ","score":0,"id":"12","nickname":"Wildcats","location":"Arizona"},"away":{"name":"WASH","score":0,"id":"264","nickname":"Huskies","location":"Washington"},"clock":"","status":1,"statusText":"Sat 10:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":378126,"name":"M. Scott","stat":"2099","stat2":"13"},{"id":514099,"name":"K. Carey","stat":"670","stat2":"10"},{"id":504671,"name":"A. Hill","stat":"608","stat2":"5"},{"id":482599,"name":"K. Price","stat":"1080","stat2":"7"},{"id":513063,"name":"B. Sankey","stat":"487","stat2":"6"},{"id":513075,"name":"K. Williams","stat":"362","stat2":"4"}]},"settings":"0|0|0|0|0|0|0"},{"gameId":322940204,"date":"20121020223000","tv":"ESPN2","home":{"name":"ORST","score":0,"id":"204","rank":"8","nickname":"Beavers","location":"Oregon St"},"away":{"name":"UTAH","score":0,"id":"254","nickname":"Utes","location":"Utah"},"clock":"","status":1,"statusText":"Sat 10:30 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":504786,"name":"S. Mannion","stat":"1358","stat2":"7"},{"id":517269,"name":"S. Woods","stat":"404","stat2":"3"},{"id":511476,"name":"B. Cooks","stat":"659","stat2":"2"},{"id":516270,"name":"J. Hays","stat":"628","stat2":"7"},{"id":516290,"name":"J. White","stat":"345","stat2":"1"},{"id":503036,"name":"D. Anderson","stat":"233","stat2":"2"}]},"settings":"0|0|0|1|0|0|1"},{"gameId":322940278,"date":"20121020223000","tv":"","home":{"name":"FRES","score":0,"id":"278","nickname":"Bulldogs","location":"Fresno St"},"away":{"name":"WYO","score":0,"id":"2751","nickname":"Cowboys","location":"Wyoming"},"clock":"","status":1,"statusText":"Sat 10:30 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":484080,"name":"D. Carr","stat":"2082","stat2":"19"},{"id":484100,"name":"R. Rouse","stat":"788","stat2":"8"},{"id":520581,"name":"D. Adams","stat":"530","stat2":"6"},{"id":516959,"name":"B. Smith","stat":"1177","stat2":"12"},{"id":534232,"name":"D. May","stat":"226","stat2":"1"},{"id":481996,"name":"C. McNeill","stat":"435","stat2":"2"}]},"settings":"0|0|0|0|0|0|0"},{"gameId":322942440,"date":"20121020223500","tv":"CBS Sports Network","home":{"name":"NEV","score":0,"id":"2440","nickname":"Wolf Pack","location":"Nevada"},"away":{"name":"SDSU","score":0,"id":"21","nickname":"Aztecs","location":"San Diego St"},"clock":"","status":1,"statusText":"Sat 10:35 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":501241,"name":"C. Fajardo","stat":"1465","stat2":"9"},{"id":480552,"name":"S. Jefferson","stat":"1140","stat2":"14"},{"id":236726,"name":"B. Wimberly","stat":"476","stat2":"0"},{"id":378147,"name":"R. Katz","stat":"1328","stat2":"13"},{"id":502951,"name":"A. Muema","stat":"702","stat2":"9"},{"id":481181,"name":"G. Escobar","stat":"278","stat2":"2"}]},"settings":"0|0|0|0|0|0|0"}]}]},{"sport":"ncw","leagues":[{"league":"ncw","display":"Preseason: Oct. 17, 2012","sportId":54,"date":"20121017000000","games":[]}]},{"sport":"nfl","leagues":[{"league":"nfl","display":"Regular Season: Week 7","sportId":28,"date":"20121017000000","games":[{"gameId":321018025,"date":"20121018202000","tv":"NFL","home":{"name":"SF","score":0,"id":"25","nickname":"49ers","location":"San Francisco"},"away":{"name":"SEA","score":0,"id":"26","nickname":"Seahawks","location":"Seattle"},"clock":"","status":1,"statusText":"Thu 8:20 PM","inning":"0","period":" ","quarter":"8515785","link":"0","stats":{"display":"SEASON","data":[{"id":8416,"name":"A. Smith","stat":"1287","stat2":"8"},{"id":8479,"name":"F. Gore","stat":"470","stat2":"4"},{"id":9592,"name":"V. Davis","stat":"340","stat2":"4"},{"id":14881,"name":"R. Wilson","stat":"1108","stat2":"8"},{"id":10456,"name":"M. Lynch","stat":"549","stat2":"2"},{"id":10488,"name":"S. Rice","stat":"280","stat2":"2"}]},"settings":"0|0|0|1|0"},{"gameId":321021002,"date":"20121021130000","tv":"CBS","home":{"name":"BUF","score":0,"id":"2","nickname":"Bills","location":"Buffalo"},"away":{"name":"TEN","score":0,"id":"10","nickname":"Titans","location":"Tennessee"},"clock":"","status":1,"statusText":"Sun 1:00 PM","inning":"0","period":" ","quarter":"8515636","link":"0","stats":{"display":"SEASON","data":[{"id":8664,"name":"R. Fitzpatrick","stat":"1210","stat2":"12"},{"id":13203,"name":"C. Spiller","stat":"453","stat2":"4"},{"id":11458,"name":"S. Johnson","stat":"316","stat2":"3"},{"id":13969,"name":"J. Locker","stat":"781","stat2":"4"},{"id":11258,"name":"C. Johnson","stat":"301","stat2":"0"},{"id":14909,"name":"K. Wright","stat":"285","stat2":"2"}]},"settings":"0|0|0|1|0"},{"gameId":321021011,"date":"20121021130000","tv":"CBS","home":{"name":"IND","score":0,"id":"11","nickname":"Colts","location":"Indianapolis"},"away":{"name":"CLE","score":0,"id":"5","nickname":"Browns","location":"Cleveland"},"clock":"","status":1,"statusText":"Sun 1:00 PM","inning":"0","period":" ","quarter":"8515654","link":"0","stats":{"display":"SEASON","data":[{"id":14874,"name":"A. Luck","stat":"1488","stat2":"7"},{"id":12489,"name":"D. Brown","stat":"239","stat2":"1"},{"id":2578,"name":"R. Wayne","stat":"593","stat2":"2"},{"id":14878,"name":"B. Weeden","stat":"1519","stat2":"7"},{"id":14884,"name":"T. Richardson","stat":"340","stat2":"4"},{"id":15705,"name":"J. Gordon","stat":"274","stat2":"3"}]},"settings":"0|0|0|1|0"},{"gameId":321021014,"date":"20121021130000","tv":"FOX","home":{"name":"STL","score":0,"id":"14","nickname":"Rams","location":"St. Louis"},"away":{"name":"GB","score":0,"id":"9","nickname":"Packers","location":"Green Bay"},"clock":"","status":1,"statusText":"Sun 1:00 PM","inning":"0","period":" ","quarter":"8515679","link":"0","stats":{"display":"SEASON","data":[{"id":13197,"name":"S. Bradford","stat":"1337","stat2":"6"},{"id":5549,"name":"S. Jackson","stat":"323","stat2":"0"},{"id":11674,"name":"D. Amendola","stat":"395","stat2":"2"},{"id":8439,"name":"A. Rodgers","stat":"1637","stat2":"16"},{"id":8419,"name":"C. Benson","stat":"248","stat2":"1"},{"id":11270,"name":"J. Nelson","stat":"410","stat2":"4"}]},"settings":"0|0|0|1|0"},{"gameId":321021016,"date":"20121021130000","tv":"FOX","home":{"name":"MIN","score":0,"id":"16","nickname":"Vikings","location":"Minnesota"},"away":{"name":"ARI","score":0,"id":"22","nickname":"Cardinals","location":"Arizona"},"clock":"","status":1,"statusText":"Sun 1:00 PM","inning":"0","period":" ","quarter":"8515768","link":"0","stats":{"display":"SEASON","data":[{"id":13966,"name":"C. Ponder","stat":"1434","stat2":"8"},{"id":10452,"name":"A. Peterson","stat":"499","stat2":"2"},{"id":12569,"name":"P. Harvin","stat":"540","stat2":"1"},{"id":10480,"name":"K. Kolb","stat":"1169","stat2":"8"},{"id":14051,"name":"R. Williams","stat":"164","stat2":"0"},{"id":5528,"name":"L. Fitzgerald","stat":"430","stat2":"3"}]},"settings":"0|0|0|1|0"},{"gameId":321021019,"date":"20121021130000","tv":"FOX","home":{"name":"NYG","score":0,"id":"19","nickname":"Giants","location":"New York"},"away":{"name":"WSH","score":0,"id":"28","nickname":"Redskins","location":"Washington"},"clock":"","status":1,"statusText":"Sun 1:00 PM","inning":"0","period":" ","quarter":"8515782","link":"0","stats":{"display":"SEASON","data":[{"id":5526,"name":"E. Manning","stat":"1772","stat2":"11"},{"id":10693,"name":"A. Bradshaw","stat":"449","stat2":"3"},{"id":13553,"name":"V. Cruz","stat":"496","stat2":"6"},{"id":14875,"name":"R. Griffin III","stat":"1343","stat2":"5"},{"id":15009,"name":"A. Morris","stat":"538","stat2":"5"},{"id":11282,"name":"F. Davis","stat":"312","stat2":"0"}]},"settings":"0|0|0|1|0"},{"gameId":321021027,"date":"20121021130000","tv":"FOX","home":{"name":"TB","score":0,"id":"27","nickname":"Buccaneers","location":"Tampa Bay"},"away":{"name":"NO","score":0,"id":"18","nickname":"Saints","location":"New Orleans"},"clock":"","status":1,"statusText":"Sun 1:00 PM","inning":"0","period":" ","quarter":"8515707","link":"0","stats":{"display":"SEASON","data":[{"id":12473,"name":"J. Freeman","stat":"1118","stat2":"8"},{"id":14885,"name":"D. Martin","stat":"323","stat2":"1"},{"id":8475,"name":"V. Jackson","stat":"370","stat2":"4"},{"id":2580,"name":"D. Brees","stat":"1720","stat2":"14"},{"id":10713,"name":"P. Thomas","stat":"182","stat2":"0"},{"id":9838,"name":"M. Colston","stat":"444","stat2":"4"}]},"settings":"0|0|0|1|0"},{"gameId":321021029,"date":"20121021130000","tv":"FOX","home":{"name":"CAR","score":0,"id":"29","nickname":"Panthers","location":"Carolina"},"away":{"name":"DAL","score":0,"id":"6","nickname":"Cowboys","location":"Dallas"},"clock":"","status":1,"statusText":"Sun 1:00 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":13994,"name":"C. Newton","stat":"1154","stat2":"4"},{"id":13994,"name":"C. Newton","stat":"209","stat2":"3"},{"id":2622,"name":"S. Smith","stat":"388","stat2":"0"},{"id":5209,"name":"T. Romo","stat":"1409","stat2":"7"},{"id":14005,"name":"D. Murray","stat":"330","stat2":"1"},{"id":13215,"name":"D. Bryant","stat":"364","stat2":"2"}]},"settings":"0|0|0|1|0"},{"gameId":321021034,"date":"20121021130000","tv":"CBS","home":{"name":"HOU","score":0,"id":"34","nickname":"Texans","location":"Houston"},"away":{"name":"BAL","score":0,"id":"33","nickname":"Ravens","location":"Baltimore"},"clock":"","status":1,"statusText":"Sun 1:00 PM","inning":"0","period":" ","quarter":"8515661","link":"0","stats":{"display":"SEASON","data":[{"id":5615,"name":"M. Schaub","stat":"1394","stat2":"8"},{"id":12497,"name":"A. Foster","stat":"561","stat2":"7"},{"id":9684,"name":"O. Daniels","stat":"357","stat2":"3"},{"id":11252,"name":"J. Flacco","stat":"1690","stat2":"8"},{"id":11289,"name":"R. Rice","stat":"482","stat2":"5"},{"id":14032,"name":"T. Smith","stat":"394","stat2":"4"}]},"settings":"0|0|0|1|0"},{"gameId":321021013,"date":"20121021162500","tv":"CBS","home":{"name":"OAK","score":0,"id":"13","nickname":"Raiders","location":"Oakland"},"away":{"name":"JAC","score":0,"id":"30","nickname":"Jaguars","location":"Jacksonville"},"clock":"","status":1,"statusText":"Sun 4:25 PM","inning":"0","period":" ","quarter":"8515630","link":"0","stats":{"display":"SEASON","data":[{"id":4459,"name":"C. Palmer","stat":"1434","stat2":"6"},{"id":11238,"name":"D. McFadden","stat":"271","stat2":"2"},{"id":14153,"name":"D. Moore","stat":"287","stat2":"2"},{"id":13987,"name":"B. Gabbert","stat":"796","stat2":"5"},{"id":9646,"name":"M. Jones-Drew","stat":"408","stat2":"1"},{"id":14184,"name":"C. Shorts","stat":"205","stat2":"2"}]},"settings":"0|0|0|1|0"},{"gameId":321021017,"date":"20121021162500","tv":"CBS","home":{"name":"NE","score":0,"id":"17","nickname":"Patriots","location":"New England"},"away":{"name":"NYJ","score":0,"id":"20","nickname":"Jets","location":"New York"},"clock":"","status":1,"statusText":"Sun 4:25 PM","inning":"0","period":" ","quarter":"0","link":"0","stats":{"display":"SEASON","data":[{"id":2330,"name":"T. Brady","stat":"1845","stat2":"10"},{"id":14028,"name":"S. Ridley","stat":"524","stat2":"4"},{"id":5941,"name":"W. Welker","stat":"622","stat2":"2"},{"id":12482,"name":"M. Sanchez","stat":"1125","stat2":"8"},{"id":12500,"name":"S. Greene","stat":"378","stat2":"4"},{"id":14151,"name":"J. Kerley","stat":"315","stat2":"2"}]},"settings":"0|0|0|1|0"},{"gameId":321021004,"date":"20121021202000","tv":"NBC","home":{"name":"CIN","score":0,"id":"4","nickname":"Bengals","location":"Cincinnati"},"away":{"name":"PIT","score":0,"id":"23","nickname":"Steelers","location":"Pittsburgh"},"clock":"","status":1,"statusText":"Sun 8:20 PM","inning":"0","period":" ","quarter":"8515623","link":"0","stats":{"display":"SEASON","data":[{"id":14012,"name":"A. Dalton","stat":"1726","stat2":"12"},{"id":11754,"name":"B. Green-Ellis","stat":"362","stat2":"2"},{"id":13983,"name":"A. Green","stat":"628","stat2":"6"},{"id":5536,"name":"B. Roethlisb.","stat":"1487","stat2":"10"},{"id":12898,"name":"I. Redman","stat":"127","stat2":"1"},{"id":12601,"name":"M. Wallace","stat":"345","stat2":"4"}]},"settings":"0|0|0|1|0"},{"gameId":321022003,"date":"20121022203000","tv":"ESPN","home":{"name":"CHI","score":0,"id":"3","nickname":"Bears","location":"Chicago"},"away":{"name":"DET","score":0,"id":"8","nickname":"Lions","location":"Detroit"},"clock":"","status":1,"statusText":"Mon 8:30 PM","inning":"0","period":" ","quarter":"8515618","link":"0","stats":{"display":"SEASON","data":[{"id":9597,"name":"J. Cutler","stat":"1209","stat2":"7"},{"id":10544,"name":"M. Bush","stat":"206","stat2":"3"},{"id":9705,"name":"B. Marshall","stat":"496","stat2":"3"},{"id":12483,"name":"M. Stafford","stat":"1493","stat2":"4"},{"id":14052,"name":"M. Leshoure","stat":"196","stat2":"1"},{"id":10447,"name":"C. Johnson","stat":"558","stat2":"1"}]},"settings":"0|0|0|1|0"}]}]},{"sport":"nfldraft","events":[{"id":"1","display":"NFL Draft - 1st Round","sportId":28,"entries":[{"id":"11","pos":"QB","fn":"Indianapolis","ln":"Colts","index":"1","info":"28325","display":"STAN","status":"Andrew Luck"},{"id":"28","pos":"QB","fn":"Washington","ln":"Redskins","index":"2","info":"28956","display":"BAY","status":"Robert Griffin III"},{"id":"5","pos":"RB","fn":"Cleveland","ln":"Browns","index":"3","info":"27427","display":"ALA","status":"Trent Richardson"},{"id":"16","pos":"OT","fn":"Minnesota","ln":"Vikings","index":"4","info":"28826","display":"USC","status":"Matt Kalil"},{"id":"30","pos":"WR","fn":"Jacksonville","ln":"Jaguars","index":"5","info":"28776","display":"OKST","status":"Justin Blackmon"},{"id":"6","pos":"CB","fn":"Dallas","ln":"Cowboys","index":"6","info":"27921","display":"LSU","status":"Morris Claiborne"},{"id":"27","pos":"S","fn":"Tampa Bay","ln":"Buccaneers","index":"7","info":"27429","display":"ALA","status":"Mark Barron"},{"id":"15","pos":"QB","fn":"Miami","ln":"Dolphins","index":"8","info":"28393","display":"TA&M","status":"Ryan Tannehill"},{"id":"29","pos":"ILB","fn":"Carolina","ln":"Panthers","index":"9","info":"28618","display":"BC","status":"Luke Kuechly"},{"id":"2","pos":"CB","fn":"Buffalo","ln":"Bills","index":"10","info":"28295","display":"SCAR","status":"Stephon Gilmore"},{"id":"12","pos":"DT","fn":"Kansas City","ln":"Chiefs","index":"11","info":"28951","display":"MEM","status":"Dontari Poe"},{"id":"21","pos":"DT","fn":"Philadelphia","ln":"Eagles","index":"12","info":"28964","display":"MSST","status":"Fletcher Cox"},{"id":"22","pos":"WR","fn":"Arizona","ln":"Cardinals","index":"13","info":"28158","display":"ND","status":"Michael Floyd"},{"id":"14","pos":"DT","fn":"St. Louis","ln":"Rams","index":"14","info":"28980","display":"LSU","status":"Michael Brockers"},{"id":"26","pos":"OLB","fn":"Seattle","ln":"Seahawks","index":"15","info":"28955","display":"WVU","status":"Bruce Irvin"},{"id":"20","pos":"DE","fn":"New York","ln":"Jets","index":"16","info":"28090","display":"UNC","status":"Quinton Coples"},{"id":"4","pos":"CB","fn":"Cincinnati","ln":"Bengals","index":"17","info":"27428","display":"ALA","status":"Dre Kirkpatrick"},{"id":"24","pos":"DE","fn":"San Diego","ln":"Chargers","index":"18","info":"28296","display":"SCAR","status":"Melvin Ingram"},{"id":"3","pos":"OLB","fn":"Chicago","ln":"Bears","index":"19","info":"29060","display":"BSU","status":"Shea McClellin"},{"id":"10","pos":"WR","fn":"Tennessee","ln":"Titans","index":"20","info":"28585","display":"BAY","status":"Kendall Wright"},{"id":"17","pos":"DE","fn":"New England","ln":"Patriots","index":"21","info":"29006","display":"SYR","status":"Chandler Jones"},{"id":"5","pos":"QB","fn":"Cleveland","ln":"Browns","index":"22","info":"28779","display":"OKST","status":"Brandon Weeden"},{"id":"8","pos":"OT","fn":"Detroit","ln":"Lions","index":"23","info":"27818","display":"IOWA","status":"Riley Reiff"},{"id":"23","pos":"OG","fn":"Pittsburgh","ln":"Steelers","index":"24","info":"28952","display":"STAN","status":"David DeCastro"},{"id":"17","pos":"ILB","fn":"New England","ln":"Patriots","index":"25","info":"27430","display":"ALA","status":"Dont'a Hightower"},{"id":"34","pos":"DE","fn":"Houston","ln":"Texans","index":"26","info":"28967","display":"ILL","status":"Whitney Mercilus"},{"id":"4","pos":"OG","fn":"Cincinnati","ln":"Bengals","index":"27","info":"28514","display":"WIS","status":"Kevin Zeitler"},{"id":"9","pos":"DE","fn":"Green Bay","ln":"Packers","index":"28","info":"28988","display":"USC","status":"Nick Perry"},{"id":"16","pos":"S","fn":"Minnesota","ln":"Vikings","index":"29","info":"28160","display":"ND","status":"Harrison Smith"},{"id":"25","pos":"WR","fn":"San Francisco","ln":"49ers","index":"30","info":"29003","display":"ILL","status":"A.J. Jenkins"},{"id":"27","pos":"RB","fn":"Tampa Bay","ln":"Buccaneers","index":"31","info":"28603","display":"BSU","status":"Doug Martin"},{"id":"19","pos":"RB","fn":"New York","ln":"Giants","index":"32","info":"28963","display":"VT","status":"David Wilson"}],"currentPick":{"id":"19","pos":"RB","fn":"David","ln":"Wilson","index":"33","info":"28963","display":"NYG","round":"1","pickNum":"32","proTeamId":"19","status":"last|1|32|19"}}]},{"sport":"nflfantasy","events":[{"id":"1","display":"Top Fantasy Performers","sportId":28,"entries":[]}]},{"sport":"nhl","leagues":[{"league":"nhl","display":"Regular Season: Oct. 17, 2012","sportId":90,"date":"20121017000000","games":[{"gameId":400269856,"date":"20121017193000","tv":"NBCSN","home":{"name":"NJ","score":0,"id":"11","nickname":"Devils","location":"New Jersey"},"away":{"name":"NYR","score":0,"id":"13","nickname":"Rangers","location":"New York"},"clock":"","status":5,"statusText":"Cancelled","link":"","settings":"0|0|0|0|0","details":""},{"gameId":400269857,"date":"20121017193000","tv":"TSN","home":{"name":"WSH","score":0,"id":"23","nickname":"Capitals","location":"Washington"},"away":{"name":"TOR","score":0,"id":"21","nickname":"Maple Leafs","location":"Toronto"},"clock":"","status":5,"statusText":"Cancelled","link":"","settings":"0|0|0|0|0","details":""},{"gameId":400269858,"date":"20121017220000","tv":"","home":{"name":"ANA","score":0,"id":"25","nickname":"Ducks","location":"Anaheim"},"away":{"name":"CAR","score":0,"id":"7","nickname":"Hurricanes","location":"Carolina"},"clock":"","status":5,"statusText":"Cancelled","link":"","settings":"0|0|0|0|0","details":""}]}]},{"sport":"olympics","leagues":[{"league":"olympics223","display":"2012 Olympics: October 18","sportId":3000,"date":"20121018215410","games":[]},{"league":"olympics345","display":"2012 Olympics: October 18","sportId":3000,"date":"20121018215410","games":[]}]},{"sport":"pga","events":[{"id":"1035","display":"The McGladrey Classic Leaders","sportId":1106,"status":1,"settings":"0|0","entries":[{"id":"347","pos":"","fn":"Tom","ln":"Pernice, Jr.","info":"","display":"E","status":"7:35 AM"},{"id":"3857","pos":"","fn":"Kevin","ln":"Chappell","info":"","display":"E","status":"7:35 AM"},{"id":"97","pos":"","fn":"John","ln":"Daly","info":"","display":"E","status":"7:35 AM"},{"id":"995","pos":"","fn":"Roland","ln":"Thatcher","info":"","display":"E","status":"7:35 AM"},{"id":"2044","pos":"","fn":"Gary","ln":"Christian","info":"","display":"E","status":"7:35 AM"},{"id":"5408","pos":"","fn":"Harris","ln":"English","info":"","display":"E","status":"7:35 AM"},{"id":"165","pos":"","fn":"Mathew","ln":"Goggin","info":"","display":"E","status":"7:45 AM"},{"id":"459","pos":"","fn":"Dean","ln":"Wilson","info":"","display":"E","status":"7:45 AM"},{"id":"59","pos":"","fn":"Bart","ln":"Bryant","info":"","display":"E","status":"7:45 AM"},{"id":"1798","pos":"","fn":"Tommy","ln":"Gainey","info":"","display":"E","status":"7:45 AM"},{"id":"724","pos":"","fn":"Shane","ln":"Bertsch","info":"","display":"E","status":"7:45 AM"},{"id":"4645","pos":"","fn":"Cameron","ln":"Tringale","info":"","display":"E","status":"7:45 AM"},{"id":"1090","pos":"","fn":"Todd","ln":"Hamilton","info":"","display":"E","status":"7:55 AM"},{"id":"343","pos":"","fn":"Carl","ln":"Paulson","info":"","display":"E","status":"7:55 AM"},{"id":"762","pos":"","fn":"Patrick","ln":"Sheehan","info":"","display":"E","status":"7:55 AM"},{"id":"1185","pos":"","fn":"Vaughn","ln":"Taylor","info":"","display":"E","status":"7:55 AM"},{"id":"1225","pos":"","fn":"Brian","ln":"Harman","info":"","display":"E","status":"7:55 AM"},{"id":"2053","pos":"","fn":"Will","ln":"Claxton","info":"","display":"E","status":"7:55 AM"},{"id":"686","pos":"","fn":"Zach","ln":"Johnson","info":"","display":"E","status":"8:05 AM"},{"id":"479","pos":"","fn":"Mark","ln":"Wilson","info":"","display":"E","status":"8:05 AM"},{"id":"3378","pos":"","fn":"Scott","ln":"Stallings","info":"","display":"E","status":"8:05 AM"},{"id":"377","pos":"","fn":"Rory","ln":"Sabbatini","info":"","display":"E","status":"8:05 AM"},{"id":"278","pos":"","fn":"Davis","ln":"Love III","info":"","display":"E","status":"8:05 AM"},{"id":"693","pos":"","fn":"Ben","ln":"Crane","info":"","display":"E","status":"8:05 AM"},{"id":"1196","pos":"","fn":"D.A.","ln":"Points","info":"","display":"E","status":"8:15 AM"},{"id":"3449","pos":"","fn":"Chris","ln":"Kirk","info":"","display":"E","status":"8:15 AM"},{"id":"153","pos":"","fn":"Jim","ln":"Furyk","info":"","display":"E","status":"8:15 AM"},{"id":"429","pos":"","fn":"David","ln":"Toms","info":"","display":"E","status":"8:15 AM"},{"id":"3856","pos":"","fn":"Jonas","ln":"Blixt","info":"","display":"E","status":"8:15 AM"},{"id":"1359","pos":"","fn":"Sean","ln":"O'Hair","info":"","display":"E","status":"8:15 AM"},{"id":"824","pos":"","fn":"Arjun","ln":"Atwal","info":"","display":"E","status":"8:25 AM"},{"id":"49","pos":"","fn":"Michael","ln":"Bradley","info":"","display":"E","status":"8:25 AM"},{"id":"305","pos":"","fn":"Rocco","ln":"Mediate","info":"","display":"E","status":"8:25 AM"},{"id":"7","pos":"","fn":"Stephen","ln":"Ames","info":"","display":"E","status":"8:25 AM"},{"id":"630","pos":"","fn":"Heath","ln":"Slocum","info":"","display":"E","status":"8:25 AM"},{"id":"11","pos":"","fn":"Stuart","ln":"Appleby","info":"","display":"E","status":"8:25 AM"},{"id":"1060","pos":"","fn":"Bill","ln":"Lunde","info":"","display":"E","status":"8:35 AM"},{"id":"512","pos":"","fn":"Alex","ln":"Cejka","info":"","display":"E","status":"8:35 AM"},{"id":"1173","pos":"","fn":"Jason","ln":"Bohn","info":"","display":"E","status":"8:35 AM"},{"id":"65","pos":"","fn":"Angel","ln":"Cabrera","info":"","display":"E","status":"8:35 AM"},{"id":"1276","pos":"","fn":"Derek","ln":"Lamely","info":"","display":"E","status":"8:35 AM"},{"id":"769","pos":"","fn":"Chez","ln":"Reavie","info":"","display":"E","status":"8:35 AM"},{"id":"560","pos":"","fn":"Greg","ln":"Owen","info":"","display":"E","status":"8:45 AM"},{"id":"3452","pos":"","fn":"Daniel","ln":"Summerhays","info":"","display":"E","status":"8:45 AM"},{"id":"1793","pos":"","fn":"Colt","ln":"Knost","info":"","display":"E","status":"8:45 AM"},{"id":"489","pos":"","fn":"Nick","ln":"O'Hern","info":"","display":"E","status":"8:45 AM"},{"id":"975","pos":"","fn":"Gavin","ln":"Coles","info":"","display":"E","status":"8:45 AM"},{"id":"709","pos":"","fn":"John","ln":"Rollins","info":"","display":"E","status":"8:45 AM"},{"id":"351","pos":"","fn":"Tim","ln":"Petrovic","info":"","display":"E","status":"8:55 AM"},{"id":"214","pos":"","fn":"Ryuji","ln":"Imada","info":"","display":"E","status":"8:55 AM"},{"id":"109","pos":"","fn":"James","ln":"Driscoll","info":"","display":"E","status":"8:55 AM"},{"id":"198","pos":"","fn":"Tim","ln":"Herron","info":"","display":"E","status":"8:55 AM"},{"id":"928","pos":"","fn":"David","ln":"Hearn","info":"","display":"E","status":"8:55 AM"},{"id":"1411","pos":"","fn":"Matt","ln":"Every","info":"","display":"E","status":"8:55 AM"},{"id":"1372","pos":"","fn":"Peter","ln":"Tomasulo","info":"","display":"E","status":"9:05 AM"},{"id":"790","pos":"","fn":"David","ln":"Hutsell","info":"","display":"E","status":"9:05 AM"},{"id":"646","pos":"","fn":"Erik","ln":"Compton","info":"","display":"E","status":"9:05 AM"},{"id":"1025","pos":"","fn":"Kyle","ln":"Thompson","info":"","display":"E","status":"9:05 AM"},{"id":"3563","pos":"","fn":"Zack","ln":"Miller","info":"","display":"E","status":"9:05 AM"},{"id":"157","pos":"","fn":"Stephen","ln":"Gangluff","info":"","display":"E","status":"9:05 AM"},{"id":"452","pos":"","fn":"Tim","ln":"Weinhart","info":"","display":"E","status":"9:15 AM"},{"id":"6644","pos":"","fn":"Richard","ln":"Lee","info":"","display":"E","status":"9:15 AM"},{"id":"6806","pos":"","fn":"Hunter","ln":"Hamrick","info":"","display":"E","status":"9:15 AM"},{"id":"4591","pos":"","fn":"Scott","ln":"Brown","info":"","display":"E","status":"9:15 AM"},{"id":"1612","pos":"","fn":"Billy","ln":"Hurley III","info":"","display":"E","status":"9:15 AM"},{"id":"3950","pos":"","fn":"Danny","ln":"Lee","info":"","display":"E","status":"9:15 AM"},{"id":"544","pos":"","fn":"Robert","ln":"Karlsson","info":"","display":"E","status":"12:05 PM"},{"id":"283","pos":"","fn":"Jeff","ln":"Maggert","info":"","display":"E","status":"12:05 PM"},{"id":"745","pos":"","fn":"Ken","ln":"Duke","info":"","display":"E","status":"12:05 PM"},{"id":"801","pos":"","fn":"Ricky","ln":"Barnes","info":"","display":"E","status":"12:05 PM"},{"id":"112","pos":"","fn":"Scott","ln":"Dunlap","info":"","display":"E","status":"12:05 PM"},{"id":"105","pos":"","fn":"Chris","ln":"DiMarco","info":"","display":"E","status":"12:05 PM"},{"id":"114","pos":"","fn":"Joe","ln":"Durant","info":"","display":"E","status":"12:15 PM"},{"id":"458","pos":"","fn":"Garrett","ln":"Willis","info":"","display":"E","status":"12:15 PM"},{"id":"1176","pos":"","fn":"Daniel","ln":"Chopra","info":"","display":"E","status":"12:15 PM"},{"id":"3227","pos":"","fn":"Blake","ln":"Adams","info":"","display":"E","status":"12:15 PM"},{"id":"1564","pos":"","fn":"Jeff","ln":"Overton","info":"","display":"E","status":"12:15 PM"},{"id":"3740","pos":"","fn":"Roberto","ln":"Castro","info":"","display":"E","status":"12:15 PM"},{"id":"1346","pos":"","fn":"David","ln":"Mathis","info":"","display":"E","status":"12:25 PM"},{"id":"1049","pos":"","fn":"Brian","ln":"Davis","info":"","display":"E","status":"12:25 PM"},{"id":"3688","pos":"","fn":"Michael","ln":"Thompson","info":"","display":"E","status":"12:25 PM"},{"id":"1352","pos":"","fn":"Chris","ln":"Stroud","info":"","display":"E","status":"12:25 PM"},{"id":"529","pos":"","fn":"Nathan","ln":"Green","info":"","display":"E","status":"12:25 PM"},{"id":"713","pos":"","fn":"Boo","ln":"Weekley","info":"","display":"E","status":"12:25 PM"},{"id":"523","pos":"","fn":"Ben","ln":"Curtis","info":"","display":"E","status":"12:35 PM"},{"id":"576","pos":"","fn":"Henrik","ln":"Stenson","info":"","display":"E","status":"12:35 PM"},{"id":"5","pos":"","fn":"Robert","ln":"Allenby","info":"","display":"E","status":"12:35 PM"},{"id":"3550","pos":"","fn":"Gary","ln":"Woodland","info":"","display":"E","status":"12:35 PM"},{"id":"392","pos":"","fn":"Vijay","ln":"Singh","info":"","display":"E","status":"12:35 PM"},{"id":"208","pos":"","fn":"Charles","ln":"Howell III","info":"","display":"E","status":"12:35 PM"},{"id":"78","pos":"","fn":"Stewart","ln":"Cink","info":"","display":"E","status":"12:45 PM"},{"id":"5338","pos":"","fn":"Bud","ln":"Cauley","info":"","display":"E","status":"12:45 PM"},{"id":"243","pos":"","fn":"Jerry","ln":"Kelly","info":"","display":"E","status":"12:45 PM"},{"id":"159","pos":"","fn":"Brian","ln":"Gay","info":"","display":"E","status":"12:45 PM"},{"id":"1680","pos":"","fn":"Jason","ln":"Day","info":"","display":"E","status":"12:45 PM"},{"id":"2883","pos":"","fn":"Ted","ln":"Potter, Jr.","info":"","display":"E","status":"12:45 PM"},{"id":"1264","pos":"","fn":"Camilo","ln":"Villegas","info":"","display":"E","status":"12:55 PM"},{"id":"1030","pos":"","fn":"Jhonattan","ln":"Vegas","info":"","display":"E","status":"12:55 PM"},{"id":"269","pos":"","fn":"Justin","ln":"Leonard","info":"","display":"E","status":"12:55 PM"},{"id":"1920","pos":"","fn":"Matt","ln":"Bettencourt","info":"","display":"E","status":"12:55 PM"},{"id":"3596","pos":"","fn":"Brendan","ln":"Steele","info":"","display":"E","status":"12:55 PM"},{"id":"28","pos":"","fn":"Cameron","ln":"Beckman","info":"","display":"E","status":"12:55 PM"},{"id":"335","pos":"","fn":"Rod","ln":"Pampling","info":"","display":"E","status":"1:05 PM"},{"id":"1637","pos":"","fn":"Martin","ln":"Flores","info":"","display":"E","status":"1:05 PM"},{"id":"431","pos":"","fn":"D.J.","ln":"Trahan","info":"","display":"E","status":"1:05 PM"},{"id":"1758","pos":"","fn":"Brendon","ln":"de Jonge","info":"","display":"E","status":"1:05 PM"},{"id":"99","pos":"","fn":"Marco","ln":"Dawson","info":"","display":"E","status":"1:05 PM"},{"id":"1416","pos":"","fn":"Troy","ln":"Kelly","info":"","display":"E","status":"1:05 PM"},{"id":"1367","pos":"","fn":"Matt","ln":"Jones","info":"","display":"E","status":"1:15 PM"},{"id":"296","pos":"","fn":"Billy","ln":"Mayfair","info":"","display":"E","status":"1:15 PM"},{"id"
+008000
+:"4449","pos":"","fn":"Sung-hoon","ln":"Kang","info":"","display":"E","status":"1:15 PM"},{"id":"68","pos":"","fn":"Chad","ln":"Campbell","info":"","display":"E","status":"1:15 PM"},{"id":"405","pos":"","fn":"Paul","ln":"Stankowski","info":"","display":"E","status":"1:15 PM"},{"id":"3609","pos":"","fn":"J.J.","ln":"Killeen","info":"","display":"E","status":"1:15 PM"},{"id":"673","pos":"","fn":"Steve","ln":"Wheatcroft","info":"","display":"E","status":"1:25 PM"},{"id":"1112","pos":"","fn":"Steven","ln":"Bowditch","info":"","display":"E","status":"1:25 PM"},{"id":"6648","pos":"","fn":"Mark","ln":"Anderson","info":"","display":"E","status":"1:25 PM"},{"id":"2013","pos":"","fn":"Miguel Angel","ln":"Carballo","info":"","display":"E","status":"1:25 PM"},{"id":"3228","pos":"","fn":"Garth","ln":"Mulroy","info":"","display":"E","status":"1:25 PM"},{"id":"2552","pos":"","fn":"Kevin","ln":"Kisner","info":"","display":"E","status":"1:25 PM"},{"id":"4483","pos":"","fn":"Russell","ln":"Knox","info":"","display":"E","status":"1:35 PM"},{"id":"4590","pos":"","fn":"Robert","ln":"Gates","info":"","display":"E","status":"1:35 PM"},{"id":"567","pos":"","fn":"Alexandre","ln":"Rocha","info":"","display":"E","status":"1:35 PM"},{"id":"761","pos":"","fn":"Tommy","ln":"Biershenk","info":"","display":"E","status":"1:35 PM"},{"id":"3317","pos":"","fn":"Jason","ln":"Kokrak","info":"","display":"E","status":"1:35 PM"},{"id":"3454","pos":"","fn":"Brendon","ln":"Todd","info":"","display":"E","status":"1:35 PM"},{"id":"276","pos":"","fn":"Edward","ln":"Loar","info":"","display":"E","status":"1:45 PM"},{"id":"7037","pos":"","fn":"Jordan","ln":"Mitchell","info":"","display":"E","status":"1:45 PM"},{"id":"7039","pos":"","fn":"Chase","ln":"Wright","info":"","display":"E","status":"1:45 PM"},{"id":"1651","pos":"","fn":"Billy","ln":"Horschel","info":"","display":"E","status":"1:45 PM"},{"id":"1734","pos":"","fn":"Kyle","ln":"Reifers","info":"","display":"E","status":"1:45 PM"},{"id":"3777","pos":"","fn":"Charlie","ln":"Beljan","info":"","display":"E","status":"1:45 PM"}]}]},{"sport":"rpm","events":[{"id":"201210130021","display":"Bank of America 500 at Charlotte: Final","sportId":2020,"status":3,"entries":[{"id":"712","pos":"1","fn":"Clint","ln":"Bowyer","status":"334 Laps"},{"id":"747","pos":"2","fn":"Denny","ln":"Hamlin","status":"-0.417 sec"},{"id":"227","pos":"3","fn":"Jimmie","ln":"Johnson","status":"-15.355 sec"},{"id":"221","pos":"4","fn":"Greg","ln":"Biffle","status":"-26.862 sec"},{"id":"580","pos":"5","fn":"Kyle","ln":"Busch","status":"-29.552 sec"},{"id":"68","pos":"6","fn":"Mark","ln":"Martin","status":"-30.15 sec"},{"id":"460","pos":"7","fn":"Carl","ln":"Edwards","status":"-1 Lap"},{"id":"429","pos":"8","fn":"Kasey","ln":"Kahne","status":"-1 Lap"},{"id":"4319","pos":"9","fn":"Joey","ln":"Logano","status":"-1 Lap"},{"id":"416","pos":"10","fn":"Martin","ln":"Truex Jr.","status":"-1 Lap"},{"id":"626","pos":"11","fn":"Brad","ln":"Keselowski","status":"-1 Lap"},{"id":"740","pos":"12","fn":"Aric","ln":"Almirola","status":"-1 Lap"},{"id":"149","pos":"13","fn":"Tony","ln":"Stewart","status":"-1 Lap"},{"id":"143","pos":"14","fn":"Matt","ln":"Kenseth","status":"-1 Lap"},{"id":"607","pos":"15","fn":"Sam","ln":"Hornish Jr.","status":"-1 Lap"},{"id":"225","pos":"16","fn":"Kevin","ln":"Harvick","status":"-1 Lap"},{"id":"223","pos":"17","fn":"Jamie","ln":"McMurray","status":"-1 Lap"},{"id":"67","pos":"18","fn":"Jeff","ln":"Gordon","status":"-2 Laps"},{"id":"336","pos":"19","fn":"Juan Pablo","ln":"Montoya","status":"-2 Laps"},{"id":"213","pos":"20","fn":"Ryan","ln":"Newman","status":"-2 Laps"},{"id":"195","pos":"21","fn":"Kurt","ln":"Busch","status":"-2 Laps"},{"id":"4343","pos":"22","fn":"Trevor","ln":"Bayne","status":"-2 Laps"},{"id":"839","pos":"23","fn":"David","ln":"Gilliland","status":"-3 Laps"},{"id":"805","pos":"24","fn":"AJ","ln":"Allmendinger","status":"-4 Laps"},{"id":"389","pos":"25","fn":"Travis","ln":"Kvapil","status":"-4 Laps"},{"id":"904","pos":"26","fn":"Landon","ln":"Cassill","status":"-5 Laps"},{"id":"575","pos":"27","fn":"Paul","ln":"Menard","status":"-6 Laps"},{"id":"70","pos":"28","fn":"Jeff","ln":"Burton","status":"-7 Laps"},{"id":"248","pos":"29","fn":"Casey","ln":"Mears","status":"-7 Laps"},{"id":"449","pos":"30","fn":"David","ln":"Reutimann","status":"-7 Laps"},{"id":"4286","pos":"31","fn":"Michael","ln":"McDowell","status":"-8 Laps"},{"id":"64","pos":"32","fn":"Bobby","ln":"Labonte","status":"-10 Laps"},{"id":"803","pos":"33","fn":"Marcos","ln":"Ambrose","status":"-31 Laps"},{"id":"649","pos":"34","fn":"David","ln":"Ragan","status":"-47 Laps"},{"id":"4351","pos":"35","fn":"Ricky","ln":"Stenhouse Jr.","status":"-144 Laps"},{"id":"4467","pos":"36","fn":"Timmy","ln":"Hill","status":"-152 Laps"},{"id":"728","pos":"37","fn":"David","ln":"Stremme","status":"-272 Laps"},{"id":"478","pos":"38","fn":"Regan","ln":"Smith","status":"-273 Laps"},{"id":"144","pos":"39","fn":"Mike","ln":"Bliss","status":"-281 Laps"},{"id":"784","pos":"40","fn":"Scott","ln":"Speed","status":"-284 Laps"},{"id":"755","pos":"41","fn":"Reed","ln":"Sorenson","status":"-302 Laps"},{"id":"669","pos":"42","fn":"J.J.","ln":"Yeley","status":"-304 Laps"},{"id":"514","pos":"43","fn":"Dave","ln":"Blaney","status":"-309 Laps"}]}]},{"sport":"rugby","leagues":[{"league":"rugby","display":"21  de  October  de  2012","sportId":300,"date":"20121017215410","games":[{"gameId":347645,"date":"20121021143000","home":{"name":"C.U.Q.","score":"","id":"6475"},"away":{"name":"Banco Naci&#243;n","score":"","id":"6448"},"status":1,"statusText":"15:30 ARST","settings":"0|0|1|0"},{"gameId":347644,"date":"20121021143000","home":{"name":"San Albano","score":"","id":"6458"},"away":{"name":"Buenos Aires","score":"","id":"6481"},"status":1,"statusText":"15:30 ARST","settings":"0|0|1|0"},{"gameId":347643,"date":"20121021143000","home":{"name":"Deportiva Francesa","score":"","id":"6473"},"away":{"name":"Curupayt&#237;","score":"","id":"6489"},"status":1,"statusText":"15:30 ARST","settings":"0|0|1|0"},{"gameId":347639,"date":"20121021143000","home":{"name":"Liceo Naval","score":"","id":"6463"},"away":{"name":"Liceo Militar","score":"","id":"6480"},"status":1,"statusText":"15:30 ARST","settings":"0|0|1|0"},{"gameId":347638,"date":"20121021143000","home":{"name":"Pueyrred&#243;n","score":"","id":"6446"},"away":{"name":"Olivos","score":"","id":"6466"},"status":1,"statusText":"15:30 ARST","settings":"0|0|1|0"},{"gameId":347640,"date":"20121021143000","home":{"name":"Champagnat","score":"","id":"6451"},"away":{"name":"Regatas","score":"","id":"6456"},"status":1,"statusText":"15:30 ARST","settings":"0|0|1|0"},{"gameId":347642,"date":"20121021143000","home":{"name":"Manuel Belgrano","score":"","id":"6460"},"away":{"name":"San Andr&#233;s","score":"","id":"6486"},"status":1,"statusText":"15:30 ARST","settings":"0|0|1|0"},{"gameId":347641,"date":"20121021143000","home":{"name":"Los Matreros","score":"","id":"6464"},"away":{"name":"San Mart&#237;n","score":"","id":"6471"},"status":1,"statusText":"15:30 ARST","settings":"0|0|1|0"}]}]},{"sport":"soccer","leagues":[{"league":"soccer67","display":"Group Stage 2012: Oct. 17, 2012","sportId":600,"date":"20121017000000","games":[{"gameId":334663,"date":"20121017110000","tv":"","home":{"name":"England","score":"1","id":"448"},"away":{"name":"Poland","score":"1","id":"471"},"clock":"","status":3,"statusText":"FT","settings":"1|1|0|0"}]},{"league":"soccer19","display":"","sportId":600,"date":"20121017000000","games":[{"gameId":340034,"date":"20121017220000","tv":"","home":{"name":"Salt Lake","score":"0","id":"4771"},"away":{"name":"Seattle","score":"0","id":"9726"},"clock":"","status":3,"statusText":"FT","settings":"1|0|1|0"}]},{"league":"soccer42","display":"Northern Section Round 2: Oct. 17, 2012","sportId":600,"date":"20121017000000","games":[{"gameId":355996,"date":"20121017144500","tv":"","home":{"name":"Sheff Utd","score":"4","id":"398"},"away":{"name":"Notts County","score":"1","id":"340"},"clock":"","status":3,"statusText":"FT","settings":"1|1|0|0"}]},{"league":"soccer85","display":"Brasileirao 2012 (week 31): Oct. 17, 2012","sportId":600,"date":"20121017000000","games":[{"gameId":341529,"date":"20121017183000","tv":"","home":{"name":"Palmeiras","score":"1","id":"2029"},"away":{"name":"Bahia","score":"0","id":"9967"},"clock":"","status":3,"statusText":"FT","settings":"1|0|1|0"},{"gameId":341527,"date":"20121017183000","tv":"","home":{"name":"N&#225;utico","score":"1","id":"7633"},"away":{"name":"Coritiba FBC","score":"2","id":"3456"},"clock":"","status":3,"statusText":"FT","settings":"1|0|1|0"},{"gameId":341521,"date":"20121017183000","tv":"","home":{"name":"Gremio","score":"2","id":"6273"},"away":{"name":"Fluminense","score":"2","id":"3445"},"clock":"","status":3,"statusText":"FT","settings":"1|0|1|0"},{"gameId":341524,"date":"20121017183000","tv":"","home":{"name":"Figueirense","score":"3","id":"3461"},"away":{"name":"Int&#39;nacional","score":"2","id":"1936"},"clock":"","status":3,"statusText":"FT","settings":"1|0|1|0"},{"gameId":341525,"date":"20121017210000","tv":"","home":{"name":"Corinthians","score":"0","id":"874"},"away":{"name":"Cruzeiro","score":"2","id":"2022"},"clock":"","status":3,"statusText":"FT","settings":"1|0|1|0"},{"gameId":341526,"date":"20121017210000","tv":"","home":{"name":"Flamengo","score":"0","id":"819"},"away":{"name":"Portuguesa D","score":"0","id":"4773"},"clock":"","status":3,"statusText":"FT","settings":"1|0|1|0"},{"gameId":341522,"date":"20121017210000","tv":"","home":{"name":"Atl&#233;tico MG","score":"2","id":"7632"},"away":{"name":"Santos FC","score":"2","id":"2674"},"clock":"","status":3,"statusText":"FT","settings":"1|0|1|0"}]},{"league":"soccer1543","display":"Liga Postob&#243;n 2012 - Torneo Finalizaci&#243;n (week 14): Oct. 17, 2012","sportId":600,"date":"20121017000000","games":[{"gameId":350043,"date":"20121017210000","tv":"","home":{"name":"La Equidad","score":"0","id":"7445"},"away":{"name":"Junior","score":"0","id":"4815"},"clock":"","status":3,"statusText":"FT","settings":"0|0|1|0"}]},{"league":"soccer65","display":"Qualifying Stage (week 10): Oct. 16, 2012","sportId":600,"date":"20121016000000","games":[{"gameId":332210,"date":"20121016160000","tv":"","home":{"name":"Uruguay","score":"1","id":"212"},"away":{"name":"Bolivia","score":"4","id":"204"},"clock":"","status":3,"statusText":"FT","settings":"1|0|1|0"},{"gameId":332211,"date":"20121016180000","tv":"","home":{"name":"Peru","score":"0","id":"211"},"away":{"name":"Paraguay","score":"1","id":"210"},"clock":"","status":3,"statusText":"FT","settings":"1|0|1|0"},{"gameId":332213,"date":"20121016180000","tv":"","home":{"name":"Ecuador","score":"1","id":"209"},"away":{"name":"Venezuela","score":"1","id":"213"},"clock":"","status":3,"statusText":"FT","settings":"1|0|1|0"},{"gameId":332212,"date":"20121016200500","tv":"","home":{"name":"Argentina","score":"2","id":"202"},"away":{"name":"Chile","score":"1","id":"207"},"clock":"","status":3,"statusText":"FT","settings":"1|1|0|0"}]},{"league":"soccer64","display":"Third Round: Oct. 16, 2012","sportId":600,"date":"20121016000000","games":[{"gameId":333992,"date":"20121016160000","tv":"","home":{"name":"Panama","score":"1","id":"2659"},"away":{"name":"Cuba","score":"1","id":"2647"},"clock":"","status":3,"statusText":"FT","settings":"0|0|1|0"},{"gameId":333991,"date":"20121016160000","tv":"","home":{"name":"Canada","score":"1","id":"206"},"away":{"name":"Honduras","score":"8","id":"215"},"clock":"","status":3,"statusText":"FT","settings":"0|0|1|0"},{"gameId":333972,"date":"20121016191500","tv":"","home":{"name":"Antigua/Barbuda","score":"1","id":"2638"},"away":{"name":"Jamaica","score":"4","id":"1038"},"clock":"","status":3,"statusText":"FT","settings":"0|0|1|0"},{"gameId":333971,"date":"20121016191500","tv":"","home":{"name":"Guatemala","score":"1","id":"2652"},"away":{"name":"USA","score":"3","id":"660"},"clock":"","status":3,"statusText":"FT","settings":"1|0|1|0"},{"gameId":333980,"date":"20121016210000","tv":"","home":{"name":"Guyana","score":"0","id":"2653"},"away":{"name":"Costa Rica","score":"7","id":"214"},"clock":"","status":3,"statusText":"FT","settings":"0|0|1|0"},{"gameId":333979,"date":"20121016210000","tv":"","home":{"name":"El Salvador","score":"0","id":"2650"},"away":{"name":"Mexico","score":"2","id":"203"},"clock":"","status":3,"statusText":"FT","settings":"0|0|1|0"}]},{"league":"soccer25","display":"","sportId":600,"date":"20121016000000","games":[{"gameId":356724,"date":"20121016144500","tv":"","home":{"name":"Carlisle","score":"1","id":"322"},"away":{"name":"Bury","score":"1","id":"354"},"clock":"","status":3,"statusText":"FT","settings":"1|1|0|0"},{"gameId":355894,"date":"20121016144500","tv":"","home":{"name":"Hartlepool","score":"0","id":"323"},"away":{"name":"L Orient","score":"1","id":"309"},"clock":"","status":3,"statusText":"FT","settings":"1|1|0|0"}]},{"league":"soccer53","display":"International Friendly: Oct. 16, 2012","sportId":600,"date":"20121016000000","games":[{"gameId":355995,"date":"20121016081000","tv":"","home":{"name":"Brazil","score":"4","id":"205"},"away":{"name":"Japan","score":"0","id":"627"},"clock":"","status":3,"statusText":"FT","settings":"0|1|1|0"}]},{"league":"soccer62","display":"Round Four: Oct. 16, 2012","sportId":600,"date":"20121016000000","games":[{"gameId":340069,"date":"20121016082500","tv":"","home":{"name":"Uzbekistan","score":"1","id":"2570"},"away":{"name":"Qatar","score":"0","id":"4398"},"clock":"","status":3,"statusText":"FT","settings":"0|0|1|0"},{"gameId":340070,"date":"20121016090000","tv":"","home":{"name":"Jordan","score":"1","id":"2917"},"away":{"name":"Oman","score":"2","id":"2841"},"clock":"","status":3,"statusText":"FT","settings":"0|0|1|0"},{"gameId":340071,"date":"20121016101500","tv":"","home":{"name":"Australia","score":"2","id":"628"},"away":{"name":"Iraq","score":"1","id":"4375"},"clock":"","status":3,"statusText":"FT","settings":"0|0|1|0"},{"gameId":340068,"date":"20121016123000","tv":"","home":{"name":"South Korea","score":"0","id":"451"},"away":{"name":"Iran","score":"1","id":"469"},"clock":"","status":3,"statusText":"FT","settings":"0|0|1|0"}]},{"league":"soccer66","display":"Round Three: Oct. 16, 2012","sportId":600,"date":"20121016000000","games":[{"gameId":346806,"date":"20121016043000","tv":"","home":{"name":"Solomon Is","score":"0","id":"4861"},"away":{"name":"New Caledoni","score":"5","id":"4888"},"clock":"","status":3,"statusText":"FT","settings":"0|0|1|0"}]}]},{"sport":"tennis","leagues":[{"league":"tennis-1","display":"ATP Erste Bank Open: Oct 17, 2012","sportId":850,"date":"20121017095410","games":[{"gameId":43360,"date":"20121017000000","home":{"name":"D. Brands","score":"7 6 6","id":"724"},"away":{"name":"J. del Potro","score":"6 7 7","id":"284","rank":"1"},"clock":"2nd Rd","status":3,"statusText":"Final","details":"away"},{"gameId":43361,"date":"20121017000000","home":{"name":"G. Muller","score":"6 3 7","id":"294"},"away":{"name":"J. Melzer","score":"3 6 6","id":"265","rank":"4"},"clock":"2nd Rd","status":3,"statusText":"Final","details":"home"},{"gameId":43356,"date":"20121017080000","home":{"name":"D. Young","score":"7 6","id":"889"},"away":{"name":"F. Fognini","score":"6 3","id":"669","rank":"5"},"clock":"1st Rd","status":3,"statusText":"Final","details":"home"},{"gameId":43346,"date":"20121017000000","home":{"name":"L. Lacko","score":"6 3","id":"466"},"away":{"name":"D. Thiem","score":"7 6","id":"1852"},"clock":"1st Rd","status":3,"statusText":"Final","details":"away"},{"gameId":43358,"date":"20121017000000","home":{"name":"S. Devvarman","score":"6 3","id":"1060"},"away":{"name":"E. Gulbis","score":"7 6","id":"368"},"clock":"1st Rd","status":3,"statusText":"Final","details":"away"}]},{"league":"tennis37-1","display":"ATP Kremlin Cup: Oct 17, 2012","sportId":850,"date":"20121017095410","games":[{"gameId":43303,"date":"20121017000000","home":{"name":"V. Troicki","score":"1 6 2","id":"685","rank":"3"},"away":{"name":"M. Jaziri","score":"6 3 6","id":"1950"},"clock":"1st Rd","status":3,"statusText":"Final","details":"away"},{"gameId":43379,"date":"20121017000000","home":{"name":"V. Troicki","score":"1 6 2","id":"685","rank":"3"},"away":{"name":"M. Jaziri","score":"6 3 6","id":"1950"},"clock":"2nd Rd","status":3,"statusText":"Final","details":"away"},{"gameId":43370,"date":"20121017000000","home":{"name":"L. Rosol","score":"4 6 6","id":"359"},"away":{"name":"D. Istomin","score":"6 4 3","id":"1168","rank":"6"},"clock":"2nd Rd","status":3,"statusText":"Final","details":"home"},{"gameId":43374,"date":"20121017030000","home":{"name":"K. Kravchuk","score":"6 6 3","id":"1911"},"away":{"name":"T. Ito","score":"7 2 6","id":"1487","rank":"8"},"clock":"2nd Rd","status":3,"statusText":"Final","details":"away"},{"gameId":43293,"date":"20121017000000","home":{"name":"E. Donskoy","score":"4 6 3","id":"886"},"away":{"name":"E. Roger-Vasselin","score":"6 4 6","id":"720"},"clock":"1st Rd","status":3,"statusText":"Final","details":"away"},{"gameId":43294,"date":"20121017000000","home":{"name":"I. Karlovic","score":"6 7","id":"233"},"away":{"name":"S. Bolelli","score":"4 6","id":"279"},"clock":"1st Rd","status":3,"statusText":"Final","details":"home"},{"gameId":43297,"date":"20121017000000","home":{"name":"F. Cipolla","score":"6 6","id":"776"},"away":{"name":"T. Gabashvili","score":"4 4","id":"227"},"clock":"1st Rd","status":3,"statusText":"Final","details":"home"},{"gameId":43298,"date":"20121017000000","home":{"name":"B. Becker","score":"6 3","id":"309"},"away":{"name":"J. Janowicz","score":"7 6","id":"1278"},"clock":"1st Rd","status":3,"statusText":"Final","details":"away"}]},{"league":"tennis148-1","display":"ATP Tour if...Stockholm...: Oct 17, 2012","sportId":850,"date":"20121017095410","games":[{"gameId":43367,"date":"20121017000000","home":{"name":"N. Almagro","score":"6 7","id":"270","rank":"3"},"away":{"name":"M. Copil","score":"4 6","id":"1547"},"clock":"2nd Rd","status":3,"statusText":"Final","details":"home"},{"gameId":43366,"date":"20121017000000","home":{"name":"R. Berankis","score":"4 6 6","id":"861"},"away":{"name":"F. Mayer","score":"6 4 2","id":"311","rank":"4"},"clock":"2nd Rd","status":3,"statusText":"Final","details":"home"},{"gameId":43375,"date":"20121017000000","home":{"name":"P. Rosenholm","score":"0 2","id":"2310"},"away":{"name":"M. Youzhny","score":"6 6","id":"229","rank":"6"},"clock":"2nd Rd","status":3,"statusText":"Final","details":"away"},{"gameId":43377,"date":"20121017000000","home":{"name":"L. Hewitt","score":"7 2 6","id":"306"},"away":{"name":"J. Nieminen","score":"6 6 4","id":"347","rank":"8"},"clock":"2nd Rd","status":3,"statusText":"Final","details":"home"}]},{"league":"tennis-2","display":"WTA BGL BNP PARIBAS Luxembourg...: Oct 17, 2012","sportId":850,"date":"20121017095410","games":[{"gameId":43386,"date":"20121017210000","home":{"name":"A. Keothavong","score":"","id":"799"},"away":{"name":"R. Vinci","score":"","id":"199","rank":"1"},"clock":"2nd Rd","status":1,"statusText":"9:00 PM ET","details":""},{"gameId":43395,"date":"20121017200000","home":{"name":"K. Flipkens","score":"","id":"455"},"away":{"name":"D. Hantuchova","score":"","id":"335"},"clock":"2nd Rd","status":1,"statusText":"8:00 PM ET","details":""},{"gameId":43308,"date":"20121017000000","home":{"name":"A. Keothavong","score":"6 6","id":"799"},"away":{"name":"K. Bertens","score":"2 2","id":"1974"},"clock":"1st Rd","status":3,"statusText":"Final","details":"home"},{"gameId":43312,"date":"20121017000000","home":{"name":"G. Muguruza Blanco","score":"6 2 1","id":"2155"},"away":{"name":"A. Petkovic","score":"4 6 6","id":"735"},"clock":"1st Rd","status":3,"statusText":"Final","details":"away"},{"gameId":43313,"date":"20121017000000","home":{"name":"K. Pervak","score":"6 7","id":"921"},"away":{"name":"V. Dushevina","score":"3 6","id":"375"},"clock":"1st Rd","status":3,"statusText":"Final","details":"home"},{"gameId":43369,"date":"20121017190000","home":{"name":"L. Dominguez Lino","score":"6 6","id":"381"},"away":{"name":"M. Rybarikova","score":"2 3","id":"1100"},"clock":"2nd Rd","status":3,"statusText":"Final","details":"home"},{"gameId":43373,"date":"20121017000000","home":{"name":"A. Beck","score":"1 1","id":"2158"},"away":{"name":"L. Hradecka","score":"6 6","id":"509"},"clock":"2nd Rd","status":3,"statusText":"Final","details":"away"}]},{"league":"tennis243-2","display":"WTA Kremlin Cup: Oct 17, 2012","sportId":850,"date":"20121017095410","games":[{"gameId":43342,"date":"20121017000000","home":{"name":"M. Bartoli","score":"3 0","id":"320","rank":"2"},"away":{"name":"S. Arvidsson","score":"6 6","id":"393"},"clock":"2nd Rd","status":3,"statusText":"Final","details":"away"},{"gameId":43341,"date":"20121017000000","home":{"name":"C. Wozniacki","score":"6 6","id":"630","rank":"3"},"away":{"name":"U. Radwanska","score":"1 3","id":"914"},"clock":"2nd Rd","status":3,"statusText":"Final","details":"home"},{"gameId":43381,"date":"20121017000000","home":{"name":"T. Pironkova","score":"2 3","id":"407"},"away":{"name":"D. Cibulkova","score":"6 6","id":"334","rank":"5"},"clock":"2nd Rd","status":3,"statusText":"Final","details":"away"},{"gameId":43335,"date":"20121017000000","home":{"name":"E. Vesnina","score":"5 1","id":"193"},"away":{"name":"M. Kirilenko","score":"7 6","id":"237","rank":"7"},"clock":"1st Rd","status":3,"statusText":"Final","details":"away"},{"gameId":43371,"date":"20121017030000","home":{"name":"L. Safarova","score":"4 4","id":"392","rank":"8"},"away":{"name":"K. Zakopalova","score":"6 6","id":"474"},"clock":"2nd Rd","status":3,"statusText":"Final","details":"away"},{"gameId":43328,"date":"20121017030000","home":{"name":"E. Svitolina","score":"4 2","id":"1797"},"away":{"name":"V. Solovieva","score":"6 6","id":"1653"},"clock":"1st Rd","status":3,"statusText":"Final","details":"away"}]}]},{"sport":"wnba","leagues":[{"league":"wnba","display":"Playoffs: Oct. 17, 2012","sportId":59,"date":"20121017000000","games":[{"gameId":400425930,"date":"20121017200000","tv":"","home":{"name":"MIN","score":83,"id":"8","nickname":"Lynx","location":"Minnesota"},"away":{"name":"IND","score":71,"id":"5","nickname":"Fever","location":"Indiana"},"clock":"","status":3,"statusText":"F","link":"","settings":"1|1|1|1|0","details":"Series tied 1-1"}]}]}]}
+</script>
+
+<div id="scoreboard"><div class="container">
+	<div class="mod-container mod-tabs mod-no-footer">
+		<div class="mod-header">
+			<ul>
+			<li class="ui-tabs-selected"><a onclick="return false;" class="{url:'/mlb/scoreboard', name:'&lpos=page1sb&lid=mlb_scoreboard', text:'Full Scoreboard &#187;', sport:'mlb'}" rel="sbtab" href="#mlb-event">MLB</a></li><li><a onclick="return false;" class="{url:'/nba/scoreboard', name:'&lpos=page1sb&lid=nba_scoreboard', text:'Full Scoreboard &#187;', sport:'nba'}" rel="sbtab" href="#nba-scores">NBA</a></li><li><a onclick="return false;" class="{url:'/wnba/scoreboard', name:'&lpos=page1sb&lid=wnba_scoreboard', text:'Full Scoreboard &#187;', sport:'wnba'}" rel="sbtab" href="#wnba-scores">WNBA</a></li><li><a onclick="return false;" class="{url:'http://scores.espn.go.com/ncf/scoreboard', name:'&lpos=page1sb&lid=ncf_scoreboard', text:'Full Scoreboard &#187;', sport:'ncf'}" rel="sbtab" href="#ncf-scores">NCAAF</a></li><li><a onclick="return false;" class="{url:'http://scores.espn.go.com/nfl/scoreboard', name:'&lpos=page1sb&lid=nfl_scoreboard', text:'Full Scoreboard &#187;',sport:'nfl'}" rel="sbtab" href="#nfl-scores">NFL</a></li><li><a onclick="return false;" class="{url:'http://espn.go.com/personalization/', name:'&lpos=page1sb&lid=personalization_center', text:'Edit Teams &#187;', sport:'my'}" rel="sbtab" href="#my-scores">myScores</a></li>
+				<li><a style="display:none" href="#"></a><a style="font-weight: bold;" name="&lpos=page1sb&lid=allscores" href="/sports/scores">All Scores &#187;</a></li>
+			</ul>
+			<div id="scores-description"></div>
+		</div>
+		<div class="event" id="mlb-event"></div>
+		<div class="container holder scores-hide">
+		<div class="scores-prev" style="display: block;"></div>
+		<div class="scores-next" style="display: block;"></div>
+		<div class="mod-content">
+		<div class="transparent-background"></div>
+		<div class="scores-carousel ui-tabs-hide {note:'THERE ARE NO NBA GAMES TODAY'}" id="nba-scores"></div><div class="scores-carousel ui-tabs-hide {note:'THERE ARE NO WNBA GAMES TODAY'}" id="wnba-scores"></div><div class="scores-carousel ui-tabs-hide {note:'THERE ARE NO TOP 25 GAMES THIS WEEK'}" id="ncf-scores"></div><div class="scores-carousel ui-tabs-hide {note:'THERE ARE NO NFL GAMES THIS WEEK'}" id="nfl-scores"></div><div class="scores-carousel ui-tabs-hide" id="my-scores"></div>
+		</div>
+		</div>
+	</div>
+</div></div>
+<!-- end scoreboard -->
+
+<script>espn.core.init.scoreboard();</script><!-- end scoreboard -->
+<!-- begin content -->
+<div id="content" class="container">
+<!-- begin Banner ad -->
+<div class="span-6 ad banner top"><div class="ad-center"><div class="ad-wrapper">
+			<!-- begin ad tag -->
+			<script language="JavaScript" type="text/javascript">
+			if (typeof ad_kvps != 'undefined' && typeof ad_u != 'undefined' && typeof ad_counter != 'undefined' && typeof ad_ord != 'undefined') {
+				if (typeof ad_site == 'undefined' || typeof ad_zone == 'undefined') {
+					var ad_site = 'espn.us.com.espn';
+					var ad_zone = 'espnfrontpage';
+				}
+				var ad_finalString = 'http://ad.Doubleclick.net/adj/'+ad_site+'/'+ad_zone+';' +ad_kvps+ 'pos=Banner;' +ad_u+ 'sz=728x90,970x66,924x50,1x1;tile=' +ad_counter+ ';ord=' +ad_ord;
+				document.write('<scr'+'ipt src='+ad_finalString+'></scr'+'ipt>');
+				ad_counter++;
+			}
+			</script>
+			<noscript>
+			<a href="http://ad.Doubleclick.net/jump/espn.us.com.espn/espnfrontpage;sz=728x90,970x66,924x50,1x1;" target="_blank">
+			<img src="http://ad.Doubleclick.net/ad/espn.us.com.espn/espnfrontpage;sz=728x90,970x66,924x50,1x1;" border="0" alt="">
+			</a>
+			</noscript>
+			<!-- end ad tag -->
+			</div></div></div>
+<!-- end Banner ad -->
+<!--[if lte IE 6]><link rel="stylesheet" charset="utf-8" media="screen" href="http://a.espncdn.com/combiner/c?css=modules/browser-alert.r7.css" type="text/css" /><div class="span-6" id="browser-alert-wrapper" style="display:none;"><div class="mod-container mod-no-header-footer browser-alert"><div class="mod-content"><div class="gradient-container"><h1><span>Your Web Browser</span> is no longer supported</h1><p>To experience everything that ESPN.com has to offer, we recommend that you upgrade to a newer version of your web browser. Click the upgrade button to the right or <a href="http://espn.go.com/espn/news/story?id=5630562">learn more</a>.</p><ul><li><a class="btn-upgrade" href="http://www.microsoft.com/windows/internet-explorer/default.aspx">Upgrade</a></li><li><a class="btn-faq" href="http://espn.go.com/espn/news/story?id=5630562">FAQs</a></li></ul></div></div></div></div><script>(function(b){setTimeout(function(){var a=b("#browser-alert-wrapper");if(espn.cookie.get("browseralert")!="true"){b('<a class="btn-close" href="#">Close</a>').bind("click",function(){a.hide();espn.cookie.set("browseralert","true",30);return false}).appendTo(a.find(".gradient-container"));a.show();espn.cookie.set("browseralert","true")}},100)})(jQuery);</script><![endif]--><div id="top-stories" class="span-4">
+<div class="mod-container mod-tabs mod-no-footer mod-no-header">
+<div class="mod-header">
+<ul>
+<li id="top-stories" class="ui-tabs-selected"><a href="#Top_Stories" name="&lpos=espnfrontpage&lid=top+stories" title="Top Stories">TOP STORIES</a></li><li id="watch-espn-a"><a href="/?indexFormat=watch-espn-a" name="&lpos=espnfrontpage&lid=watch+espn+a" title="Watch Live">WATCH LIVE <span>&nbsp;</span></a><ul id="channels"><li id="channel-espn1" class="channel"><a href="/?topId=watch-espn&indexFormat=watch-espn-a" class="livevideo watch-mem-link" data-tab="Watch_Live_espn1" data-carousel="carousel-watch-espn">ESPN1</a><ul class="showlist shows1"><li class="last"><div class="thumbnail"><a href="/?topId=watch-espn&indexFormat=watch-espn-a" class="livevideo watch-mem-link" data-tab="Watch_Live_espn1" data-carousel="carousel-watch-espn"><img src="http://a.espncdn.com/combiner/i?img=espn360%2fimages%2fshowassets%2fSR%2d20120103064945.jpg&w=110&h=62"></a></div><div class="show-info"><h3>SportsCenter</h3><p class="time">Thu  12:00 AM ET</p><p class="watch"><a href="/?topId=watch-espn&indexFormat=watch-espn-a" class="livevideo watch-mem-link" data-tab="Watch_Live_espn1" data-carousel="carousel-watch-espn">Watch Now</a></p></div></li></ul></li><li id="channel-espn2" class="channel"><a href="/?topId=watch-espn2&indexFormat=watch-espn-a" class="livevideo watch-mem-link" data-tab="Watch_Live_espn2" data-carousel="carousel-watch-espn2">ESPN2</a><ul class="showlist shows1"><li class="last"><div class="thumbnail"><a href="/?topId=watch-espn2&indexFormat=watch-espn-a" class="livevideo watch-mem-link" data-tab="Watch_Live_espn2" data-carousel="carousel-watch-espn2"><img src="http://a.espncdn.com/combiner/i?img=espn360%2fimages%2fshowassets%2fBBDY%2d20120416034936.jpg&w=110&h=62"></a></div><div class="show-info"><h3>Baseball Tonight</h3><p class="time">Thu  12:00 AM ET</p><p class="watch"><a href="/?topId=watch-espn2&indexFormat=watch-espn-a" class="livevideo watch-mem-link" data-tab="Watch_Live_espn2" data-carousel="carousel-watch-espn2">Watch Now</a></p></div></li></ul></li><li id="channel-espnu" class="channel"><a href="/?topId=watch-espnu&indexFormat=watch-espn-a" class="livevideo watch-mem-link" data-tab="Watch_Live_espnu" data-carousel="carousel-watch-espnu">ESPNU</a><ul class="showlist shows1"><li class="last"><div class="thumbnail"><a href="/?topId=watch-espnu&indexFormat=watch-espn-a" class="livevideo watch-mem-link" data-tab="Watch_Live_espnu" data-carousel="carousel-watch-espnu"><img src="http://a.espncdn.com/combiner/i?img=espn360%2fimages%2fshowassets%2fCOUN%2d20120830061314.jpg&w=110&h=62"></a></div><div class="show-info"><h3>UNITE</h3><p class="time">Thu  12:00 AM ET</p><p class="watch"><a href="/?topId=watch-espnu&indexFormat=watch-espn-a" class="livevideo watch-mem-link" data-tab="Watch_Live_espnu" data-carousel="carousel-watch-espnu">Watch Now</a></p></div></li></ul></li><li id="channel-espn3" class="channel last"><a href="/?topId=watch-594492&indexFormat=watch-espn-a" class="livevideo watch-mem-link" data-tab="Watch_Live_espn3" data-carousel="carousel-watch-594492">ESPN3</a><ul class="showlist shows2"><li><div class="thumbnail"><a href="/?topId=watch-594492&indexFormat=watch-espn-a" class="livevideo watch-mem-link" data-tab="Watch_Live_espn3" data-carousel="carousel-watch-594492"><img src="http://a.espncdn.com/combiner/i?img=espn360%2fimages%2fbk%2fwnba%2f594492.jpg&w=110&h=62"></a></div><div class="show-info"><h3>Indiana Fever vs. Minn Lynx</h3><p class="time">Wed  8:00 PM ET</p><p class="watch"><a href="/?topId=watch-594492&indexFormat=watch-espn-a" class="livevideo watch-mem-link" data-tab="Watch_Live_espn3" data-carousel="carousel-watch-594492">Watch Now</a></p></div></li><li class="last"><div class="thumbnail"><a href="/?topId=watch-666864&indexFormat=watch-espn-a" class="livevideo watch-mem-link" data-tab="Watch_Live_espn3" data-carousel="carousel-watch-666864"><img src="http://a.espncdn.com/combiner/i?img=espn360%2fimages%2fso%2f2014_fifa_world_cup_qualifier%2f666864.jpg&w=110&h=62"></a></div><div class="show-info"><h3>Poland vs. England: World Cup ...</h3><p class="time">Wed  11:00 AM ET</p><p class="watch"><a href="/?topId=watch-666864&indexFormat=watch-espn-a" class="livevideo watch-mem-link" data-tab="Watch_Live_espn3" data-carousel="carousel-watch-666864">Watch Now</a></p></div></li></ul></li></ul></li></ul></div><div class="mod-content"><div id="Top_Stories" class="mod-tab-content ui-tabs-panel" data-carousel="carousel-8517990" >
+<div class="top-story-content single"><div class="top-story-image"><img src="http://a.espncdn.com/photo/2012/1017/mlb_g_carpenter32_cr_576.jpg" width="576" height="324" border="0" alt="Matt Carpenter " /></div><div class="top-story-headline"><h2>Wet And Wild Cards</h2><p>Matt Carpenter waited for his chance in the postseason and delivered Wednesday. The Cards then waited nearly 3 &#189 hours before closing out a Game 3 win. <a name="&amp;lpos=fp_ts1" href="http://scores.espn.go.com/mlb/recap?gameId=321017124">Cardinals 3, Giants 1 &#187;</a><a name="&amp;lpos=fp_ts1" href="http://espn.go.com/mlb/playoffs/2012/story/_/id/8516986/2012-nlcs-carlos-beltran-st-louis-cardinals-strains-left-knee-leaves-game-3-san-francisco-giants">Beltran hurt &#187</a>
+</p>
+
+
+
+
+
+<cite>Dilip Vishwanat/Getty Images</cite></div><script>espn.mem.video(8518128,{playerType: 'fpp09', playRelatedExternally: 'false', thumbnailURL: 'http://a.
+008000
+espncdn.com/photo/2012/1017/mlb_g_carpenter32_cr_576.jpg'}, false);</script></div><div class="mod-mem-carousel" id="tscar-1350536052978">
+<ul>
+<li id="carousel-8517990" class=" active"><div><a href="/?topId=8517990">
+<div class="vid-icon"></div><img src="http://a.espncdn.com/photo/2012/1017/mlb_g_carpenter32_cr_110.jpg" width="110" height="62" alt="" /><h3>Cards Win G3<span>Up 2-1 after rain</span></h3></a></div></li><li id="carousel-8518270" class=""><div><a href="/?topId=8518270">
+<div class="vid-icon"></div><img src="http://a.espncdn.com/photo/2012/1017/mlb_u_roddy7_cr_110.jpg" width="110" height="62" alt="" /><h3>A-Rod's Future<span>Benched for G4</span></h3></a></div></li><li id="carousel-8517082" class=""><div><a href="/?topId=8517082">
+<div class="vid-icon"></div><img src="http://a.espncdn.com/photo/2012/1017/wnba_a_augustus01jr_110.jpg" width="110" height="62" alt="" /><h3>WNBA Finals<span>Lynx get even</span></h3></a></div></li><li id="carousel-8517729" class=""><div><a href="/?topId=8517729">
+<div class="vid-icon"></div><img src="http://a.espncdn.com/photo/2012/1017/ncf_u_collegeclowns_cr_110.jpg" width="110" height="62" alt="" /><h3>All-America Team<span>First-half's best</span></h3></a></div></li><li id="carousel-8517781" class=""><div><a href="/?topId=8517781">
+<div class="vid-icon"></div><img src="http://a.espncdn.com/photo/2012/1017/nfl_u_nelson-rodgers_mb_110.jpg" width="110" height="62" alt="" /><h3>Fantasy Football<span>Week 7 rankings</span></h3></a></div></li></ul></div><script>espn.mem.init(jQuery('#top-stories'))</script></div><div id="Watch_Live" class="mod-tab-content ui-tabs-panel" data-carousel="carousel-8517990" >
+</div><div class="top-story-content single videoplayer videoplayer-index09"><!-- video placeholder --></div>
+<div class="top-story-content single watchplayer"><div id="watchespn-player"></div></div>
+</div></div></div><script>espn.core.init.tabs(jQuery('#top-stories').find('.mod-tabs .mod-header'));</script><div id="Watch_Tab_Click" style="display:none"></div><div id="authenticate_mvpdSelected" style="display:none"></div><div id="authenticate_authenticationSuccessful" style="display:none"></div><div id="authenticate_providerScreenShown" style="display:none"></div><div id="nav-wrapper" class="container">
+<div id="nav-wrapper-container">
+<div id="nav-main">
+<!-- begin site nav -->
+<ul class="top">
+<!-- begin site nav -->
+<p><!-- begin site nav --></p>
+<ul class="top" id="nav-main-list"><!-- start: Menuitem :: MyTAB -->
+<li class="last myespn" id="menu-myespn"><a class="myespn" ref="#">MyESPN</a></li>
+<!-- start: Menuitem :: NFL -->
+<li class="sport-menu default t-nfl" data-sportid="28" id="menu-nfl"><a href="http://scores.espn.go.com/nfl/" name="&amp;lpos=sitenavdefault&amp;lid=sitenav_nfl">NFL</a></li>
+<!-- start: Menuitem :: MLB -->
+<li class="sport-menu default t-mlb" data-sportid="10" id="menu-mlb"><a href="http://scores.espn.go.com/mlb/" name="&amp;lpos=sitenavdefault&amp;lid=sitenav_mlb">MLB</a></li>
+<!-- start: Menuitem :: NBA -->
+<li class="sport-menu default t-nba" data-sportid="46" id="menu-nba"><a href="http://espn.go.com/nba/" name="&amp;lpos=sitenavdefault&amp;lid=sitenav_nba">NBA</a></li>
+<!-- start: Menuitem :: NHL -->
+<li class="sport-menu default t-nhl" data-sportid="90" id="menu-nhl"><a href="http://espn.go.com/nhl/" name="&amp;lpos=sitenavdefault&amp;lid=sitenav_nhl">NHL</a></li>
+<!-- start: Menuitem :: NCAA FB -->
+<li class="sport-menu default t-ncf" data-sportid="23" id="menu-ncf"><a href="http://espn.go.com/college-football/" name="&amp;lpos=sitenavdefault&amp;lid=sitenav_ncf">NCAA FB</a></li>
+<!-- start: Menuitem :: NCAA BB -->
+<li class="sport-menu default t-ncb" data-sportid="41" id="menu-ncb"><a href="http://espn.go.com/mens-college-basketball/" name="&amp;lpos=sitenavdefault&amp;lid=sitenav_ncb">NCAA BB</a></li>
+<!-- start: Menuitem :: NASCAR -->
+<li class="sport-menu default t-nascar" data-sportid="2020" id="menu-nascar"><a href="http://espn.go.com/racing/nascar/" name="&amp;lpos=sitenavdefault&amp;lid=sitenav_nascar">NASCAR</a></li>
+<!-- start: Menuitem :: SOCCER -->
+<li class="sport-menu default t-soccer" data-sportid="600" id="menu-soccer"><a href="http://espn.go.com/sports/soccer/" name="&amp;lpos=sitenavdefault&amp;lid=sitenav_soccer">SOCCER</a></li>
+<!-- start: Menuitem :: GOLF -->
+<li class="sport-menu t-golf" data-sportid="1106" id="menu-golf" style="display: none;"><a href="http://espn.go.com/golf/" name="&amp;lpos=sitenavdefault&amp;lid=sitenav_golfl">GOLF</a></li>
+<!-- start: Menuitem :: TENNIS -->
+<li class="sport-menu t-tennis" data-sportid="850" id="menu-tennis" style="display: none;"><a href="http://espn.go.com/tennis/" name="&amp;lpos=sitenavdefault&amp;lid=sitenav_tennis">TENNIS</a></li>
+<!-- start: Menuitem :: BOXING-->
+<li class="sport-menu t-boxing" data-sportid="1000" id="menu-boxing" style="display: none;"><a href="http://espn.go.com/boxing/" name="&amp;lpos=sitenavdefault&amp;lid=sitenav_boxing">BOXING</a></li>
+<!-- start: Menuitem :: MMA -->
+<li class="sport-menu t-mma" data-sportid="3301" id="menu-mma" style="display: none;"><a href="http://espn.go.com/mma/" name="&amp;lpos=sitenavdefault&amp;lid=sitenav_mma">MMA</a></li>
+<!-- start: Menuitem :: ALL SPORTS -->
+<li class="nav-allsports t-allsports" id="menu-allsports"><a href="http://espn.go.com/sports/" name="&amp;lpos=sitenavdefault&amp;lid=sitenav_allsports">MORE SPORTS</a></li>
+<!-- start: Menuitem :: INSIDER -->
+<li class="sport-menu t-insider" id="menu-insider" style="display: none;"><a href="http://insider.espn.go.com/insider/index" name="&amp;lpos=sitenavdefault&amp;lid=sitenav_insider">INSIDER</a></li>
+<!-- start: Menuitem :: SPORTSNATION -->
+<li class="sport-menu t-sportsnation" id="menu-sportsnation" style="display: none;"><a href="http://espn.go.com/sportsnation/" name="&amp;lpos=sitenavdefault&amp;lid=sitenav_sportsnation">SN</a></li>
+<!-- start: Menuitem :: RADIO & MORE -->
+<li class="right-menu two-line last t-radio" id="menu-radio"><a href="http://espn.go.com/espnradio/" name="&amp;lpos=sitenavdefault&amp;lid=sitenav_radioandmore">RADIO<span>&amp; MORE</span></a></li>
+<!-- start: Menuitem :: espnW & PLAYBOOK -->
+<li class="right-menu two-line t-page2" id="menu-page2"><a href="http://espn.go.com/espnw/" name="&amp;lpos=sitenavdefault&amp;lid=sitenav_espnwandplaybook" target="_blank">espnW<span>&amp; PLAYBOOK</span></a></li>
+<!-- start: Menuitem :: FANTASY & GAMES -->
+<li class="right-menu two-line t-fantasy" id="menu-fantasy"><a href="http://games.espn.go.com/frontpage" name="&amp;lpos=sitenavdefault&amp;lid=sitenav_fantasy">FANTASY<span>&amp; GAMES</span></a></li>
+<!-- start: Menuitem :: WATCH -->
+<li class="right-menu t-watch" id="menu-watch"><a href="http://espn.go.com/video/" name="&amp;lpos=sitenavdefault&amp;lid=sitenav_watch">WATCH</a></li>
+</ul>
+<!-- end site nav -->
+<!-- end site nav -->
+<script>espn.core.init.nav();</script></ul>
+<!-- end site nav -->
+</div>
+</div>
+</div>
+<!-- begin right of ts -->
+<div class="span-2">
+<div id="espnTabsHeadlines" class="span-2 last">
+<div class="mod-container mod-tabs mod-no-footer">
+<div class="mod-header">
+<ul>
+<li class="ui-tabs-selected"><a href="#mod-tab-content-headlines" name="&lpos=espnfrontpage&lid=headlines">HEADLINES</a></li>
+<li><a href="#mod-tab-content-myheadlines" name="&lpos=espnfrontpage&lid=my+headlines">MY HEADLINES</a></li>
+<li><a href="#mod-tab-content-fbactivity" name="&lpos=espnfrontpage&lid=fb+activity"><img src="http://a.espncdn.com/i/logo_facebook_gray_12.png" class="icon facebook"> SHARES</a></li>
+</ul>
+</div>
+<div class="mod-content">
+<div id="mod-tab-content-headlines" class="ui-tabs-panel">
+<div class="gradient-container">
+<style>.sc-feed-callout{margin:0 6px; padding:11px 0 8px; border-bottom:1px #CCC solid; text-align: right; overflow: hidden;}.sc-feed-callout>a{margin-top:2px;}.sc-feed-callout>a.logo{display:block; width:113px; height:21px; background: url(http://a.espncdn.com/prod/assets/sc-feed/homepage-callout/logo-scfeed-beta-113x21.png) no-repeat; float:left; text-indent: -1000px; text-align: left; overflow: hidden; margin-top:-3px;}</style><div id="sc-feed-callout-headlines" class="sc-feed-callout"><a name="&amp;lpos=hnfeed&amp;lid=espnfrontpage-feedcallout" class="logo" href="http://espn.go.com/espn/sportscenter/feed/">SportsCenter Feed</a><a name="&amp;lpos=hnfeed&amp;lid=espnfrontpage-feedcallout" href="http://espn.go.com/espn/sportscenter/feed/">Your sports, as they happen</a></div><script>jQuery('#sc-feed-callout-headlines a').click(function (e) {e.preventDefault();var href = jQuery(this).attr('href');anTrackLink(this, 'espn', 'hnfeed', 'espnfrontpage-feedcallout');window.open(href, 'scfeed', 'width=1024,height=768,toolbar=no,menubar=no,scrollbars=no,resizable=no,location=no,directories=no,status=no,addressbar=no');});</script><ul class="headlines">
+<li><a href="http://scores.espn.go.com/mlb/recap?gameId=321017124" name="&lpos=hn1&lid=Cards outlast Giant" >Cards outlast Giants, take 2-1 lead in NLCS</a> <img src="http://assets.espn.go.com/icons/sportscenter.png" width="17" height="11" border="0" alt="SportsCenter" /></li>
+<li><a href="http://scores.espn.go.com/mlb/recap?gameId=321017106" name="&lpos=hn2&lid=Game 4 of ALCS move" >Game 4 of ALCS moved to Thursday</a> <img src="http://assets.espn.go.com/icons/watch_headlines.png" width="17" height="8" border="0" alt="Video" /> | <a href="http://espn.go.com/mlb/playoffs/2012/story/_/id/8518148/alex-rodriguez-belongs-new-york-yankees-lineup" name="&lpos=hn2sub&lid=Caple">Caple</a></li>
+<li><a href="http://espn.go.com/nba/story/_/id/8516740/kevin-love-minnesota-timberwolves-star-6-8-weeks-broken-hand" name="&lpos=hn3&lid=Wolves' Love breaks" >Wolves' Love breaks hand, out 6-8 weeks</a> <img src="http://assets.espn.go.com/icons/sportscenter.png" width="17" height="11" border="0" alt="SportsCenter" /></li>
+<li><a href="http://espn.go.com/nfl/story/_/id/8516519/jonathan-vilma-new-orleans-saints-linebacker-practices-first-time-season" name="&lpos=hn4&lid=Saints' Vilma pract" >Saints' Vilma practices</a> <img src="http://assets.espn.go.com/icons/watch_headlines.png" width="17" height="8" border="0" alt="Video" /> | <a href="http://espn.go.com/nfl/story/_/id/8516274/nfl-responds-jonathan-vilma-nflpa-bounty-lawsuits" name="&lpos=hn4sub&lid=NFL answers suits">NFL answers suits</a></li>
+<li><a href="http://espn.go.com/new-york/nfl/story/_/id/8517765/new-york-jets-preparing-new-england-patriots-tempo-offense" name="&lpos=hn5&lid=Jets LB: Pats run '" >Jets LB: Pats run 'borderline illegal' offense</a> <img src="http://assets.espn.go.com/icons/watch_headlines.png" width="17" height="8" border="0" alt="Video" />  </li>
+<li><a href="http://espn.go.com/new-york/mlb/story/_/id/8517121/alex-rodriguez-trade-discussed-offseason-new-york-yankees-miami-marlins-source-says" name="&lpos=hn6&lid=Source: Marlins may" >Source: Marlins may talk A-Rod</a> <img src="http://assets.espn.go.com/icons/watch_headlines.png" width="17" height="8" border="0" alt="Video" /> | <a href="http://espn.go.com/new-york/mlb/story/_/id/8518115/mlb-playoffs-2012-new-york-yankees-alex-rodriguez-leave-town-quietly" name="&lpos=hn6sub&lid=O'Connor">O'Connor</a></li>
+<li><a href="http://espn.go.com/mens-college-basketball/story/_/id/8516669/nerlens-noel-kentucky-wildcats-cleared-practice-play-ncaa-john-calipari-tells-sportscenter" name="&lpos=hn7&lid=UK frosh Noel clear" >UK frosh Noel cleared</a> <img src="http://assets.espn.go.com/icons/sportscenter.png" width="17" height="11" border="0" alt="SportsCenter" /> | <a href="http://espn.go.com/mens-college-basketball/story/_/id/8517134/marcus-lee-chooses-kentucky-wildcats-joins-loaded-recruting-class-2013" name="&lpos=hn7sub&lid=No. 28 Lee commits">No. 28 Lee commits</a></li>
+<li><a href="http://espn.go.com/mma/story/_/id/8517476/chael-sonnen-pushes-back-critics-light-heavyweight-title-shot" name="&lpos=hn8&lid=Sonnen fires back a" >Sonnen fires back at critics of his title shot</a> <img src="http://assets.espn.go.com/icons/watch_headlines.png" width="17" height="8" border="0" alt="Video" />  
+
+</li>
+<li><a href="http://espn.go.com/new-york/mlb/story/_/id/8516689/alex-rodriguez-new-york-yankees-asked-woman-digits-game" name="&lpos=hn9&lid=Source: A-Rod asked" >Source: A-Rod asked woman for digits in game</a></li>
+<li><a href="http://soccernet.espn.go.com/news/story/_/id/1193095/brothels-rescue-cash-strapped-greek-soccer-team?cc=5901" name="&lpos=hn10&lid=Brothels save cash-" >Brothels save cash-starved Greek soccer team</a></li>
+<li><a href="http://insider.espn.go.com/nba/story/_/id/8517572/nba-timberwolves-hold-kevin-love-ricky-rubio-return" name="&lpos=hn11_insider&lid=BP: Wolves will sti" >BP: Wolves will still break through</a> <img src="http://a.espncdn.com/icons/in.gif" alt="Insider" /> | <a href="http://insider.espn.go.com/nba/story/_/id/8506808/nba-there-future-golden-age-utah-jazz-coming" name="&lpos=hn11_insidersub&lid= Jazz too"> Jazz too</a></li>
+</ul>
+</div>
+</div>
+<div id="mod-tab-content-myheadlines" class="ui-tabs-panel ui-tabs-hide">
+<div class="gradient-container mod-myheadlines" data-numtoshow="8"></div>
+</div>
+<div id="mod-tab-content-fbactivity" class="ui-tabs-panel ui-tabs-hide">
+<div class="mod-fbactivity"></div>
+</div>
+</div>
+</div>
+<script id="tabInitScript1350536052978">
+	espn.core.init.tabs(jQuery('#tabInitScript1350536052978').siblings('.mod-tabs').find('.mod-header'));
+</script><!-- begin InContent ad -->
+<div class="ad-box" id="AdContainer">
+
+			<!-- begin ad tag -->
+			<script language="JavaScript" type="text/javascript">
+			if (typeof ad_kvps != 'undefined' && typeof ad_u != 'undefined' && typeof ad_counter != 'undefined' && typeof ad_ord != 'undefined') {
+				if (typeof ad_site == 'undefined' || typeof ad_zone == 'undefined') {
+					var ad_site = 'espn.us.com.espn';
+					var ad_zone = 'espnfrontpage';
+				}
+				var ad_finalString = 'http://ad.Doubleclick.net/adj/'+ad_site+'/'+ad_zone+';' +ad_kvps+ 'pos=InContent;' +ad_u+ 'dcopt=ist;sz=300x600,300x250,1x1;tile=' +ad_counter+ ';ord=' +ad_ord;
+				document.write('<scr'+'ipt src='+ad_finalString+'></scr'+'ipt>');
+				ad_counter++;
+			}
+			</script>
+			<noscript>
+			<a href="http://ad.Doubleclick.net/jump/espn.us.com.espn/espnfrontpage;sz=300x600,300x250,1x1;" target="_blank">
+			<img src="http://ad.Doubleclick.net/ad/espn.us.com.espn/espnfrontpage;sz=300x600,300x250,1x1;" border="0" alt="">
+			</a>
+			</noscript>
+			<!-- end ad tag -->
+			
+</div>
+<!-- end InContent ad -->
+</div>
+</div>
+<!-- end right of ts -->
+<!-- begin Pencil_Bottom ad -->
+<div class="span-6 ad pencil bottom"><!-- Pencil_Bottom ad placeholder --><div class="ad-center"><div class="ad-wrapper">
+			<!-- begin ad tag -->
+			<script language="JavaScript" type="text/javascript">
+			if (typeof ad_kvps != 'undefined' && typeof ad_u != 'undefined' && typeof ad_counter != 'undefined' && typeof ad_ord != 'undefined') {
+				if (typeof ad_site == 'undefined' || typeof ad_zone == 'undefined') {
+					var ad_site = 'espn.us.com.espn';
+					var ad_zone = 'espnfrontpage';
+				}
+				var ad_finalString = 'http://ad.Doubleclick.net/adj/'+ad_site+'/'+ad_zone+';' +ad_kvps+ 'pos=Pencil_Bottom;' +ad_u+ 'sz=924x56,1x1;tile=' +ad_counter+ ';ord=' +ad_ord;
+				document.write('<scr'+'ipt src='+ad_finalString+'></scr'+'ipt>');
+				ad_counter++;
+			}
+			</script>
+			<noscript>
+			<a href="http://ad.Doubleclick.net/jump/espn.us.com.espn/espnfrontpage;sz=924x56,1x1;" target="_blank">
+			<img src="http://ad.Doubleclick.net/ad/espn.us.com.espn/espnfrontpage;sz=924x56,1x1;" border="0" alt="">
+			</a>
+			</noscript>
+			<!-- end ad tag -->
+			</div></div></div>
+<!-- end Pencil_Bottom ad -->
+<!-- begin columnistsstripe -->
+<div class="mod-container mod-no-header-footer mod-stripe span-6">
+<div class="mod-content">
+<div class="gradient-container">
+<div class="igrid">
+<!-- begin mod 1-->
+<div class="ispan-3 ">
+<div class="mod-container mod-no-footer mod-columnists">
+<div class="mod-content">
+
+<div class="col-full">
+
+
+<div class="headshot"><img src="http://a.espncdn.com/i/columnists/simmons_bill_80fp.png"></div>
+<h4>BILL SIMMONS PRESENTS <a name="&amp;lpos=fp_columnist" href="http://www.grantland.com/"><img src="http://a.espncdn.com/prod/assets/logo-grantland-78x10.png"></a></h4>
+
+<a name="&amp;lpos=fp_columnist" href="http://www.grantland.com/story/_/id/8508523/documentary-year"><img width="134" class="floatleft" src="http://a.espncdn.com/combiner/i?img=/photo/2012/1015/grant_g_shining_cr_640.jpg&w=640&h=360"></a>
+ 
+<h5>What's Behind "Room 237"?</h5>
+<p>The doc of the year. <a name="&amp;lpos=fp_columnist" href="http://www.grantland.com/story/_/id/8508523/documentary-year">Klosterman &#187;</a>
+
+<br>
+</p>
+
+<h5>Upon Closer Examination</h5>
+<p>
+POI: Antawn Jamison. <a name="&amp;lpos=fp_columnist" href="http://www.grantland.com/story/_/id/8514767/examining-career-antawn-jamison-unc-nba">Kang &#187;</a><br>
+Mike Lombardi. <a name="&amp;lpos=fp_columnist" href="http://www.grantland.com/blog/the-triangle/post/_/id/39964/b-s-report-mike-lombardi-3">B.S. Report &#187;</a>
+<br>
+</p>
+
+</div>
+
+<div class="col-left">
+<div class="headshot"><img src="http://a.espncdn.com/i/columnists/reilly_rick_80fp.png"></div>
+<h4>RICK REILLY</h4>
+
+<h5>Tragedy Strikes Again</h5>
+
+<p>A theater shooting this summer evoked bad memories for Eric Decker. <a name="&amp;lpos=fp_columnist" href="http://espn.go.com/video/clip?id=8509724">Watch</a> <img src="http://assets.espn.go.com/icons/watch.png" width="15" height="8" border="0" alt="Video" /></p>
+       
+<p><a name="&amp;lpos=fp_columnist" href="http://espn.go.com/espn/story/_/id/8486252/a-father-justice">Column: A father's swift justice &#187;</a></p>
+</div>
+
+
+<div class="col-right"> 
+<h4>KIESE LAYMON</h4>
+<p>LeBron's shoes create a stylistic and moral dilemma: What would you do? 
+<a name="&amp;lpos=fp_columnist" href="http://espn.go.com/nba/story/_/id/8488065/can-lebron-new-shoes-change-man">Column &#187;</a>
+
+</div>
+</div>
+</div> 
+     
+       
+</div>
+<!-- end mod 1-->
+<!-- begin mod 2-->
+<div class="ispan-2">
+<div class="mod-container mod-no-footer">
+<div class="mod-content">
+<div id="streakModule" style="height:200px; width:289px; cursor:pointer; background: url(http://a.espncdn.com/streak/SFC09_playnow.jpg) bottom center;" onClick="location.href='http://streak.espn.go.com';">
+<script>
+jQuery(window).load(function() {
+  jQuery('#streakModule').html('<iframe id="streakiframe" scrolling="no" frameborder="0" height="200" allowtransparency="true" width="289" src="http://streak.espn.go.com/format/modules/front09v2/streakModule"></iframe>');
+});
+</script>
+</div>
+</div>
+</div>
+</div>
+<!-- end mod 2-->
+<!-- begin mod 3-->
+<div class="ispan-1  last">
+<div class="mod-container">
+<div class="mod-content">
+<h4><img height="1" width="1" src="http://a.espncdn.com/prod/assets/clear.png" class="il-header insider" style="padding-right:0px;" alt="Insider" /></h4>
+<ul class="contentrows">
+
+
+<li> 
+<div class="wrapper">
+<h6>Travis Haney</h6>
+<p><a name="&amp;lpos=fp_insider" href="http://insider.espn.go.com/college-football/blog/_/name/haney_travis/id/8515750/deanthony-thomas-leads-list-players-poised-second-half-breakouts-ncf">Top 10 second-half breakout players &#187;</a></p>
+</div>
+</li>
+
+<li>
+<div class="wrapper">
+<h6>Bill Polian</h6> 
+<p><a name="&amp;lpos=fp_insider" href="http://insider.espn.go.com/nfl/story/_/id/8515202/nfl-bill-polian-areas-need-chiefs-browns-other-building-teams">Fixes: Raiders, KC, Jags, Raiders, Browns &#187;</a></p>
+</div>
+</li>
+
+<li> 
+<div class="wrapper">
+<h6>Fantasy Football</h6>
+<p><a name="&amp;lpos=fp_insider" href="http://insider.espn.go.com/fantasy/blog/_/name/karabell_eric_football/id/8516256/andy-dalton-probably-deserves-even-more-attention-week-7-fantasy-rankings">Karabell: Ranks reax  &#187;</a><br><a name="&amp;lpos=fp_insider" href="http://insider.espn.go.com/fantasy/football/ffl/story?id=8512780">Tight ends to target &#187;</a></p>
+</div>
+</li>
+
+</ul>
+<p class="footer"><a name="&amp;lpos=fp_insider" href="http://insider.espn.go.com/insider/index?addata=2012=insider_fpimod_insiderhome_xxx">All Insider content &#187;</a></p>
+</div>
+</div>
+</div>
+<!-- end mod 3-->
+</div>
+</div>
+</div>
+</div>
+<!-- end columnistsstripe -->
+<!-- begin videostripe -->
+<div class="mod-container mod-no-header-footer mod-stripe span-6">
+<div class="mod-content">
+<div class="gradient-container">
+<div class="igrid">
+<!-- begin mod 1-->
+<div class="ispan-1">
+<div class="mod-container mod-article-capsule">
+<div class="mod-content"> 
+
+<h4>NFL</h4> 
+
+<a name="&amp;lpos=fp_feature" href="http://espn.go.com/nfl/story/_/page/hotread-changing-qbs/matt-cassel-mark-sanchez-struggling-mightily-team-give-franchise-quarterback"><img src="http://assets.espn.go.com/photo/2012/1017/nfl_illustration2x_134.jpg" height="75" width="134" alt="" class="thumb"/></a> 
+
+<p>So your QB is looking lost. Pull the plug? Well, it's a bit more complicated than that.  <a name="&amp;lpos=fp_feature" href="http://espn.go.com/nfl/story/_/page/hotread-changing-qbs/matt-cassel-mark-sanchez-struggling-mightily-team-give-franchise-quarterback">Jeffri Chadiha &#187;</a></p>
+
+
+<p class="footer"><a name="&amp;lpos=fp_feature" href="http://espn.go.com/nfl/">More NFL &#187;</a>
+</p>
+</div> 
+</div>
+
+
+
+
+
+
+
+
+
+
+
+</div>
+<!-- end mod 1-->
+<!-- begin mod 2-->
+<div class="ispan-1">
+<div class="mod-container mod-article-capsule">
+<div class="mod-content">
+
+<h4>NBA</h4>
+<ul class="contentrows">
+
+<li>
+<div class="wrapper">
+<b>Marc Stein</b><br>
+<a href ="http://espn.go.com/nba/story/_/id/8513967/nba-contract-extension-chances-class-2009">FA trick or treat? &#187;</a>
+</div>
+</li>
+
+<li>
+<div class="wrapper">
+<b>Free Agents</b> <img src="http://assets.espn.go.com/icons/photo.png" width="12" height="10" border="0" alt="Photo Gallery" /><br>
+<a name="&amp;lpos=fp_feature" href="http://espn.go.com/nba/notebook/_/id/8507350/2012-13-nba-free-agent-targets">Big names, big $$$ &#187;</a>
+</div>
+</li>
+
+<li>
+<div class="wrapper">
+<b>Bradford Doolittle</b> <img src="http://assets.espn.go.com/i/in.gif" width="11" height="11" border="0" alt="Insider" /><br>
+<a name="&amp;lpos=fp_feature" href="http://insider.espn.go.com/nba/story/_/id/8517572/nba-timberwolves-hold-kevin-love-ricky-rubio-return">No Love lost in Minny &#187;</a>
+</div>
+</li>
+
+<li>
+<div class="wrapper">
+<b>Chad Ford</b> <img src="http://assets.espn.go.com/i/in.gif" width="11" height="11" border="0" alt="Insider" /><br>
+<a name="&amp;lpos=fp_feature" href="http://insider.espn.go.com/nba/story/_/id/8506808/nba-there-future-golden-age-utah-jazz-coming">New Jazz age &#187;</a>
+</div>
+</li>
+
+
+</ul>
+
+<p class="footer"><a name="&amp;lpos=fp_feature" href="http://espn.go.com/nba/preview2012/">NBA preview &#187;</a></p>
+
+</div>
+</div>
+
+
+
+
+</div>
+<!-- end mod 2-->
+<!-- begin mod 3-->
+<div class="ispan-2">
+<!-- begin pop vids n=2 -->
+<div class="mod-container">
+<div class="mod-content">
+<h4>VIDEO: HAVE YOU SEEN...?</h4>
+<ul class="contentrows">
+<li><div class="wrapper">
+<a href="http://espn.go.com/video/clip?id=8515716&categoryid=2378529" name="&amp;lpos=fp_featvid"><img src="http://a.espncdn.com/media/motion/2012/1017/dm_121017_ncw_griner_diggins_della_donne/dm_121017_ncw_griner_diggins_della_donne_thumdnail_wbig.jpg" class="thumb"  width="134" height="75" border="0" alt="Video" /></a>
+<h6><a href="http://espn.go.com/video/clip?id=8515716&categoryid=2378529" name="&amp;lpos=fp_featvid">Total Access <img width="15" height="8" border="0" src="http://a.espncdn.com/icons/watch.png" alt="Video"/></a></h6>
+<p>Brittney Griner, Skylar Diggins and Elena Delle Donne stop by to dish on hoops and more. <a href="http://espn.go.com/womens-college-basketball/story/_/id/8514828/brittney-griner-elena-delle-donne-skylar-diggins-visit-espn">Blog &#187;</a>
+
+
+
+
+</p>
+</div>
+</li>
+<li class="last"><div class="wrapper">
+<a href="http://espn.go.com/video/clip?id=8507565&categoryid=2378529" name="&amp;lpos=fp_featvid"><img src="http://a.espncdn.com/media/motion/2012/1015/dm_121015_wider_wrold_of_sports_nicaragua/dm_121015_wider_wrold_of_sports_nicaragua_thumdnail_wbig.jpg" class="thumb"  width="134" height="75" border="0" alt="Video" /></a>
+<h6><a href="http://espn.go.com/video/clip?id=8507565&categoryid=2378529" name="&amp;lpos=fp_featvid">One Hot Ride <img width="15" height="8" border="0" src="http://a.espncdn.com/icons/watch.png" alt="Video"/></a></h6>
+<p>Sledding down an active volcano in Nicaragua? One of the dumber things Kenny's done. <a href="http://espn.go.com/espn/feature/moment/_/page/KennyMayneWWOS/num/8">WWOS &#187;</a></p>
+</div>
+</li>
+</ul>
+<p class="footer"><a name="&amp;lpos=fp_featvid" href="http://espn.go.com/video/">More Videos &#187;</a></p>
+</div>
+</div>
+<!-- end pop vids -->
+</div>
+<!-- end mod 3-->
+<!-- begin mod 4-->
+<div class="ispan-2 last">
+<div class="mod-container mod-article-capsule">
+<div class="mod-content">
+ 
+
+<h4><a name="&amp;lpos=fp_feature" href="http://espn.go.com/espn/playbook/"><img src="http://a.espncdn.com/prod/assets/section/playbook/playbook-55x13.png"></a></h4>
+
+
+<a name="&amp;lpos=fp_feature" href="http://espn.go.com/blog/playbook/fandom/post/_/id/12987/why-own-a-jersey-when-you-can-rent"><img width="134" src="http://a.espncdn.com/photo/2012/1016/pb_jersey_rentals_134.jpg"class="floatleft"></a>
+
+<p>Why own a jersey for your favorite team when you can rent polyester couture? Uni Watch tells you how. <a name="&amp;lpos=fp_feature" href="http://espn.go.com/blog/playbook/fandom/post/_/id/12987/why-own-a-jersey-when-you-can-rent">Paul Lukas &#187;</a></p>
+
+<p class="clear">
+<p><b>Visuals:</b> Need a dose of fun for your eyes? Check out the latest, greatest pictures. <a name="&amp;lpos=fp_feature" href="http://espn.go.com/espn/photos/gallery/_/id/8514481/photos-day-october-17-2012">Photo Gallery &#187;</a></p>
+
+<b>Fandom:</b> <a name="&amp;lpos=fp_feature" href="http://espn.go.com/blog/playbook/fandom/post/_/id/13015/kenny-mayne-in-awe-of-bizarre-fight">Kenny Mayne in awe of bizarre fight &#187;</a><br>
+
+<b>Visuals:</b> <a name="&amp;lpos=fp_feature" href="http://espn.go.com/blog/playbook/visuals/post/_/id/9611/yearbook-oct-17-world-series-earthquake">Earthquake rocks 1989 World Series &#187;</a> <br>
+
+<p class="footer"><a name="&amp;lpos=fp_feature" href="http://espn.go.com/espn/playbook/index">Playbook home &#187;</a></p>
+ 
+</div>
+</div>
+
+ 
+
+
+
+</div>
+<!-- end mod 4-->
+</div>
+</div>
+</div>
+</div>
+<!-- end videostripe -->
+<!-- begin promostripe -->
+<!-- begin mod 1-->
+<div class="span-2 ">
+<div class="ad-box">
+
+			<!-- begin ad tag -->
+			<script language="JavaScript" type="text/javascript">
+			if (typeof ad_kvps != 'undefined' && typeof ad_u != 'undefined' && typeof ad_counter != 'undefined' && typeof ad_ord != 'undefined') {
+				if (typeof ad_site == 'undefined' || typeof ad_zone == 'undefined') {
+					var ad_site = 'espn.us.com.espn';
+					var ad_zone = 'espnfrontpage';
+				}
+				var ad_finalString = 'http://ad.Doubleclick.net/adj/'+ad_site+'/'+ad_zone+';' +ad_kvps+ 'pos=PromoBox_Marketing;' +ad_u+ 'sz=300x100,1x1;tile=' +ad_counter+ ';ord=' +ad_ord;
+				document.write('<scr'+'ipt src='+ad_finalString+'></scr'+'ipt>');
+				ad_counter++;
+			}
+			</script>
+			<noscript>
+			<a href="http://ad.Doubleclick.net/jump/espn.us.com.espn/espnfrontpage;sz=300x100,1x1;" target="_blank">
+			<img src="http://ad.Doubleclick.net/ad/espn.us.com.espn/espnfrontpage;sz=300x100,1x1;" border="0" alt="">
+			</a>
+			</noscript>
+			<!-- end ad tag -->
+			
+</div>
+</div>
+<!-- end mod 1-->
+<!-- begin mod 2-->
+<div class="span-2 ">
+<div class="mod-container mod-no-footer mod-open">
+<div class="mod-header">
+<h4>SOCCER</h4>
+</div>
+<div class="mod-content">
+<div class="gradient-container">
+<div class="col-full">
+<ul class="bulletlinks blk-links"> 
+
+
+<li><a name="&amp;lpos=fp_promo" href="http://soccernet.espn.go.com/blog/_/name/soccerusa/id/333?cc=5901">Split personality a concern for USA &#187;</a>&nbsp;&nbsp;<a name="&amp;lpos=fp_promo" href="http://soccernet.espn.go.com/blog/_/name/soccerusa/id/315?cc=5901">Grades &#187;</a></li>
+
+<li><a name="&amp;lpos=fp_promo" href="http://preview-soccernet.espn.go.com/blog/_/name/espnfcunited/id/1153?cc=5901">Tyler: Making sense of World Cup qualifying &#187;</a></li>
+
+<li><a name="&amp;lpos=fp_promo" href="http://soccernet.espn.go.com/columns/story/_/id/1192190/andy-brassell:-ronaldo's-big-night-falls-flat?cc=5901">Portugal, Ronaldo flat &#187;</a>&nbsp;&nbsp;<a name="&amp;lpos=fp_promo" href="http://soccernet.espn.go.com/blog/_/name/espnfcunited/id/1147?cc=5901">5 things &#187;</a>&nbsp;&nbsp;<a name="&amp;lpos=fp_promo" href="http://soccernet.espn.go.com/">ESPN FC &#187;</a></li>
+
+</ul>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+<!-- end mod 2-->
+<!-- begin mod 3-->
+<div class="span-2 last">
+<div class="ad-box">
+
+			<!-- begin ad tag -->
+			<script language="JavaScript" type="text/javascript">
+			if (typeof ad_kvps != 'undefined' && typeof ad_u != 'undefined' && typeof ad_counter != 'undefined' && typeof ad_ord != 'undefined') {
+				if (typeof ad_site == 'undefined' || typeof ad_zone == 'undefined') {
+					var ad_site = 'espn.us.com.espn';
+					var ad_zone = 'espnfrontpage';
+				}
+				var ad_finalString = 'http://ad.Doubleclick.net/adj/'+ad_site+'/'+ad_zone+';' +ad_kvps+ 'pos=PromoBox_Integrator;' +ad_u+ 'sz=300x100,1x1;tile=' +ad_counter+ ';ord=' +ad_ord;
+				document.write('<scr'+'ipt src='+ad_finalString+'></scr'+'ipt>');
+				ad_counter++;
+			}
+			</script>
+			<noscript>
+			<a href="http://ad.Doubleclick.net/jump/espn.us.com.espn/espnfrontpage;sz=300x100,1x1;" target="_blank">
+			<img src="http://ad.Doubleclick.net/ad/espn.us.com.espn/espnfrontpage;sz=300x100,1x1;" border="0" alt="">
+			</a>
+			</noscript>
+			<!-- end ad tag -->
+			
+</div>
+</div>
+<!-- end mod 3-->
+<!-- end promostripe -->
+<!-- begin sportsnationstripe -->
+<!-- begin must read and feedback -->
+<div class="span-2" style="clear:left;">
+<!-- begin must read -->
+<div class="mod-container mod-no-footer mod-open">
+<div class="mod-header">
+<h4>MUST SEE</h4>
+</div>
+<div class="mod-content">
+<div class="gradient-container">
+<div class="col-full">
+<ul class="bulletlinks blk-links">
+<li><a href="http://espn.go.com/mens-college-basketball/story/_/id/8514355/all-access-kentucky-freshmen-step-big-stage-men-college-basketball" name="&amp;lpos=fp_mr">King: All-access with Kentucky's fresh faces</a></li>
+<li><a href="http://espn.go.com/blog/nhl/post/_/id/19813/nhl-season-hangs-on-unions-response" name="&amp;lpos=fp_mr">LeBrun: NHLPA's response is key</a> | <a href="http://espn.go.com/sportsnation/chat/_/id/45694/nhl-with-pierre-lebrun" name="&amp;lpos=fp_mr_sub">Chat wrap</a></li>
+<li><a href="http://insider.espn.go.com/nba/preview2012/story/_/page/hollinger-chi-forecast/chicago-bulls-outlook" name="&amp;lpos=fp_mr">Hollinger's Team Forecasts: Bulls</a> <img src="http://assets.espn.go.com/icons/in.gif" width="11" height="11" border="0" alt="Insider" /> | <a href="http://insider.espn.go.com/nba/preview2012/story/_/page/hollinger-uth-forecast/utah-jazz-outlook" name="&amp;lpos=fp_mr_sub">Jazz</a> <img src="http://assets.espn.go.com/icons/in.gif" width="11" height="11" border="0" alt="Insider" /></li>
+<li><a href="http://espn.go.com/nfl/story/_/id/8513300/the-issue-concussions-nfl-not-going-away" name="&amp;lpos=fp_mr">Brandt: Concussion conundrum won't go away</a></li>
+<li><a href="http://espn.go.com/racing/nascar/cup/story/_/id/8512778/nascar-ailing-racers-afford-not-race" name="&amp;lpos=fp_mr">Hinton: Ailing racers can't afford NOT to race</a></li>
+<li><a href="http://sports.espn.go.com/fantasy/football/ffl/story?page=trendspotting121017" name="&amp;lpos=fp_mr">Daube: RG3 exceeding all expectations early</a></li>
+<li><a href="http://espn.go.com/blog/nfcwest/post/_/id/78500/mike-sandos-mvp-watch-59" name="&amp;lpos=fp_mr">Sando: Mannings making noise in MVP Watch</a></li>
+<li><a href="http://espn.go.com/mlb/story/_/id/8514484/site-old-yankee-stadium-serves-good-purpose" name="&amp;lpos=fp_mr">Caple: Born again at the old Yankee Stadium</a></li>
+<li><a href="http://espn.go.com/golf/story/_/id/8515193/a-sad-ending-pga-tour-fall-finish" name="&amp;lpos=fp_mr">Evans: Sad ending to the PGA Tour's Fall Finish</a></li>
+<li><a href="http://espn.go.com/college-football/story/_/page/bottom10121017/college-football-west-virginia-mountaineers-earn-bottom-10-trip-losing-lubbock" name="&amp;lpos=fp_mr">Bottom 10: The Masked Rider strikes again</a></li>
+</ul>
+</div>
+<p class="footer"><a href="http://espn.go.com/sports/">More Stories &#187;</a></p>
+</div>
+</div>
+</div>
+<!-- end must read -->
+<div class="mod-container mod-no-footer mod-open" id="mod-feedback">
+<div class="mod-header">
+<h4>ESPN FEEDBACK</h4>
+</div>
+<div class="mod-content">
+<div class="col-full">
+<a href="http://search.es
+004c0c
+pn.go.com/poynter-review-project/">Poynter Review Project</a> | 
+<a href="http://sports.espn.go.com/espn/columns/story?id=2826900">Comment</a>
+| <a href="http://espn.go.com/espn/corrections">Corrections</a>
+</div>
+</div>
+</div>
+
+</div>
+<!-- end must read and feedback -->
+<!-- begin sportsnation -->
+<div class="span-4 last">
+<div id="sportsnation" class="mod-container mod-no-footer mod-poll">
+<div class="mod-header">
+<h4><a href="http://espn.go.com/sportsnation/"><img class="il-header sn" height="1" width="1" src="http://a.espncdn.com/prod/assets/clear.png" alt="SportsNation"/></a><span>SportsNation</span></h4>
+</div>
+<div class="mod-content">
+<div class="gradient-container">
+<div class="sn-col-left">
+<div class="mod-container">
+<div class="mod-content">
+<div>
+			<!-- begin ad tag -->
+			<script language="JavaScript" type="text/javascript">
+			if (typeof ad_kvps != 'undefined' && typeof ad_u != 'undefined' && typeof ad_counter != 'undefined' && typeof ad_ord != 'undefined') {
+				if (typeof ad_site == 'undefined' || typeof ad_zone == 'undefined') {
+					var ad_site = 'espn.us.com.espn';
+					var ad_zone = 'espnfrontpage';
+				}
+				var ad_finalString = 'http://ad.Doubleclick.net/adj/'+ad_site+'/'+ad_zone+';' +ad_kvps+ 'pos=HomePagePoll;' +ad_u+ 'sz=298x40,1x1;tile=' +ad_counter+ ';ord=' +ad_ord;
+				document.write('<scr'+'ipt src='+ad_finalString+'></scr'+'ipt>');
+				ad_counter++;
+			}
+			</script>
+			<noscript>
+			<a href="http://ad.Doubleclick.net/jump/espn.us.com.espn/espnfrontpage;sz=298x40,1x1;" target="_blank">
+			<img src="http://ad.Doubleclick.net/ad/espn.us.com.espn/espnfrontpage;sz=298x40,1x1;" border="0" alt="">
+			</a>
+			</noscript>
+			<!-- end ad tag -->
+			</div><div id="poll-3252963" class="poll"><form action="" method="post"><input type="hidden" name="pollId" value="3252963" /><p class="question">What is the most likely scenario for Alex Rodriguez in 2013?</p><ul class="answers"><li class="answer-item-8068875 answer-1"><div class="answer-bar" style="width: 44%;">&nbsp;</div><div class="answer-pct">44%</div><label for="answer-8068875"><input id="answer-8068875" type="radio" name="answerId" value="8068875"/> Back with Yankees</label></li><li class="answer-item-8068877 answer-2"><div class="answer-bar" style="width: 56%;">&nbsp;</div><div class="answer-pct">56%</div><label for="answer-8068877"><input id="answer-8068877" type="radio" name="answerId" value="8068877"/> Not with Yankees</label></li></ul><input class="submit-poll" type="image" src="http://a.espncdn.com/prod/assets/pollBtn.png" data-active-src="http://a.espncdn.com/prod/assets/pollBtnActive.png" name="submit" value="Submit"><p class="total-votes"><a class="view-map" target="_blank" href="http://espn.go.com/espn/fp/flashPollResultsState?sportIndex=frontpage&pollId=3252963"><img src="http://a.espncdn.com/prod/assets/pollViewMapBtn.png"></a> <a class="discuss" target="_top" href="http://espn.go.com/sportsnation/poll/conversation/_/id/3252963"><img src="http://a.espncdn.com/prod/assets/btn-discuss.png" alt="Discuss"></a>  (Total&nbsp;votes:&nbsp;153,890)</p></form></div><script>jQuery.getScriptCache('http://a.espncdn.com/combiner/c?js=espn.ui.shpoll.r2.js', function() {jQuery('#poll-3252963').poll({open: true});});</script><p class="footer"><a name="&amp;lpos=fp_snpolls" href="http://espn.go.com/sportsnation/poll/index">More Polls &#187;</a></p>
+</div>
+</div>
+</div>
+<div class="sn-col-right">
+<!-- begin sn tv from ce -->
+
+
+<div class="mod-container mod-open mod-topper mod-sn-highlight">
+<div class="mod-content">
+<div class="gradient-container">
+<div class="col-full">
+<p>Watch and participate with <a href="http://espn.go.com/sportsnation/">"SportsNation" TV,</a> weekdays on ESPN2 at 5 p.m. ET.</p>
+
+
+<h5>ON SPORTSNATION TV</h5>
+<div class="sn-icon sn-icon-40 sn-icon-polls"></div>
+Should the Eagles make a change at QB? How much should the Patriots prep for Tim Tebow?  <b><a href="http://espn.go.com/sportsnation/polls?pCat=114&sCat=368">Vote! &#187;</a></b></div> 
+<p class="footer"><a href="http://www.facebook.com/sportsnation" name="&lpos=communityeds:page1SNTV&lid=SNFacebook">SportsNation on Facebook! &#187;</a></p>
+</div>
+</div>
+</div><!-- end sn tv from ce -->
+<!-- begin sn community from ce -->
+<div class="mod-container">
+<div class="mod-sub-header">
+<h5>LANCE OUT AT NIKE</h5>
+</div>
+<div class="mod-content">
+<div class="sn-featured">
+<a href="http://espn.go.com/sportsnation/post/_/id/8515895/nike-drops-lance-armstrong"><img src="http://a.espncdn.com/combiner/i?img=/photo/2011/0520/espn_armstong_35.jpg"></a>
+<div>
+With mounting doping allegations against Lance Armstrong, Nike dropped the cyclist as an endorser. Do you agree with the move? <a href="http://espn.go.com/sportsnation/post/_/id/8515895/nike-drops-lance-armstrong" name="&lpos=communityeds:page1&lid=snblog8515895"><b>Discuss and vote &#187;</b></a>
+</div>
+<p class="footer"><a href="http://espn.go.com/sportsnation/polls?pCat=46&sCat=3293" name="&lpos=communityeds:page1&lid=pollindex463293">Is Armstrong still a role model? Vote! &#187;</a></p>
+</div>
+</div>
+</div>
+<!-- end sn community from ce -->
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- end sportsnation -->
+<!-- end sportsnationstripe -->
+<!-- begin bottom nav/sitemap -->
+<div class="mod-container mod-jump-menu span-6">
+<div class="mod-content">
+<!-- NOVALIDATE -->
+<ul>
+<li>
+<ul>
+<li><h4><a href="http://espn.go.com/sports/" name="&amp;lpos=bottomnav&amp;lid=bottomnav_sports">MORE SPORTS</a></h4></li>
+<li><a href="http://espn.go.com/racing/" name="&amp;lpos=bottomnav&amp;lid=bottomnav_sports_racing">Racing</a></li>
+<li><a href="http://espn.go.com/golf/" name="&amp;lpos=bottomnav&amp;lid=bottomnav_sports_golf">Golf</a></li>
+<li><a href="http://espn.go.com/tennis/" name="&amp;lpos=bottomnav&amp;lid=bottomnav_sports_tennis">Tennis</a></li>
+<li><a href="http://espn.go.com/boxing/" name="&amp;lpos=bottomnav&amp;lid=bottomnav_sports_boxing">Boxing</a></li>
+<li><a href="http://espn.go.com/mma/" name="&amp;lpos=bottomnav&amp;lid=bottomnav_sports_mma">MMA</a></li>
+<li><a href="http://espn.go.com/college-football/recruiting/" name="&amp;lpos=bottomnav&amp;lid=bottomnav_sports_recruiting">Recruiting</a></li>
+<li><a href="http://espn.go.com/olympics/" name="&amp;lpos=bottomnav&amp;lid=bottomnav_sports_oly">Olympic Sports</a></li>
+<li><a rel="nofollow" target="_blank" href="http://espn.go.com/espnw/" name="&amp;lpos=bottomnav&amp;lid=bottomnav_sports_espnw">espnW</a></li>
+</ul>
+</li>
+<li>
+<ul>
+<li><h4><a href="http://espn.go.com/sports/scores" name="&amp;lpos=bottomnav&amp;lid=bottomnav_scores">SCORES</a></h4></li>
+<li><a href="http://scores.espn.go.com/nfl/scoreboard" name="&amp;lpos=bottomnav&amp;lid=bottomnav_scores_nfl">NFL</a></li>
+<li><a href="http://scores.espn.go.com/mlb/scoreboard" name="&amp;lpos=bottomnav&amp;lid=bottomnav_scores_mlb">MLB</a></li>
+<li><a href="http://scores.espn.go.com/nba/scoreboard" name="&amp;lpos=bottomnav&amp;lid=bottomnav_scores_nba">NBA</a></li>
+<li><a href="http://scores.espn.go.com/nhl/scoreboard" name="&amp;lpos=bottomnav&amp;lid=bottomnav_scores_nhl">NHL</a></li>
+<li><a href="http://scores.espn.go.com/ncf/scoreboard" name="&amp;lpos=bottomnav&amp;lid=bottomnav_scores_ncf">College Football</a></li>
+<li><a href="http://scores.espn.go.com/ncb/scoreboard" name="&amp;lpos=bottomnav&amp;lid=bottomnav_scores_ncb">College Basketball</a></li>
+<li><a href="http://soccernet-assets.espn.go.com/scoreboard?league=all" name="&amp;lpos=bottomnav&amp;lid=bottomnav_scores_soccer">Soccer</a></li>
+<li><a href="http://sports.espn.go.com/rpm/results?seriesId=2" name="&amp;lpos=bottomnav&amp;lid=bottomnav_scores_nascar">NASCAR</a></li>
+</ul>
+</li>
+<li>
+<ul>
+<li><h4><a href="http://games.espn.go.com/frontpage" name="&amp;lpos=bottomnav&amp;lid=bottomnav_fantasy">FANTASY</a></h4></li>
+<li><a href="http://games.espn.go.com/frontpage/football" name="&amp;lpos=bottomnav&amp;lid=bottomnav_fantasy_football">Football</a></li>
+<li><a href="http://games.espn.go.com/frontpage/baseball" name="&amp;lpos=bottomnav&amp;lid=bottomnav_fantasy_baseball">Baseball</a></li>
+<li><a href="http://streak.espn.go.com" name="&amp;lpos=bottomnav&amp;lid=bottomnav_fantasy_streak">Streak for the Cash</a></li>
+</ul>
+<ul>
+<li><h4><a href="http://espn.go.com/sportsnation/" name="&amp;lpos=bottomnav&amp;lid=bottomnav_sportsnation">SPORTSNATION</a></h4></li>
+<li><a href="http://espn.go.com/sportsnation/polls" name="&amp;lpos=bottomnav&amp;lid=bottomnav_sportsnation_polls">Polls</a></li>
+<li><a href="http://espn.go.com/sportsnation/chats" name="&amp;lpos=bottomnav&amp;lid=bottomnav_sportsnation_chats">Chats</a></li>
+<li><a href="http://espn.go.com/community/" name="&amp;lpos=bottomnav&amp;lid=bottomnav_sportsnation_community">Community</a></li>
+</ul>
+</li>
+<li>
+<ul>
+<li><h4><a href="http://espn.go.com/video/">VIDEO</a></h4></li>
+<li><a href="http://espn.go.com/video/category?id=2378529" name="&amp;lpos=bottomnav&amp;lid=bottomnav_video_mostrecent">Most Recent</a></li>
+<li><a href="http://search.espn.go.com/highlights/video/6" name="&amp;lpos=bottomnav&amp;lid=bottomnav_video_highlights">Highlights</a></li>
+</ul>
+<ul>
+<li><h4><a href="http://espn.go.com/espn/playbook/" name="&amp;lpos=bottomnav&amp;lid=bottomnav_playbook">PLAYBOOK</a></h4></li>
+<li><a href="http://travel.espn.go.com/travel/passport/index" name="&amp;lpos=bottomnav&amp;lid=bottomnav_thelife_passport">Sports Passport</a></li>
+<li><a href="http://espn.go.com/travel/sports/calendar/" name="&amp;lpos=bottomnav2&amp;lid=bottomnav2_thelife_calendar">Sports Calendar</a></li>
+<li><a href="http://espn.go.com/free-online-games/" name="&amp;lpos=bottomnav2&amp;lid=bottomnav2_thelife_arcade">Arcade</a></li>
+<li><a href="http://sports.espn.go.com/espn/contests/index" name="&amp;lpos=bottomnav&amp;lid=bottomnav_thelife_contests">Contests</a></li>
+<!--<li><a href="http://espn.go.com/espn/thelife/music/index" name="&amp;lpos=bottomnav&amp;lid=bottomnav_thelife_music">Music</a></li>-->
+</ul>
+</li>
+<li>
+<ul>
+<li><h4>TOOLS</h4></li>
+<li><a href="http://sports.espn.go.com/espn/news/story?page=contact/index"  name="&amp;lpos=bottomnav&amp;lid=bottomnav_tools_contactus">Contact Us</a></li>
+<li>
+<a tref="/members/v3_1/index" href="" class="cbOverlay" data-options='{"language":"en","width":"825","height":"425"}'>Member Services</a></li>
+
+<li><a href="http://espn.go.com/personalization/"  name="&amp;lpos=bottomnav&amp;lid=bottomnav_tools_myespn">myESPN</a></li>
+<li><a href="http://proxy.espn.go.com/mobile/alerts/alertmanager"  name="&amp;lpos=bottomnav&amp;lid=bottomnav_tools_myespn">ESPN Alerts</a></li>
+<li><a href="http://developer.espn.com/" name="&amp;lpos=bottomnav&amp;lid=bottomnav_tools_developer">Developer Center</a></li>
+<li><a href="http://espn.go.com/nfl/lines" name="&amp;lpos=bottomnav&amp;lid=bottomnav_tools_odds">Daily Lines</a></li>
+<li><a href="http://espn.go.com/community/widgetcenter.html" name="&amp;lpos=bottomnav&amp;lid=bottomnav_tools_widgetcenter">Widget Center</a></li>
+<li><a href="http://sports.espn.go.com/espn/news/story?page=rssinfo" name="&amp;lpos=bottomnav&amp;lid=bottomnav_tools_rss">RSS</a></li>
+</ul>
+</li>
+<li class="last">
+<ul>
+<li><h4><a href="http://sports.espn.go.com/espntv/espnGuide" name="&amp;lpos=bottomnav&amp;lid=bottomnav_tv">TV LISTINGS</a></h4></li>
+<li><h4><a href="http://www.espn3.com" name="&amp;lpos=bottomnav&amp;lid=bottomnav_3">ESPN3</a></h4></li>
+<li><h4><a href="http://espnradio.espn.go.com/espnradio/index" name="&amp;lpos=bottomnav&amp;lid=bottomnav_radio">RADIO</a></h4></li>
+<!--<li><h4><a href="http://espnradio.espn.go.com/espnradio/podcast/index" name="&amp;lpos=bottomnav&amp;lid=podcenter">PODCENTER</a></h4></li>-->
+<li><h4><a href="http://insider.espn.go.com/insider/espn-the-magazine/" name="&amp;lpos=bottomnav2&amp;lid=bottomnav_mag">ESPN THE MAGAZINE</a></h4></li>
+<li><h4><a href="http://log.go.com/log?srvc=sz&amp;guid=20547CF2-0B36-404D-81D3-E5339A6CEFBE&amp;drop=0&amp;addata=3374:65:478847:65&amp;a=1&amp;goto=http://espnshop.com/entry.point?target=Z&source=ESPN_HPHEADERLINK:SHOPBUTTONFOOTER:6_1_10" name="&amp;lpos=bottomnav&amp;lid=bottomnav_shop">SHOP</a></h4></li>
+<li><h4><a href="http://www.sportscenter.com" name="&amp;lpos=bottomnav&amp;lid=bottomnav_sportscenter">SPORTSCENTER</a></h4></li>
+<li><h4><a href="http://www.teamespn.com" name="&amp;lpos=bottomnav&amp;lid=bottomnav_teamespn">TEAM ESPN</a></h4></li>
+<li><h4><a href="http://www.espnfrontrow.com" name="&amp;lpos=bottomnav&amp;lid=bottomnav_espnfrontrow">ESPN FRONT ROW</a></h4></li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+<!-- end bottom nav/sitemap -->
+<!-- begin Poster_Left ad -->
+<div class="ad tower tower-left"></div>
+<!-- end Poster_Left ad -->
+<!-- begin Poster_Right ad -->
+<div class="ad tower tower-right"></div>
+<!-- end Poster_Right ad -->
+</div>
+<!-- end content -->
+<!-- begin footer -->
+<div id="footer" class="container">
+<script type="text/javascript">//<![CDATA[
+var link = window.location;
+var bugText = '<a href="#" onclick="window.open(\'http://dynamic.espn.go.com/espn/bugs?url=' + escape(link) + '\', \'Bugs\',\'noresizable,noscrollbars,height=400,width=400\');">Report a Bug</a> | ';
+//]]>
+</script>
+<span style="font-weight:bold;">ESPN.com:</span> <a href="http://sports.espn.go.com/espn/news/story?page=help/index">Help</a> | <a href="http://espnmediazone.com/us/media-kits/" rel="nofollow">PR Media Kit</a> | <a href="http://www.espncms.com/Advertise-on-ESPN.aspx" rel="nofollow">Advertise on ESPN.com</a> | <a href="http://www.espncms.com" rel="nofollow">Sales Media Kit</a> | <a href="http://preferences.truste.com/2.0/?type=espn&affiliateId=148" onclick="window.open('http://preferences.truste.com/2.0/?type=espn&affiliateId=148','popup','width=986,height=878,scrollbars=yes,resizable=no,toolbar=no,directories=no,location=no,menubar=no,status=no,left=0,top=0'); return false">Interest-Based Ads</a> | <script type="text/javascript">document.write(bugText);</script><a href="http://espn.go.com/espn/corrections">Corrections</a> | <a href="http://sports.espn.go.com/espn/news/story?page=contact/index">Contact Us</a> | <a href="http://espn.go.com/espn/sitemap">Site Map</a> | <a href="http://espn.go.com/espn/news/story?page=patents">Patents</a> | <a href="http://espncareers.com">Jobs at ESPN</a> | <a href="http://corporate.disney.go.com/corporate/sourcing.html" rel="nofollow"><span style="font-weight:bold;">Supplier Information</span></a><br/>&copy;2012 ESPN Internet Ventures. <a href="http://disney.go.com/corporate/legal/terms.html" rel="nofollow">Terms of Use</a> and <a href="http://disney.go.com/corporate/privacy/pp_espn.html" rel="nofollow">Privacy Policy and Safety Information/Your California Privacy Rights</a> are applicable to you.  All rights reserved.
+
+<!--
+<a href="http://www.espnshop.com/" onClick="location.href('http://log.go.com/log?srvc=sz&guid=73B641A0-6660-4EFC-B8FF-9DE23E8CD9BD&drop=0&addata=3374:65:478847:65&a=1&goto=http://www.espnshop.com/');return false">Shop</a>
+-->
+</div>
+<!-- end footer -->
+<!--[if lte IE 8]></div><![endif]-->
+</div><script type="text/javascript">jQuery(document).ready(function() {var ua = navigator.userAgent;if (ua && ua.indexOf("Trident/4.0") >= 0) { jQuery(".webicon").show(); }if (ua && ua.indexOf("Trident/4.0") >= 0) { jQuery(".webiconmod").show(); }});</script><!-- begin inv --><!-- end inv -->
+<!-- begin popunder --><!-- end popunder -->
+
+<!-- SiteCatalyst code version: H.21.3 Copyright 1997-2010 Omniture, Inc. http://www.omniture.com -->
+<script type="text/javascript">
+	var undef = 'undefined'
+	,s_account="wdgespcom"
+	,omniPageName = "espn:home:frontpage"	
+	
+	,insiderStatus = ""
+	,anGen = ""
+	,anYear = ""
+	,anDateString = ""
+	,anLoginStatus = ""
+	,callOmniture = function(){
+		/*-- core story s_omni properties --*/
+		if (typeof anCV != "undefined"){anParseLoginBarInfo(anCV);}
+		s_omni.pageName="home:frontpage";
+		s_omni.server = window.location.host; // Server from the Host
+		s_omni.channel = "home";
+		s_omni.prop1 = "espn";
+		s_omni.prop4 = "index";
+		s_omni.prop5 = "home:frontpage";
+		s_omni.prop11 = (insiderStatus !== null) ? insiderStatus + ":premium-no" : "premium-no";
+		s_omni.prop17 = "en";
+		s_omni.prop21 = anDateString;
+		s_omni.prop22 = anGen;
+		s_omni.prop29 = anLoginStatus;
+		s_omni.prop30 = "false";
+		s_omni.hier1 = "home:frontpage";
+		s_omni.eVar7 = anYear + ":" + anGen + ":" + anLoginStatus + ":" + s_omni.prop11 + ":";
+		s_omni.eVar9 = "en";
+		s_omni.eVar13 = "home:frontpage";
+		
+		if (s_omni.prop11=="anonymous:premium-yes" || s_omni.prop11=="insider-no:premium-yes" && typeof s_omni.prop4!="undefined" &&
+			(s_omni.prop4=="story" || s_omni.prop4=="blog")) {
+			if (typeof s_omni.events != "undefined" && s_omni.events!="") {
+				s_omni.events = s_omni.events+",event8" }
+			else { s_omni.events="event8" }
+		}
+		anDebugCase = "ver_15Feb11_0_";
+		/************* DO NOT ALTER ANYTHING BELOW THIS LINE ! **************/
+		var s_code=s_omni.t();
+		if(s_code) {
+			jQuery('body').append(s_code);
+		}
+	};
+	
+
+
+	jQuery(function($) {
+		// we want to load the analytics files from the cache if possible - so, let's use full $.ajax() calls
+		$.ajax({
+			type:'GET',
+			url: 'http://a.espncdn.com/combiner/c?js=analytics/sOmni.js,analytics/analytics.js,analytics/externalnielsen.js',
+			dataType: 'script',
+			cache: true,
+			success: function() {
+				var lgSrc;
+				if(typeof anCV !== undef && anCV === '' && document.getElementById('form-memberarea') != null) {
+					lgSrc = 'https://r.espn.go.com/members/util/getUserInfo?cb=runOmnitureIndependently';
+					$.getScript(lgSrc); // we don't want this to be cached - so we'll use the $.getScript() method
+				} else {
+					callOmniture();
+				}
+			}
+		});
+	});
+
+</script>
+<!-- End SiteCatalyst code version: H.21. -->
+		<script>
+		var _sf_async_config={
+			"uid":22222,
+			"domain":"espn.go.com",
+			"pingServer":"pespn.chartbeat.net",
+			"useCanonical":true,
+			"sections":"espnfrontpage",
+			"authors":"espnfrontpage,index"
+		};
+		(function(){function a(){window._sf_endpt=(new Date()).getTime();var c=document.createElement("script");c.setAttribute("language","javascript");c.setAttribute("type","text/javascript");c.setAttribute("src",(("https:"==document.location.protocol)?"https://a248.e.akamai.net/chartbeat.download.akamai.com/102508/":"http://static.chartbeat.com/")+"js/chartbeat.js");document.body.appendChild(c)}var b=window.onload;window.onload=(typeof window.onload!="function")?a:function(){b();a()}})();
+		</script>
+		<script>
+jQuery.getScriptCache('http://assets.espn.go.com/prod/scripts/foresee/v7/foresee-trigger.js');
+</script>
+<div id="caster"></div><script type="text/javascript" charset="UTF-8">(function(){function c(n){var k=document.cookie,s,e,l="length";if(k[l]>0){s=k.indexOf(n+"=");if(s!=-1){ s=s+n[l]+1;e=k.indexOf(";",s);if(e==-1)e=k[l];return unescape(k.substring(s,e));}}return"";}var a=c("releaseCandidate")=="true";this.ESPN_GLOBALS={pageType:"espnfrontpage",videoPlayers:{fpp09:{height:324,width:576,autostart:"false",playerType:!!a?"newskin_fpp09_dev":"fpp09"}}}})();</script>
+<script defer src="http://content.dl-rms.com/rms/11107/nodetag.js"></script>
+<script type="text/javascript" charset="utf-8">buildOutHeadlinesForPinnedSite();</script>
+<script type="text/javascript">
+	var isInIFrame = (window.location != window.parent.location) ? true : false;
+	if(isInIFrame){ if(document.referrer){ if(document.referrer.indexOf(".go.com")==-1){ top.location.href=self.location.href; } } }
+</script>
+</body>
+</html>
+
+0
+

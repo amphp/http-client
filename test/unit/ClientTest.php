@@ -6,6 +6,17 @@ use Spl\HashingMediator,
     Artax\Http\StdRequest,
     Artax\ChainableResponse;
 
+
+/**
+ * These constants are used to load raw fixture data for parsing
+ */
+if (!defined('ARTAX_TEST_FIXTURE_DIR')) {
+    define('ARTAX_TEST_FIXTURE_DIR', dirname(__DIR__) . '/fixtures');
+}
+if (!defined('ARTAX_RAW_RESPONSE_FIXTURE_DIR')) {
+    define('ARTAX_RAW_RESPONSE_FIXTURE_DIR', ARTAX_TEST_FIXTURE_DIR . '/raw');
+}
+
 /**
  * @covers Artax\ClientState
  * @covers Artax\Client
@@ -1126,6 +1137,40 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $response = $client->send(new StdRequest('http://localhost'));
         
         $this->assertEquals(1, $client->closeIdleSockets(0));
+    }
+    
+    /**
+     * Loads raw response messages from the fixture folder
+     */
+    public function provideRealRawResponseMessagesForParsing() {
+        $return = array();
+        $files = glob(ARTAX_RAW_RESPONSE_FIXTURE_DIR ."/*.txt");
+        
+        $this->assertTrue(!empty($files));
+        
+        foreach ($files as $filename) {
+            $return[] = array($filename);
+        }
+        
+        return $return;
+    }
+    
+    /**
+     * @dataProvider provideRealRawResponseMessagesForParsing
+     */
+    public function testParsingOfRealMessages($filename) {
+        if (!$rawMessage = @file_get_contents($filename)) {
+            $this->markTestSkipped(
+                "Failed loading raw HTTP message from $filename"
+            );
+            return;
+        }
+        
+        SocketStreamWrapper::$rawResponse = $rawMessage;
+        
+        $client = new ClientStub(new HashingMediator);
+        $response = $client->send(new StdRequest('http://localhost'));
+        $this->assertInstanceOf('Artax\\Http\\Response', $response);
     }
     
 }
