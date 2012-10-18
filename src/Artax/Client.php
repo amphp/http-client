@@ -38,15 +38,11 @@ class Client {
     const FOLLOW_LOCATION_ON_UNSAFE_METHOD = 4;
     const FOLLOW_LOCATION_ALL = 7;
     
+    const EVENT_IO_READ = 'artax.client.socket.io.read';
+    const EVENT_IO_WRITE = 'artax.client.socket.io.write';
     const EVENT_REQUEST = 'artax.client.request';
     const EVENT_REDIRECT = 'artax.client.redirect';
     const EVENT_RESPONSE = 'artax.client.response';
-    const EVENT_SOCK_OPEN = 'artax.client.socket.open';
-    const EVENT_SOCK_CHECKOUT = 'artax.client.socket.checkout';
-    const EVENT_SOCK_CHECKIN = 'artax.client.socket.checkin';
-    const EVENT_SOCK_CLOSE = 'artax.client.socket.close';
-    const EVENT_SOCK_IO_READ = 'artax.client.socket.io.read';
-    const EVENT_SOCK_IO_WRITE = 'artax.client.socket.io.write';
     
     const STATE_NEEDS_SOCKET = 0;
     const STATE_SEND_REQUEST_HEADERS = 1;
@@ -102,11 +98,6 @@ class Client {
     /**
      * @var array
      */
-    private $sockets;
-    
-    /**
-     * @var array
-     */
     private $errors;
     
     /**
@@ -117,12 +108,17 @@ class Client {
     /**
      * @var array
      */
+    private $requestSockets;
+    
+    /**
+     * @var array
+     */
     private $socketIdRequestMap;
     
     /**
      * @var array
      */
-    private $sockPool = array();
+    private $socketPool = array();
     
     /**
      * @var bool
@@ -319,7 +315,7 @@ class Client {
         
         $this->requests = array();
         $this->responses = array();
-        $this->sockets = array();
+        $this->requestSockets = array();
         $this->errors = array();
         $this->states = array();
         
@@ -503,9 +499,9 @@ class Client {
             if ($this->needsSocket($requestKey)) {
                 continue;
             } elseif ($this->isWriting($requestKey)) {
-                $write[] = $this->sockets[$requestKey];
+                $write[] = $this->requestSockets[$requestKey];
             } elseif ($this->isReading($requestKey)) {
-                $read[] = $this->sockets[$requestKey];
+                $read[] = $this->requestSockets[$requestKey];
             }
         }
         
@@ -526,7 +522,7 @@ class Client {
             } elseif ($socket = $this->doMultiSafeSocketCheckout($requestKey)){
                 $this->states[$requestKey]->state = self::STATE_SEND_REQUEST_HEADERS;
                 $this->socketIdToRequestKeyMap[(int) $socket] = $requestKey;
-                $this->sockets[$requestKey] = $socket;
+                $this->requestSockets[$requestKey] = $socket;
             }
         }
     }
@@ -565,29 +561,18 @@ class Client {
         $authority = $socketUri->getAuthority();
         
         if ($socket = $this->doExistingSocketCheckout($requestKey, $authority)) {
-            $this->mediator->notify(
-                self::EVENT_SOCK_CHECKOUT,
-                $requestKey,
-                $socket
-            );
-            
             return $socket;
         }
         
         if ($this->isNewSocketConnectionAllowed($authority)
             && $socket = $this->doNewSocketCheckout($socketUri)
         ) {
-            $this->sockPool[(int)$socket] = array(
+            $this->socketPool[(int)$socket] = array(
                 'socket' => $socket,
                 'authority' => $authority,
                 'bytesSent' => 0,
                 'bytesRecd' => 0,
                 'activity' => microtime(true)
-            );
-            $this->mediator->notify(
-                self::EVENT_SOCK_OPEN,
-                $requestKey,
-                $socket
             );
         }
     }
@@ -628,7 +613,7 @@ class Client {
      * @return resource Returns socket stream or NULL if no existing sockets are available for use
      */
     private function doExistingSocketCheckout($requestKey, $socketAuthority) {
-        foreach ($this->sockPool as $socketId => $socketArr) {
+        foreach ($this->socketPool as $socketId => $socketArr) {
             $isAvailable = !isset($this->socketIdToRequestKeyMap[$socketId]);
             
             if ($isAvailable && $socketArr['authority'] == $socketAuthority) {
@@ -657,7 +642,7 @@ class Client {
      */
     private function isNewSocketConnectionAllowed($socketAuthority) {
         $currentConns = 0;
-        foreach ($this->sockPool as $socketArr) {
+        foreach ($this->socketPool as $socketArr) {
             $currentConns += ($socketArr['authority'] == $socketAuthority);
         }
         
@@ -776,19 +761,13 @@ class Client {
      * @return void
      */
     private function checkinSocket($requestKey) {
-        $socket = $this->sockets[$requestKey];
+        $socket = $this->requestSockets[$requestKey];
         $socketId = (int) $socket;
         
 
         unset(
             $this->socketIdToRequestKeyMap[$socketId],
-            $this->sockets[$requestKey]
-        );
-        
-        $this->mediator->notify(
-            self::EVENT_SOCK_CHECKIN,
-            $requestKey,
-            $socket
+            $this->requestSockets[$requestKey]
         );
     }
     
@@ -799,21 +778,15 @@ class Client {
      * @return void
      */
     private function closeSocket($requestKey) {
-        $socket = $this->sockets[$requestKey];
+        $socket = $this->requestSockets[$requestKey];
         $socketId = (int) $socket;
         
         @fclose($socket);
         
         unset(
             $this->socketIdToRequestKeyMap[$socketId],
-            $this->sockets[$requestKey],
-            $this->sockPool[$socketId]
-        );
-        
-        $this->mediator->notify(
-            self::EVENT_SOCK_CLOSE,
-            $requestKey,
-            $socket
+            $this->requestSockets[$requestKey],
+            $this->socketPool[$socketId]
         );
     }
     
@@ -902,7 +875,7 @@ class Client {
      */
     private function writeRequestHeaders($requestKey) {
         $state = $this->states[$requestKey];
-        $socket = $this->sockets[$requestKey];
+        $socket = $this->requestSockets[$requestKey];
         $request = $this->requests[$requestKey];
         
         $data = $request->getRawRequestLineAndHeaders();
@@ -940,13 +913,13 @@ class Client {
     protected function doSockWrite($socket, $dataToWrite) {
         if ($bytesWritten = @fwrite($socket, $dataToWrite)) {
             $socketId = (int)$socket;
-            $this->sockPool[$socketId]['bytesSent'] += $bytesWritten;
-            $this->sockPool[$socketId]['activity'] = microtime(true);
+            $this->socketPool[$socketId]['bytesSent'] += $bytesWritten;
+            $this->socketPool[$socketId]['activity'] = microtime(true);
             
             $actualDataWritten = substr($dataToWrite, 0, $bytesWritten);
             
             $this->mediator->notify(
-                self::EVENT_SOCK_IO_WRITE,
+                self::EVENT_IO_WRITE,
                 $requestKey = $this->socketIdToRequestKeyMap[(int) $socket],
                 $actualDataWritten,
                 $bytesWritten
@@ -980,7 +953,7 @@ class Client {
      */
     private function writeBufferedRequestBody($requestKey) {
         $state = $this->states[$requestKey];
-        $socket = $this->sockets[$requestKey];
+        $socket = $this->requestSockets[$requestKey];
         $request = $this->requests[$requestKey];
         
         $data = $request->getBody();
@@ -1013,7 +986,7 @@ class Client {
      */
     private function writeStreamingRequestBody($requestKey) {
         $state = $this->states[$requestKey];
-        $socket = $this->sockets[$requestKey];
+        $socket = $this->requestSockets[$requestKey];
         
         if ($state->streamRequestBodyChunkPos >= $state->streamRequestBodyChunkLength) {
             $chunk = $this->readChunkFromStreamRequestBody($requestKey);
@@ -1119,7 +1092,7 @@ class Client {
      */
     private function readHeaders($requestKey) {
         $state = $this->states[$requestKey];
-        $socket = $this->sockets[$requestKey];
+        $socket = $this->requestSockets[$requestKey];
         
         list($readData, $readDataLength) = $this->doSockRead($socket);
         
@@ -1161,11 +1134,11 @@ class Client {
         // (such as the one-byte string, "0") can yield false positives.
         if ($readDataLength) {
             $socketId = (int) $socket;
-            $this->sockPool[$socketId]['bytesRecd'] += $readDataLength;
-            $this->sockPool[$socketId]['activity'] = microtime(true);
+            $this->socketPool[$socketId]['bytesRecd'] += $readDataLength;
+            $this->socketPool[$socketId]['activity'] = microtime(true);
             
             $this->mediator->notify(
-                self::EVENT_SOCK_IO_READ,
+                self::EVENT_IO_READ,
                 $this->socketIdToRequestKeyMap[(int) $socket],
                 $readData,
                 $readDataLength
@@ -1247,6 +1220,7 @@ class Client {
         }
         
         $bytesToWrite = strlen($state->buffer);
+        
         if ($bytesToWrite) {
             $bytesWritten = $this->writeToTempResponseBodyStream($responseBody, $state->buffer);
             if ($bytesWritten !== $bytesToWrite) {
@@ -1345,7 +1319,7 @@ class Client {
      */
     private function readBody($requestKey) {
         $state = $this->states[$requestKey];
-        $socket = $this->sockets[$requestKey];
+        $socket = $this->requestSockets[$requestKey];
         $response = $this->responses[$requestKey];
         
         list($readData, $readDataLength) = $this->doSockRead($socket);
@@ -1365,7 +1339,8 @@ class Client {
         }
         
         $responseBody = $response->getBodyStream();
-        if (!$this->writeToTempResponseBodyStream($responseBody, $readData)) {
+        
+        if ($readData !== '' && !$this->writeToTempResponseBodyStream($responseBody, $readData)) {
             throw new ClientException(
                 'Failed writing response entity body to temporary storage stream'
             );
@@ -1695,11 +1670,11 @@ class Client {
      * @return int Returns the number of socket connections closed
      */
     public function closeAllSockets() {
-        foreach ($this->sockPool as $socketId => $sockArr) {
+        foreach ($this->socketPool as $socketId => $sockArr) {
             @fclose($sockArr['socket']);
         }
-        $connsClosed = count($this->sockPool);
-        $this->sockPool = array();
+        $connsClosed = count($this->socketPool);
+        $this->socketPool = array();
         
         return $connsClosed;
     }
@@ -1714,10 +1689,10 @@ class Client {
         $hostMatch = "$host:";
         
         $connsClosed = 0;
-        foreach ($this->sockPool as $socketId => $sockArr) {
+        foreach ($this->socketPool as $socketId => $sockArr) {
             if (0 === strpos($sockArr['authority'], $hostMatch)) {
                 @fclose($sockArr['socket']);
-                unset($this->sockPool[$socketId]);
+                unset($this->socketPool[$socketId]);
                 ++$connsClosed;
             }
         }
@@ -1736,12 +1711,12 @@ class Client {
         $connsClosed = 0;
         $now = microtime(true);
         
-        foreach ($this->sockPool as $socketId => $sockArr) {
+        foreach ($this->socketPool as $socketId => $sockArr) {
             $secondsSinceActive = $now - $sockArr['activity'];
             
             if ($secondsSinceActive > $maxInactivitySeconds) {
                 @fclose($sockArr['socket']);
-                unset($this->sockPool[$socketId]);
+                unset($this->socketPool[$socketId]);
                 ++$connsClosed;
             }
         }

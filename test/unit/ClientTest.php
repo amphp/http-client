@@ -544,7 +544,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $mediator = new HashingMediator;
         
         $bytesWritten = 0;
-        $mediator->addListener(Client::EVENT_SOCK_IO_WRITE, function($key, $data, $bytes) use (&$bytesWritten) {
+        $mediator->addListener(Client::EVENT_IO_WRITE, function($key, $data, $bytes) use (&$bytesWritten) {
             $bytesWritten += $bytes;
             if ($bytesWritten > 75) {
                 SocketStreamWrapper::$failOnWrite = true;
@@ -572,7 +572,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $mediator = new HashingMediator;
         
         $bytesWritten = 0;
-        $mediator->addListener(Client::EVENT_SOCK_IO_WRITE, function($key, $data, $bytes) use (&$bytesWritten) {
+        $mediator->addListener(Client::EVENT_IO_WRITE, function($key, $data, $bytes) use (&$bytesWritten) {
             $bytesWritten += $bytes;
             if ($bytesWritten > 75) {
                 SocketStreamWrapper::$failOnWrite = true;
@@ -643,7 +643,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         // Tell the socket to "disconnect" once the full message is read
         $bytesRead = 0;
         $mediator = new HashingMediator;
-        $mediator->addListener(Client::EVENT_SOCK_IO_READ, function ($key, $data, $bytes) use (&$bytesRead) {
+        $mediator->addListener(Client::EVENT_IO_READ, function ($key, $data, $bytes) use (&$bytesRead) {
             $bytesRead += $bytes;
             if ($bytesRead == strlen(SocketStreamWrapper::$rawResponse)) {
                 SocketStreamWrapper::$socketIsDead = true;
@@ -675,7 +675,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         // Simulate a disconnected socket connection after X bytes read
         $bytesRead = 0;
         $failurePoint = strlen(SocketStreamWrapper::$rawResponse) - 5;
-        $mediator->addListener(Client::EVENT_SOCK_IO_READ, function($key, $data, $bytes) use (&$bytesRead, $failurePoint) {
+        $mediator->addListener(Client::EVENT_IO_READ, function($key, $data, $bytes) use (&$bytesRead, $failurePoint) {
             $bytesRead += $bytes;
             
             if ($bytesRead >= $failurePoint) {
@@ -726,7 +726,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         };
         
         $mediator = new HashingMediator;
-        $mediator->addListener(Client::EVENT_SOCK_IO_READ, $streamWriteFailer);
+        $mediator->addListener(Client::EVENT_IO_READ, $streamWriteFailer);
         
         $client = $this->getMock(
             'ClientStub',
@@ -764,7 +764,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         // Simulate a disconnected socket connection after X bytes read
         $bytesRead = 0;
         $failurePoint = strlen(SocketStreamWrapper::$rawResponse) - 5;
-        $mediator->addListener(Client::EVENT_SOCK_IO_READ, function($key, $data, $bytes) use (&$bytesRead, $failurePoint) {
+        $mediator->addListener(Client::EVENT_IO_READ, function($key, $data, $bytes) use (&$bytesRead, $failurePoint) {
             $bytesRead += $bytes;
             
             if ($bytesRead >= $failurePoint) {
@@ -1161,7 +1161,11 @@ class ClientStub extends Client {
         if (SocketStreamWrapper::$failOnRead) {
             return array(false, 0);
         } elseif (!is_null(SocketStreamWrapper::$readReturn)){
-            $len = strlen(SocketStreamWrapper::$readReturn);
+            $return = SocketStreamWrapper::$readReturn;
+            $len = strlen($return);
+            
+            // reset to null to avoid getting stuck in a loop
+            SocketStreamWrapper::$readReturn = null;
             return array(SocketStreamWrapper::$readReturn, $len);
         } else {
             return parent::doSockRead($bytesToRead);
@@ -1300,67 +1304,6 @@ class SocketStreamWrapper {
     
     public function stream_eof() {
         return (static::$position == strlen(static::$rawResponse));
-    }
-    
-    public function stream_close() {}
-    public function stream_set_option($option, $arg1, $arg2) {}
-}
-
-class MemStreamWrapper {
-    
-    public $context;
-    
-    public $position = 0;
-    public $rawResponse = 'test';
-    
-    /**
-     * Mock the return value of the fopen operation on the stream
-     */
-    public function stream_open($path, $mode, $options, &$opened_path) {
-        return true;
-    }
-    
-    /**
-     * Mock the return value of fread operations on the stream
-     */
-    public function stream_read($bytes) {
-        $chunk = substr($this->rawResponse, $this->position, $bytes);
-        $this->position += strlen($chunk);
-        return $chunk;
-    }
-    
-    /**
-     * Mock the return value of the fwrite operations on the stream
-     */
-    public function stream_write($data) {
-        return strlen($data);
-    }
-    
-    public function stream_seek($offset, $whence) {
-        switch ($whence) {
-            case SEEK_SET:
-                $this->position = $offset;
-                return true;
-                break;
-            case SEEK_CUR:
-                $this->position += $offset;
-                return true;
-                break;
-            case SEEK_END:
-                $this->position = strlen($this->rawResponse);
-                return true;
-                break;
-            default:
-                return false;
-        }
-    }
-
-    public function stream_tell() {
-        return $this->position;
-    }
-    
-    public function stream_eof() {
-        return ($this->position == strlen($this->rawResponse));
     }
     
     public function stream_close() {}
