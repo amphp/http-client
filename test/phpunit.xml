@@ -7,28 +7,6 @@
     <filter>
         <whitelist addUncoveredFilesFromWhitelist="true">
             <directory>../src/Artax</directory>
-            <exclude>
-                <!--
-                <file>../src/Artax/Http/Message.php</file>
-                <file>../src/Artax/Http/Request.php</file>
-                <file>../src/Artax/Http/Response.php</file>
-                <file>../src/Artax/Http/StatusCodes.php</file>
-
-                <file>../src/Artax/Negotiation/NegotiableTerm.php</file>
-                <file>../src/Artax/Negotiation/Negotiators/HeaderNegotiator.php</file>
-                <file>../src/Artax/Negotiation/Parsers/HeaderParser.php</file>
-                <file>../src/Artax/Negotiation/Parsers/AcceptEncodingParser.php</file>
-                <file>../src/Artax/Negotiation/Parsers/AcceptLanguageParser.php</file>
-                
-                <file>../src/Artax/ClientState.php</file>
-                
-                <file>../src/Artax/Streams/Resource.php</file>
-                <file>../src/Artax/Streams/SocketResource.php</file>
-                <file>../src/Artax/Streams/ConnectException.php</file>
-                <file>../src/Artax/Streams/StreamException.php</file>
-                <file>../src/Artax/Streams/IoException.php</file>
-                -->
-            </exclude>
         </whitelist>
     </filter>
 
