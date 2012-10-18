@@ -34,7 +34,7 @@ class ClientMultiResponse implements Iterator, Countable {
      * @param array $responses
      * @return bool
      */
-    protected function validateResponses(array $responses) {
+    private function validateResponses(array $responses) {
         if (!$responses) {
             return false;
         }
@@ -51,28 +51,43 @@ class ClientMultiResponse implements Iterator, Countable {
     }
     
     /**
-     * @return int
+     * Were exceptions encountered while receiving any of the requests?
+     * 
+     * Note that this DOES NOT include 4xx and 5xx responses, which are not the same as an
+     * actual exception encountered while processing a request.
+     * 
+     * @return bool
      */
-    public function getErrorCount() {
-        return count($this->getAllErrors());
+    public function hasErrors() {
+        return (bool) $this->getAllErrors();
     }
     
     /**
-     * @return array
+     * Get an array of all exception objects thrown and caught while processing the requests.
+     * 
+     * The returned array keys match the keys used in the request array/traversable passed to the
+     * Client::sendMulti method.
+     * 
+     * @return array[Exception]
      */
     public function getAllErrors() {
         return array_filter($this->responses, function($x){ return $x instanceof Exception; });
     }
     
-    /**
-     * @return array
+     /**
+     * Get an array of all responses received from the multi-request.
+     * 
+     * The returned array keys match the keys used in the request array/traversable passed to the
+     * Client::sendMulti method.
+     * 
+     * @return array[Response]
      */
     public function getAllResponses() {
         return array_filter($this->responses, function($x){ return $x instanceof Response; });
     }
     
     /**
-     * Is the request result at the current iterator entry an exception object?
+     * Is the request result at the current iterator position an exception object?
      * 
      * @return bool
      */
@@ -82,7 +97,7 @@ class ClientMultiResponse implements Iterator, Countable {
     }
     
     /**
-     * Is the request result at the current iterator entry a response object?
+     * Is the request result at the current iterator position a response object?
      * 
      * @return bool
      */
@@ -92,7 +107,7 @@ class ClientMultiResponse implements Iterator, Countable {
     }
     
     /**
-     * Returns a combined count of responses and errors
+     * Returns a combined count of responses and errors encountered during the multi-request.
      * 
      * @return int
      */

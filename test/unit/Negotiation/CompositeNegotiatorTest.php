@@ -3,6 +3,11 @@
 use Artax\Negotiation\CompositeNegotiator,
     Artax\Negotiation\NegotiatorFactory;
 
+/**
+ * @covers Artax\Negotiation\CompositeNegotiator
+ * @covers Artax\Negotiation\Parsers\HeaderParser
+ * @covers Artax\Negotiation\Negotiators\HeaderNegotiator
+ */
 class CompositeNegotiatorTest extends PHPUnit_Framework_TestCase {
     
     /**

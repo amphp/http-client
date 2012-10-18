@@ -39,9 +39,9 @@ class ClientMultiResponseTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers Artax\ClientMultiResponse::getErrorCount
+     * @covers Artax\ClientMultiResponse::hasErrors
      */
-    public function testErrorCountGetterReturnsTheNumberOfExceptionObjectsInTheResponseArray() {
+    public function testHasErrorsReturnsBooleanOnPresenceOfExceptionsInTheResponseArray() {
         $arr = array(
             $this->getMock('Artax\\Http\\Response'),
             $this->getMock('Exception'),
@@ -49,7 +49,7 @@ class ClientMultiResponseTest extends PHPUnit_Framework_TestCase {
             $this->getMock('Exception')
         );
         $multiResponse = new ClientMultiResponse($arr);
-        $this->assertEquals(3, $multiResponse->getErrorCount());
+        $this->assertTrue($multiResponse->hasErrors());
     }
     
     /**
