@@ -9,7 +9,6 @@ class ClientState {
     public $bodyBytesSent = 0;
     public $bytesRecd = 0;
     public $buffer = '';
-    public $responseBodyStream = null;
     
     public $streamRequestBodyPos = 0;
     public $streamRequestBodyLength = 0;

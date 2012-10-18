@@ -8,19 +8,13 @@ use Exception,
     Spl\Mediator,
     Spl\TypeException,
     Spl\ValueException,
-    Artax\Streams\Stream,
-    Artax\Streams\Socket,
-    Artax\Streams\Resource,
-    Artax\Streams\StreamException,
-    Artax\Streams\ConnectException,
-    Artax\Streams\SocketGoneException,
     Artax\Http\Request,
     Artax\Http\StdRequest,
     Artax\Http\Response;
     
 class Client {
     
-    const USER_AGENT = 'Artax/1.0.0-rc.1 (PHP5.3+)';
+    const USER_AGENT = 'Artax/1.0.0-rc.3 (PHP5.3+)';
     
     const ATTR_KEEP_CONNS_ALIVE = 'keepConnsAlive';
     const ATTR_CONNECT_TIMEOUT = 'connectTimeout';
@@ -123,12 +117,7 @@ class Client {
     /**
      * @var array
      */
-    private $resourceKeyMap;
-    
-    /**
-     * @var array
-     */
-    private $redirectHistory;
+    private $socketIdRequestMap;
     
     /**
      * @var array
@@ -334,8 +323,7 @@ class Client {
         $this->errors = array();
         $this->states = array();
         
-        $this->resourceKeyMap = array();
-        $this->redirectHistory = array();
+        $this->socketIdToRequestKeyMap = array();
         
         foreach ($requests as $requestKey => $request) {
             $this->normalizeRequestHeaders($request);
@@ -343,7 +331,6 @@ class Client {
             $this->requestKeys[] = $requestKey;
             $this->requests[$requestKey] = $request;
             $this->responses[$requestKey] = new ChainableResponse($request->getUri());
-            $this->redirectHistory[$requestKey] = array();
             $this->states[$requestKey] = new ClientState();
             
             $this->mediator->notify(
@@ -405,7 +392,7 @@ class Client {
      * @param string $requestKey
      * @return bool
      */
-    protected function needsSocket($requestKey) {
+    private function needsSocket($requestKey) {
         $state = $this->states[$requestKey];
         return $state->state == self::STATE_NEEDS_SOCKET;
     }
@@ -416,7 +403,7 @@ class Client {
      * @param string $requestKey
      * @return bool
      */
-    protected function isWriting($requestKey) {
+    private function isWriting($requestKey) {
         $state = $this->states[$requestKey];
         return $state->state && $state->state < self::STATE_READ_HEADERS;
     }
@@ -427,7 +414,7 @@ class Client {
      * @param string $requestKey
      * @return bool
      */
-    protected function isReading($requestKey) {
+    private function isReading($requestKey) {
         $state = $this->states[$requestKey];
         return $state->state >= self::STATE_READ_HEADERS && $state->state < self::STATE_COMPLETE;
     }
@@ -438,7 +425,7 @@ class Client {
      * @param string $requestKey
      * @return bool
      */
-    protected function isComplete($requestKey) {
+    private function isComplete($requestKey) {
         $state = $this->states[$requestKey];
         return $state->state == self::STATE_COMPLETE;
     }
@@ -449,7 +436,7 @@ class Client {
      * @param string $requestKey
      * @return bool
      */
-    protected function hasError($requestKey) {
+    private function hasError($requestKey) {
         return isset($this->errors[$requestKey]);
     }
     
@@ -469,13 +456,13 @@ class Client {
             
             list($read, $write) = $this->doStreamSelect($read, $write);
             
-            foreach ($write as $resource) {
-                $requestKey = $this->resourceKeyMap[(int) $resource];
+            foreach ($write as $socket) {
+                $requestKey = $this->socketIdToRequestKeyMap[(int) $socket];
                 $this->doMultiSafeWrite($requestKey);
             }
             
-            foreach ($read as $resource) {
-                $requestKey = $this->resourceKeyMap[(int) $resource];
+            foreach ($read as $socket) {
+                $requestKey = $this->socketIdToRequestKeyMap[(int) $socket];
                 $this->doMultiSafeRead($requestKey);
                 
                 if ($this->isComplete($requestKey)) {
@@ -516,9 +503,9 @@ class Client {
             if ($this->needsSocket($requestKey)) {
                 continue;
             } elseif ($this->isWriting($requestKey)) {
-                $write[] = $this->sockets[$requestKey]->getResource();
+                $write[] = $this->sockets[$requestKey];
             } elseif ($this->isReading($requestKey)) {
-                $read[] = $this->sockets[$requestKey]->getResource();
+                $read[] = $this->sockets[$requestKey];
             }
         }
         
@@ -538,7 +525,7 @@ class Client {
                 continue;
             } elseif ($socket = $this->doMultiSafeSocketCheckout($requestKey)){
                 $this->states[$requestKey]->state = self::STATE_SEND_REQUEST_HEADERS;
-                $this->resourceKeyMap[(int) $socket->getResource()] = $requestKey;
+                $this->socketIdToRequestKeyMap[(int) $socket] = $requestKey;
                 $this->sockets[$requestKey] = $socket;
             }
         }
@@ -552,7 +539,7 @@ class Client {
      * @throws ClientException (only if not in multi-mode)
      * @return mixed Returns Socket or NULL on host concurrency limiting
      */
-    protected function doMultiSafeSocketCheckout($requestKey) {
+    private function doMultiSafeSocketCheckout($requestKey) {
         if ($this->isInMultiMode) {
             try {
                 return $this->checkoutSocket($requestKey);
@@ -562,6 +549,272 @@ class Client {
         } else {
             return $this->checkoutSocket($requestKey);
         }
+    }
+    
+    /**
+     * Get a socket for use subject to the Client's host concurrency limit.
+     * 
+     * @param string $requestKey
+     * @throws ClientException
+     * @return resource Returns socket stream or NULL if limited by host concurrency attribute
+     */
+    private function checkoutSocket($requestKey) {
+        $request = $this->requests[$requestKey];
+        
+        $socketUri = $this->buildSocketUriFromHttpRequest($request);
+        $authority = $socketUri->getAuthority();
+        
+        if ($socket = $this->doExistingSocketCheckout($requestKey, $authority)) {
+            $this->mediator->notify(
+                self::EVENT_SOCK_CHECKOUT,
+                $requestKey,
+                $socket
+            );
+            
+            return $socket;
+        }
+        
+        if ($this->isNewSocketConnectionAllowed($authority)
+            && $socket = $this->doNewSocketCheckout($socketUri)
+        ) {
+            $this->sockPool[(int)$socket] = array(
+                'socket' => $socket,
+                'authority' => $authority,
+                'bytesSent' => 0,
+                'bytesRecd' => 0,
+                'activity' => microtime(true)
+            );
+            $this->mediator->notify(
+                self::EVENT_SOCK_OPEN,
+                $requestKey,
+                $socket
+            );
+        }
+    }
+    
+    /**
+     * Generate the appropriate socket URI given a Request instance
+     * 
+     * @param Http\Request $request
+     * @throws ClientException
+     * @return Uri
+     */
+    private function buildSocketUriFromHttpRequest(Request $request) {
+        $requestScheme = strtolower($request->getScheme());
+        switch ($requestScheme) {
+            case 'http':
+                $scheme = 'tcp';
+                break;
+            case 'https':
+                $scheme = 'tls';
+                break;
+            default:
+                throw new ClientException(
+                    "Invalid request URI scheme: $requestScheme. http:// or https:// required."
+                );
+        }
+        
+        $uriStr = $scheme . '://' . $request->getHost() . ':' . $request->getPort();
+        $uri = new Uri($uriStr);
+        
+        return $uri;
+    }
+    
+    /**
+     * Attempt to use an existing socket connection before making a new connection
+     * 
+     * @param string $requestKey
+     * @param string $socketAuthority
+     * @return resource Returns socket stream or NULL if no existing sockets are available for use
+     */
+    private function doExistingSocketCheckout($requestKey, $socketAuthority) {
+        foreach ($this->sockPool as $socketId => $socketArr) {
+            $isAvailable = !isset($this->socketIdToRequestKeyMap[$socketId]);
+            
+            if ($isAvailable && $socketArr['authority'] == $socketAuthority) {
+                return $socketArr['socket'];
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * IMPORTANT: this is a test seam allowing us to mock socket IO for testing.
+     * 
+     * @param resource $socketResource
+     * @return bool
+     */
+    protected function isSocketAlive($socketResource) {
+        return is_resource($socketResource) && !feof($socketResource);
+    }
+    
+    /**
+     * Do our host concurrency limit settings allow a new connection to the relevant host?
+     * 
+     * @param string $socketAuthority
+     * @return bool
+     */
+    private function isNewSocketConnectionAllowed($socketAuthority) {
+        $currentConns = 0;
+        foreach ($this->sockPool as $socketArr) {
+            $currentConns += ($socketArr['authority'] == $socketAuthority);
+        }
+        
+        $allowedConns = $this->getAttribute(self::ATTR_HOST_CONCURRENCY_LIMIT);
+        
+        return ($allowedConns > $currentConns);
+    }
+    
+    /**
+     * Open a new non-blocking socket connection, notifying listeners of the socket's status
+     * 
+     * @param Uri $socketUri
+     * @throws ClientException On connection failure
+     * @return resource
+     */
+    private function doNewSocketCheckout(Uri $socketUri) {
+        $context = $this->buildSocketConnectionContext($socketUri);
+        
+        list($socket, $errNo, $errStr) = $this->makeSocket($socketUri, $context);
+        
+        if (false !== $socket) {
+            stream_set_blocking($socket, 0);
+            return $socket;
+        } elseif ($sslError = $this->getOpenSslConnectError()) {
+            throw new ClientException(
+                'SSL socket connection failure: ' . $sslError
+            );
+        } else {
+            $errorMsg = 'Socket connection failure: ' . $socketUri;
+            $errorMsg .= !empty($errNo) ? "; [Error# $errNo] $errStr" : '';
+            
+            throw new ClientException($errorMsg);
+        }
+    }
+
+    /**
+     * IMPORTANT: this is a test seam allowing us to mock socket IO for testing.
+     * 
+     * @param Uri $socketUri
+     * @param resource $context
+     * @return array($resource, $errNo, $errStr)
+     */
+    protected function makeSocket(Uri $socketUri, $context) {
+        $socket = @stream_socket_client(
+            $socketUri,
+            $errNo,
+            $errStr,
+            $this->getAttribute(self::ATTR_CONNECT_TIMEOUT),
+            STREAM_CLIENT_CONNECT,
+            $context
+        );
+        
+        // `stream_socket_client` modifies $errNo + $errStr by reference. Because we don't want to 
+        // throw an exception here on connection failures we need to return these values along with
+        // the $stream return value. In so doing we're able to easily mock connection results.
+        return array($socket, $errNo, $errStr);
+    }
+    
+    /**
+     * @param Uri $socketUri
+     * @return resource Returns socket connection context
+     */
+    private function buildSocketConnectionContext(Uri $socketUri) {
+        if ('tls' != $socketUri->getScheme()) {
+            return stream_context_create(array());
+        }
+        
+        $opts = array(
+            'verify_peer' => $this->getAttribute(self::ATTR_SSL_VERIFY_PEER),
+            'allow_self_signed' => $this->getAttribute(self::ATTR_SSL_ALLOW_SELF_SIGNED),
+            'verify_depth' => $this->getAttribute(self::ATTR_SSL_VERIFY_DEPTH),
+            'cafile' => $this->getAttribute(self::ATTR_SSL_CA_FILE),
+            'CN_match' => $this->getAttribute(self::ATTR_SSL_CN_MATCH) ?: $socketUri->getHost(),
+            'ciphers' => $this->getAttribute(self::ATTR_SSL_CIPHERS)
+        );
+        
+        if ($caDirPath = $this->getAttribute(self::ATTR_SSL_CA_PATH)) {
+            $opts['capath'] = $caDirPath;
+        }
+        if ($localCert = $this->getAttribute(self::ATTR_SSL_LOCAL_CERT)) {
+            $opts['local_cert'] = $localCert;
+        }
+        if ($localCertPassphrase = $this->getAttribute(self::ATTR_SSL_LOCAL_CERT_PASSPHRASE)) {
+            $opts['passphrase'] = $localCertPassphrase;
+        }
+       
+        return stream_context_create(array('ssl' => $opts));
+    }
+    
+    /**
+     * @return string Returns OpenSSL error message or NULL if none exists
+     */
+    private function getOpenSslConnectError() {
+        if ($tmpSslError = $this->nativeOpenSslErrorSeam()) {
+            $sslError = $tmpSslError;
+            while ($tmpSslError = $this->nativeOpenSslErrorSeam()) {
+                $sslError = $tmpSslError;
+            }
+            return $sslError;
+        } else {
+            return null;
+        }
+    }
+    
+    /**
+     * A test-seam for the native global ssl error retrieval function
+     */
+    protected function nativeOpenSslErrorSeam() {
+        return openssl_error_string();
+    }
+    
+    /**
+     * Mark a socket connection as "available for use" by future or queued requests
+     * 
+     * @param string $requestKey
+     * @return void
+     */
+    private function checkinSocket($requestKey) {
+        $socket = $this->sockets[$requestKey];
+        $socketId = (int) $socket;
+        
+
+        unset(
+            $this->socketIdToRequestKeyMap[$socketId],
+            $this->sockets[$requestKey]
+        );
+        
+        $this->mediator->notify(
+            self::EVENT_SOCK_CHECKIN,
+            $requestKey,
+            $socket
+        );
+    }
+    
+    /**
+     * Close a socket connection
+     * 
+     * @param string $requestKey
+     * @return void
+     */
+    private function closeSocket($requestKey) {
+        $socket = $this->sockets[$requestKey];
+        $socketId = (int) $socket;
+        
+        @fclose($socket);
+        
+        unset(
+            $this->socketIdToRequestKeyMap[$socketId],
+            $this->sockets[$requestKey],
+            $this->sockPool[$socketId]
+        );
+        
+        $this->mediator->notify(
+            self::EVENT_SOCK_CLOSE,
+            $requestKey,
+            $socket
+        );
     }
     
     /**
@@ -586,7 +839,7 @@ class Client {
      * @param int $tvusec
      * @return array
      */
-    protected function doStreamSelect(
+    private function doStreamSelect(
         array $read,
         array $write,
         array $ex = null,
@@ -624,7 +877,7 @@ class Client {
      * @throws ClientException
      * @return void
      */
-    public function write($requestKey) {
+    private function write($requestKey) {
         $currentState = $this->states[$requestKey]->state;
         
         switch ($currentState) {
@@ -656,26 +909,14 @@ class Client {
         $dataLen = strlen($data);
         $dataToWrite = substr($data, $state->headerBytesSent);
         
-        try {
-            $bytesWritten = $socket->write($dataToWrite);
-        } catch (StreamException $e) {
+        $bytesWritten = $this->doSockWrite($socket, $dataToWrite);
+        if (!$bytesWritten && !$this->isSocketAlive($socket)) {
             throw new ClientException(
-                'Socket write failure while sending headers',
-                null,
-                $e
+                'Socket write failure encountered while sending request headers'
             );
         }
         
-        if ($bytesWritten) {
-            $actualDataWritten = substr($data, 0, $bytesWritten);
-            $state->headerBytesSent += $bytesWritten;
-            $this->mediator->notify(
-                self::EVENT_SOCK_IO_WRITE,
-                $requestKey,
-                $actualDataWritten,
-                $bytesWritten
-            );
-        }
+        $state->headerBytesSent += $bytesWritten;
         
         if ($state->headerBytesSent >= $dataLen) {
             if ($request->getBodyStream()) {
@@ -687,6 +928,32 @@ class Client {
                 $state->state = self::STATE_READ_HEADERS;
             }
         }
+    }
+    
+    /**
+     * IMPORTANT: this is a test seam allowing us to mock socket IO for testing.
+     * 
+     * @param resource $socket
+     * @param string $dataToWrite
+     * @return int Returns number of bytes written or FALSE on failure
+     */
+    protected function doSockWrite($socket, $dataToWrite) {
+        if ($bytesWritten = @fwrite($socket, $dataToWrite)) {
+            $socketId = (int)$socket;
+            $this->sockPool[$socketId]['bytesSent'] += $bytesWritten;
+            $this->sockPool[$socketId]['activity'] = microtime(true);
+            
+            $actualDataWritten = substr($dataToWrite, 0, $bytesWritten);
+            
+            $this->mediator->notify(
+                self::EVENT_SOCK_IO_WRITE,
+                $requestKey = $this->socketIdToRequestKeyMap[(int) $socket],
+                $actualDataWritten,
+                $bytesWritten
+            );
+        }
+        
+        return $bytesWritten;
     }
     
     /**
@@ -720,26 +987,14 @@ class Client {
         $dataLen = strlen($data);
         $dataToWrite = substr($data, $state->bodyBytesSent);
         
-        try {
-            $bytesWritten = $socket->write($dataToWrite);
-        } catch (StreamException $e) {
+        $bytesWritten = $this->doSockWrite($socket, $dataToWrite);
+        if (!$bytesWritten && !$this->isSocketAlive($socket)) {
             throw new ClientException(
-                'Socket write failure while sending request body',
-                null,
-                $e
+                'Socket write failure encountered while sending buffered request entity body'
             );
         }
         
-        if ($bytesWritten) {
-            $actualDataWritten = substr($data, 0, $bytesWritten);
-            $state->bodyBytesSent += $bytesWritten;
-            $this->mediator->notify(
-                self::EVENT_SOCK_IO_WRITE,
-                $requestKey,
-                $actualDataWritten,
-                $bytesWritten
-            );
-        }
+        $state->bodyBytesSent += $bytesWritten;
         
         if ($state->bodyBytesSent >= $dataLen) {
             $state->state = self::STATE_READ_HEADERS;
@@ -758,18 +1013,13 @@ class Client {
      */
     private function writeStreamingRequestBody($requestKey) {
         $state = $this->states[$requestKey];
-        $request = $this->requests[$requestKey];
         $socket = $this->sockets[$requestKey];
         
-        $outboundBodyStream = $request->getBodyStream();
         if ($state->streamRequestBodyChunkPos >= $state->streamRequestBodyChunkLength) {
-            fseek($outboundBodyStream, $state->streamRequestBodyPos, SEEK_SET);
-            $ioBufferSize = $this->getAttribute(self::ATTR_IO_BUFFER_SIZE);
-            $chunk = @fread($outboundBodyStream, $ioBufferSize);
-            
+            $chunk = $this->readChunkFromStreamRequestBody($requestKey);
             if (false === $chunk) {
                 throw new ClientException(
-                    "Failed reading request body from $outboundBodyStream"
+                    "Failed reading data from stream request body"
                 );
             }
             
@@ -783,33 +1033,18 @@ class Client {
         
         $dataToWrite = substr($state->streamRequestBodyChunk, $state->streamRequestBodyChunkPos);
         
-        try {
-            $bytesWritten = $socket->write($dataToWrite);
-        } catch (StreamException $e) {
+        $bytesWritten = $this->doSockWrite($socket, $dataToWrite);
+        if (!$bytesWritten && !$this->isSocketAlive($socket)) {
             throw new ClientException(
-                '',
-                null,
-                $e
+                'Socket write failure encountered while sending buffered request entity body'
             );
         }
         
-        if ($bytesWritten) {
-            $actualDataWritten = substr($dataToWrite, 0, $bytesWritten);
-            $state->streamRequestBodyChunkPos += $bytesWritten;
-            $this->mediator->notify(
-                self::EVENT_SOCK_IO_WRITE,
-                $requestKey,
-                $actualDataWritten,
-                $bytesWritten
-            );
-        }
+        $state->streamRequestBodyChunkPos += $bytesWritten;
         
-        // Is there more of this chunk to write?
-        if ($state->streamRequestBodyChunkPos < $state->streamRequestBodyChunkLength) {
-            return;
+        if ($state->streamRequestBodyChunkPos >= $state->streamRequestBodyChunkLength) {
+            $state->streamRequestBodyPos += $state->streamRequestBodyChunkRawLength;
         }
-        
-        $state->streamRequestBodyPos += $state->streamRequestBodyChunkRawLength;
         
         // If we just wrote the last chunk, change the state to "reading"
         if ($state->streamRequestBodyPos >= $state->streamRequestBodyLength
@@ -817,6 +1052,23 @@ class Client {
         ) {
             $state->state = self::STATE_READ_HEADERS;
         }
+    }
+    
+    /**
+     * @param string $requestKey
+     * @return string Returns string chunk from stream request body or FALSE on failure
+     */
+    protected function readChunkFromStreamRequestBody($requestKey) {
+        $state = $this->states[$requestKey];
+        $request = $this->requests[$requestKey];
+        
+        $outboundBodyStream = $request->getBodyStream();
+        
+        fseek($outboundBodyStream, $state->streamRequestBodyPos, SEEK_SET);
+        
+        $ioBufferSize = $this->getAttribute(self::ATTR_IO_BUFFER_SIZE);
+        
+        return @fread($outboundBodyStream, $ioBufferSize);
     }
     
     /**
@@ -846,7 +1098,7 @@ class Client {
      * @throws ClientException
      * @return void
      */
-    public function read($requestKey) {
+    private function read($requestKey) {
         $state = $this->states[$requestKey];
         
         if ($state->state == self::STATE_READ_HEADERS) {
@@ -869,30 +1121,22 @@ class Client {
         $state = $this->states[$requestKey];
         $socket = $this->sockets[$requestKey];
         
-        try {
-            $ioBufferSize = $this->getAttribute(self::ATTR_IO_BUFFER_SIZE);
-            $readData = $socket->read($ioBufferSize);
-        } catch (StreamException $e) {
+        list($readData, $readDataLength) = $this->doSockRead($socket);
+        
+        // The read length in bytes must be used to test for empty reads because "empty" read data
+        // (such as the one-byte string, "0") can yield false positives.
+        if (!$readDataLength && !$this->isSocketAlive($socket)) {
             throw new ClientException(
-                'Socket read failure while retrieving response headers: ' . $state->buffer,
-                null,
-                $e
+                'Socket failure encountered while retrieving response headers'
             );
         }
         
-        // Remove leading line-breaks from the response message as per RFC2616 Section 4.1
+        // Ignore leading line-breaks in the response message as per RFC2616 Section 4.1
         if (!$state->buffer) {
             $readData = ltrim($readData);
         }
         
         $state->buffer .= $readData;
-        
-        $this->mediator->notify(
-            self::EVENT_SOCK_IO_READ,
-            $requestKey,
-            $readData,
-            strlen($readData)
-        );
         
         if (!$this->assignRawHeadersToResponse($requestKey)) {
             return;
@@ -901,6 +1145,34 @@ class Client {
         } else {
             $state->state = self::STATE_COMPLETE;
         }
+    }
+    
+    /**
+     * @param resource $socket
+     * @return array(mixed $readData, int $readDataLength)
+     */
+    protected function doSockRead($socket) {
+        $ioBufferSize = $this->getAttribute(self::ATTR_IO_BUFFER_SIZE);
+        
+        $readData = @fread($socket, $ioBufferSize);
+        $readDataLength = strlen($readData);
+        
+        // The read length in bytes must be used to test for empty reads because "empty" read data
+        // (such as the one-byte string, "0") can yield false positives.
+        if ($readDataLength) {
+            $socketId = (int) $socket;
+            $this->sockPool[$socketId]['bytesRecd'] += $readDataLength;
+            $this->sockPool[$socketId]['activity'] = microtime(true);
+            
+            $this->mediator->notify(
+                self::EVENT_SOCK_IO_READ,
+                $this->socketIdToRequestKeyMap[(int) $socket],
+                $readData,
+                $readDataLength
+            );
+        }
+        
+        return array($readData, $readDataLength);
     }
     
     /**
@@ -966,26 +1238,22 @@ class Client {
         $state = $this->states[$requestKey];
         $response = $this->responses[$requestKey];
         
-        $state->responseBody = $this->makeResponseBodyStream();
+        $responseBody = $this->makeTempResponseBodyStream();
         
-        try {
-            $state->responseBody->open();
-        } catch (StreamException $e) {
+        if (!$responseBody) {
             throw new ClientException(
-                'Failed opening temporary response body stream',
-                null,
-                $e
+                'Failed initializing temporary response entity body storage stream'
             );
         }
         
-        try {
-            $state->responseBody->write($state->buffer);
-        } catch (StreamException $e) {
-            throw new ClientException(
-                'Failed writing '.strlen($state->buffer).' bytes to temporary response body stream',
-                null,
-                $e
-            );
+        $bytesToWrite = strlen($state->buffer);
+        if ($bytesToWrite) {
+            $bytesWritten = $this->writeToTempResponseBodyStream($responseBody, $state->buffer);
+            if ($bytesWritten !== $bytesToWrite) {
+                throw new ClientException(
+                    'Failed writing response entity body to temporary storage stream'
+                );
+            }
         }
         
         $hasContentLength = $response->hasHeader('Content-Length');
@@ -1000,7 +1268,30 @@ class Client {
             $state->state = self::STATE_READ_TO_SOCKET_CLOSE;
         }
         
+        // Clear the buffer as we've now written this data to the response body stream.
+        $response->setBody($responseBody);
         $state->buffer = null;
+    }
+    
+    /**
+     * IMPORTANT: This is a test seam allowing us to mock the fopen result when testing
+     * 
+     * Custom stream wrappers do not allow a return of FALSE on fopen calls, so we place this
+     * operation in its own method to test behavior when the fopen fails.
+     * 
+     * @return resource Returns temporary response body storage stream or FALSE on failure
+     */
+    protected function makeTempResponseBodyStream() {
+        return @fopen('php://temp', 'r+');
+    }
+    
+    /**
+     * @param resource $stream
+     * @param string $dataToWrite
+     * @return int Returns number of bytes written or FALSE on failure
+     */
+    protected function writeToTempResponseBodyStream($stream, $dataToWrite) {
+        return @fwrite($stream, $dataToWrite);
     }
     
     /**
@@ -1055,42 +1346,28 @@ class Client {
     private function readBody($requestKey) {
         $state = $this->states[$requestKey];
         $socket = $this->sockets[$requestKey];
+        $response = $this->responses[$requestKey];
         
-        try {
-            $ioBufferSize = $this->getAttribute(self::ATTR_IO_BUFFER_SIZE);
-            $readData = $socket->read($ioBufferSize);
-        } catch (SocketGoneException $e) {
+        list($readData, $readDataLength) = $this->doSockRead($socket);
+        
+        // The read length in bytes must be used to test for empty reads because "empty" read data
+        // (such as the one-byte string, "0") can yield false positives.
+        if (!$readDataLength && !$this->isSocketAlive($socket)) {
             if ($state->state == self::STATE_READ_CHUNKS) {
                 throw new ClientException(
-                    'Socket connection lost before chunked response body fully retrieved'
+                    'Socket connection lost before chunked response entity body fully received'
                 );
             } else {
                 $state->state = self::STATE_COMPLETE;
                 $this->finalizeResponseBodyStream($requestKey);
                 return;
             }
-        } catch (StreamException $e) {
-            throw new ClientException(
-                'Socket read failure while retrieving response body',
-                null,
-                $e
-            );
         }
         
-        $this->mediator->notify(
-            self::EVENT_SOCK_IO_READ,
-            $requestKey,
-            $readData,
-            strlen($readData)
-        );
-        
-        try {
-            $state->responseBody->write($readData);
-        } catch (StreamException $e) {
+        $responseBody = $response->getBodyStream();
+        if (!$this->writeToTempResponseBodyStream($responseBody, $readData)) {
             throw new ClientException(
-                'Failed writing to temporary response body stream',
-                null,
-                $e
+                'Failed writing response entity body to temporary storage stream'
             );
         }
         
@@ -1115,7 +1392,9 @@ class Client {
         $state = $this->states[$requestKey];
         $response = $this->responses[$requestKey];
         
-        $totalBytesRecd = ftell($state->responseBody->getResource());
+        
+        $responseBody = $response->getBodyStream();
+        $totalBytesRecd = ftell($responseBody);
         $expectedLength = (int) $response->getHeader('Content-Length');
         
         if ($totalBytesRecd >= $expectedLength) {
@@ -1131,11 +1410,15 @@ class Client {
      */
     private function markResponseCompleteIfFinalChunkReceived($requestKey) {
         $state = $this->states[$requestKey];
+        $response = $this->responses[$requestKey];
         
-        fseek($state->responseBody->getResource(), -1024, SEEK_END);
-        $endOfStream = stream_get_contents($state->responseBody->getResource());
+        $responseBody = $response->getBodyStream();
+        fseek($responseBody, -1024, SEEK_END);
+        
+        $endOfStream = stream_get_contents($responseBody);
+        
         if (preg_match(",\r\n0+\r\n\r\n$,", $endOfStream)) {
-            stream_filter_prepend($state->responseBody->getResource(), 'dechunk');
+            stream_filter_prepend($responseBody, 'dechunk');
             $state->state = self::STATE_COMPLETE;
         }
     }
@@ -1150,34 +1433,34 @@ class Client {
     private function finalizeResponseBodyStream($requestKey) {
         $state = $this->states[$requestKey];
         $response = $this->responses[$requestKey];
-        $responseBody = $state->responseBody->getResource();
         
-        $this->validateContentLength($response, $responseBody);
-        $this->validateContentMd5($response, $responseBody);
+        $this->validateContentLength($response);
+        $this->validateContentMd5($response);
         
+        $responseBody = $response->getBodyStream();
         rewind($responseBody);
-        $response->setBody($responseBody);
     }
     
     /**
      * Verify the received response body against the Content-Length header if applicable
      * 
      * @param Http\Response $response
-     * @param resource $responseBody
      * @throws ClientException
      * @return void
      */
-    private function validateContentLength(Response $response, $responseBody) {
+    private function validateContentLength(Response $response) {
         if (!$response->hasHeader('Content-Length')) {
             return;
         }
+        
+        $responseBody = $response->getBodyStream();
         
         fseek($responseBody, 0, SEEK_END);
         $actualLength = ftell($responseBody);
         $expectedLength = $response->getHeader('Content-Length');
         rewind($responseBody);
         
-        if (!($actualLength == $expectedLength)) {
+        if ($actualLength != $expectedLength) {
             throw new ClientException(
                 'Content-Length mismatch: ' . $expectedLength . ' bytes expected, ' .
                 $actualLength . ' bytes received'
@@ -1189,14 +1472,15 @@ class Client {
      * Verify the received response body against the Content-MD5 header if applicable
      * 
      * @param Http\Response $response
-     * @param resource $responseBody
      * @throws ClientException
      * @return void
      */
-    private function validateContentMd5(Response $response, $responseBody) {
+    private function validateContentMd5(Response $response) {
         if (!$response->hasHeader('Content-MD5')) {
             return;
         }
+        
+        $responseBody = $response->getBodyStream();
         
         $ioBufferSize = $this->getAttribute(self::ATTR_IO_BUFFER_SIZE);
         $context = hash_init('md5');
@@ -1257,7 +1541,7 @@ class Client {
      * @param string $requestKey
      * @return bool
      */
-    public function shouldKeepConnectionAlive($requestKey) {
+    private function shouldKeepConnectionAlive($requestKey) {
         $response = $this->responses[$requestKey];
         
         if (!$this->getAttribute(self::ATTR_KEEP_CONNS_ALIVE)) {
@@ -1314,19 +1598,15 @@ class Client {
         }
         
         $redirectLocation = $this->normalizeRedirectLocation($request, $response);
-        if ($redirectLocation == $request->getUri()
-            || in_array($requestKey, $this->redirectHistory)
-        ) {
+        if ($this->willRedirectInfinitely($response, $redirectLocation)) {
             throw new ClientException(
                 "Infinite redirect loop detected; cannot redirect to $redirectLocation"
             );
-        } else {
-            $this->redirectHistory[$requestKey][] = $redirectLocation;
         }
         
         return true;
     }
-
+    
     /**
      * Fix invalid Location headers that don't use an absolute URI.
      * 
@@ -1350,6 +1630,26 @@ class Client {
         } else {
             return $locationHeader;
         }
+    }
+    
+    /**
+     * @param ChainableResponse $response
+     * @param string $uri
+     * @return bool
+     */
+    private function willRedirectInfinitely(ChainableResponse $response, $uri) {
+        if ($uri == $response->getRequestUri()) {
+            return true;
+        }
+        
+        while ($response->hasPreviousResponse()) {
+            $response = $response->getPreviousResponse();
+            if ($uri == $response->getRequestUri()) {
+                return true;
+            }
+        }
+        
+        return false;
     }
     
     /**
@@ -1390,241 +1690,15 @@ class Client {
     }
     
     /**
-     * Get a socket for use subject to the Client's host concurrency limit.
-     * 
-     * @param string $requestKey
-     * @throws ClientException
-     * @return Streams\Socket Returns NULL if max connections already in use for the request host
-     */
-    private function checkoutSocket($requestKey) {
-        $request = $this->requests[$requestKey];
-        $socketUri = $this->buildSocketUri($request);
-        $sockPoolKey = $socketUri->__toString();
-        
-        if (!isset($this->sockPool[$sockPoolKey])) {
-            $this->sockPool[$sockPoolKey] = new SplObjectStorage();
-        } elseif ($socket = $this->checkoutExistingSocket($requestKey, $sockPoolKey)) {
-            return $socket;
-        } elseif ($this->hostConcurrencyLimitAllowsNewConnection($sockPoolKey)) {
-            return $this->checkoutNewSocket($requestKey, $socketUri, $sockPoolKey);
-        }
-    }
-    
-    /**
-     * Attempt to use an existing Keep-Alive socket connection before making a new connection
-     * 
-     * @param string $sockPoolKey
-     * @return SocketResource Returns SocketResource or NULL if no existing sockets are available
-     */
-    private function checkoutExistingSocket($requestKey, $sockPoolKey) {
-        foreach ($this->sockPool[$sockPoolKey] as $socket) {
-            $isInUse = $this->sockPool[$sockPoolKey]->getInfo();
-            
-            if (!$isInUse) {
-                $this->sockPool[$sockPoolKey]->setInfo(true);
-                $this->mediator->notify(
-                    self::EVENT_SOCK_CHECKOUT,
-                    $requestKey,
-                    $socket
-                );
-                return $socket;
-            }
-        }
-        
-        return null;
-    }
-    
-    /**
-     * Do our host concurrency limit settings allow a new connection to the relevant host?
-     * 
-     * @param string $sockPoolKey
-     * @return bool
-     */
-    private function hostConcurrencyLimitAllowsNewConnection($sockPoolKey) {
-        $currentHostSocks = count($this->sockPool[$sockPoolKey]);
-        return $this->getAttribute(self::ATTR_HOST_CONCURRENCY_LIMIT) > $currentHostSocks;
-    }
-    
-    /**
-     * Open a new non-blocking socket connection, notifying listeners of the socket's status
-     * 
-     * @param string $requestKey
-     * @param Uri $socketUri
-     * @param $sockPoolKey
-     * @throws ClientException On connection failure
-     * @return Streams\Socket
-     */
-    private function checkoutNewSocket($requestKey, Uri $socketUri, $sockPoolKey) {
-        $request = $this->requests[$requestKey];
-        $socket = $this->makeSocket($socketUri);
-        $socket->setConnectTimeout($this->getAttribute(self::ATTR_CONNECT_TIMEOUT));
-        
-        if ('tls' == $socketUri->getScheme()) {
-            $socketContext = $this->buildSslContext($socketUri);
-            $socket->setContextOptions($socketContext);
-        }
-        
-        try {
-            $socket->open();
-        } catch (StreamException $e) {
-            throw new ClientException(
-                "Failed opening socket connection to $socketUri",
-                null,
-                $e
-            );
-        }
-        
-        stream_set_blocking($socket->getResource(), 0);
-        
-        $this->mediator->notify(
-            self::EVENT_SOCK_OPEN,
-            $requestKey,
-            $socket
-        );
-        
-        $this->sockPool[$sockPoolKey]->attach($socket, true);
-        
-        $this->mediator->notify(
-            self::EVENT_SOCK_CHECKOUT,
-            $requestKey,
-            $socket
-        );
-        
-        return $socket;
-    }
-    
-    /**
-     * Generate the appropriate socket URI given a Request instance
-     * 
-     * @param Http\Request $request
-     * @throws ClientException
-     * @return Uri
-     */
-    private function buildSocketUri(Request $request) {
-        $requestScheme = strtolower($request->getScheme());
-        switch ($requestScheme) {
-            case 'http':
-                $scheme = 'tcp';
-                break;
-            case 'https':
-                $scheme = 'tls';
-                break;
-            default:
-                throw new ClientException(
-                    "Invalid request URI scheme: $requestScheme. http:// or https:// required."
-                );
-        }
-        
-        $uriStr = $scheme . '://' . $request->getHost() . ':' . $request->getPort();
-        $uri = new Uri($uriStr);
-        
-        return $uri;
-    }
-    
-    /**
-     * IMPORTANT: this is a test seam allowing us to mock the sockets in our HTTP transfers.
-     * 
-     * @param string $socketUri
-     * @return Streams\Socket
-     */
-    protected function makeSocket($socketUri) {
-        return new Socket($socketUri);
-    }
-    
-    /**
-     * IMPORTANT: this is a test seam allowing us to mock local stream storage of response bodies.
-     * 
-     * @return Streams\Stream
-     */
-    protected function makeResponseBodyStream() {
-        return new Stream('php://temp', 'r+');
-    }
-
-    /**
-     * Build context options for TLS connections according to our Client SSL attributes
-     * 
-     * @param Uri $socketUri
-     * @return array
-     */
-    private function buildSslContext(Uri $socketUri) {
-        $opts = array(
-            'verify_peer' => $this->getAttribute(self::ATTR_SSL_VERIFY_PEER),
-            'allow_self_signed' => $this->getAttribute(self::ATTR_SSL_ALLOW_SELF_SIGNED),
-            'verify_depth' => $this->getAttribute(self::ATTR_SSL_VERIFY_DEPTH),
-            'cafile' => $this->getAttribute(self::ATTR_SSL_CA_FILE),
-            'CN_match' => $this->getAttribute(self::ATTR_SSL_CN_MATCH) ?: $socketUri->getHost(),
-            'ciphers' => $this->getAttribute(self::ATTR_SSL_CIPHERS)
-        );
-        
-        if ($caDirPath = $this->getAttribute(self::ATTR_SSL_CA_PATH)) {
-            $opts['capath'] = $caDirPath;
-        }
-        if ($localCert = $this->getAttribute(self::ATTR_SSL_LOCAL_CERT)) {
-            $opts['local_cert'] = $localCert;
-        }
-        if ($localCertPassphrase = $this->getAttribute(self::ATTR_SSL_LOCAL_CERT_PASSPHRASE)) {
-            $opts['passphrase'] = $localCertPassphrase;
-        }
-       
-        return array('ssl' => $opts);
-    }
-    
-    /**
-     * Mark a socket connection as "available for use" by future or queued requests
-     * 
-     * @param Streams\Socket $socket
-     * @return void
-     */
-    private function checkinSocket($requestKey) {
-        $socket = $this->sockets[$requestKey];
-        $sockPoolKey = $socket->getUri();
-        $this->sockPool[$sockPoolKey]->attach($socket, false);
-        
-        unset($this->resourceKeyMap[(int)$socket->getResource()]);
-        
-        $this->mediator->notify(
-            self::EVENT_SOCK_CHECKIN,
-            $requestKey,
-            $socket
-        );
-    }
-    
-    /**
-     * Close a socket connection
-     * 
-     * @param Streams\Socket $socket
-     * @return void
-     */
-    private function closeSocket($requestKey) {
-        $socket = $this->sockets[$requestKey];
-        $sockPoolKey = $socket->getUri();
-        $this->sockPool[$sockPoolKey]->detach($socket);
-        
-        unset($this->resourceKeyMap[(int)$socket->getResource()]);
-        
-        $socket->close();
-        
-        $this->mediator->notify(
-            self::EVENT_SOCK_CLOSE,
-            $requestKey,
-            $socket
-        );
-    }
-    
-    /**
      * Close all open socket streams
      * 
      * @return int Returns the number of socket connections closed
      */
     public function closeAllSockets() {
-        $connsClosed = 0;
-        
-        foreach ($this->sockPool as $objStorage) {
-            foreach ($objStorage as $socket) {
-                $socket->close();
-                ++$connsClosed;
-            }
+        foreach ($this->sockPool as $socketId => $sockArr) {
+            @fclose($sockArr['socket']);
         }
+        $connsClosed = count($this->sockPool);
         $this->sockPool = array();
         
         return $connsClosed;
@@ -1637,13 +1711,14 @@ class Client {
      * @return int Returns the number of socket connections closed
      */
     public function closeSocketsByHost($host) {
+        $hostMatch = "$host:";
+        
         $connsClosed = 0;
-        foreach ($this->sockPool as $objStorage) {
-            foreach ($objStorage as $socket) {
-                if ($socket->getHost() == $host) {
-                    $socket->close();
-                    ++$connsClosed;
-                }
+        foreach ($this->sockPool as $socketId => $sockArr) {
+            if (0 === strpos($sockArr['authority'], $hostMatch)) {
+                @fclose($sockArr['socket']);
+                unset($this->sockPool[$socketId]);
+                ++$connsClosed;
             }
         }
         
@@ -1658,18 +1733,19 @@ class Client {
      */
     public function closeIdleSockets($maxInactivitySeconds) {
         $maxInactivitySeconds = (int) $maxInactivitySeconds;
-        $connectionsClosed = 0;
-        $now = time();
+        $connsClosed = 0;
+        $now = microtime(true);
         
-        foreach ($this->sockPool as $objStorage) {
-            foreach ($objStorage as $socket) {
-                if ($now - $socket->getActivityTimestamp() > $maxInactivitySeconds) {
-                    $socket->close();
-                    ++$connectionsClosed;
-                }
+        foreach ($this->sockPool as $socketId => $sockArr) {
+            $secondsSinceActive = $now - $sockArr['activity'];
+            
+            if ($secondsSinceActive > $maxInactivitySeconds) {
+                @fclose($sockArr['socket']);
+                unset($this->sockPool[$socketId]);
+                ++$connsClosed;
             }
         }
         
-        return $connectionsClosed;
+        return $connsClosed;
     }
 }
