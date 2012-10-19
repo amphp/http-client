@@ -2,8 +2,8 @@
 
 namespace Artax;
 
-use Spl\TypeException,
-    Spl\ValueException;
+use Spl\ValueException,
+    Spl\DomainException;
 
 class Uri {
 
@@ -30,7 +30,7 @@ class Uri {
     /**
      * @var int
      */
-    private $port = 80;
+    private $port;
 
     /**
      * @var string
@@ -48,14 +48,19 @@ class Uri {
     private $fragment = '';
 
     /**
-     * @var bool
+     * @var array
      */
-    private $explicitPortSpecified = false;
+    private $queryParameters;
 
     /**
      * @var bool
      */
-    private $explicitTrailingHostSlash = false;
+    private $hasExplicitPort = false;
+
+    /**
+     * @var bool
+     */
+    private $hasExplicitTrailingHostSlash = false;
 
     /**
      * @param string $uri
@@ -65,53 +70,127 @@ class Uri {
     public function __construct($uri) {
         $uri = (string) $uri;
         $this->parseUri($uri);
+        $this->queryParameters = $this->parseQueryParameters($this->query);
     }
 
     /**
      * @param string $uri
      * @throws \Spl\ValueException
+     * @return void
      */
     protected function parseUri($uri) {
-        $uriParts = @parse_url($uri);
+        $r  = "(?:([a-z0-9+-._]+)://)?";
+        $r .= "(?:";
+        $r .=   "(?:((?:[a-z0-9-._~!$&'()*+,;=:]|%[0-9a-f]{2})*)@)?";
+        $r .=   "(?:\[((?:[a-z0-9:])*)\])?";
+        $r .=   "((?:[a-z0-9-._~!$&'()*+,;=]|%[0-9a-f]{2})*)";
+        $r .=   "(?::(\d*))?";
+        $r .=   "(/(?:[a-z0-9-._~!$&'()*+,;=:@/]|%[0-9a-f]{2})*)?";
+        $r .=   "|";
+        $r .=   "(/?";
+        $r .=     "(?:[a-z0-9-._~!$&'()*+,;=:@]|%[0-9a-f]{2})+";
+        $r .=     "(?:[a-z0-9-._~!$&'()*+,;=:@\/]|%[0-9a-f]{2})*";
+        $r .=    ")?";
+        $r .= ")";
+        $r .= "(?:\?((?:[a-z0-9-._~!$&'()*+,;=:\/?@]|%[0-9a-f]{2})*))?";
+        $r .= "(?:#((?:[a-z0-9-._~!$&'()*+,;=:\/?@]|%[0-9a-f]{2})*))?";
 
-        if (empty($uriParts['scheme'])) {
+        preg_match("`$r`i", $uri, $match);
+
+        $parts = array(
+            'scheme'=>'',
+            'userinfo'=>'',
+            'host'=> '',
+            'port'=>'',
+            'path'=>'',
+            'query'=>'',
+            'fragment'=>''
+        );
+
+        switch (count($match)) {
+            case 10: $parts['fragment'] = $match[9];
+            case 9: $parts['query'] = $match[8];
+            case 8: $parts['path'] = $match[7];
+            case 7: $parts['path'] = $match[6] . $parts['path'];
+            case 6: $parts['port'] = $match[5];
+            case 5: $parts['host'] = $match[3] ? "[".$match[3]."]" : $match[4];
+            case 4: $parts['userinfo'] = ($match[2]);
+            case 3: $parts['scheme'] = $match[1];
+        }
+
+        if (empty($parts['scheme'])) {
             throw new ValueException(
-                "Invalid URI string: $uri"
+                "Invalid URI; no scheme specified: `$uri`"
+            );
+        } elseif (empty($parts['host'])) {
+            throw new ValueException(
+                "Invalid URI; no host specified: `$uri`"
             );
         }
+        
+        $this->assignPropertiesFromParsedParts($parts);
+    }
 
-        $this->scheme = $uriParts['scheme'];
-        $this->host = $uriParts['host'];
-
-        if (isset($uriParts['port'])) {
-            $this->port = (int) $uriParts['port'];
-            $this->explicitPortSpecified = true;
+    /**
+     * @param array $parts
+     * @return void
+     */
+    protected function assignPropertiesFromParsedParts(array $parts) {
+        $this->scheme = $parts['scheme'];
+        $this->host = $parts['host'];
+        
+        $this->setUserInfo($parts['userinfo']);
+        
+        if (!empty($parts['port'])) {
+            $this->port = (int) $parts['port'];
+            $this->hasExplicitPort = true;
         } else {
-            $this->port = strcmp('https', $uriParts['scheme']) ? 80 : 443;
-            $this->explicitPortSpecified = false;
+            $this->port = $this->extrapolatePortFromScheme($this->scheme);
+            $this->hasExplicitPort = false;
         }
 
-        if (isset($uriParts['path'])) {
-            $this->path = $uriParts['path'];
-            if ('/' == $uriParts['path']) {
-                $this->explicitTrailingHostSlash = true;
+        if (!empty($parts['path'])) {
+            $this->path = $parts['path'];
+            if ('/' == $parts['path']) {
+                $this->hasExplicitTrailingHostSlash = true;
             }
         } else {
             $this->path = '/';
         }
 
-        $this->query = isset($uriParts['query']) ? $uriParts['query'] : '';
-        $this->fragment = isset($uriParts['fragment']) ? $uriParts['fragment'] : '';
+        $this->query = $parts['query'];
+        $this->fragment = $parts['fragment'];
+    }
 
-        $userInfo = '';
-        if (!empty($uriParts['user'])) {
-            $userInfo .= $uriParts['user'];
-        }
-        if ($userInfo && !empty($uriParts['pass'])) {
-            $userInfo .= ':' . $uriParts['pass'];
+    /**
+     * @param string $scheme
+     * @return int Returns default port for the specified scheme
+     */
+    protected function extrapolatePortFromScheme($scheme) {
+        $scheme = strtolower($scheme);
+
+        switch($scheme) {
+            case 'http':
+                $port = 80;
+                break;
+            case 'https':
+                $port = 443;
+                break;
+            case 'ftp':
+                $port = 21;
+                break;
+            case 'ftps':
+                $port = 990;
+                break;
+            case 'smtp':
+                $port = 25;
+                break;
+            default:
+                $port = 0; // unsupported scheme
+                break;
         }
 
-        $this->setUserInfo($userInfo);
+        return $port;
     }
 
     /**
@@ -124,6 +203,7 @@ class Uri {
 
     /**
      * @param string $rawUserInfo
+     * @return void
      */
     protected function protectUserInfo($rawUserInfo) {
         $colonPos = strpos($rawUserInfo, ':');
@@ -137,6 +217,18 @@ class Uri {
             return substr($rawUserInfo, 0, $colonPos) . ':********';
         } else {
             return $rawUserInfo;
+        }
+    }
+
+    /**
+     * @return array
+     */
+    private function parseQueryParameters($queryString) {
+        if ($queryString) {
+            parse_str($queryString, $parameters);
+            return array_map('urldecode', $parameters);
+        } else {
+            return array();
         }
     }
 
@@ -202,12 +294,9 @@ class Uri {
      * @return string
      */
     public function getAuthority() {
-        $authority = $this->userInfo ? $this->userInfo.'@' : '';
-        $authority .= $this->host;
-
-        if ($this->explicitPortSpecified) {
-            $authority .= ":{$this->port}";
-        }
+        $authority = $this->userInfo ? "{$this->userInfo}@" : '';
+        $authority.= $this->host;
+        $authority.= $this->hasExplicitPort ? ":{$this->port}" : '';
 
         return $authority;
     }
@@ -221,7 +310,7 @@ class Uri {
         $uri = $this->scheme . '://' . $this->getAuthority();
 
         if ('/' == $this->path) {
-            $uri .= $this->explicitTrailingHostSlash ? '/' : '';
+            $uri .= $this->hasExplicitTrailingHostSlash ? '/' : '';
         } else {
             $uri .= $this->path;
         }
@@ -238,9 +327,31 @@ class Uri {
     }
 
     /**
+     * @param string $parameter
      * @return bool
      */
-    public function wasExplicitPortSpecified() {
-        return $this->explicitPortSpecified;
+    public function hasQueryParameter($parameter) {
+        return isset($this->queryParameters[$parameter]);
+    }
+
+    /**
+     * @param string $parameter
+     * @return string
+     * @throws \Spl\DomainException
+     */
+    public function getQueryParameter($parameter) {
+        if (!$this->hasQueryParameter($parameter)) {
+            throw new DomainException(
+                "The specified query parameter does not exist: $parameter"
+            );
+        }
+        return $this->queryParameters[$parameter];
+    }
+
+    /**
+     * @return array
+     */
+    public function getAllQueryParameters() {
+        return $this->queryParameters;
     }
 }

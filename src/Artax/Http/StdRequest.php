@@ -32,7 +32,7 @@ class StdRequest extends StdMessage implements Request {
      * @return void
      */
     public function __construct($uri, $method = 'GET') {
-        $this->uri = new Uri($uri);
+        $this->uri = $uri instanceof Uri ? $uri : new Uri($uri);
         $this->method = $method;
         $this->queryParameters = $this->parseParametersFromString($this->uri->getQuery());
     }
@@ -194,7 +194,7 @@ class StdRequest extends StdMessage implements Request {
      * @return bool
      */
     public function hasQueryParameter($parameter) {
-        return isset($this->queryParameters[$parameter]);
+        return $this->uri->hasQueryParameter($parameter);
     }
     
     /**
@@ -203,19 +203,14 @@ class StdRequest extends StdMessage implements Request {
      * @throws Spl\DomainException
      */
     public function getQueryParameter($parameter) {
-        if (!$this->hasQueryParameter($parameter)) {
-            throw new DomainException(
-                "The specified query parameter does not exist: $parameter"
-            );
-        }
-        return $this->queryParameters[$parameter];
+        return $this->uri->getQueryParameter($parameter);
     }
     
     /**
      * @return array
      */
     public function getAllQueryParameters() {
-        return $this->queryParameters;
+        return $this->uri->getAllQueryParameters();
     }
     
     /**
