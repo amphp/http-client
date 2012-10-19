@@ -540,10 +540,8 @@ class Client {
                     'lastBytesRecdAt' => null,
                     'bytesSent' => 0,
                     'bytesRecd' => 0,
-                    'avgUpKbs' => null,     // kilobytes per second (KB/s)
-                    'avgUpKbps' => null,    // kiloBITS per second (kbps)
-                    'avgDownKbs' => null,   // kilobytes per second (KB/s)
-                    'avgDownKbps' => null   // kiloBITS per second (kbps)
+                    'avgUpKbPerSecond' => null,
+                    'avgDownKbPerSecond' => null
                 );
             }
         }
@@ -976,13 +974,9 @@ class Client {
         $elapsedTime = ($now - $this->requestStatistics[$requestKey]['connectedAt']);
         $bytesPerSecond = ($this->requestStatistics[$requestKey]['bytesSent'] / $elapsedTime);
         
-        // kiloBYTES per second (KB/s)
+        // kilobytes per second (KB/s)
         $kBs = ($bytesPerSecond/1024);
-        $this->requestStatistics[$requestKey]['avgUpKbs'] = round($kBs, 2);
-        
-        // kiloBITS per second (kbps)
-        $kbps = ($kBs * 8.192);
-        $this->requestStatistics[$requestKey]['avgUpKbps'] = round($kbps, 2);
+        $this->requestStatistics[$requestKey]['avgUpKbPerSecond'] = round($kBs, 2);
     }
     
     /**
@@ -1251,13 +1245,9 @@ class Client {
         $elapsedTime = ($now - $this->requestStatistics[$requestKey]['sendCompletedAt']);
         $bytesPerSecond = ($this->requestStatistics[$requestKey]['bytesRecd'] / $elapsedTime);
         
-        // kiloBYTES per second (KB/s)
+        // kilobytes per second (KB/s)
         $kBs = ($bytesPerSecond/1024);
-        $this->requestStatistics[$requestKey]['avgDownKbs'] = round($kBs, 2);
-        
-        // kiloBITS per second (kbps)
-        $kbps = ($kBs * 8.192);
-        $this->requestStatistics[$requestKey]['avgDownKbps'] = round($kbps, 2);
+        $this->requestStatistics[$requestKey]['avgDownKbPerSecond'] = round($kBs, 2);
     }
     
     /**
@@ -1836,10 +1826,12 @@ class Client {
      */
     private function doRedirectNotify($requestKey) {
         try {
+            $previousResponse = $this->responses[$requestKey]->getPreviousResponse();
+            
             $this->mediator->notify(
                 self::EVENT_REDIRECT,
                 $requestKey,
-                $this->responses[$requestKey],
+                $previousResponse,
                 $this->requestStatistics[$requestKey]
             );
         } catch (Exception $e) {
