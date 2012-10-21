@@ -21,6 +21,8 @@ class CompositeNegotiator {
     }
     
     /**
+     * Negotiate an appropriate content type from a raw HTTP Accept header
+     * 
      * @param string $rawAcceptHeader
      * @return string
      * @throws NotAcceptableException
@@ -31,6 +33,8 @@ class CompositeNegotiator {
     }
     
     /**
+     * Negotiate an appropriate character set from a raw HTTP Accept-Charset header
+     * 
      * @param string $rawAcceptCharsetHeader
      * @return string
      * @throws NotAcceptableException
@@ -41,6 +45,8 @@ class CompositeNegotiator {
     }
     
     /**
+     * Negotiate an appropriate language from a raw HTTP Accept-Language header
+     * 
      * @param string $rawAcceptLanguageHeader
      * @return string
      * @throws NotAcceptableException
@@ -51,6 +57,8 @@ class CompositeNegotiator {
     }
     
     /**
+     * Negotiate an appropriate content encoding from a raw HTTP Accept-Encoding header
+     * 
      * @param string $rawAcceptEncodingHeader
      * @return string
      * @throws NotAcceptableException

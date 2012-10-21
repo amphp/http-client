@@ -2,35 +2,27 @@
 
 namespace Artax\Negotiation;
 
-use Spl\DomainException,
-    Artax\Negotiation\Negotiators\ContentTypeNegotiator,
-    Artax\Negotiation\Negotiators\CharsetNegotiator,
-    Artax\Negotiation\Negotiators\LanguageNegotiator,
-    Artax\Negotiation\Negotiators\EncodingNegotiator,
-    Artax\Negotiation\Parsers\AcceptParser,
-    Artax\Negotiation\Parsers\AcceptCharsetParser,
-    Artax\Negotiation\Parsers\AcceptLanguageParser,
-    Artax\Negotiation\Parsers\AcceptEncodingParser;
+use Spl\DomainException;
 
 class NegotiatorFactory {
     
     /**
      * @param string $negotiatorType
      * @return mixed
-     * @throws DomainException
+     * @throws \Spl\DomainException
      */
     public function make($negotiatorType) {
         $normalizedType = strtolower(str_replace('-', '', $negotiatorType));
         
         switch ($normalizedType) {
             case 'contenttype':
-                return new ContentTypeNegotiator(new AcceptParser);
+                return new ContentTypeNegotiator();
             case 'charset':
-                return new CharsetNegotiator(new AcceptCharsetParser);
+                return new CharsetNegotiator();
             case 'language':
-                return new LanguageNegotiator(new AcceptLanguageParser);
+                return new LanguageNegotiator();
             case 'encoding':
-                return new EncodingNegotiator(new AcceptEncodingParser);
+                return new EncodingNegotiator();
             default:
                 throw new DomainException(
                     "Invalid Negotiator type specified: $negotiatorType"

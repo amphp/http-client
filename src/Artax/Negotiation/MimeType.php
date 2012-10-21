@@ -5,7 +5,10 @@ namespace Artax\Negotiation;
 use Spl\ValueException;
 
 class MimeType {
-
+    
+    const DELIMITER = '/';
+    const SUFFIX_DELIMITER = '+';
+    
     /**
      * @var string
      */
@@ -43,14 +46,15 @@ class MimeType {
 
     /**
      * @param string $mimeType
+     * @throws \Spl\ValueException
      * @return void
      */
     public function __construct($mimeType) {
         $this->matchPattern = (
             '{^'.
             '(' . implode('|', $this->validTopLevelTypes) . '|(?:x-[a-z0-9_.-]+))' .
-            '/' .
-            '([a-z0-9_.-]+(?:\+([a-z0-9_.-]+))?)' .
+            self::DELIMITER .
+            '([a-z0-9_.-]+(?:\\'.self::SUFFIX_DELIMITER.'([a-z0-9_.-]+))?)' .
             '$}'
         );
         $this->parse($mimeType);
@@ -60,19 +64,21 @@ class MimeType {
      * @return string
      */
     public function __toString() {
-        return $this->topLevelType . '/' . $this->subType;
+        return $this->topLevelType . self::DELIMITER . $this->subType;
     }
 
     /**
      * @param string $mimeType
+     * @throws \Spl\ValueException
      * @return void
-     * @throws Spl\ValueException
      */
     protected function parse($mimeType) {
         $conformedMimeType = strtolower($mimeType);
 
         if (!preg_match($this->matchPattern, $conformedMimeType, $match)) {
-            throw new ValueException("Invalid MIME type specified: $mimeType");
+            throw new ValueException(
+                'Invalid MIME type specified: ' . $mimeType
+            );
         }
         $this->topLevelType = $match[1];
         $this->subType = $match[2];

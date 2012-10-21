@@ -9,7 +9,7 @@ class MediaRange extends MimeType {
     /**
      * @param string $mediaRangeStr
      * @return void
-     * @throws Spl\ValueException
+     * @throws \Spl\ValueException
      */
     public function __construct($mediaRangeStr) {
         // rfc3023-sec7: No */*+suffix ranges:
@@ -22,28 +22,13 @@ class MediaRange extends MimeType {
             '((?:[a-z0-9_.-]+(?:\+([a-z0-9_.-]+))?)|\*)' .
             '$}'
         );
+        
         $this->parse($mediaRangeStr);
 
         if ('*' == $this->getTopLevelType() && '*' !== $this->getSubType()) {
             throw new ValueException(
-                "Invalid MIME type specified: $mediaRangeStr"
+                "Invalid media range specified: $mediaRangeStr"
             );
         }
-    }
-
-    /**
-     * @param MimeType $mimeType
-     * @return bool
-     */
-    public function matches(MimeType $mimeType) {
-        if ($this->__toString() == '*/*'
-            || $this->__toString() == $mimeType->__toString()
-            || ('*' == $this->getSubType()
-                && $mimeType->getTopLevelType() == $this->getTopLevelType()
-        )) {
-            return true;
-        }
-
-        return false;
     }
 }

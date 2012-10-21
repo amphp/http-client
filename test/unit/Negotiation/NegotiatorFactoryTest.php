@@ -19,19 +19,19 @@ class NegotiatorFactoryTest extends PHPUnit_Framework_TestCase {
     public function testMakeReturnsExpectedHeaderNegotiatorInstance() {
         $negotiatorFactory = new NegotiatorFactory;
         
-        $this->assertInstanceOf('Artax\\Negotiation\\Negotiators\\CharsetNegotiator',
+        $this->assertInstanceOf('Artax\\Negotiation\\CharsetNegotiator',
             $negotiatorFactory->make('charset')
         );
-        $this->assertInstanceOf('Artax\\Negotiation\\Negotiators\\ContentTypeNegotiator',
+        $this->assertInstanceOf('Artax\\Negotiation\\ContentTypeNegotiator',
             $negotiatorFactory->make('Content-Type')
         );
-        $this->assertInstanceOf('Artax\\Negotiation\\Negotiators\\ContentTypeNegotiator',
+        $this->assertInstanceOf('Artax\\Negotiation\\ContentTypeNegotiator',
             $negotiatorFactory->make('contentType')
         );
-        $this->assertInstanceOf('Artax\\Negotiation\\Negotiators\\LanguageNegotiator',
+        $this->assertInstanceOf('Artax\\Negotiation\\LanguageNegotiator',
             $negotiatorFactory->make('language')
         );
-        $this->assertInstanceOf('Artax\\Negotiation\\Negotiators\\EncodingNegotiator',
+        $this->assertInstanceOf('Artax\\Negotiation\\EncodingNegotiator',
             $negotiatorFactory->make('encoding')
         );
     }
