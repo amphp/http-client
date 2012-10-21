@@ -1,9 +1,11 @@
 <?php
 
-namespace Artax\Negotiation;
+namespace Artax\Negotiation\Terms;
 
-interface NegotiableTerm {
+interface Negotiable {
 
+    const WILDCARD = '*';
+    
     /**
      * Required for array_diff operations on acceptable vs. rejectable terms
      * 

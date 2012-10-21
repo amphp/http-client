@@ -1,10 +1,9 @@
 <?php
 
-namespace Artax\Negotiation;
+namespace Artax\Negotiation\Terms;
 
-class ContentTypeTerm extends AcceptTerm implements RangeTerm {
+class ContentTypeTerm extends Term implements MultipartTerm {
     
-    const WILDCARD = '*';
     const DELIMITER = '/';
     
     /**

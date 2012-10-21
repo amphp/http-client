@@ -1,10 +1,8 @@
 <?php
 
-namespace Artax\Negotiation;
+namespace Artax\Negotiation\Terms;
 
-use InvalidArgumentException;
-
-class AcceptTerm implements NegotiableTerm {
+class Term implements Negotiable {
     
     /**
      * @var string

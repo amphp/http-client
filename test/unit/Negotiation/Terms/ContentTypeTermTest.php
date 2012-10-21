@@ -1,10 +1,10 @@
 <?php
 
-use Artax\Negotiation\ContentTypeTerm;
+use Artax\Negotiation\Terms\ContentTypeTerm;
 
 /**
- * @covers Artax\Negotiation\ContentTypeTerm<extended>
- * @covers Artax\Negotiation\RangeTerm
+ * @covers Artax\Negotiation\Terms\ContentTypeTerm<extended>
+ * @covers Artax\Negotiation\Terms\MultipartTerm
  */
 class ContentTypeTermTest extends PHPUnit_Framework_TestCase {
     

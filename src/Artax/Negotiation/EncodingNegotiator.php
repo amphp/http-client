@@ -2,6 +2,8 @@
 
 namespace Artax\Negotiation;
 
+use Artax\Negotiation\Terms\Term;
+
 class EncodingNegotiator extends AbstractNegotiator {
     
     /**
@@ -76,18 +78,28 @@ class EncodingNegotiator extends AbstractNegotiator {
                     Negotiator::QVAL_SIGNIFICANT_DIGITS
                 );
                 $hasExplicitQval = $term->hasExplicitQuality();
-                $scratchTerms[] = new ScratchTerm($term->getPosition(), $type, $negotiatedQval, $hasExplicitQval);
+                $scratchTerms[] = new Term(
+                    $term->getPosition(),
+                    $type,
+                    $negotiatedQval,
+                    $hasExplicitQval
+                );
             } elseif ($wildcardAllowed) {
                 $negotiatedQval = round(
                     ($qval * $asteriskQval),
                     Negotiator::QVAL_SIGNIFICANT_DIGITS
                 );
-                $scratchTerms[] = new ScratchTerm($asteriskTermKey, $type, $negotiatedQval, $asteriskIsExplicit);
+                $scratchTerms[] = new Term(
+                    $asteriskTermKey,
+                    $type,
+                    $negotiatedQval,
+                    $asteriskIsExplicit
+                );
             }
         }
         
-        $scratchTerms = $this->filterRejectedScratchTerms($scratchTerms);
-        $scratchTerms = $this->sortScratchTermsByPreference($scratchTerms);
+        $scratchTerms = $this->filterRejectedTerms($scratchTerms);
+        $scratchTerms = $this->sortTermsByPreference($scratchTerms);
         
         if ($scratchTerms) {
             return current($scratchTerms)->getType();

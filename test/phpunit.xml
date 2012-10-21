@@ -8,7 +8,7 @@
         <whitelist addUncoveredFilesFromWhitelist="true">
             <directory>../src/Artax</directory>
             <exclude>
-                <file>../src/Artax/Negotiation/RangeTerm.php</file>
+                <file>../src/Artax/Negotiation/Terms/MultipartTerm.php</file>
             </exclude>
         </whitelist>
     </filter>

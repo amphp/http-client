@@ -1,11 +1,11 @@
 <?php
 
-use Artax\Negotiation\AcceptTerm;
+use Artax\Negotiation\Terms\Term;
 
 /**
- * @covers Artax\Negotiation\AcceptTerm<extended>
+ * @covers Artax\Negotiation\Terms\Term<extended>
  */
-class AcceptTermTest extends PHPUnit_Framework_TestCase {
+class TermTest extends PHPUnit_Framework_TestCase {
     
     public function providesValidTermConstructorArgs() {
         return array(
@@ -19,11 +19,11 @@ class AcceptTermTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider providesValidTermConstructorArgs
-     * @covers Artax\Negotiation\AcceptTerm::__construct
+     * @covers Artax\Negotiation\Terms\Term::__construct
      */
     public function testConstructorInitializesProperties($pos, $type, $quality, $explicit) {
-        $term = new AcceptTerm($pos, $type, $quality, $explicit);
-        $this->assertInstanceOf('Artax\\Negotiation\\AcceptTerm', $term);
+        $term = new Term($pos, $type, $quality, $explicit);
+        $this->assertInstanceOf('Artax\\Negotiation\\Terms\\Term', $term);
     }
     
     public function providesInvalidTypeValues() {
@@ -36,46 +36,46 @@ class AcceptTermTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider providesValidTermConstructorArgs
-     * @covers Artax\Negotiation\AcceptTerm::__toString
+     * @covers Artax\Negotiation\Terms\Term::__toString
      */
     public function testToString($pos, $type, $quality, $explicit) {
-        $term = new AcceptTerm($pos, $type, $quality, $explicit);
+        $term = new Term($pos, $type, $quality, $explicit);
         $this->assertEquals($type, $term->__toString());
     }
     
     /**
      * @dataProvider providesValidTermConstructorArgs
-     * @covers Artax\Negotiation\AcceptTerm::getPosition
+     * @covers Artax\Negotiation\Terms\Term::getPosition
      */
     public function testGetPosition($pos, $type, $quality, $explicit) {
-        $term = new AcceptTerm($pos, $type, $quality, $explicit);
+        $term = new Term($pos, $type, $quality, $explicit);
         $this->assertEquals($pos, $term->getPosition());
     }
     
     /**
      * @dataProvider providesValidTermConstructorArgs
-     * @covers Artax\Negotiation\AcceptTerm::getType
+     * @covers Artax\Negotiation\Terms\Term::getType
      */
     public function testGetType($pos, $type, $quality, $explicit) {
-        $term = new AcceptTerm($pos, $type, $quality, $explicit);
+        $term = new Term($pos, $type, $quality, $explicit);
         $this->assertEquals($type, $term->getType());
     }
     
     /**
      * @dataProvider providesValidTermConstructorArgs
-     * @covers Artax\Negotiation\AcceptTerm::getQuality
+     * @covers Artax\Negotiation\Terms\Term::getQuality
      */
     public function testGetQuality($pos, $type, $quality, $explicit) {
-        $term = new AcceptTerm($pos, $type, $quality, $explicit);
+        $term = new Term($pos, $type, $quality, $explicit);
         $this->assertEquals($quality, $term->getQuality());
     }
     
     /**
      * @dataProvider providesValidTermConstructorArgs
-     * @covers Artax\Negotiation\AcceptTerm::hasExplicitQuality
+     * @covers Artax\Negotiation\Terms\Term::hasExplicitQuality
      */
     public function testHasExplicitQuality($pos, $type, $quality, $explicit) {
-        $term = new AcceptTerm($pos, $type, $quality, $explicit);
+        $term = new Term($pos, $type, $quality, $explicit);
         $this->assertEquals($explicit, $term->hasExplicitQuality());
     }
 }

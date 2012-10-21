@@ -2,7 +2,8 @@
 
 namespace Artax\Negotiation;
 
-use Spl\ValueException;
+use Spl\ValueException,
+    Artax\Negotiation\Terms\Term;
 
 abstract class AbstractNegotiator implements Negotiator {
     
@@ -15,13 +16,13 @@ abstract class AbstractNegotiator implements Negotiator {
         foreach ($availables as $type => $qval) {
             if (!is_numeric($qval) || $qval > 1 || $qval <= 0) {
                 throw new ValueException(
-                    'Negotiable value arrays require numeric values between (0-1] (exclusive ' .
+                    'Available type arrays require numeric values between (0-1] (exclusive ' .
                     "of 0, inclusive of 1); `$qval` specified"
                 );
             }
             if (strstr($type, '*')) {
                 throw new ValueException(
-                    "Negotiable values may not contain wildcards: `$type`"
+                    "Available types may not contain wildcards: `$type`"
                 );
             }
         }
@@ -45,7 +46,7 @@ abstract class AbstractNegotiator implements Negotiator {
                 $explicitQuality = false;
             }
 
-            $terms[] = new AcceptTerm($pos, $type, $quality, $explicitQuality);
+            $terms[] = new Term($pos, $type, $quality, $explicitQuality);
         }
 
         return $terms;
@@ -55,8 +56,8 @@ abstract class AbstractNegotiator implements Negotiator {
      * @param array $scratchTerms
      * @return array
      */
-    protected function sortScratchTermsByPreference(array $scratchTerms) {
-        uasort($scratchTerms, array($this, 'sortScratchTerms'));
+    protected function sortTermsByPreference(array $scratchTerms) {
+        uasort($scratchTerms, array($this, 'sortTerms'));
         return array_values($scratchTerms);
     }
     
@@ -67,16 +68,16 @@ abstract class AbstractNegotiator implements Negotiator {
      * with implied quality values. If there is still no difference after comparing the explicit
      * qualities, the first term specified in the raw header wins.
      * 
-     * @param ScratchTerm $a
-     * @param ScratchTerm $b
+     * @param Term $a
+     * @param Term $b
      * @return int
      */
-    protected function sortScratchTerms(ScratchTerm $a, ScratchTerm $b) {
-        $aqval = $a->getQval();
-        $bqval = $b->getQval();
+    protected function sortTerms(Term $a, Term $b) {
+        $aqval = $a->getQuality();
+        $bqval = $b->getQuality();
         
         if ($aqval == $bqval) {
-            return ($b->isExplicit() - $a->isExplicit()) ?: ($a->getPosition() - $b->getPosition());
+            return ($b->hasExplicitQuality() - $a->hasExplicitQuality()) ?: ($a->getPosition() - $b->getPosition());
         }
         
         return ($aqval > $bqval) ? -1 : 1;
@@ -86,11 +87,11 @@ abstract class AbstractNegotiator implements Negotiator {
      * @param array $scratchTerms
      * @return array
      */
-    protected function filterRejectedScratchTerms(array $scratchTerms) {
+    protected function filterRejectedTerms(array $scratchTerms) {
         // Build a list of explicitly rejected types
         $shouldReject = array();
         foreach ($scratchTerms as $st) {
-            if (!$st->getQval()) {
+            if (!$st->getQuality()) {
                 $shouldReject[] = $st->getType();
             }
         }

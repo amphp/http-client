@@ -1,6 +1,6 @@
 <?php
 
-use Artax\Negotiation\MimeType;
+use Artax\Negotiation\Terms\MimeType;
 
 class MimeTypeTest extends PHPUnit_Framework_TestCase {
     
@@ -30,8 +30,8 @@ class MimeTypeTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideInvalidMimeTypes
-     * @covers Artax\Negotiation\MimeType::__construct
-     * @covers Artax\Negotiation\MimeType::parse
+     * @covers Artax\Negotiation\Terms\MimeType::__construct
+     * @covers Artax\Negotiation\Terms\MimeType::parse
      * @expectedException Spl\ValueException
      */
     public function testConstructorThrowsExceptionOnInvalidMimeFormat($invalidMime) {
@@ -40,16 +40,16 @@ class MimeTypeTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideValidMimeTypes
-     * @covers Artax\Negotiation\MimeType::__construct
-     * @covers Artax\Negotiation\MimeType::parse
+     * @covers Artax\Negotiation\Terms\MimeType::__construct
+     * @covers Artax\Negotiation\Terms\MimeType::parse
      */
     public function testConstructorInitializedValidMimeType($validMime) {
         $mimeType = new MimeType($validMime);
-        $this->assertInstanceOf('Artax\\Negotiation\\MimeType', $mimeType);
+        $this->assertInstanceOf('Artax\\Negotiation\\Terms\\MimeType', $mimeType);
     }
     
     /**
-     * @covers Artax\Negotiation\MimeType::__toString
+     * @covers Artax\Negotiation\Terms\MimeType::__toString
      */
     public function testToStringReturnsValidMimeTypeRepresentation() {
         $mimeType = new MimeType('application/json');
@@ -57,7 +57,7 @@ class MimeTypeTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers Artax\Negotiation\MimeType::getTopLevelType
+     * @covers Artax\Negotiation\Terms\MimeType::getTopLevelType
      */
     public function testGetTopLevelTypeReturnsTopLevelMimePart() {
         $mimeType = new MimeType('application/json');
@@ -65,7 +65,7 @@ class MimeTypeTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers Artax\Negotiation\MimeType::getSubType
+     * @covers Artax\Negotiation\Terms\MimeType::getSubType
      */
     public function testGetSubTypeReturnsSpecificSubLevelMimePart() {
         $mimeType = new MimeType('application/json');
@@ -73,8 +73,8 @@ class MimeTypeTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers Artax\Negotiation\MimeType::parse
-     * @covers Artax\Negotiation\MimeType::getSuffix
+     * @covers Artax\Negotiation\Terms\MimeType::parse
+     * @covers Artax\Negotiation\Terms\MimeType::getSuffix
      */
     public function testGetSuffixReturnsSuffixPartIfAvailable() {
         $mimeType = new MimeType('application/json');
@@ -85,7 +85,7 @@ class MimeTypeTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers Artax\Negotiation\MimeType::isExperimental
+     * @covers Artax\Negotiation\Terms\MimeType::isExperimental
      */
     public function testIsExperimentalReturnsBooleanStatus() {
         $mimeType = new MimeType('application/json');

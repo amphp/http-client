@@ -4,8 +4,8 @@ use Artax\Negotiation\LanguageNegotiator;
 
 /**
  * @covers Artax\Negotiation\LanguageNegotiator
- * @covers Artax\Negotiation\LanguageTerm
- * @covers Artax\Negotiation\RangeTerm
+ * @covers Artax\Negotiation\Terms\LanguageTerm
+ * @covers Artax\Negotiation\Terms\Term
  */
 class LanguageNegotiatorTest extends PHPUnit_Framework_TestCase {
     

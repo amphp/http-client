@@ -2,6 +2,8 @@
 
 namespace Artax\Negotiation;
 
+use Artax\Negotiation\Terms\Term;
+
 class CharsetNegotiator extends AbstractNegotiator {
     
     /**
@@ -70,8 +72,8 @@ class CharsetNegotiator extends AbstractNegotiator {
         if (in_array('iso-8859-1', $terms) || in_array('*', $terms)) {
             return $terms;
         }
-        $terms[] = new AcceptTerm(count($terms), 'iso-8859-1', 1, false);
         
+        $terms[] = new Term(count($terms), 'iso-8859-1', 1, false);
         return $terms;
     }
     
@@ -92,26 +94,39 @@ class CharsetNegotiator extends AbstractNegotiator {
         }
         
         foreach ($availableTypes as $type => $qval) {
-            $termKey = $term = array_search($type, $parsedHeaderTerms);
+            $termKey = array_search($type, $parsedHeaderTerms);
             if (false !== $termKey) {
                 $term = $parsedHeaderTerms[$termKey];
+                $position = $term->getPosition();
                 $negotiatedQval = round(
                     ($qval * $term->getQuality()),
                     Negotiator::QVAL_SIGNIFICANT_DIGITS
                 );
                 $hasExplicitQval = $term->hasExplicitQuality();
-                $scratchTerms[] = new ScratchTerm($term->getPosition(), $type, $negotiatedQval, $hasExplicitQval);
+                
+                $scratchTerms[] = new Term(
+                    $position,
+                    $type,
+                    $negotiatedQval,
+                    $hasExplicitQval
+                );
             } elseif ($wildcardAllowed) {
                 $negotiatedQval = round(
                     ($qval * $asteriskQval),
                     Negotiator::QVAL_SIGNIFICANT_DIGITS
                 );
-                $scratchTerms[] = new ScratchTerm($asteriskTermKey, $type, $negotiatedQval, $asteriskIsExplicit);
+                
+                $scratchTerms[] = new Term(
+                    $asteriskTermKey,
+                    $type,
+                    $negotiatedQval,
+                    $asteriskIsExplicit
+                );
             }
         }
         
-        $scratchTerms = $this->filterRejectedScratchTerms($scratchTerms);
-        $scratchTerms = $this->sortScratchTermsByPreference($scratchTerms);
+        $scratchTerms = $this->filterRejectedTerms($scratchTerms);
+        $scratchTerms = $this->sortTermsByPreference($scratchTerms);
         
         if ($scratchTerms) {
             return current($scratchTerms)->getType();

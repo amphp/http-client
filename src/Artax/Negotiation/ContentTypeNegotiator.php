@@ -2,7 +2,9 @@
 
 namespace Artax\Negotiation;
 
-use Spl\ValueException;
+use Spl\ValueException,
+    Artax\Negotiation\Terms\Term,
+    Artax\Negotiation\Terms\ContentTypeTerm;
 
 class ContentTypeNegotiator extends AbstractNegotiator {
     
@@ -92,7 +94,7 @@ class ContentTypeNegotiator extends AbstractNegotiator {
                     Negotiator::QVAL_SIGNIFICANT_DIGITS
                 );
                 $hasExplicitQval = $term->hasExplicitQuality();
-                $scratchTerms[] = new ScratchTerm(
+                $scratchTerms[] = new Term(
                     $term->getPosition(),
                     $type,
                     $negotiatedQval,
@@ -105,7 +107,7 @@ class ContentTypeNegotiator extends AbstractNegotiator {
                         Negotiator::QVAL_SIGNIFICANT_DIGITS
                     );
                     $hasExplicitQval = $term->hasExplicitQuality();
-                    $scratchTerms[] = new ScratchTerm(
+                    $scratchTerms[] = new Term(
                         $term->getPosition(),
                         $type,
                         $negotiatedQval,
@@ -115,8 +117,8 @@ class ContentTypeNegotiator extends AbstractNegotiator {
             }
         }
         
-        $scratchTerms = $this->filterRejectedScratchTerms($scratchTerms);
-        $scratchTerms = $this->sortScratchTermsByPreference($scratchTerms);
+        $scratchTerms = $this->filterRejectedTerms($scratchTerms);
+        $scratchTerms = $this->sortTermsByPreference($scratchTerms);
         
         if ($scratchTerms) {
             return current($scratchTerms)->getType();

@@ -1,7 +1,7 @@
 <?php
 
-use Artax\Negotiation\MimeType,
-    Artax\Negotiation\MediaRange;
+use Artax\Negotiation\Terms\MimeType,
+    Artax\Negotiation\Terms\MediaRange;
 
 class MediaRangeTest extends PHPUnit_Framework_TestCase {
     
@@ -20,8 +20,8 @@ class MediaRangeTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideInvalidMediaRanges
-     * @covers Artax\Negotiation\MediaRange::__construct
-     * @covers Artax\Negotiation\MediaRange::parse
+     * @covers Artax\Negotiation\Terms\MediaRange::__construct
+     * @covers Artax\Negotiation\Terms\MediaRange::parse
      * @expectedException Spl\ValueException
      */
     public function testConstructorThrowsExceptionOnInvalidMediaRangeFormat($invalidRange) {
@@ -45,11 +45,11 @@ class MediaRangeTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideValidMediaRanges
-     * @covers Artax\Negotiation\MediaRange::__construct
-     * @covers Artax\Negotiation\MediaRange::parse
+     * @covers Artax\Negotiation\Terms\MediaRange::__construct
+     * @covers Artax\Negotiation\Terms\MediaRange::parse
      */
     public function testConstructorInitializesValidMediaRange($validRange) {
         $mediaRange = new MediaRange($validRange);
-        $this->assertInstanceOf('Artax\\Negotiation\\MediaRange', $mediaRange);
+        $this->assertInstanceOf('Artax\\Negotiation\\Terms\\MediaRange', $mediaRange);
     }
 }

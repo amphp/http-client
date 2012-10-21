@@ -1,8 +1,8 @@
 <?php
 
-namespace Artax\Negotiation;
+namespace Artax\Negotiation\Terms;
 
-interface RangeTerm extends NegotiableTerm {
+interface MultipartTerm extends Negotiable {
     function getTopLevelType();
     function getSubType();
     function rangeMatches($term);

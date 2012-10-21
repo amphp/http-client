@@ -2,6 +2,9 @@
 
 namespace Artax\Negotiation;
 
+use Artax\Negotiation\Terms\Term,
+    Artax\Negotiation\Terms\LanguageTerm;
+
 class LanguageNegotiator extends AbstractNegotiator {
     
     /**
@@ -46,7 +49,7 @@ class LanguageNegotiator extends AbstractNegotiator {
     
     /**
      * @param string $rawHeader
-     * @return array[MediaRangeTerm]
+     * @return array[LanguageTerm]
      */
     protected function parseTermsFromHeader($rawHeader) {
         $terms = array();
@@ -86,7 +89,12 @@ class LanguageNegotiator extends AbstractNegotiator {
                     Negotiator::QVAL_SIGNIFICANT_DIGITS
                 );
                 $hasExplicitQval = $term->hasExplicitQuality();
-                $scratchTerms[] = new ScratchTerm($term->getPosition(), $type, $negotiatedQval, $hasExplicitQval);
+                $scratchTerms[] = new Term(
+                    $term->getPosition(),
+                    $type,
+                    $negotiatedQval,
+                    $hasExplicitQval
+                );
             } elseif ($rangeMatches = $this->getRangeMatchesForType($type, $parsedHeaderTerms)) {
                 foreach ($rangeMatches as $term) {
                     $negotiatedQval = round(
@@ -94,13 +102,18 @@ class LanguageNegotiator extends AbstractNegotiator {
                         Negotiator::QVAL_SIGNIFICANT_DIGITS
                     );
                     $hasExplicitQval = $term->hasExplicitQuality();
-                    $scratchTerms[] = new ScratchTerm($term->getPosition(), $type, $negotiatedQval, $hasExplicitQval);
+                    $scratchTerms[] = new Term(
+                        $term->getPosition(),
+                        $type,
+                        $negotiatedQval,
+                        $hasExplicitQval
+                    );
                 }
             }
         }
         
-        $scratchTerms = $this->filterRejectedScratchTerms($scratchTerms);
-        $scratchTerms = $this->sortScratchTermsByPreference($scratchTerms);
+        $scratchTerms = $this->filterRejectedTerms($scratchTerms);
+        $scratchTerms = $this->sortTermsByPreference($scratchTerms);
         
         if ($scratchTerms) {
             return current($scratchTerms)->getType();
