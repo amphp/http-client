@@ -1,16 +1,16 @@
 <?php
 
-use Artax\Http\SuperglobalRequestDetector,
+use Artax\RequestDetector,
     Artax\Uri;
 
-class SuperglobalRequestDetectorTest extends PHPUnit_Framework_TestCase {
+class RequestDetectorTest extends PHPUnit_Framework_TestCase {
     
     /**
-     * @covers Artax\Http\SuperglobalRequestDetector::detectHeaders
+     * @covers Artax\RequestDetector::detectHeaders
      */
     public function testDetectHeadersUsesNativeFunctionIfAvailable() {
         $mock = $this->getMock(
-            'Artax\\Http\\SuperglobalRequestDetector',
+            'Artax\\RequestDetector',
             array('detectHeadersNatively')
         );
         $headers = array('mock', 'header', 'list');
@@ -52,40 +52,40 @@ class SuperglobalRequestDetectorTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideServerSuperglobal
-     * @covers Artax\Http\SuperglobalRequestDetector::detectHeaders
-     * @covers Artax\Http\SuperglobalRequestDetector::detectHeadersNatively
+     * @covers Artax\RequestDetector::detectHeaders
+     * @covers Artax\RequestDetector::detectHeadersNatively
      */
     public function testDetectHeadersParsesServerArrayIfNativeFunctionUnavailable($_server) {
-        $detector = new SuperglobalRequestDetector(new SuperglobalUriDetector);
+        $detector = new RequestDetector(new SuperglobalUriDetector);
         $headers = $detector->detectHeaders($_server);
     }
     
     /**
      * @dataProvider provideServerSuperglobal
-     * @covers Artax\Http\SuperglobalRequestDetector::detectMethod
+     * @covers Artax\RequestDetector::detectMethod
      */
     public function testDetectMethodParsesRelevantSuperglobalEntry($_server) {
-        $detector = new SuperglobalRequestDetector(new SuperglobalUriDetector);
+        $detector = new RequestDetector(new SuperglobalUriDetector);
         $method = $detector->detectMethod($_server);
         $this->assertEquals($_server['REQUEST_METHOD'], $method);
     }
     
     /**
      * @dataProvider provideServerSuperglobal
-     * @covers Artax\Http\SuperglobalRequestDetector::detectHttpVersion
+     * @covers Artax\RequestDetector::detectHttpVersion
      */
     public function testDetectHttpVersionParsesRelevantSuperglobalEntry($_server) {
-        $detector = new SuperglobalRequestDetector(new SuperglobalUriDetector);
+        $detector = new RequestDetector(new SuperglobalUriDetector);
         $_server['SERVER_PROTOCOL'] = 'HTTP/1.1';
         $version = $detector->detectHttpVersion($_server);
         $this->assertEquals('1.1', $version);
     }
     
     /**
-     * @covers Artax\Http\SuperglobalRequestDetector::detectBody
+     * @covers Artax\RequestDetector::detectBody
      */
     public function testDetectBody() {
-        $detector = new SuperglobalRequestDetector(new SuperglobalUriDetector);
+        $detector = new RequestDetector(new SuperglobalUriDetector);
         $this->assertTrue(is_resource($detector->detectBody()));
     }
     
@@ -200,18 +200,18 @@ class SuperglobalRequestDetectorTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideServerSuperglobalsForUriParsing
-     * @covers Artax\Http\SuperglobalRequestDetector::detectUri
-     * @covers Artax\Http\SuperglobalRequestDetector::attemptProxyStyleParse
-     * @covers Artax\Http\SuperglobalRequestDetector::detectPath
-     * @covers Artax\Http\SuperglobalRequestDetector::detectHost
-     * @covers Artax\Http\SuperglobalRequestDetector::detectScheme
-     * @covers Artax\Http\SuperglobalRequestDetector::detectPort
-     * @covers Artax\Http\SuperglobalRequestDetector::detectQuery
-     * @covers Artax\Http\SuperglobalRequestDetector::determineIpBasedHost
-     * @covers Artax\Http\SuperglobalRequestDetector::isIpBasedHost
+     * @covers Artax\RequestDetector::detectUri
+     * @covers Artax\RequestDetector::attemptProxyStyleParse
+     * @covers Artax\RequestDetector::detectPath
+     * @covers Artax\RequestDetector::detectHost
+     * @covers Artax\RequestDetector::detectScheme
+     * @covers Artax\RequestDetector::detectPort
+     * @covers Artax\RequestDetector::detectQuery
+     * @covers Artax\RequestDetector::determineIpBasedHost
+     * @covers Artax\RequestDetector::isIpBasedHost
      */
     public function testMakeParsesUrlPropertiesFromSuperglobalArray($_server) {
-        $detector = new SuperglobalRequestDetector;
+        $detector = new RequestDetector;
         
         $uri = $detector->detectUri($_server);
         $this->assertEquals($_server['expectedResult'], $uri->__toString());
@@ -219,39 +219,39 @@ class SuperglobalRequestDetectorTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers Artax\Http\SuperglobalRequestDetector::detectUri
-     * @covers Artax\Http\SuperglobalRequestDetector::detectHost
+     * @covers Artax\RequestDetector::detectUri
+     * @covers Artax\RequestDetector::detectHost
      * @expectedException RuntimeException
      */
     public function testMakeThrowsExceptionOnServerNameWithMissingHost() {
-        $detector = new SuperglobalRequestDetector;
+        $detector = new RequestDetector;
         $uri = $detector->detectUri(array('SERVER_NAME'=>'testhost'));
     }
     
     /**
-     * @covers Artax\Http\SuperglobalRequestDetector::isIpBasedHost
+     * @covers Artax\RequestDetector::isIpBasedHost
      * @expectedException RuntimeException
      */
     public function testMakeThrowsExceptionOnMissingServerName() {
-        $detector = new SuperglobalRequestDetector;
+        $detector = new RequestDetector;
         $uri = $detector->detectUri(array());
     }
     
     /**
-     * @covers Artax\Http\SuperglobalRequestDetector::detectPath
+     * @covers Artax\RequestDetector::detectPath
      * @expectedException RuntimeException
      */
     public function testMakeThrowsExceptionOnMissingPathKeys() {
-        $detector = new SuperglobalRequestDetector;
+        $detector = new RequestDetector;
         $uri = $detector->detectUri(array('SERVER_NAME' => 'test', 'HTTP_HOST' => 'test'));
     }
     
     /**
-     * @covers Artax\Http\SuperglobalRequestDetector::detectPort
+     * @covers Artax\RequestDetector::detectPort
      * @expectedException RuntimeException
      */
     public function testMakeThrowsExceptionOnMissingPortKeyOnIpBasedHost() {
-        $detector = new SuperglobalRequestDetector;
+        $detector = new RequestDetector;
         $uri = $detector->detectUri(array('SERVER_NAME' => '127.0.0.1'));
     }
     

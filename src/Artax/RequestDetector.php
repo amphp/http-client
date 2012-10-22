@@ -1,15 +1,17 @@
 <?php
 
-namespace Artax\Http;
+namespace Artax;
 
 use RuntimeException,
     Artax\Uri;
 
-class SuperglobalRequestDetector {
+class RequestDetector {
     
     /**
-     * @param array $_server
-     * @return array
+     * Detect HTTP request message headers in web SAPI environments
+     * 
+     * @param array $_server A $_SERVER superglobal array or equivalent
+     * @return array An associative array containing request headers (keys) and their values
      */
     public function detectHeaders($_server) {
         if ($headers = $this->detectHeadersNatively()) {
@@ -39,6 +41,7 @@ class SuperglobalRequestDetector {
     }
     
     /**
+     * Returns headers natively if possible and provides a seam for testing in the CLI
      * @return array
      */
     protected function detectHeadersNatively() {
@@ -46,36 +49,47 @@ class SuperglobalRequestDetector {
     }
     
     /**
-     * @param array $_server
-     * @return string
+     * Detect the HTTP version specified by the client request in web SAPI environments
+     * 
+     * @param array $_server A $_SERVER superglobal array or equivalent
+     * @return string The HTTP protocol version adhered-to by the request 
      */
     public function detectHttpVersion($_server) {
         return preg_replace('#HTTP/#i', '', $_server['SERVER_PROTOCOL']);
     }
     
     /**
-     * @param array $_server
-     * @return string
+     * Detect the HTTP method verb used to make the client request in web SAPI environments
+     * 
+     * @param array $_server A $_SERVER superglobal array or equivalent
+     * @return string The HTTP request method verb
      */
     public function detectMethod($_server) {
         return $_server['REQUEST_METHOD'];
     }
     
     /**
-     * @return string
+     * Retrieve a stream resource holding the HTTP request's message body in web SAPI environments
+     * 
+     * @return resource A stream resource containing the request message body
      */
     public function detectBody() {
-        return fopen('php://input', 'r');
+        $rawInput = fopen('php://input', 'r');
+        $tempStream = fopen('php://temp', 'r+');
+        stream_copy_to_stream($rawInput, $tempStream);
+        rewind($tempStream);
+        
+        return $tempStream;
     }
     
     /**
-     * Generates a Uri from a superglobal $_SERVER array
+     * Generates a URI from a superglobal $_SERVER array
      * 
-     * @param array $_server
-     * @return Uri
+     * @param array $_server A $_SERVER superglobal array or equivalent
+     * @throws \RuntimeException If the request URI cannot be determined from the supplied array
+     * @return Uri The request URI as indicated by the superglobal value array
      */
     public function detectUri($_server) {
-        
         if ($uri = $this->attemptProxyStyleParse($_server)) {
             return $uri;
         }
