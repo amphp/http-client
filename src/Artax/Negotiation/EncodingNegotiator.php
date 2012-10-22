@@ -7,13 +7,28 @@ use Artax\Negotiation\Terms\Term;
 class EncodingNegotiator extends AbstractNegotiator {
     
     /**
-     * Negotiates the appropriate content-encoding from a raw `Accept-Encoding` header
+     * Negotiates the appropriate content-encoding from a raw Accept-Encoding header
      * 
-     * @param string $rawAcceptEncodingHeader
-     * @param array $available
-     * @throws \Spl\ValueException
-     * @throws NotAcceptableException
-     * @return string
+     * ```
+     * <?php
+     * use Artax\Negotiation\EncodingNegotiator;
+     * 
+     * $rawHeader = 'gzip, deflate, identity';
+     * $availableTypes = array(
+     *     'gzip' => 1,
+     *     'identity' => 0.9
+     * );
+     * 
+     * $negotiator = new EncodingNegotiator();
+     * $negotiatedEncoding = $negotiator->negotiate($rawHeader, $availableTypes);
+     * echo $negotiatedEncoding; // gzip
+     * ```
+     * 
+     * @param string $rawAcceptEncodingHeader A raw Accept-Encoding HTTP header value
+     * @param array $availableEncodings An array of available encodings
+     * @throws \Spl\ValueException On invalid available encodings array
+     * @throws NotAcceptableException If no acceptable encodings exist
+     * @return string Returns the negotiated content encoding
      */
     public function negotiate($rawAcceptEncodingHeader, array $availableEncodings) {
         $this->validateQualityValues($availableEncodings);
@@ -73,10 +88,7 @@ class EncodingNegotiator extends AbstractNegotiator {
             $termKey = array_search($type, $parsedHeaderTerms);
             if (false !== $termKey) {
                 $term = $parsedHeaderTerms[$termKey];
-                $negotiatedQval = round(
-                    ($qval * $term->getQuality()),
-                    Negotiator::QVAL_SIGNIFICANT_DIGITS
-                );
+                $negotiatedQval = $this->negotiateQualityValue($term->getQuality(), $qval);
                 $hasExplicitQval = $term->hasExplicitQuality();
                 $scratchTerms[] = new Term(
                     $term->getPosition(),
@@ -85,10 +97,7 @@ class EncodingNegotiator extends AbstractNegotiator {
                     $hasExplicitQval
                 );
             } elseif ($wildcardAllowed) {
-                $negotiatedQval = round(
-                    ($qval * $asteriskQval),
-                    Negotiator::QVAL_SIGNIFICANT_DIGITS
-                );
+                $negotiatedQval = $this->negotiateQualityValue($asteriskQval, $qval);
                 $scratchTerms[] = new Term(
                     $asteriskTermKey,
                     $type,

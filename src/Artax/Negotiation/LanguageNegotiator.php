@@ -8,10 +8,26 @@ use Artax\Negotiation\Terms\Term,
 class LanguageNegotiator extends AbstractNegotiator {
     
     /**
-     * Negotiates an appropriate language from an `Accept-Language` header
+     * Negotiates an appropriate language from an Accept-Language header
      * 
-     * @param string $rawAcceptLanguageHeader
-     * @param array $availableLangs An array of available languages and quality preferences
+     * ```
+     * <?php
+     * use Artax\Negotiation\ContentTypeNegotiator;
+     * 
+     * $rawHeader = 'en-us, en;q=0.9, *;q=0.5';
+     * $availableTypes = array(
+     *     'en-gb' => 1, 
+     *     'en-us' => 0.5, 
+     *     'da' => 0.1
+     * );
+     * 
+     * $negotiator = new LanguageNegotiator();
+     * $negotiatedContentType = $negotiator->negotiate($rawHeader, $availableTypes);
+     * echo $negotiatedCharset; // en-gb
+     * ```
+     * 
+     * @param string $rawAcceptHeader An HTTP Accept-Language header value
+     * @param array $availableTypes An array of available languages and quality preferences
      * @throws \Spl\ValueException On invalid available types definition
      * @throws NotAcceptableException
      * @return string Returns the negotiated language
@@ -84,10 +100,7 @@ class LanguageNegotiator extends AbstractNegotiator {
             
             if (false !== $termKey) {
                 $term = $parsedHeaderTerms[$termKey];
-                $negotiatedQval = round(
-                    ($qval * $term->getQuality()),
-                    Negotiator::QVAL_SIGNIFICANT_DIGITS
-                );
+                $negotiatedQval = $this->negotiateQualityValue($term->getQuality(), $qval);
                 $hasExplicitQval = $term->hasExplicitQuality();
                 $scratchTerms[] = new Term(
                     $term->getPosition(),
@@ -97,10 +110,7 @@ class LanguageNegotiator extends AbstractNegotiator {
                 );
             } elseif ($rangeMatches = $this->getRangeMatchesForType($type, $parsedHeaderTerms)) {
                 foreach ($rangeMatches as $term) {
-                    $negotiatedQval = round(
-                        ($qval * $term->getQuality()),
-                        Negotiator::QVAL_SIGNIFICANT_DIGITS
-                    );
+                    $negotiatedQval = $this->negotiateQualityValue($term->getQuality(), $qval);
                     $hasExplicitQval = $term->hasExplicitQuality();
                     $scratchTerms[] = new Term(
                         $term->getPosition(),

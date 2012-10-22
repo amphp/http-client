@@ -9,9 +9,25 @@ use Spl\ValueException,
 class ContentTypeNegotiator extends AbstractNegotiator {
     
     /**
-     * Negotiates an appropriate content-type from an `Accept-ContentType` header
+     * Negotiates an appropriate content-type from an HTTP Accept header
      * 
-     * @param string $rawAcceptHeader
+     * ```
+     * <?php
+     * use Artax\Negotiation\ContentTypeNegotiator;
+     * 
+     * $rawHeader = 'text/html, application/xml;q=0.9, application/json;q=0.2, text/*;q=0.1';
+     * $availableTypes = array(
+     *     'text/html' => 1,
+     *     'application/xml' => 0.2,
+     *     'application/json' => 0.1
+     * );
+     * 
+     * $negotiator = new ContentTypeNegotiator();
+     * $negotiatedContentType = $negotiator->negotiate($rawHeader, $availableTypes);
+     * echo $negotiatedCharset; // text/html
+     * ```
+     * 
+     * @param string $rawAcceptHeader An HTTP Accept header value
      * @param array $availableTypes An array of available content-types and quality preferences
      * @throws \Spl\ValueException On invalid available types definition
      * @throws NotAcceptableException
@@ -25,7 +41,6 @@ class ContentTypeNegotiator extends AbstractNegotiator {
         
         // rfc2616-sec2.1:
         // "... Unless stated otherwise, the text is case-insensitive."
-        // Accept media ranges are not case sensitive
         $availableKeys = array_map('strtolower', array_keys($availableTypes));
         $availableVals = array_values($availableTypes);
         $availableTypes = array_combine($availableKeys, $availableVals);
@@ -89,10 +104,7 @@ class ContentTypeNegotiator extends AbstractNegotiator {
             
             if (false !== $termKey) {
                 $term = $parsedHeaderTerms[$termKey];
-                $negotiatedQval = round(
-                    ($qval * $term->getQuality()),
-                    Negotiator::QVAL_SIGNIFICANT_DIGITS
-                );
+                $negotiatedQval = $this->negotiateQualityValue($term->getQuality(), $qval);
                 $hasExplicitQval = $term->hasExplicitQuality();
                 $scratchTerms[] = new Term(
                     $term->getPosition(),
@@ -102,10 +114,7 @@ class ContentTypeNegotiator extends AbstractNegotiator {
                 );
             } elseif ($rangeMatches = $this->getRangeMatchesForType($type, $parsedHeaderTerms)) {
                 foreach ($rangeMatches as $term) {
-                    $negotiatedQval = round(
-                        ($qval * $term->getQuality()),
-                        Negotiator::QVAL_SIGNIFICANT_DIGITS
-                    );
+                    $negotiatedQval = $this->negotiateQualityValue($term->getQuality(), $qval);
                     $hasExplicitQval = $term->hasExplicitQuality();
                     $scratchTerms[] = new Term(
                         $term->getPosition(),

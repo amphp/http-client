@@ -105,7 +105,7 @@ class ContentTypeNegotiatorTest extends PHPUnit_Framework_TestCase {
             'application/json' => 1,
             'text/html' => 0.5
         );
-        $expected = 'text/html';
+        $expected = 'application/json';
         $return[] = array($rawHeader, $availableTypes, $expected);
         
         // 8 ---------------------------------------------------------------------->

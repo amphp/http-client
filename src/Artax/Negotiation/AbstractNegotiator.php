@@ -30,7 +30,7 @@ abstract class AbstractNegotiator implements Negotiator {
     
     /**
      * @param string $rawHeader
-     * @return array
+     * @return array[Term]
      */
     protected function parseTermsFromHeader($rawHeader) {
         $terms = array();
@@ -54,7 +54,7 @@ abstract class AbstractNegotiator implements Negotiator {
     
     /**
      * @param array $scratchTerms
-     * @return array
+     * @return array[Term]
      */
     protected function sortTermsByPreference(array $scratchTerms) {
         uasort($scratchTerms, array($this, 'sortTerms'));
@@ -77,21 +77,26 @@ abstract class AbstractNegotiator implements Negotiator {
         $bqval = $b->getQuality();
         
         if ($aqval == $bqval) {
-            return ($b->hasExplicitQuality() - $a->hasExplicitQuality()) ?: ($a->getPosition() - $b->getPosition());
+            $explicitQualityDiff = $b->hasExplicitQuality() - $a->hasExplicitQuality();
+            return $explicitQualityDiff ?: ($a->getPosition() - $b->getPosition());
         }
         
         return ($aqval > $bqval) ? -1 : 1;
     }
     
     /**
+     * We must first build a list of rejected types because there may be conflicting quality values
+     * for the same type. In such cases explicitly rejected types should always override other
+     * quality values for the same type.
+     * 
      * @param array $scratchTerms
-     * @return array
+     * @return array[Term]
      */
     protected function filterRejectedTerms(array $scratchTerms) {
         // Build a list of explicitly rejected types
         $shouldReject = array();
         foreach ($scratchTerms as $st) {
-            if (!$st->getQuality()) {
+            if ($st->getQuality() == Negotiator::QVAL_NOT_ACCEPTABLE) {
                 $shouldReject[] = $st->getType();
             }
         }
@@ -102,5 +107,20 @@ abstract class AbstractNegotiator implements Negotiator {
         });
         
         return array_values($scratchTerms);
+    }
+    
+    /**
+     * Negotiate quality values. If either value is zero, negotiation always return zero. Otherwise,
+     * values are averaged to determine their negotiated desirability.
+     * 
+     * @param float $term
+     */
+    protected function negotiateQualityValue($q1, $q2) {
+        if ($q1 == Negotiator::QVAL_NOT_ACCEPTABLE || $q2 == Negotiator::QVAL_NOT_ACCEPTABLE) {
+            return Negotiator::QVAL_NOT_ACCEPTABLE;
+        }
+        
+        $rawNegotiatedQval = ($q1 + $q2) / 2;
+        return round($rawNegotiatedQval, Negotiator::QVAL_SIGNIFICANT_DIGITS);
     }
 }

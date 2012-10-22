@@ -7,13 +7,29 @@ use Artax\Negotiation\Terms\Term;
 class CharsetNegotiator extends AbstractNegotiator {
     
     /**
-     * Negotiates the appropriate charset from a raw `Accept-Charset` header
+     * Negotiates the appropriate charset from a raw HTTP Accept-Charset header
      * 
-     * @param string $rawAcceptCharsetHeader
-     * @param array $available
-     * @throws \Spl\ValueException
-     * @throws NotAcceptableException
-     * @return string
+     * ```
+     * <?php
+     * use Artax\Negotiation\CharsetNegotiator;
+     * 
+     * $rawHeader = 'utf-8, *;q=0.2';
+     * $availableTypes = array(
+     *     'utf-8' => 1,
+     *     'iso-8859-5' => 0.5
+     *     'unicode-1-1' => 0.2
+     * );
+     * 
+     * $negotiator = new CharsetNegotiator();
+     * $negotiatedCharset = $negotiator->negotiate($rawHeader, $availableTypes);
+     * echo $negotiatedCharset; // utf-8
+     * ```
+     * 
+     * @param string $rawAcceptCharsetHeader A raw Accept-Charset HTTP header value
+     * @param array $availableCharsets An array of available charsets
+     * @throws \Spl\ValueException On invalid available charset array
+     * @throws NotAcceptableException If no acceptable charsets exist
+     * @return string Returns the negotiated character set
      */
     public function negotiate($rawAcceptCharsetHeader, array $availableCharsets) {
         $this->validateQualityValues($availableCharsets);
@@ -47,7 +63,7 @@ class CharsetNegotiator extends AbstractNegotiator {
     
     /**
      * @param string $rawAcceptCharsetHeader
-     * @return array
+     * @return array[Term]
      */
     protected function parseTermsFromHeader($rawAcceptCharsetHeader) {
         $terms = parent::parseTermsFromHeader($rawAcceptCharsetHeader);
@@ -66,7 +82,7 @@ class CharsetNegotiator extends AbstractNegotiator {
     
     /**
      * @param array $terms
-     * @return array
+     * @return array[Term]
      */
     private function coalesceWildcardAndIso88591(array $terms) {
         if (in_array('iso-8859-1', $terms) || in_array('*', $terms)) {
@@ -98,10 +114,7 @@ class CharsetNegotiator extends AbstractNegotiator {
             if (false !== $termKey) {
                 $term = $parsedHeaderTerms[$termKey];
                 $position = $term->getPosition();
-                $negotiatedQval = round(
-                    ($qval * $term->getQuality()),
-                    Negotiator::QVAL_SIGNIFICANT_DIGITS
-                );
+                $negotiatedQval = $this->negotiateQualityValue($term->getQuality(), $qval);
                 $hasExplicitQval = $term->hasExplicitQuality();
                 
                 $scratchTerms[] = new Term(
@@ -111,11 +124,7 @@ class CharsetNegotiator extends AbstractNegotiator {
                     $hasExplicitQval
                 );
             } elseif ($wildcardAllowed) {
-                $negotiatedQval = round(
-                    ($qval * $asteriskQval),
-                    Negotiator::QVAL_SIGNIFICANT_DIGITS
-                );
-                
+                $negotiatedQval = $this->negotiateQualityValue($asteriskQval, $qval);
                 $scratchTerms[] = new Term(
                     $asteriskTermKey,
                     $type,
