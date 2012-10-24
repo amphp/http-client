@@ -4,14 +4,31 @@ namespace Artax;
 
 use Exception,
     Traversable,
-    SplObjectStorage,
-    Spl\Mediator,
     Spl\TypeException,
     Spl\ValueException,
     Artax\Http\Request,
     Artax\Http\StdRequest,
     Artax\Http\Response;
-    
+
+/**
+ * Retrieves HTTP resources individually or in-parallel
+ * 
+ * ```php
+ * <?php // basic usage example
+ * 
+ * $client = new Artax\Client();
+ * 
+ * $request = new Artax\Http\StdRequest('http://example.com');
+ * 
+ * try {
+ *     $response = $client->send($request);
+ * } catch (Artax\ClientException $e) {
+ *     die('Something terrible happened');
+ * }
+ * 
+ * echo $response->getBody();
+ * ```
+ */
 class Client {
     
     const USER_AGENT = 'Artax/1.0.0 (PHP5.3+)';
@@ -37,12 +54,6 @@ class Client {
     const FOLLOW_LOCATION_ON_2XX = 2;
     const FOLLOW_LOCATION_ON_UNSAFE_METHOD = 4;
     const FOLLOW_LOCATION_ALL = 7;
-    
-    const EVENT_IO_READ = 'artax.client.socket.io.read';
-    const EVENT_IO_WRITE = 'artax.client.socket.io.write';
-    const EVENT_REQUEST = 'artax.client.request';
-    const EVENT_REDIRECT = 'artax.client.redirect';
-    const EVENT_RESPONSE = 'artax.client.response';
     
     const STATE_NEEDS_SOCKET = 0;
     const STATE_SEND_REQUEST_HEADERS = 1;
@@ -76,70 +87,57 @@ class Client {
     );
     
     /**
-     * @var \Spl\Mediator
+     * @var array
      */
-    private $mediator;
+    protected $requestKeys;
     
     /**
      * @var array
      */
-    private $requestKeys;
+    protected $requests;
     
     /**
      * @var array
      */
-    private $requests;
+    protected $responses;
     
     /**
      * @var array
      */
-    private $responses;
+    protected $errors;
     
     /**
      * @var array
      */
-    private $errors;
+    protected $states;
     
     /**
      * @var array
      */
-    private $states;
+    protected $requestKeyToSocketMap;
     
     /**
      * @var array
      */
-    private $requestKeyToSocketMap;
+    protected $socketIdRequestMap;
     
     /**
      * @var array
      */
-    private $socketIdRequestMap;
+    protected $socketPool = array();
     
     /**
-     * @var array
-     */
-    private $socketPool = array();
-    
-    /**
-     * When true, ClientExceptions are caught to avoid bringing down all requests in the
+     * When TRUE, ClientExceptions are caught to avoid bringing down all requests in the
      * multi-request group.
      * 
      * @var bool
      */
-    private $isInMultiMode;
+    protected $isInMultiMode;
     
     /**
      * @var array
      */
-    private $requestStatistics;
-    
-    /**
-     * @param \Spl\Mediator $mediator
-     * @return void
-     */
-    public function __construct(Mediator $mediator) {
-        $this->mediator = $mediator;
-    }
+    protected $requestStatistics;
     
     /**
      * Retrieve a Client attribute value
@@ -183,7 +181,7 @@ class Client {
     /**
      * Assign multiple Client attributes at once
      * 
-     * @param mixed $arrayOrTraversable
+     * @param mixed $arrayOrTraversable A key-value traversable list of attributes
      * @return void
      */
     public function setAllAttributes($arrayOrTraversable) {
@@ -239,11 +237,11 @@ class Client {
     }
     
     /**
-     * Make an HTTP request
+     * Make an individual HTTP request
      * 
-     * @param Http\Request $request
-     * @return ChainableResponse
-     * @throws ClientException
+     * @param Http\Request $request An instance of `Artax\Http\Request` interface
+     * @return ChainableResponse The final HTTP response, including any redirects that occurred
+     * @throws ClientException On connection failure, socket error or invalid response
      */
     public function send(Request $request) {
         $this->isInMultiMode = false;
@@ -256,8 +254,8 @@ class Client {
     /**
      * Make multiple HTTP requests in parallel
      * 
-     * @param mixed $requests An array or Traversable list of requests
-     * @throws \Spl\TypeException
+     * @param mixed $requests An array or Traversable list of request instances
+     * @throws \Spl\TypeException On invalid or empty request list
      * @return ClientMultiResponse
      */
     public function sendMulti($requests) {
@@ -318,7 +316,7 @@ class Client {
      * @throws ClientException (only if not in multi-mode)
      * @return void
      */
-    private function buildRequestMaps($requests) {
+    protected function buildRequestMaps($requests) {
         $this->requestKeys = array();
         
         $this->requests = array();
@@ -336,12 +334,6 @@ class Client {
             $this->requests[$requestKey] = $request;
             $this->responses[$requestKey] = new ChainableResponse($request->getUri());
             $this->states[$requestKey] = new ClientState();
-            
-            $this->mediator->notify(
-                self::EVENT_REQUEST,
-                $requestKey,
-                $request
-            );
         }
     }
     
@@ -429,7 +421,7 @@ class Client {
      * @param string $requestKey
      * @return bool
      */
-    private function isComplete($requestKey) {
+    protected function isComplete($requestKey) {
         $state = $this->states[$requestKey];
         return $state->state == self::STATE_COMPLETE;
     }
@@ -784,7 +776,6 @@ class Client {
         $socket = $this->requestKeyToSocketMap[$requestKey];
         $socketId = (int) $socket;
         
-
         unset(
             $this->socketIdToRequestKeyMap[$socketId],
             $this->requestKeyToSocketMap[$requestKey]
@@ -811,8 +802,6 @@ class Client {
     }
     
     /**
-     * A test seam for mocking stream_select results
-     * 
      * The native stream_select function takes arrays of open stream resources (both readable and 
      * writable) and modifies those arrays by reference to return only those streams on which IO 
      * actions may be taken without blocking. Because the native stream_select modifies the supplied
@@ -903,6 +892,7 @@ class Client {
         $dataToWrite = substr($data, $state->headerBytesSent);
         
         $bytesWritten = $this->doSockWrite($socket, $dataToWrite);
+        
         if (!$bytesWritten && !$this->isSocketAlive($socket)) {
             throw new ClientException(
                 'Socket write failure encountered while sending request headers'
@@ -948,7 +938,6 @@ class Client {
             $actualDataWritten = substr($dataToWrite, 0, $bytesWritten);
             
             $this->updateStatsOnWrite($socketId, $requestKey, $bytesWritten);
-            $this->doWriteNotify($requestKey, $actualDataWritten, $bytesWritten);
         }
         
         return $bytesWritten;
@@ -977,38 +966,6 @@ class Client {
         // kilobytes per second (KB/s)
         $kBs = ($bytesPerSecond/1024);
         $this->requestStatistics[$requestKey]['avgUpKbPerSecond'] = round($kBs, 2);
-    }
-    
-    /**
-     * Notify event listeners of new data written to the socket
-     * 
-     * @param string $requestKey
-     * @param string $writeData
-     * @param int $writeDataLength
-     * @throws \Exception (only if not in multi-mode)
-     * @return void
-     */
-    private function doWriteNotify($requestKey, $writeData, $writeDataLength) {
-        try {
-            $this->mediator->notify(
-                self::EVENT_IO_WRITE,
-                $requestKey,
-                $writeData,
-                $writeDataLength,
-                $this->requestStatistics[$requestKey]
-            );
-        } catch (Exception $e) {
-            $listenerException = new ClientException(
-                'An event listener threw an exception while responding to EVENT_IO_WRITE',
-                null,
-                $e
-            );
-            if ($this->isInMultiMode) {
-                $this->errors[$requestKey] = $listenerException;
-            } else {
-                throw $listenerException;
-            }
-        }
     }
     
     /**
@@ -1217,9 +1174,7 @@ class Client {
         if ($readDataLength) {
             $socketId = (int) $socket;
             $requestKey = $this->socketIdToRequestKeyMap[$socketId];
-            
             $this->updateStatsOnRead($socketId, $requestKey, $readDataLength);
-            $this->doReadNotify($requestKey, $readData, $readDataLength);
         }
         
         return array($readData, $readDataLength);
@@ -1250,37 +1205,6 @@ class Client {
         $this->requestStatistics[$requestKey]['avgDownKbPerSecond'] = round($kBs, 2);
     }
     
-    /**
-     * Notify event listeners of new data read from the socket
-     * 
-     * @param string $requestKey
-     * @param string $readData
-     * @param int $readDataLength
-     * @throws \Exception (only if not in multi-mode)
-     * @return void
-     */
-    private function doReadNotify($requestKey, $readData, $readDataLength) {
-        try {
-            $this->mediator->notify(
-                self::EVENT_IO_READ,
-                $requestKey,
-                $readData,
-                $readDataLength,
-                $this->requestStatistics[$requestKey]
-            );
-        } catch (Exception $e) {
-            $listenerException = new ClientException(
-                'An event listener threw an exception while responding to EVENT_IO_READ',
-                null,
-                $e
-            );
-            if ($this->isInMultiMode) {
-                $this->errors[$requestKey] = $listenerException;
-            } else {
-                throw $listenerException;
-            }
-        }
-    }
     /**
      * Assign raw response headers (if fully received) to the request-key's response object
      * 
@@ -1503,7 +1427,6 @@ class Client {
         $state = $this->states[$requestKey];
         $response = $this->responses[$requestKey];
         
-        
         $responseBody = $response->getBodyStream();
         $totalBytesRecd = ftell($responseBody);
         $expectedLength = (int) $response->getHeader('Content-Length');
@@ -1620,7 +1543,7 @@ class Client {
      * @param string $requestKey
      * @return void
      */
-    private function completeResponse($requestKey) {
+    protected function completeResponse($requestKey) {
         if ($this->shouldKeepConnectionAlive($requestKey)) {
             $this->checkinSocket($requestKey);
         } else {
@@ -1640,37 +1563,6 @@ class Client {
         
         if ($canRedirect) {
             $this->doRedirect($requestKey);
-        } else {
-            $this->doResponseNotify($requestKey);
-        }
-    }
-    
-    /**
-     * Notify event listeners that a response has completed
-     * 
-     * @param string $requestKey
-     * @throws \Exception (only if not in multi-mode)
-     * @return void
-     */
-    private function doResponseNotify($requestKey) {
-        try {
-            $this->mediator->notify(
-                self::EVENT_RESPONSE,
-                $requestKey,
-                $this->responses[$requestKey],
-                $this->requestStatistics[$requestKey]
-            );
-        } catch (Exception $e) {
-            $listenerException = new ClientException(
-                'An event listener threw an exception while responding to EVENT_RESPONSE',
-                null,
-                $e
-            );
-            if ($this->isInMultiMode) {
-                $this->errors[$requestKey] = $listenerException;
-            } else {
-                throw $listenerException;
-            }
         }
     }
     
@@ -1797,7 +1689,7 @@ class Client {
      * @param string $requestKey
      * @return void
      */
-    private function doRedirect($requestKey) {
+    protected function doRedirect($requestKey) {
         $request = $this->requests[$requestKey];
         $response = $this->responses[$requestKey];
         
@@ -1819,39 +1711,6 @@ class Client {
         $this->requests[$requestKey] = $newRequest;
         $this->responses[$requestKey] = $newResponse;
         $this->states[$requestKey] = new ClientState();
-        
-        $this->doRedirectNotify($requestKey);
-    }
-    
-    /**
-     * Notify event listeners that a redirect has occurred
-     * 
-     * @param string $requestKey
-     * @throws \Exception (only if not in multi-mode)
-     * @return void
-     */
-    private function doRedirectNotify($requestKey) {
-        try {
-            $previousResponse = $this->responses[$requestKey]->getPreviousResponse();
-            
-            $this->mediator->notify(
-                self::EVENT_REDIRECT,
-                $requestKey,
-                $previousResponse,
-                $this->requestStatistics[$requestKey]
-            );
-        } catch (Exception $e) {
-            $listenerException = new ClientException(
-                'An event listener threw an exception while responding to EVENT_REDIRECT',
-                null,
-                $e
-            );
-            if ($this->isInMultiMode) {
-                $this->errors[$requestKey] = $listenerException;
-            } else {
-                throw $listenerException;
-            }
-        }
     }
     
     /**
