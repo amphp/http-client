@@ -7,7 +7,16 @@ namespace Artax\Http;
  * http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html
  */
 interface Request extends Message {
-
+    
+    const GET = 'GET';
+    const POST = 'POST';
+    const PUT = 'PUT';
+    const HEAD = 'HEAD';
+    const DELETE = 'DELETE';
+    const OPTIONS = 'OPTIONS';
+    const TRACE = 'TRACE';
+    const CONNECT = 'CONNECT';
+    
     /**
      * Access the HTTP method verb
      */

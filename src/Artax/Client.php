@@ -360,7 +360,7 @@ class Client {
         $request->setHeader('User-Agent', self::USER_AGENT);
         $request->setHeader('Host', $request->getAuthority());
         
-        if ('TRACE' == $request->getMethod()) {
+        if (Request::TRACE == $request->getMethod()) {
             $request->setBody(null);
         }
         
@@ -1241,7 +1241,7 @@ class Client {
         $request = $this->requests[$requestKey];
         $response = $this->responses[$requestKey];
         
-        if ('HEAD' == $request->getMethod()) {
+        if (Request::HEAD == $request->getMethod()) {
             return false;
         }
         
@@ -1622,7 +1622,7 @@ class Client {
         
         $requestMethod = $request->getMethod();
         $canFollowUnsafe = self::FOLLOW_LOCATION_ON_UNSAFE_METHOD;
-        if (!in_array($requestMethod, array('GET', 'HEAD'))
+        if (!in_array($requestMethod, array(Request::GET, Request::HEAD))
             && !($canFollowUnsafe & $followLocation)
         ) {
             return false;
