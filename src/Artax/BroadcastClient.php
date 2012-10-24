@@ -5,7 +5,7 @@ namespace Artax;
 use Exception,
     Spl\Mediator;
 
-class BroadcastingClient extends Client {
+class BroadcastClient extends Client {
     
     const EVENT_IO_READ = 'artax.client.socket.io.read';
     const EVENT_IO_WRITE = 'artax.client.socket.io.write';

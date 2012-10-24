@@ -3,7 +3,7 @@
 use Spl\HashingMediator,
     Artax\Uri,
     Artax\Client,
-    Artax\BroadcastingClient,
+    Artax\BroadcastClient,
     Artax\Http\StdRequest,
     Artax\ChainableResponse;
 
@@ -21,7 +21,7 @@ if (!defined('ARTAX_RAW_RESPONSE_FIXTURE_DIR')) {
 /**
  * @covers Artax\ClientState
  * @covers Artax\Client
- * @covers Artax\BroadcastingClient
+ * @covers Artax\BroadcastClient
  */
 class ClientTest extends PHPUnit_Framework_TestCase {
     
@@ -552,7 +552,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $mediator = new HashingMediator;
         
         $bytesWritten = 0;
-        $mediator->addListener(BroadcastingClient::EVENT_IO_WRITE, function($key, $data, $bytes) use (&$bytesWritten) {
+        $mediator->addListener(BroadcastClient::EVENT_IO_WRITE, function($key, $data, $bytes) use (&$bytesWritten) {
             $bytesWritten += $bytes;
             if ($bytesWritten > 75) {
                 SocketStreamWrapper::$failOnWrite = true;
@@ -580,7 +580,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $mediator = new HashingMediator;
         
         $bytesWritten = 0;
-        $mediator->addListener(BroadcastingClient::EVENT_IO_WRITE, function($key, $data, $bytes) use (&$bytesWritten) {
+        $mediator->addListener(BroadcastClient::EVENT_IO_WRITE, function($key, $data, $bytes) use (&$bytesWritten) {
             $bytesWritten += $bytes;
             if ($bytesWritten > 75) {
                 SocketStreamWrapper::$failOnWrite = true;
@@ -651,7 +651,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         // Tell the socket to "disconnect" once the full message is read
         $bytesRead = 0;
         $mediator = new HashingMediator;
-        $mediator->addListener(BroadcastingClient::EVENT_IO_READ, function ($key, $data, $bytes) use (&$bytesRead) {
+        $mediator->addListener(BroadcastClient::EVENT_IO_READ, function ($key, $data, $bytes) use (&$bytesRead) {
             $bytesRead += $bytes;
             if ($bytesRead == strlen(SocketStreamWrapper::$rawResponse)) {
                 SocketStreamWrapper::$socketIsDead = true;
@@ -683,7 +683,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         // Simulate a disconnected socket connection after X bytes read
         $bytesRead = 0;
         $failurePoint = strlen(SocketStreamWrapper::$rawResponse) - 5;
-        $mediator->addListener(BroadcastingClient::EVENT_IO_READ, function($key, $data, $bytes) use (&$bytesRead, $failurePoint) {
+        $mediator->addListener(BroadcastClient::EVENT_IO_READ, function($key, $data, $bytes) use (&$bytesRead, $failurePoint) {
             $bytesRead += $bytes;
             
             if ($bytesRead >= $failurePoint) {
@@ -734,7 +734,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         };
         
         $mediator = new HashingMediator;
-        $mediator->addListener(BroadcastingClient::EVENT_IO_READ, $streamWriteFailer);
+        $mediator->addListener(BroadcastClient::EVENT_IO_READ, $streamWriteFailer);
         
         $client = $this->getMock(
             'ClientStub',
@@ -772,7 +772,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         // Simulate a disconnected socket connection after X bytes read
         $bytesRead = 0;
         $failurePoint = strlen(SocketStreamWrapper::$rawResponse) - 5;
-        $mediator->addListener(BroadcastingClient::EVENT_IO_READ, function($key, $data, $bytes) use (&$bytesRead, $failurePoint) {
+        $mediator->addListener(BroadcastClient::EVENT_IO_READ, function($key, $data, $bytes) use (&$bytesRead, $failurePoint) {
             $bytesRead += $bytes;
             
             if ($bytesRead >= $failurePoint) {
@@ -912,7 +912,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         
         $redirectCount = 0;
         $mediator = new HashingMediator;
-        $mediator->addListener(BroadcastingClient::EVENT_REDIRECT, function($key, $response) use (&$redirectCount) {
+        $mediator->addListener(BroadcastClient::EVENT_REDIRECT, function($key, $response) use (&$redirectCount) {
             ++$redirectCount;
             SocketStreamWrapper::reset();
             
@@ -1023,7 +1023,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
             "Moved!";
         
         $mediator = new HashingMediator;
-        $mediator->addListener(BroadcastingClient::EVENT_REDIRECT, function($key, $response) {
+        $mediator->addListener(BroadcastClient::EVENT_REDIRECT, function($key, $response) {
             SocketStreamWrapper::reset();
             SocketStreamWrapper::$rawResponse = '' .
                 "HTTP/1.1 200 OK\r\n" .
@@ -1055,7 +1055,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         
         $redirectCount = 0;
         $mediator = new HashingMediator;
-        $mediator->addListener(BroadcastingClient::EVENT_REDIRECT, function($key, $response) use (&$redirectCount) {
+        $mediator->addListener(BroadcastClient::EVENT_REDIRECT, function($key, $response) use (&$redirectCount) {
             ++$redirectCount;
             SocketStreamWrapper::reset();
             
@@ -1181,7 +1181,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $testException = new Exception('test exception');
         
         $mediator = new HashingMediator;
-        $mediator->addListener(BroadcastingClient::EVENT_IO_READ, function() use ($testException) {
+        $mediator->addListener(BroadcastClient::EVENT_IO_READ, function() use ($testException) {
             throw $testException;
         });
         
@@ -1207,7 +1207,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $testException = new Exception('test exception');
         
         $mediator = new HashingMediator;
-        $mediator->addListener(BroadcastingClient::EVENT_IO_READ, function() use ($testException) {
+        $mediator->addListener(BroadcastClient::EVENT_IO_READ, function() use ($testException) {
             throw $testException;
         });
         
@@ -1234,7 +1234,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $testException = new Exception('test exception');
         
         $mediator = new HashingMediator;
-        $mediator->addListener(BroadcastingClient::EVENT_IO_WRITE, function() use ($testException) {
+        $mediator->addListener(BroadcastClient::EVENT_IO_WRITE, function() use ($testException) {
             throw $testException;
         });
         
@@ -1260,7 +1260,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $testException = new Exception('test exception');
         
         $mediator = new HashingMediator;
-        $mediator->addListener(BroadcastingClient::EVENT_IO_WRITE, function() use ($testException) {
+        $mediator->addListener(BroadcastClient::EVENT_IO_WRITE, function() use ($testException) {
             throw $testException;
         });
         
@@ -1288,7 +1288,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $testException = new Exception('test exception');
         
         $mediator = new HashingMediator;
-        $mediator->addListener(BroadcastingClient::EVENT_REDIRECT, function() use ($testException) {
+        $mediator->addListener(BroadcastClient::EVENT_REDIRECT, function() use ($testException) {
             throw $testException;
         });
         
@@ -1314,7 +1314,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $testException = new Exception('test exception');
         
         $mediator = new HashingMediator;
-        $mediator->addListener(BroadcastingClient::EVENT_REDIRECT, function() use ($testException) {
+        $mediator->addListener(BroadcastClient::EVENT_REDIRECT, function() use ($testException) {
             throw $testException;
         });
         
@@ -1340,7 +1340,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $testException = new Exception('test exception');
         
         $mediator = new HashingMediator;
-        $mediator->addListener(BroadcastingClient::EVENT_RESPONSE, function() use ($testException) {
+        $mediator->addListener(BroadcastClient::EVENT_RESPONSE, function() use ($testException) {
             throw $testException;
         });
         
@@ -1365,7 +1365,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $testException = new Exception('test exception');
         
         $mediator = new HashingMediator;
-        $mediator->addListener(BroadcastingClient::EVENT_RESPONSE, function() use ($testException) {
+        $mediator->addListener(BroadcastClient::EVENT_RESPONSE, function() use ($testException) {
             throw $testException;
         });
         
@@ -1385,7 +1385,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $testException = new Exception('test exception');
         
         $mediator = new HashingMediator;
-        $mediator->addListener(BroadcastingClient::EVENT_REQUEST, function() use ($testException) {
+        $mediator->addListener(BroadcastClient::EVENT_REQUEST, function() use ($testException) {
             throw $testException;
         });
         
@@ -1403,7 +1403,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $testException = new Exception('test exception');
         
         $mediator = new HashingMediator;
-        $mediator->addListener(BroadcastingClient::EVENT_REQUEST, function() use ($testException) {
+        $mediator->addListener(BroadcastClient::EVENT_REQUEST, function() use ($testException) {
             throw $testException;
         });
         
@@ -1445,7 +1445,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
  * Allows us to customize socket and stream behavior for testing purposes in conjunction with
  * public static values from the SocketStreamWrapper.
  */
-class ClientStub extends BroadcastingClient {
+class ClientStub extends BroadcastClient {
     
     protected function makeSocket(Uri $socketUri, $context) {
         if (SocketStreamWrapper::$failOnOpen) {
