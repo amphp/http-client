@@ -14,7 +14,7 @@ use Exception,
     
 class Client {
     
-    const USER_AGENT = 'Artax/1.0.0-rc.4 (PHP5.3+)';
+    const USER_AGENT = 'Artax/1.0.0 (PHP5.3+)';
     
     const ATTR_KEEP_CONNS_ALIVE = 'keepConnsAlive';
     const ATTR_CONNECT_TIMEOUT = 'connectTimeout';
@@ -1461,6 +1461,9 @@ class Client {
         // (such as the one-byte string, "0") can yield false positives.
         if (!$readDataLength && !$this->isSocketAlive($socket)) {
             if ($state->state == self::STATE_READ_CHUNKS) {
+                if ($this->markResponseCompleteIfFinalChunkReceived($requestKey)) {
+                    return;
+                }
                 throw new ClientException(
                     'Socket connection lost before chunked response entity body fully received'
                 );
@@ -1514,7 +1517,7 @@ class Client {
      * Mark the response complete if the the final response body chunk has been read.
      * 
      * @param string $requestKey
-     * @return void
+     * @return bool
      */
     private function markResponseCompleteIfFinalChunkReceived($requestKey) {
         $state = $this->states[$requestKey];
@@ -1528,7 +1531,10 @@ class Client {
         if (preg_match(",\r\n0+\r\n\r\n$,", $endOfStream)) {
             stream_filter_prepend($responseBody, 'dechunk');
             $state->state = self::STATE_COMPLETE;
+            return true;
         }
+        
+        return false;
     }
     
     /**

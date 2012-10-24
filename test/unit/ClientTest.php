@@ -1383,6 +1383,27 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $e = $multiResponse->current();
         $this->assertEquals($testException, $e->getPrevious());
     }
+    
+    /**
+     * @added 2012-10-23 -- Previously an exception could be thrown if a chunked entity body was 
+     * fully received in the initial socket IO read used to retrieve the headers.
+     */
+    public function testSendDoesntBorkIfTheFullChunkedEntityBodyReceivedOnTheFirstSocketRead() {
+        SocketStreamWrapper::$rawResponse = '' .
+            "HTTP/1.1 200 OK\r\n" .
+            "Date: Sun, 14 Oct 2012 06:00:46 GMT\r\n" .
+            "Transfer-Encoding: chunked\r\n" .
+            "\r\n" .
+            "4\r\n" .
+            "test" .
+            "\r\n" .
+            "0\r\n" .
+            "\r\n";
+        
+        $client = new ClientStub(new HashingMediator);
+        $response = $client->send(new StdRequest('http://localhost'));
+        $this->assertEquals(200, $response->getStatusCode());
+    }
 }
 
 
