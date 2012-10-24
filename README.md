@@ -3,23 +3,36 @@
 Artax offers a full-featured HTTP/1.1 client, an object-oriented toolkit modeling the HTTP/1.1
 protocol and a spec-compliant content-negotiation API for PHP 5.3+.
 
-##### HTTP Client
+### HTTP Client
 
 The Artax HTTP Client API is designed for standards-compliant HTTP resource traversal and RESTful web 
-service consumption. Some of the Client's features include:
+service consumption. At it's core, the Artax HTTP client aims to simplify HTTP communications without
+obscuring the underlying protocol. It's the hope of the project maintainers that Artax will both
+simplify your interactions with external HTTP resources and improve your understanding of how the
+protocol works.
+
+##### Features
 
  - No `cURL` or `libcurl` required; Artax uses sockets directly instead of PHP's `curl_*` bindings
  - Send and receive multiple requests in parallel for maximum throughput
- - Transparently follow redirects, chaining responses for access to the full request redirect history
+ - Transparently follows redirects, chaining responses for access to the full redirect history
  - Access all request/response headers as well as all raw HTTP message data
  - Fully customizable SSL/TLS (https://) support
  - Stream request and response entity bodies for high-performance memory management
  - Maintain HTTP/1.1-compliant persistent connections with advanced connection management for 
 long-running CLI applications
- - Support all standard HTTP/1.1 methods and custom methods
- - Standardized event broadcasts allow custom plugins like caching, cookie storage, etc.
+ - Support all standard HTTP/1.1 methods as well as custom methods
+ - Standardized event broadcasts allowing custom plugins, cookie storage, etc.
 
-##### Content Negotiation
+###### In Development
+
+ - Compressed message transfers (gzip, deflate)
+ - Integrated cookie storage
+ - Automatic construction for multipart message bodies
+ - Full proxy support
+ - Transfer speed limits
+
+### Content Negotiation
 
 Artax provides a simple HTTP content negotiation module for negotiating appropriate language,
 character-set, content-encoding and content-type from HTTP requests.
@@ -37,28 +50,12 @@ character-set, content-encoding and content-type from HTTP requests.
 
 ### REQUIREMENTS
 
-Artax requires PHP 5.3+ and depends on the [PHP-Datastructures][datastructures] repository. 
-Additionally, the Artax HTTP Client requires the `openssl` extension for encrypted SSL/TLS (HTTPS) 
-requests. If `openssl` is unavailable, only unencrypted HTTP requests can be made. You can verify
-the status of the `openssl` extension in your PHP install with the following code snippet:
+* PHP 5.3+
+* The [PHP-Datastructures][datastructures] library.
+* The PHP `openssl` extension (for SSL/https requests)
 
-```php
-<?php
-var_dump(extension_loaded('openssl')); // bool(true)
-```
-
-> **IMPORTANT:** The Artax Client will not function correctly in the presence of string function overloading 
-via the `mbstring.func_overload` php.ini directive. This directive is an *ugly hack* for handling
-multi-byte strings and you should not be using it! If you're unsure about whether or not you've
-enabled string function overloading you can check the status using the following snippet:
-
-```php
-<?php
-var_dump(extension_loaded('mbstring') && (ini_get('mbstring.func_overload') & 2)); // bool(false)
-```
-
-If the above outputs `bool(true)`, string function overloading is turned on in your PHP install and
-the Artax Client will yield dubious results at best.
+You can find in-depth instructions for [verifying][requirements]/[installing][installation] these
+requirements on the relevent Artax wiki pages.
 
 
 ### OTHER NOTES
@@ -75,3 +72,5 @@ the scene where Atreyu's faithful steed, Artax, died in the Swamp of Sadness. Th
 [datastructures]: https://github.com/morrisonlevi/PHP-Datastructures
 [solid]: http://en.wikipedia.org/wiki/SOLID_(object-oriented_design) "S.O.L.I.D."
 [neverending]: http://www.imdb.com/title/tt0088323/ "The NeverEnding Story"
+[requirements]: https://github.com/rdlowrey/Artax/wiki/Requirements
+[installation]: https://github.com/rdlowrey/Artax/wiki/Installation
