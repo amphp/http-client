@@ -31,7 +31,7 @@ class StdRequest extends StdMessage implements Request {
      * @throws \Spl\ValueException
      * @return void
      */
-    public function __construct($uri, $method = 'GET') {
+    public function __construct($uri, $method = self::GET) {
         $this->uri = $uri instanceof Uri ? $uri : new Uri($uri);
         $this->method = $method;
         $this->queryParameters = $this->parseParametersFromString($this->uri->getQuery());

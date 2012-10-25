@@ -8,6 +8,9 @@ use Iterator,
     Spl\TypeException,
     Artax\Http\Response;
 
+/**
+ * Aggregates responses from a parallel client multi-request into a single object
+ */
 class ClientMultiResponse implements Iterator, Countable {
     
     /**
@@ -53,8 +56,8 @@ class ClientMultiResponse implements Iterator, Countable {
     /**
      * Were exceptions encountered while receiving any of the requests?
      * 
-     * Note that this DOES NOT include 4xx and 5xx responses, which are not the same as an
-     * actual exception encountered while processing a request.
+     * Note that this DOES NOT include 4xx and 5xx responses (which are not the same as an
+     * actual exception encountered while processing a request).
      * 
      * @return bool
      */
