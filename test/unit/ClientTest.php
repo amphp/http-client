@@ -21,6 +21,7 @@ if (!defined('ARTAX_RAW_RESPONSE_FIXTURE_DIR')) {
 /**
  * @covers Artax\ClientState
  * @covers Artax\Client
+ * @covers Artax\ClientException
  * @covers Artax\BroadcastClient
  */
 class ClientTest extends PHPUnit_Framework_TestCase {
@@ -452,6 +453,25 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $response = $client->send(new StdRequest('http://localhost'));
         
         $this->assertEquals('woot', $response->getBody());
+    }
+    
+    /**
+     * @expectedException Artax\ClientException
+     */
+    public function testSendThrowsExceptionOnTempStreamOpenFailureWhileDechunkingResponse() {
+        SocketStreamWrapper::$rawResponse = '' .
+            "HTTP/1.1 200 OK\r\n" .
+            "Date: Sun, 14 Oct 2012 06:00:46 GMT\r\n" .
+            "Transfer-Encoding: chunked\r\n" .
+            "\r\n" .
+            "4\r\n" .
+            "woot\r\n" .
+            "0\r\n" .
+            "\r\n";
+        
+        $client = new ClientStubTempResponseStreamFail(new HashingMediator);
+        $client->setAttribute(Client::ATTR_IO_BUFFER_SIZE, 1);
+        $response = $client->send(new StdRequest('http://localhost'));
     }
     
     /**
@@ -1509,6 +1529,18 @@ class ClientStubSsl extends ClientStub {
         }
         ++$this->count;
         return 'test ssl error messag';
+    }
+}
+
+class ClientStubTempResponseStreamFail extends ClientStub {
+    private $createdCount = 0;
+    protected function makeTempResponseBodyStream() {
+        if (!$this->createdCount) {
+            ++$this->createdCount;
+            return parent::makeTempResponseBodyStream();
+        } else {
+            return false;
+        }
     }
 }
 

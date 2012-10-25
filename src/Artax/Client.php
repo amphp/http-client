@@ -1448,17 +1448,35 @@ class Client {
         $response = $this->responses[$requestKey];
         
         $responseBody = $response->getBodyStream();
-        fseek($responseBody, -1024, SEEK_END);
+        fseek($responseBody, -512, SEEK_END);
         
         $endOfStream = stream_get_contents($responseBody);
         
         if (preg_match(",\r\n0+\r\n\r\n$,", $endOfStream)) {
-            stream_filter_prepend($responseBody, 'dechunk');
+            rewind($responseBody);
+            $dechunkedBodyStream = $this->dechunkResponseBody($responseBody);
+            $response->setBody($dechunkedBodyStream);
+            
             $state->state = self::STATE_COMPLETE;
             return true;
         }
         
         return false;
+    }
+    
+    private function dechunkResponseBody($responseBody) {
+        if (!$tmpBody = $this->makeTempResponseBodyStream()) {
+            throw new ClientException(
+                'Failed initializing temporary response entity body storage stream'
+            );
+        }
+        
+        stream_filter_prepend($responseBody, 'dechunk');
+        stream_copy_to_stream($responseBody, $tmpBody);
+        rewind($tmpBody);
+        fclose($responseBody);
+        
+        return $tmpBody;
     }
     
     /**
