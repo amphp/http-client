@@ -25,9 +25,7 @@ class StdResponse extends StdMessage implements Response {
      * @return string
      */
     public function __toString() {
-        $msg = $this->getStartLine() . "\r\n";
-        $msg.= $this->getRawHeaders();
-        $msg.= "\r\n";
+        $msg = $this->getRawStartLineAndHeaders();
         $msg.= $this->getBody();
         
         return $msg;
