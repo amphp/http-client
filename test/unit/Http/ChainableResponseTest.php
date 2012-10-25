@@ -1,13 +1,13 @@
 <?php
 
-use Artax\ChainableResponse;
+use Artax\Http\ChainableResponse;
 
 class ChainableResponseTest extends PHPUnit_Framework_TestCase {
     
     /**
-     * @covers Artax\ChainableResponse::__construct
-     * @covers Artax\ChainableResponse::setPreviousResponse
-     * @covers Artax\ChainableResponse::hasPreviousResponse
+     * @covers Artax\Http\ChainableResponse::__construct
+     * @covers Artax\Http\ChainableResponse::setPreviousResponse
+     * @covers Artax\Http\ChainableResponse::hasPreviousResponse
      */
     public function testHasPreviousResponseReturnsBooleanStatus() {
         $response = new ChainableResponse('http://someurl.com');
@@ -24,18 +24,18 @@ class ChainableResponseTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @depends testHasPreviousResponseReturnsBooleanStatus
-     * @covers Artax\ChainableResponse::getPreviousResponse
+     * @covers Artax\Http\ChainableResponse::getPreviousResponse
      */
     public function testGetPreviousResponseReturnsPreviousResponseInTheChain($redirection) {
         $this->assertInstanceOf(
-            'Artax\\ChainableResponse',
+            'Artax\\Http\\ChainableResponse',
             $redirection->getPreviousResponse()
         );
     }
     
     /**
-     * @covers Artax\ChainableResponse::__construct
-     * @covers Artax\ChainableResponse::getPreviousResponse
+     * @covers Artax\Http\ChainableResponse::__construct
+     * @covers Artax\Http\ChainableResponse::getPreviousResponse
      * @expectedException LogicException
      */
     public function testGetPreviousResponseThrowsExceptionIfNoPreviousResponseAssigned() {
@@ -45,14 +45,14 @@ class ChainableResponseTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @depends testHasPreviousResponseReturnsBooleanStatus
-     * @covers Artax\ChainableResponse::getRequestUri
+     * @covers Artax\Http\ChainableResponse::getRequestUri
      */
     public function testGetRequestUriReturnsLocationHeaderFromPreviousResponse($redirection) {
         $this->assertEquals('http://localhost/redir-path', $redirection->getRequestUri());
     }
     
     /**
-     * @covers Artax\ChainableResponse::getRequestUri
+     * @covers Artax\Http\ChainableResponse::getRequestUri
      */
     public function testGetRequestUri() {
         $response = new ChainableResponse('http://someurl.com');

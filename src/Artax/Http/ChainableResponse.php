@@ -1,14 +1,12 @@
 <?php
 
-namespace Artax;
+namespace Artax\Http;
 
 use LogicException,
-    Artax\Http\StdResponse;
+    Artax\Uri;
 
 /**
- * Attaches request URIs to Response instances allowing determination of the final URI endpoint
- * when Location redirects occur. The class also allows traversal of each Response in a chain
- * so that the full redirect history can be examined.
+ * Allows traversal of the full response redirect history and access to the final redirect URI
  */
 class ChainableResponse extends StdResponse {
     
@@ -24,7 +22,6 @@ class ChainableResponse extends StdResponse {
     
     /**
      * @param string $requestUri The request URI that led to this response
-     * @throws \Spl\ValueException On invalid URI
      * @return void
      */
     public function __construct($requestUri) {
@@ -35,16 +32,15 @@ class ChainableResponse extends StdResponse {
      * Retrieve the request URI that resulted in current response
      * 
      * @return string
-     * @throws NotRedirectedException
      */
     public function getRequestUri() {
         return $this->requestUri->__toString();
     }
     
     /**
-     * Assign the response from which the current response was redirected
+     * Store the response whose redirection resulted in the current response instance
      * 
-     * @param ChainableResponse $previousResponse
+     * @param ChainableResponse $previousResponse The previous response in the redirect chain
      * @return void
      */
     public function setPreviousResponse(ChainableResponse $previousResponse) {

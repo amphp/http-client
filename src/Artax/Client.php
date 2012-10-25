@@ -8,7 +8,8 @@ use Exception,
     Spl\ValueException,
     Artax\Http\Request,
     Artax\Http\StdRequest,
-    Artax\Http\Response;
+    Artax\Http\Response,
+    Artax\Http\ChainableResponse;
 
 /**
  * Retrieves HTTP resources individually or in-parallel

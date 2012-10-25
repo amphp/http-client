@@ -5,7 +5,7 @@ use Spl\HashingMediator,
     Artax\Client,
     Artax\BroadcastClient,
     Artax\Http\StdRequest,
-    Artax\ChainableResponse;
+    Artax\Http\ChainableResponse;
 
 
 /**
