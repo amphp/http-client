@@ -1,15 +1,8 @@
 ### WHAT IS IT?
 
-Artax offers a full-featured HTTP/1.1 client, an object-oriented toolkit modeling the HTTP/1.1
-protocol and a spec-compliant content-negotiation API for PHP 5.3+.
-
-### HTTP Client
-
-The Artax HTTP Client API is designed for standards-compliant HTTP resource traversal and RESTful web 
-service consumption. At it's core, the Artax HTTP client aims to simplify HTTP communications without
-obscuring the underlying protocol. It's the hope of the project maintainers that Artax will both
-simplify your interactions with external HTTP resources and improve your understanding of how the
-protocol works.
+Artax is a full-featured HTTP/1.1 client built on the HTTP/1.1 protocol as specified in RFC 2616. 
+Its API is designed to simplify standards-compliant HTTP resource traversal and RESTful web service
+consumption without obscuring the underlying HTTP protocol.
 
 ##### Features
 
@@ -31,12 +24,6 @@ long-running CLI applications
  - Automatic construction for multipart message bodies
  - Full proxy support
  - Transfer speed limits
-
-### Content Negotiation
-
-Artax provides a simple HTTP content negotiation module for negotiating appropriate language,
-character-set, content-encoding and content-type from HTTP requests.
-
 
 ### PROJECT GOALS
 
