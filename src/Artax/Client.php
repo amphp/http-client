@@ -834,7 +834,7 @@ class Client {
         array $read,
         array $write,
         array $ex = null,
-        $tvsec = 3,
+        $tvsec = 1,
         $tvusec = 0
     ) {
         @stream_select($read, $write, $ex, $tvsec, $tvusec);
@@ -1140,6 +1140,16 @@ class Client {
         ) {
             $this->readBody($requestKey);
         }
+        
+        if ($state->state == self::STATE_READ_TO_CONTENT_LENGTH) {
+            $this->markResponseCompleteIfLengthReached($requestKey);
+        } elseif ($state->state == self::STATE_READ_CHUNKS) {
+            $this->markResponseCompleteIfFinalChunkReceived($requestKey);
+        }
+        
+        if ($state->state == self::STATE_COMPLETE) {
+            $this->finalizeResponseBodyStream($requestKey);
+        }
     }
     
     /**
@@ -1186,7 +1196,15 @@ class Client {
     protected function doSockRead($socket) {
         $ioBufferSize = $this->getAttribute(self::ATTR_IO_BUFFER_SIZE);
         
-        $readData = @fread($socket, $ioBufferSize);
+        $readData = '';
+        while (true) {
+            $tmpData = @fread($socket, $ioBufferSize);
+            $readData .= $tmpData;
+            if (!$tmpData && $tmpData !== '0') {
+                break;
+            }
+        }
+        
         $readDataLength = strlen($readData);
         
         // The read length in bytes must be used to test for empty reads because "empty" read data
@@ -1431,7 +1449,6 @@ class Client {
                 );
             } else {
                 $state->state = self::STATE_COMPLETE;
-                $this->finalizeResponseBodyStream($requestKey);
                 return;
             }
         }
@@ -1442,16 +1459,6 @@ class Client {
             throw new ClientException(
                 'Failed writing response entity body to temporary storage stream'
             );
-        }
-        
-        if ($state->state == self::STATE_READ_TO_CONTENT_LENGTH) {
-            $this->markResponseCompleteIfLengthReached($requestKey);
-        } elseif ($state->state == self::STATE_READ_CHUNKS) {
-            $this->markResponseCompleteIfFinalChunkReceived($requestKey);
-        }
-        
-        if ($state->state == self::STATE_COMPLETE) {
-            $this->finalizeResponseBodyStream($requestKey);
         }
     }
     
@@ -1494,8 +1501,8 @@ class Client {
         fseek($responseBody, -512, SEEK_END);
         
         $endOfStream = stream_get_contents($responseBody);
-        
         if (preg_match(",\r\n0+\r\n\r\n$,", $endOfStream)) {
+            
             rewind($responseBody);
             $dechunkedBodyStream = $this->dechunkResponseBody($responseBody);
             $response->setBody($dechunkedBodyStream);
@@ -1602,7 +1609,7 @@ class Client {
     }
     
     /**
-     * Check-in/close sockets, perform redirects and notify listeners on response completion
+     * Check-in/close sockets, perform redirects and rewind response body stream on completion
      * 
      * @param string $requestKey
      * @return void
@@ -1627,11 +1634,6 @@ class Client {
         
         if ($canRedirect) {
             $this->doRedirect($requestKey);
-        }
-        
-        $response = $this->responses[$requestKey];
-        if ($entityBody = $response->getBodyStream()) {
-            rewind($entityBody);
         }
     }
     
