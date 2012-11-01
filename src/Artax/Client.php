@@ -1628,6 +1628,11 @@ class Client {
         if ($canRedirect) {
             $this->doRedirect($requestKey);
         }
+        
+        $response = $this->responses[$requestKey];
+        if ($entityBody = $response->getBodyStream()) {
+            rewind($entityBody);
+        }
     }
     
     /**
