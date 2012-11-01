@@ -1774,7 +1774,7 @@ class Client {
          */
         $request = $this->requests[$requestKey];
         /**
-         * @var Response $response
+         * @var ChainableResponse $response
          */
         $response = $this->responses[$requestKey];
         
@@ -1804,7 +1804,7 @@ class Client {
      * @return int Returns the number of socket connections closed
      */
     public function closeAllSockets() {
-        foreach ($this->socketPool as $socketId => $sockArr) {
+        foreach ($this->socketPool as $sockArr) {
             @fclose($sockArr['socket']);
         }
         $connsClosed = count($this->socketPool);
