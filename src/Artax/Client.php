@@ -628,8 +628,7 @@ class Client {
     
     /**
      * Attempt to use an existing socket connection before making a new connection
-     * 
-     * @param string $requestKey
+     *
      * @param string $socketAuthority
      * @return resource Returns socket stream or NULL if no existing sockets are available for use
      */
@@ -1675,7 +1674,7 @@ class Client {
          */
         $request = $this->requests[$requestKey];
         /**
-         * @var \Artax\Http\ChainableResponse $response
+         * @var ChainableResponse $response
          */
         $response = $this->responses[$requestKey];
         
