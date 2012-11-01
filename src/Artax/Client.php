@@ -580,7 +580,7 @@ class Client {
         $socketUri = $this->buildSocketUriFromHttpRequest($request);
         $authority = $socketUri->getAuthority();
         
-        if ($socket = $this->doExistingSocketCheckout($requestKey, $authority)) {
+        if ($socket = $this->doExistingSocketCheckout($authority)) {
             return $socket;
         }
         
@@ -633,7 +633,7 @@ class Client {
      * @param string $socketAuthority
      * @return resource Returns socket stream or NULL if no existing sockets are available for use
      */
-    private function doExistingSocketCheckout($requestKey, $socketAuthority) {
+    private function doExistingSocketCheckout($socketAuthority) {
         foreach ($this->socketPool as $socketId => $socketArr) {
             $isAvailable = !isset($this->socketIdToRequestKeyMap[$socketId]);
             
