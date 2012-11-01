@@ -17,10 +17,9 @@ class BroadcastClient extends Client {
      * @var \Spl\Mediator
      */
     private $mediator;
-    
+
     /**
      * @param \Spl\Mediator $mediator
-     * @return void
      */
     public function __construct(Mediator $mediator) {
         $this->mediator = $mediator;
@@ -52,7 +51,7 @@ class BroadcastClient extends Client {
         } catch (Exception $e) {
             $listenerException = new ClientException(
                 'An event listener threw an exception while responding to EVENT_IO_WRITE',
-                null,
+                0,
                 $e
             );
             if ($this->isInMultiMode) {
@@ -88,7 +87,7 @@ class BroadcastClient extends Client {
      * @param string $requestKey
      * @param string $writeData
      * @param int $writeDataLength
-     * @throws \Exception (only if not in multi-mode)
+     * @throws ClientException (only if not in multi-mode)
      * @return void
      */
     private function doWriteNotify($requestKey, $writeData, $writeDataLength) {
@@ -103,7 +102,7 @@ class BroadcastClient extends Client {
         } catch (Exception $e) {
             $listenerException = new ClientException(
                 'An event listener threw an exception while responding to EVENT_IO_WRITE',
-                null,
+                0,
                 $e
             );
             if ($this->isInMultiMode) {
@@ -140,7 +139,7 @@ class BroadcastClient extends Client {
      * @param string $requestKey
      * @param string $readData
      * @param int $readDataLength
-     * @throws \Exception (only if not in multi-mode)
+     * @throws ClientException (only if not in multi-mode)
      * @return void
      */
     private function doReadNotify($requestKey, $readData, $readDataLength) {
@@ -155,7 +154,7 @@ class BroadcastClient extends Client {
         } catch (Exception $e) {
             $listenerException = new ClientException(
                 'An event listener threw an exception while responding to EVENT_IO_READ',
-                null,
+                0,
                 $e
             );
             if ($this->isInMultiMode) {
@@ -185,7 +184,7 @@ class BroadcastClient extends Client {
      * Notify event listeners upon response completion
      * 
      * @param string $requestKey
-     * @throws \Exception (only if not in multi-mode)
+     * @throws ClientException (only if not in multi-mode)
      * @return void
      */
     private function doResponseNotify($requestKey) {
@@ -199,7 +198,7 @@ class BroadcastClient extends Client {
         } catch (Exception $e) {
             $listenerException = new ClientException(
                 'An event listener threw an exception while responding to EVENT_RESPONSE',
-                null,
+                0,
                 $e
             );
             if ($this->isInMultiMode) {
@@ -225,12 +224,16 @@ class BroadcastClient extends Client {
      * Notify event listeners that a redirect has occurred
      * 
      * @param string $requestKey
-     * @throws \Exception (only if not in multi-mode)
+     * @throws ClientException (only if not in multi-mode)
      * @return void
      */
     private function doRedirectNotify($requestKey) {
         try {
-            $previousResponse = $this->responses[$requestKey]->getPreviousResponse();
+            /**
+             * @var \Artax\Http\ChainableResponse $response
+             */
+            $response = $this->responses[$requestKey];
+            $previousResponse = $response->getPreviousResponse();
             
             $this->mediator->notify(
                 self::EVENT_REDIRECT,
@@ -241,7 +244,7 @@ class BroadcastClient extends Client {
         } catch (Exception $e) {
             $listenerException = new ClientException(
                 'An event listener threw an exception while responding to EVENT_REDIRECT',
-                null,
+                0,
                 $e
             );
             if ($this->isInMultiMode) {

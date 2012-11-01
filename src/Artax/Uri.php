@@ -63,9 +63,8 @@ class Uri {
     private $hasExplicitTrailingHostSlash = false;
 
     /**
-     * @param string $uri
+     * @param $uri
      * @throws \Spl\ValueException
-     * @return void
      */
     public function __construct($uri) {
         $uri = (string) $uri;
@@ -203,7 +202,7 @@ class Uri {
 
     /**
      * @param string $rawUserInfo
-     * @return void
+     * @return string
      */
     protected function protectUserInfo($rawUserInfo) {
         $colonPos = strpos($rawUserInfo, ':');
@@ -221,6 +220,7 @@ class Uri {
     }
 
     /**
+     * @param string $queryString
      * @return array
      */
     private function parseQueryParameters($queryString) {

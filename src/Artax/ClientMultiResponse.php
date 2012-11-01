@@ -17,10 +17,9 @@ class ClientMultiResponse implements Iterator, Countable {
      * @var array
      */
     private $responses;
-    
+
     /**
      * @param array $responsesAndErrors
-     * @return void
      * @throws \Spl\TypeException
      */
     public function __construct(array $responsesAndErrors) {

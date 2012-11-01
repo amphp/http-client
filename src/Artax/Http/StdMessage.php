@@ -2,9 +2,7 @@
 
 namespace Artax\Http;
 
-use RuntimeException,
-    InvalidArgumentException,
-    Spl\TypeException,
+use Spl\TypeException,
     Spl\ValueException,
     Spl\DomainException;
 
@@ -122,6 +120,9 @@ abstract class StdMessage implements Message {
     public function getHeader($headerName) {
         if ($this->hasHeader($headerName)) {
             $normalizedHeaderName = $this->normalizeHeaderName($headerName);
+            /**
+             * @var Header $header
+             */
             $header = $this->headers[$normalizedHeaderName];
             return $header->getValue();
         }
@@ -141,6 +142,9 @@ abstract class StdMessage implements Message {
     public function getHeaderValueArray($headerName) {
         if ($this->hasHeader($headerName)) {
             $normalizedHeaderName = $this->normalizeHeaderName($headerName);
+            /**
+             * @var Header $header
+             */
             $header = $this->headers[$normalizedHeaderName];
             return $header->getValueArray();
         } else {
@@ -179,6 +183,9 @@ abstract class StdMessage implements Message {
     public function getAllHeaders() {
         $return = array();
         foreach ($this->headers as $header) {
+            /**
+             * @var Header $header
+             */
             $key = $header->getName();
             $return[$key] = count($header) == 1 ? $header->getValue() : $header->getValueArray();
         }
@@ -193,6 +200,9 @@ abstract class StdMessage implements Message {
     public function getRawHeaders() {
         $str = '';
         foreach ($this->headers as $headerObj) {
+            /**
+             * @var Header $headerObj
+             */
             $str .= $headerObj->__toString();
         }
         return $str;
@@ -223,6 +233,9 @@ abstract class StdMessage implements Message {
     public function addHeader($headerName, $value) {
         $normalizedHeaderName = $this->normalizeHeaderName($headerName);
         if (isset($this->headers[$normalizedHeaderName])) {
+            /**
+             * @var Header $header
+             */
             $header = $this->headers[$normalizedHeaderName];
             $header->appendValue($value);
         } else {
@@ -277,7 +290,7 @@ abstract class StdMessage implements Message {
     }
 
     protected function isValidIterable($iter) {
-        return $iter instanceof Traversable || $iter instanceof StdClass || is_array($iter);
+        return $iter instanceof \Traversable || $iter instanceof \StdClass || is_array($iter);
     }
 
     /**
