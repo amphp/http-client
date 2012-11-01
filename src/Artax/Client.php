@@ -125,6 +125,11 @@ class Client {
     /**
      * @var array
      */
+    protected $socketIdToRequestKeyMap;
+    
+    /**
+     * @var array
+     */
     protected $socketPool = array();
     
     /**
@@ -233,8 +238,7 @@ class Client {
     }
     
     private function setSslVerifyDepth($depth) {
-        $this->sslVerifyDepth = (int) $depth;
-        $this->attributes[self::ATTR_SSL_VERIFY_DEPTH] = $depth;
+        $this->attributes[self::ATTR_SSL_VERIFY_DEPTH] = (int) $depth;
     }
     
     /**
