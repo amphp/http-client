@@ -6,6 +6,9 @@ use Iterator,
     Countable,
     Spl\TypeException;
 
+/**
+ * Models headers for use in HTTP Message modeling
+ */
 class Header implements Iterator, Countable {
     
     /**

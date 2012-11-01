@@ -6,7 +6,7 @@ use LogicException,
     Artax\Uri;
 
 /**
- * Allows traversal of the full response redirect history and access to the final redirect URI
+ * Extends StdResponse to allow traversal of redirected responses and access to the redirect URI
  */
 class ChainableResponse extends StdResponse {
     
@@ -29,7 +29,7 @@ class ChainableResponse extends StdResponse {
     }
     
     /**
-     * Retrieve the request URI that resulted in current response
+     * Retrieve the request URI that resulted in the current response
      * 
      * @return string
      */
