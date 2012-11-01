@@ -2,8 +2,7 @@
 
 namespace Artax;
 
-use Exception,
-    Traversable,
+use Traversable,
     Spl\TypeException,
     Spl\ValueException,
     Artax\Http\Request,
@@ -333,6 +332,9 @@ class Client {
         $this->socketIdToRequestKeyMap = array();
         
         foreach ($requests as $requestKey => $request) {
+            /**
+             * @var Request $request
+             */
             $this->normalizeRequestHeaders($request);
             
             $this->requestKeys[] = $requestKey;
@@ -558,6 +560,7 @@ class Client {
                 return $this->checkoutSocket($requestKey);
             } catch (ClientException $e) {
                 $this->errors[$requestKey] = $e;
+                return null;
             }
         } else {
             return $this->checkoutSocket($requestKey);
@@ -592,6 +595,7 @@ class Client {
                 'activity' => microtime(true)
             );
         }
+        return null;
     }
     
     /**
@@ -890,6 +894,10 @@ class Client {
     private function writeRequestHeaders($requestKey) {
         $state = $this->states[$requestKey];
         $socket = $this->requestKeyToSocketMap[$requestKey];
+
+        /**
+         * @var Request $request
+         */
         $request = $this->requests[$requestKey];
         
         $data = $request->getRawRequestLineAndHeaders();
@@ -979,6 +987,9 @@ class Client {
      */
     private function initializeStreamingRequestBodySend($requestKey) {
         $state = $this->states[$requestKey];
+        /**
+         * @var Request $request
+         */
         $request = $this->requests[$requestKey];
         
         $outboundBodyStream = $request->getBodyStream();
@@ -998,6 +1009,9 @@ class Client {
     private function writeBufferedRequestBody($requestKey) {
         $state = $this->states[$requestKey];
         $socket = $this->requestKeyToSocketMap[$requestKey];
+        /**
+         * @var Request $request
+         */
         $request = $this->requests[$requestKey];
         
         $data = $request->getBody();
@@ -1077,6 +1091,9 @@ class Client {
      */
     protected function readChunkFromStreamRequestBody($requestKey) {
         $state = $this->states[$requestKey];
+        /**
+         * @var Request $request
+         */
         $request = $this->requests[$requestKey];
         
         $outboundBodyStream = $request->getBodyStream();
@@ -1227,7 +1244,10 @@ class Client {
             $startLineAndHeaders = substr($state->buffer, 0, $bodyStartPos);
             list($startLine, $headers) = explode("\r\n", $startLineAndHeaders, 2);
             $state->buffer = substr($state->buffer, $bodyStartPos + 4);
-            
+
+            /**
+             * @var \Artax\Http\StdResponse $response
+             */
             $response = $this->responses[$requestKey];
             $response->setStartLine($startLine);
             $response->setAllRawHeaders($headers);
@@ -1243,7 +1263,13 @@ class Client {
      * @return bool
      */
     private function isResponseBodyAllowed($requestKey) {
+        /**
+         * @var Request $request
+         */
         $request = $this->requests[$requestKey];
+        /**
+         * @var \Artax\Http\ChainableResponse $response
+         */
         $response = $this->responses[$requestKey];
         
         if (Request::HEAD == $request->getMethod()) {
@@ -1271,6 +1297,9 @@ class Client {
      */
     private function initializeResponseBodyRetrieval($requestKey) {
         $state = $this->states[$requestKey];
+        /**
+         * @var \Artax\Http\ChainableResponse $response
+         */
         $response = $this->responses[$requestKey];
         
         $responseBody = $this->makeTempResponseBodyStream();
@@ -1339,6 +1368,9 @@ class Client {
      */
     private function receivedFullEntityBodyFromHeaderRead($requestKey) {
         $state = $this->states[$requestKey];
+        /**
+         * @var \Artax\Http\ChainableResponse $response
+         */
         $response = $this->responses[$requestKey];
         
         $bufferLength = strlen($state->buffer);
@@ -1382,6 +1414,9 @@ class Client {
     private function readBody($requestKey) {
         $state = $this->states[$requestKey];
         $socket = $this->requestKeyToSocketMap[$requestKey];
+        /**
+         * @var \Artax\Http\ChainableResponse $response
+         */
         $response = $this->responses[$requestKey];
         
         list($readData, $readDataLength) = $this->doSockRead($socket);
@@ -1430,6 +1465,9 @@ class Client {
      */
     private function markResponseCompleteIfLengthReached($requestKey) {
         $state = $this->states[$requestKey];
+        /**
+         * @var \Artax\Http\ChainableResponse $response
+         */
         $response = $this->responses[$requestKey];
         
         $responseBody = $response->getBodyStream();
@@ -1449,6 +1487,9 @@ class Client {
      */
     private function markResponseCompleteIfFinalChunkReceived($requestKey) {
         $state = $this->states[$requestKey];
+        /**
+         * @var \Artax\Http\ChainableResponse $response
+         */
         $response = $this->responses[$requestKey];
         
         $responseBody = $response->getBodyStream();
@@ -1492,6 +1533,9 @@ class Client {
      */
     private function finalizeResponseBodyStream($requestKey) {
         $state = $this->states[$requestKey];
+        /**
+         * @var \Artax\Http\ChainableResponse $response
+         */
         $response = $this->responses[$requestKey];
         
         $this->validateContentLength($response);
@@ -1596,6 +1640,9 @@ class Client {
      * @return bool
      */
     private function shouldKeepConnectionAlive($requestKey) {
+        /**
+         * @var \Artax\Http\ChainableResponse $response
+         */
         $response = $this->responses[$requestKey];
         
         if (!$this->getAttribute(self::ATTR_KEEP_CONNS_ALIVE)) {
@@ -1619,7 +1666,13 @@ class Client {
      * @return bool
      */
     private function canRedirect($requestKey) {
+        /**
+         * @var Request $request
+         */
         $request = $this->requests[$requestKey];
+        /**
+         * @var \Artax\Http\ChainableResponse $response
+         */
         $response = $this->responses[$requestKey];
         
         $followLocation = $this->getAttribute(self::ATTR_FOLLOW_LOCATION);
@@ -1713,7 +1766,13 @@ class Client {
      * @return void
      */
     protected function doRedirect($requestKey) {
+        /**
+         * @var Request $request
+         */
         $request = $this->requests[$requestKey];
+        /**
+         * @var Response $response
+         */
         $response = $this->responses[$requestKey];
         
         $newRequest = new StdRequest($response->getHeader('Location'), $request->getMethod());
