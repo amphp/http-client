@@ -1654,7 +1654,7 @@ class Client {
         
         $hasConnectionHeader = $response->hasHeader('Connection');
         
-        if ($response->hasHeader('Connection')) {
+        if ($hasConnectionHeader) {
             return !strcmp($response->getHeader('Connection'), 'close');
         }
         
