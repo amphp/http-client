@@ -948,8 +948,6 @@ class Client {
             $socketId = (int) $socket;
             $requestKey = $this->socketIdToRequestKeyMap[$socketId];
             
-            $actualDataWritten = substr($dataToWrite, 0, $bytesWritten);
-            
             $this->updateStatsOnWrite($socketId, $requestKey, $bytesWritten);
         }
         
@@ -1532,7 +1530,6 @@ class Client {
      * @return void
      */
     private function finalizeResponseBodyStream($requestKey) {
-        $state = $this->states[$requestKey];
         /**
          * @var \Artax\Http\ChainableResponse $response
          */
