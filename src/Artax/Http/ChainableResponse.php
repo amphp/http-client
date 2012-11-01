@@ -22,7 +22,6 @@ class ChainableResponse extends StdResponse {
     
     /**
      * @param string $requestUri The request URI that led to this response
-     * @return void
      */
     public function __construct($requestUri) {
         $this->requestUri = new Uri($requestUri);

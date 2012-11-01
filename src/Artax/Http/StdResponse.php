@@ -136,6 +136,9 @@ class StdResponse extends StdMessage implements Response {
     protected function sendHeaders() {
         header($this->getStartLine());
         foreach ($this->headers as $header) {
+            /**
+             * @var Header $header
+             */
             $header->send();
         }
         flush();
