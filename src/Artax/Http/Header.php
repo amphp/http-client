@@ -17,12 +17,11 @@ class Header implements Iterator, Countable {
      * @var array
      */
     private $value;
-    
+
     /**
      * @param string $name
      * @param mixed $value A scalar value or one-dimensional array of scalars
      * @throws \Spl\TypeException
-     * @return void
      */
     public function __construct($name, $value) {
         if (!(is_string($name) || (is_object($name) && method_exists($name, '__toString')))) {

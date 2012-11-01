@@ -2,8 +2,7 @@
 
 namespace Artax\Http;
 
-use Spl\DomainException,
-    Artax\Uri;
+use Artax\Uri;
 
 class StdRequest extends StdMessage implements Request {
     
@@ -23,13 +22,17 @@ class StdRequest extends StdMessage implements Request {
     protected $queryParameters;
 
     /**
+     * @var string
+     */
+    protected $cachedStreamBody;
+
+    /**
      * Note that request methods ARE case-sensitive as per RFC2616. Users should specify all-caps
      * strings for standard request method names like GET, POST, etc.
-     * 
+     *
      * @param string $uri
      * @param string $method
      * @throws \Spl\ValueException
-     * @return void
      */
     public function __construct($uri, $method = self::GET) {
         $this->uri = $uri instanceof Uri ? $uri : new Uri($uri);
@@ -200,7 +203,7 @@ class StdRequest extends StdMessage implements Request {
     /**
      * @param string $parameter
      * @return string
-     * @throws Spl\DomainException
+     * @throws \Spl\DomainException
      */
     public function getQueryParameter($parameter) {
         return $this->uri->getQueryParameter($parameter);
