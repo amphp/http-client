@@ -72,7 +72,7 @@ class BroadcastClient extends Client {
     protected function doSockWrite($socket, $dataToWrite) {
         if ($bytesWritten = parent::doSockWrite($socket, $dataToWrite)) {
             $socketId = (int) $socket;
-            $requestKey = $this->socketIdToRequestKeyMap[$socketId];
+            $requestKey = $this->socketIdRequestKeyMap[$socketId];
             
             $actualDataWritten = substr($dataToWrite, 0, $bytesWritten);
             $this->doWriteNotify($requestKey, $actualDataWritten, $bytesWritten);
@@ -126,7 +126,7 @@ class BroadcastClient extends Client {
         // (such as the one-byte string, "0") can yield false positives.
         if ($readDataLength) {
             $socketId = (int) $socket;
-            $requestKey = $this->socketIdToRequestKeyMap[$socketId];
+            $requestKey = $this->socketIdRequestKeyMap[$socketId];
             $this->doReadNotify($requestKey, $readData, $readDataLength);
         }
         

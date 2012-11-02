@@ -5,6 +5,7 @@ namespace Artax;
 use Traversable,
     Spl\TypeException,
     Spl\ValueException,
+    Spl\DomainException,
     Artax\Http\Request,
     Artax\Http\StdRequest,
     Artax\Http\Response,
@@ -114,7 +115,7 @@ class Client {
     /**
      * @var array
      */
-    protected $requestKeyToSocketMap;
+    protected $socketPool = array();
     
     /**
      * @var array
@@ -124,12 +125,12 @@ class Client {
     /**
      * @var array
      */
-    protected $socketIdToRequestKeyMap;
+    protected $socketIdRequestKeyMap;
     
     /**
      * @var array
      */
-    protected $socketPool = array();
+    protected $requestKeySocketMap;
     
     /**
      * When TRUE, ClientExceptions are caught to avoid bringing down all requests in the
@@ -314,7 +315,7 @@ class Client {
     }
     
     /**
-     * Initializes all request-key maps for this batch of requests.
+     * Initializes all $requestKey maps for this batch of requests.
      * 
      * @param mixed $requests[Request]
      * @throws ClientException (only if not in multi-mode)
@@ -325,15 +326,15 @@ class Client {
         
         $this->requests = array();
         $this->responses = array();
-        $this->requestKeyToSocketMap = array();
+        $this->requestKeySocketMap = array();
         $this->errors = array();
         $this->states = array();
         
-        $this->socketIdToRequestKeyMap = array();
+        $this->socketIdRequestKeyMap = array();
         
         foreach ($requests as $requestKey => $request) {
             /**
-             * @var Request $request
+             * @var \Artax\Http\Request $request
              */
             $this->normalizeRequestHeaders($request);
             
@@ -345,7 +346,7 @@ class Client {
     }
     
     /**
-     * Normalizes requests header values prior to sending to ensure the validity of certain fields.
+     * Normalizes request header values prior to sending to ensure validity
      * 
      * User-Agent           - Always added
      * Host                 - Added if missing
@@ -356,9 +357,6 @@ class Client {
      * 
      * Additionally, TRACE requests have their entity bodies removed as per RFC2616-Sec9.8:
      * "A TRACE request MUST NOT include an entity."
-     * 
-     * NOTE: requests may be modified AFTER normalization by attaching listeners to the 
-     * Client::EVENT_REQUEST event.
      * 
      * @param Http\Request $request
      * @return void
@@ -389,56 +387,51 @@ class Client {
         }
     }
     
-    /**
-     * Is this request waiting for a socket connection?
-     * 
-     * @param string $requestKey
-     * @return bool
-     */
     private function needsSocket($requestKey) {
         $state = $this->states[$requestKey];
         return $state->state == self::STATE_NEEDS_SOCKET;
     }
     
-    /**
-     * Are we currently sending this request's raw HTTP message?
-     * 
-     * @param string $requestKey
-     * @return bool
-     */
     private function isWriting($requestKey) {
         $state = $this->states[$requestKey];
         return $state->state && $state->state < self::STATE_READ_HEADERS;
     }
     
-    /**
-     * Are we currently reading this request's raw HTTP response message?
-     * 
-     * @param string $requestKey
-     * @return bool
-     */
     private function isReading($requestKey) {
         $state = $this->states[$requestKey];
         return $state->state >= self::STATE_READ_HEADERS && $state->state < self::STATE_COMPLETE;
     }
     
-    /**
-     * Has the HTTP response for this request been fully received?
-     * 
-     * @param string $requestKey
-     * @return bool
-     */
+    private function isReadingHeaders($requestKey) {
+        $state = $this->states[$requestKey];
+        return $state->state == self::STATE_READ_HEADERS;
+    }
+    
+    private function isReadingBody($requestKey) {
+        $state = $this->states[$requestKey];
+        return $state->state > self::STATE_READ_HEADERS && $state->state < self::STATE_COMPLETE;
+    }
+    
+    private function isReadingToContentLength($requestKey) {
+        $state = $this->states[$requestKey];
+        return $state->state == self::STATE_READ_TO_CONTENT_LENGTH;
+    }
+    
+    private function isReadingChunks($requestKey) {
+        $state = $this->states[$requestKey];
+        return $state->state == self::STATE_READ_CHUNKS;
+    }
+    
     protected function isComplete($requestKey) {
         $state = $this->states[$requestKey];
         return $state->state == self::STATE_COMPLETE;
     }
     
-    /**
-     * Has this request encountered an error?
-     * 
-     * @param string $requestKey
-     * @return bool
-     */
+    private function markComplete($requestKey) {
+        $state = $this->states[$requestKey];
+        return $state->state = self::STATE_COMPLETE;
+    }
+    
     private function hasError($requestKey) {
         return isset($this->errors[$requestKey]);
     }
@@ -450,9 +443,10 @@ class Client {
      * @return void
      */
     private function execute() {
-        while ($this->getIncompleteRequestKeys()) {
-            list($read, $write) = $this->getSelectableStreams();
+        while ($incompleteRequestKeys = $this->getIncompleteRequestKeys()) {
+            $this->assignRequestSockets();
             
+            list($read, $write) = $this->getSelectableStreams($incompleteRequestKeys);
             if (empty($read) && empty($write)) {
                 continue;
             }
@@ -460,12 +454,12 @@ class Client {
             list($read, $write) = $this->doStreamSelect($read, $write);
             
             foreach ($write as $socket) {
-                $requestKey = $this->socketIdToRequestKeyMap[(int) $socket];
+                $requestKey = $this->socketIdRequestKeyMap[(int) $socket];
                 $this->doMultiSafeWrite($requestKey);
             }
             
             foreach ($read as $socket) {
-                $requestKey = $this->socketIdToRequestKeyMap[(int) $socket];
+                $requestKey = $this->socketIdRequestKeyMap[(int) $socket];
                 $this->doMultiSafeRead($requestKey);
                 
                 if ($this->isComplete($requestKey)) {
@@ -481,34 +475,33 @@ class Client {
      * @return array
      */
     private function getIncompleteRequestKeys() {
-        $incompletes = array();
+        $incompleteRequestKeys = array();
         foreach ($this->requestKeys as $requestKey) {
             if (!($this->hasError($requestKey) || $this->isComplete($requestKey))) {
-                $incompletes[] = $requestKey;
+                $incompleteRequestKeys[] = $requestKey;
             }
         }
-        return $incompletes;
+        return $incompleteRequestKeys;
     }
     
     /**
      * Retrieves an array holding lists of readable and writable request sockets.
      * 
+     * @param array<string> $incompleteRequestKeys
      * @throws ClientException (only if not in multi-mode)
      * @return array
      */
-    private function getSelectableStreams() {
+    private function getSelectableStreams($incompleteRequestKeys) {
         $read = array();
         $write = array();
         
-        $this->assignRequestSockets();
-        
-        foreach ($this->getIncompleteRequestKeys() as $requestKey) {
+        foreach ($incompleteRequestKeys as $requestKey) {
             if ($this->needsSocket($requestKey)) {
                 continue;
             } elseif ($this->isWriting($requestKey)) {
-                $write[] = $this->requestKeyToSocketMap[$requestKey];
+                $write[] = $this->requestKeySocketMap[$requestKey];
             } elseif ($this->isReading($requestKey)) {
-                $read[] = $this->requestKeyToSocketMap[$requestKey];
+                $read[] = $this->requestKeySocketMap[$requestKey];
             }
         }
         
@@ -526,23 +519,30 @@ class Client {
         foreach ($this->requestKeys as $requestKey) {
             if (!$this->needsSocket($requestKey)) {
                 continue;
-            } elseif ($socket = $this->doMultiSafeSocketCheckout($requestKey)){
-                $socketId = (int) $socket;
-                $this->states[$requestKey]->state = self::STATE_SEND_REQUEST_HEADERS;
-                $this->socketIdToRequestKeyMap[$socketId] = $requestKey;
-                $this->requestKeyToSocketMap[$requestKey] = $socket;
-                
-                $this->requestStatistics[$requestKey] = array(
-                    'connectedAt' => microtime(true),
-                    'sendCompletedAt' => null,
-                    'lastBytesSentAt' => null,
-                    'lastBytesRecdAt' => null,
-                    'bytesSent' => 0,
-                    'bytesRecd' => 0,
-                    'avgUpKbPerSecond' => null,
-                    'avgDownKbPerSecond' => null
-                );
             }
+            
+            $connectAttemptedAt = microtime(true);
+            if (!$socket = $this->doMultiSafeSocketCheckout($requestKey)) {
+                continue;
+            }
+            $connectedAt = microtime(true);
+            
+            $socketId = (int) $socket;
+            
+            $this->states[$requestKey]->state = self::STATE_SEND_REQUEST_HEADERS;
+            $this->socketIdRequestKeyMap[$socketId] = $requestKey;
+            $this->requestKeySocketMap[$requestKey] = $socket;
+            
+            $this->requestStatistics[$requestKey] = array(
+                'timeSpentConnecting' => ($connectedAt - $connectAttemptedAt),
+                'connectedAt' => $connectedAt,
+                'lastSentAt' => null,
+                'lastRecdAt' => null,
+                'bytesSent' => 0,
+                'bytesRecd' => 0,
+                'avgUpKbPerSecond' => null,
+                'avgDownKbPerSecond' => null
+            );
         }
     }
     
@@ -634,7 +634,7 @@ class Client {
      */
     private function doExistingSocketCheckout($socketAuthority) {
         foreach ($this->socketPool as $socketId => $socketArr) {
-            $isAvailable = !isset($this->socketIdToRequestKeyMap[$socketId]);
+            $isAvailable = !isset($this->socketIdRequestKeyMap[$socketId]);
             
             if ($isAvailable && $socketArr['authority'] == $socketAuthority) {
                 return $socketArr['socket'];
@@ -781,12 +781,12 @@ class Client {
      * @return void
      */
     private function checkinSocket($requestKey) {
-        $socket = $this->requestKeyToSocketMap[$requestKey];
+        $socket = $this->requestKeySocketMap[$requestKey];
         $socketId = (int) $socket;
         
         unset(
-            $this->socketIdToRequestKeyMap[$socketId],
-            $this->requestKeyToSocketMap[$requestKey]
+            $this->socketIdRequestKeyMap[$socketId],
+            $this->requestKeySocketMap[$requestKey]
         );
     }
     
@@ -797,14 +797,14 @@ class Client {
      * @return void
      */
     private function closeSocket($requestKey) {
-        $socket = $this->requestKeyToSocketMap[$requestKey];
+        $socket = $this->requestKeySocketMap[$requestKey];
         $socketId = (int) $socket;
         
         @fclose($socket);
         
         unset(
-            $this->socketIdToRequestKeyMap[$socketId],
-            $this->requestKeyToSocketMap[$requestKey],
+            $this->socketIdRequestKeyMap[$socketId],
+            $this->requestKeySocketMap[$requestKey],
             $this->socketPool[$socketId]
         );
     }
@@ -892,7 +892,7 @@ class Client {
      */
     private function writeRequestHeaders($requestKey) {
         $state = $this->states[$requestKey];
-        $socket = $this->requestKeyToSocketMap[$requestKey];
+        $socket = $this->requestKeySocketMap[$requestKey];
 
         /**
          * @var Request $request
@@ -932,7 +932,6 @@ class Client {
     private function markRequestSendComplete($requestKey) {
         $state = $this->states[$requestKey];
         $state->state = self::STATE_READ_HEADERS;
-        $this->requestStatistics[$requestKey]['sendCompletedAt'] = microtime(true);
     }
     
     /**
@@ -945,7 +944,7 @@ class Client {
     protected function doSockWrite($socket, $dataToWrite) {
         if ($bytesWritten = @fwrite($socket, $dataToWrite)) {
             $socketId = (int) $socket;
-            $requestKey = $this->socketIdToRequestKeyMap[$socketId];
+            $requestKey = $this->socketIdRequestKeyMap[$socketId];
             
             $this->updateStatsOnWrite($socketId, $requestKey, $bytesWritten);
         }
@@ -968,7 +967,7 @@ class Client {
         $this->socketPool[$socketId]['activity'] = $now;
         
         $this->requestStatistics[$requestKey]['bytesSent'] += $writeDataLength;
-        $this->requestStatistics[$requestKey]['lastBytesSentAt'] = $now;
+        $this->requestStatistics[$requestKey]['lastSentAt'] = $now;
         
         $elapsedTime = ($now - $this->requestStatistics[$requestKey]['connectedAt']);
         $bytesPerSecond = ($this->requestStatistics[$requestKey]['bytesSent'] / $elapsedTime);
@@ -983,11 +982,11 @@ class Client {
      * @return void
      */
     private function initializeStreamingRequestBodySend($requestKey) {
-        $state = $this->states[$requestKey];
         /**
          * @var Request $request
          */
         $request = $this->requests[$requestKey];
+        $state = $this->states[$requestKey];
         
         $outboundBodyStream = $request->getBodyStream();
         fseek($outboundBodyStream, 0, SEEK_END);
@@ -1004,12 +1003,12 @@ class Client {
      * @return void
      */
     private function writeBufferedRequestBody($requestKey) {
-        $state = $this->states[$requestKey];
-        $socket = $this->requestKeyToSocketMap[$requestKey];
         /**
          * @var Request $request
          */
         $request = $this->requests[$requestKey];
+        $state = $this->states[$requestKey];
+        $socket = $this->requestKeySocketMap[$requestKey];
         
         $data = $request->getBody();
         $dataLen = strlen($data);
@@ -1041,7 +1040,7 @@ class Client {
      */
     private function writeStreamingRequestBody($requestKey) {
         $state = $this->states[$requestKey];
-        $socket = $this->requestKeyToSocketMap[$requestKey];
+        $socket = $this->requestKeySocketMap[$requestKey];
         
         if ($state->streamRequestBodyChunkPos >= $state->streamRequestBodyChunkLength) {
             $chunk = $this->readChunkFromStreamRequestBody($requestKey);
@@ -1087,17 +1086,15 @@ class Client {
      * @return string Returns string chunk from stream request body or FALSE on failure
      */
     protected function readChunkFromStreamRequestBody($requestKey) {
-        $state = $this->states[$requestKey];
         /**
          * @var Request $request
          */
         $request = $this->requests[$requestKey];
-        
-        $outboundBodyStream = $request->getBodyStream();
-        
-        fseek($outboundBodyStream, $state->streamRequestBodyPos, SEEK_SET);
+        $state = $this->states[$requestKey];
         
         $ioBufferSize = $this->getAttribute(self::ATTR_IO_BUFFER_SIZE);
+        $outboundBodyStream = $request->getBodyStream();
+        fseek($outboundBodyStream, $state->streamRequestBodyPos, SEEK_SET);
         
         return @fread($outboundBodyStream, $ioBufferSize);
     }
@@ -1130,23 +1127,24 @@ class Client {
      * @return void
      */
     private function read($requestKey) {
-        $state = $this->states[$requestKey];
-        
-        if ($state->state == self::STATE_READ_HEADERS) {
+        if ($this->isReadingHeaders($requestKey)) {
             $this->readHeaders($requestKey);
-        } elseif ($state->state > self::STATE_READ_HEADERS
-            && $state->state < self::STATE_COMPLETE
-        ) {
+        } elseif ($this->isReadingBody($requestKey)) {
             $this->readBody($requestKey);
         }
         
-        if ($state->state == self::STATE_READ_TO_CONTENT_LENGTH) {
-            $this->markResponseCompleteIfLengthReached($requestKey);
-        } elseif ($state->state == self::STATE_READ_CHUNKS) {
-            $this->markResponseCompleteIfFinalChunkReceived($requestKey);
+        if ($this->isReadingToContentLength($requestKey)
+            && $this->hasReceivedContentLength($requestKey)
+        ) {
+            $this->markComplete($requestKey);
+        } elseif ($this->isReadingChunks($requestKey)
+            && $this->hasReceivedFinalChunk($requestKey)
+        ) {
+            $this->dechunkResponseBody($requestKey);
+            $this->markComplete($requestKey);
         }
         
-        if ($state->state == self::STATE_COMPLETE) {
+        if ($this->isComplete($requestKey)) {
             $this->finalizeResponseBodyStream($requestKey);
         }
     }
@@ -1160,16 +1158,13 @@ class Client {
      */
     private function readHeaders($requestKey) {
         $state = $this->states[$requestKey];
-        $socket = $this->requestKeyToSocketMap[$requestKey];
+        $socket = $this->requestKeySocketMap[$requestKey];
         
         list($readData, $readDataLength) = $this->doSockRead($socket);
         
-        // The read length in bytes must be used to test for empty reads because "empty" read data
-        // (such as the one-byte string, "0") can yield false positives.
-        if (!$readDataLength && !$this->isSocketAlive($socket)) {
-            throw new ClientException(
-                'Socket failure encountered while retrieving response headers'
-            );
+        if ($this->isReadDataEmpty($readData) && !$this->isSocketAlive($socket)) {
+            $this->handleSocketDisconnectDuringRead($requestKey);
+            return;
         }
         
         // Ignore leading line-breaks in the response message as per RFC2616 Section 4.1
@@ -1184,8 +1179,37 @@ class Client {
         } elseif ($this->isResponseBodyAllowed($requestKey)) {
             $this->initializeResponseBodyRetrieval($requestKey);
         } else {
-            $state->state = self::STATE_COMPLETE;
+            $this->markComplete($requestKey);
         }
+    }
+    
+    private function handleSocketDisconnectDuringRead($requestKey) {
+        if ($this->isReadingHeaders($requestKey)) {
+            throw new ClientException(
+                'Socket failure encountered while retrieving response headers'
+            );
+        } elseif (!$this->isReadingChunks($requestKey)) {
+            $this->markComplete($requestKey);
+        } elseif ($this->hasReceivedFinalChunk($requestKey)) {
+            $this->dechunkResponseBody($requestKey);
+            $this->markComplete($requestKey);
+        } else {
+            throw new ClientException(
+                'Socket connection lost before chunked response entity body fully received'
+            );
+        }
+    }
+    
+    /**
+     * When determining if empty data was returned from a read operation we must ensure that a
+     * single byte string containing "0" was not returned otherwise we'll get false positives. An
+     * `empty` check on its own can cause errors.
+     * 
+     * @param string $readData
+     * @return bool
+     */
+    private function isReadDataEmpty($readData) {
+        return (empty($readData) && $readData !== '0');
     }
     
     /**
@@ -1206,11 +1230,9 @@ class Client {
         
         $readDataLength = strlen($readData);
         
-        // The read length in bytes must be used to test for empty reads because "empty" read data
-        // (such as the one-byte string, "0") can yield false positives.
-        if ($readDataLength) {
+        if (!$this->isReadDataEmpty($readData)) {
             $socketId = (int) $socket;
-            $requestKey = $this->socketIdToRequestKeyMap[$socketId];
+            $requestKey = $this->socketIdRequestKeyMap[$socketId];
             $this->updateStatsOnRead($socketId, $requestKey, $readDataLength);
         }
         
@@ -1232,9 +1254,9 @@ class Client {
         $this->socketPool[$socketId]['activity'] = $now;
         
         $this->requestStatistics[$requestKey]['bytesRecd'] += $readDataLength;
-        $this->requestStatistics[$requestKey]['lastBytesRecdAt'] = $now;
+        $this->requestStatistics[$requestKey]['lastRecdAt'] = $now;
         
-        $elapsedTime = ($now - $this->requestStatistics[$requestKey]['sendCompletedAt']);
+        $elapsedTime = ($now - $this->requestStatistics[$requestKey]['lastSentAt']);
         $bytesPerSecond = ($this->requestStatistics[$requestKey]['bytesRecd'] / $elapsedTime);
         
         // kilobytes per second (KB/s)
@@ -1336,21 +1358,25 @@ class Client {
             }
         }
         
+        // Clear the buffer after writing its data to the response body stream.
+        $response->setBody($responseBody);
+        $state->buffer = null;
+        
         $hasContentLength = $response->hasHeader('Content-Length');
+        $isChunked = $this->isResponseChunked($response);
         
         if ($hasContentLength && $this->receivedFullEntityBodyFromHeaderRead($requestKey)) {
-            $state->state = self::STATE_COMPLETE;
+            $this->markComplete($requestKey);
         } elseif ($hasContentLength) {
             $state->state = self::STATE_READ_TO_CONTENT_LENGTH;
-        } elseif ($this->isResponseChunked($response)) {
+        } elseif ($isChunked && $this->hasReceivedFinalChunk($requestKey)) {
+            $this->markComplete($requestKey);
+            $this->dechunkResponseBody($requestKey);
+        } elseif ($isChunked) {
             $state->state = self::STATE_READ_CHUNKS;
         } else {
             $state->state = self::STATE_READ_TO_SOCKET_CLOSE;
         }
-        
-        // Clear the buffer as we've now written this data to the response body stream.
-        $response->setBody($responseBody);
-        $state->buffer = null;
     }
     
     /**
@@ -1428,31 +1454,16 @@ class Client {
      */
     private function readBody($requestKey) {
         $state = $this->states[$requestKey];
-        $socket = $this->requestKeyToSocketMap[$requestKey];
-        /**
-         * @var \Artax\Http\ChainableResponse $response
-         */
-        $response = $this->responses[$requestKey];
+        $socket = $this->requestKeySocketMap[$requestKey];
         
         list($readData, $readDataLength) = $this->doSockRead($socket);
         
-        // The read length in bytes must be used to test for empty reads because "empty" read data
-        // (such as the one-byte string, "0") can yield false positives.
-        if (!$readDataLength && !$this->isSocketAlive($socket)) {
-            if ($state->state == self::STATE_READ_CHUNKS) {
-                if ($this->markResponseCompleteIfFinalChunkReceived($requestKey)) {
-                    return;
-                }
-                throw new ClientException(
-                    'Socket connection lost before chunked response entity body fully received'
-                );
-            } else {
-                $state->state = self::STATE_COMPLETE;
-                return;
-            }
+        if ($this->isReadDataEmpty($readData) && !$this->isSocketAlive($socket)) {
+            $this->handleSocketDisconnectDuringRead($requestKey);
+            return;
         }
         
-        $responseBody = $response->getBodyStream();
+        $responseBody = $this->getResponseBodyStream($requestKey);
         
         if ($readData !== '' && !$this->writeToTempResponseBodyStream($responseBody, $readData)) {
             throw new ClientException(
@@ -1461,14 +1472,16 @@ class Client {
         }
     }
     
-    /**
-     * Mark the response complete if the response body size reaches the expected Content-Length
-     * 
-     * @param string $requestKey
-     * @return void
-     */
-    private function markResponseCompleteIfLengthReached($requestKey) {
-        $state = $this->states[$requestKey];
+    private function getResponseBodyStream($requestKey) {
+        /**
+         * @var \Artax\Http\ChainableResponse $response
+         */
+        $response = $this->responses[$requestKey];
+        
+        return $response->getBodyStream();
+    }
+    
+    private function hasReceivedContentLength($requestKey) {
         /**
          * @var \Artax\Http\ChainableResponse $response
          */
@@ -1478,54 +1491,37 @@ class Client {
         $totalBytesRecd = ftell($responseBody);
         $expectedLength = (int) $response->getHeader('Content-Length');
         
-        if ($totalBytesRecd >= $expectedLength) {
-            $state->state = self::STATE_COMPLETE;
-        }
+        return ($totalBytesRecd >= $expectedLength);
     }
     
-    /**
-     * Mark the response complete if the the final response body chunk has been read.
-     * 
-     * @param string $requestKey
-     * @return bool
-     */
-    private function markResponseCompleteIfFinalChunkReceived($requestKey) {
-        $state = $this->states[$requestKey];
-        /**
-         * @var \Artax\Http\ChainableResponse $response
-         */
-        $response = $this->responses[$requestKey];
-        
-        $responseBody = $response->getBodyStream();
-        fseek($responseBody, -512, SEEK_END);
-        
+    private function hasReceivedFinalChunk($requestKey) {
+        $responseBody = $this->getResponseBodyStream($requestKey);
+        fseek($responseBody, -96, SEEK_END);
         $endOfStream = stream_get_contents($responseBody);
-        if (preg_match(",\r\n0+\r\n\r\n$,", $endOfStream)) {
-            
-            rewind($responseBody);
-            $dechunkedBodyStream = $this->dechunkResponseBody($responseBody);
-            $response->setBody($dechunkedBodyStream);
-            
-            $state->state = self::STATE_COMPLETE;
-            return true;
-        }
         
-        return false;
+        return preg_match(",\r\n0+\r\n\r\n(?:\s)*$,", $endOfStream);
     }
     
-    private function dechunkResponseBody($responseBody) {
+    private function dechunkResponseBody($requestKey) {
         if (!$tmpBody = $this->makeTempResponseBodyStream()) {
             throw new ClientException(
                 'Failed initializing temporary response entity body storage stream'
             );
         }
         
+        /**
+         * @var \Artax\Http\ChainableResponse $response
+         */
+        $response = $this->responses[$requestKey];
+        $responseBody = $response->getBodyStream();
+        
+        rewind($responseBody);
         stream_filter_prepend($responseBody, 'dechunk');
         stream_copy_to_stream($responseBody, $tmpBody);
         rewind($tmpBody);
         fclose($responseBody);
         
-        return $tmpBody;
+        $response->setBody($tmpBody);
     }
     
     /**
@@ -1544,28 +1540,21 @@ class Client {
         $this->validateContentLength($response);
         $this->validateContentMd5($response);
         
-        $responseBody = $response->getBodyStream();
-        rewind($responseBody);
+        if ($responseBody = $response->getBodyStream()) {
+            rewind($responseBody);
+        }
     }
     
-    /**
-     * Verify the received response body against the Content-Length header if applicable
-     * 
-     * @param Http\Response $response
-     * @throws ClientException
-     * @return void
-     */
     private function validateContentLength(Response $response) {
         if (!$response->hasHeader('Content-Length')) {
             return;
+        } elseif (!$responseBody = $response->getBodyStream()) {
+            return;
         }
-        
-        $responseBody = $response->getBodyStream();
         
         fseek($responseBody, 0, SEEK_END);
         $actualLength = ftell($responseBody);
         $expectedLength = $response->getHeader('Content-Length');
-        rewind($responseBody);
         
         if ($actualLength != $expectedLength) {
             throw new ClientException(
@@ -1575,15 +1564,10 @@ class Client {
         }
     }
     
-    /**
-     * Verify the received response body against the Content-MD5 header if applicable
-     * 
-     * @param Http\Response $response
-     * @throws ClientException
-     * @return void
-     */
     private function validateContentMd5(Response $response) {
         if (!$response->hasHeader('Content-MD5')) {
+            return;
+        } elseif (!$responseBody = $response->getBodyStream()) {
             return;
         }
         
@@ -1608,7 +1592,7 @@ class Client {
     }
     
     /**
-     * Check-in/close sockets, perform redirects and rewind response body stream on completion
+     * Check-in/close sockets as needed and perform redirect if necessary
      * 
      * @param string $requestKey
      * @return void
@@ -1856,5 +1840,23 @@ class Client {
         }
         
         return $connsClosed;
+    }
+    
+    /**
+     * Retrieve an array of statistics from the most recent request or request batch
+     * 
+     * @param string $requestKey Required to retrieve stats for a specific request in a sendMulti
+     *                           request batch. If Client::send was used, this value is not needed.
+     * @throws \Spl\DomainException On invalid request key
+     * @return array
+     */
+    public function getRequestStats($requestKey = 0) {
+        if (!isset($this->requestStatistics[$requestKey])) {
+            throw new DomainException(
+                'No request keys from the most recent retrieval match the specified value'
+            );
+        } else {
+            return $this->requestStatistics[$requestKey];
+        }
     }
 }
