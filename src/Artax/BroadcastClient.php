@@ -117,20 +117,20 @@ class BroadcastClient extends Client {
      * Read data from the specified socket, notifying listeners of the result
      * 
      * @param resource $socket
-     * @return array(mixed $readData, int $readDataLength)
+     * @return string $readData
      */
     protected function doSockRead($socket) {
-        list($readData, $readDataLength) = parent::doSockRead($socket);
+        $readData = parent::doSockRead($socket);
         
-        // The read length in bytes must be used to test for empty reads because "empty" read data
-        // (such as the one-byte string, "0") can yield false positives.
-        if ($readDataLength) {
+        if (!$this->isReadDataEmpty($readData)) {
             $socketId = (int) $socket;
             $requestKey = $this->socketIdRequestKeyMap[$socketId];
+            $readDataLength = strlen($readData);
+            
             $this->doReadNotify($requestKey, $readData, $readDataLength);
         }
         
-        return array($readData, $readDataLength);
+        return $readData;
     }
     
     /**

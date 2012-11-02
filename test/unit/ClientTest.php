@@ -1457,6 +1457,104 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $response = $client->send(new StdRequest('http://localhost'));
         $this->assertEquals(200, $response->getStatusCode());
     }
+    
+    public function testSendCompletesIfFullContentLengthReceivedOnTheFirstSocketRead() {
+        SocketStreamWrapper::$rawResponse = '' .
+            "HTTP/1.1 200 OK\r\n" .
+            "Date: Sun, 14 Oct 2012 06:00:46 GMT\r\n" .
+            "Content-Length: 4\r\n" .
+            "\r\n" .
+            "test";
+        
+        $client = new ClientStub(new HashingMediator);
+        $client->setAttribute(Client::ATTR_IO_BUFFER_SIZE, 99999);
+        $response = $client->send(new StdRequest('http://localhost'));
+        $this->assertEquals(200, $response->getStatusCode());
+    }
+    
+    public function testSendStopsReadingOnceContentLengthReached() {
+        SocketStreamWrapper::$rawResponse = '' .
+            "HTTP/1.1 200 OK\r\n" .
+            "Date: Sun, 14 Oct 2012 06:00:46 GMT\r\n" .
+            "Content-Length: 4\r\n" .
+            "\r\n" .
+            "test---"; // (should stop reading at the end of `test`)
+        
+        $mediator = new HashingMediator;
+        $totalBytes = 0;
+        $mediator->addListener(BroadcastClient::EVENT_IO_READ, function($key, $data) use (&$totalBytes) {
+            ++$totalBytes; // Make sure Client::ATTR_IO_BUFFER_SIZE == 1 for this to work
+            
+            // if we've reached the dashes at the end of the response body, stop
+            if ($totalBytes = strlen(SocketStreamWrapper::$rawResponse) - 3) {
+                SocketStreamWrapper::$readReturn = '';
+            }
+        });
+        
+        $client = new ClientStub($mediator);
+        $client->setAttribute(Client::ATTR_IO_BUFFER_SIZE, 1);
+        $response = $client->send(new StdRequest('http://localhost'));
+        $this->assertEquals('test', $response->getBody());
+    }
+    
+    public function testSendStopsReadingOnceFinalChunkRead() {
+        SocketStreamWrapper::$rawResponse = '' .
+            "HTTP/1.1 200 OK\r\n" .
+            "Date: Sun, 14 Oct 2012 06:00:46 GMT\r\n" .
+            "Transfer-Encoding: chunked\r\n" .
+            "\r\n" .
+            "4\r\n" .
+            "test" .
+            "\r\n" .
+            "0\r\n" .
+            "\r\n---"; // (should stop reading before the dashes)
+        
+        $mediator = new HashingMediator;
+        $totalBytes = 0;
+        $mediator->addListener(BroadcastClient::EVENT_IO_READ, function($key, $data) use (&$totalBytes) {
+            ++$totalBytes; // Make sure Client::ATTR_IO_BUFFER_SIZE == 1 for this to work
+            
+            // if we've reached the dashes at the end of the response body, stop
+            if ($totalBytes = strlen(SocketStreamWrapper::$rawResponse) - 3) {
+                SocketStreamWrapper::$readReturn = '';
+            }
+        });
+        
+        $client = new ClientStub($mediator);
+        $client->setAttribute(Client::ATTR_IO_BUFFER_SIZE, 1);
+        $response = $client->send(new StdRequest('http://localhost'));
+        $this->assertEquals('test', $response->getBody());
+    }
+    
+    /**
+     * @expectedException Spl\DomainException
+     */
+    public function testGetRequestStatsThrowsExceptionOnInvalidRequestKey() {
+        $client = new Client;
+        $client->getRequestStats();
+    }
+    
+    public function testGetRequestStats() {
+        SocketStreamWrapper::$rawResponse = '' .
+            "HTTP/1.1 200 OK\r\n" .
+            "Date: Sun, 14 Oct 2012 06:00:46 GMT\r\n" .
+            "Content-Length: 4\r\n" .
+            "\r\n" .
+            "done";
+        
+        $mediator = new HashingMediator;
+        $totalBytesWritten = 0;
+        $mediator->addListener(BroadcastClient::EVENT_IO_WRITE, function ($key, $data, $bytes) use (&$totalBytesWritten){
+            $totalBytesWritten += $bytes;
+        });
+        
+        $client = new ClientStub($mediator);
+        $response = $client->send(new StdRequest('http://localhost'));
+        $stats = $client->getRequestStats();
+        
+        $this->assertEquals($totalBytesWritten, $stats['bytesSent']);
+        $this->assertEquals(strlen(SocketStreamWrapper::$rawResponse), $stats['bytesRecd']);
+    }
 }
 
 
@@ -1488,14 +1586,14 @@ class ClientStub extends BroadcastClient {
     
     protected function doSockRead($bytesToRead) {
         if (SocketStreamWrapper::$failOnRead) {
-            return array(false, 0);
+            return false;
         } elseif (!is_null(SocketStreamWrapper::$readReturn)){
-            $return = SocketStreamWrapper::$readReturn;
-            $len = strlen($return);
+            $returnVal = SocketStreamWrapper::$readReturn;
             
             // reset to null to avoid getting stuck in a loop
             SocketStreamWrapper::$readReturn = null;
-            return array(SocketStreamWrapper::$readReturn, $len);
+            
+            return $returnVal;
         } else {
             return parent::doSockRead($bytesToRead);
         }
