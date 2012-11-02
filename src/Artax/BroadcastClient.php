@@ -96,8 +96,7 @@ class BroadcastClient extends Client {
                 self::EVENT_IO_WRITE,
                 $requestKey,
                 $writeData,
-                $writeDataLength,
-                $this->requestStatistics[$requestKey]
+                $writeDataLength
             );
         } catch (Exception $e) {
             $listenerException = new ClientException(
@@ -148,8 +147,7 @@ class BroadcastClient extends Client {
                 self::EVENT_IO_READ,
                 $requestKey,
                 $readData,
-                $readDataLength,
-                $this->requestStatistics[$requestKey]
+                $readDataLength
             );
         } catch (Exception $e) {
             $listenerException = new ClientException(
@@ -192,8 +190,7 @@ class BroadcastClient extends Client {
             $this->mediator->notify(
                 self::EVENT_RESPONSE,
                 $requestKey,
-                $this->responses[$requestKey],
-                $this->requestStatistics[$requestKey]
+                $this->responses[$requestKey]
             );
         } catch (Exception $e) {
             $listenerException = new ClientException(
@@ -238,8 +235,7 @@ class BroadcastClient extends Client {
             $this->mediator->notify(
                 self::EVENT_REDIRECT,
                 $requestKey,
-                $previousResponse,
-                $this->requestStatistics[$requestKey]
+                $previousResponse
             );
         } catch (Exception $e) {
             $listenerException = new ClientException(
