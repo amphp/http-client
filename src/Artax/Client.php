@@ -1446,7 +1446,9 @@ class Client {
         fseek($responseBody, -96, SEEK_END);
         $endOfStream = stream_get_contents($responseBody);
         
-        return preg_match(",\r\n0+\r\n\r\n(?:\s)*$,", $endOfStream);
+        $pattern = ",(?:^0\r\n\r\n$)|(?:\r\n0+\r\n\r\n(?:\s)*$),";
+        
+        return preg_match($pattern, $endOfStream);
     }
     
     private function dechunkResponseBody($requestKey) {
@@ -1654,7 +1656,7 @@ class Client {
      */
     private function normalizeRedirectLocation(Request $request, Response $response) {
         $locationHeader = $response->getHeader('Location');
-        
+
         if (!@parse_url($locationHeader,  PHP_URL_HOST)) {
             $newLocation = $request->getScheme() . '://' . $request->getAuthority();
             $newLocation.= '/' . ltrim($locationHeader, '/');

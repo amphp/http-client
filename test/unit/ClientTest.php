@@ -1523,6 +1523,20 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals('test', $response->getBody());
     }
     
+    public function testSendCompletesIfBodyConsistsOfSingleEmptyChunk() {
+        SocketStreamWrapper::$rawResponse = '' .
+            "HTTP/1.1 200 OK\r\n" .
+            "Date: Sun, 14 Oct 2012 06:00:46 GMT\r\n" .
+            "Transfer-Encoding: chunked\r\n" .
+            "\r\n" .
+            "0\r\n" .
+            "\r\n";
+        
+        $client = new ClientStub(new HashingMediator);
+        $response = $client->send(new StdRequest('http://localhost'));
+        $this->assertEquals('', $response->getBody());
+    }
+    
     /**
      * @expectedException Spl\DomainException
      */
