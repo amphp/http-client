@@ -505,11 +505,9 @@ class Client {
                 continue;
             }
             
-            $connectAttemptedAt = microtime(true);
             if (!$socket = $this->doMultiSafeSocketCheckout($requestKey)) {
                 continue;
             }
-            $connectedAt = microtime(true);
             
             $socketId = (int) $socket;
             
@@ -518,8 +516,7 @@ class Client {
             $this->requestKeySocketMap[$requestKey] = $socket;
             
             $this->requestStatistics[$requestKey] = array(
-                'timeSpentConnecting' => ($connectedAt - $connectAttemptedAt),
-                'connectedAt' => $connectedAt,
+                'connectedAt' => microtime(true),
                 'lastSentAt' => null,
                 'lastRecdAt' => null,
                 'bytesSent' => 0,
@@ -1791,6 +1788,19 @@ class Client {
     
     /**
      * Retrieve an array of statistics from the most recent request or request batch
+     * 
+     * Stat array keys:
+     * 
+     *  - connectedAt: The micro-timestamp when a connection was procured for the request
+     *  - lastSentAt: The micro-timestamp of the final socket IO write
+     *  - lastRecdAt: The micro-timestamp of the final socket IO read
+     *  - bytesSent: The number of bytes sent to make the request
+     *  - bytesRecd: The number of bytes read from the raw response message
+     *  - avgUpKbPerSecond: The average upload speed in KB/s (kilobytes per second)
+     *  - avgDownKbPerSecond: The average download speed in KB/s (kilobytes per second)
+     * 
+     * Note that for redirected responses, stats only reflect data from the final request/response 
+     * in the redirect chain.
      * 
      * @param string $requestKey Required to retrieve stats for a specific request in a sendMulti
      *                           request batch. If Client::send was used, this value should be
