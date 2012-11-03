@@ -1140,7 +1140,7 @@ class Client {
         }
         
         if ($this->isComplete($requestKey) && $this->isResponseBodyAllowed($requestKey)) {
-            $this->finalizeResponseBodyStream($requestKey);
+            $this->validateResponseBody($requestKey);
         }
     }
     
@@ -1492,7 +1492,7 @@ class Client {
      * @throws ClientException
      * @return void
      */
-    private function finalizeResponseBodyStream($requestKey) {
+    private function validateResponseBody($requestKey) {
         /**
          * @var \Artax\Http\ChainableResponse $response
          */
