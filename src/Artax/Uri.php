@@ -104,7 +104,7 @@ class Uri {
             'path'=>'',
             'query'=>'',
             'fragment'=>''
-        );
+       );
 
         switch (count($match)) {
             case 10: $parts['fragment'] = $match[9];
@@ -120,23 +120,28 @@ class Uri {
         if (empty($parts['scheme'])) {
             throw new ValueException(
                 "Invalid URI; no scheme specified: `$uri`"
-            );
+           );
         } elseif (empty($parts['host'])) {
             throw new ValueException(
                 "Invalid URI; no host specified: `$uri`"
-            );
+           );
         }
         
         $this->assignPropertiesFromParsedParts($parts);
     }
-
+    
     /**
      * @param array $parts
      * @return void
      */
     protected function assignPropertiesFromParsedParts(array $parts) {
-        $this->scheme = $parts['scheme'];
-        $this->host = $parts['host'];
+        // http://www.apps.ietf.org/rfc/rfc3986.html#sec-3.1
+        // "schemes are case-insensitive"
+        $this->scheme = strtolower($parts['scheme']);
+        
+        // http://www.apps.ietf.org/rfc/rfc3986.html#sec-3.2.2
+        // "The host subcomponent is case-insensitive"
+        $this->host = strtolower($parts['host']);
         
         $this->setUserInfo($parts['userinfo']);
         
@@ -148,9 +153,9 @@ class Uri {
             $this->hasExplicitPort = false;
         }
 
-        if (!empty($parts['path'])) {
-            $this->path = $parts['path'];
-            if ('/' == $parts['path']) {
+        if (!$this->isZeroSafeEmpty($parts['path'])) {
+            $this->path = $this->normalizePathDots($parts['path']);
+            if ('/' == substr($parts['path'], -1)) {
                 $this->hasExplicitTrailingHostSlash = true;
             }
         } else {
@@ -159,6 +164,37 @@ class Uri {
 
         $this->query = $parts['query'];
         $this->fragment = $parts['fragment'];
+    }
+    
+    protected function isZeroSafeEmpty($str) {
+        return (empty($str) && $str !== '0');
+    }
+    
+    /**
+     * @link http://www.apps.ietf.org/rfc/rfc3986.html#sec-5.2.4
+     */
+    protected function normalizePathDots($input) {
+        $output = '';
+        
+        $patternB1 = ',^(/\./),';
+        $patternB2 = ',^(/\.)$,';
+        $patternC  = ',^(/\.\./|/\.\.),';
+        $patternE  = ',(/*[^/]*),';
+        
+        while (!$this->isZeroSafeEmpty($input)) {
+            if (preg_match($patternB1, $input, $match) || preg_match($patternB2, $input, $match)) {
+                $input = preg_replace(",^" . $match[1] . ",", '/', $input);
+            } elseif (preg_match($patternC, $input, $match)) {
+                $input = preg_replace(',^' . preg_quote($match[1], ',') . ',', '/', $input);
+                $output = preg_replace(',/([^/]+)$,', '', $output);
+            } elseif (preg_match($patternE, $input, $match)) {
+                $initialSegment = $match[1];
+                $input = preg_replace(',^' . preg_quote($initialSegment, ',') . ',', '', $input, 1);
+                $output .= $initialSegment;
+            }
+        }
+
+        return $output;
     }
 
     /**
@@ -343,7 +379,7 @@ class Uri {
         if (!$this->hasQueryParameter($parameter)) {
             throw new DomainException(
                 "The specified query parameter does not exist: $parameter"
-            );
+           );
         }
         return $this->queryParameters[$parameter];
     }

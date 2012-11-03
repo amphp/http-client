@@ -211,4 +211,36 @@ class UriTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals('var=http://test.com', $uri->getQuery());
         $this->assertEquals('anchor', $uri->getFragment());
     }
+    
+    public function provideDotSegmentPaths() {
+        return array(
+            array('http://host/./',                 '/'),
+            array('http://host/.',                  '/'),
+            array('http://host/..',                 '/'),
+            array('http://host/./',                 '/'),
+            array('http://host/../',                '/'),
+            array('http://host/../../',             '/'),
+            array('http://host/../../.',            '/'),
+            array('http://host/../../..',           '/'),
+            array('http://host/a/b/c/./../../g',    '/a/g'),
+            array('http://host/some/thing=1/../42', '/some/42'),
+            array('http://host/foo/bar/.',          '/foo/bar/'),
+            array('http://host/foo/bar/./',         '/foo/bar/'),
+            array('http://host/foo/bar/..',         '/foo/'),
+            array('http://host/foo/bar/../',        '/foo/'),
+            array('http://host/foo/bar/../baz',     '/foo/baz'),
+            array('http://host/foo/bar/../..',      '/'),
+            array('http://host/foo/bar/../../'  ,   '/'),
+            array('http://host/foo/bar/../../baz',  '/baz'),
+            array('http://host/a/./b/../b/',        '/a/b/')
+        );
+    }
+    
+    /**
+     * @dataProvider provideDotSegmentPaths
+     */
+    public function testNormalizationOfDotSegmentsInUriPath($dotUri, $expectedPath) {
+        $uri = new Uri($dotUri);
+        $this->assertEquals($expectedPath, $uri->getPath());
+    }
 }
