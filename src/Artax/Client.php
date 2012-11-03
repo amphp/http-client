@@ -876,7 +876,7 @@ class Client {
         $socket = $this->requestKeySocketMap[$requestKey];
 
         /**
-         * @var Request $request
+         * @var Http\Request $request
          */
         $request = $this->requests[$requestKey];
         
@@ -964,7 +964,7 @@ class Client {
      */
     private function initializeStreamingRequestBodySend($requestKey) {
         /**
-         * @var Request $request
+         * @var Http\Request $request
          */
         $request = $this->requests[$requestKey];
         $state = $this->states[$requestKey];
@@ -985,7 +985,7 @@ class Client {
      */
     private function writeBufferedRequestBody($requestKey) {
         /**
-         * @var Request $request
+         * @var Http\Request $request
          */
         $request = $this->requests[$requestKey];
         $state = $this->states[$requestKey];
@@ -1068,7 +1068,7 @@ class Client {
      */
     protected function readChunkFromStreamRequestBody($requestKey) {
         /**
-         * @var Request $request
+         * @var Http\Request $request
          */
         $request = $this->requests[$requestKey];
         $state = $this->states[$requestKey];
@@ -1275,7 +1275,7 @@ class Client {
      */
     private function isResponseBodyAllowed($requestKey) {
         /**
-         * @var Request $request
+         * @var Http\Request $request
          */
         $request = $this->requests[$requestKey];
         /**
@@ -1600,20 +1600,28 @@ class Client {
      */
     private function canRedirect($requestKey) {
         /**
-         * @var Request $request
+         * @var Http\Request $request
          */
         $request = $this->requests[$requestKey];
+        
         /**
-         * @var ChainableResponse $response
+         * @var Http\ChainableResponse $response
          */
         $response = $this->responses[$requestKey];
         
-        $followLocation = $this->getAttribute(self::ATTR_FOLLOW_LOCATION);
         
-        if ($followLocation == self::FOLLOW_LOCATION_NONE) {
+        if (!$response->hasHeader('Location')) {
             return false;
         }
-        if (!$response->hasHeader('Location')) {
+        
+        // Go ahead and normalize the redirect location now so we can test the results.
+        // By normalizing BEFORE we know if ATTR_FOLLOW_LOCATION allows redirection we can
+        // easily test that the appropriate normalization occurred by validating the normalized
+        // Location header in the response.
+        $redirectLocation = $this->normalizeRedirectLocation($request, $response);
+        
+        $followLocation = $this->getAttribute(self::ATTR_FOLLOW_LOCATION);
+        if ($followLocation == self::FOLLOW_LOCATION_NONE) {
             return false;
         }
         
@@ -1637,7 +1645,6 @@ class Client {
             return false;
         }
         
-        $redirectLocation = $this->normalizeRedirectLocation($request, $response);
         if ($this->willRedirectInfinitely($response, $redirectLocation)) {
             throw new ClientException(
                 "Infinite redirect loop detected; cannot redirect to $redirectLocation"
@@ -1655,25 +1662,66 @@ class Client {
      * @return string
      */
     private function normalizeRedirectLocation(Request $request, Response $response) {
-        $locationHeader = $response->getHeader('Location');
-
-        if (!@parse_url($locationHeader,  PHP_URL_HOST)) {
-            $newLocation = $request->getScheme() . '://' . $request->getAuthority();
-            $newLocation.= '/' . ltrim($locationHeader, '/');
-            $response->setHeader('Location', $newLocation);
-            $response->addHeader(
-                'Warning',
-                "299 Invalid Location header: $locationHeader; $newLocation assumed"
-            );
-            
-            return $newLocation;
-        } else {
-            return $locationHeader;
+        $location = $response->getHeader('Location');
+        
+        if (@parse_url($location,  PHP_URL_HOST)) {
+            return $location;
         }
+        
+        if ($location[0] == '/' && !strstr($location, '.')) {
+            // If the relative location starts with "/" we assume it's relative to the site root
+            $newPath = $location;
+        } else {
+            // Otherwise, merge paths according to rules from RFC 3986 Section 5.2.3
+            $newPath = $this->mergeRelativePaths($request->getPath(), $location);
+        }
+        
+        $normalizedLocation = $request->getScheme() . '://' . $request->getAuthority() . '/';
+        $normalizedLocation.= ltrim($newPath, '/');
+        $normalizedLocation = new Uri($normalizedLocation);
+        
+        $response->setHeader('Location', $normalizedLocation->__toString());
+        $response->addHeader(
+           'Warning',
+            "299 Invalid Location header: $location; $normalizedLocation assumed"
+        );
+        
+        return $normalizedLocation;
     }
     
     /**
-     * @param ChainableResponse $response
+     * Merges a relative URI path with the path component of a base URI subject to the rules
+     * specified by RFC 3986 Section 5.2.3
+     * 
+     * "If the base URI has a defined authority component and an empty path, then return
+     * a string consisting of "/" concatenated with the reference's path; otherwise,
+     * return a string consisting of the reference's path component appended to all but
+     * the last segment of the base URI's path (i.e., excluding any characters after the
+     * right-most "/" in the base URI path, or excluding the entire base URI path if it
+     * does not contain any "/" characters)."
+     * 
+     * @param string $originalPath
+     * @param string $relativeLocation
+     * @link http://www.apps.ietf.org/rfc/rfc3986.html#sec-5.2.3
+     */
+    private function mergeRelativePaths($originalPath, $relativeLocation) {
+        if ($originalPath == '/') {
+            $merged = '/' . $relativeLocation;
+        } else {
+            $parts = explode('/', $originalPath);
+            $partsCount = count($parts);
+            
+            $parts[] = end($parts);
+            $parts[$partsCount-1] = $relativeLocation;
+            
+            $merged = implode('/', $parts);
+        }
+        
+        return preg_replace(',/+,', '/', $merged);
+    }
+    
+    /**
+     * @param Http\ChainableResponse $response
      * @param string $uri
      * @return bool
      */
@@ -1700,11 +1748,11 @@ class Client {
      */
     protected function doRedirect($requestKey) {
         /**
-         * @var Request $request
+         * @var Http\Request $request
          */
         $request = $this->requests[$requestKey];
         /**
-         * @var ChainableResponse $response
+         * @var Http\ChainableResponse $response
          */
         $response = $this->responses[$requestKey];
         

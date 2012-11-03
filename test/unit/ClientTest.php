@@ -1566,6 +1566,49 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals($totalBytesWritten, $stats['bytesSent']);
         $this->assertEquals(strlen(SocketStreamWrapper::$rawResponse), $stats['bytesRecd']);
     }
+    
+    public function provideRelativeLocationHeaders() {
+        return array(
+            array(
+                'requestPath' => '/',
+                'location' => '../../',
+                'expectedPath' => '/'
+            ),
+            array(
+                'requestPath' => '/foo/bar/',
+                'location' => '../../',
+                'expectedPath' => '/'
+            ),
+            array(
+                'requestPath' => '/foo/bar/',
+                'location' => '../',
+                'expectedPath' => '/foo/'
+            ),
+        );
+    }
+    
+    /**
+     * @dataProvider provideRelativeLocationHeaders
+     */
+    public function testRelativeUriPathsInLocationHeaderAreNormalized($requestPath, $location, $expectedPath) {
+        SocketStreamWrapper::$rawResponse = '' .
+            "HTTP/1.1 301 Moved Permanently\r\n" .
+            "Location: {$location}\r\n" .
+            "Content-Length: 6\r\n" .
+            "\r\n" .
+            "Moved!";
+        
+        $mediator = new HashingMediator;
+        $client = new ClientStub($mediator);
+        $client->setAttribute(Client::ATTR_FOLLOW_LOCATION, Client::FOLLOW_LOCATION_NONE);
+        
+        $request = new StdRequest('http://localhost' . $requestPath);
+        $response = $client->send($request);
+        
+        $locationUri = new Uri($response->getHeader('Location'));
+        
+        $this->assertEquals($expectedPath, $locationUri->getPath());
+    }
 }
 
 
