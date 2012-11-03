@@ -557,25 +557,26 @@ class Client {
      */
     private function checkoutSocket($requestKey) {
         $request = $this->requests[$requestKey];
-        
         $socketUri = $this->buildSocketUriFromHttpRequest($request);
         $authority = $socketUri->getAuthority();
         
         if ($socket = $this->doExistingSocketCheckout($authority)) {
             return $socket;
-        }
-        
-        if ($this->isNewSocketConnectionAllowed($authority)
-            && $socket = $this->doNewSocketCheckout($socketUri)
-        ) {
-            $this->socketPool[(int)$socket] = array(
+        } elseif ($this->isNewSocketConnectionAllowed($authority)) {
+            $socket = $this->doNewSocketCheckout($socketUri);
+            $socketId = (int) $socket;
+            
+            $this->socketPool[$socketId] = array(
                 'socket' => $socket,
                 'authority' => $authority,
                 'bytesSent' => 0,
                 'bytesRecd' => 0,
-                'activity' => microtime(true)
+                'activityAt' => microtime(true)
             );
+            
+            return $socket;
         }
+        
         return null;
     }
     
@@ -614,12 +615,23 @@ class Client {
      * @return resource Returns socket stream or NULL if no existing sockets are available for use
      */
     private function doExistingSocketCheckout($socketAuthority) {
+        
         foreach ($this->socketPool as $socketId => $socketArr) {
             $isAvailable = !isset($this->socketIdRequestKeyMap[$socketId]);
+            $existingSockAuthority = $socketArr['authority'];
+            $existingSock = $socketArr['socket'];
             
-            if ($isAvailable && $socketArr['authority'] == $socketAuthority) {
-                return $socketArr['socket'];
+            if (!($isAvailable && $existingSockAuthority == $socketAuthority)) {
+                continue;
             }
+            
+            if (!$this->isSocketAlive($existingSock)) {
+                @fclose($existingSock);
+                unset($this->socketPool[$socketId]);
+                continue;
+            }
+            
+            return $existingSock;
         }
         
         return null;
@@ -945,7 +957,7 @@ class Client {
         $now = microtime(true);
         
         $this->socketPool[$socketId]['bytesSent'] += $writeDataLength;
-        $this->socketPool[$socketId]['activity'] = $now;
+        $this->socketPool[$socketId]['activityAt'] = $now;
         
         $this->requestStatistics[$requestKey]['bytesSent'] += $writeDataLength;
         $this->requestStatistics[$requestKey]['lastSentAt'] = $now;
@@ -1225,7 +1237,7 @@ class Client {
         $readDataLength = strlen($readData);
         
         $this->socketPool[$socketId]['bytesRecd'] += $readDataLength;
-        $this->socketPool[$socketId]['activity'] = $now;
+        $this->socketPool[$socketId]['activityAt'] = $now;
         
         $this->requestStatistics[$requestKey]['bytesRecd'] += $readDataLength;
         $this->requestStatistics[$requestKey]['lastRecdAt'] = $now;
@@ -1578,15 +1590,30 @@ class Client {
          */
         $response = $this->responses[$requestKey];
         
-        if (!$this->getAttribute(self::ATTR_KEEP_CONNS_ALIVE)) {
+        /**
+         * @var \Artax\Http\Request $request
+         */
+        $request = $this->requests[$requestKey];
+        
+        if ($request->hasHeader('Connection')
+            && !strcmp($request->getHeader('Connection'), 'close')
+        ) {
             return false;
         }
         
-        $hasConnectionHeader = $response->hasHeader('Connection');
+        if ($response->hasHeader('Connection')
+            && !strcmp($response->getHeader('Connection'), 'close')
+        ) {
+            return false;
+        }
         
-        if ($hasConnectionHeader) {
-            return !strcmp($response->getHeader('Connection'), 'close');
-        } elseif ($response->getHttpVersion() < 1.1) {
+        if ($response->getHttpVersion() < 1.1
+            && !$response->hasHeader('Connection')
+        ) {
+            return false;
+        }
+        
+        if (!$this->getAttribute(self::ATTR_KEEP_CONNS_ALIVE)) {
             return false;
         }
         
@@ -1826,7 +1853,7 @@ class Client {
         $now = microtime(true);
         
         foreach ($this->socketPool as $socketId => $sockArr) {
-            $secondsSinceActive = $now - $sockArr['activity'];
+            $secondsSinceActive = $now - $sockArr['activityAt'];
             
             if ($secondsSinceActive > $maxInactivitySeconds) {
                 @fclose($sockArr['socket']);

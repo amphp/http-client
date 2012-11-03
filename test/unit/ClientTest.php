@@ -1810,6 +1810,10 @@ class SocketStreamWrapper {
         return static::$position;
     }
     
+    public function stream_stat() {
+        return array();
+    }
+    
     public function stream_eof() {
         return (static::$position == strlen(static::$rawResponse));
     }
