@@ -1586,6 +1586,8 @@ class Client {
         
         if ($hasConnectionHeader) {
             return !strcmp($response->getHeader('Connection'), 'close');
+        } elseif ($response->getHttpVersion() < 1.1) {
+            return false;
         }
         
         return true;

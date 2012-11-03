@@ -1609,6 +1609,21 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         
         $this->assertEquals($expectedPath, $locationUri->getPath());
     }
+    
+    public function testSocketIsClosedIfConnectionHeaderIsNotSpecifiedAndHttpVersionLessThan11() {
+        SocketStreamWrapper::$rawResponse = '' .
+            "HTTP/1.0 200 OK\r\n" .
+            "Date: Sun, 14 Oct 2012 06:00:46 GMT\r\n" .
+            "Content-Length: 4\r\n" .
+            "\r\n" .
+            "done";
+        
+        $client = new ClientStub(new HashingMediator);
+        $response = $client->send(new StdRequest('http://localhost'));
+        
+        // Should equal zero because the one socket we opened should have already been closed.
+        $this->assertEquals(0, $client->closeAllSockets());
+    }
 }
 
 
