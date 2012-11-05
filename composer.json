@@ -19,7 +19,7 @@
     }
   ],
   "require": {
-    "morrisonlevi/spl": "0.1",
+    "morrisonlevi/spl": ">=0.1",
     "php": ">=5.3"
   },
   "autoload": {
