@@ -9,16 +9,6 @@ namespace Artax\Http;
 interface Response extends Message {
     
     /**
-     * Get the response message Start Line
-     */
-    function getStartLine();
-    
-    /**
-     * Get the raw HTTP response data up to and including terminating header CRLFs
-     */
-    function getRawStartLineAndHeaders();
-    
-    /**
      * Get the status code (100-599) assigned to the response
      */
     function getStatusCode();
@@ -31,22 +21,12 @@ interface Response extends Message {
     /**
      * Get the reason phrase that accompanies the response's status code in the start line
      */
-    function getStatusDescription();
+    function getReasonPhrase();
     
     /**
      * Assign the start line reason phrase
      * 
-     * @param string $statusDescription
+     * @param string $reasonPhrase
      */
-    function setStatusDescription($statusDescription);
-    
-    /**
-     * Output the response by sending headers and echoing any assigned message body content
-     */
-    function send();
-    
-    /**
-     * Has this response been sent?
-     */
-    function wasSent();
+    function setReasonPhrase($reasonPhrase);
 }

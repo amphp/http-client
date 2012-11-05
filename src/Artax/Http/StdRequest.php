@@ -221,7 +221,7 @@ class StdRequest extends StdMessage implements Request {
      * 
      * @return string
      */
-    public function getRequestLine() {
+    public function getStartLine() {
         if ('CONNECT' != $this->getMethod()) {
             $msg = $this->getMethod() . ' ' . $this->getPath();
             $msg.= ($queryStr = $this->getQuery()) ? "?$queryStr" : '';
@@ -236,37 +236,12 @@ class StdRequest extends StdMessage implements Request {
     }
     
     /**
-     * Build a raw HTTP request line using the proxy-style absolute URI
-     * 
-     * @return string
-     */
-    public function getProxyRequestLine() {
-        $msg = $this->getMethod() . ' ' . $this->getUri() . ' ';
-        $msg.= 'HTTP/' . $this->getHttpVersion();
-        
-        return $msg;
-    }
-    
-    /**
-     * Get the raw HTTP message contents up to and including the terminating header CRLFs
-     * 
-     * @return string
-     */
-    public function getRawRequestLineAndHeaders() {
-        $msg = $this->getRequestLine() . "\r\n";
-        $msg.= $this->getRawHeaders();
-        $msg.= "\r\n";
-        
-        return $msg;
-    }
-    
-    /**
      * Returns a fully stringified HTTP request message
      * 
      * @return string
      */
     public function __toString() {
-        $msg = $this->getRawRequestLineAndHeaders();
+        $msg = $this->getStartLineAndHeaders();
         $msg.= $this->body ? $this->getBody() : '';
         
         return $msg;

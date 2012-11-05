@@ -30,16 +30,16 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideRequestsForRequestLineComparisons
-     * @covers Artax\Http\StdRequest::getRequestLine
+     * @covers Artax\Http\StdRequest::getStartLine
      */
-    public function testGetRequestLine($request, $expectedRequestLine) {
-        $this->assertEquals($expectedRequestLine, $request->getRequestLine());
+    public function testGetStartLine($request, $expectedRequestLine) {
+        $this->assertEquals($expectedRequestLine, $request->getStartLine());
     }
     
     /**
-     * @covers Artax\Http\StdRequest::getRawRequestLineAndHeaders
+     * @covers Artax\Http\StdRequest::getStartLineAndHeaders
      */
-    public function testGetRawRequestLineAndHeaders() {
+    public function testGetRawStartLineAndHeaders() {
         $request = new StdRequest('http://localhost', 'GET');
         $request->setHeader('Host', 'localhost');
         $request->setHeader('Date', 'Sun, 14 Oct 2012 06:00:46 GMT');
@@ -51,7 +51,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
             "\r\n"
         ;
         
-        $this->assertEquals($expected, $request->getRawRequestLineAndHeaders());
+        $this->assertEquals($expected, $request->getStartLineAndHeaders());
     }
     
     /**
@@ -231,16 +231,6 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
         
         $expected = "CONNECT localhost:8096 HTTP/1.1\r\nContent-Type: test\r\n\r\n";
         $this->assertEquals($expected, $request->__toString());
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::getProxyRequestLine
-     */
-    public function testProxyRequestLineGetterUsesAbsoluteUri() {
-        $uri = new Uri('http://localhost:8096/test.html');
-        $request = new StdRequest($uri, 'GET');
-        $expected = "GET " . $uri . " HTTP/1.1";
-        $this->assertEquals($expected, $request->getProxyRequestLine());
     }
     
     /**

@@ -12,6 +12,20 @@ namespace Artax\Http;
 interface Message {
 
     /**
+     * Get the message start line (requests: request-line, responses: status-line)
+     * 
+     * @return string
+     */
+    function getStartLine();
+    
+    /**
+     * Get the raw HTTP message data up to and including terminating header CRLF characters
+     * 
+     * @return string
+     */
+    function getStartLineAndHeaders();
+    
+    /**
      * Retrieve the HTTP message entity body in string form
      * 
      * @return string
@@ -144,7 +158,7 @@ interface Message {
     function setHttpVersion($decimalVersionNumer);
     
     /**
-     * Retrieve the HTTP message formatted for transport
+     * Retrieve the raw HTTP message formatted for transport
      * 
      * @return string
      */

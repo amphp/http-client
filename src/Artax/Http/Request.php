@@ -40,21 +40,6 @@ interface Request extends Message {
      * Access an associative array of query string parameters
      */
     function getAllQueryParameters();
-    
-    /**
-     * Get the raw HTTP message contents up to and including the terminating header CRLFs
-     */
-    function getRawRequestLineAndHeaders();
-    
-    /**
-     * Get the HTTP message request line
-     */
-    function getRequestLine();
-
-    /**
-     * Get the HTTP message request line with a proxy-style absolute URI
-     */
-    function getProxyRequestLine();
 
     /**
      * Access the request URI with protected user info obscured by asterisks as per rfc3986-3.2.1

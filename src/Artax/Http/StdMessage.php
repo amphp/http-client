@@ -372,4 +372,17 @@ abstract class StdMessage implements Message {
     public function removeAllHeaders() {
         $this->headers = array();
     }
+    
+    /**
+     * Get the raw HTTP message contents up to and including the terminating header CRLFs
+     * 
+     * @return string
+     */
+    public function getStartLineAndHeaders() {
+        $msg = $this->getStartLine() . "\r\n";
+        $msg.= $this->getRawHeaders();
+        $msg.= "\r\n";
+        
+        return $msg;
+    }
 }

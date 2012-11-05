@@ -10,7 +10,7 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
     public function testToStringBuildsRawHttpResponseMessage() {
         $response = new StdResponse();
         $response->setStatusCode(200);
-        $response->setStatusDescription('OK');
+        $response->setReasonPhrase('OK');
         $response->setAllHeaders(array(
             'CONTENT-TYPE' => 'text/html',
             'CONTENT-LENGTH' => 42
@@ -39,73 +39,13 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers Artax\Http\StdResponse::getStatusDescription
+     * @covers Artax\Http\StdResponse::getReasonPhrase
      */
-    public function testStatusDescriptionAccessorReturnsDescription() {
+    public function testReasonPhraseAccessorReturnsDescription() {
         $response = new StdResponse();
-        $this->assertNull($response->getStatusDescription());
-        $response->setStatusDescription('Not Found');
-        $this->assertEquals('Not Found', $response->getStatusDescription());
-    }
-    
-    /**
-     * @covers Artax\Http\StdResponse::send
-     * @covers Artax\Http\StdResponse::wasSent
-     * @covers Artax\Http\StdResponse::sendHeaders
-     * @runInSeparateProcess
-     */
-    public function testSendOutputsHeadersAndBodyAndReturnsNull() {
-        $response = new StdResponse(200, 'OK');
-        $response->setAllHeaders(array(
-            'CONTENT-TYPE' => 'text/html',
-            'CONTENT-LENGTH' => 42
-        ));
-        
-        $this->assertNull($response->send());
-        $this->assertTrue($response->wasSent());
-    }
-    
-    /**
-     * @covers Artax\Http\StdResponse::send
-     * @covers Artax\Http\StdResponse::normalizeHeadersForSend
-     */
-    public function testSendSetsTransferEncodingChunkedHeaderOnStreamableResponseBody() {
-        $body = fopen('php://memory', 'r+');
-        fwrite($body, 'test');
-        rewind($body);
-        
-        $response = $this->getMock(
-            'Artax\\Http\\StdResponse',
-            array('sendHeaders', 'sendBody')
-        );
-        $response->setAllHeaders(array(
-            'Content-Type' => 'text/html',
-            'CONTENT-LENGTH' => 42
-        ));
-        $response->setBody($body);
-        $response->send();
-        
-        $expectedHeaders = array(
-            'Content-Type' => 'text/html',
-            'Transfer-Encoding' => 'chunked'
-        );
-        
-        $this->assertEquals($expectedHeaders, $response->getAllHeaders());
-    }
-    
-    /**
-     * @covers Artax\Http\StdResponse::send
-     * @covers Artax\Http\StdResponse::normalizeHeadersForSend
-     */
-    public function testSendAddsContentLengthHeaderForNonStreamEntityBody() {
-        $body = 'body text';
-        $response = $this->getMock(
-            'Artax\\Http\\StdResponse',
-            array('sendHeaders', 'sendBody')
-        );
-        $response->setBody($body);
-        $response->send();
-        $this->assertEquals(strlen($body), $response->getHeader('Content-Length'));
+        $this->assertNull($response->getReasonPhrase());
+        $response->setReasonPhrase('Not Found');
+        $this->assertEquals('Not Found', $response->getReasonPhrase());
     }
     
     /**
@@ -114,49 +54,14 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
     public function testStartLineGetterReturnsRawStartLineString() {
         $response = new StdResponse();
         $response->setStatusCode(405);
-        $response->setStatusDescription('Method Not Allowed');
+        $response->setReasonPhrase('Method Not Allowed');
         $response->setHttpVersion('1.0');
         
         $this->assertEquals('HTTP/1.0 405 Method Not Allowed', $response->getStartLine());
     }
     
     /**
-     * @covers Artax\Http\StdResponse::send
-     * @covers Artax\Http\StdResponse::sendBody
-     */
-    public function testSendOutputsStringBody() {
-        $response = $this->getMock(
-            'Artax\\Http\\StdResponse',
-            array('sendHeaders')
-        );
-        $body = 'test';
-        $response->setBody($body);
-        $this->expectOutputString($body);
-        $response->send();
-    }
-    
-    /**
-     * @covers Artax\Http\StdResponse::send
-     * @covers Artax\Http\StdResponse::sendBody
-     */
-    public function testSendStreamsEntityBodyIfPossible() {
-        $contents = 'test';
-        $body = fopen('php://memory', 'r+');
-        fwrite($body, $contents);
-        rewind($body);
-        
-        $expectedOutput = dechex(strlen($contents)) . "\r\n$contents\r\n0\r\n\r\n";
-        
-        $response = $this->getMock('Artax\\Http\\StdResponse', array('sendHeaders'));
-        $response->setBody($body);
-        $this->expectOutputString($expectedOutput);
-        $response->send();
-        
-        fclose($body);
-    }
-    
-    /**
-     * @covers Artax\Http\StdResponse::getRawStartLineAndHeaders
+     * @covers Artax\Http\StdResponse::getStartLineAndHeaders
      */
     public function testGetRawStartLineAndHeaders() {
         $response = new StdResponse();
@@ -174,7 +79,7 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
             "\r\n"
         ;
         
-        $this->assertEquals($expected, $response->getRawStartLineAndHeaders());
+        $this->assertEquals($expected, $response->getStartLineAndHeaders());
     }
     
     /**
@@ -187,12 +92,12 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers Artax\Http\StdResponse::setStatusDescription
+     * @covers Artax\Http\StdResponse::setReasonPhrase
      */
-    public function testSetStatusDescriptionAssignsValueAndReturnsNull() {
+    public function testSetReasonPhraseAssignsValueAndReturnsNull() {
         $response = new StdResponse();
-        $this->assertNull($response->setStatusDescription('OK'));
-        $this->assertEquals('OK', $response->getStatusDescription());
+        $this->assertNull($response->setReasonPhrase('OK'));
+        $this->assertEquals('OK', $response->getReasonPhrase());
     }
     
     /**
@@ -274,21 +179,6 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
         
         $this->assertEquals('1.0', $response->getHttpVersion());
         $this->assertEquals('500', $response->getStatusCode());
-        $this->assertEquals('Internal Server Error', $response->getStatusDescription());
-    }
-    
-    /**
-     * @covers Artax\Http\StdResponse::normalizeHeadersForSend
-     */
-    public function testSendRemovesInvalidTransferEncodingAndContentLengthHeaders() {
-        $response = $this->getMock('Artax\\Http\\StdResponse', array('sendHeaders'));
-        
-        $response->setStartLine('HTTP/1.0 201 Created');
-        $response->setHeader('Content-Length', 42);
-        $response->setHeader('Transfer-Encoding', 'chunked');
-        $response->send();
-        
-        $this->assertFalse($response->hasHeader('Content-Length'));
-        $this->assertFalse($response->hasHeader('Transfer-Encoding'));
+        $this->assertEquals('Internal Server Error', $response->getReasonPhrase());
     }
 }

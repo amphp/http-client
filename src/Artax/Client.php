@@ -892,7 +892,7 @@ class Client {
          */
         $request = $this->requests[$requestKey];
         
-        $data = $request->getRawRequestLineAndHeaders();
+        $data = $request->getStartLineAndHeaders();
         $dataLen = strlen($data);
         $dataToWrite = substr($data, $state->headerBytesSent);
         
