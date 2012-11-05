@@ -1024,9 +1024,6 @@ class Client {
     /**
      * Writes a streaming request body using a chunked Transfer-Encoding.
      * 
-     * Chunks of the entity body stream are sized according to the Client::ATTR_IO_BUFFER_SIZE 
-     * attribute.
-     * 
      * @param string $requestKey
      * @throws ClientException
      * @return void
@@ -1290,6 +1287,7 @@ class Client {
          * @var Http\Request $request
          */
         $request = $this->requests[$requestKey];
+        
         /**
          * @var \Artax\Http\ChainableResponse $response
          */
@@ -1299,11 +1297,8 @@ class Client {
             return false;
         }
         
-        $statusCode = $response->getStatusCode();
-        if ($statusCode == 204
-            || $statusCode == 304
-            || ($statusCode >= 100 && $statusCode < 200)
-        ) {
+        $status = $response->getStatusCode();
+        if ($status == 204 || $status == 304 || ($status >= 100 && $status < 200)) {
             return false;
         }
         
@@ -1381,30 +1376,25 @@ class Client {
     /**
      * Do the response headers indicate a Transfer-Encoding value other than 'identity'?
      * 
+     * "If a Transfer-Encoding header field (section 14.41) is present and has any value other 
+     * than "identity", then the transfer-length is defined by use of the "chunked" 
+     * transfer-coding (section 3.6), unless the message is terminated by closing the 
+     * connection.
+     * 
      * @param Response $response
      * @return bool
+     * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.4
      */
     private function isResponseChunked(Response $response) {
         if (!$response->hasHeader('Transfer-Encoding')) {
             return false;
+        } else {
+            return strcmp('identity', $response->getHeader('Transfer-Encoding'));
         }
-        
-        // http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.4
-        // 
-        // "If a Transfer-Encoding header field (section 14.41) is present and has any value other 
-        // than "identity", then the transfer-length is defined by use of the "chunked" 
-        // transfer-coding (section 3.6), unless the message is terminated by closing the 
-        // connection.
-        $transferEncoding = $response->getHeader('Transfer-Encoding');
-        
-        return strcmp($transferEncoding, 'identity');
     }
     
     /**
      * Incrementally read the response body, updating the request state after each read.
-     * 
-     * The max number of bytes to read in one pass is controlled by the Client::ATTR_IO_BUFFER_SIZE
-     * attribute.
      * 
      * @param string $requestKey
      * @throws ClientException
@@ -1458,7 +1448,7 @@ class Client {
         fseek($responseBody, -96, SEEK_END);
         $endOfStream = stream_get_contents($responseBody);
         
-        $pattern = ",(?:^0\r\n\r\n$)|(?:\r\n0+\r\n\r\n(?:\s)*$),";
+        $pattern = ",(?:^0\r\n\r\n$)|(?:\r\n0+\r\n\r\n(?:\r\n)*$),";
         
         return preg_match($pattern, $endOfStream);
     }
