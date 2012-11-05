@@ -2,8 +2,6 @@
 
 namespace Artax\Http;
 
-use Spl\ValueException;
-
 class SendableResponse extends StdResponse {
 
     /**
