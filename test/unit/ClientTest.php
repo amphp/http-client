@@ -139,8 +139,8 @@ class ClientTest extends PHPUnit_Framework_TestCase {
             "POST / HTTP/1.1\r\n" .
             "Transfer-Encoding: chunked\r\n" .
             "User-Agent: ".Client::USER_AGENT."\r\n" .
-            "Host: ".$request->getAuthority()."\r\n" .
             "Connection: close\r\n" .
+            "Host: localhost\r\n" .
             "\r\n" .
             "0\r\n" .
             "\r\n";
@@ -169,8 +169,8 @@ class ClientTest extends PHPUnit_Framework_TestCase {
             "POST / HTTP/1.1\r\n" .
             "Content-Length: ".strlen($body)."\r\n" .
             "User-Agent: ".Client::USER_AGENT."\r\n" .
-            "Host: ".$request->getAuthority()."\r\n" .
             "Connection: close\r\n" .
+            "Host: localhost\r\n" .
             "\r\n" .
             "$body";
         
@@ -195,8 +195,8 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $expectedWrite = '' .
             "GET / HTTP/1.1\r\n" .
             "User-Agent: ".Client::USER_AGENT."\r\n" .
-            "Host: ".$request->getAuthority()."\r\n" .
             "Connection: close\r\n" .
+            "Host: localhost\r\n" .
             "\r\n";
         
         // Build a Client that connects to our custom Socket object
@@ -219,8 +219,8 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $expectedWrite = '' .
             "TRACE / HTTP/1.1\r\n" .
             "User-Agent: ".Client::USER_AGENT."\r\n" .
-            "Host: ".$request->getAuthority()."\r\n" .
             "Connection: close\r\n" .
+            "Host: localhost\r\n" .
             "\r\n";
         
         // Build a Client that connects to our custom Socket object
@@ -243,8 +243,8 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $expectedWrite = '' .
             "GET / HTTP/1.1\r\n" .
             "User-Agent: ".Client::USER_AGENT."\r\n" .
-            "Host: ".$request->getAuthority()."\r\n" .
             "Connection: close\r\n" .
+            "Host: localhost\r\n" .
             "\r\n";
         
         // Build a Client that connects to our custom Socket object
@@ -265,12 +265,12 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $request = new StdRequest('http://localhost');
         $request->setAllHeaders(array(
             'User-Agent' => Client::USER_AGENT,
-            'Host' => $request->getAuthority()
+            'Host' => 'localhost'
         ));
         $expectedWrite = '' .
             "GET / HTTP/1.1\r\n" .
             "User-Agent: ".Client::USER_AGENT."\r\n" .
-            "Host: ".$request->getAuthority()."\r\n" .
+            "Host: localhost\r\n" .
             "\r\n";
         
         $body = "12345678901234567890";
@@ -305,7 +305,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $request = new StdRequest('http://localhost', 'POST');
         $request->setAllHeaders(array(
             'User-Agent' => Client::USER_AGENT,
-            'Host' => $request->getAuthority()
+            'Host' => 'localhost'
         ));
         $body = fopen('php://memory', 'r+');
         fwrite($body, '12345678');
@@ -315,7 +315,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $expectedWrite = '' .
             "POST / HTTP/1.1\r\n" .
             "User-Agent: ".Client::USER_AGENT."\r\n" .
-            "Host: ".$request->getAuthority()."\r\n" .
+            "Host: localhost\r\n" .
             "Transfer-Encoding: chunked\r\n" .
             "Connection: close\r\n" .
             "\r\n" .
@@ -351,7 +351,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         $expectedWrite = '' .
             "GET / HTTP/1.1\r\n" .
             "User-Agent: ".Client::USER_AGENT."\r\n" .
-            "Host: ".$request->getAuthority()."\r\n" .
+            "Host: localhost:443\r\n" .
             "Connection: close\r\n" .
             "\r\n";
         $rawReturnResponse = '' .
@@ -1060,51 +1060,6 @@ class ClientTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers Artax\Client::send
-     * @covers Artax\Client::completeResponse
-     * @covers Artax\Client::canRedirect
-     * @covers Artax\Client::doRedirect
-     */
-    public function testRedirectAddsWarningOnInvalidRelativeLocationHeader() {
-        SocketStreamWrapper::$rawResponse = '' .
-            "HTTP/1.1 301 Moved Permanently\r\n" .
-            "Location: /redirect1\r\n" .
-            "Content-Length: 6\r\n" .
-            "\r\n" .
-            "Moved!";
-        
-        $redirectCount = 0;
-        $mediator = new HashingMediator;
-        $mediator->addListener(BroadcastClient::EVENT_REDIRECT, function($key, $response) use (&$redirectCount) {
-            ++$redirectCount;
-            SocketStreamWrapper::reset();
-            
-            if ($redirectCount == 1) {
-                SocketStreamWrapper::$rawResponse = '' .
-                    "HTTP/1.1 301 Moved Permanently\r\n" .
-                    "Location: /redirect2\r\n" .
-                    "Content-Length: 6\r\n" .
-                    "\r\n" .
-                    "Moved!";
-            } else {
-                SocketStreamWrapper::$rawResponse = '' .
-                    "HTTP/1.1 200 OK\r\n" .
-                    "Date: Sun, 14 Oct 2012 06:00:46 GMT\r\n" .
-                    "Content-Length: 20\r\n" .
-                    "\r\n" .
-                    "12345678901234567890";
-            }
-        });
-        
-        $client = new ClientStub($mediator);
-        $response = $client->send(new StdRequest('http://localhost'));
-        
-        $originalResponse = $response->getPreviousResponse();
-        $this->assertTrue($originalResponse->hasHeader('Warning'));
-        $this->assertEquals('http://localhost/redirect2', $response->getRequestUri());
-    }
-    
-    /**
      * @covers Artax\Client::closeAllSockets
      */
     public function testCloseAllSockets() {
@@ -1134,7 +1089,6 @@ class ClientTest extends PHPUnit_Framework_TestCase {
         
         $client = new ClientStub(new HashingMediator);
         $response = $client->send(new StdRequest('http://localhost'));
-        
         $this->assertEquals(0, $client->closeSocketsByHost('remotehost'));
         $this->assertEquals(1, $client->closeSocketsByHost('localhost'));
     }

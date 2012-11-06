@@ -15,11 +15,6 @@ class StdRequest extends StdMessage implements Request {
      * @var string
      */
     protected $method;
-    
-    /**
-     * @var array
-     */
-    protected $queryParameters;
 
     /**
      * @var string
@@ -37,20 +32,6 @@ class StdRequest extends StdMessage implements Request {
     public function __construct($uri, $method = self::GET) {
         $this->uri = $uri instanceof Uri ? $uri : new Uri($uri);
         $this->method = $method;
-        $this->queryParameters = $this->parseParametersFromString($this->uri->getQuery());
-    }
-    
-    /**
-     * @param string $paramString
-     * @return array
-     */
-    protected function parseParametersFromString($paramString) {
-        if ($paramString) {
-            parse_str($paramString, $parameters);
-            return array_map('urldecode', $parameters);
-        } else {
-            return array();
-        }
     }
     
     /**
@@ -137,62 +118,6 @@ class StdRequest extends StdMessage implements Request {
     }
     
     /**
-     * @return string
-     */
-    public function getScheme() {
-        return $this->uri->getScheme();
-    }
-    
-    /**
-     * @return string
-     */
-    public function getHost() {
-        return $this->uri->getHost();
-    }
-    
-    /**
-     * @return string
-     */
-    public function getPort() {
-        return $this->uri->getPort();
-    }
-    
-    /**
-     * @return string
-     */
-    public function getPath() {
-        return $this->uri->getPath();
-    }
-    
-    /**
-     * @return string
-     */
-    public function getQuery() {
-        return $this->uri->getQuery();
-    }
-    
-    /**
-     * @return string
-     */
-    public function getFragment() {
-        return $this->uri->getFragment();
-    }
-    
-    /**
-     * @return string
-     */
-    public function getAuthority() {
-        return $this->uri->getAuthority();
-    }
-    
-    /**
-     * @return string
-     */
-    public function getUserInfo() {
-        return $this->uri->getUserInfo();
-    }
-    
-    /**
      * @param string $parameter
      * @return bool
      */
@@ -223,10 +148,11 @@ class StdRequest extends StdMessage implements Request {
      */
     public function getStartLine() {
         if ('CONNECT' != $this->getMethod()) {
-            $msg = $this->getMethod() . ' ' . $this->getPath();
-            $msg.= ($queryStr = $this->getQuery()) ? "?$queryStr" : '';
+            $msg = $this->getMethod() . ' ';
+            $msg.= ($this->uri->getPath() ?: '/');
+            $msg.= ($queryStr = $this->uri->getQuery()) ? "?$queryStr" : '';
         } else {
-            $msg = 'CONNECT ' . $this->getAuthority();
+            $msg = 'CONNECT ' . $this->uri->getAuthority();
         }
         
         // The leading space before "HTTP" matters! Don't delete it!
@@ -236,8 +162,6 @@ class StdRequest extends StdMessage implements Request {
     }
     
     /**
-     * Returns a fully stringified HTTP request message
-     * 
      * @return string
      */
     public function __toString() {

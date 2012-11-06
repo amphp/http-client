@@ -42,47 +42,7 @@ interface Request extends Message {
     function getAllQueryParameters();
 
     /**
-     * Access the request URI with protected user info obscured by asterisks as per rfc3986-3.2.1
+     * Access the request URI string
      */
     function getUri();
-
-    /**
-     * Access the request URI scheme
-     */
-    function getScheme();
-
-    /**
-     * Access the request URI host
-     */
-    function getHost();
-
-    /**
-     * Access the request URI port
-     */
-    function getPort();
-
-    /**
-     * Access the request URI path
-     */
-    function getPath();
-
-    /**
-     * Access the request URI query string
-     */
-    function getQuery();
-
-    /**
-     * Access the request URI fragment
-     */
-    function getFragment();
-
-    /**
-     * Access URI authority with protected user info obscured by asterisks as per rfc3986-3.2.1
-     */
-    function getAuthority();
-
-    /**
-     * Access URI user info with the password obscured by asterisks as per rfc3986-3.2.1
-     */
-    function getUserInfo();
 }

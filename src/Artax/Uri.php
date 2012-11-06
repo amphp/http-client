@@ -2,7 +2,8 @@
 
 namespace Artax;
 
-use Spl\ValueException,
+use StdClass,
+    Spl\ValueException,
     Spl\DomainException;
 
 class Uri {
@@ -10,32 +11,32 @@ class Uri {
     /**
      * @var string
      */
-    private $scheme;
+    private $scheme = '';
 
     /**
      * @var string
      */
-    private $userInfo = '';
+    private $user = '';
 
     /**
      * @var string
      */
-    private $rawUserInfo = '';
+    private $pass = '';
 
     /**
      * @var string
      */
-    private $host;
+    private $host = '';
 
     /**
      * @var int
      */
-    private $port;
+    private $port = '';
 
     /**
      * @var string
      */
-    private $path = '/';
+    private $path = '';
 
     /**
      * @var string
@@ -50,130 +51,208 @@ class Uri {
     /**
      * @var array
      */
-    private $queryParameters;
-
+    private $queryParameters = array();
+    
     /**
      * @var bool
      */
-    private $hasExplicitPort = false;
-
+    private $isIpV4 = false;
+    
     /**
      * @var bool
      */
-    private $hasExplicitTrailingHostSlash = false;
-
+    private $isIpV6 = false;
+    
     /**
-     * @param $uri
+     * @var bool
+     */
+    private $isNormalized = false;
+    
+    /**
+     * @var array
+     */
+    private $components = array(
+        'scheme',
+        'host',
+        'port',
+        'user',
+        'pass',
+        'path',
+        'query',
+        'fragment'
+    );
+    
+    /**
+     * @param string $uri
      * @throws \Spl\ValueException
      */
     public function __construct($uri) {
         $uri = (string) $uri;
-        $this->parseUri($uri);
-        $this->queryParameters = $this->parseQueryParameters($this->query);
-    }
-
-    /**
-     * @param string $uri
-     * @throws \Spl\ValueException
-     * @return void
-     */
-    protected function parseUri($uri) {
-        $r  = "(?:([a-z0-9+-._]+)://)?";
-        $r .= "(?:";
-        $r .=   "(?:((?:[a-z0-9-._~!$&'()*+,;=:]|%[0-9a-f]{2})*)@)?";
-        $r .=   "(?:\[((?:[a-z0-9:])*)\])?";
-        $r .=   "((?:[a-z0-9-._~!$&'()*+,;=]|%[0-9a-f]{2})*)";
-        $r .=   "(?::(\d*))?";
-        $r .=   "(/(?:[a-z0-9-._~!$&'()*+,;=:@/]|%[0-9a-f]{2})*)?";
-        $r .=   "|";
-        $r .=   "(/?";
-        $r .=     "(?:[a-z0-9-._~!$&'()*+,;=:@]|%[0-9a-f]{2})+";
-        $r .=     "(?:[a-z0-9-._~!$&'()*+,;=:@\/]|%[0-9a-f]{2})*";
-        $r .=    ")?";
-        $r .= ")";
-        $r .= "(?:\?((?:[a-z0-9-._~!$&'()*+,;=:\/?@]|%[0-9a-f]{2})*))?";
-        $r .= "(?:#((?:[a-z0-9-._~!$&'()*+,;=:\/?@]|%[0-9a-f]{2})*))?";
-
-        preg_match("`$r`i", $uri, $match);
-
-        $parts = array(
-            'scheme'=>'',
-            'userinfo'=>'',
-            'host'=> '',
-            'port'=>'',
-            'path'=>'',
-            'query'=>'',
-            'fragment'=>''
-       );
-
-        switch (count($match)) {
-            case 10: $parts['fragment'] = $match[9];
-            case 9: $parts['query'] = $match[8];
-            case 8: $parts['path'] = $match[7];
-            case 7: $parts['path'] = $match[6] . $parts['path'];
-            case 6: $parts['port'] = $match[5];
-            case 5: $parts['host'] = $match[3] ? "[".$match[3]."]" : $match[4];
-            case 4: $parts['userinfo'] = ($match[2]);
-            case 3: $parts['scheme'] = $match[1];
-        }
-
-        if (empty($parts['scheme'])) {
+        
+        if (!$parts = $this->parse($uri)) {
             throw new ValueException(
-                "Invalid URI; no scheme specified: `$uri`"
-           );
-        } elseif (empty($parts['host'])) {
-            throw new ValueException(
-                "Invalid URI; no host specified: `$uri`"
-           );
+                'Invalid URI specified at ' . get_class($this) . '::__construct Argument 1'
+            );
         }
         
-        $this->assignPropertiesFromParsedParts($parts);
+        $this->uri = $uri;
+        
+        foreach ($parts as $key => $value) {
+            $this->{$key} = $value;
+        }
+        
+        // http://www.apps.ietf.org/rfc/rfc3986.html#sec-3.1
+        // "schemes are case-insensitive"
+        $this->scheme = strtolower($this->scheme);
+        
+        // http://www.apps.ietf.org/rfc/rfc3986.html#sec-3.2.2
+        // "Although host is case-insensitive, producers and normalizers should use lowercase for 
+        // registered names and hexadecimal addresses for the sake of uniformity"
+        $this->host = strtolower($this->host);
+        
+        if ($this->port && $this->scheme) {
+            $this->normalizeDefaultPort();
+        }
+        
+        if (filter_var($this->host, FILTER_VALIDATE_URL, FILTER_FLAG_IPV4)) {
+            $this->isIpV4 = true;
+        } elseif (filter_var($this->host, FILTER_VALIDATE_URL, FILTER_FLAG_IPV6)) {
+            $this->isIpV6 = true;
+        }
+        
+        $this->parseQueryParameters();
+    }
+    
+    private function parse($uri) {
+        // PHP 5.4.7 fixed the incorrect parsing of network path references
+        if (version_compare(PHP_VERSION, '5.4.7') >= 0) {
+            return parse_url($uri);
+        }
+        
+        $isPhp533 = (version_compare(PHP_VERSION, '5.3.3') >= 0);
+        
+        // PHP < 5.3.3 triggers E_WARNING on failure
+        $parts = $isPhp533 ? parse_url($uri) : @parse_url($uri);
+        
+        // If no path is present or it's not a network path reference we're finished
+        if (!isset($parts['path']) || substr($parts['path'], 0, 2) !== '//') {
+            return $parts;
+        }
+        
+        $schemeExists = isset($parts['scheme']);
+        $tmpScheme = $schemeExists ? $parts['scheme'] : 'scheme';
+        
+        $tmpUri = $tmpScheme . ':' . $parts['path'];
+        $tmpParts = $isPhp533 ? parse_url($tmpUri) : @parse_url($tmpUri);
+        
+        $parts['host'] = $tmpParts['host'];
+        
+        if (isset($tmpParts['path'])) {
+            $parts['path'] = $tmpParts['path'];
+        } else {
+            unset($parts['path']);
+        }
+        
+        return $parts;
     }
     
     /**
-     * @param array $parts
+     * @return string
+     */
+    public function __toString() {
+        return $this->reconstitute(
+            $this->scheme,
+            $this->getAuthority(),
+            $this->path,
+            $this->query,
+            $this->fragment
+        );
+    }
+    
+    /**
+     * @link http://tools.ietf.org/html/rfc3986#section-5.3
+     */
+    private function reconstitute($scheme, $authority, $path, $query, $fragment) {
+        $result = '';
+            
+        if ($scheme) {
+            $result .= $scheme . ':';
+        }
+    
+        if ($authority) {
+            $result .= '//';
+            $result .= $authority;
+        }
+        
+        $result .= $path;
+    
+        if ($query) {
+            $result .= '?';
+            $result .= $query;
+        }
+    
+        if ($fragment) {
+            $result .= '#';
+            $result .= $fragment;
+        }
+    
+        return $result;
+    }
+    
+    /**
+     * @return bool
+     */
+    public function isNormalized() {
+        return $this->isNormalized;
+    }
+    
+    /**
+     * Normalizes components of the assigned URI
+     * 
      * @return void
      */
-    protected function assignPropertiesFromParsedParts(array $parts) {
-        // http://www.apps.ietf.org/rfc/rfc3986.html#sec-3.1
-        // "schemes are case-insensitive"
-        $this->scheme = strtolower($parts['scheme']);
-        
-        // http://www.apps.ietf.org/rfc/rfc3986.html#sec-3.2.2
-        // "The host subcomponent is case-insensitive"
-        $this->host = strtolower($parts['host']);
-        
-        $this->setUserInfo($parts['userinfo']);
-        
-        if (!empty($parts['port'])) {
-            $this->port = (int) $parts['port'];
-            $this->hasExplicitPort = true;
-        } else {
-            $this->port = $this->extrapolatePortFromScheme($this->scheme);
-            $this->hasExplicitPort = false;
-        }
-
-        if (!$this->isZeroSafeEmpty($parts['path'])) {
-            $this->path = $this->normalizePathDots($parts['path']);
-            if ('/' == substr($parts['path'], -1)) {
-                $this->hasExplicitTrailingHostSlash = true;
-            }
+    public function normalize() {
+        if ($this->path) {
+            $this->path = $this->removeDotSegments($this->path);
+            $this->path = $this->decodeUnreservedCharacters($this->path);
+            $this->path = $this->decodeReservedSubDelimiters($this->path);
         } else {
             $this->path = '/';
         }
-
-        $this->query = $parts['query'];
-        $this->fragment = $parts['fragment'];
+        
+        $this->isNormalized = true;
     }
     
-    protected function isZeroSafeEmpty($str) {
-        return (empty($str) && $str !== '0');
+    /**
+     * "URI producers and normalizers should omit the port component and its ":" delimiter if port 
+     * is empty or if its value would be the same as that of the scheme's default."
+     * 
+     * @link http://www.apps.ietf.org/rfc/rfc3986.html#sec-3.2.3
+     */
+    private function normalizeDefaultPort() {
+        switch($this->scheme) {
+            case 'http':
+                $this->port = ($this->port == 80) ? '' : $this->port;
+                break;
+            case 'https':
+                $this->port = ($this->port == 443) ? '' : $this->port;
+                break;
+            case 'ftp':
+                $this->port = ($this->port == 21) ? '' : $this->port;
+                break;
+            case 'ftps':
+                $this->port = ($this->port == 990) ? '' : $this->port;
+                break;
+            case 'smtp':
+                $this->port = ($this->port == 25) ? '' : $this->port;
+                break;
+        }
     }
     
     /**
      * @link http://www.apps.ietf.org/rfc/rfc3986.html#sec-5.2.4
      */
-    protected function normalizePathDots($input) {
+    private function removeDotSegments($input) {
         $output = '';
         
         $patternA  = ',^(\.\.?/),';
@@ -183,7 +262,7 @@ class Uri {
         $patternD  = ',^(\.\.?)$,';
         $patternE  = ',(/*[^/]*),';
         
-        while (!$this->isZeroSafeEmpty($input)) {
+        while ($input !== '') {
             if (preg_match($patternA, $input)) {
                 $input = preg_replace($patternA, '', $input);
             } elseif (preg_match($patternB1, $input, $match) || preg_match($patternB2, $input, $match)) {
@@ -191,8 +270,8 @@ class Uri {
             } elseif (preg_match($patternC, $input, $match)) {
                 $input = preg_replace(',^' . preg_quote($match[1], ',') . ',', '/', $input);
                 $output = preg_replace(',/([^/]+)$,', '', $output);
-            } elseif (preg_match($patternD, $input)) {
-                $input = preg_replace($patternD, '', $input);
+            } elseif ($input == '.' || $input == '..') { // pattern D
+                $input = '';
             } elseif (preg_match($patternE, $input, $match)) {
                 $initialSegment = $match[1];
                 $input = preg_replace(',^' . preg_quote($initialSegment, ',') . ',', '', $input, 1);
@@ -202,78 +281,121 @@ class Uri {
 
         return $output;
     }
+    
+    /**
+     * @link http://www.apps.ietf.org/rfc/rfc3986.html#sec-2.3
+     */
+    private function decodeUnreservedCharacters($str) {
+        $str = rawurldecode($str);
+        $str = rawurlencode($str);
+        
+        $encoded = array('%2F', '%3A', '%40');
+        $decoded = array('/', ':', '@');
+        
+        return str_replace($encoded, $decoded, $str);
+    }
 
     /**
-     * @param string $scheme
-     * @return int Returns default port for the specified scheme
+     * @link http://www.apps.ietf.org/rfc/rfc3986.html#sec-2.2
      */
-    protected function extrapolatePortFromScheme($scheme) {
-        $scheme = strtolower($scheme);
-
-        switch($scheme) {
-            case 'http':
-                $port = 80;
-                break;
-            case 'https':
-                $port = 443;
-                break;
-            case 'ftp':
-                $port = 21;
-                break;
-            case 'ftps':
-                $port = 990;
-                break;
-            case 'smtp':
-                $port = 25;
-                break;
-            default:
-                $port = 0; // unsupported scheme
-                break;
+    private function decodeReservedSubDelimiters($str) {
+        $encoded = array('%21', '%24', '%26', '%27', '%28', '%29', '%2A', '%2B', '%2C', '%3B', '%3D');
+        $decoded = array('!', '$', '&', "'", '(', ')', '*', '+', ',', ';', '=');
+        
+        return str_replace($encoded, $decoded, $str);
+    }
+    
+    /**
+     * Is the specified URI resolvable against the current URI instance?
+     */
+    public function canResolve($toResolve) {
+        if (!(is_string($toResolve) || method_exists($toResolve, '__toString'))) {
+            return false;
         }
-
-        return $port;
+        
+        try {
+            $uri = new Uri($toResolve);
+        } catch (ValueException $e) {
+            return false;
+        }
+        
+        return true;
     }
-
+    
     /**
-     * @param string $userInfo
+     * @return Uri
+     * @link http://tools.ietf.org/html/rfc3986#section-5.2.2
      */
-    protected function setUserInfo($userInfo) {
-        $this->rawUserInfo = $userInfo;
-        $this->userInfo = $userInfo ? $this->protectUserInfo($userInfo) : '';
-    }
+    public function resolve($toResolve) {
+        $r = new Uri($toResolve);
 
-    /**
-     * @param string $rawUserInfo
-     * @return string
-     */
-    protected function protectUserInfo($rawUserInfo) {
-        $colonPos = strpos($rawUserInfo, ':');
-
-        // rfc3986-3.2.1 | http://tools.ietf.org/html/rfc3986#section-3.2
-        // "Applications should not render as clear text any data
-        // after the first colon (":") character found within a userinfo
-        // subcomponent unless the data after the colon is the empty string
-        // (indicating no password)"
-        if ($colonPos !== FALSE && strlen($rawUserInfo)-1 > $colonPos) {
-            return substr($rawUserInfo, 0, $colonPos) . ':********';
+        if ($r->__toString() === '') {
+            return clone $this;
+        }
+        
+        $base = $this;
+        
+        $t = new StdClass;
+        $t->scheme = '';
+        $t->authority = '';
+        $t->path = '';
+        $t->query = '';
+        $t->fragment = '';
+        
+        if ('' !== $r->getScheme()) {
+            $t->scheme    = $r->getScheme();
+            $t->authority = $r->getAuthority();
+            $t->path      = $this->removeDotSegments($r->getPath());
+            $t->query     = $r->getQuery();
         } else {
-            return $rawUserInfo;
-        }
+            if ('' !== $r->getAuthority()) {
+                $t->authority = $r->getAuthority();
+                $t->path      = $this->removeDotSegments($r->getPath());
+                $t->query     = $r->getQuery();
+            } else {
+                if ('' == $r->getPath()) {
+                    $t->path = $base->getPath();
+                    if ($r->getQuery()) {
+                        $t->query = $r->getQuery();
+                    } else {
+                        $t->query = $base->getQuery();
+                    };
+                } else {
+                    if ($r->getPath() && substr($r->getPath(), 0, 1) == "/") {
+                        $t->path = $this->removeDotSegments($r->getPath());
+                    } else {
+                        $t->path = $this->mergePaths($base->getPath(), $r->getPath());
+                    };
+                    $t->query = $r->getQuery();
+                };
+                $t->authority = $base->getAuthority();
+            };
+            $t->scheme = $base->getScheme();
+        };
+        
+        $t->fragment = $r->getFragment();
+        
+        $result = $this->reconstitute($t->scheme, $t->authority, $t->path, $t->query, $t->fragment);
+        
+        return new Uri($result);
     }
-
+    
     /**
-     * @param string $queryString
-     * @return array
+     * @link http://tools.ietf.org/html/rfc3986#section-5.2.3
      */
-    private function parseQueryParameters($queryString) {
-        if ($queryString) {
-            parse_str($queryString, $parameters);
-            return array_map('urldecode', $parameters);
+    private function mergePaths($basePath, $pathToMerge) {
+        if ($basePath == '') {
+            $merged = '/' . $pathToMerge;
         } else {
-            return array();
+            $parts = explode('/', $basePath);
+            array_pop($parts);
+            $parts[] = $pathToMerge;
+            $merged = implode('/', $parts);
         }
+        
+        return $this->removeDotSegments($merged);
     }
-
+    
     /**
      * @return string
      */
@@ -284,15 +406,15 @@ class Uri {
     /**
      * @return string
      */
-    public function getUserInfo() {
-        return $this->userInfo;
+    public function getUser() {
+        return $this->user;
     }
 
     /**
      * @return string
      */
-    public function getRawUserInfo() {
-        return $this->rawUserInfo;
+    public function getPass() {
+        return $this->pass;
     }
 
     /**
@@ -329,45 +451,60 @@ class Uri {
     public function getFragment() {
         return $this->fragment;
     }
-
+    
     /**
-     * Uses protected user info by default as per rfc3986-3.2.1
-     *
-     * @return string
+     * Retrieve the URI without the fragment component
+     */
+    public function getAbsoluteUri() {
+        return $this->reconstitute($scheme, $authority, $path, $query, $fragment = '');
+    }
+    
+    /**
+     * @return bool
+     */
+    public function isIpV4() {
+        return $this->isIpV4;
+    }
+    
+    /**
+     * @return bool
+     */
+    public function isIpV6() {
+        return $this->isIpV6;
+    }
+    
+    /**
+     * @link http://www.apps.ietf.org/rfc/rfc3986.html#sec-3.2
      */
     public function getAuthority() {
-        $authority = $this->userInfo ? "{$this->userInfo}@" : '';
-        $authority.= $this->host;
-        $authority.= $this->hasExplicitPort ? ":{$this->port}" : '';
-
+        $authority = $this->user;
+        $authority.= $this->pass ? (':' . '********') : '';
+        $authority.= $authority ? '@' : '';
+        
+        if ($this->isIpV6) {
+            $authority.= $this->port ? ("{$this->host}:{$this->port}") : $this->host;
+        } else {
+            $authority.= $this->host;
+            $authority.= $this->port ? (':' . $this->port) : '';
+        }
+        
         return $authority;
     }
-
+    
     /**
-     * Uses protected user info by default as per rfc3986-3.2.1
-     *
-     * @return string
+     * @param string $queryString
+     * @return array
      */
-    public function __toString() {
-        $uri = $this->scheme . '://' . $this->getAuthority();
-
-        if ('/' == $this->path) {
-            $uri .= $this->hasExplicitTrailingHostSlash ? '/' : '';
-        } else {
-            $uri .= $this->path;
+    private function parseQueryParameters() {
+        if ($this->query) {
+            parse_str($this->query, $parameters);
+            $keys = array_map('rawurldecode', array_keys($parameters));
+            $values = array_map('rawurldecode', array_values($parameters));
+            
+            $this->queryParameters = array_combine($keys, $values);
         }
-
-        if (!empty($this->query)) {
-            $uri .= "?{$this->query}";
-        }
-
-        if (!empty($this->fragment)) {
-            $uri .= "#{$this->fragment}";
-        }
-
-        return $uri;
     }
-
+    
     /**
      * @param string $parameter
      * @return bool
@@ -395,5 +532,9 @@ class Uri {
      */
     public function getAllQueryParameters() {
         return $this->queryParameters;
+    }
+    
+    public function getRawUri() {
+        return $this->uri;
     }
 }

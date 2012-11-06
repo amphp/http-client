@@ -7,7 +7,6 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Http\StdRequest::__construct
-     * @covers Artax\Http\StdRequest::parseParametersFromString
      */
     public function testThatNoQueryParamsAreParsedOnEmptyUriQueryString() {
         $request = new StdRequest('http://localhost', 'GET');
@@ -20,7 +19,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
         $e1 = 'GET /some-url?myVar=42 HTTP/1.0';
         
         $r2 = new StdRequest('http://localhost:8096', 'CONNECT');
-        $e2 = 'CONNECT '.$r2->getAuthority().' HTTP/1.1';
+        $e2 = 'CONNECT localhost:8096 HTTP/1.1';
         
         return array(
             array($r1, $e1),
@@ -66,66 +65,6 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Http\StdRequest::__construct
-     * @covers Artax\Http\StdRequest::getScheme
-     */
-    public function testSchemeGetterReturnsComposedUriGetSchemeResult() {
-        $uri = new Uri('https://localhost');
-        $request = new StdRequest($uri, 'GET');
-        $this->assertEquals('https', $request->getScheme());
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::__construct
-     * @covers Artax\Http\StdRequest::getHost
-     */
-    public function testHostGetterReturnsComposedUriGetHostResult() {
-        $uri = new Uri('http://localhost:8096');
-        $request = new StdRequest($uri, 'GET');
-        $this->assertEquals('localhost', $request->getHost());
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::__construct
-     * @covers Artax\Http\StdRequest::getPort
-     */
-    public function testPortGetterReturnsComposedUriGetPortResult() {
-        $uri = new Uri('http://localhost:8096');
-        $request = new StdRequest($uri, 'GET');
-        $this->assertEquals(8096, $request->getPort());
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::__construct
-     * @covers Artax\Http\StdRequest::getPath
-     */
-    public function testPathGetterReturnsComposedUriGetPathResult() {
-        $uri = new Uri('http://localhost/test.php?var1=one&var2=2');
-        $request = new StdRequest($uri, 'GET');
-        $this->assertEquals('/test.php', $request->getPath());
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::__construct
-     * @covers Artax\Http\StdRequest::getQuery
-     */
-    public function testQueryGetterReturnsComposedUriGetQueryResult() {
-        $uri = new Uri('http://localhost/test.php?var1=one&var2=2');
-        $request = new StdRequest($uri, 'GET');
-        $this->assertEquals('var1=one&var2=2', $request->getQuery());
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::__construct
-     * @covers Artax\Http\StdRequest::getFragment
-     */
-    public function testFragmentGetterReturnsComposedUriGetFragmentResult() {
-        $uri = new Uri('http://localhost/test.php#someFrag');
-        $request = new StdRequest($uri, 'GET');
-        $this->assertEquals('someFrag', $request->getFragment());
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::__construct
      * @covers Artax\Http\StdRequest::getMethod
      */
     public function testMethodGetterReturnsMethodProperty() {
@@ -136,32 +75,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Http\StdRequest::__construct
-     * @covers Artax\Http\StdRequest::getAuthority
-     */
-    public function testAuthorityGetterReturnsUriAuthority() {
-        $uri = $this->getMock('Artax\\Uri', array('getAuthority'), array('http://something'));
-        $uri->expects($this->once())
-            ->method('getAuthority')
-            ->will($this->returnValue('test'));
-        
-        $request = new StdRequest($uri, 'GET');
-        $this->assertEquals('test', $request->getAuthority());
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::__construct
-     * @covers Artax\Http\StdRequest::getUserInfo
-     */
-    public function testUserInfoGetterReturnsUriFunctionResult() {
-        $uri = new Uri('http://user:pass@localhost');
-        $request = new StdRequest($uri, 'GET');
-        $this->assertEquals('user:********', $request->getUserInfo());
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::__construct
      * @covers Artax\Http\StdRequest::hasQueryParameter
-     * @covers Artax\Http\StdRequest::parseParametersFromString
      */
     public function testHasQueryParameterReturnsBoolOnParameterAvailability() {
         $uri = new Uri('http://localhost/test?var1=one&var2=2');
@@ -173,7 +87,6 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     /**
      * @covers Artax\Http\StdRequest::__construct
      * @covers Artax\Http\StdRequest::getQueryParameter
-     * @covers Artax\Http\StdRequest::parseParametersFromString
      */
     public function testQueryParameterGetterReturnsRequestedParameterValue() {
         $uri = new Uri('http://localhost/test?var1=one&var2=2');

@@ -79,6 +79,11 @@ class Client {
     /**
      * @var array
      */
+    protected $requestUris;
+    
+    /**
+     * @var array
+     */
     protected $requests;
     
     /**
@@ -99,7 +104,7 @@ class Client {
     /**
      * @var array
      */
-    protected $socketPool = array();
+    public $socketPool = array();
     
     /**
      * @var array
@@ -307,7 +312,7 @@ class Client {
      */
     protected function buildRequestMaps($requests) {
         $this->requestKeys = array();
-        
+        $this->requestUris = array();
         $this->requests = array();
         $this->responses = array();
         $this->requestKeySocketMap = array();
@@ -322,11 +327,47 @@ class Client {
              */
             $this->normalizeRequestHeaders($request);
             
+            try {
+                $uri = $this->buildUri($request->getUri());
+                $this->requestUris[$requestKey] = $uri;
+                $request->setHeader('Host', $uri->getAuthority());
+            } catch (ValueException $e) {
+                $uriException = new ClientException(
+                    'Invalid Request URI: ' . $request->getUri(),
+                    0,
+                    $e
+                );
+                if ($this->isInMultiMode) {
+                    $this->errors[$requestKey];
+                } else {
+                    throw $uriException;
+                }
+            }
+            
             $this->requestKeys[] = $requestKey;
             $this->requests[$requestKey] = $request;
             $this->responses[$requestKey] = new ChainableResponse($request->getUri());
             $this->states[$requestKey] = new ClientState();
         }
+    }
+    
+    private function buildUri($requestUri) {
+        $uri = new Uri($requestUri);
+        
+        $scheme = $uri->getScheme();
+        if (!($scheme == 'http' || $scheme == 'https')) {
+            throw new ValueException(
+                "Invalid URI scheme; [http|https] required"
+            );
+        }
+        
+        if ($uri->getHost() == '') {
+            throw new ValueException(
+                "Empty Request URI host not allowed"
+            );
+        }
+        
+        return $uri;
     }
     
     /**
@@ -347,7 +388,6 @@ class Client {
      */
     private function normalizeRequestHeaders(Request $request) {
         $request->setHeader('User-Agent', self::USER_AGENT);
-        $request->setHeader('Host', $request->getAuthority());
         
         if (Request::TRACE == $request->getMethod()) {
             $request->setBody(null);
@@ -556,9 +596,19 @@ class Client {
      * @return resource Returns socket stream or NULL if limited by host concurrency attribute
      */
     private function checkoutSocket($requestKey) {
-        $request = $this->requests[$requestKey];
-        $socketUri = $this->buildSocketUriFromHttpRequest($request);
-        $authority = $socketUri->getAuthority();
+        /**
+         * @var Uri $requestUri
+         */
+        $requestUri = $this->requestUris[$requestKey];
+        
+        $scheme = ($requestUri->getScheme() == 'http') ? 'tcp' : 'tls';
+        $host = $requestUri->getHost();
+        if (!$port = $requestUri->getPort()) {
+            $port = ($scheme == 'tcp') ? 80 : 443;
+        }
+        
+        $authority = "$host:$port";
+        $socketUri = new Uri("$scheme://$authority");
         
         if ($socket = $this->doExistingSocketCheckout($authority)) {
             return $socket;
@@ -578,34 +628,6 @@ class Client {
         }
         
         return null;
-    }
-    
-    /**
-     * Generate the appropriate socket URI given a Request instance
-     * 
-     * @param Http\Request $request
-     * @throws ClientException
-     * @return Uri
-     */
-    private function buildSocketUriFromHttpRequest(Request $request) {
-        $requestScheme = strtolower($request->getScheme());
-        switch ($requestScheme) {
-            case 'http':
-                $scheme = 'tcp';
-                break;
-            case 'https':
-                $scheme = 'tls';
-                break;
-            default:
-                throw new ClientException(
-                    "Invalid request URI scheme: $requestScheme. http:// or https:// required."
-                );
-        }
-        
-        $uriStr = $scheme . '://' . $request->getHost() . ':' . $request->getPort();
-        $uri = new Uri($uriStr);
-        
-        return $uri;
     }
     
     /**
@@ -1628,16 +1650,18 @@ class Client {
          */
         $response = $this->responses[$requestKey];
         
+        /**
+         * @var Uri $requestUri
+         */
+        $requestUri = $this->requestUris[$requestKey];
+        
         
         if (!$response->hasHeader('Location')) {
             return false;
         }
-        
-        // Go ahead and normalize the redirect location now so we can test the results.
-        // By normalizing BEFORE we know if ATTR_FOLLOW_LOCATION allows redirection we can
-        // easily test that the appropriate normalization occurred by validating the normalized
-        // Location header in the response.
-        $redirectLocation = $this->normalizeRedirectLocation($request, $response);
+
+        $redirectLocation = $requestUri->resolve($response->getHeader('Location'));
+        $response->setHeader('Location', $redirectLocation->__toString());
         
         $followLocation = $this->getAttribute(self::ATTR_FOLLOW_LOCATION);
         if ($followLocation == self::FOLLOW_LOCATION_NONE) {
@@ -1674,72 +1698,6 @@ class Client {
     }
     
     /**
-     * Fix invalid Location headers that don't use an absolute URI.
-     * 
-     * @param Http\Request $request
-     * @param Http\Response $response
-     * @return string
-     */
-    private function normalizeRedirectLocation(Request $request, Response $response) {
-        $location = $response->getHeader('Location');
-        
-        if (@parse_url($location,  PHP_URL_HOST)) {
-            return $location;
-        }
-        
-        if ($location[0] == '/' && !strstr($location, '.')) {
-            // If the relative location starts with "/" we assume it's relative to the site root
-            $newPath = $location;
-        } else {
-            // Otherwise, merge paths according to rules from RFC 3986 Section 5.2.3
-            $newPath = $this->mergeRelativePaths($request->getPath(), $location);
-        }
-        
-        $normalizedLocation = $request->getScheme() . '://' . $request->getAuthority() . '/';
-        $normalizedLocation.= ltrim($newPath, '/');
-        $normalizedLocation = new Uri($normalizedLocation);
-        
-        $response->setHeader('Location', $normalizedLocation->__toString());
-        $response->addHeader(
-           'Warning',
-            "299 Invalid Location header: $location; $normalizedLocation assumed"
-        );
-        
-        return $normalizedLocation;
-    }
-    
-    /**
-     * Merges a relative URI path with the path component of a base URI subject to the rules
-     * specified by RFC 3986 Section 5.2.3
-     * 
-     * "If the base URI has a defined authority component and an empty path, then return
-     * a string consisting of "/" concatenated with the reference's path; otherwise,
-     * return a string consisting of the reference's path component appended to all but
-     * the last segment of the base URI's path (i.e., excluding any characters after the
-     * right-most "/" in the base URI path, or excluding the entire base URI path if it
-     * does not contain any "/" characters)."
-     * 
-     * @param string $originalPath
-     * @param string $relativeLocation
-     * @link http://www.apps.ietf.org/rfc/rfc3986.html#sec-5.2.3
-     */
-    private function mergeRelativePaths($originalPath, $relativeLocation) {
-        if ($originalPath == '/') {
-            $merged = '/' . $relativeLocation;
-        } else {
-            $parts = explode('/', $originalPath);
-            $partsCount = count($parts);
-            
-            $parts[] = end($parts);
-            $parts[$partsCount-1] = $relativeLocation;
-            
-            $merged = implode('/', $parts);
-        }
-        
-        return preg_replace(',/+,', '/', $merged);
-    }
-    
-    /**
      * @param Http\ChainableResponse $response
      * @param string $uri
      * @return bool
@@ -1770,15 +1728,19 @@ class Client {
          * @var Http\Request $request
          */
         $request = $this->requests[$requestKey];
+        
         /**
          * @var Http\ChainableResponse $response
          */
         $response = $this->responses[$requestKey];
         
-        $newRequest = new StdRequest($response->getHeader('Location'), $request->getMethod());
+        $newUri = new Uri($response->getHeader('Location'));
+        $this->requestUris[$requestKey] = $newUri;
+        
+        $newRequest = new StdRequest($newUri, $request->getMethod());
         $newRequest->setHttpVersion($request->getHttpVersion());
         $newRequest->setAllHeaders($request->getAllHeaders());
-        $newRequest->setHeader('Host', $newRequest->getAuthority());
+        $newRequest->setHeader('Host', $newUri->getAuthority());
         
         if ($this->getAttribute(self::ATTR_AUTO_REFERER_ON_FOLLOW)) {
             $newRequest->setHeader('Referer', $request->getUri());
