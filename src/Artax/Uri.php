@@ -121,6 +121,11 @@ class Uri {
         }
         
         $this->parseQueryParameters();
+        
+        if ($this->fragment) {
+            $this->fragment = rawurldecode($this->fragment);
+            $this->fragment = rawurlencode($this->fragment);
+        }
     }
     
     private function parse($uri) {
@@ -200,27 +205,27 @@ class Uri {
     }
     
     /**
-     * @return bool
-     */
-    public function isNormalized() {
-        return $this->isNormalized;
-    }
-    
-    /**
-     * Normalizes components of the assigned URI
+     * Normalizes the URI for maximal comparison success
      * 
-     * @return void
+     * @return string
      */
     public function normalize() {
-        if ($this->path) {
-            $this->path = $this->removeDotSegments($this->path);
-            $this->path = $this->decodeUnreservedCharacters($this->path);
-            $this->path = $this->decodeReservedSubDelimiters($this->path);
-        } else {
-            $this->path = '/';
+        if (!$this->uri) {
+            return '';
         }
         
-        $this->isNormalized = true;
+        $path = $this->path ?: '/';
+        $path = $this->removeDotSegments($path);
+        $path = $this->decodeUnreservedCharacters($path);
+        $path = $this->decodeReservedSubDelimiters($path);
+        
+        return $this->reconstitute(
+            $this->scheme,
+            $this->authority,
+            $path,
+            $this->query,
+            $this->fragment
+        );
     }
     
     /**
@@ -456,7 +461,13 @@ class Uri {
      * Retrieve the URI without the fragment component
      */
     public function getAbsoluteUri() {
-        return $this->reconstitute($scheme, $authority, $path, $query, $fragment = '');
+        return $this->reconstitute(
+            $this->scheme,
+            $this->authority,
+            $this->path,
+            $this->query,
+            $fragment = ''
+        );
     }
     
     /**
@@ -498,10 +509,17 @@ class Uri {
     private function parseQueryParameters() {
         if ($this->query) {
             parse_str($this->query, $parameters);
+            
             $keys = array_map('rawurldecode', array_keys($parameters));
             $values = array_map('rawurldecode', array_values($parameters));
             
-            $this->queryParameters = array_combine($keys, $values);
+            $query = array_combine($keys, $values);
+            $this->queryParameters = $query;
+            
+            $this->query = str_replace('+', '%20', http_build_query($query, null, '&'));
+            
+            // Fix http_build_query adding equals sign to empty keys
+            $this->query = str_replace('=&', '&', rtrim($this->query, '='));
         }
     }
     
@@ -521,7 +539,7 @@ class Uri {
     public function getQueryParameter($parameter) {
         if (!$this->hasQueryParameter($parameter)) {
             throw new DomainException(
-                "The specified query parameter does not exist: $parameter"
+                "Invalid query parameter: `$parameter` does not exist"
            );
         }
         return $this->queryParameters[$parameter];
@@ -534,7 +552,10 @@ class Uri {
         return $this->queryParameters;
     }
     
-    public function getRawUri() {
+    /**
+     * @return array
+     */
+    public function getOriginalUri() {
         return $this->uri;
     }
 }
