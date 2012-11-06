@@ -176,17 +176,23 @@ class Uri {
     protected function normalizePathDots($input) {
         $output = '';
         
+        $patternA  = ',^(\.\.?/),';
         $patternB1 = ',^(/\./),';
         $patternB2 = ',^(/\.)$,';
         $patternC  = ',^(/\.\./|/\.\.),';
+        $patternD  = ',^(\.\.?)$,';
         $patternE  = ',(/*[^/]*),';
         
         while (!$this->isZeroSafeEmpty($input)) {
-            if (preg_match($patternB1, $input, $match) || preg_match($patternB2, $input, $match)) {
+            if (preg_match($patternA, $input)) {
+                $input = preg_replace($patternA, '', $input);
+            } elseif (preg_match($patternB1, $input, $match) || preg_match($patternB2, $input, $match)) {
                 $input = preg_replace(",^" . $match[1] . ",", '/', $input);
             } elseif (preg_match($patternC, $input, $match)) {
                 $input = preg_replace(',^' . preg_quote($match[1], ',') . ',', '/', $input);
                 $output = preg_replace(',/([^/]+)$,', '', $output);
+            } elseif (preg_match($patternD, $input)) {
+                $input = preg_replace($patternD, '', $input);
             } elseif (preg_match($patternE, $input, $match)) {
                 $initialSegment = $match[1];
                 $input = preg_replace(',^' . preg_quote($initialSegment, ',') . ',', '', $input, 1);
