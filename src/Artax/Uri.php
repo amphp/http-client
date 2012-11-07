@@ -130,9 +130,11 @@ class Uri {
     
     private function parse($uri) {
         // PHP 5.4.7 fixed the incorrect parsing of network path references
+        // @codeCoverageIgnoreStart
         if (version_compare(PHP_VERSION, '5.4.7') >= 0) {
             return parse_url($uri);
         }
+        // @codeCoverageIgnoreEnd
         
         $isPhp533 = (version_compare(PHP_VERSION, '5.3.3') >= 0);
         
@@ -493,7 +495,7 @@ class Uri {
         $authority.= $authority ? '@' : '';
         
         if ($this->isIpV6) {
-            $authority.= $this->port ? ("{$this->host}:{$this->port}") : $this->host;
+            $authority.= $this->port ? ("[{$this->host}]:{$this->port}") : "[{$this->host}]";
         } else {
             $authority.= $this->host;
             $authority.= $this->port ? (':' . $this->port) : '';
