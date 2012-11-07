@@ -177,6 +177,19 @@ class UriTest extends PHPUnit_Framework_TestCase {
                     'fragment' => ''
                 )
             ),
+            array(
+                'rawUri' => 'tcp://[fe80::1]',
+                'expectedVals' => array (
+                    'scheme' => 'tcp',
+                    'user' => '',
+                    'pass' => '',
+                    'host' => '[fe80::1]',
+                    'port' => '',
+                    'path' => '',
+                    'query' => '',
+                    'fragment' => ''
+                )
+            ),
         );
     }
     
