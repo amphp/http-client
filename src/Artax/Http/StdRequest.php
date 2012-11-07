@@ -9,29 +9,47 @@ class StdRequest extends StdMessage implements Request {
     /**
      * @var \Artax\Uri
      */
-    protected $uri;
+    private $uri;
     
     /**
      * @var string
      */
-    protected $method;
+    private $method;
 
     /**
      * @var string
      */
-    protected $cachedStreamBody;
-
+    private $cachedStreamBody;
+    
+    /**
+     * @var int
+     */
+    private $streamReadSizeInBytes = 8192;
+    
     /**
      * Note that request methods ARE case-sensitive as per RFC2616. Users should specify all-caps
-     * strings for standard request method names like GET, POST, etc.
+     * strings for standard request method names like GET, POST, etc. These method names WILL NOT
+     * be normalized as doing so would prevent the use of custom methods with lower-case characters.
+     * Failure to correctly case standard method names may result in problems downstream. If you're
+     * concerned about your ability to uppercase HTTP method verb strings, use the method verb
+     * constants provided in the `Artax\Http\Request` interface.
      *
-     * @param string $uri
-     * @param string $method
-     * @throws \Spl\ValueException
+     * @param string $uri The request URI string
+     * @param string $method The HTTP method verb
+     * @throws \Spl\ValueException On seriously malformed URIs
      */
-    public function __construct($uri, $method = self::GET) {
-        $this->uri = $uri instanceof Uri ? $uri : new Uri($uri);
+    public function __construct($uri, $method = Request::GET) {
+        $this->uri = new Uri($uri);
         $this->method = $method;
+    }
+    
+    /**
+     * Retrieve the request's associated URI
+     * 
+     * @return string
+     */
+    public function getUri() {
+        return $this->uri->__toString();
     }
     
     /**
@@ -39,7 +57,7 @@ class StdRequest extends StdMessage implements Request {
      * 
      * @return string
      */
-    public function getMethod() {
+    final public function getMethod() {
         return $this->method;
     }
     
@@ -70,9 +88,9 @@ class StdRequest extends StdMessage implements Request {
         if ($meta['uri'] == 'php://input') {
             $this->cachedStreamBody = '';
             
-            $tempStream = fopen('php://memory', 'r+');
+            $tempStream = fopen('php://temp', 'r+');
             while (!feof($this->body)) {
-                $data = fread($this->body, 8192);
+                $data = fread($this->body, $this->streamReadSizeInBytes);
                 $this->cachedStreamBody .= $data;
                 fwrite($tempStream, $data);
             }
@@ -90,9 +108,9 @@ class StdRequest extends StdMessage implements Request {
     }
     
     /**
-     * Access the entity body resource stream directly without buffering its contents
+     * Access the entity body resource stream directly without buffering its full contents
      * 
-     * @return resource
+     * @return resource Returns the stream entity body or NULL if the entity body is not a stream
      */
     public function getBodyStream() {
         if (!is_resource($this->body)) {
@@ -111,13 +129,8 @@ class StdRequest extends StdMessage implements Request {
     }
     
     /**
-     * @return string
-     */
-    public function getUri() {
-        return $this->uri->__toString();
-    }
-    
-    /**
+     * Does the request URI expose the specified query parameter?
+     * 
      * @param string $parameter
      * @return bool
      */
@@ -126,9 +139,11 @@ class StdRequest extends StdMessage implements Request {
     }
     
     /**
-     * @param string $parameter
-     * @return string
-     * @throws \Spl\DomainException
+     * Retrieve the value of the specified URI query parameter
+     * 
+     * @param string $parameter The name of a query parameter from the request URI
+     * @return string The query parameter value
+     * @throws \Spl\DomainException If the specified parameter does not exist
      */
     public function getQueryParameter($parameter) {
         return $this->uri->getQueryParameter($parameter);
@@ -162,6 +177,16 @@ class StdRequest extends StdMessage implements Request {
     }
     
     /**
+     * An alias for StdRequest::getStartLine
+     * 
+     * @return string
+     * @see StdRequest::getStartLine
+     */
+    public function getRequestLine() {
+        return $this->getStartLine();
+    }
+    
+    /**
      * @return string
      */
     public function __toString() {
@@ -169,5 +194,19 @@ class StdRequest extends StdMessage implements Request {
         $msg.= $this->body ? $this->getBody() : '';
         
         return $msg;
+    }
+    
+    /**
+     * @return \Artax\Uri
+     */
+    final protected function getUriInstance() {
+        return $this->uri;
+    }
+    
+    /**
+     * @return string Returns NULL if stream entity body contents have not been buffered
+     */
+    final protected function getCachedStreamBody() {
+        return $this->cachedStreamBody;
     }
 }
