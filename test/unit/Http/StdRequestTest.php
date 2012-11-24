@@ -1,136 +1,194 @@
 <?php
 
-use Artax\Http\StdRequest,
-    Artax\Uri;
+use Artax\Uri,
+    Artax\Http\StdRequest,
+    Artax\Http\ValueRequest;
 
 class StdRequestTest extends PHPUnit_Framework_TestCase {
     
-    /**
-     * @covers Artax\Http\StdRequest::__construct
-     */
-    public function testThatNoQueryParamsAreParsedOnEmptyUriQueryString() {
-        $request = new StdRequest('http://localhost', 'GET');
-        $this->assertEquals(array(), $request->getAllQueryParameters());
-    }
-    
-    public function provideRequestsForRequestLineComparisons() {
-        $r1 = new StdRequest('http://localhost/some-url?myVar=42', 'GET');
-        $r1->setHttpVersion('1.0');
-        $e1 = 'GET /some-url?myVar=42 HTTP/1.0';
-        
-        $r2 = new StdRequest('http://localhost:8096', 'CONNECT');
-        $e2 = 'CONNECT localhost:8096 HTTP/1.1';
-        
+    public function provideInvalidMethodVerbs() {
         return array(
-            array($r1, $e1),
-            array($r2, $e2)
+            array("GE\rT"),
+            array("GE T"),
+            array("POS\tT"),
+            array(" \r")
         );
     }
     
     /**
+     * @dataProvider provideInvalidMethodVerbs
+     * @expectedException Spl\DomainException
+     */
+    public function testSetMethodThrowsExceptionOnInvalidMethodVerb($badMethod) {
+        $request = new StdRequest();
+        $request->setMethod($badMethod);
+    }
+    
+    public function provideRequestsForRequestLineComparisons() {
+        $return = array();
+        
+        // 0 --------------------------------------------------------------------------->
+        $request = new StdRequest();
+        $request->setMethod('GET');
+        $request->setUri('http://localhost/some-url?myVar=42');
+        $request->setProtocol('1.0');
+        $expectedStartLine = 'GET /some-url?myVar=42 HTTP/1.0';
+        $return[] = array($request, $expectedStartLine);
+        
+        // 1 --------------------------------------------------------------------------->
+        $request = new StdRequest();
+        $request->setMethod('CONNECT');
+        $request->setUri('http://localhost:8096');
+        $request->setProtocol('1.1');
+        $expectedStartLine = 'CONNECT localhost:8096 HTTP/1.1';
+        $return[] = array($request, $expectedStartLine);
+        
+        // x --------------------------------------------------------------------------->
+        
+        return $return;
+    }
+    
+    /**
      * @dataProvider provideRequestsForRequestLineComparisons
-     * @covers Artax\Http\StdRequest::getStartLine
      */
-    public function testGetStartLine($request, $expectedRequestLine) {
-        $this->assertEquals($expectedRequestLine, $request->getStartLine());
+    public function testGetStartLine($request, $expectedStartLine) {
+        $this->assertEquals($expectedStartLine, $request->getStartLine());
     }
     
-    /**
-     * @covers Artax\Http\StdRequest::getStartLineAndHeaders
-     */
-    public function testGetRawStartLineAndHeaders() {
-        $request = new StdRequest('http://localhost', 'GET');
-        $request->setHeader('Host', 'localhost');
-        $request->setHeader('Date', 'Sun, 14 Oct 2012 06:00:46 GMT');
+    public function provideRequestsWithMissingStartLineProperties() {
+        $return = array();
         
-        $expected = '' .
-            "GET / HTTP/1.1\r\n" .
-            "Host: localhost\r\n" .
-            "Date: Sun, 14 Oct 2012 06:00:46 GMT\r\n" .
-            "\r\n"
-        ;
+        // 0 --------------------------------------------------------------------------->
+        $request = new StdRequest;
+        $request->setMethod('GET');
+        $request->setProtocol('1.1');
         
-        $this->assertEquals($expected, $request->getStartLineAndHeaders());
+        $return[] = array($request); // missing URI
+        
+        // 1 --------------------------------------------------------------------------->
+        $request = new StdRequest;
+        $request->setUri('http://localhost');
+        $request->setProtocol('1.1');
+        
+        $return[] = array($request); // missing method
+        
+        // 2 --------------------------------------------------------------------------->
+        $request = new StdRequest;
+        $request->setUri('http://localhost');
+        $request->setMethod('GET');
+        
+        $return[] = array($request); // missing http version
+        
+        // x --------------------------------------------------------------------------->
+        
+        return $return;
+        
     }
     
     /**
-     * @covers Artax\Http\StdRequest::__construct
-     * @covers Artax\Http\StdRequest::getUri
+     * @dataProvider provideRequestsWithMissingStartLineProperties
+     * @expectedException Spl\DomainException
      */
-    public function testUriGetterReturnsComposedUriToStringResult() {
-        $uri = new Uri('http://something');
-        $request = new StdRequest($uri, 'GET');
-        $this->assertEquals('http://something', $request->getUri());
+    public function testGetStartLineThrowsExceptionOnMissingProperties($incompleteRequest) {
+        $incompleteRequest->getStartLine();
     }
     
     /**
-     * @covers Artax\Http\StdRequest::__construct
      * @covers Artax\Http\StdRequest::getMethod
+     * @covers Artax\Http\StdRequest::setMethod
+     * @covers Artax\Http\StdRequest::assignMethod
      */
     public function testMethodGetterReturnsMethodProperty() {
-        $uri = new Uri('http://localhost');
-        $request = new StdRequest($uri, 'DELETE', array());
+        $request = new StdRequest();
+        
+        $this->assertNull($request->getMethod());
+        $this->assertNull($request->setMethod('DELETE'));
         $this->assertEquals('DELETE', $request->getMethod());
     }
     
     /**
-     * @covers Artax\Http\StdRequest::__construct
-     * @covers Artax\Http\StdRequest::hasQueryParameter
+     * @covers Artax\Http\StdRequest::getUri
      */
-    public function testHasQueryParameterReturnsBoolOnParameterAvailability() {
-        $uri = new Uri('http://localhost/test?var1=one&var2=2');
-        $request = new StdRequest($uri, 'GET');
-        $this->assertTrue($request->hasQueryParameter('var1'));
-        $this->assertFalse($request->hasQueryParameter('var9999'));
+    public function testUriGetterReturnsUriToStringResult() {
+        $request = new StdRequest();
+        
+        $this->assertNull($request->getUri());
+        $this->assertNull($request->setUri('http://something'));
+        $this->assertEquals('http://something', $request->getUri());
     }
     
     /**
-     * @covers Artax\Http\StdRequest::__construct
+     * @covers Artax\Http\StdRequest::hasQueryParameter
+     */
+    public function testHasQueryParameterReturnsBoolOnParameterAvailability() {
+        $request = new StdRequest();
+        
+        $request->setUri('http://localhost/test?var1=42&var2=0');
+        $this->assertTrue($request->hasQueryParameter('var1'));
+        $this->assertFalse($request->hasQueryParameter('doesntExist'));
+    }
+    
+    /**
      * @covers Artax\Http\StdRequest::getQueryParameter
      */
     public function testQueryParameterGetterReturnsRequestedParameterValue() {
-        $uri = new Uri('http://localhost/test?var1=one&var2=2');
-        $request = new StdRequest($uri, 'GET');
+        $request = new StdRequest();
+        
+        $request->setUri('http://localhost/test?var1=one&var2=2');
         $this->assertEquals('one', $request->getQueryParameter('var1'));
     }
     
     /**
-     * @covers Artax\Http\StdRequest::__construct
      * @covers Artax\Http\StdRequest::getQueryParameter
-     * @expectedException Spl\DomainException
+     * @expectedException Spl\KeyException
      */
     public function testQueryParameterGetterThrowsExceptionOnInvalidParameterRequest() {
-        $uri = new Uri('http://localhost/test?var1=one&var2=2');
-        $request = new StdRequest($uri, 'GET');
+        $request = new StdRequest();
+        
+        $request->setUri('http://localhost/test?var1=one&var2=2');
         $request->getQueryParameter('var99999');
     }
     
     /**
-     * @covers Artax\Http\StdRequest::__construct
      * @covers Artax\Http\StdRequest::getAllQueryParameters
      */
     public function testGetAllQueryParametersReturnsQueryParameterArray() {
-        $uri = new Uri('http://localhost/test?var1=one&var2=2');
-        $request = new StdRequest($uri, 'GET');
+        $request = new StdRequest();
+        
+        $request->setUri('http://localhost/test?var1=one&var2=2');
         $this->assertEquals(array('var1'=>'one', 'var2'=>'2'), $request->getAllQueryParameters());
+    }
+    
+    public function testThatNoQueryParamsAreParsedOnEmptyUriQueryString() {
+        $request = new StdRequest();
+        
+        $request->setUri('http://localhost');
+        $this->assertEquals(array(), $request->getAllQueryParameters());
     }
     
     /**
      * @covers Artax\Http\StdRequest::__toString
      */
     public function testToStringReturnsRawHttpMessage() {
-        $uri = new Uri('http://localhost/someUrl?someVar=42');
-        $request = new StdRequest($uri, 'POST');
-        $request->setHeader('Host', 'localhost');
-        $request->setHeader('Content-Type', 'test');
-        $request->setHeader('Content-Length', 11);
-        $request->setBody('entity body');
+        $body = 'entity body';
+        
+        $request = new StdRequest();
+        $request->setMethod('POST');
+        $request->setUri('http://localhost/someUrl?someVar=42');
+        $request->setProtocol('1.1');
+        $request->setAllHeaders(array(
+            'Host' => 'localhost',
+            'Content-Type' => 'test',
+            'Content-Length' => 11
+        ));
+        $request->setBody($body);
         
         $expected = "POST /someUrl?someVar=42 HTTP/1.1\r\n" .
                     "Host: localhost\r\n" .
                     "Content-Type: test\r\n" . 
                     "Content-Length: 11\r\n\r\n" .
-                    "entity body";
+                    $body;
+        
         $this->assertEquals($expected, $request->__toString());
     }
     
@@ -138,91 +196,144 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
      * @covers Artax\Http\StdRequest::__toString
      */
     public function testToStringConnectOutput() {
-        $uri = new Uri('http://localhost:8096');
-        $request = new StdRequest($uri, 'CONNECT');
+        $request = new StdRequest();
+        
+        $request->setMethod('CONNECT');
+        $request->setUri('http://localhost:8096');
+        $request->setProtocol('1.1');
         $request->setHeader('Content-Type', 'test');
         
-        $expected = "CONNECT localhost:8096 HTTP/1.1\r\nContent-Type: test\r\n\r\n";
+        $expected = "CONNECT localhost:8096 HTTP/1.1\r\n" .
+                    "Content-Type: test\r\n\r\n";
+        
         $this->assertEquals($expected, $request->__toString());
     }
     
     /**
      * @covers Artax\Http\StdRequest::getBody
      */
-    public function testGetBodyReturnsAssignedBodyIfNotAResourceStream() {
-        $uri = new Uri('http://localhost');
-        $request = new StdRequest($uri, 'PUT');
+    public function testGetBodyReturnsAssignedBody() {
+        $request = new StdRequest();
+        
         $request->setBody('request body');
         $this->assertEquals('request body', $request->getBody());
     }
     
-    /**
-     * @covers Artax\Http\StdRequest::getBodyStream
-     */
-    public function testGetStreamBodyReturnsNullIfBodyIsNotAResourceStream() {
-        $uri = new Uri('http://localhost');
-        $request = new StdRequest($uri, 'PUT');
-        $request->setBody('requestBody');
-        $this->assertNull($request->getBodyStream());
+    public function provideNonRequestImportParams() {
+        return array(
+            array(42),
+            array('Request'),
+            array(new StdClass)
+        );
     }
     
     /**
-     * @covers Artax\Http\StdRequest::getBodyStream
+     * @dataProvider provideNonRequestImportParams
+     * @expectedException Spl\TypeException
      */
-    public function testGetStreamBodyCopiesUnseekablePhpInputStreamOnFirstAccess() {
-        $uri = new Uri('http://localhost');
-        $phpInput = fopen('php://input', 'r');
-        $request = new StdRequest($uri, 'PUT');
-        $request->setBody($phpInput);
-        $this->assertEquals('', stream_get_contents($request->getBodyStream()));
+    public function testImportThrowsExceptionOnNonRequestParameter($badMessage) {
+        $request = new StdRequest();
+        $request->import($badMessage);
     }
     
-    /**
-     * @covers Artax\Http\StdRequest::getBody
-     */
-    public function testGetBodyBuffersAndCopiesPhpInputStreamBody() {
-        $uri = new Uri('http://localhost');
-        $phpInput = fopen('php://input', 'r');
-        $request = new StdRequest($uri, 'PUT');
-        $request->setBody($phpInput);
-        $this->assertEquals('', $request->getBody());
-        $this->assertEquals('', stream_get_contents($request->getBodyStream()));
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::getBody
-     */
-    public function testGetBodyBuffersStreamBodyOnFirstRead() {
-        $uri = new Uri('http://localhost');
+    public function testImport() {
+        $method = 'GET';
+        $uri = 'http://localhost/test?var1=one&var2=2';
+        $protocol = '1.1';
+        $headers = array(
+            'Host' => 'localhost',
+            'Content-Length' => 5
+        );
+        
+        $bodyContent = 'woot!';
         $body = fopen('php://memory', 'r+');
-        fwrite($body, 'test');
+        fwrite($body, $bodyContent);
         rewind($body);
         
-        $request = new StdRequest($uri, 'PUT');
-        $request->setBody($body);
-        $this->assertEquals('test', $request->getBody());
-        $this->assertEquals('test', stream_get_contents($request->getBodyStream()));
         
-        $this->assertEquals('test', $request->getBody());
+        $value = new ValueRequest($method, $uri, $protocol, $headers, $body);
+        
+        $request = new StdRequest();
+        $request->import($value);
+        
+        
+        $this->assertEquals($method, $request->getMethod());
+        $this->assertEquals($uri, $request->getUri());
+        $this->assertEquals($protocol, $request->getProtocol());
+        $this->assertEquals($headers['Host'], $request->getCombinedHeader('Host'));
+        $this->assertEquals($headers['Content-Length'], $request->getCombinedHeader('Content-Length'));
+        $this->assertEquals($body, $request->getBody());
+    }
+    
+    public function provideUnexportableRequests() {
+        $return = array();
+        
+        // 0 -------------------------------------------------------------------------------------->
+        $request = new StdRequest();
+        $request->setMethod('GET');
+        $request->setProtocol(1.1);
+        // $request->setUri('http://localhost');
+        
+        $return[] = array($request);
+        
+        // 1 -------------------------------------------------------------------------------------->
+        $request = new StdRequest();
+        $request->setMethod('GET');
+        //$request->setProtocol(1.1);
+        $request->setUri('http://localhost');
+        
+        $return[] = array($request);
+        
+        // 2 -------------------------------------------------------------------------------------->
+        $request = new StdRequest();
+        //$request->setMethod('GET');
+        $request->setProtocol(1.1);
+        $request->setUri('http://localhost');
+        
+        $return[] = array($request);
+        
+        // x -------------------------------------------------------------------------------------->
+        
+        return $return;
     }
     
     /**
-     * @covers Artax\Http\StdRequest::__construct
-     * @covers Artax\Http\StdRequest::setBody
+     * @dataProvider provideUnexportableRequests
+     * @expectedException Spl\DomainException
      */
-    public function testSetBodyAssignmentReturnsNull() {
-        $uri = new Uri('http://localhost');
-        $request = new StdRequest($uri, 'POST');
-        $this->assertNull($request->setBody('We few, we happy few.'));
-        $this->assertEquals('We few, we happy few.', $request->getBody());
+    public function testExportThrowsExceptionIfRequiredPropertiesNotSet($unexportableRequest) {
+        $unexportableRequest->export();
     }
     
-    public function provideInvalidRawHeaders() {
-        return array(
-            array('Balderdash'),
-            array('X-Requested-By'),
-            array("Content-Type: text/html\r\nContent-Length: 42"),
-            array("Vary: Accept,Accept-Charset,\r\nAccept-Encoding")
+    public function testExport() {
+        $method = 'GET';
+        $uri = 'http://localhost/test?var1=one&var2=2';
+        $protocol = '1.1';
+        $headers = array(
+            'Host' => 'localhost',
+            'Content-Length' => 5
         );
+        
+        $bodyContent = 'woot!';
+        $body = fopen('php://memory', 'r+');
+        fwrite($body, $bodyContent);
+        rewind($body);
+        
+        $request = new StdRequest();
+        $request->setMethod($method);
+        $request->setProtocol($protocol);
+        $request->setUri($uri);
+        $request->setAllHeaders($headers);
+        $request->setBody($body);
+        
+        $value = $request->export();
+        
+        
+        $this->assertEquals($method, $value->getMethod());
+        $this->assertEquals($uri, $value->getUri());
+        $this->assertEquals($protocol, $value->getProtocol());
+        $this->assertEquals($headers['Host'], $request->getCombinedHeader('Host'));
+        $this->assertEquals($headers['Content-Length'], $request->getCombinedHeader('Content-Length'));
+        $this->assertEquals($body, $value->getBody());
     }
 }

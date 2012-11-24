@@ -2,181 +2,109 @@
 
 namespace Artax\Http;
 
-use Iterator,
-    Countable,
-    Spl\TypeException;
+use Spl\TypeException,
+    Spl\DomainException;
 
 /**
- * Models headers for use in HTTP Message modeling
+ * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
  */
-class Header implements Iterator, Countable {
+class Header {
     
     /**
      * @var string
      */
-    private $name;
+    private $field;
     
     /**
-     * @var array
+     * @var string
      */
-    private $value;
+    private $normalizedValue;
+    
+    /**
+     * @var string
+     */
+    private $rawValue;
 
     /**
-     * @param string $name
-     * @param mixed $value A scalar value or one-dimensional array of scalars
-     * @throws \Spl\TypeException
+     * @param string $field
+     * @param string $value
+     * @throws \Spl\TypeException On non-string parameters
+     * @throws \Spl\DomainException On the presence of invalid header characters
      */
-    public function __construct($name, $value) {
-        if (!(is_string($name) || (is_object($name) && method_exists($name, '__toString')))) {
-            $type = is_object($name) ? get_class($name) : gettype($name);
+    public function __construct($field, $value) {
+        if (!is_scalar($field) || is_resource($field)) {
             throw new TypeException(
-                get_class($this) . '::__construct expects a string value at Argument 1: ' .
-                "$type provided"
+                get_class($this) . '::__construct expects a scalar at Argument 1'
+            );
+        } elseif (!is_scalar($value) || is_resource($value)) {
+            throw new TypeException(
+                get_class($this) . '::__construct expects a scalar at Argument 2'
             );
         }
-        $this->name = rtrim($name, ': ');
+        $this->setField($field);
         $this->setValue($value);
     }
     
+    private function setField($field) {
+        $field = rtrim($field, ':');
+        $pattern = ",^([^\x{00}-\x{20}\(\)<>@\,;:\"/\[\]\?={}\\\\]+)$,";
+        
+        if (preg_match($pattern, $field, $match)) {
+            $this->field = $match[1];
+        } else {
+            throw new DomainException(
+                'Invalid header field'
+            );
+        }
+    }
+    
+    private function setValue($value) {
+        $normalizedValue = preg_replace(",\r?\n[\t\x20]+,", "\x20", $value);
+        $pattern = ",^[\x{20}\x{09}]*([^\x{00}-\x{08}\x{0a}-\x{1f}]+)?[\x{20}\x{09}]*$,";
+        
+        if (preg_match($pattern, $normalizedValue, $match)) {
+            $this->normalizedValue = isset($match[1]) ? $match[1] : '';
+            $this->rawValue = $value;
+        } else {
+            throw new DomainException(
+                'Invalid header value'
+            );
+        }
+    }
+    
     /**
-     * Returns the header as it should appear in a raw HTTP message (including trailing CRLF)
+     * Returns the header in string form
      * 
      * @return string
      */
     public function __toString() {
-        $str = '';
-        foreach ($this->value as $value) {
-            $str .= "{$this->name}: $value\r\n";
-        }
-        return $str;
+        return $this->field . ': ' . $this->rawValue;
     }
     
     /**
-     * Assign a value to the header -- replaces previous value(s)
-     * 
-     * Trailing spaces and CR/LF characters are trimmed from header values.
-     * 
-     * @param mixed $value A scalar value or a one-dimensional array of scalars
-     * @return void
-     * @throws \Spl\TypeException
-     */
-    public function setValue($value) {
-        if ($this->isHeaderValueValid($value)) {
-            $value = is_array($value) ? array_values($value) : array($value);
-            $this->value = array_map('rtrim', $value);
-        } elseif (is_array($value)) {
-            throw new TypeException(
-                get_class($this) . '::setValue requires a scalar value or a one-dimensional ' .
-                'array of scalars at Argument 1: invalid array provided'
-            );
-        } else {
-            $type = is_object($value) ? get_class($value) : gettype($value);
-            throw new TypeException(
-                get_class($this) . '::setValue requires a scalar value or a one-dimensional ' .
-                "array of scalars at Argument 1: $type provided"
-            );
-        }
-    }
-    
-    private function isHeaderValueValid($value) {
-        if (is_scalar($value)) {
-            return true;
-        } elseif (!is_array($value)) {
-            return false;
-        } elseif (empty($value)) {
-            return false;
-        } else {
-            return ($value === array_filter($value, 'is_scalar'));
-        }
-    }
-    
-    /**
-     * Append a new value to the already existing header
-     * 
-     * @param mixed $value A scalar value or one-dimensional array of scalars
-     * @return void
-     * @throws \Spl\TypeException
-     */
-    public function appendValue($value) {
-        if ($this->isHeaderValueValid($value)) {
-            if (is_array($value)) {
-                $this->value = array_merge($this->value, array_values($value));
-            } else {
-                $this->value[] = $value;
-            }
-        } elseif (is_array($value)) {
-            throw new TypeException(
-                get_class($this) . '::appendValue expects a scalar value or a one-dimensional ' .
-                'array of scalars at Argument 1: invalid array provided'
-            );
-        } else {
-            $type = is_object($value) ? get_class($value) : gettype($value);
-            throw new TypeException(
-                get_class($this) . '::appendValue expects a scalar value or a one-dimensional ' .
-                "array of scalars at Argument 1: $type provided"
-            );
-        }
-    }
-    
-    /**
-     * Retrieve the header field name
+     * Retrieve the header field
      * 
      * @return string
      */
-    public function getName() {
-        return $this->name;
+    public function getField() {
+        return $this->field;
     }
     
     /**
-     * Retrieve the header value or a comma-separated concatenation of values if multiples exist
+     * Retrieve the normalized header value
      * 
      * @return string
      */
     public function getValue() {
-        return count($this->value) > 1 ? implode(',', $this->value) : $this->value[0];
+        return $this->normalizedValue;
     }
     
     /**
-     * Retrieve the array of header values
+     * Retrieve the original, un-normalized header value with any LWS intact
      * 
-     * @return array
+     * @return string
      */
-    public function getValueArray() {
-        return $this->value;
-    }
-    
-    /**
-     * Output the header
-     * 
-     * @return void
-     */
-    public function send() {
-        foreach ($this->value as $value) {
-            header("{$this->name}: $value");
-        }
-    }
-    
-    public function count() {
-        return count($this->value);
-    }
-    
-    public function rewind() {
-        return reset($this->value);
-    }
-    
-    public function current() {
-        return current($this->value);
-    }
-    
-    public function key() {
-        return key($this->value);
-    }
-    
-    public function next() {
-        return next($this->value);
-    }
-    
-    public function valid() {
-        return key($this->value) !== null;
+    public function getRawValue() {
+        return $this->rawValue;
     }
 }

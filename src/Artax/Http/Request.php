@@ -3,8 +3,10 @@
 namespace Artax\Http;
 
 /**
- * Interface modeled after RFC 2616 Section 5
- * http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html
+ * Adds Request-specific accessor methods to the base Message interface
+ * 
+ * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html
+ * @codeCoverageIgnore
  */
 interface Request extends Message {
     
@@ -23,7 +25,21 @@ interface Request extends Message {
     function getMethod();
 
     /**
-     * Retrive a specific URI query parameter by name
+     * Access the request URI string
+     */
+    function getUri();
+    function getScheme();
+    function getUser();
+    function getPass();
+    function getHost();
+    function getPort();
+    function getPath();
+    function getQuery();
+    function getFragment();
+    function getAuthority();
+
+    /**
+     * Retrieve a specific URI query parameter by name
      *
      * @param string $parameterName
      */
@@ -40,9 +56,4 @@ interface Request extends Message {
      * Access an associative array of query string parameters
      */
     function getAllQueryParameters();
-
-    /**
-     * Access the request URI string
-     */
-    function getUri();
 }

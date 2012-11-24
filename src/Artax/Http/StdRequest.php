@@ -2,9 +2,14 @@
 
 namespace Artax\Http;
 
-use Artax\Uri;
+use Spl\TypeException,
+    Spl\DomainException,
+    Artax\Uri;
 
-class StdRequest extends StdMessage implements Request {
+/**
+ * A mutable object used to incrementally build HTTP Requests
+ */
+class StdRequest extends StdMessage implements MutableRequest {
     
     /**
      * @var \Artax\Uri
@@ -15,117 +20,110 @@ class StdRequest extends StdMessage implements Request {
      * @var string
      */
     private $method;
-
-    /**
-     * @var string
-     */
-    private $cachedStreamBody;
     
     /**
-     * @var int
-     */
-    private $streamReadSizeInBytes = 8192;
-    
-    /**
-     * Note that request methods ARE case-sensitive as per RFC2616. Users should specify all-caps
-     * strings for standard request method names like GET, POST, etc. These method names WILL NOT
-     * be normalized as doing so would prevent the use of custom methods with lower-case characters.
-     * Failure to correctly case standard method names may result in problems downstream. If you're
-     * concerned about your ability to uppercase HTTP method verb strings, use the method verb
-     * constants provided in the `Artax\Http\Request` interface.
-     *
-     * @param string $uri The request URI string
-     * @param string $method The HTTP method verb
-     * @throws \Spl\ValueException On seriously malformed URIs
-     */
-    public function __construct($uri, $method = Request::GET) {
-        $this->uri = new Uri($uri);
-        $this->method = $method;
-    }
-    
-    /**
-     * Retrieve the request's associated URI
+     * Retrieve the request URI
      * 
      * @return string
      */
     public function getUri() {
-        return $this->uri->__toString();
+        return $this->uri ? $this->uri->__toString() : null;
     }
     
     /**
-     * Retrieve the request's HTTP method verb
+     * Assign the request URI
+     * 
+     * @param string $uri
+     * @throws \Spl\DomainException On some seriously malformed URIs
+     * @return void
+     */
+    public function setUri($uri) {
+        $this->uri = new Uri($uri);
+    }
+    
+    /**
+     * Retrieve the HTTP method verb
      * 
      * @return string
      */
-    final public function getMethod() {
+    public function getMethod() {
         return $this->method;
     }
     
     /**
-     * Retrieve the HTTP message entity body in string form
+     * Assign the HTTP method verb
      * 
-     * If a resource stream is assigned to the body property, its entire contents will be read into
-     * memory and returned as a string. To access the stream resource directly without buffering
-     * its contents, use Message::getBodyStream().
-     * 
-     * In web environments, php://input is a stream to the HTTP request body, but it can only be
-     * read once and is not seekable. As a result, we load it into our own stream if php://input
-     * is our request body property.
-     * 
-     * @return string
+     * @param string $method
+     * @throws \Spl\DomainException On invalid method
+     * @return void
      */
-    public function getBody() {
-        if (!is_resource($this->body)) {
-            return (string) $this->body;
-        }
-        
-        if (!empty($this->cachedStreamBody)) {
-            return $this->cachedStreamBody;
-        }
-        
-        $meta = stream_get_meta_data($this->body);
-        
-        if ($meta['uri'] == 'php://input') {
-            $this->cachedStreamBody = '';
-            
-            $tempStream = fopen('php://temp', 'r+');
-            while (!feof($this->body)) {
-                $data = fread($this->body, $this->streamReadSizeInBytes);
-                $this->cachedStreamBody .= $data;
-                fwrite($tempStream, $data);
-            }
-            rewind($tempStream);
-            fclose($this->body);
-            $this->body = $tempStream;
-            
-        } else {
-            rewind($this->body);
-            $this->cachedStreamBody = stream_get_contents($this->body);
-            rewind($this->body);
-        }
-        
-        return $this->cachedStreamBody;
+    public function setMethod($method) {
+        $this->assignMethod($method);
     }
     
     /**
-     * Access the entity body resource stream directly without buffering its full contents
+     * Assign a request method
      * 
-     * @return resource Returns the stream entity body or NULL if the entity body is not a stream
+     * token          = 1*<any CHAR except CTLs or separators>
+     * separators     = "(" | ")" | "<" | ">" | "@"
+     *                | "," | ";" | ":" | "\" | <">
+     *                | "/" | "[" | "]" | "?" | "="
+     *                | "{" | "}" | SP | HT
+     * 
+     * @param string $method
+     * @throws \Spl\DomainException On invalid method verb
+     * @return void
+     * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html#sec5.1.1
      */
-    public function getBodyStream() {
-        if (!is_resource($this->body)) {
-            return null;
-        }
+    protected function assignMethod($method) {
+        $pattern = ",^\s*([^\x{00}-\x{20}\(\)<>@\,;:\"/\[\]\?={}\\\\]+)\s*$,";
         
-        $meta = stream_get_meta_data($this->body);
-        if ($meta['uri'] == 'php://input') {
-            $tempStream = fopen('php://memory', 'r+');
-            stream_copy_to_stream($this->body, $tempStream);
-            rewind($tempStream);
-            $this->body = $tempStream;
+        if (preg_match($pattern, $method, $match)) {
+            $this->method = $match[1];
+        } else {
+            throw new DomainException(
+                "Invalid method verb: method may not contain CTL or separator characters"
+            );
         }
+    }
+    
+    public function getScheme() {
+        return $this->uri->getScheme();
+    }
+
+    public function getUser() {
+        return $this->uri->getUser();
+    }
+
+    public function getPass() {
+        return $this->uri->getPass();
+    }
+
+    public function getHost() {
+        return $this->uri->getHost();
+    }
+
+    public function getPort() {
+        return $this->uri->getPort();
+    }
+
+    public function getPath() {
+        return $this->uri->getPath();
+    }
+
+    public function getQuery() {
+        return $this->uri->getQuery();
+    }
+
+    public function getFragment() {
+        return $this->uri->getFragment();
+    }
+    
+    public function getAuthority() {
+        $authority = $this->uri->getHost();
+        $authority.= ($port = $this->uri->getPort()) ? ":$port" : '';
         
-        return $this->body;
+        return $authority;
     }
     
     /**
@@ -142,14 +140,16 @@ class StdRequest extends StdMessage implements Request {
      * Retrieve the value of the specified URI query parameter
      * 
      * @param string $parameter The name of a query parameter from the request URI
+     * @throws \Spl\RangeException If the specified parameter key does not exist
      * @return string The query parameter value
-     * @throws \Spl\DomainException If the specified parameter does not exist
      */
     public function getQueryParameter($parameter) {
         return $this->uri->getQueryParameter($parameter);
     }
     
     /**
+     * Retrieve an associate key-value array of query string parameters from the request URI
+     * 
      * @return array
      */
     public function getAllQueryParameters() {
@@ -159,54 +159,69 @@ class StdRequest extends StdMessage implements Request {
     /**
      * Build a raw HTTP message request line (without trailing CRLF)
      * 
+     * @throws \Spl\DomainException On missing HTTP version or method verb
      * @return string
      */
     public function getStartLine() {
-        if ('CONNECT' != $this->getMethod()) {
+        if (!($this->getProtocol() && $this->getMethod() && $this->uri)) {
+            throw new DomainException(
+                'Cannot generate request start-line: method verb, URI and HTTP version required'
+            );
+        } elseif (Request::CONNECT !== $this->getMethod()) {
             $msg = $this->getMethod() . ' ';
             $msg.= ($this->uri->getPath() ?: '/');
             $msg.= ($queryStr = $this->uri->getQuery()) ? "?$queryStr" : '';
         } else {
-            $msg = 'CONNECT ' . $this->uri->getAuthority();
+            $msg = Request::CONNECT . ' ' . $this->uri->getAuthority();
         }
         
         // The leading space before "HTTP" matters! Don't delete it!
-        $msg .= ' HTTP/' . $this->getHttpVersion();
+        $msg .= ' ' . Message::HTTP_PROTOCOL_PREFIX . $this->getProtocol();
         
         return $msg;
     }
     
     /**
-     * An alias for StdRequest::getStartLine
+     * Import all properties of an existing Request implementation into the current instance
      * 
-     * @return string
-     * @see StdRequest::getStartLine
+     * @param Request $request
+     * @throws \Spl\TypeException If non-Request argument specified
+     * @return void
      */
-    public function getRequestLine() {
-        return $this->getStartLine();
-    }
-    
-    /**
-     * @return string
-     */
-    public function __toString() {
-        $msg = $this->getStartLineAndHeaders();
-        $msg.= $this->body ? $this->getBody() : '';
+    public function import($request) {
+        if (!$request instanceof Request) {
+            throw new TypeException(
+                get_class($this) . '::import() requires an instance of Artax\\Http\\Request at ' .
+                'Argument 1'
+            );
+        }
         
-        return $msg;
+        $this->setUri($request->getUri());
+        $this->setProtocol($request->getProtocol());
+        $this->setMethod($request->getMethod());
+        $this->setAllHeaders($request->getAllHeaders());
+        $this->assignBody($request->getBody());
     }
     
     /**
-     * @return \Artax\Uri
+     * Export an immutable ValueRequest from the current instance
+     * 
+     * @throws \Spl\DomainException On missing method/URI/protocol
+     * @return ValueRequest
      */
-    final protected function getUriInstance() {
-        return $this->uri;
-    }
-    
-    /**
-     * @return string Returns NULL if stream entity body contents have not been buffered
-     */
-    final protected function getCachedStreamBody() {
-        return $this->cachedStreamBody;
+    public function export() {
+        if (!($this->getProtocol() && $this->getUri() && $this->getMethod())) {
+            throw new DomainException(
+                "Protocol, method and URI must be assigned prior to exporting a request"
+            );
+        }
+        
+        return new ValueRequest(
+            $this->getMethod(),
+            $this->getUri(),
+            $this->getProtocol(),
+            $this->getAllHeaders(),
+            $this->getBody()
+        );
     }
 }

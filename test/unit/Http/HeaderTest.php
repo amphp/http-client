@@ -4,242 +4,169 @@ use Artax\Http\Header;
 
 class HeaderTest extends PHPUnit_Framework_TestCase {
     
-    public function provideInvalidHeaderNames() {
-        return array(
-            array(42),
-            array(true),
-            array(new StdClass)
-        );
-    }
-    
-    /**
-     * @dataProvider provideInvalidHeaderNames
-     * @covers Artax\Http\Header::__construct
-     * @expectedException Spl\TypeException
-     */
-    public function testConstructorThrowsExceptionOnNonStringName($name) {
-        $header = new Header($name, 'value');
-    }
-    
-    public function provideInvalidHeaderValueTypes() {
-        return array(
-            array(new StdClass)
-        );
-    }
-    
-    /**
-     * @dataProvider provideInvalidHeaderValueTypes
-     * @covers Artax\Http\Header::__construct
-     * @covers Artax\Http\Header::setValue
-     * @covers Artax\Http\Header::isHeaderValueValid
-     * @expectedException Spl\TypeException
-     */
-    public function testConstructorThrowsExceptionOnNonScalarOrNonArrayValue($value) {
-        $header = new Header('X-MyHeader', $value);
-    }
-    
-    public function provideInvalidHeaderValueArrays() {
+    public function provideInvalidTypes() {
         return array(
             array(array()),
-            array(array(new StdClass)),
-            array(array(array()))
+            array(new StdClass),
+            array(null)
         );
     }
     
     /**
-     * @dataProvider provideInvalidHeaderValueArrays
-     * @covers Artax\Http\Header::__construct
-     * @covers Artax\Http\Header::setValue
-     * @covers Artax\Http\Header::isHeaderValueValid
+     * @dataProvider provideInvalidTypes
      * @expectedException Spl\TypeException
      */
-    public function testConstructorThrowsExceptionOnInvalidArrayValue($value) {
-        $header = new Header('X-MyHeader', $value);
+    public function testConstructorThrowsExceptionOnInvalidFieldType($badType) {
+        $header = new Header($badType, 'value');
     }
     
     /**
-     * @covers Artax\Http\Header::__construct
+     * @dataProvider provideInvalidTypes
+     * @expectedException Spl\TypeException
      */
-    public function testConstructorInitializesObject() {
-        $header = new Header('X-MyHeader', 'test');
-        $this->assertEquals('X-MyHeader', $header->getName());
-        $this->assertEquals('test', $header->getValue());
+    public function testConstructorThrowsExceptionOnInvalidValueType($badType) {
+        $header = new Header('Valid-Header', $badType);
+    }
+    
+    public function provideInvalidFields() {
+        // CTL chars
+        $ctl = range("\x00", "\x20");
         
-        $header = new Header('X-MyHeader', array(1, 2, 3));
-        $this->assertEquals(array(1, 2, 3), $header->getValueArray());
-    }
-    
-    /**
-     * @covers Artax\Http\Header::__construct
-     */
-    public function testConstructorTrimsTrailingSpacesAndColonsFromName() {
-        $header = new Header('X-MyHeader : ', 'test');
-        $this->assertEquals('X-MyHeader', $header->getName());
-    }
-    
-    /**
-     * @covers Artax\Http\Header::__construct
-     */
-    public function testConstructorAcceptsNameObjectsWithToStringMethod() {
-        $objWithToString = new StubNameObject('X-MyHeader');
-        $header = new Header($objWithToString, 'test');
-        $this->assertEquals('X-MyHeader', $header->getName());
-    }
-    
-    /**
-     * @covers Artax\Http\Header::__toString
-     * @covers Artax\Http\Header::setValue
-     * @covers Artax\Http\Header::isHeaderValueValid
-     */
-    public function testToStringReturnsRawMessageStyleStringWithTrailingCRLF() {
-        $header = new Header('X-MyHeader', '42');
-        $expected = "X-MyHeader: 42\r\n";
-        $this->assertEquals($expected, (string) $header);
-    }
-    
-    /**
-     * @covers Artax\Http\Header::__toString
-     * @covers Artax\Http\Header::setValue
-     * @covers Artax\Http\Header::isHeaderValueValid
-     */
-    public function testToStringTurnsMultipleValuesIntoMultipleHeaderLines() {
-        $header = new Header('Set-Cookie', array('cookie1', 'cookie2'));
-        $expected = "Set-Cookie: cookie1\r\n" .
-                    "Set-Cookie: cookie2\r\n";
-        $this->assertEquals($expected, (string) $header);
-    }
-    
-    /**
-     * @covers Artax\Http\Header::getName
-     */
-    public function testNameAccessorReturnsHeaderFieldName() {
-        $header = new Header('X-MyHeader', 'test');
-        $this->assertEquals('X-MyHeader', $header->getName());
-    }
-    
-    /**
-     * @covers Artax\Http\Header::getValue
-     */
-    public function testValueAccessorReturnsFirstHeaderFieldValueIfOnlyOneIsAssigned() {
-        $header = new Header('X-MyHeader', 'test');
-        $this->assertEquals('test', $header->getValue());
-    }
-    
-    /**
-     * @covers Artax\Http\Header::getValue
-     */
-    public function testValueAccessorReturnsCommaSeparatedValuesIfMultiplesAreAssigned() {
-        $header = new Header('Set-Cookie', array('cookie1', 'cookie2'));
-        $this->assertEquals("cookie1,cookie2", $header->getValue());
-    }
-    
-    public function provideValidHeaderValuesForArrayValueRetrieval() {
-        return array(
-            array(
-                'value' => 'test1',
-                'expected' => array('test1')
-            ),
-            array(
-                'value' => array('test2'),
-                'expected' => array('test2')
-            ),
-            array(
-                'value' => array('test3', 'test4'),
-                'expected' => array('test3', 'test4')
-            )
-        );
-    }
-    
-    /**
-     * @dataProvider provideValidHeaderValuesForArrayValueRetrieval
-     * @covers Artax\Http\Header::getValueArray
-     */
-    public function testValueArrayAccessorReturnsArrayOfHeaderValues($value, $expectedResult) {
-        $header = new Header('X-MyHeader', $value);
-        $this->assertEquals($expectedResult, $header->getValueArray());
-    }
-    
-    /**
-     * @covers Artax\Http\Header::count
-     */
-    public function testCountReturnsNumberOfAssignedValues() {
-        $header = new Header('X-MyHeader', 'test');
-        $this->assertEquals(1, count($header));
-        
-        $header = new Header('X-MyHeader', array('test1', 'test2'));
-        $this->assertEquals(2, count($header));
-    }
-    
-    /**
-     * @covers Artax\Http\Header::send
-     * @runInSeparateProcess
-     */
-    public function testSendOutputsHeaders() {
-        $header = new Header('X-MyHeader', array('test1', 'test2'));
-        $header->send();
-    }
-    
-    /**
-     * @covers Artax\Http\Header::rewind
-     * @covers Artax\Http\Header::current
-     * @covers Artax\Http\Header::key
-     * @covers Artax\Http\Header::next
-     * @covers Artax\Http\Header::valid
-     */
-    public function testIteratorMethods() {
-        $values = array('test1', 'test2');
-        $header = new Header('X-MyHeader', $values);
-        
-        foreach ($header as $key => $value) {
-            $this->assertEquals($values[$key], $value);
+        // separators
+        $separators = array();
+        $separatorStr = "\(\)<>@,;:\"/\[\]\?={}\\\x20\x09";
+        for ($i=0; $i<strlen($separatorStr); $i++) {
+            $separators[] = $separatorStr[$i];
         }
+        
+        return array(array_merge($ctl, $separators));
     }
     
     /**
-     * @covers Artax\Http\Header::appendValue
+     * @dataProvider provideInvalidFields
+     * @expectedException Spl\DomainException
      */
-    public function testAppendValueAddsScalarToExistingValueArray() {
-        $values = array('test1', 'test2');
-        $header = new Header('X-MyHeader', $values);
-        $header->appendValue('test3');
-        $this->assertEquals(array('test1', 'test2', 'test3'), $header->getValueArray());
+    public function testConstructorThrowsExceptionOnInvalidFieldChars($badField) {
+        $header = new Header($badField, 'value');
+    }
+    
+    public function provideInvalidValues() {
+        $invalid1 = range("\x00", "\x08");
+        $invalid2 = range("\x0a", "\x1f");
+        
+        return array(array_merge($invalid1, $invalid2));
     }
     
     /**
-     * @covers Artax\Http\Header::appendValue
+     * @dataProvider provideInvalidValues
+     * @expectedException Spl\DomainException
      */
-    public function testAppendValueMergesArrayWithExistingValueArray() {
-        $values = array('test1', 'test2');
-        $header = new Header('X-MyHeader', $values);
-        $header->appendValue(array('test3', 'test4'));
-        $this->assertEquals(array('test1', 'test2', 'test3', 'test4'), $header->getValueArray());
+    public function testConstructorThrowsExceptionOnInvalidValueChars($badValue) {
+        $header = new Header('Some-Header-Field', $badValue);
+    }
+    
+    
+    public function provideValidHeaderComponents() {
+        $headerParts = array();
+        
+        // 0 -------------------------------------------------------------------------------------->
+        $field = 'Content-Type';
+        $value = 'text/html; charset=iso-8859-1';
+        $headerParts[] = array($field, $value);
+        
+        // 1 -------------------------------------------------------------------------------------->
+        $field = 'Content-Length';
+        $value = '0';
+        $headerParts[] = array($field, $value);
+        
+        // 2 -------------------------------------------------------------------------------------->
+        $field = 'Content-Length';
+        $value = '42';
+        $headerParts[] = array($field, $value);
+        
+        // 3 -------------------------------------------------------------------------------------->
+        $field = 'Cache-Control';
+        $value = 'max-age=15';
+        $headerParts[] = array($field, $value);
+        
+        // 4 -------------------------------------------------------------------------------------->
+        $field = 'Transfer-Encoding';
+        $value = 'chunked';
+        $headerParts[] = array($field, $value);
+        
+        // 5 -------------------------------------------------------------------------------------->
+        $field = 'Date';
+        $value = 'Thu, 18 Oct 2012 04:54:20 GMT';
+        $headerParts[] = array($field, $value);
+        
+        // 6 -------------------------------------------------------------------------------------->
+        $field = 'Age';
+        $value = '3';
+        $headerParts[] = array($field, $value);
+        
+        // 7 -------------------------------------------------------------------------------------->
+        $field = 'Connection';
+        $value = 'keep-alive';
+        $headerParts[] = array($field, $value);
+        
+        // 8 -------------------------------------------------------------------------------------->
+        $field = 'P3P';
+        $value = 'CP="CAO DSP COR CURa ADMa DEVa TAIa PSAa PSDa IVAi IVDi CONi OUR SAMo OTRo BUS ' .
+                 'PHY ONL UNI PUR COM NAV INT DEM CNT STA PRE"';
+        $headerParts[] = array($field, $value);
+        
+        // 9 -------------------------------------------------------------------------------------->
+        $field = 'Set-Cookie';
+        $value = 'SWID=50602B17-7E59-47D1-8BED-5216F627C643; path=/; expires=Thu, 18-Oct-2032 ' .
+                 '04:54:20 GMT; domain=go.com;';
+        $headerParts[] = array($field, $value);
+        
+        // 10 ------------------------------------------------------------------------------------->
+        $field = 'Vary';
+        $value = 'Accept-Encoding';
+        $headerParts[] = array($field, $value);
+        
+        // 11 ------------------------------------------------------------------------------------->
+        $field = 'Some-Empty-Header';
+        $value = '';
+        $headerParts[] = array($field, $value);
+        
+        // x -------------------------------------------------------------------------------------->
+        
+        return $headerParts;
     }
     
     /**
-     * @covers Artax\Http\Header::appendValue
-     * @expectedException Spl\TypeException
+     * @dataProvider provideValidHeaderComponents
      */
-    public function testAppendValueThrowsExceptionOnInvalidType() {
-        $header = new Header('X-MyHeader', 'test');
-        $header->appendValue(new StdClass);
+    public function testToString($field, $value) {
+        $header = new Header($field, $value);
+        $expected = "$field: $value";
+        $this->assertEquals($expected, (string) $header);
     }
     
     /**
-     * @covers Artax\Http\Header::appendValue
-     * @expectedException Spl\TypeException
+     * @dataProvider provideValidHeaderComponents
      */
-    public function testAppendValueThrowsExceptionOnInvalidArrayValue() {
-        $header = new Header('X-MyHeader', 'test');
-        $header->appendValue(array(new StdClass));
+    public function testGetField($field, $value) {
+        $header = new Header($field, $value);
+        $this->assertEquals($field, $header->getField());
     }
-}
-
-class StubNameObject {
-    private $name;
-    public function __construct($name) {
-        $this->name = $name;
+    
+    /**
+     * @dataProvider provideValidHeaderComponents
+     */
+    public function testGetValue($field, $value) {
+        $header = new Header($field, $value);
+        $this->assertEquals($value, $header->getValue());
     }
-    public function __toString() {
-        return $this->name;
+    
+    public function testGetRawValuePreservesLws() {
+        $field = 'Some-Header';
+        $value = "Line1\r\n\t      Line2";
+        
+        $header = new Header($field, $value);
+        $this->assertEquals($value, $header->getRawValue());
+        $this->assertEquals("Line1 Line2", $header->getValue());
     }
 }

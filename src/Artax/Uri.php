@@ -3,8 +3,8 @@
 namespace Artax;
 
 use StdClass,
-    Spl\ValueException,
-    Spl\DomainException;
+    Spl\DomainException,
+    Spl\KeyException;
 
 class Uri {
 
@@ -64,11 +64,6 @@ class Uri {
     private $isIpV6 = false;
     
     /**
-     * @var bool
-     */
-    private $isNormalized = false;
-    
-    /**
      * @var array
      */
     private $components = array(
@@ -84,13 +79,13 @@ class Uri {
     
     /**
      * @param string $uri
-     * @throws \Spl\ValueException
+     * @throws \Spl\DomainException
      */
     public function __construct($uri) {
         $uri = (string) $uri;
         
         if (!$parts = $this->parse($uri)) {
-            throw new ValueException(
+            throw new DomainException(
                 'Invalid URI specified at ' . get_class($this) . '::__construct Argument 1'
             );
         }
@@ -322,7 +317,7 @@ class Uri {
         
         try {
             $uri = new Uri($toResolve);
-        } catch (ValueException $e) {
+        } catch (DomainException $e) {
             return false;
         }
         
@@ -536,11 +531,11 @@ class Uri {
     /**
      * @param string $parameter
      * @return string
-     * @throws \Spl\DomainException
+     * @throws \Spl\KeyException
      */
     public function getQueryParameter($parameter) {
         if (!$this->hasQueryParameter($parameter)) {
-            throw new DomainException(
+            throw new KeyException(
                 "Invalid query parameter: `$parameter` does not exist"
            );
         }

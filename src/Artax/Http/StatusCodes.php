@@ -2,6 +2,9 @@
 
 namespace Artax\Http;
 
+/**
+ * @codeCoverageIgnore
+ */
 class StatusCodes {
     
     const HTTP_ACCEPTED = 202;

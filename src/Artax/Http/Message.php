@@ -3,162 +3,86 @@
 namespace Artax\Http;
 
 /**
- * This interface is modeled after RFC 2616, section 4:
- * 
- * http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html
- * 
  * Message is the base interface for Request and Response instances.
+ * 
+ * Message specifically leaves setter methods undefined to act as a basis for immutable value object
+ * modelings of HTTP messages. It is the base interface for the Request and Response interfaces.
+ * 
+ * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html
  */
 interface Message {
-
+    
+    const HTTP_PROTOCOL_PREFIX = 'HTTP/';
+    
     /**
-     * Get the message start line (requests: request-line, responses: status-line)
+     * Get the message start line
      * 
      * @return string
      */
     function getStartLine();
     
     /**
-     * Get the raw HTTP message data up to and including terminating header CRLF characters
+     * Retrieve the message's numerical HTTP protocol version number (without the "HTTP/" prefix)
      * 
      * @return string
      */
-    function getStartLineAndHeaders();
+    function getProtocol();
+    function getProtocolMajor();
+    function getProtocolMinor();
     
     /**
-     * Retrieve the HTTP message entity body in string form
+     * Does the message contain the specified header field?
+     * 
+     * @param string $field
+     * @return bool
+     */
+    function hasHeader($field);
+    
+    /**
+     * Retrieve an iterator containing all headers for the given field
+     * 
+     * Implementations should return headers in a case-insensitive manner as header fields
+     * are NOT case-sensitive (per RFC 2616 Section 4.2). For example, the following lines should
+     * each return equivalent result:
+     * 
+     * ```php
+     * <?php
+     * $cookies = $msgImpl->getHeaders('Cookie');
+     * $cookies = $msgImpl->getHeaders('COOKIE');
+     * $cookies = $msgImpl->getHeaders('CoOkIe');
+     * ```
+     * 
+     * @param string $field
+     * @return \Iterator
+     * 
+     * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
+     */
+    function getHeaders($field);
+
+    /**
+     * Retrieve an iterator containing all assigned message headers
+     * 
+     * @return \Iterator
+     */
+    function getAllHeaders();
+    
+    /**
+     * Directly retrieve a header value (or a set of comma-concatenated values if multiples exist)
+     * 
+     * @param string $field
+     * @return string
+     */
+    function getCombinedHeader($field);
+    
+    /**
+     * Retrieve the message entity body
      * 
      * @return string
      */
     function getBody();
     
     /**
-     * Retrieve the HTTP message entity body as a stream resource (if available)
-     * 
-     * @return resource Returns body stream or NULL if the message body IS NOT a stream resource
-     */
-    function getBodyStream();
-    
-    /**
-     * Assign an entity body to the HTTP message
-     * 
-     * @param mixed $bodyStringOrResource A string or stream resource
-     * @return void
-     */
-    function setBody($bodyStringOrResource);
-    
-    /**
-     * Does the HTTP message contain the specified header field?
-     * 
-     * @param string $headerName
-     * @return bool
-     */
-    function hasHeader($headerName);
-    
-    /**
-     * Retrieve the value of the specified header field
-     * 
-     * @param string $headerName
-     * @return string
-     */
-    function getHeader($headerName);
-
-    /**
-     * Retrieve a traversable name-value array of header fields and their values
-     * 
-     * @return array
-     */
-    function getAllHeaders();
-    
-    /**
-     * Retrieve the message headers as they would appear in an HTTP message
-     * 
-     * @return string
-     */
-    function getRawHeaders();
-
-    /**
-     * Assign a message header
-     * 
-     * @param string $headerName
-     * @param string $value
-     * @return void
-     */
-    function setHeader($headerName, $value);
-    
-    /**
-     * Assign all header values from a traversable key-value list of header fields and their values
-     * 
-     * @param mixed $traversableHeaders
-     * @return void
-     */
-    function setAllHeaders($traversableHeaders);
-    
-    /**
-     * Assign a header value from a raw string (e.g. Header-Name: some value)
-     * 
-     * @param string $rawHeaderStr
-     * @return void
-     */
-    function setRawHeader($rawHeaderStr);
-    
-    /**
-     * Clear all existing headers and assign matched headers from the specified raw string
-     * 
-     * @param string $rawHeaderStr
-     * @return void
-     */
-    function setAllRawHeaders($rawHeaderStr);
-    
-    /**
-     * Append a header to the existing collection
-     *
-     * @param string $headerName
-     * @param mixed $value A string or single-dimensional array of strings
-     * @return void
-     */
-    function addHeader($headerName, $value);
-    
-    /**
-     * Assign or append headers from a traversable without clearing previously assigned values
-     *
-     * @param mixed $iterable
-     * @return void
-     */
-    function addAllHeaders($iterable);
-    
-    /**
-     * Remove the specified header from the message
-     * 
-     * @param string $headerName
-     * @return void
-     */
-    function removeHeader($headerName);
-    
-    /**
-     * Remove all assigned headers from the message
-     * 
-     * @return void
-     */
-    function removeAllHeaders();
-    
-    /**
-     * Retrieve the numerical HTTP version supported by the message (without the "HTTP/" prefix)
-     * 
-     * @return int
-     */
-    function getHttpVersion();
-    
-    /**
-     * Assign the HTTP version supported by the message (without the "HTTP/" prefix)
-     * 
-     * @param float $decimalVersionNumer
-     * @return void
-     */
-    function setHttpVersion($decimalVersionNumer);
-    
-    /**
-     * Retrieve the raw HTTP message formatted for transport
+     * Retrieve a raw HTTP message given the current object properties
      * 
      * @return string
      */

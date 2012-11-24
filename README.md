@@ -20,18 +20,20 @@ long-running CLI applications
 
 ###### In Development
 
- - Compressed message transfers (gzip, deflate)
+ - Request and decompress gzip-encoded message bodies
+
+###### Planned
+
  - Integrated cookie storage
  - Automatic construction for multipart message bodies
- - Full proxy support
- - Transfer speed limits
+ - Proxy support
+ - Manual DNS resolution for improved non-blocking performance
 
 ### PROJECT GOALS
 
 * Implement an HTTP/1.1 Client built on raw sockets with no libcurl dependency;
 * Model all relevant code on the HTTP/1.1 protocol as outlined in [RFC 2616][rfc2616];
 * Provide an object-oriented alternative to the superglobals that make OO PHP web apps problematic;
-* Provide a fully standard-compliant HTTP/1.1 content-negotiation API;
 * Eschew the use of `static` entirely in favor of maximum testability and full API transparency;
 * Build all components using [SOLID][solid], readable and 100% unit-tested code;
 
@@ -40,7 +42,7 @@ long-running CLI applications
 
 * PHP 5.3+
 * The [PHP-Datastructures][datastructures] library.
-* The PHP `openssl` extension (for SSL/https requests)
+* The PHP `openssl` extension for SSL/TLS (https) requests
 
 You can find in-depth instructions for [verifying][requirements]/[installing][installation] these
 requirements on the relevent Artax wiki pages.

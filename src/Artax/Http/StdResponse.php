@@ -2,29 +2,23 @@
 
 namespace Artax\Http;
 
-use Spl\ValueException;
+use Spl\TypeException,
+    Spl\DomainException;
 
-class StdResponse extends StdMessage implements Response {
+/**
+ * A mutable object used to generate HTTP Responses
+ */
+class StdResponse extends StdMessage implements MutableResponse {
 
     /**
      * @var int
      */
-    protected $statusCode = 200;
+    private $statusCode;
 
     /**
      * @var string
      */
-    protected $reasonPhrase;
-    
-    /**
-     * @return string
-     */
-    public function __toString() {
-        $msg = $this->getStartLineAndHeaders();
-        $msg.= $this->getBody();
-        
-        return $msg;
-    }
+    private $reasonPhrase;
 
     /**
      * @return int
@@ -38,7 +32,27 @@ class StdResponse extends StdMessage implements Response {
      * @return void
      */
     public function setStatusCode($httpStatusCode) {
-        $this->statusCode = (int) $httpStatusCode;
+        $this->assignStatusCode($httpStatusCode);
+    }
+    
+    /**
+     * @param string $status
+     * @throws Spl\DomainException On invalid status code
+     * @return void
+     * 
+     * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec6.html#sec6.1.1
+     * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec2.html#sec2.2
+     */
+    protected function assignStatusCode($status) {
+        $status = trim($status);
+        
+        if (preg_match(",^[1-5]\d\d$,", $status)) {
+            $this->statusCode = (int) $status;
+        } else {
+            throw new DomainException(
+                "Invalid status code: status codes must be a three-digit integer [100-599]"
+            );
+        }
     }
 
     /**
@@ -53,7 +67,33 @@ class StdResponse extends StdMessage implements Response {
      * @return void
      */
     public function setReasonPhrase($httpStatusDescription) {
-        $this->reasonPhrase = $httpStatusDescription;
+        $this->assignReasonPhrase($httpStatusDescription);
+    }
+    
+    /**
+     * Reason-Phrase  = *<TEXT, excluding CR, LF>
+     * TEXT           = <any OCTET except CTLs, but including LWS>
+     * 
+     * @param string $reason
+     * @throws Spl\DomainException On invalid reason phrase
+     * @return void
+     * 
+     * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec6.html#sec6.1.1
+     * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec2.html#sec2.2
+     */
+    protected function assignReasonPhrase($reason) {
+        $reason = trim($reason);
+        
+        if ($reason === '') {
+            return;
+        } elseif (preg_match(",^[\x20-\x7e\x09]+$,", $reason)) {
+            // replace multiple LWS with single space
+            $this->reasonPhrase = preg_replace(",[\x20\t]+,", ' ', $reason);
+        } else {
+            throw new DomainException(
+                "Invalid reason phrase; only ASCII 31-126 and ASCII 9 allowed"
+            );
+        }
     }
 
     /**
@@ -62,27 +102,47 @@ class StdResponse extends StdMessage implements Response {
      * @return string
      */
     public function getStartLine() {
-        return "HTTP/{$this->httpVersion} {$this->statusCode} {$this->reasonPhrase}";
+        return 'HTTP/' .$this->getProtocol(). ' ' .$this->statusCode. ' ' .$this->reasonPhrase;
     }
     
     /**
-     * Parses and assigns start line values according to RFC 2616 Section 6.1
-     * 
-     * @param string $rawStartLineStr
+     * @param Response $response
      * @return void
-     * @throws \Spl\ValueException
      */
-    public function setStartLine($rawStartLineStr) {
-        $startLinePattern = ',^HTTP/(\d+\.\d+) (\d{3}) (.+)$,';
-        
-        if (!preg_match($startLinePattern, trim($rawStartLineStr), $match)) {
-            throw new ValueException(
-                'Invalid HTTP start line: ' . $rawStartLineStr
+    public function import($response) {
+        if (!$response instanceof Response) {
+            throw new TypeException(
+                get_class($this) . '::import requires an instance of Artax\\Http\\Response at ' .
+                'Argument 1'
             );
         }
         
-        $this->httpVersion = $match[1];
-        $this->statusCode = $match[2];
-        $this->reasonPhrase = $match[3];
+        $this->setProtocol($response->getProtocol());
+        $this->setStatusCode($response->getStatusCode());
+        $this->setReasonPhrase($response->getReasonPhrase());
+        $this->setAllHeaders($response->getAllHeaders());
+        $this->setBody($response->getBody());
+    }
+    
+    /**
+     * Export an immutable ValueResponse from the current instance
+     * 
+     * @throws \Spl\DomainException If protocol or status code not set
+     * @return ValueResponse
+     */
+    public function export() {
+        if (!($this->getProtocol() && $this->getStatusCode())) {
+            throw new DomainException(
+                "Protocol and status code must be assigned prior to exporting a response"
+            );
+        }
+        
+        return new ValueResponse(
+            $this->getProtocol(),
+            $this->getStatusCode(),
+            $this->getReasonPhrase(),
+            $this->getAllHeaders(),
+            $this->getBody()
+        );
     }
 }
