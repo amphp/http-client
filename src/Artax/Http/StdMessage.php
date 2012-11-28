@@ -21,7 +21,9 @@ abstract class StdMessage extends ValueMessage implements MutableMessage {
      * @return void
      */
     public function setProtocol($protocol) {
-        $this->assignProtocol($protocol);
+        if (!empty($protocol)) {
+            $this->assignProtocol($protocol);
+        }
     }
 
     /**
