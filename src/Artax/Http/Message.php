@@ -27,8 +27,6 @@ interface Message {
      * @return string
      */
     function getProtocol();
-    function getProtocolMajor();
-    function getProtocolMinor();
     
     /**
      * Does the message contain the specified header field?

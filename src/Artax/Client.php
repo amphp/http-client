@@ -9,6 +9,7 @@ use Exception,
     Spl\KeyException,
     Spl\TypeException,
     Spl\DomainException,
+    Artax\Uri,
     Artax\Http\Request,
     Artax\Http\StdRequest,
     Artax\Http\RequestWriter,
@@ -118,6 +119,8 @@ class Client {
     private $requestWriterKeyMap;
     private $responseParserKeyMap;
     
+    private $requestKeys;
+    private $requestUris;
     private $requests;
     private $responses;
     private $errors;
@@ -156,14 +159,14 @@ class Client {
      * 
      * @param mixed $request A request URI or an instance implementing Artax\Http\Request
      * @throws ClientException On connection failure, socket error or invalid response
-     * @return ClientResponse The HTTP response
+     * @return ClientResult The HTTP response
      */
     public function send($requestOrUri) {
         $this->isInMultiMode = false;
         $this->buildRequestMaps(array($requestOrUri));
         $this->execute();
         
-        return $this->buildClientResponse(0);
+        return $this->buildClientResult(0);
     }
     
     /**
@@ -185,7 +188,7 @@ class Client {
             if (isset($this->errors[$requestKey])) {
                 $multiResult[$requestKey] = null;
             } else {
-                $multiResult[$requestKey] = $this->buildClientResponse($requestKey);
+                $multiResult[$requestKey] = $this->buildClientResult($requestKey);
             }
         }
         
@@ -208,6 +211,7 @@ class Client {
     
     private function buildRequestMaps($requests) {
         $this->requestKeys = array();
+        $this->requestUris = array();
         $this->requests = array();
         $this->responses = array();
         $this->errors = array();
@@ -228,7 +232,7 @@ class Client {
             $this->states[$requestKey] = self::STATE_NEEDS_SOCKET;
             $this->initializeRequestStats($requestKey);
             
-            $inputRequest = $this->prepRequestForSend($inputRequest);
+            $inputRequest = $this->prepRequestForSend($requestKey, $inputRequest);
             $this->mediator->notify(self::EVENT_REQUEST, $requestKey, $inputRequest);
             $this->requests[$requestKey] = $inputRequest;
         }
@@ -248,7 +252,7 @@ class Client {
         );
     }
     
-    private function prepRequestForSend($inputRequest) {
+    private function prepRequestForSend($requestKey, $inputRequest) {
         $request = new StdRequest();
         
         if (is_string($inputRequest)) {
@@ -261,16 +265,23 @@ class Client {
             );
         }
         
-        if (!($request->getScheme() && $request->getHost())) {
+        $uri = new Uri($request->getUri());
+        $scheme = $uri->getScheme();
+        $host = $uri->getHost();
+        
+        if (!($scheme == 'http' || $scheme == 'https')) {
             throw new DomainException(
-                'Request URI must specify scheme and host components'
+                'Request URI must specify a scheme of http or https'
+            );
+        } elseif (empty($host)) {
+            throw new DomainException(
+                'Request URI must specify a host component'
             );
         }
         
-        $authority = $request->getHost();
-        $authority.= ($port = $request->getPort()) ? ":$port" : '';
+        $this->requestUris[$requestKey] = $uri;
         
-        $request->setHeader('Host', $authority);
+        $request->setHeader('Host', $uri->getAuthority());
         $request->setHeader('User-Agent', self::USER_AGENT);
         
         if (!$request->getProtocol()) {
@@ -285,13 +296,22 @@ class Client {
         }
         
         $body = $request->getBody();
+        $bodyIsResource = is_resource($body);
+        $allowsChunkedEncoding = (version_compare($request->getProtocol(), 1.1) >= 0);
         
         if (empty($body) && $body !== '0') {
             $request->removeHeader('Content-Length');
             $request->removeHeader('Transfer-Encoding');
-        } elseif ($request->getProtocol() >= 1.1 && is_resource($body)) {
+        } elseif ($bodyIsResource && $allowsChunkedEncoding) {
             $request->removeHeader('Content-Length');
             $request->setHeader('Transfer-Encoding', 'chunked');
+        } elseif ($bodyIsResource) {
+            $currentBodyPos = ftell($body);
+            fseek($body, 0, SEEK_END);
+            $endBodyPos = ftell($body);
+            fseek($body, $currentBodyPos);
+            $request->setHeader('Content-Length', $endBodyPos);
+            $request->removeHeader('Transfer-Encoding');
         } else {
             $request->setHeader('Content-Length', strlen($body));
             $request->removeHeader('Transfer-Encoding');
@@ -627,14 +647,14 @@ class Client {
     
     private function checkoutSocket($requestKey) {
         /**
-         * @var \Artax\Http\StdRequest $request
+         * @var \Artax\Uri $requestUri
          */
-        $request = $this->requests[$requestKey];
+        $requestUri = $this->requestUris[$requestKey];
         
-        $isCrypto = ($request->getScheme() == 'https');
+        $isCrypto = ($requestUri->getScheme() == 'https');
         $scheme = 'tcp';
-        $host = $request->getHost();
-        if (!$port = $request->getPort()) {
+        $host = $requestUri->getHost();
+        if (!$port = $requestUri->getPort()) {
             $port = $isCrypto ? 443 : 80;
         }
         
@@ -975,7 +995,7 @@ class Client {
             $this->doRedirect($requestKey);
         } else {
             $this->states[$requestKey] = self::STATE_COMPLETE;
-            $notifiableResponse = $this->buildClientResponse($requestKey);
+            $notifiableResponse = $this->buildClientResult($requestKey);
             $this->mediator->notify(
                 self::EVENT_RESPONSE,
                 $requestKey,
@@ -983,6 +1003,12 @@ class Client {
                 $this->requestStats[$requestKey]
             );
         }
+        
+        // clean up the mess
+        $this->requestWriterKeyMap->detach($this->requestWriters[$requestKey]);
+        $this->responseParserKeyMap->detach($this->responseParsers[$requestKey]);
+        $this->requestWriters[$requestKey] = null;
+        $this->responseParsers[$requestKey] = null;
     }
     
     private function shouldKeepAlive($requestKey) {
@@ -1107,6 +1133,7 @@ class Client {
         
         
         $newUri = new Uri($response->getCombinedHeader('Location'));
+        $this->requestUris[$requestKey] = $newUri;
         
         $newRequest = new StdRequest;
         $newRequest->import($request);
@@ -1120,7 +1147,7 @@ class Client {
         $this->requests[$requestKey] = $newRequest;
         $this->states[$requestKey] = self::STATE_NEEDS_SOCKET;
         
-        $notifiableResponse = $this->buildClientResponse($requestKey);
+        $notifiableResponse = $this->buildClientResult($requestKey);
         $this->mediator->notify(
             self::EVENT_REDIRECT,
             $requestKey,
@@ -1132,12 +1159,12 @@ class Client {
         $this->initializeRequestStats($requestKey);
     }
     
-    private function buildClientResponse($requestKey) {
+    private function buildClientResult($requestKey) {
         // New responses are pushed onto the end of the response array as redirections occur. We
         // reverse the array so that the final response in the redirect chain is first.
         $responses = array_reverse($this->responses[$requestKey]);
         
-        return new ClientResponse($responses);
+        return new ClientResult($responses);
     }
     
     /**

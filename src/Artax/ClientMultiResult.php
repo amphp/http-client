@@ -33,7 +33,7 @@ class ClientMultiResult implements Iterator, Countable {
      * 
      * @param string $requestKey The key used to identify the request in the sendMulti batch.
      * @throws \Spl\KeyException If the specified request key does not exist
-     * @return mixed An Artax\ClientResponse or Exception object if an error halted retrieval
+     * @return mixed An Artax\ClientResult or Exception object if an error halted retrieval
      */
     public function getResult($requestKey) {
         if (isset($this->responses[$requestKey])) {

@@ -118,55 +118,6 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @covers Artax\Http\StdRequest::hasQueryParameter
-     */
-    public function testHasQueryParameterReturnsBoolOnParameterAvailability() {
-        $request = new StdRequest();
-        
-        $request->setUri('http://localhost/test?var1=42&var2=0');
-        $this->assertTrue($request->hasQueryParameter('var1'));
-        $this->assertFalse($request->hasQueryParameter('doesntExist'));
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::getQueryParameter
-     */
-    public function testQueryParameterGetterReturnsRequestedParameterValue() {
-        $request = new StdRequest();
-        
-        $request->setUri('http://localhost/test?var1=one&var2=2');
-        $this->assertEquals('one', $request->getQueryParameter('var1'));
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::getQueryParameter
-     * @expectedException Spl\KeyException
-     */
-    public function testQueryParameterGetterThrowsExceptionOnInvalidParameterRequest() {
-        $request = new StdRequest();
-        
-        $request->setUri('http://localhost/test?var1=one&var2=2');
-        $request->getQueryParameter('var99999');
-    }
-    
-    /**
-     * @covers Artax\Http\StdRequest::getAllQueryParameters
-     */
-    public function testGetAllQueryParametersReturnsQueryParameterArray() {
-        $request = new StdRequest();
-        
-        $request->setUri('http://localhost/test?var1=one&var2=2');
-        $this->assertEquals(array('var1'=>'one', 'var2'=>'2'), $request->getAllQueryParameters());
-    }
-    
-    public function testThatNoQueryParamsAreParsedOnEmptyUriQueryString() {
-        $request = new StdRequest();
-        
-        $request->setUri('http://localhost');
-        $this->assertEquals(array(), $request->getAllQueryParameters());
-    }
-    
-    /**
      * @covers Artax\Http\StdRequest::__toString
      */
     public function testToStringReturnsRawHttpMessage() {

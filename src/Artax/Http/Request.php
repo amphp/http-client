@@ -28,32 +28,4 @@ interface Request extends Message {
      * Access the request URI string
      */
     function getUri();
-    function getScheme();
-    function getUser();
-    function getPass();
-    function getHost();
-    function getPort();
-    function getPath();
-    function getQuery();
-    function getFragment();
-    function getAuthority();
-
-    /**
-     * Retrieve a specific URI query parameter by name
-     *
-     * @param string $parameterName
-     */
-    function getQueryParameter($parameterName);
-
-    /**
-     * Does the request contain the specified query parameter?
-     *
-     * @param string $parameterName
-     */
-    function hasQueryParameter($parameterName);
-
-    /**
-     * Access an associative array of query string parameters
-     */
-    function getAllQueryParameters();
 }

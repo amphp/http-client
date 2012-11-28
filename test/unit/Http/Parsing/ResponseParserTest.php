@@ -708,6 +708,28 @@ class ResponseParserTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals('woot!', stream_get_contents($response->getBody()));
         $this->assertEquals(5, ftell($response->getBody()));
     }
+    
+    public function provideRepsonsesThatDisallowBody() {
+        return array(
+            array("HTTP/1.1 204 OK\r\n\r\n"),
+            array("HTTP/1.1 304 OK\r\n\r\n"),
+            array("HTTP/1.1 101 OK\r\n\r\n")
+        );
+    }
+    
+    /**
+     * @dataProvider provideRepsonsesThatDisallowBody
+     */
+    public function testParseCompletesOnStatusCodeDisallowingEntityBody($rawResponse) {
+        $tokenizer = new MockSocketNullReturnTokenizer($rawResponse);
+        $parser = new ResponseParser($tokenizer);
+        
+        while (!$response = $parser->parse()) {
+            continue;
+        }
+        
+        $this->assertEquals('', $response->getBody());
+    }
 }
 
 class MockSocketNullReturnTokenizer extends Tokenizer {

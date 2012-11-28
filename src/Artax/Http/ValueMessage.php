@@ -44,20 +44,6 @@ abstract class ValueMessage implements Message {
             return null;
         }
     }
-    
-    /**
-     * @return int
-     */
-    public function getProtocolMajor() {
-        return $this->protocolMajor;
-    }
-    
-    /**
-     * @return int
-     */
-    public function getProtocolMinor() {
-        return $this->protocolMinor;
-    }
 
     /**
      * @param string $protocol

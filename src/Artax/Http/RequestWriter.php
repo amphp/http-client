@@ -23,7 +23,8 @@ class RequestWriter {
     const STATE_INIT_BODY = 4;
     const STATE_BODY = 5;
     const STATE_BODY_STREAM = 6;
-    const STATE_COMPLETE = 7;
+    const STATE_BODY_STREAM_CHUNKS = 7;
+    const STATE_COMPLETE = 8;
     
     const ATTR_100_CONTINUE_DELAY = 'attr100ContinueDelay';
     const ATTR_STREAM_BUFFER_SIZE = 'attrStreamBufferSize';
@@ -161,6 +162,12 @@ class RequestWriter {
                     } else {
                         break 2;
                     }
+                case self::STATE_BODY_STREAM_CHUNKS:
+                    if ($this->bodyStreamChunks()) {
+                        break;
+                    } else {
+                        break 2;
+                    }
                 case self::STATE_COMPLETE:
                     break 2;
             }
@@ -240,7 +247,9 @@ class RequestWriter {
         $this->bufferPos = 0;
         $this->bufferSize = null;
         
-        if (!$this->request->getBody()) {
+        if ($this->request->getMethod() == Request::TRACE) {
+            $this->state = self::STATE_COMPLETE;
+        } elseif (!$body = $this->request->getBody()) {
             $this->state = self::STATE_COMPLETE;
         } elseif ($this->request->hasHeader('Expect')) {
             $expectsContinue = false;
@@ -269,7 +278,7 @@ class RequestWriter {
         $now = time();
         $waitTime = $now - $this->continueDelayStartedAt;
         
-        if ($waitTime > $this->continueDelay) {
+        if ($waitTime > $this->attributes[self::ATTR_100_CONTINUE_DELAY]) {
             $this->state = self::STATE_INIT_BODY;
             return true;
         } else {
@@ -278,21 +287,35 @@ class RequestWriter {
     }
     
     private function initBody() {
-        if ($this->request->getMethod() == Request::TRACE) {
-            $this->state = self::STATE_COMPLETE;
-            return;
-        }
+        $body = $this->request->getBody();
+        $isResource = is_resource($body);
         
-        if (!$body = $this->request->getBody()) {
-            $this->state = self::STATE_COMPLETE;
-            return;
-        } elseif (is_resource($body)) {
+        if ($isResource && $this->canStreamChunks()) {
+            $this->loadBodyStreamChunkBuffer();
+            $this->state = self::STATE_BODY_STREAM_CHUNKS;
+        } elseif ($isResource) {
             $this->loadBodyStreamBuffer();
             $this->state = self::STATE_BODY_STREAM;
         } elseif (!empty($body) || $body === '0') {
             $this->setBuffer($body);
             $this->state = self::STATE_BODY;
         }
+    }
+    
+    private function canStreamChunks() {
+        if (!$this->request->hasHeader('Transfer-Encoding')) {
+            return false;
+        }
+        
+        if (strcasecmp($this->request->getCombinedHeader('Transfer-Encoding'), 'chunked')) {
+            return false;
+        }
+        
+        if (1 == version_compare(1.1, $this->request->getProtocol())) {
+            return false;
+        }
+        
+        return true;
     }
     
     private function body() {
@@ -306,7 +329,7 @@ class RequestWriter {
     }
     
     private function bodyStream() {
-        while ($this->bufferPos < $this->bufferSize - 1) {
+        while ($this->bufferPos < $this->bufferSize) {
             if (!$this->doBufferedWrite()) {
                 return false;
             }
@@ -318,7 +341,31 @@ class RequestWriter {
     }
     
     private function loadBodyStreamBuffer() {
-        $bodyStream = $this->request->getBodyStream();
+        $bodyStream = $this->request->getBody();
+        
+        if (!feof($bodyStream)) {
+            $chunk = fread($bodyStream, $this->attributes[self::ATTR_STREAM_BUFFER_SIZE]);
+            $this->setBuffer($chunk);
+        } else {
+            $this->setBuffer(null);
+            $this->state = self::STATE_COMPLETE;
+        }
+    }
+    
+    private function bodyStreamChunks() {
+        while ($this->bufferPos < $this->bufferSize) {
+            if (!$this->doBufferedWrite()) {
+                return false;
+            }
+        }
+        
+        $this->loadBodyStreamChunkBuffer();
+        
+        return true;
+    }
+    
+    private function loadBodyStreamChunkBuffer() {
+        $bodyStream = $this->request->getBody();
         
         if (!feof($bodyStream)) {
             $chunk = fread($bodyStream, $this->attributes[self::ATTR_STREAM_BUFFER_SIZE]);
@@ -338,7 +385,7 @@ class RequestWriter {
      * @param string $attribute
      * @param mixed $value
      * @throws \Spl\KeyException On invalid attribute
-     * @throws \Spl\DomainException If attribute assignment attempted after write has started
+     * @throws \Spl\DomainException If attribute assignment is attempted after write has started
      * @return void
      */
     public function setAttribute($attribute, $value) {
@@ -359,10 +406,10 @@ class RequestWriter {
     }
     
     private function setAttr100ContinueDelay($seconds) {
-        $seconds = filter_var($seconds, FILTER_VALIDATE_INT, array(
+        $seconds = filter_var($seconds, FILTER_VALIDATE_FLOAT, array(
             'options' => array(
-                'default' => 5,
-                'min_range' => 1
+                'default' => 3,
+                'min_range' => 0.1
             )
         ));
         
