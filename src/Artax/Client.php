@@ -203,7 +203,7 @@ class Client {
                 "at Argument 1; $type provided"
             );
         } elseif (!count($requests)) {
-            throw new DomainException(
+            throw new TypeException(
                 'No requests specified'
             );
         }
@@ -282,7 +282,10 @@ class Client {
         $this->requestUris[$requestKey] = $uri;
         
         $request->setHeader('Host', $uri->getAuthority());
-        $request->setHeader('User-Agent', self::USER_AGENT);
+        
+        if (!$request->hasHeader('User-Agent')) {
+            $request->setHeader('User-Agent', self::USER_AGENT);
+        }
         
         if (!$request->getProtocol()) {
             $request->setProtocol(1.1);
@@ -910,7 +913,8 @@ class Client {
         
         $read = $ex = null;
         $write = array($socket);
-        if (@stream_select($read, $write, $ex, 0, 0)) {
+        if (stream_select($read, $write, $ex, 0, 0)) {
+            
             if ($needsCrypto && !$this->enableMultiSafeSocketCrypto($requestKey, $socket)) {
                 return;
             }
@@ -1232,12 +1236,12 @@ class Client {
      * 
      * @param int $attribute
      * @param mixed $value
-     * @throws \Spl\ValueException On invalid attribute
+     * @throws \Spl\KeyException On invalid attribute
      * @return void
      */
     public function setAttribute($attribute, $value) {
         if (!array_key_exists($attribute, $this->attributes)) {
-            throw new ValueException(
+            throw new KeyException(
                 'Invalid Client attribute: ' . $attribute . ' does not exist'
             );
         }
