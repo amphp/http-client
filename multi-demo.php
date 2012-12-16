@@ -4,9 +4,9 @@ use Artax\Client,
     Artax\ClientBuilder,
     Ardent\HashingMediator;
 
-require dirname(__DIR__) . '/vendor/autoload.php';
+require __DIR__ . '/vendor/autoload.php';
 
-define('CERT_AUTHORITY_FILE', dirname(__DIR__) . '/certs/cacert.pem');
+define('CERT_AUTHORITY_FILE', __DIR__ . '/certs/cacert.pem');
 
 define('STATE_CONNECTING', 'CONNECTING');
 define('STATE_SENDING', 'SENDING');
