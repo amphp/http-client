@@ -18,16 +18,16 @@ long-running CLI applications
  - Support all standard HTTP/1.1 methods as well as custom methods
  - Standardized event broadcasts allowing custom plugins, cookie storage, etc.
 
-###### In Development
+###### In-Development
 
- - Request and decompress gzip-encoded message bodies
+ - Manual DNS hostname resolution for improved non-blocking performance
 
 ###### Planned
 
  - Integrated cookie storage
  - Automatic construction for multipart message bodies
  - Proxy support
- - Manual DNS resolution for improved non-blocking performance
+ - Request and decompress gzip-encoded message bodies
 
 ### PROJECT GOALS
 
@@ -41,7 +41,7 @@ long-running CLI applications
 ### REQUIREMENTS
 
 * PHP 5.3+
-* The [PHP-Datastructures][datastructures] library.
+* The [Ardent][ardent-github] library.
 * The PHP `openssl` extension for SSL/TLS (https) requests
 
 You can find in-depth instructions for [verifying][requirements]/[installing][installation] these
@@ -59,7 +59,7 @@ Children of the 1980s are likely familiar with [The NeverEnding Story][neverendi
 the scene where Atreyu's faithful steed, Artax, died in the Swamp of Sadness. The name is an homage.
 
 [rfc2616]: http://www.w3.org/Protocols/rfc2616/rfc2616.html
-[datastructures]: https://github.com/morrisonlevi/PHP-Datastructures
+[ardent-github]: https://github.com/morrisonlevi/Ardent
 [solid]: http://en.wikipedia.org/wiki/SOLID_(object-oriented_design) "S.O.L.I.D."
 [neverending]: http://www.imdb.com/title/tt0088323/ "The NeverEnding Story"
 [requirements]: https://github.com/rdlowrey/Artax/wiki/Requirements
