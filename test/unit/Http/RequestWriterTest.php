@@ -2,7 +2,7 @@
 
 use Artax\Http\RequestWriter,
     Artax\Http\ValueRequest,
-    Spl\HashingMediator;
+    Ardent\HashingMediator;
 
 class RequestWriterTest extends PHPUnit_Framework_TestCase {
     
@@ -83,7 +83,7 @@ class RequestWriterTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @expectedException Spl\TypeException
+     * @expectedException Ardent\TypeException
      */
     public function testConstructThrowsExceptionOnInvalidDestination() {
         $request = new ValueRequest('GET', '/test', 1.1);
@@ -135,7 +135,7 @@ class RequestWriterTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @expectedException Spl\DomainException
+     * @expectedException Ardent\DomainException
      */
     public function testSetAttributeThrowsExceptionIfWriteAlreadyStarted() {
         $headers = array(
@@ -154,7 +154,7 @@ class RequestWriterTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @expectedException Spl\KeyException
+     * @expectedException Ardent\KeyException
      */
     public function testSetAttributeThrowsExceptionOnInvalidAttribute() {
         $request = new ValueRequest('GET', '/test', 1.1);

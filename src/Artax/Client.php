@@ -5,10 +5,10 @@ namespace Artax;
 use Exception,
     Traversable,
     SplObjectStorage,
-    Spl\Mediator,
-    Spl\KeyException,
-    Spl\TypeException,
-    Spl\DomainException,
+    Ardent\Mediator,
+    Ardent\KeyException,
+    Ardent\TypeException,
+    Ardent\DomainException,
     Artax\Uri,
     Artax\Http\Request,
     Artax\Http\StdRequest,
@@ -139,7 +139,7 @@ class Client {
     /**
      * @param RequestWriterFactory $requestWriterFactory
      * @param ResponseParserFactory $responseParserFactory
-     * @param \Spl\Mediator $mediator
+     * @param \Ardent\Mediator $mediator
      */
     public function __construct(
         RequestWriterFactory $requestWriterFactory,
@@ -173,7 +173,7 @@ class Client {
      * Make multiple HTTP requests in parallel
      * 
      * @param mixed $requests An array or Traversable list of request instances or URIs
-     * @throws \Spl\TypeException On invalid or empty request list
+     * @throws \Ardent\TypeException On invalid or empty request list
      * @return ClientMultiResponse
      */
     public function sendMulti($requests) {
@@ -1236,7 +1236,7 @@ class Client {
      * 
      * @param int $attribute
      * @param mixed $value
-     * @throws \Spl\KeyException On invalid attribute
+     * @throws \Ardent\KeyException On invalid attribute
      * @return void
      */
     public function setAttribute($attribute, $value) {
@@ -1417,7 +1417,7 @@ class Client {
      * reflect activity during the final request in a redirected response chain.
      * 
      * @param string $requestKey Which request's stats do we want?
-     * @throws \Spl\KeyException On invalid request key
+     * @throws \Ardent\KeyException On invalid request key
      * @return array
      */
     public function getRequestStats($requestKey = 0) {

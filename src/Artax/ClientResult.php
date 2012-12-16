@@ -4,8 +4,8 @@ namespace Artax;
 
 use ArrayIterator,
     IteratorAggregate,
-    Spl\TypeException,
-    Spl\EmptyException,
+    Ardent\TypeException,
+    Ardent\EmptyException,
     Artax\Http\Response;
 
 class ClientResult implements IteratorAggregate, Response {

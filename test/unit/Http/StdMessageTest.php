@@ -49,7 +49,7 @@ class StdMessageTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Http\StdMessage::setAllHeaders
-     * @expectedException Spl\TypeException
+     * @expectedException Ardent\TypeException
      */
     public function testSetAllHeadersThrowsExceptionOnInvalidIterable() {
         $response = new StdResponse();
@@ -109,7 +109,7 @@ class StdMessageTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @covers Artax\Http\StdMessage::addAllHeaders
-     * @expectedException Spl\TypeException
+     * @expectedException Ardent\TypeException
      */
     public function testAppendAllHeadersThrowsExceptionOnInvalidIterable() {
         $response = new StdResponse();

@@ -7,7 +7,7 @@ use Artax\Http\Parsing\Tokenizer,
 class ResponseParserTest extends PHPUnit_Framework_TestCase {
     
     /**
-     * @expectedException Spl\KeyException
+     * @expectedException Ardent\KeyException
      */
     public function testSetAttributeThrowsExceptionOnInvalidAttribute() {
         $tokenizer = new Tokenizer('stream of characters');

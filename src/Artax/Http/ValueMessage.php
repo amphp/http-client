@@ -5,10 +5,10 @@ namespace Artax\Http;
 use StdClass,
     Traversable,
     ArrayIterator,
-    Spl\KeyException,
-    Spl\TypeException,
-    Spl\DomainException,
-    Spl\LookupException;
+    Ardent\KeyException,
+    Ardent\TypeException,
+    Ardent\DomainException,
+    Ardent\LookupException;
 
 abstract class ValueMessage implements Message {
     
@@ -47,7 +47,7 @@ abstract class ValueMessage implements Message {
 
     /**
      * @param string $protocol
-     * @throws \Spl\DomainException On invalid HTTP version (non-numeric or missing ".")
+     * @throws \Ardent\DomainException On invalid HTTP version (non-numeric or missing ".")
      * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.1
      */
     protected function assignProtocol($protocol) {
@@ -65,7 +65,7 @@ abstract class ValueMessage implements Message {
     
     /**
      * @param mixed $scalarOrResource
-     * @throws \Spl\TypeException If not a scalar or resource
+     * @throws \Ardent\TypeException If not a scalar or resource
      */
     protected function assignBody($scalarOrResource) {
         if (is_resource($scalarOrResource)) {
@@ -121,7 +121,7 @@ abstract class ValueMessage implements Message {
      * ```
      * 
      * @param string $field The header field to retrieve
-     * @throws \Spl\KeyException If no headers exist for the specified field
+     * @throws \Ardent\KeyException If no headers exist for the specified field
      * @return \ArrayIterator
      * 
      * @see ValueMessage::getAllHeaders
@@ -161,7 +161,7 @@ abstract class ValueMessage implements Message {
      * ```
      * 
      * @param string $field
-     * @throws \Spl\KeyException If the specified header does not exist
+     * @throws \Ardent\KeyException If the specified header does not exist
      * @return string The combined value of all headers matching the specified field
      */
     public function getCombinedHeader($field) {
@@ -189,8 +189,8 @@ abstract class ValueMessage implements Message {
     }
 
     /**
-     * @throws \Spl\TypeException On non-string $field or $value parameter
-     * @throws \Spl\DomainException On unacceptable header values (invalid characters)
+     * @throws \Ardent\TypeException On non-string $field or $value parameter
+     * @throws \Ardent\DomainException On unacceptable header values (invalid characters)
      */
     protected function appendHeader($field, $value) {
         if (is_array($value)) {

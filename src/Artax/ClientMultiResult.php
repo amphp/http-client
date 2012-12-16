@@ -5,7 +5,7 @@ namespace Artax;
 use Iterator,
     Countable,
     ArrayIterator,
-    Spl\KeyException;
+    Ardent\KeyException;
 
 class ClientMultiResult implements Iterator, Countable {
     
@@ -32,7 +32,7 @@ class ClientMultiResult implements Iterator, Countable {
      * Retrieve the result (completed Response or Exception object) for the specified request key
      * 
      * @param string $requestKey The key used to identify the request in the sendMulti batch.
-     * @throws \Spl\KeyException If the specified request key does not exist
+     * @throws \Ardent\KeyException If the specified request key does not exist
      * @return mixed An Artax\ClientResult or Exception object if an error halted retrieval
      */
     public function getResult($requestKey) {

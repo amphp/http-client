@@ -2,7 +2,7 @@
 
 namespace Artax\Http;
 
-use Spl\DomainException,
+use Ardent\DomainException,
     Artax\Uri;
 
 /**
@@ -32,7 +32,7 @@ class ValueRequest extends ValueMessage implements Request {
      * @param string $uri The request URI string
      * @param string $protocol The HTTP protocol version (1.1, 1.0, 0.9)
      * @param mixed $headers An array, or Traversable or list of headers
-     * @throws \Spl\DomainException On seriously malformed URIs
+     * @throws \Ardent\DomainException On seriously malformed URIs
      */
     public function __construct($method, $uri, $protocol, $headers = null, $body = null) {
         $this->assignMethod($method);
@@ -50,7 +50,7 @@ class ValueRequest extends ValueMessage implements Request {
     
     /**
      * @param string $uri
-     * @throws \Spl\DomainException On seriously malformed URI
+     * @throws \Ardent\DomainException On seriously malformed URI
      */
     protected function assignUri($uri) {
         $this->uri = new Uri($uri);
@@ -66,7 +66,7 @@ class ValueRequest extends ValueMessage implements Request {
      *                | "{" | "}" | SP | HT
      * 
      * @param string $method
-     * @throws \Spl\DomainException On invalid method verb
+     * @throws \Ardent\DomainException On invalid method verb
      * @return void
      * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html#sec5.1.1
      */

@@ -2,7 +2,7 @@
 
 namespace Artax;
 
-use Spl\Mediator,
+use Ardent\Mediator,
     Artax\Http\Parsing\Tokenizer,
     Artax\Http\Parsing\ResponseParser;
 

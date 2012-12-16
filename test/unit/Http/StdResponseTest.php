@@ -93,7 +93,7 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideInvalidStatusCodes
-     * @expectedException Spl\DomainException
+     * @expectedException Ardent\DomainException
      */
     public function testSetStatusCodeThrowsExceptionOnInvalidValue($badStatus) {
         $response = new StdResponse();
@@ -120,7 +120,7 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideInvalidReasonPhrases
-     * @expectedException Spl\DomainException
+     * @expectedException Ardent\DomainException
      */
     public function testSetReasonPhraseThrowsExceptionOnInvalidValue($badReason) {
         $response = new StdResponse();
@@ -201,7 +201,7 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideInvalidImportResponses
-     * @expectedException Spl\TypeException
+     * @expectedException Ardent\TypeException
      */
     public function testImportThrowsExceptionOnInvalidType($badResponse) {
         $response = new StdResponse;
@@ -261,7 +261,7 @@ class StdResponseTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideUnexportableResponses
-     * @expectedException Spl\DomainException
+     * @expectedException Ardent\DomainException
      */
     public function testExportThrowsExceptionIfRequiredPropertiesNotSet($unexportableResponse) {
         $unexportableResponse->export();

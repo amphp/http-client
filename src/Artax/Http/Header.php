@@ -2,8 +2,8 @@
 
 namespace Artax\Http;
 
-use Spl\TypeException,
-    Spl\DomainException;
+use Ardent\TypeException,
+    Ardent\DomainException;
 
 /**
  * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
@@ -28,8 +28,8 @@ class Header {
     /**
      * @param string $field
      * @param string $value
-     * @throws \Spl\TypeException On non-string parameters
-     * @throws \Spl\DomainException On the presence of invalid header characters
+     * @throws \Ardent\TypeException On non-string parameters
+     * @throws \Ardent\DomainException On the presence of invalid header characters
      */
     public function __construct($field, $value) {
         if (!is_scalar($field) || is_resource($field)) {

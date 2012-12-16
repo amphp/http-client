@@ -9,7 +9,7 @@ use Artax\Http\ValueRequest,
 class ValueMessageTest extends PHPUnit_Framework_TestCase {
     
     /**
-     * @expectedException Spl\TypeException
+     * @expectedException Ardent\TypeException
      */
     public function testBodyAssignmentThrowsExceptionOnInvalidType() {
         $body = new StdClass;
@@ -17,7 +17,7 @@ class ValueMessageTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @expectedException Spl\KeyException
+     * @expectedException Ardent\KeyException
      */
     public function testGetHeadersThrowsExceptionOnNonexistentHeader() {
         $request = new ValueRequest('GET', 'http://localhost/', 1.1);
@@ -34,7 +34,7 @@ class ValueMessageTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @expectedException Spl\TypeException
+     * @expectedException Ardent\TypeException
      */
     public function testAppendAllHeadersThrowsExceptionOnInvalidIterable() {
         $request = new ValueRequest('GET', 'http://localhost/', 1.1, 'not iterable header list');

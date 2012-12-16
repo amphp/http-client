@@ -2,8 +2,8 @@
 
 namespace Artax;
 
-use Spl\Mediator,
-    Spl\HashingMediator,
+use Ardent\Mediator,
+    Ardent\HashingMediator,
     Artax\Client,
     Artax\RequestWriterFactory,
     Artax\ResponseParserFactory;

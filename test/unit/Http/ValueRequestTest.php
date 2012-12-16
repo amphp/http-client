@@ -15,7 +15,7 @@ class ValueRequestTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideInvalidMethodVerbs
-     * @expectedException Spl\DomainException
+     * @expectedException Ardent\DomainException
      */
     public function testConstructorThrowsExceptionOnInvalidMethodVerb($badMethod) {
         $request = new ValueRequest($badMethod, 'http://localhost', '1.1');
@@ -32,7 +32,7 @@ class ValueRequestTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideInvalidProtocols
-     * @expectedException Spl\DomainException
+     * @expectedException Ardent\DomainException
      */
     public function testConstructorThrowsExceptionOnInvalidProtocol($badProtocol) {
         $request = new ValueRequest('GET', 'http://localhost', $badProtocol);

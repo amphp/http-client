@@ -14,7 +14,7 @@ class HeaderTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideInvalidTypes
-     * @expectedException Spl\TypeException
+     * @expectedException Ardent\TypeException
      */
     public function testConstructorThrowsExceptionOnInvalidFieldType($badType) {
         $header = new Header($badType, 'value');
@@ -22,7 +22,7 @@ class HeaderTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideInvalidTypes
-     * @expectedException Spl\TypeException
+     * @expectedException Ardent\TypeException
      */
     public function testConstructorThrowsExceptionOnInvalidValueType($badType) {
         $header = new Header('Valid-Header', $badType);
@@ -44,7 +44,7 @@ class HeaderTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideInvalidFields
-     * @expectedException Spl\DomainException
+     * @expectedException Ardent\DomainException
      */
     public function testConstructorThrowsExceptionOnInvalidFieldChars($badField) {
         $header = new Header($badField, 'value');
@@ -59,7 +59,7 @@ class HeaderTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideInvalidValues
-     * @expectedException Spl\DomainException
+     * @expectedException Ardent\DomainException
      */
     public function testConstructorThrowsExceptionOnInvalidValueChars($badValue) {
         $header = new Header('Some-Header-Field', $badValue);

@@ -103,7 +103,7 @@ if ($isDir && !is_writable($certPath)) {
 
 $totalBytesRead = 0;
 $headerSize = 0;
-$mediator = new Spl\HashingMediator;
+$mediator = new Ardent\HashingMediator;
 $mediator->addListener(Artax\Client::EVENT_READ,
     function($requestKey, $data, $bytes, $bodyBytes, $info) use (&$totalBytesRead, &$headerSize) {
         $totalBytesRead += $bytes;

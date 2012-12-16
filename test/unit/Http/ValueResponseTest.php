@@ -16,7 +16,7 @@ class ValueResponseTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideInvalidStatusCodes
-     * @expectedException Spl\DomainException
+     * @expectedException Ardent\DomainException
      */
     public function testConstructorThrowsExceptionOnInvalidStatusCode($badStatus) {
         $response = new ValueResponse('1.1', $badStatus);
@@ -31,7 +31,7 @@ class ValueResponseTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideInvalidReasonPhrases
-     * @expectedException Spl\DomainException
+     * @expectedException Ardent\DomainException
      */
     public function testConstructorThrowsExceptionOnInvalidReasonPhrase($badReason) {
         $response = new ValueResponse('1.1', 200, $badReason);

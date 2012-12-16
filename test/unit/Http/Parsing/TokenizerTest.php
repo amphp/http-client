@@ -21,7 +21,7 @@ class TokenizerTest extends PHPUnit_Framework_TestCase {
     /**
      * @dataProvider provideInvalidStreamResources
      * @covers Artax\Http\Parsing\Tokenizer::__construct
-     * @expectedException Spl\TypeException
+     * @expectedException Ardent\TypeException
      */
     public function testConstructorThrowsExceptionOnInvalidInputStream($notAStreamResource) {
         $tokenizer = new Tokenizer($notAStreamResource);
@@ -141,7 +141,7 @@ class TokenizerTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @expectedException Spl\DomainException
+     * @expectedException Ardent\DomainException
      */
     public function testSetGranularityThrowsExceptionOnNonPositiveInteger() {
         $input = fopen('php://memory', 'r');

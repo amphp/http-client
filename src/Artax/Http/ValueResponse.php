@@ -2,7 +2,7 @@
 
 namespace Artax\Http;
 
-use Spl\DomainException;
+use Ardent\DomainException;
 
 /**
  * An immutable value object modeling an HTTP Response message
@@ -45,7 +45,7 @@ class ValueResponse extends ValueMessage implements Response {
     
     /**
      * @param string $status
-     * @throws Spl\DomainException
+     * @throws Ardent\DomainException
      * @return void
      * 
      * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec6.html#sec6.1.1
@@ -68,7 +68,7 @@ class ValueResponse extends ValueMessage implements Response {
      * TEXT           = <any OCTET except CTLs, but including LWS>
      * 
      * @param string $reason
-     * @throws Spl\DomainException
+     * @throws Ardent\DomainException
      * @return void
      * 
      * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec6.html#sec6.1.1

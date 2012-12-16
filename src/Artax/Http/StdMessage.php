@@ -49,8 +49,8 @@ abstract class StdMessage extends ValueMessage implements MutableMessage {
      * 
      * @param string $field The header field name
      * @param mixed $value The header value or an array of values
-     * @throws \Spl\TypeException On invalid field or value types
-     * @throws \Spl\DomainException On unacceptable field or header values (invalid characters)
+     * @throws \Ardent\TypeException On invalid field or value types
+     * @throws \Ardent\DomainException On unacceptable field or header values (invalid characters)
      * @return void
      */
     public function setHeader($field, $value) {
@@ -63,8 +63,8 @@ abstract class StdMessage extends ValueMessage implements MutableMessage {
      * a HeaderCollection instance
      *
      * @param mixed $arrayOrTraversable
-     * @throws \Spl\TypeException On invalid field or value types
-     * @throws \Spl\DomainException On unacceptable field or header values (invalid characters)
+     * @throws \Ardent\TypeException On invalid field or value types
+     * @throws \Ardent\DomainException On unacceptable field or header values (invalid characters)
      * @return void
      */
     public function setAllHeaders($arrayOrTraversable) {
@@ -77,8 +77,8 @@ abstract class StdMessage extends ValueMessage implements MutableMessage {
      *
      * @param string $field The header field name
      * @param mixed $value The header value or an array of values
-     * @throws \Spl\TypeException On invalid field or value types
-     * @throws \Spl\DomainException On unacceptable field or header values (invalid characters)
+     * @throws \Ardent\TypeException On invalid field or value types
+     * @throws \Ardent\DomainException On unacceptable field or header values (invalid characters)
      * @return void
      */
     public function addHeader($field, $value) {
@@ -89,8 +89,8 @@ abstract class StdMessage extends ValueMessage implements MutableMessage {
      * Assign or append headers from a traversable without clearing previously assigned values
      *
      * @param mixed $arrayOrTraversable
-     * @throws \Spl\TypeException On invalid field or value types
-     * @throws \Spl\DomainException On unacceptable field or header values (invalid characters)
+     * @throws \Ardent\TypeException On invalid field or value types
+     * @throws \Ardent\DomainException On unacceptable field or header values (invalid characters)
      * @return void
      */
     public function addAllHeaders($arrayOrTraversable) {

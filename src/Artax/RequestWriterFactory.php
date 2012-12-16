@@ -2,7 +2,7 @@
 
 namespace Artax;
 
-use Spl\Mediator,
+use Ardent\Mediator,
     Artax\Http\Request,
     Artax\Http\RequestWriter;
 

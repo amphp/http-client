@@ -2,7 +2,7 @@
 
 use Artax\Client,
     Artax\ClientBuilder,
-    Spl\HashingMediator;
+    Ardent\HashingMediator;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 

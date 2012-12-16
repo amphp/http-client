@@ -1,6 +1,6 @@
 <?php
 
-use Spl\HashingMediator,
+use Ardent\HashingMediator,
     Artax\Uri,
     Artax\Client,
     Artax\ClientBuilder,
@@ -21,7 +21,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @expectedException Spl\KeyException
+     * @expectedException Ardent\KeyException
      */
     public function testSetAttributeThrowsExceptionOnInvalidAttribute() {
         $clientBuilder = new ClientBuilderStub;
@@ -69,7 +69,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideInvalidMultiRequestLists
-     * @expectedException Spl\TypeException
+     * @expectedException Ardent\TypeException
      */
     public function testSendMultiThrowsExceptionOnInvalidRequestTraversable($badRequestList) {
         $clientBuilder = new ClientBuilderStub;
@@ -78,123 +78,12 @@ class ClientTest extends PHPUnit_Framework_TestCase {
     }
     
     /**
-     * @expectedException Spl\DomainException
+     * @expectedException Ardent\DomainException
      */
     public function testSendThrowsExceptionOnRequestUriWithoutHttpOrHttpsScheme() {
         $clientBuilder = new ClientBuilderStub;
         $client = $clientBuilder->build();
         $client->send('ws://someurl');
-    }
-    
-    public function testSendRemovesContentLengthHeaderOnStreamRequestBody() {
-        SocketStreamWrapper::setDefaultRawResponse();
-        
-        $body = fopen('php://memory', 'r');
-        $request = new StdRequest;
-        $request->setUri('http://localhost');
-        $request->setMethod('POST');
-        $request->setBody($body);
-        $request->setHeader('Content-Length', 10);
-        $request->setHeader('Transfer-Encoding', 'chunked');
-        $expectedWrite = '' .
-            "POST / HTTP/1.1\r\n" .
-            "Transfer-Encoding: chunked\r\n" .
-            "User-Agent: ".Client::USER_AGENT."\r\n" .
-            "Connection: close\r\n" .
-            "Host: localhost\r\n" .
-            "\r\n" .
-            "0\r\n" .
-            "\r\n";
-        
-        $clientBuilder = new ClientBuilderStub;
-        $client = $clientBuilder->build();
-        
-        $client->setAttribute(Client::ATTR_KEEP_CONNS_ALIVE, false);
-        $client->setAttribute(Client::ATTR_CONNECT_TIMEOUT, 1);
-        $client->setAttribute(Client::ATTR_IO_BUFFER_SIZE, 1);
-        $client->send($request);
-        
-        $this->assertEquals($expectedWrite, SocketStreamWrapper::$writtenData);
-    }
-    
-    public function testSendRemovesTransferEncodingHeaderAndAssignsContentLengthOnBufferedRequestBody() {
-        SocketStreamWrapper::setDefaultRawResponse();
-        
-        $request = new StdRequest;
-        $request->setUri('http://localhost');
-        $request->setMethod('POST');
-        $body = 'test body';
-        $request->setBody($body);
-        $request->setHeader('Content-Length', 9999);
-        $request->setHeader('Transfer-Encoding', 'chunked');
-        $expectedWrite = '' .
-            "POST / HTTP/1.1\r\n" .
-            "Content-Length: ".strlen($body)."\r\n" .
-            "User-Agent: ".Client::USER_AGENT."\r\n" .
-            "Connection: close\r\n" .
-            "Host: localhost\r\n" .
-            "\r\n" .
-            "$body";
-        
-        $clientBuilder = new ClientBuilderStub;
-        $client = $clientBuilder->build();
-        
-        $client->setAttribute(Client::ATTR_KEEP_CONNS_ALIVE, false);
-        $client->setAttribute(Client::ATTR_CONNECT_TIMEOUT, 1);
-        $client->setAttribute(Client::ATTR_IO_BUFFER_SIZE, 1);
-        $client->send($request);
-        
-        $this->assertEquals($expectedWrite, SocketStreamWrapper::$writtenData);
-    }
-    
-    public function testSendRemovesContentLengthAndTransferEncodingHeaderFromRequestIfNoBodyExists() {
-        SocketStreamWrapper::setDefaultRawResponse();
-        
-        $request = new StdRequest;
-        $request->setUri('http://localhost');
-        $request->setHeader('Content-Length', 10);
-        $request->setHeader('Transfer-Encoding', 'chunked');
-        $expectedWrite = '' .
-            "GET / HTTP/1.1\r\n" .
-            "User-Agent: ".Client::USER_AGENT."\r\n" .
-            "Connection: close\r\n" .
-            "Host: localhost\r\n" .
-            "\r\n";
-        
-        $clientBuilder = new ClientBuilderStub;
-        $client = $clientBuilder->build();
-        
-        $client->setAttribute(Client::ATTR_KEEP_CONNS_ALIVE, false);
-        $client->setAttribute(Client::ATTR_CONNECT_TIMEOUT, 1);
-        $client->setAttribute(Client::ATTR_IO_BUFFER_SIZE, 1);
-        $client->send($request);
-        
-        $this->assertEquals($expectedWrite, SocketStreamWrapper::$writtenData);
-    }
-    
-    public function testSendIgnoresRequestBodyOnTraceMethod() {
-        SocketStreamWrapper::setDefaultRawResponse();
-        
-        $request = new StdRequest;
-        $request->setUri('http://localhost');
-        $request->setMethod('TRACE');
-        $request->setBody('test');
-        $expectedWrite = '' .
-            "TRACE / HTTP/1.1\r\n" .
-            "User-Agent: ".Client::USER_AGENT."\r\n" .
-            "Connection: close\r\n" .
-            "Host: localhost\r\n" .
-            "\r\n";
-        
-        $clientBuilder = new ClientBuilderStub;
-        $client = $clientBuilder->build();
-        
-        $client->setAttribute(Client::ATTR_KEEP_CONNS_ALIVE, false);
-        $client->setAttribute(Client::ATTR_CONNECT_TIMEOUT, 1);
-        $client->setAttribute(Client::ATTR_IO_BUFFER_SIZE, 1);
-        $client->send($request);
-        
-        $this->assertEquals($expectedWrite, SocketStreamWrapper::$writtenData);
     }
     
     public function provideRequestExpectations() {
@@ -347,7 +236,7 @@ class ClientTest extends PHPUnit_Framework_TestCase {
 
 
 class ClientBuilderStub extends ClientBuilder {
-    public function build(\Spl\Mediator $mediator = null) {
+    public function build(\Ardent\Mediator $mediator = null) {
         $writerFactory = new RequestWriterFactory;
         $parserFactory = new ResponseParserFactory;
         $mediator = $mediator ?: new HashingMediator;

@@ -2,8 +2,8 @@
 
 namespace Artax\Http;
 
-use Spl\TypeException,
-    Spl\DomainException;
+use Ardent\TypeException,
+    Ardent\DomainException;
 
 /**
  * A mutable object used to generate HTTP Responses
@@ -37,7 +37,7 @@ class StdResponse extends StdMessage implements MutableResponse {
     
     /**
      * @param string $status
-     * @throws Spl\DomainException On invalid status code
+     * @throws Ardent\DomainException On invalid status code
      * @return void
      * 
      * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec6.html#sec6.1.1
@@ -75,7 +75,7 @@ class StdResponse extends StdMessage implements MutableResponse {
      * TEXT           = <any OCTET except CTLs, but including LWS>
      * 
      * @param string $reason
-     * @throws Spl\DomainException On invalid reason phrase
+     * @throws Ardent\DomainException On invalid reason phrase
      * @return void
      * 
      * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec6.html#sec6.1.1
@@ -127,7 +127,7 @@ class StdResponse extends StdMessage implements MutableResponse {
     /**
      * Export an immutable ValueResponse from the current instance
      * 
-     * @throws \Spl\DomainException If protocol or status code not set
+     * @throws \Ardent\DomainException If protocol or status code not set
      * @return ValueResponse
      */
     public function export() {

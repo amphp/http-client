@@ -4,8 +4,8 @@ namespace Artax\Http\Parsing;
 
 use Iterator,
     RuntimeException,
-    Spl\TypeException,
-    Spl\DomainException;
+    Ardent\TypeException,
+    Ardent\DomainException;
 
 /**
  * Generates tokens from a character stream according to the ABNF grammar in RFC 2616 Section 2.2
@@ -129,7 +129,7 @@ class Tokenizer implements Iterator {
     
     /**
      * @param mixed $input A string or stream resource containing input characters
-     * @throws \Spl\TypeException On invalid input stream
+     * @throws \Ardent\TypeException On invalid input stream
      */
     public function __construct($input) {
         if (is_string($input)) {
@@ -197,7 +197,7 @@ class Tokenizer implements Iterator {
      * @throws \RuntimeException On stream failure
      * @return int
      * 
-     * @todo Determine appropriate Spl exception to throw on stream stat failure
+     * @todo Determine appropriate Ardent exception to throw on stream stat failure
      */
     public function key() {
         $pos = @ftell($this->input);
@@ -243,7 +243,7 @@ class Tokenizer implements Iterator {
      * @throws \RuntimeException On stream rewind failure
      * @return void
      * 
-     * @todo Determine appropriate Spl exception to throw in stream rewind failure scenarios
+     * @todo Determine appropriate Ardent exception to throw in stream rewind failure scenarios
      */
     public function rewind() {
         if (!@rewind($this->input)) {
@@ -377,7 +377,7 @@ class Tokenizer implements Iterator {
      * available as network packets arrive.
      * 
      * @param int $bytes
-     * @throws \Spl\DomainException On non-positive integer
+     * @throws \Ardent\DomainException On non-positive integer
      * @return void
      */
     public function setGranularity($bytes) {

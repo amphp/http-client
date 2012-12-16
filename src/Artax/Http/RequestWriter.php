@@ -2,10 +2,10 @@
 
 namespace Artax\Http;
 
-use Spl\Mediator,
-    Spl\KeyException,
-    Spl\TypeException,
-    Spl\DomainException,
+use Ardent\Mediator,
+    Ardent\KeyException,
+    Ardent\TypeException,
+    Ardent\DomainException,
     Artax\Http\Request,
     Artax\Http\StdRequest;
 
@@ -45,15 +45,15 @@ class RequestWriter {
     private $continueDelayStartedAt;
     
     /**
-     * @var \Spl\Mediator
+     * @var \Ardent\Mediator
      */
     private $mediator;
     
     /**
      * @param Http\Request $request
      * @param resource $destination
-     * @param \Spl\Mediator $mediator
-     * @throws \Spl\TypeException on non-resource destination
+     * @param \Ardent\Mediator $mediator
+     * @throws \Ardent\TypeException on non-resource destination
      */
     public function __construct(Request $request, $destination, Mediator $mediator = null) {
         if (!is_resource($destination)) {
@@ -120,7 +120,7 @@ class RequestWriter {
      * specify its own `Transfer-Encoding: chunked` header or risk the remote endpoint incorrectly
      * interpreting the entity body contents.
      * 
-     * @throws \Spl\DomainException On disconnection from the destination stream prior to completion
+     * @throws \Ardent\DomainException On disconnection from the destination stream prior to completion
      * @return bool Returns TRUE on send completion or FALSE for all other states
      */
     public function send() {
@@ -384,8 +384,8 @@ class RequestWriter {
      * 
      * @param string $attribute
      * @param mixed $value
-     * @throws \Spl\KeyException On invalid attribute
-     * @throws \Spl\DomainException If attribute assignment is attempted after write has started
+     * @throws \Ardent\KeyException On invalid attribute
+     * @throws \Ardent\DomainException If attribute assignment is attempted after write has started
      * @return void
      */
     public function setAttribute($attribute, $value) {

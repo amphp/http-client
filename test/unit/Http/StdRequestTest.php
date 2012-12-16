@@ -17,7 +17,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideInvalidMethodVerbs
-     * @expectedException Spl\DomainException
+     * @expectedException Ardent\DomainException
      */
     public function testSetMethodThrowsExceptionOnInvalidMethodVerb($badMethod) {
         $request = new StdRequest();
@@ -87,7 +87,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideRequestsWithMissingStartLineProperties
-     * @expectedException Spl\DomainException
+     * @expectedException Ardent\DomainException
      */
     public function testGetStartLineThrowsExceptionOnMissingProperties($incompleteRequest) {
         $incompleteRequest->getStartLine();
@@ -180,7 +180,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideNonRequestImportParams
-     * @expectedException Spl\TypeException
+     * @expectedException Ardent\TypeException
      */
     public function testImportThrowsExceptionOnNonRequestParameter($badMessage) {
         $request = new StdRequest();
@@ -250,7 +250,7 @@ class StdRequestTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideUnexportableRequests
-     * @expectedException Spl\DomainException
+     * @expectedException Ardent\DomainException
      */
     public function testExportThrowsExceptionIfRequiredPropertiesNotSet($unexportableRequest) {
         $unexportableRequest->export();

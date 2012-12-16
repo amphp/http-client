@@ -3,8 +3,8 @@
 namespace Artax;
 
 use StdClass,
-    Spl\DomainException,
-    Spl\KeyException;
+    Ardent\DomainException,
+    Ardent\KeyException;
 
 class Uri {
 
@@ -79,7 +79,7 @@ class Uri {
     
     /**
      * @param string $uri
-     * @throws \Spl\DomainException
+     * @throws \Ardent\DomainException
      */
     public function __construct($uri) {
         $uri = (string) $uri;
@@ -531,7 +531,7 @@ class Uri {
     /**
      * @param string $parameter
      * @return string
-     * @throws \Spl\KeyException
+     * @throws \Ardent\KeyException
      */
     public function getQueryParameter($parameter) {
         if (!$this->hasQueryParameter($parameter)) {

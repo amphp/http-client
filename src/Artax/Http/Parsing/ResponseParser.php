@@ -2,8 +2,8 @@
 
 namespace Artax\Http\Parsing;
 
-use Spl\Mediator,
-    Spl\KeyException,
+use Ardent\Mediator,
+    Ardent\KeyException,
     Artax\Http\StdResponse;
 
 class ResponseParser {
@@ -81,13 +81,13 @@ class ResponseParser {
     private $entityBody;
     
     /**
-     * @var \Spl\Mediator
+     * @var \Ardent\Mediator
      */
     private $mediator;
     
     /**
      * @param Tokenizer $tokenizer
-     * @param \Spl\Mediator $mediator 
+     * @param \Ardent\Mediator $mediator 
      */
     public function __construct(Tokenizer $tokenizer, Mediator $mediator = null) {
         $this->tokenizer = $tokenizer;
@@ -825,7 +825,7 @@ class ResponseParser {
      * 
      * @param string $attribute
      * @param mixed $value
-     * @throws \Spl\KeyException On invalid attribute
+     * @throws \Ardent\KeyException On invalid attribute
      * @return void
      */
     public function setAttribute($attribute, $value) {

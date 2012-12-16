@@ -2,8 +2,8 @@
 
 namespace Artax\Http;
 
-use Spl\TypeException,
-    Spl\DomainException,
+use Ardent\TypeException,
+    Ardent\DomainException,
     Artax\Uri;
 
 /**
@@ -34,7 +34,7 @@ class StdRequest extends StdMessage implements MutableRequest {
      * Assign the request URI
      * 
      * @param string $uri
-     * @throws \Spl\DomainException On some seriously malformed URIs
+     * @throws \Ardent\DomainException On some seriously malformed URIs
      * @return void
      */
     public function setUri($uri) {
@@ -54,7 +54,7 @@ class StdRequest extends StdMessage implements MutableRequest {
      * Assign the HTTP method verb
      * 
      * @param string $method
-     * @throws \Spl\DomainException On invalid method
+     * @throws \Ardent\DomainException On invalid method
      * @return void
      */
     public function setMethod($method) {
@@ -71,7 +71,7 @@ class StdRequest extends StdMessage implements MutableRequest {
      *                | "{" | "}" | SP | HT
      * 
      * @param string $method
-     * @throws \Spl\DomainException On invalid method verb
+     * @throws \Ardent\DomainException On invalid method verb
      * @return void
      * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html#sec5.1.1
      */
@@ -90,7 +90,7 @@ class StdRequest extends StdMessage implements MutableRequest {
     /**
      * Build a raw HTTP message request line (without trailing CRLF)
      * 
-     * @throws \Spl\DomainException On missing HTTP version or method verb
+     * @throws \Ardent\DomainException On missing HTTP version or method verb
      * @return string
      */
     public function getStartLine() {
@@ -116,7 +116,7 @@ class StdRequest extends StdMessage implements MutableRequest {
      * Import all properties of an existing Request implementation into the current instance
      * 
      * @param Request $request
-     * @throws \Spl\TypeException If non-Request argument specified
+     * @throws \Ardent\TypeException If non-Request argument specified
      * @return void
      */
     public function import($request) {
@@ -137,7 +137,7 @@ class StdRequest extends StdMessage implements MutableRequest {
     /**
      * Export an immutable ValueRequest from the current instance
      * 
-     * @throws \Spl\DomainException On missing method/URI/protocol
+     * @throws \Ardent\DomainException On missing method/URI/protocol
      * @return ValueRequest
      */
     public function export() {
