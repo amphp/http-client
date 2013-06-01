@@ -1,3 +1,3 @@
-[submodule "vendor/Ardent"]
-	path = vendor/Ardent
-	url = git://github.com/morrisonlevi/Ardent.git
+[submodule "vendor/Amp"]
+	path = vendor/Amp
+	url = https://github.com/rdlowrey/Amp.git

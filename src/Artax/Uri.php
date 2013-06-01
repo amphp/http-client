@@ -2,90 +2,26 @@
 
 namespace Artax;
 
-use StdClass,
-    Ardent\DomainException,
-    Ardent\KeyException;
-
 class Uri {
 
-    /**
-     * @var string
-     */
     private $scheme = '';
-
-    /**
-     * @var string
-     */
     private $user = '';
-
-    /**
-     * @var string
-     */
     private $pass = '';
-
-    /**
-     * @var string
-     */
     private $host = '';
-
-    /**
-     * @var int
-     */
     private $port = '';
-
-    /**
-     * @var string
-     */
     private $path = '';
-
-    /**
-     * @var string
-     */
     private $query = '';
-
-    /**
-     * @var string
-     */
     private $fragment = '';
-
-    /**
-     * @var array
-     */
     private $queryParameters = array();
+    private $isIpV4 = FALSE;
+    private $isIpV6 = FALSE;
+    private $components = array('scheme', 'host', 'port', 'user', 'pass', 'path', 'query', 'fragment');
     
-    /**
-     * @var bool
-     */
-    private $isIpV4 = false;
-    
-    /**
-     * @var bool
-     */
-    private $isIpV6 = false;
-    
-    /**
-     * @var array
-     */
-    private $components = array(
-        'scheme',
-        'host',
-        'port',
-        'user',
-        'pass',
-        'path',
-        'query',
-        'fragment'
-    );
-    
-    /**
-     * @param string $uri
-     * @throws \Ardent\DomainException
-     */
-    public function __construct($uri) {
+    function __construct($uri) {
         $uri = (string) $uri;
         
         if (!$parts = $this->parse($uri)) {
-            throw new DomainException(
+            throw new \DomainException(
                 'Invalid URI specified at ' . get_class($this) . '::__construct Argument 1'
             );
         }
@@ -110,9 +46,9 @@ class Uri {
         }
         
         if (filter_var($this->host, FILTER_VALIDATE_URL, FILTER_FLAG_IPV4)) {
-            $this->isIpV4 = true;
+            $this->isIpV4 = TRUE;
         } elseif (filter_var($this->host, FILTER_VALIDATE_URL, FILTER_FLAG_IPV6)) {
-            $this->isIpV6 = true;
+            $this->isIpV6 = TRUE;
         }
         
         $this->parseQueryParameters();
@@ -158,10 +94,7 @@ class Uri {
         return $parts;
     }
     
-    /**
-     * @return string
-     */
-    public function __toString() {
+    function __toString() {
         return $this->reconstitute(
             $this->scheme,
             $this->getAuthority(),
@@ -206,7 +139,7 @@ class Uri {
      * 
      * @return string
      */
-    public function normalize() {
+    function normalize() {
         if (!$this->uri) {
             return '';
         }
@@ -308,27 +241,27 @@ class Uri {
     }
     
     /**
-     * Is the specified URI resolvable against the current URI instance?
+     * Is the specified URI string resolvable against the current URI instance?
      */
-    public function canResolve($toResolve) {
+    function canResolve($toResolve) {
         if (!(is_string($toResolve) || method_exists($toResolve, '__toString'))) {
-            return false;
+            return FALSE;
         }
         
         try {
             $uri = new Uri($toResolve);
-        } catch (DomainException $e) {
-            return false;
+        } catch (\DomainException $e) {
+            return FALSE;
         }
         
-        return true;
+        return TRUE;
     }
     
     /**
      * @return Uri
      * @link http://tools.ietf.org/html/rfc3986#section-5.2.2
      */
-    public function resolve($toResolve) {
+    function resolve($toResolve) {
         $r = new Uri($toResolve);
 
         if ($r->__toString() === '') {
@@ -337,7 +270,7 @@ class Uri {
         
         $base = $this;
         
-        $t = new StdClass;
+        $t = new \StdClass;
         $t->scheme = '';
         $t->authority = '';
         $t->path = '';
@@ -401,63 +334,63 @@ class Uri {
     /**
      * @return string
      */
-    public function getScheme() {
+    function getScheme() {
         return $this->scheme;
     }
 
     /**
      * @return string
      */
-    public function getUser() {
+    function getUser() {
         return $this->user;
     }
 
     /**
      * @return string
      */
-    public function getPass() {
+    function getPass() {
         return $this->pass;
     }
 
     /**
      * @return string
      */
-    public function getHost() {
+    function getHost() {
         return $this->host;
     }
 
     /**
      * @return int
      */
-    public function getPort() {
+    function getPort() {
         return $this->port;
     }
 
     /**
      * @return string
      */
-    public function getPath() {
+    function getPath() {
         return $this->path;
     }
 
     /**
      * @return string
      */
-    public function getQuery() {
+    function getQuery() {
         return $this->query;
     }
 
     /**
      * @return string
      */
-    public function getFragment() {
+    function getFragment() {
         return $this->fragment;
     }
     
     /**
      * Retrieve the URI without the fragment component
      */
-    public function getAbsoluteUri() {
+    function getAbsoluteUri() {
         return $this->reconstitute(
             $this->scheme,
             $this->authority,
@@ -470,21 +403,21 @@ class Uri {
     /**
      * @return bool
      */
-    public function isIpV4() {
+    function isIpV4() {
         return $this->isIpV4;
     }
     
     /**
      * @return bool
      */
-    public function isIpV6() {
+    function isIpV6() {
         return $this->isIpV6;
     }
     
     /**
      * @link http://www.apps.ietf.org/rfc/rfc3986.html#sec-3.2
      */
-    public function getAuthority() {
+    function getAuthority() {
         $authority = $this->user;
         $authority.= $this->pass ? (':' . '********') : '';
         $authority.= $authority ? '@' : '';
@@ -499,10 +432,6 @@ class Uri {
         return $authority;
     }
     
-    /**
-     * @param string $queryString
-     * @return array
-     */
     private function parseQueryParameters() {
         if ($this->query) {
             parse_str($this->query, $parameters);
@@ -513,7 +442,7 @@ class Uri {
             $query = array_combine($keys, $values);
             $this->queryParameters = $query;
             
-            $this->query = str_replace('+', '%20', http_build_query($query, null, '&'));
+            $this->query = str_replace('+', '%20', http_build_query($query, NULL, '&'));
             
             // Fix http_build_query adding equals sign to empty keys
             $this->query = str_replace('=&', '&', rtrim($this->query, '='));
@@ -524,18 +453,17 @@ class Uri {
      * @param string $parameter
      * @return bool
      */
-    public function hasQueryParameter($parameter) {
+    function hasQueryParameter($parameter) {
         return isset($this->queryParameters[$parameter]);
     }
 
     /**
      * @param string $parameter
      * @return string
-     * @throws \Ardent\KeyException
      */
-    public function getQueryParameter($parameter) {
+    function getQueryParameter($parameter) {
         if (!$this->hasQueryParameter($parameter)) {
-            throw new KeyException(
+            throw new \DomainException(
                 "Invalid query parameter: `$parameter` does not exist"
            );
         }
@@ -545,14 +473,14 @@ class Uri {
     /**
      * @return array
      */
-    public function getAllQueryParameters() {
+    function getAllQueryParameters() {
         return $this->queryParameters;
     }
     
     /**
      * @return array
      */
-    public function getOriginalUri() {
+    function getOriginalUri() {
         return $this->uri;
     }
 }
