@@ -4,6 +4,7 @@ namespace Artax;
 
 use Amp\Reactor,
     Artax\Parsing\Parser,
+    Artax\Parsing\ParseException,
     Artax\Parsing\ParserFactory;
 
 class AsyncClient implements ObservableClient {
@@ -398,7 +399,7 @@ class AsyncClient implements ObservableClient {
     private function finalizeBodyEofResponse(RequestState $rs) {
         $parser = $rs->parser;
         $parsedResponseArr = $parser->getParsedMessageArray();
-        $response = $this->buildResponseFromParsedArray($parsedResponseArr);
+        $response = $this->buildResponseFromParsedArray($rs, $parsedResponseArr);
         $rs->response = $response;
         $this->onResponse($rs);
     }
