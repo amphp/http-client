@@ -100,10 +100,12 @@ class AsyncClient implements ObservableClient {
         foreach ($this->requestQueue as $request) {
             $rs = $this->requests->offsetGet($request);
             
-            if ($rs->socket = $this->checkoutExistingSocket($rs)) {
+            if ($socket = $this->checkoutExistingSocket($rs)) {
+                $rs->socket = $socket;
                 $this->doSubscribe($rs);
                 $this->requestQueue->detach($request);
-            } elseif ($rs->socket = $this->checkoutNewSocket($rs)) {
+            } elseif ($socket = $this->checkoutNewSocket($rs)) {
+                $rs->socket = $socket;
                 $this->assignSocketOptions($request, $rs->socket);
                 $this->doSubscribe($rs);
                 $this->requestQueue->detach($request);
@@ -421,12 +423,13 @@ class AsyncClient implements ObservableClient {
     }
     
     private function onResponse(RequestState $rs) {
-        $this->endRequestSubscriptions($rs);
         $this->checkinSocket($rs);
         
         if ($this->shouldCloseSocket($rs)) {
             $this->clearSocket($rs);
         }
+        
+        $this->endRequestSubscriptions($rs);
         
         if ($newUri = $this->getRedirectUri($rs)) {
             $this->redirect($rs, $newUri);
@@ -533,7 +536,7 @@ class AsyncClient implements ObservableClient {
         
         $rs->authority = $this->generateAuthorityFromUri($newUri);
         $request->setUri($newUri->__toString());
-        $request->setHeader('Host', $rs->authority);
+        $request->setHeader('Host', parse_url($rs->authority, PHP_URL_HOST));
         
         if (($body = $request->getBody()) && is_resource($body)) {
             rewind($body);
@@ -573,7 +576,7 @@ class AsyncClient implements ObservableClient {
         }
         
         $authority = $this->generateAuthorityFromUri($uri);
-        $request->setHeader('Host', $authority);
+        $request->setHeader('Host', parse_url($authority, PHP_URL_HOST));
         
         if (!$request->hasHeader('User-Agent')) {
             $request->setHeader('User-Agent', self::USER_AGENT);
