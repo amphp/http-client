@@ -77,7 +77,7 @@ class MessageParser implements Parser {
         
         start_line: {
             $startLineEndPos = strpos($startLineAndHeaders, "\n");
-            $startLine = substr($startLineAndHeaders, 0, $startLineEndPos);
+            $startLine = rtrim(substr($startLineAndHeaders, 0, $startLineEndPos));
             $rawHeaders = substr($startLineAndHeaders, $startLineEndPos + 1);
             $this->traceBuffer = $startLineAndHeaders;
             

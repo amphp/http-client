@@ -17,7 +17,11 @@ class Client implements ObservableClient {
         $this->reactor = (new ReactorFactory)->select();
         $this->asyncClient = $ac ?: new AsyncClient($this->reactor, $opf, $sf);
     }
-    
+
+    /**
+     * @param $uriOrRequest
+     * @return Response
+     */
     function request($uriOrRequest) {
         $onResult = function(Response $response) { $this->onResult($response); };
         $onError = function(\Exception $error) { $this->onError($error); };

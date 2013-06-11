@@ -1,12 +1,14 @@
 <?php
 
-use Amp\ReactorFactory, 
-    Artax\AsyncClient,
+use Artax\AsyncClient,
     Artax\Client,
     Artax\Request;
 
 class ClientHttpBinIntegrationTest extends PHPUnit_Framework_TestCase {
-    
+
+    /**
+     * @var Client
+     */
     private $client;
     
     function setUp() {
@@ -91,7 +93,9 @@ class ClientHttpBinIntegrationTest extends PHPUnit_Framework_TestCase {
     function testReason() {
         $uri = "http://httpbin.org/status/418";
         $response = $this->client->request($uri);
-        $this->assertEquals("I'M A TEAPOT", $response->getReason());
+        $expected = "I'M A TEAPOT";
+        $actual = $response->getReason();
+        $this->assertEquals($expected, $actual);
     }
     
     function testRedirect() {
