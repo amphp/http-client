@@ -11,7 +11,8 @@ class Client implements ObservableClient {
     
     private $reactor;
     private $asyncClient;
-    private $isComplete = FALSE;
+    private $response;
+    private $pendingMultiRequests;
     
     function __construct(AsyncClient $ac = NULL, ParserFactory $opf = NULL, SocketFactory $sf = NULL) {
         $this->reactor = (new ReactorFactory)->select();
@@ -46,6 +47,75 @@ class Client implements ObservableClient {
     private function onError(\Exception $e) {
         $this->reactor->stop();
         throw $e;
+    }
+    
+    /**
+     * @param array $requests
+     * @param callable $onResult
+     * @param callable $onError
+     * @return void
+     */
+    function requestMulti(array $requests, callable $onResult, callable $onError) {
+        $this->pendingMultiRequests = new \SplObjectStorage;
+        $this->onMultiResult = $onResult;
+        $this->onMultiError = $onError;
+        
+        foreach ($this->normalizeMultiRequests($requests) as $requestKey => $request) {
+            $onResult = function(Response $response) use ($request) {
+                $this->onMultiResult($request, $response);
+            };
+            $onError = function(\Exception $error) use ($request) {
+                $this->onMultiError($request, $error);
+            };
+            
+            $this->reactor->once(function() use ($onResult, $onError, $request) {
+                $this->asyncClient->request($request, $onResult, $onError);
+            });
+            
+            $this->pendingMultiRequests->attach($request, $requestKey);
+        }
+        
+        $this->reactor->run();
+    }
+    
+    private function normalizeMultiRequests(array $requests) {
+        if (!$requests) {
+            throw new \InvalidArgumentException(
+                'Request array must not be empty'
+            );
+        }
+        
+        $normalized = [];
+        
+        foreach ($requests as $requestKey => $request) {
+            $normalized[$requestKey] = ($request instanceof Request)
+                ? $request
+                : (new Request)->setUri($request);
+        }
+        
+        return $normalized;
+    }
+    
+    private function onMultiResult(Request $request, Response $response) {
+        $requestKey = $this->clearPendingMultiRequest($request);
+        $callback = $this->onMultiResult;
+        $callback($requestKey, $response);
+    }
+    
+    private function clearPendingMultiRequest(Request $request) {
+        $requestKey = $this->pendingMultiRequests->offsetGet($request);
+        $this->pendingMultiRequests->detach($request);
+        if (!$this->pendingMultiRequests->count()) {
+            $this->reactor->stop();
+        }
+        
+        return $requestKey;
+    }
+    
+    private function onMultiError(Request $request, \Exception $error) {
+        $requestKey = $this->clearPendingMultiRequest($request);
+        $callback = $this->onMultiError;
+        $callback($requestKey, $error);
     }
     
     function setResponse(Request $request, Response $response) {

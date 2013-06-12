@@ -109,7 +109,7 @@ class ClientHttpBinIntegrationTest extends PHPUnit_Framework_TestCase {
     function testVerboseSend() {
         $expectedOutput = '' .
             "GET / HTTP/1.1\r\n" .
-            "Host: httpbin.org:80\r\n" . 
+            "Host: httpbin.org\r\n" . 
             "User-Agent: " . Client::USER_AGENT . "\r\n\r\n";
         
         $this->expectOutputString($expectedOutput);
@@ -119,5 +119,21 @@ class ClientHttpBinIntegrationTest extends PHPUnit_Framework_TestCase {
         $response = $this->client->request($uri);
     }
     
+    function testMultiRequest() {
+        $uris = [
+            'http://httpbin.org',
+            'http://httpbin.org',
+            'http://httpbin.org',
+            'http://httpbin.org',
+            'http://httpbin.org',
+            'http://httpbin.org',
+            'http://httpbin.org'
+        ];
+        
+        $onResponse = function(){};
+        $onError = function(){};
+        
+        $this->client->requestMulti($uris, $onResponse, $onError);
+    }
 }
 
