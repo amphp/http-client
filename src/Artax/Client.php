@@ -118,6 +118,14 @@ class Client implements ObservableClient {
         $callback($requestKey, $error);
     }
     
+    function cancel(Request $request) {
+        return $this->asyncClient->cancel($request);
+    }
+    
+    function cancelAll() {
+        return $this->asyncClient->cancelAll();
+    }
+    
     function setResponse(Request $request, Response $response) {
         return $this->asyncClient->setResponse($request, $response);
     }

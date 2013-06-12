@@ -28,7 +28,7 @@ class AsyncClient implements ObservableClient {
     private $followLocation = TRUE;
     private $autoReferer = TRUE;
     private $maxConnections = -1;
-    private $maxConnectionsPerHost = 4;
+    private $maxConnectionsPerHost = 8;
     private $continueDelay = 3;
     private $bufferBody = TRUE;
     private $bindToIp;
@@ -61,6 +61,29 @@ class AsyncClient implements ObservableClient {
         ];
     }
     
+    function cancel(Request $request) {
+        if ($this->requestQueue->contains($request)) {
+            $this->requestQueue->detach($request);
+            $this->notify(self::CANCEL, [$request, NULL]);
+        } elseif ($this->requests->contains($request)) {
+            $rs = $this->requests->offsetGet($request);
+            $this->checkinSocket($rs);
+            $this->clearSocket($rs);
+            $this->endRequestSubscriptions($rs);
+            $this->requests->detach($request);
+            $this->notify(self::CANCEL, [$request, NULL]);
+        }
+    }
+    
+    function cancelAll() {
+        foreach ($this->requests as $request) {
+            $this->cancel($request);
+        }
+        foreach ($this->requestQueue as $request) {
+            $this->cancel($request);
+        }
+    }
+    
     function request($request, callable $onResponse, callable $onError) {
         $request = $this->normalizeRequest($request);
         $rs = new RequestState;
@@ -70,8 +93,7 @@ class AsyncClient implements ObservableClient {
         $rs->onResponse = $onResponse;
         $rs->onError = $onError;
         
-        $this->requests->attach($request, $rs);
-        $this->requestQueue->attach($request);
+        $this->requestQueue->attach($request, $rs);
         
         $this->notify(self::REQUEST, [$request, NULL]);
         
@@ -99,17 +121,19 @@ class AsyncClient implements ObservableClient {
     
     private function assignRequestSockets() {
         foreach ($this->requestQueue as $request) {
-            $rs = $this->requests->offsetGet($request);
+            $rs = $this->requestQueue->offsetGet($request);
             
             if ($socket = $this->checkoutExistingSocket($rs)) {
                 $rs->socket = $socket;
                 $this->doSubscribe($rs);
                 $this->requestQueue->detach($request);
+                $this->requests->attach($request, $rs);
             } elseif ($socket = $this->checkoutNewSocket($rs)) {
                 $rs->socket = $socket;
                 $this->assignSocketOptions($request, $rs->socket);
                 $this->doSubscribe($rs);
                 $this->requestQueue->detach($request);
+                $this->requests->attach($request, $rs);
             }
         }
     }
@@ -547,7 +571,7 @@ class AsyncClient implements ObservableClient {
             $request->setHeader('Referer', $request->getUri());
         }
         
-        $this->requestQueue->attach($request);
+        $this->requestQueue->attach($request, $rs);
         $this->notify(self::REDIRECT, [$request, NULL]);
     }
     
@@ -714,7 +738,7 @@ class AsyncClient implements ObservableClient {
     
     private function setMaxConnectionsPerHost($int) {
         $this->maxConnectionsPerHost = filter_var($int, FILTER_VALIDATE_INT, array('options' => array(
-            'default' => 4,
+            'default' => 8,
             'min_range' => -1
         )));
     }

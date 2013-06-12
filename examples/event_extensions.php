@@ -5,6 +5,7 @@
  * 
  * Client::DATA         [$request, $socketDataRead]
  * Client::SEND         [$request, $socketDataSent]
+ * Client::CANCEL       [$request, NULL]
  * Client::REQUEST      [$request, NULL]
  * Client::HEADERS      [$request, $parsedResponseArray]
  * Client::REDIRECT     [$request, NULL]
