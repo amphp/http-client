@@ -21,6 +21,7 @@ class Client implements ObservableClient {
 
     /**
      * @param $uriOrRequest
+     * @throws ClientException
      * @return Response
      */
     function request($uriOrRequest) {
