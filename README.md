@@ -9,19 +9,19 @@ underlying HTTP protocol. Checkout the [Artax Wiki][wiki] for full coverage of t
  - Doesn't require *cURL* or *libcurl*
  - Sends and receives requests in parallel for maximum throughput
  - Transparently follows redirects
- - Provides easy access to all response headers and raw HTTP message data
- - Fully customizable TLS (https://) support
- - Streams request and response entity bodies to prevent memory hogging
+ - Provides access to all headers and raw HTTP message data
+ - Automatically requests and decodes gzipped response entity bodies
+ - Fully customizable (and secure by default) TLS (https://) support
+ - Allows stream request/response entity bodies for hands-on memory management
  - Retains persistent connections (keep-alive) for high-performance CLI applications
- - Supports all standard and custom request methods as per the extensible HTTP protocol
+ - Supports all standard and custom request methods as per the (extensible) HTTP protocol
  - Exposes a simple subject/observer API to allow custom response caching, cookie management, etc.
 
 ###### Planned
 
  - Built-in cookie storage
- - Automatic construction for multipart request bodies
- - Proxy and SSL tunnelling support
- - Send/received gzip-encoded message bodies
+ - Automatic construction for form-encoded and multipart request bodies
+ - Proxy support with SSL tunnelling via the HTTP CONNECT method
  - Per-host rate-limits by time period
 
 ### PROJECT GOALS
