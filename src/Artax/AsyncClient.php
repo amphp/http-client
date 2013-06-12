@@ -21,6 +21,8 @@ class AsyncClient implements ObservableClient {
     private $socketFactory;
     private $idleSocketSubscriptions;
     
+    private $hasExtZlib;
+    private $allowGzipCompress = TRUE;
     private $useKeepAlive = TRUE;
     private $connectTimeout = 15;
     private $transferTimeout = 30;
@@ -45,6 +47,8 @@ class AsyncClient implements ObservableClient {
         $this->requests = new \SplObjectStorage;
         $this->requestQueue = new \SplObjectStorage;
         $this->idleSocketSubscriptions = new \SplObjectStorage;
+        
+        $this->hasExtZlib = extension_loaded('zlib');
         
         $this->tlsOptions = [
             'verify_peer' => TRUE,
@@ -456,6 +460,10 @@ class AsyncClient implements ObservableClient {
         
         $this->endRequestSubscriptions($rs);
         
+        if ($this->hasExtZlib) {
+            $this->decompressResponseBody($rs->response);
+        }
+        
         if ($newUri = $this->getRedirectUri($rs)) {
             $this->redirect($rs, $newUri);
         } else {
@@ -468,6 +476,34 @@ class AsyncClient implements ObservableClient {
         
         if ($this->requestQueue->count()) {
             $this->assignRequestSockets();
+        }
+    }
+    
+    private function decompressResponseBody(Response $response) {
+        if (!$response->hasHeader('Content-Encoding')) {
+            return;
+        }
+        
+        $teHeader = current($response->getHeader('Content-Encoding'));
+        
+        if (!strcasecmp($teHeader, 'gzip')) {
+            $this->doGzipInflate($response);
+        }
+    }
+    
+    private function doGzipInflate(Response $response) {
+        $src = $response->getBody();
+        
+        if (is_resource($src)) {
+            $destination = fopen('php://memory', 'r+');
+            fseek($src, 10, SEEK_SET);
+            stream_filter_prepend($src, 'zlib.inflate', STREAM_FILTER_READ);
+            stream_copy_to_stream($src, $destination);
+            rewind($destination);
+            $response->setBody($destination);
+        } elseif (strlen($src)) {
+            $body = gzdecode($src);
+            $response->setBody($body);
         }
     }
     
@@ -645,6 +681,10 @@ class AsyncClient implements ObservableClient {
             $request->setHeader('Connection', 'close');
         }
         
+        if ($this->allowGzipCompress && $this->hasExtZlib) {
+            $request->appendHeader('Accept-Encoding', 'gzip, identity');
+        }
+        
         return $request;
     }
     
@@ -685,6 +725,7 @@ class AsyncClient implements ObservableClient {
             'bufferBody',
             'bindToIp',
             'ioGranularity',
+            'allowGzipCompress',
             'verboseRead',
             'verboseSend',
             'tlsOptions'
@@ -763,6 +804,10 @@ class AsyncClient implements ObservableClient {
     
     private function setBindToIp($ip) {
         $this->bindToIp = filter_var($ip, FILTER_VALIDATE_IP);
+    }
+    
+    private function setAllowGzipCompress($bool) {
+        $this->allowGzipCompress = filter_var($bool, FILTER_VALIDATE_BOOLEAN);
     }
     
     private function setVerboseRead($bool) {

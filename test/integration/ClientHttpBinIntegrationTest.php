@@ -110,7 +110,8 @@ class ClientHttpBinIntegrationTest extends PHPUnit_Framework_TestCase {
         $expectedOutput = '' .
             "GET / HTTP/1.1\r\n" .
             "Host: httpbin.org\r\n" . 
-            "User-Agent: " . Client::USER_AGENT . "\r\n\r\n";
+            "User-Agent: " . Client::USER_AGENT . "\r\n" .
+            "Accept-Encoding: gzip, identity" . "\r\n\r\n";
         
         $this->expectOutputString($expectedOutput);
         
