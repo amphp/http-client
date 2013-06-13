@@ -1,12 +1,16 @@
-### WHAT IS IT?
+# Artax HTTP Client
+
+---
+
+##### WHAT IS IT?
 
 Artax is a full-featured HTTP/1.1 client as specified in RFC 2616.  Its API is designed to simplify
 standards-compliant HTTP resource traversal and RESTful web service consumption without obscuring the
-underlying HTTP protocol. Checkout the [Artax Wiki][wiki] for full coverage of the available features:
+underlying HTTP protocol. Checkout the [**Artax Wiki**][wiki] for full coverage of the available features:
 
 ##### Features
 
- - Doesn't require *cURL* or *libcurl*
+ - Doesn't use *cURL* or *libcurl*
  - Sends and receives requests in parallel for maximum throughput
  - Transparently follows redirects
  - Provides access to all headers and raw HTTP message data
@@ -17,7 +21,7 @@ underlying HTTP protocol. Checkout the [Artax Wiki][wiki] for full coverage of t
  - Supports all standard and custom request methods as per the (extensible) HTTP protocol
  - Exposes a simple subject/observer API to allow custom response caching, cookie management, etc.
 
-###### Planned
+##### Planned
 
  - Built-in cookie storage
  - Automatic construction for form-encoded and multipart request bodies
@@ -31,21 +35,18 @@ underlying HTTP protocol. Checkout the [Artax Wiki][wiki] for full coverage of t
 * Eschew the use of `static` entirely in favor of maximum testability and full API transparency;
 * Build all components using [SOLID][solid], readable and 100% unit-tested code;
 
+### INSTALLATION
+
+```bash
+$ git clone --recursive https://github.com/rdlowrey/Artax.git
+```
 
 ### REQUIREMENTS
 
 * PHP 5.4+
 * The [Amp][amp-github] library.
-* PHP's (standard) `openssl` extension (only if you need to make TLS-encrypted requests)
-
-You can find in-depth instructions for [verifying][requirements]/[installing][installation] these
-requirements on the relevent Artax wiki pages.
-
-
-### OTHER NOTES
-
-> **NOTE:** Artax follows the Semantic Versioning Specification (SemVer) laid out at [semver.org](http://semver.org/)
-
+* PHP's `openssl` extension if you need TLS (https://)
+* PHP's `zlib` extension if you wish to request/decompress gzipped response bodies
 
 ### WHAT'S WITH THE NAME?
 
