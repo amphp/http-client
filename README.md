@@ -2,7 +2,7 @@
 
 Artax is a full-featured HTTP/1.1 client as specified in RFC 2616.  Its API is designed to simplify
 standards-compliant HTTP resource traversal and RESTful web service consumption without obscuring the
-underlying HTTP protocol. Checkout the [**Artax Wiki**][wiki] for full coverage of the available features:
+underlying HTTP protocol.
 
 #### FEATURES
 
@@ -46,6 +46,3 @@ the scene where Atreyu's faithful steed, Artax, died in the Swamp of Sadness. Th
 [amp-github]: https://github.com/rdlowrey/Amp
 [solid]: http://en.wikipedia.org/wiki/SOLID_(object-oriented_design) "S.O.L.I.D."
 [neverending]: http://www.imdb.com/title/tt0088323/ "The NeverEnding Story"
-[requirements]: https://github.com/rdlowrey/Artax/wiki/Requirements
-[installation]: https://github.com/rdlowrey/Artax/wiki/Installation
-[wiki]: https://github.com/rdlowrey/Artax/wiki
