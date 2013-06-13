@@ -1,0 +1,29 @@
+{
+  "name": "rdlowrey/artax",
+  "homepage": "https://github.com/rdlowrey/Artax",
+  "description": "An object-oriented HTTP/1.1 Client for PHP 5.4+",
+  "keywords": ["http client", "rest client"],
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Daniel Lowrey",
+      "email": "rdlowrey@gmail.com",
+      "role": "Creator / Main Developer"
+    },
+    {
+      "name": "Levi Morrison",
+      "email": "levim@php.net",
+      "homepage": "http://morrisonlevi.github.com/",
+      "role": "Developer"
+    }
+  ],
+  "require": {
+    "php": ">=5.4.0",
+    "rdlowrey/amp": ">=0.1.0"
+  },
+  "autoload": {
+    "psr-0": {
+      "Artax": "src"
+    }
+  }
+}
