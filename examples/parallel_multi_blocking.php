@@ -8,7 +8,7 @@ $onResponse = function($requestKey, Artax\Response $response) {
     echo 'Response: (', $requestKey, ') ', $response->getStatus(), "\n";
 };
 $onError = function($requestKey, Exception $error) {
-    echo 'Error: (', $requestKey, ') ', $e->getMessage(), "\n";
+    echo 'Error: (', $requestKey, ') ', $error->getMessage(), "\n";
 };
 $requests = [
     'google' => 'http://www.google.com',
