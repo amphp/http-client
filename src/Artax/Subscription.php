@@ -15,7 +15,7 @@ class Subscription {
     
     private function assignCallbacks(array $observerCallbacks) {
         if (empty($observerCallbacks)) {
-            throw new \LogicException(
+            throw new \InvalidArgumentException(
                 'No subscription observers specified'
             );
         }
@@ -24,7 +24,7 @@ class Subscription {
             if (is_callable($callback)) {
                 $this->observerCallbacks[$event] = $callback;
             } else {
-                throw new \RuntimeException(
+                throw new \InvalidArgumentException(
                     'Invalid subscription callback'
                 );
             }
