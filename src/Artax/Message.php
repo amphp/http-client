@@ -73,6 +73,24 @@ abstract class Message {
         return $this;
     }
     
+    private function validateHeader(array $value) {
+        foreach ($value as $key => $value) {
+            if (!is_scalar($value)) {
+                return FALSE;
+            }
+        }
+        
+        return TRUE;
+    }
+    
+    function setAllHeaders(array $headers) {
+        foreach ($headers as $field => $value) {
+            $this->setHeader($field, $value);
+        }
+        
+        return $this;
+    }
+    
     function appendHeader($field, $value) {
         if ($this->hasHeader($field)) {
             $existingHeaders = $this->getHeader($field);
@@ -84,24 +102,6 @@ abstract class Message {
         }
         
         return $result;
-    }
-    
-    function setAllHeaders(array $headers) {
-        foreach ($headers as $field => $value) {
-            $this->setHeader($field, $value);
-        }
-        
-        return $this;
-    }
-    
-    private function validateHeader(array $value) {
-        foreach ($value as $key => $value) {
-            if (!is_scalar($value)) {
-                return FALSE;
-            }
-        }
-        
-        return TRUE;
     }
     
     function removeHeader($field) {

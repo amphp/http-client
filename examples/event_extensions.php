@@ -5,6 +5,7 @@
  * 
  * Client::DATA         [$request, $socketDataRead]
  * Client::SEND         [$request, $socketDataSent]
+ * Client::SOCKET       [$request, NULL]
  * Client::CANCEL       [$request, NULL]
  * Client::REQUEST      [$request, NULL]
  * Client::HEADERS      [$request, $parsedResponseArray]
@@ -33,7 +34,7 @@ $client = new Client;
 $subscription = $client->subscribe([
     Client::REQUEST => function($eventArr) use ($client) {
         $request = array_shift($eventArr);
-        $response = (new Response)->setStatus(200)->setReason('Because We Can')->setProtocol(1.1)->setBody('ZANZIBAR!');
+        $response = (new Response)->setStatus(200)->setReason('Because We Can')->setBody('ZANZIBAR!');
         $client->setResponse($request, $response);
     }
 ]);

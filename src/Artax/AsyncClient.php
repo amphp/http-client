@@ -228,7 +228,10 @@ class AsyncClient implements ObservableClient {
             'returnHeadersBeforeBody' => TRUE    
         ]);
         
-        $onSockReady = function() use ($rs) { $this->initializeHeaderWrite($rs); };
+        $onSockReady = function() use ($rs) {
+            $this->notify(self::SOCKET, [$rs->request, NULL]);
+            $this->initializeHeaderWrite($rs);
+        };
         $onSockSend = function($data) use ($rs) { $this->onSend($rs, $data); };
         $onSockData = function($data) use ($rs) { $this->onData($rs, $data); };
         $onSockError = function($e) use ($rs) { $this->onError($rs, $e); };
@@ -269,15 +272,13 @@ class AsyncClient implements ObservableClient {
     
     private function parse(RequestState $rs, $data) {
         try {
-            if (($parsedResponseArr = $rs->parser->parse($data))
-                && $parsedResponseArr['headersOnly']
-            ) {
+            if (!$parsedResponseArr = $rs->parser->parse($data)) {
+                return;
+            } elseif ($parsedResponseArr['headersOnly']) {
                 $this->notify(self::HEADERS, [$rs->request, $parsedResponseArr]);
                 $this->parse($rs, $data = '');
-            } elseif ($parsedResponseArr
-                && ($response = $this->buildResponseFromParsedArray($rs->request, $parsedResponseArr))
-            ) {
-                $rs->response = $response;
+            } else {
+                $rs->response = $this->buildResponseFromParsedArray($rs->request, $parsedResponseArr);;
                 $this->onResponse($rs);
             }
         } catch (ParseException $e) {
@@ -409,7 +410,7 @@ class AsyncClient implements ObservableClient {
         $parser = $rs->parser;
         
         if ($e->getCode() === Socket::E_SOCKET_GONE
-            && $parser->getStatus() == Parser::BODY_IDENTITY_EOF
+            && $parser->getState() == Parser::BODY_IDENTITY_EOF
         ) {
             $this->finalizeBodyEofResponse($rs);
         } else {
@@ -429,7 +430,7 @@ class AsyncClient implements ObservableClient {
     private function finalizeBodyEofResponse(RequestState $rs) {
         $parser = $rs->parser;
         $parsedResponseArr = $parser->getParsedMessageArray();
-        $response = $this->buildResponseFromParsedArray($rs, $parsedResponseArr);
+        $response = $this->buildResponseFromParsedArray($rs->request, $parsedResponseArr);
         $rs->response = $response;
         $this->onResponse($rs);
     }
