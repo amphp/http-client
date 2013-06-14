@@ -4,6 +4,9 @@ Artax is a full-featured HTTP/1.1 client as specified in RFC 2616.  Its API is d
 standards-compliant HTTP resource traversal and RESTful web service consumption without obscuring the
 underlying HTTP protocol.
 
+**HEY! Checkout out the [EXAMPLES SECTION](https://github.com/rdlowrey/Artax/tree/master/examples)
+to see some of the cool stuff Artax can do!**
+
 #### FEATURES
 
  - Doesn't use *cURL* or *libcurl*
