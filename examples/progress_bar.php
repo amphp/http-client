@@ -29,8 +29,8 @@ require dirname(__DIR__) . '/autoload.php';
 define('PROGRESS_BAR_WIDTH', 60);
 
 function progress($bytesRcvd, $total, $barSize) {
+    $kb = number_format(round($bytesRcvd / 1024, 2));
     if (isset($total)) {
-        $kb = number_format(round($bytesRcvd / 1024, 2));
         $percentage = round($bytesRcvd / $total, 2);
         $maxDashes = $barSize - 2;
         $displayDashes = round($percentage * $maxDashes);
