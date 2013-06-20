@@ -14,9 +14,14 @@ class Client implements ObservableClient {
     private $response;
     private $pendingMultiRequests;
     
-    function __construct(AsyncClient $ac = NULL, ParserFactory $opf = NULL, SocketFactory $sf = NULL) {
+    function __construct(AsyncClient $ac = NULL) {
         $this->reactor = (new ReactorFactory)->select();
-        $this->asyncClient = $ac ?: new AsyncClient($this->reactor, $opf, $sf);
+        
+        if ($ac) {
+            $this->asyncClient = $ac;
+        } else {
+            $this->asyncClient = new AsyncClient($this->reactor);
+        }
     }
 
     /**
@@ -140,19 +145,19 @@ class Client implements ObservableClient {
     }
     
     function subscribe(array $eventListenerMap, $unsubscribeOnError = TRUE) {
-        $this->asyncClient->subscribe($eventListenerMap, $unsubscribeOnError);
+        return $this->asyncClient->subscribe($eventListenerMap, $unsubscribeOnError);
     }
     
     function unsubscribe(Subscription $subscription) {
-        $this->asyncClient->unsubscribe($subscription);
+        return $this->asyncClient->unsubscribe($subscription);
     }
     
     function unsubscribeAll() {
-        $this->asyncClient->unsubscribeAll();
+        return $this->asyncClient->unsubscribeAll();
     }
     
     function notify($event, $data = NULL) {
-        $this->asyncClient->notify($event, $data);
+        return $this->asyncClient->notify($event, $data);
     }
 }
 
