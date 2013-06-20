@@ -9,16 +9,18 @@ to see some of the cool stuff Artax can do!**
 
 #### FEATURES
 
- - Doesn't use *cURL* or *libcurl*
- - Sends and receives requests in parallel for maximum throughput
+ - Doesn't rely on *cURL/libcurl*
+ - Supports parallel requests and event-driven parallelization in addition to serial requests
  - Transparently follows redirects
- - Provides access to all headers and raw HTTP message data
- - Automatically requests and decodes gzipped response entity bodies
- - Fully customizable (and secure by default) TLS (https://) support
- - Allows stream request/response entity bodies for hands-on memory management
- - Retains persistent connections (keep-alive) for high-performance CLI applications
+ - Requests and decodes gzipped entity bodies
+ - Provides access to all raw headers and HTTP message data
+ - Streams request and response entity bodies for hands-on memory management
+ - Retains persistent keep-alive connections for maximum performance
  - Supports all standard and custom request methods as per the (extensible) HTTP protocol
- - Exposes a simple subject/observer API to allow custom response caching, cookie management, etc.
+ - Provides fully customizable and secure-by-default TLS (https://) support
+ - Protects from MitM attacks with a packaged SSL certificate authority updater script
+ - Exposes a simple subject/observer API for plugins and extensions
+ - Offers full cookie support via the `CookieExtension`
 
 #### PROJECT GOALS
 
