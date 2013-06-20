@@ -3,7 +3,7 @@
 namespace Artax;
 
 interface Extension {
-    function subscribe(ObservableClient $client);
-    function unsubscribe();
+    function extend(ObservableClient $client);
+    function unextend();
 }
 

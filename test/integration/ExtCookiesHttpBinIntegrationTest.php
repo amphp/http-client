@@ -13,7 +13,7 @@ class ExtCookiesHttpBinIntegrationTest extends PHPUnit_Framework_TestCase {
         
         $cookieJar = new ArrayCookieJar();
         $ext = new CookieExtension($cookieJar);
-        $ext->subscribe($client);
+        $ext->extend($client);
         
         $uri = 'http://httpbin.org/cookies/set?k1=v1&k2=v2';
         $response = $client->request($uri);
@@ -35,7 +35,7 @@ class ExtCookiesHttpBinIntegrationTest extends PHPUnit_Framework_TestCase {
         $path = dirname(__DIR__) . '/fixture/cookies.tmp';
         $cookieJar = new FileCookieJar($path);
         $ext = new CookieExtension($cookieJar);
-        $ext->subscribe($client);
+        $ext->extend($client);
         
         $uri = 'http://httpbin.org/cookies/set?k1=v1&k2=v2';
         $response = $client->request($uri);
@@ -49,7 +49,7 @@ class ExtCookiesHttpBinIntegrationTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals('v1', $body['cookies']['k1']);
         $this->assertEquals('v2,', $body['cookies']['k2']);
         
-        $ext->unsubscribe();
+        $ext->unextend();
         unset($ext, $cookieJar);
         
         @unlink($path);

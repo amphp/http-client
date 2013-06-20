@@ -16,15 +16,15 @@ class CookieExtension implements Extension {
         $this->cookieParser = $cookieParser ?: new CookieParser;
     }
     
-    function unsubscribe() {
+    function unextend() {
         if ($this->eventSubscription) {
             $this->eventSubscription->cancel();
             $this->eventSubscription = NULL;
         }
     }
     
-    function subscribe(ObservableClient $client) {
-        $this->unsubscribe();
+    function extend(ObservableClient $client) {
+        $this->unextend();
         $this->eventSubscription = $client->subscribe([
             ObservableClient::REQUEST => function($dataArr) { $this->onRequest($dataArr); },
             ObservableClient::RESPONSE => function($dataArr) { $this->onResponse($dataArr); }

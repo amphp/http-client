@@ -10,13 +10,12 @@ require dirname(__DIR__) . '/autoload.php';
 $client = new Client;
 
 // Cookies will persist for the life of the client object
-$ext = new CookieExtension;
-$ext->subscribe($client);
+(new CookieExtension)->extend($client);
 
 // ---------------- If you wish to persist cookies beyond the life of the client ------------------>
 // $cookieJar = new FileCookieJar('/hard/path/where/you/want/to/store/cookies.txt');
 // $ext = new CookieExtension($cookieJar);
-// $ext->subscribe($client);
+// $ext->extend($client);
 // ------------------------------------------------------------------------------------------------>
 
 try {
