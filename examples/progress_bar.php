@@ -1,98 +1,61 @@
 <?php
 
 /**
- * Clients emit several events to which subscribers may listen:
+ * The packaged `ProgressExtension` is an observable object that broadcasts a StdClass instance
+ * summarizing the retrieval progress for a specific request. The extension broadcasts the
+ * `ProgressExtension::PROGRESS` event with a two item array of data. The first item is the request
+ * instance associated with the notification and the second is an `Artax\Ext\Progress\ProgressState`
+ * object with the following public properties:
  * 
- * Client::DATA         [$request, $socketDataRead]
- * Client::SEND         [$request, $socketDataSent]
- * Client::SOCKET       [$request, NULL]
- * Client::CANCEL       [$request, NULL]
- * Client::REQUEST      [$request, NULL]
- * Client::HEADERS      [$request, $parsedResponseArray]
- * Client::REDIRECT     [$request, NULL]
- * Client::RESPONSE     [$request, $response]
+ *     socketReadyAt      - Timestamp when the client checked out a connected socket for this request
+ *     redirectCount      - How many times the request has been redirected during retrieval
+ *     bytesRcvd          - The total number of bytes received for the current request
+ *     headerBytes        - The response headers size in bytes (if available, NULL until determined)
+ *     contentLength      - The content length of the response message (if available, NULL otherwise)
+ *     percentComplete    - Floating point value between 0 and 1
+ *     bytesPerSecond     - Measures transfer speed
+ *     progressBar        - A ready-to-echo progress bar display for the current request retrieval state
  * 
- * The data parameter for event broadcasts is always a two-element array. The first element is ALWAYS
- * the request responsible for the event. The second element is data pertinent to the event.
- * 
- * This example demonstrates how these events can be used to track the size and speed of an HTTP
- * transfer as it's happening to generate a progress display in the console.
+ * The `ProgressState` instance also contains a convenience method, `ProgressState::display()`, that
+ * returns a summary display containing the progress bar, KB totals, completion percentage and download
+ * speed.
  */
 
 use Artax\Client,
     Artax\Request,
     Artax\Response,
-    Artax\ClientException;
+    Artax\ClientException,
+    Artax\Ext\Progress\ProgressExtension;
 
 require dirname(__DIR__) . '/autoload.php';
 
-define('PROGRESS_BAR_WIDTH', 60);
-
-function progress($bytesRcvd, $total, $barSize) {
-    $kb = number_format(round($bytesRcvd / 1024, 2));
-    if (isset($total)) {
-        $percentage = round($bytesRcvd / $total, 2);
-        $maxDashes = $barSize - 2;
-        $displayDashes = round($percentage * $maxDashes);
-        $emptyDashes = $maxDashes - $displayDashes;
-        echo "\r[", str_repeat('=', $displayDashes), str_repeat('.', $emptyDashes), "] ", $percentage * 100, "% (", $kb, " KB)";
-    } else {
-        echo "\r[ --- ", $kb, " KB of UNKNOWN --- ]";
-    }
-}
-
-// ------------------------------------------------------------------------------------------------>
-
-$bytesRcvd = 0;
-$contentLength = NULL;
-$socketReadyAt = NULL;
-
-// Capture the timestamp when the socket connection is established so we can calculate download speed
-$onSocket = function(array $dataArr) use (&$socketReadyAt) {
-    $socketReadyAt = microtime(TRUE);
-};
-
-// Output some info when the request starts up
-$onRequest = function(array $dataArr) {
-    $request = current($dataArr);
-    $uri = $request->getUri();
-    echo PHP_EOL, 'Retrieving: ', $uri, ' ...', PHP_EOL, PHP_EOL;
-    echo "\rAwaiting connection to ", parse_url($uri, PHP_URL_HOST);
-};
-
-// Update the display each time we receive data on the socket
-$onData = function(array $dataArr) use (&$bytesRcvd, &$contentLength, &$socketReadyAt) {
-    $bytesRcvd += strlen($dataArr[1]);
-    $elapsedTime = microtime(TRUE) - $socketReadyAt;
-    $kbps = number_format(round(($bytesRcvd / $elapsedTime) / 1024, 2));
-    
-    echo progress($bytesRcvd, $contentLength, PROGRESS_BAR_WIDTH), " @ ", $kbps, " KB/s";
-};
-
-// Determine how big the message is (Content-Length) so we can determine progress as we go
-$onHeaders = function(array $dataArr) use (&$contentLength) {
-    $parsedResponseArr = array_pop($dataArr);
-    $response = (new Response)->setAllHeaders($parsedResponseArr['headers']);
-    $contentLength = $response->hasHeader('Content-Length')
-        ? current($response->getHeader('Content-Length')) + strlen($parsedResponseArr['trace'])
-        : NULL;
-};
-
-// ------------------------------------------------------------------------------------------------>
-
 $client = new Client;
-$client->subscribe([
-    Client::SOCKET => $onSocket,
-    Client::REQUEST => $onRequest,
-    Client::DATA => $onData,
-    Client::HEADERS => $onHeaders
+$ext = new ProgressExtension;
+$ext->extend($client);
+
+// --- Optional progress bar display config ---
+$ext->setProgressBarSize(35);                   // defaults to 40, minimum of 10
+$ext->setProgressBarIncrementChar('=');         // defaults to '='
+$ext->setProgressBarEmptyIncrementChar('.');    // defaults to '.'
+$ext->setProgressBarLeadingChar('>');           // defaults to '>'
+// --- END optional progress bar config ---
+
+$ext->subscribe([
+    ProgressExtension::PROGRESS => function($dataArr) {
+        $progress = $dataArr[1];
+        echo $progress->display();
+    }
 ]);
+
+echo PHP_EOL;
 
 try {
     $uri = 'http://en.wikipedia.org/wiki/Hitchhiker%27s_Guide_to_the_Galaxy';
-    // Use HTTP/1.0 to prevent chunked encoding (we want to get a Content-Length header back)
+    
+    // Use HTTP/1.0 to prevent chunked encoding and hopefully receive a Content-Length header
     $request = (new Request)->setUri($uri)->setProtocol('1.0');
     $client->request($request);
+    
 } catch (ClientException $e) {
     echo $e->getMessage();
 }

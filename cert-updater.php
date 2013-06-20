@@ -33,7 +33,8 @@
 
 use Artax\Client,
     Artax\ClientException,
-    Artax\Request;
+    Artax\Request,
+    Artax\Ext\Progress\ProgressExtension;
 
 require __DIR__ . '/autoload.php';
 
@@ -90,32 +91,22 @@ if (!$forceOverwrite) {
     }
 }
 
-$headersRcvd = FALSE;
-$bytesRcvd = 0;
-$onData = function(array $dataArr) use (&$bytesRcvd, &$headersRcvd) {
-    $bytesRcvd += strlen($dataArr[1]);
-    if ($headersRcvd) {
-        echo "\r", number_format($bytesRcvd), " bytes received\r";
-    }
-};
-
-$onHeaders = function(array $dataArr) use (&$headersRcvd) {
-    $headersRcvd = TRUE;
-};
-
 $client = new Client;
-$client->subscribe([
-    Client::DATA => $onData,
-    Client::HEADERS => $onHeaders
+(new ProgressExtension)->extend($client)->subscribe([
+    ProgressExtension::PROGRESS => function($dataArr) {
+        $progress = $dataArr[1];
+        if (isset($progress->headerBytes)) {
+            echo $progress->display();
+        }
+    }
 ]);
 
-echo "Retrieving remote CA file ...", PHP_EOL;
+echo "Retrieving remote CA file: ", REMOTE_CERT_URI, PHP_EOL;
 
 try {
     $response = $client->request($request);
-    echo "\n";
 } catch (ClientException $e) {
-    echo PHP_EOL, $e, PHP_EOL;
+    echo $e, PHP_EOL;
     exit(E_EXCEPTION);
 }
 
