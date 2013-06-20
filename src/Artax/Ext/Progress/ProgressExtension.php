@@ -87,7 +87,7 @@ class ProgressExtension implements Extension, Observable {
             ObservableClient::DATA => function($dataArr) { $this->onData($dataArr); },
             ObservableClient::HEADERS => function($dataArr) { $this->onHeaders($dataArr); },
             ObservableClient::REDIRECT => function($dataArr) { $this->onRedirect($dataArr); },
-            ObservableClient::RESPONSE => function($dataArr) { $this->clear($dataArr); },
+            ObservableClient::RESPONSE => function($dataArr) { $this->onResponse($dataArr); },
             ObservableClient::CANCEL => function($dataArr) { $this->clear($dataArr); },
             ObservableClient::ERROR => function($dataArr) { $this->clear($dataArr); }
         ]);
@@ -123,13 +123,15 @@ class ProgressExtension implements Extension, Observable {
             $percentComplete = $part/$whole;
             $progress->percentComplete = $percentComplete;
             $progress->progressBar = $this->generateProgressBar($percentComplete);
+        } else {
+            $progress->progressBar = $this->generateProgressBarOfUnknownSize();
         }
         
         $this->notify(self::PROGRESS, [$request, clone $progress]);
     }
     
     private function generateProgressBar($percentComplete) {
-        $maxIncrements = $this->progressBarSize - 2;
+        $maxIncrements = $this->progressBarSize - 3;
         $displayIncrements = round($percentComplete * $maxIncrements);
         $emptyIncrements = $maxIncrements - $displayIncrements;
         
@@ -137,6 +139,26 @@ class ProgressExtension implements Extension, Observable {
         $bar.= str_repeat($this->progressBarIncrementChar, $displayIncrements);
         $bar.= $this->progressBarLeadingChar;
         $bar.= str_repeat($this->progressBarEmptyIncrementChar, $emptyIncrements);
+        $bar.= ']';
+        
+        return $bar;
+    }
+    
+    private function generateProgressBarOfUnknownSize() {
+        $maxIncrements = $this->progressBarSize - 2;
+        $msg = 'UNKNOWN';
+        $emptyIncrements = $maxIncrements - strlen($msg);
+        if (!$emptyIncrements%2) {
+            $leftEmpty = $rightEmpty = $emptyIncrements / 2;
+        } else {
+            $leftEmpty = floor($emptyIncrements / 2);
+            $rightEmpty = $leftEmpty + 1;
+        }
+        
+        $bar = '[';
+        $bar.= str_repeat($this->progressBarEmptyIncrementChar, $leftEmpty);
+        $bar.= $msg;
+        $bar.= str_repeat($this->progressBarEmptyIncrementChar, $rightEmpty);
         $bar.= ']';
         
         return $bar;
@@ -165,10 +187,31 @@ class ProgressExtension implements Extension, Observable {
         $this->requests->attach($request, $progress);
     }
     
+    private function onResponse(array $dataArr) {
+        $request = $dataArr[0];
+        $progress = $this->requests->offsetGet($request);
+        $progress->percentComplete = 1.0;
+        $progress->progressBar = $this->generateProgressBar(1.0);
+        $this->requests->detach($request);
+        
+        $this->notify(self::PROGRESS, [$request, $progress]);
+    }
+    
     private function clear(array $dataArr) {
         $request = $dataArr[0];
         $this->requests->detach($request);
     }
     
 }
+
+
+
+
+
+
+
+
+
+
+
 
