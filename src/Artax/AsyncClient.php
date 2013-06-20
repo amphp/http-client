@@ -414,12 +414,7 @@ class AsyncClient implements ObservableClient {
         ) {
             $this->finalizeBodyEofResponse($rs);
         } else {
-            $this->endRequestSubscriptions($rs);
-            $this->requests->detach($rs->request);
-            $this->requestQueue->detach($rs->request);
-            
-            $onError = $rs->onError;
-            $onError($e);
+            $this->doError($rs, $e);
         }
         
         if ($this->requestQueue->count()) {
@@ -433,6 +428,22 @@ class AsyncClient implements ObservableClient {
         $response = $this->buildResponseFromParsedArray($rs->request, $parsedResponseArr);
         $rs->response = $response;
         $this->onResponse($rs);
+    }
+    
+    private function doError(RequestState $rs, \Exception $e) {
+        $this->endRequestSubscriptions($rs);
+        
+        $partialMsgArr = $rs->parser->getParsedMessageArray();
+        $this->notify(self::ERROR, [$rs->request, $partialMsgArr]);
+        
+        // Only inform the error callback if event subscribers don't cancel the request
+        if ($this->requests->contains($rs->request)) {
+            $this->requests->detach($rs->request);
+            $this->requestQueue->detach($rs->request);
+            
+            $onError = $rs->onError;
+            $onError($e);
+        }
     }
     
     private function endRequestSubscriptions(RequestState $rs) {
