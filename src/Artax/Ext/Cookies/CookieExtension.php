@@ -8,10 +8,27 @@ use Artax\ObservableClient,
 class CookieExtension implements Extension {
     
     private $cookieJar;
+    private $cookieParser;
     private $eventSubscription;
     
-    function __construct(CookieJar $cookieJar = NULL) {
+    function __construct(CookieJar $cookieJar = NULL, CookieParser $cookieParser = NULL) {
         $this->cookieJar = $cookieJar ?: new ArrayCookieJar;
+        $this->cookieParser = $cookieParser ?: new CookieParser;
+    }
+    
+    function unsubscribe() {
+        if ($this->eventSubscription) {
+            $this->eventSubscription->cancel();
+            $this->eventSubscription = NULL;
+        }
+    }
+    
+    function subscribe(ObservableClient $client) {
+        $this->unsubscribe();
+        $this->eventSubscription = $client->subscribe([
+            ObservableClient::REQUEST => function($dataArr) { $this->onRequest($dataArr); },
+            ObservableClient::RESPONSE => function($dataArr) { $this->onResponse($dataArr); }
+        ]);
     }
     
     private function onRequest(array $dataArr) {
@@ -45,7 +62,7 @@ class CookieExtension implements Extension {
     
     private function storeRawResponseCookie($requestDomain, $rawCookieStr) {
         try {
-            $cookie = Cookie::fromString($rawCookieStr);
+            $cookie = $this->cookieParser->parse($rawCookieStr);
             
             if (!$cookie->getDomain()) {
                 $cookie = new Cookie(
@@ -62,21 +79,6 @@ class CookieExtension implements Extension {
             
         } catch (\InvalidArgumentException $e) {
             // Ignore malformed Set-Cookie headers
-        }
-    }
-    
-    function subscribe(ObservableClient $client) {
-        $this->unsubscribe();
-        $this->eventSubscription = $client->subscribe([
-            ObservableClient::REQUEST => function($dataArr) { $this->onRequest($dataArr); },
-            ObservableClient::RESPONSE => function($dataArr) { $this->onResponse($dataArr); }
-        ]);
-    }
-    
-    function unsubscribe() {
-        if ($this->eventSubscription) {
-            $this->eventSubscription->cancel();
-            $this->eventSubscription = NULL;
         }
     }
     

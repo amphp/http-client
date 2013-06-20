@@ -20,7 +20,23 @@ $ext->subscribe($client);
 // ------------------------------------------------------------------------------------------------>
 
 try {
+    // One request to receive and store the `Set-Cookie` headers
     $response = $client->request('http://www.google.com/');
+    
+    // Here we register an event listener so we can see the stored `Cookie` headers being sent when
+    // the second request is made:
+    $client->subscribe([
+        Client::REQUEST => function(array $dataArr) {
+            $request = current($dataArr);
+            foreach ($request->getHeader('Cookie') as $cookieHeader) {
+                echo 'Cookie: ', $cookieHeader, PHP_EOL;
+            }
+        }
+    ]);
+    
+    // And another request with cookies
+    $response = $client->request('http://www.google.com/');
+    
 } catch (ClientException $e) {
     // Connection failed, socket died or an unparsable response message was returned
     echo $e;

@@ -1,14 +1,15 @@
 <?php
 
-use Artax\Ext\Cookies\Cookie;
+use Artax\Ext\Cookies\CookieParser;
 
-class CookieTest extends PHPUnit_Framework_TestCase {
+class CookieParserTest extends PHPUnit_Framework_TestCase {
     
     /**
      * @dataProvider provideParseExpectations
      */
     function testFromString($rawCookieStr, array $expectedVals) {
-        $cookie = Cookie::fromString($rawCookieStr);
+        $parser = new CookieParser;
+        $cookie = $parser->parse($rawCookieStr);
         
         $this->assertEquals($expectedVals['name'], $cookie->getName());
         $this->assertEquals($expectedVals['value'], $cookie->getValue());
@@ -167,7 +168,7 @@ class CookieTest extends PHPUnit_Framework_TestCase {
             'C5_N8o1NR_Akc74mzHsQet-5UJds3eMJbdkNczmNRUSWTh2gkKhGaKlpiJHU; expires=Tue, ' .
             '17-Dec-2013 18:01:46 GMT; path=/; domain=.google.com; Max-Age=-1; HttpOnly';
         
-        $cookie = Cookie::fromString($rawCookieStr);
+        $cookie = (new CookieParser)->parse($rawCookieStr);
         
         $this->assertTrue($cookie->isExpired());
     }
