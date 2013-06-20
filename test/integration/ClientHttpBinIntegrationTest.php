@@ -1,7 +1,6 @@
 <?php
 
-use Artax\AsyncClient,
-    Artax\Client,
+use Artax\Client,
     Artax\Request;
 
 class ClientHttpBinIntegrationTest extends PHPUnit_Framework_TestCase {
