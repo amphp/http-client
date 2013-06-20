@@ -36,10 +36,10 @@ use Artax\Client,
     Artax\Request,
     Artax\Ext\Progress\ProgressExtension;
 
-require __DIR__ . '/autoload.php';
+require dirname(__DIR__) . '/autoload.php';
 
 define('REMOTE_CERT_URI', 'http://curl.haxx.se/ca/cacert.pem');
-define('DEFAULT_CERT_PATH', __DIR__ . '/certs');
+define('DEFAULT_CERT_PATH', dirname(__DIR__) . '/certs');
 define('CERT_NAME', 'cacert.pem');
 define('CACHED_ETAG', '.cacert-etag');
 
