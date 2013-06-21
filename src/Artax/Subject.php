@@ -15,7 +15,9 @@ trait Subject {
     }
     
     function unsubscribe(Subscription $subscription) {
-        $this->subscribers->detach($subscription);
+        if ($this->subscribers) {
+            $this->subscribers->detach($subscription);
+        }
     }
     
     function unsubscribeAll() {
