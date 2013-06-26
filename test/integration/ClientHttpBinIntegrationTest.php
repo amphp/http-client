@@ -1,13 +1,12 @@
 <?php
 
 use Artax\Client,
-    Artax\Request;
+    Artax\Request,
+    Artax\FormBody,
+    Artax\ResourceBody;
 
 class ClientHttpBinIntegrationTest extends PHPUnit_Framework_TestCase {
 
-    /**
-     * @var Client
-     */
     private $client;
     
     function setUp() {
@@ -48,8 +47,9 @@ class ClientHttpBinIntegrationTest extends PHPUnit_Framework_TestCase {
         $bodyStream = fopen('php://memory', 'r+');
         fwrite($bodyStream, $body);
         rewind($bodyStream);
+        $resourceBody = new ResourceBody($bodyStream);
         
-        $request = (new Request)->setUri($uri)->setMethod('POST')->setBody($bodyStream);
+        $request = (new Request)->setUri($uri)->setMethod('POST')->setBody($resourceBody);
         $response = $this->client->request($request);
         $rcvdBody = $response->getBody();
         
@@ -134,6 +134,48 @@ class ClientHttpBinIntegrationTest extends PHPUnit_Framework_TestCase {
         $onError = function(){};
         
         $this->client->requestMulti($uris, $onResponse, $onError);
+    }
+    
+    function testFormEncodedBodyRequest() {
+        $field1 = 'test val';
+        $field2 = 'val2';
+        
+        $body = new FormBody;
+        $body->addField('field1', $field1);
+        $body->addField('field2', $field2);
+        
+        $request = (new Request)->setBody($body)->setUri('http://httpbin.org/post')->setMethod('POST');
+        $response = $this->client->request($request);
+        $result = json_decode($response->getBody(), TRUE);
+        
+        $this->assertEquals($field1, $result['form']['field1']);
+        $this->assertEquals($field2, $result['form']['field2']);
+        $this->assertEquals('application/x-www-form-urlencoded', $result['headers']['Content-Type']);
+    }
+    
+    function testMultipartBodyRequest() {
+        $client = new Client;
+        $field1 = 'test val';
+        $file1 = dirname(__DIR__) . '/fixture/lorem.txt';
+        $file2 = dirname(__DIR__) . '/fixture/answer.txt';
+        
+        $boundary = 'AaB03x';
+        
+        $body = new FormBody($boundary);
+        $body->addField('field1', $field1);
+        $body->addFileField('file1', $file1);
+        $body->addFileField('file2', $file2);
+        
+        $request = (new Request)->setBody($body)->setUri('http://httpbin.org/post')->setMethod('POST');
+        $response = $client->request($request);
+        $this->assertEquals(200, $response->getStatus());
+        
+        $result = json_decode($response->getBody(), TRUE);
+        
+        $this->assertEquals($field1, $result['form']['field1']);
+        $this->assertEquals(file_get_contents($file1), $result['files']['file1']);
+        $this->assertEquals(file_get_contents($file2), $result['files']['file2']);
+        $this->assertEquals('multipart/form-data; boundary=' . $boundary, $result['headers']['Content-Type']);
     }
 }
 

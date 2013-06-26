@@ -357,27 +357,28 @@ class AsyncClient implements ObservableClient {
             // IMPORTANT: we have to cancel the DRAIN subscription BEFORE sending the body or we'll
             // be stuck in an infinite loop repeatedly sending the entity body.
             $socket->send($body);
-        } elseif (is_resource($body)) {
+        } elseif ($body instanceof \Iterator) {
             $rs->bodyDrainSubscription->modify([
-                Socket::DRAIN => function() use ($rs) { $this->streamRequestBody($rs); }
+                Socket::DRAIN => function() use ($rs) { $this->streamRequestEntityBodyInstance($rs); }
             ]);
-            $this->streamRequestBody($rs);
+            $this->streamRequestEntityBodyInstance($rs);
         } else {
             throw new \UnexpectedValueException;
         }
     }
     
-    private function streamRequestBody(RequestState $rs) {
+    private function streamRequestEntityBodyInstance(RequestState $rs) {
         $request = $rs->request;
         $body = $request->getBody();
         
-        if (feof($body)) {
-            $bodyDrainSubscription = $rs->bodyDrainSubscription;
-            $bodyDrainSubscription->cancel();
-        } else {
-            $chunk = fread($body, $this->ioGranularity);
+        if ($body->valid()) {
+            $chunk = $body->current();
+            $body->next();
             $socket = $rs->socket;
             $socket->send($chunk);
+        } else {
+            $bodyDrainSubscription = $rs->bodyDrainSubscription;
+            $bodyDrainSubscription->cancel();
         }
     }
     
@@ -664,24 +665,21 @@ class AsyncClient implements ObservableClient {
         }
         
         $body = $request->getBody();
-        $bodyIsResource = is_resource($body);
         
-        if (!($body || $body === '0')) {
-            $request->removeHeader('Content-Length');
-            $request->removeHeader('Transfer-Encoding');
-        } elseif (is_resource($body)) {
-            fseek($body, 0, SEEK_END);
-            $contentLength = ftell($body);
-            rewind($body);
-            $request->setHeader('Content-Length', $contentLength);
-            $request->removeHeader('Transfer-Encoding');
-        } elseif ($body && (is_string($body) || is_object($body) && method_exists($body, '__toString'))) {
+        if ($body instanceof BodyAggregate) {
+            $body = $this->normalizeBodyAggregateRequest($request);
+        }
+        
+        if (is_scalar($body) && $body !== '') {
             $body = (string) $body;
+            $request->setBody($body);
             $request->setHeader('Content-Length', strlen($body));
             $request->removeHeader('Transfer-Encoding');
-        } elseif ($body) {
+        } elseif ($body instanceof \Iterator) {
+            $this->normalizeIteratorBodyRequest($request);
+        } elseif ($body !== NULL) {
             throw new \InvalidArgumentException(
-                'Request entity body must be a string, seekable resource or object implementing __toString()'
+                'Request entity body must be a scalar or Iterator'
             );
         }
         
@@ -698,6 +696,43 @@ class AsyncClient implements ObservableClient {
         }
         
         return $request;
+    }
+    
+    private function normalizeBodyAggregateRequest(Request $request) {
+        $body = $request->getBody();
+        $request->setHeader('Content-Type', $body->getContentType());
+        $aggregatedBody = $body->getBody();
+        $request->setBody($aggregatedBody);
+        
+        return $aggregatedBody;
+    }
+    
+    private function normalizeIteratorBodyRequest(Request $request) {
+        $body = $request->getBody();
+        
+        if ($body instanceof \Countable) {
+            $request->setHeader('Content-Length', $body->count());
+            $request->removeHeader('Transfer-Encoding');
+        } elseif ($request->getProtocol() >= 1.1) {
+            $request->removeHeader('Content-Length');
+            $request->setHeader('Transfer-Encoding', 'chunked');
+            $chunkedBody = new ChunkingIterator($body);
+            $request->setBody($chunkedBody);
+        } else {
+            $resourceBody = $this->bufferIteratorResource($body);
+            $request->setHeader('Content-Length', $resourceBody->count());
+            $request->setBody($resourceBody);
+        }
+    }
+    
+    private function bufferIteratorResource(\Iterator $body) {
+        $tmp = fopen('php://temp', 'r+');
+        foreach ($body as $part) {
+            fwrite($tmp, $part);
+        }
+        rewind($tmp);
+        
+        return new ResourceBody($tmp);
     }
     
     private function buildUriFromString($str) {

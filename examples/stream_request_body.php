@@ -2,24 +2,24 @@
 
 use Artax\Client,
     Artax\Request,
+    Artax\FileBody,
     Artax\ClientException;
 
 require dirname(__DIR__) . '/autoload.php';
 
 $client = new Client;
 
-$uri = 'http://httpbin.org/post'; // <-- returns the contents of our POST request
+$path = __DIR__ . '/support/stream_body.txt';
+$body = new FileBody($path);
 
-$bodyFile = __DIR__ . '/support/stream_body.txt';
-$body = fopen($bodyFile, 'r');
-$request = (new Request)->setUri($uri)->setMethod('POST')->setBody($body);
+$request = (new Request)->setUri('http://httpbin.org/post')->setMethod('POST')->setBody($body);
 
 try {
     $response = $client->request($request);
     $responseBody = $response->getBody();
     $decodedBody = json_decode($responseBody);
     
-    assert($decodedBody->data === file_get_contents($bodyFile));
+    assert($decodedBody->data === file_get_contents($path));
     
     echo 'HTTP/' , $response->getProtocol() , ' ' , $response->getStatus() , ' ' , $response->getReason() , "\n";
     
