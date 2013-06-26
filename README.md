@@ -21,6 +21,7 @@ to see some of the cool stuff Artax can do!**
  - Protects from MitM attacks with a packaged SSL certificate authority updater script
  - Exposes a simple subject/observer API for plugins and extensions
  - Offers full cookie support via the `CookieExtension`
+ - Trivializes form submissions using the simple `FormBody` API.
 
 #### PROJECT GOALS
 
