@@ -1,7 +1,7 @@
 <?php
 
 /**
- * This demo is more to run than to read. Execute this script in the console and awesomeness ensues.
+ * This demo is more to execute than to read. Run this script in the console and awesomeness ensues.
  * The script downloads several HTTP resources in parallel while updating the console with progress
  * displays for each request in real time.
  */
@@ -9,7 +9,8 @@
 use Artax\Client,
     Artax\Request,
     Artax\ClientException,
-    Artax\Ext\Progress\ProgressExtension;
+    Artax\Ext\Progress\ProgressExtension,
+    Artax\Ext\Progress\ProgressDisplay;
 
 require dirname(__DIR__) . '/autoload.php';
 
@@ -45,8 +46,10 @@ $requests = [
 ];
 
 $lastUpdate = microtime(TRUE);
+$displayer = new ProgressDisplay;
 $displayLines = [];
 $requestNameMap = new SplObjectStorage;
+
 foreach ($requests as $requestKey => $request) {
     $requestNameMap->attach($request, $requestKey);
     $displayLines[$requestKey] = str_pad($requestKey, 20) . 'Awaiting connection ...';
@@ -68,28 +71,34 @@ $ext = new ProgressExtension;
 $ext->extend($client);
 $ext->setProgressBarSize(30);
 $ext->subscribe([
-    ProgressExtension::PROGRESS => function($dataArr) use ($requestNameMap, &$displayLines, &$lastUpdate) {
-        list($request, $progress) = $dataArr;
-        $requestKey = $requestNameMap->offsetGet($request);
-        $displayLines[$requestKey] = str_pad($requestKey, 15) . trim($progress->display());
-        
-        // Limit updates to 20fps to avoid a choppy display
+    ProgressExtension::PROGRESS => function($dataArr) use ($requestNameMap, &$displayLines, &$lastUpdate, $displayer) {
         $now = microtime(TRUE);
-        if (($now - $lastUpdate) > 0.05 || $progress->percentComplete >= 1.0) {
+        if (($now - $lastUpdate) > 0.05) { // Limit updates to 20fps to avoid a choppy display
+            list($request, $progress) = $dataArr;
+            $requestKey = $requestNameMap->offsetGet($request);
+            $displayLines[$requestKey] = str_pad($requestKey, 15) . trim($displayer->display($progress));
             $lastUpdate = $now;
             updateDisplay($displayLines);
         }
+    },
+    ProgressExtension::RESPONSE => function($dataArr) use ($requestNameMap, &$displayLines, $displayer) {
+        list($request, $progress) = $dataArr;
+        $requestKey = $requestNameMap->offsetGet($request);
+        $displayLines[$requestKey] = str_pad($requestKey, 15) . trim($displayer->display($progress));
+        updateDisplay($displayLines);
+    },
+    ProgressExtension::ERROR => function($dataArr) use (&$displayLines, $requestNameMap) {
+        list($request, $progress, $error) = $dataArr;
+        $requestKey = $requestNameMap->offsetGet($request);
+        $displayLines[$requestKey] = str_pad($requestKey, 15) . 'Error: ' . $error->getMessage();
+        updateDisplay($displayLines);
     }
+    
 ]);
 
 // --- Release the hounds! ------------------------------------------------------------------------>
 
-$dummyOnResponse = function(){};
-$onError = function($request, $error) use (&$displayLines, $requestNameMap) {
-    $requestKey = $requestNameMap->offsetGet($request);
-    $displayLines[$requestKey] = str_pad($requestKey, 15) . 'Error: ' . $error->getMessage();
-    updateDisplay($displayLines);
-};
-$client->requestMulti($requests, $dummyOnResponse, $onError);
+$dummyOnResponse = $dummyOnError = function(){};
+$client->requestMulti($requests, $dummyOnResponse, $dummyOnError);
 echo PHP_EOL;
 

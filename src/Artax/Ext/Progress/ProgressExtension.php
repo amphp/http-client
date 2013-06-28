@@ -13,6 +13,7 @@ class ProgressExtension implements Extension, Observable {
     use Subject;
     
     const PROGRESS = 'progress';
+    const RESPONSE = 'response';
     
     private $requests;
     private $progressBarSize = 40;
@@ -89,7 +90,7 @@ class ProgressExtension implements Extension, Observable {
             ObservableClient::REDIRECT => function($dataArr) { $this->onRedirect($dataArr); },
             ObservableClient::RESPONSE => function($dataArr) { $this->onResponse($dataArr); },
             ObservableClient::CANCEL => function($dataArr) { $this->clear($dataArr); },
-            ObservableClient::ERROR => function($dataArr) { $this->clear($dataArr); }
+            ObservableClient::ERROR => function($dataArr) { $this->onError($dataArr); }
         ]);
         
         return $this;
@@ -146,7 +147,7 @@ class ProgressExtension implements Extension, Observable {
     
     private function generateProgressBarOfUnknownSize() {
         $maxIncrements = $this->progressBarSize - 2;
-        $msg = 'UNKNOWN';
+        $msg = 'SIZE UNKNOWN (chunks)';
         $emptyIncrements = $maxIncrements - strlen($msg);
         if (!$emptyIncrements%2) {
             $leftEmpty = $rightEmpty = $emptyIncrements / 2;
@@ -194,7 +195,14 @@ class ProgressExtension implements Extension, Observable {
         $progress->progressBar = $this->generateProgressBar(1.0);
         $this->requests->detach($request);
         
-        $this->notify(self::PROGRESS, [$request, $progress]);
+        $this->notify(self::RESPONSE, [$request, $progress]);
+    }
+    
+    private function onError(array $dataArr, \Exception $e) {
+        $request = $dataArr[0];
+        $progress = $this->requests->offsetGet($request);
+        
+        $this->notify(self::ERROR, [$request, $progress, $e]);
     }
     
     private function clear(array $dataArr) {
@@ -203,15 +211,4 @@ class ProgressExtension implements Extension, Observable {
     }
     
 }
-
-
-
-
-
-
-
-
-
-
-
 

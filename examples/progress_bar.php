@@ -15,16 +15,13 @@
  *     percentComplete    - Floating point value between 0 and 1
  *     bytesPerSecond     - Measures transfer speed
  *     progressBar        - A ready-to-echo progress bar display for the current request retrieval state
- * 
- * The `ProgressState` instance also contains a convenience method, `ProgressState::display()`, that
- * returns a summary display containing the progress bar, KB totals, completion percentage and download
- * speed.
  */
 
 use Artax\Client,
     Artax\Request,
     Artax\Response,
     Artax\ClientException,
+    Artax\Ext\Progress\ProgressDisplay,
     Artax\Ext\Progress\ProgressExtension;
 
 require dirname(__DIR__) . '/autoload.php';
@@ -40,10 +37,11 @@ $ext->setProgressBarEmptyIncrementChar('.');    // defaults to '.'
 $ext->setProgressBarLeadingChar('>');           // defaults to '>'
 // --- END optional progress bar config ---
 
+$displayer = new ProgressDisplay;
+
 $ext->subscribe([
-    ProgressExtension::PROGRESS => function($dataArr) {
-        $progress = $dataArr[1];
-        echo $progress->display();
+    ProgressExtension::PROGRESS => function($dataArr) use ($displayer) {
+        echo $displayer->display($dataArr[1]);
     }
 ]);
 
