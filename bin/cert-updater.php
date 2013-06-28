@@ -34,6 +34,7 @@
 use Artax\Client,
     Artax\ClientException,
     Artax\Request,
+    Artax\Ext\Progress\ProgressDisplay,
     Artax\Ext\Progress\ProgressExtension;
 
 require dirname(__DIR__) . '/autoload.php';
@@ -92,11 +93,12 @@ if (!$forceOverwrite) {
 }
 
 $client = new Client;
+$progressDisplay = new ProgressDisplay;
 (new ProgressExtension)->extend($client)->subscribe([
-    ProgressExtension::PROGRESS => function($dataArr) {
+    ProgressExtension::PROGRESS => function($dataArr) use ($progressDisplay) {
         $progress = $dataArr[1];
         if (isset($progress->headerBytes)) {
-            echo $progress->display();
+            echo $progressDisplay->display($progress);
         }
     }
 ]);
