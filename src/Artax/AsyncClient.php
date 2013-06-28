@@ -608,6 +608,9 @@ class AsyncClient implements ObservableClient {
     private function redirect(RequestState $rs, Uri $newUri) {
         $request = $rs->request;
         
+        $refererUri = $request->getUri();
+        $redirectResponse = $rs->response;
+        
         $rs->authority = $this->generateAuthorityFromUri($newUri);
         $request->setUri($newUri->__toString());
         $request->setHeader('Host', parse_url($rs->authority, PHP_URL_HOST));
@@ -617,11 +620,11 @@ class AsyncClient implements ObservableClient {
         }
         
         if ($this->autoReferer) {
-            $request->setHeader('Referer', $request->getUri());
+            $request->setHeader('Referer', $refererUri);
         }
         
         $this->requestQueue->attach($request, $rs);
-        $this->notify(self::REDIRECT, [$request, NULL]);
+        $this->notify(self::REDIRECT, [$request, $redirectResponse]);
     }
     
     private function normalizeRequest($request) {

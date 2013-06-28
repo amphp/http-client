@@ -9,7 +9,7 @@
  * Client::CANCEL       [$request, NULL]
  * Client::REQUEST      [$request, NULL]
  * Client::HEADERS      [$request, $parsedResponseArray]
- * Client::REDIRECT     [$request, NULL]
+ * Client::REDIRECT     [$request, $response]
  * Client::RESPONSE     [$request, $response]
  * 
  * The data parameter for event broadcasts is always a two-element array. The first element is ALWAYS
