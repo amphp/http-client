@@ -20,7 +20,7 @@ $client = new Client;
 $client->subscribe([
     Client::REQUEST => function($dataArr) {
         $request = $dataArr[0];
-        // Use HTTP/1.0 to prevent chunked encoding and hopefully receive a Content-Length header
+        // Use HTTP/1.0 to prevent chunked encoding and hopefully receive a Content-Length header.
         // Since we're using 1.0 we want to explicitly ask for keep-alives to avoid closing the
         // connection after each request.
         $request->setProtocol('1.0')->setHeader('Connection', 'keep-alive');

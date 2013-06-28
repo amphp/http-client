@@ -1,13 +1,21 @@
 <?php
 
+/**
+ * By enabling the Cookie Extension we can automatically store/send cookies as we retrieve resources
+ * requested in Artax.
+ */
+
 use Artax\Client,
     Artax\ClientException,
     Artax\Ext\Cookies\CookieExtension,
     Artax\Ext\Cookies\FileCookieJar;
 
-require dirname(__DIR__) . '/autoload.php';
+require dirname(__DIR__) . '/autoload.php'; // <-- autoloader script
 
 $client = new Client;
+
+// Enable verboseSend so we can see our raw request messages in the console
+$client->setOption('verboseSend', TRUE);
 
 // Cookies will persist for the life of the client object
 (new CookieExtension)->extend($client);
@@ -19,25 +27,18 @@ $client = new Client;
 // ------------------------------------------------------------------------------------------------>
 
 try {
-    // One request to receive and store the `Set-Cookie` headers
+    // This request will receive and store google's `Set-Cookie` headers.
     $response = $client->request('http://www.google.com/');
     
-    // Here we register an event listener so we can see the stored `Cookie` headers being sent when
-    // the second request is made:
-    $client->subscribe([
-        Client::REQUEST => function(array $dataArr) {
-            $request = current($dataArr);
-            foreach ($request->getHeader('Cookie') as $cookieHeader) {
-                echo 'Cookie: ', $cookieHeader, PHP_EOL;
-            }
-        }
-    ]);
-    
-    // And another request with cookies
+    // And another request with the cookies applied. In your console you'll see that this second
+    // request contains the `Cookie:` headers we set from the fist response.
     $response = $client->request('http://www.google.com/');
     
 } catch (ClientException $e) {
     // Connection failed, socket died or an unparsable response message was returned
+    // Client::request() is the only Artax retrieval method that can throw. The others work in
+    // parallel and instead notify error callbacks.
+    
     echo $e;
 }
 

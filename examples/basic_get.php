@@ -1,27 +1,30 @@
 <?php
 
-use Artax\Client,
-    Artax\ClientException;
+/**
+ * Often we only care about simple GET retrieval. For such cases Artax accepts a simple URI as the
+ * request parameter.
+ */
 
-require dirname(__DIR__) . '/autoload.php';
+require dirname(__DIR__) . '/autoload.php'; // <-- autoloader script
 
-$client = new Client;
-$uri = "http://www.google.com/";
+$client = new Artax\Client;
 
 try {
-    $response = $client->request($uri);
+    $response = $client->request('http://httpbin.org/user-agent');
+
+    echo "Response status code: ", $response->getStatus(), "\n";
+    echo "Response reason:      ", $response->getReason(), "\n";
+    echo "Response protocol:    ", $response->getProtocol(), "\n";
     
-    echo 'HTTP/' , $response->getProtocol() , ' ' , $response->getStatus() , ' ' , $response->getReason() , "\n";
+    print_r($response->getAllHeaders());
     
-    foreach ($response->getAllHeaders() as $field => $valueArray) {
-        foreach ($valueArray as $value) {
-            echo $field, ': ', $value, "\n";
-        }
-    }
+    echo $response->getBody(), "\n";
     
-    echo "\n";
-    
-} catch (ClientException $e) {
+} catch (Artax\ClientException $e) {
     // Connection failed, socket died or an unparsable response message was returned
+    // Client::request() is the only Artax retrieval method that can throw. The others work in
+    // parallel and instead notify error callbacks.
+    
     echo $e;
 }
+

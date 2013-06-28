@@ -10,19 +10,19 @@ underlying HTTP protocol.
 
 #### FEATURES
 
- - Doesn't rely on *cURL/libcurl*
+ - Doesn't rely on *cURL/libcurl*; the HTTP protocol is implemented manually over TCP sockets
  - Supports parallel requests and event-driven parallelization in addition to serial requests
+ - Retains persistent keep-alive connections when available
  - Transparently follows redirects
  - Requests and decodes gzipped entity bodies
- - Provides access to all raw headers and HTTP message data
+ - Provides access to raw headers and HTTP message data
  - Streams request and response entity bodies for hands-on memory management
- - Retains persistent keep-alive connections for maximum performance
- - Supports all standard and custom request methods as per the (extensible) HTTP protocol
- - Provides fully customizable and secure-by-default TLS (https://) support
- - Protects from MitM attacks with a packaged SSL certificate authority updater script
+ - Supports all standard and custom request methods as per the extensible HTTP/1.1 protocol
  - Exposes a simple subject/observer API for plugins and extensions
  - Offers full cookie support via the `CookieExtension`
  - Trivializes form submissions using the simple `FormBody` API.
+ - Provides fully customizable and secure-by-default TLS (https://) support
+ - Offers an executable script to always keep your TLS certificate authority file up-to-date
 
 #### PROJECT GOALS
 
@@ -44,12 +44,8 @@ $ git clone --recursive https://github.com/rdlowrey/Artax.git
 * PHP's `openssl` extension if you need TLS (https://)
 * PHP's `zlib` extension if you wish to request/decompress gzipped response bodies
 
-#### WHAT'S WITH THE NAME?
 
-Children of the 1980s are likely familiar with [The NeverEnding Story][neverending] and may remember
-the scene where Atreyu's faithful steed, Artax, died in the Swamp of Sadness. The name is an homage.
-
-#### SERIAL vs. ASYNCHRONOUS
+#### SERIAL vs. ASYNC
 
 Artax offers two APIs for your HTTP needs:
 
@@ -65,7 +61,8 @@ an understand non-blocking IO is needed to effectively write code using this par
 
 ###### Simple GET Request
 
-Often you only care about GET retrieval. For such cases Artax accepts a simple URI as the request parameter:
+Often we only care about simple GET retrieval. For such cases Artax accepts a simple URI as the
+request parameter:
 
 ```php
 <?php
@@ -84,7 +81,11 @@ echo $response->getBody();
 
 ###### Customized Request Message
 
-For more complex cases, Artax allows you to build and send an `Artax\Request` instance:
+For non-trivial requests Artax allows you to construct messages piece-by-piece. This example
+sets the request method to POST and assigns an entity body. HTTP veterans will notice that
+we don't bother to set a `Content-Length` or `Host` header. Aerys will automatically add/normalize
+missing headers for us so we don't need to worry about it. The only property that _MUST_ be assigned
+when sending an `Artax\Request` is the absolute *http://* or *https://* request URI:
 
 ```php
 <?php
@@ -95,7 +96,6 @@ $request->setUri('http://httpbin.org/post');
 $request->setProtocol('1.1');
 $request->setMethod('POST');
 $request->setAllHeaders([
-    'Content-Length' => 5,
     'Content-Type' => 'text/plain; charset=utf-8',
     'Set-Cookie' => ['Cookie1=val1', 'Cookie2=val2']
 ]);
@@ -182,10 +182,19 @@ $requests = [
 $client->requestMulti($requests, $onResponse, $onError);
 ```
 
+Note that though the individual requests in the `$requests` batch are retrieved in parallel the
+`Client::requestMulti` call itself will block until all of the requests complete (or error out).
+
 ###### Still Want More?
 
 Check out [more examples](https://github.com/rdlowrey/Artax/tree/master/examples) demonstrating 
-features such as cookies, progress bars, TLS support etc ...
+features such as cookies, progress bars, TLS support, asynchronous requests, etc ...
+
+
+#### WHAT'S WITH THE NAME?
+
+Children of the 1980s are likely familiar with [The NeverEnding Story][neverending] and may remember
+the scene where Atreyu's faithful steed, Artax, died in the Swamp of Sadness. The name is an homage.
 
 
 [rfc2616]: http://www.w3.org/Protocols/rfc2616/rfc2616.html

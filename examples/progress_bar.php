@@ -52,6 +52,8 @@ echo PHP_EOL;
 try {
     $uri = 'http://en.wikipedia.org/wiki/Hitchhiker%27s_Guide_to_the_Galaxy';
     
+    echo "Retrieving {$uri} ...\n\n";
+    
     // Use HTTP/1.0 to prevent chunked encoding and hopefully receive a Content-Length header
     $request = (new Request)->setUri($uri)->setProtocol('1.0');
     $client->request($request);

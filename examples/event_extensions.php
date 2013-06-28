@@ -20,26 +20,27 @@
  * examine the request and potentially serve a locally cached version.
  * 
  * Another useful action on Client::REQUEST notifications is modifying the request to add cookie
- * headers pulled from a local cookie storage.
+ * headers pulled from a local cookie storage. This is how the Cookie Extension works.
+ * 
+ * Also, the Progress Extension uses event broadcasts to notify listeners so they can display
+ * real-time statistics and progress bars.
  */
 
-use Artax\Client,
-    Artax\ClientException,
-    Artax\Response;
+require dirname(__DIR__) . '/autoload.php'; // <-- autoloader script
 
-require dirname(__DIR__) . '/autoload.php';
+$client = new Artax\Client;
 
-
-$client = new Client;
-$subscription = $client->subscribe([
-    Client::REQUEST => function($eventArr) use ($client) {
+$client->subscribe([
+    Artax\Client::REQUEST => function($eventArr) use ($client) {
         $request = array_shift($eventArr);
-        $response = (new Response)->setStatus(200)->setReason('Because We Can')->setBody('ZANZIBAR!');
+        $response = (new Artax\Response)->setStatus(200)->setReason('Because We Can')->setBody('ZANZIBAR!');
         $client->setResponse($request, $response);
     }
 ]);
 
-$uri = "http://www.google.com/";
-$response = $client->request($uri);
+$response = $client->request('http://www.google.com/');
+
+// Note how our event listener intercepted the original request and assigned its own response
 echo 'HTTP/' , $response->getProtocol() , ' ' , $response->getStatus() , ' ' , $response->getReason() , "\n";
 echo $response->getBody(), "\n";
+

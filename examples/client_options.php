@@ -2,32 +2,17 @@
 
 /**
  * Client/AsyncClient accept option assignment via setOption() and setAllOptions(). Though the
- * defaults are generally fine, you can easily tweak any of the values presented below.
+ * defaults are generally fine, you can tweak any of the values presented below.
  */
 
-use Artax\Client,
-    Artax\ClientException;
+require dirname(__DIR__) . '/autoload.php'; // <-- autoloader script
 
-require dirname(__DIR__) . '/autoload.php';
+$client = new Artax\Client;
 
-$client = new Client;
+// Set one option value at a time:
+$client->setOption('maxConnectionsPerHost', 4);
 
-// You can set one option value at a time:
-$client->setOption('tlsOptions', [
-    'verify_peer' => TRUE,
-    'allow_self_signed' => FALSE,
-    'cafile' => dirname(__DIR__) . '/certs/cacert.pem',
-    'capath' => NULL,
-    'local_cert' => NULL,
-    'passphrase' => NULL,
-    'CN_match' => NULL,
-    'verify_depth' => NULL,
-    'ciphers' => NULL,
-    'SNI_enabled' => NULL,
-    'SNI_server_name' => NULL
-]);
-
-// Or you can set multiple option values at a time:
+// Set multiple option values:
 $client->setAllOptions([
     'useKeepAlive'          => TRUE,    // Use persistent connections (when the remote server allows it)
     'connectTimeout'        => 15,      // Timeout connect attempts after N seconds
@@ -42,6 +27,19 @@ $client->setAllOptions([
     'bindToIp'              => NULL,    // Optionally bind request sockets to a specific local IP on your machine
     'ioGranularity'         => 65536,   // Max bytes to read/write per socket IO operation
     'verboseRead'           => FALSE,   // If TRUE, write all raw message data received to STDOUT
-    'verboseSend'           => FALSE    // If TRUE, write all raw message data sent to STDOUT
+    'verboseSend'           => FALSE,   // If TRUE, write all raw message data sent to STDOUT
+    'tlsOptions'            => [        // The default set of TLS options
+        'verify_peer' => TRUE,
+        'allow_self_signed' => FALSE,
+        'cafile' => dirname(__DIR__) . '/certs/cacert.pem',
+        'capath' => NULL,
+        'local_cert' => NULL,
+        'passphrase' => NULL,
+        'CN_match' => NULL,
+        'verify_depth' => NULL,
+        'ciphers' => NULL,
+        'SNI_enabled' => NULL,
+        'SNI_server_name' => NULL
+    ]
 ]);
 
