@@ -2,6 +2,8 @@
 
 require dirname(__DIR__) . '/autoload.php'; // <-- autoloader script
 
+$request = new Artax\Request;
+
 /**
  * In HTTP, both requests and responses are "messages." Artax reflects this in its class structure
  * and both `Artax\Request` and `Artax\Response` extend the base `Artax\Message` class. The relevant
@@ -10,15 +12,9 @@ require dirname(__DIR__) . '/autoload.php'; // <-- autoloader script
  * **IMPORTANT:** All of the following examples apply to Artax\Request *and* Artax\Response.
  * 
  * Headers are stored with case-insensitive keys (as per RFC 2616 Sec4.2). You can access and
- * assign message headers in requests/responses without worrying about case:
- */
-
-$request = new Artax\Request;
-
-
-/**
- * Assigning headers is accomplished using Message::setHeader() which will clear any previously
- * assigned values for the same header (regardless of field case):
+ * assign message headers in requests/responses without worrying about case. Assigning headers is
+ * accomplished using Message::setHeader() which will clear any previously assigned values for the
+ * same header (regardless of field case):
  */
 $request->setHeader('Content-Type', 'application/octet-stream');
 
