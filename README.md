@@ -101,7 +101,7 @@ $request->setAllHeaders([
 ]);
 $request->setBody('woot!');
 
-$response = $client->request('http://www.google.com');
+$response = $client->request($request);
 ```
 
 In the above example the raw request message sent to the server will look like this:
