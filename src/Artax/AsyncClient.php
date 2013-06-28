@@ -443,7 +443,7 @@ class AsyncClient implements ObservableClient {
             $this->requestQueue->detach($rs->request);
             
             $onError = $rs->onError;
-            $onError($e);
+            $onError($e, $rs->request);
         }
     }
     
@@ -482,7 +482,7 @@ class AsyncClient implements ObservableClient {
         } else {
             $this->notify(self::RESPONSE, [$rs->request, $rs->response]);
             $onResponse = $rs->onResponse;
-            $onResponse($rs->response);
+            $onResponse($rs->response, $rs->request);
             $this->requests->detach($rs->request);
             $this->requestQueue->detach($rs->request);
         }
