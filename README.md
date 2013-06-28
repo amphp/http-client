@@ -54,7 +54,7 @@ the scene where Atreyu's faithful steed, Artax, died in the Swamp of Sadness. Th
 Artax offers two APIs for your HTTP needs:
 
 - **Serial:** `Artax\Client` is fully synchronous. You can requests invidual HTTP resources serially or in parallel,
-but retrievals are always synchronous.
+but retrieval function calls are always synchronous.
 
 - **Async:** `Artax\AsyncClient` is fully asynchronous and runs inside a non-blocking event loop. The asynchronous
 client allows for full IO and computational parallelization. But with great power comes great responsibility;
@@ -84,7 +84,7 @@ echo $response->getBody();
 
 ###### Customized Request Message
 
-For more complex cases, Artax allows you to build and submit a `Artax\Request`:
+For more complex cases, Artax allows you to build and send an `Artax\Request` instance:
 
 ```php
 <?php
