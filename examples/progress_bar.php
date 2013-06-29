@@ -31,17 +31,15 @@ $ext = new ProgressExtension;
 $ext->extend($client);
 
 // --- Optional progress bar display config ---
-$ext->setProgressBarSize(35);                   // defaults to 40, minimum of 10
+$ext->setProgressBarSize(40);                   // defaults to 40, minimum of 10
 $ext->setProgressBarIncrementChar('=');         // defaults to '='
 $ext->setProgressBarEmptyIncrementChar('.');    // defaults to '.'
 $ext->setProgressBarLeadingChar('>');           // defaults to '>'
 // --- END optional progress bar config ---
 
-$displayer = new ProgressDisplay;
-
 $ext->subscribe([
-    ProgressExtension::PROGRESS => function($dataArr) use ($displayer) {
-        echo $displayer->display($dataArr[1]);
+    ProgressExtension::PROGRESS => function($dataArr) {
+        echo "\r", ProgressDisplay::display($dataArr[1]);
     }
 ]);
 

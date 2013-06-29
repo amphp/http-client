@@ -18,8 +18,6 @@
  * accept chunked entity bodies. If a Content-Lenght header is needed and an Iterator body isn't
  * Countable, Artax will iterate until no longer valid to determine the length. Don't worry, though,
  * it won't buffer the full body in memory at any given time.
- * 
- * 
  */
 
 require dirname(__DIR__) . '/autoload.php'; // <-- autoloader script

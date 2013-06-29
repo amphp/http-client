@@ -46,7 +46,6 @@ $requests = [
 ];
 
 $lastUpdate = microtime(TRUE);
-$displayer = new ProgressDisplay;
 $displayLines = [];
 $requestNameMap = new SplObjectStorage;
 
@@ -55,13 +54,14 @@ foreach ($requests as $requestKey => $request) {
     $displayLines[$requestKey] = str_pad($requestKey, 20) . 'Awaiting connection ...';
 }
 
-// --- How we update the console display ---------------------------------------------------------->
+// --- A function we'll call to update the console display ---------------------------------------->
 
 function updateDisplay(array $displayLines) {
     print chr(27) . "[2J" . chr(27) . "[;H"; // clear screen
     echo '------------------------------------', PHP_EOL;
     echo 'Artax parallel request progress demo', PHP_EOL;
     echo '------------------------------------', PHP_EOL, PHP_EOL;
+    
     echo implode($displayLines, PHP_EOL), PHP_EOL;
 }
 
@@ -71,20 +71,20 @@ $ext = new ProgressExtension;
 $ext->extend($client);
 $ext->setProgressBarSize(30);
 $ext->subscribe([
-    ProgressExtension::PROGRESS => function($dataArr) use ($requestNameMap, &$displayLines, &$lastUpdate, $displayer) {
+    ProgressExtension::PROGRESS => function($dataArr) use ($requestNameMap, &$displayLines, &$lastUpdate) {
         $now = microtime(TRUE);
         if (($now - $lastUpdate) > 0.05) { // Limit updates to 20fps to avoid a choppy display
             list($request, $progress) = $dataArr;
             $requestKey = $requestNameMap->offsetGet($request);
-            $displayLines[$requestKey] = str_pad($requestKey, 15) . trim($displayer->display($progress));
+            $displayLines[$requestKey] = str_pad($requestKey, 15) . ProgressDisplay::display($progress);
             $lastUpdate = $now;
             updateDisplay($displayLines);
         }
     },
-    ProgressExtension::RESPONSE => function($dataArr) use ($requestNameMap, &$displayLines, $displayer) {
+    ProgressExtension::RESPONSE => function($dataArr) use ($requestNameMap, &$displayLines) {
         list($request, $progress) = $dataArr;
         $requestKey = $requestNameMap->offsetGet($request);
-        $displayLines[$requestKey] = str_pad($requestKey, 15) . trim($displayer->display($progress));
+        $displayLines[$requestKey] = str_pad($requestKey, 15) . ProgressDisplay::display($progress);
         updateDisplay($displayLines);
     },
     ProgressExtension::ERROR => function($dataArr) use (&$displayLines, $requestNameMap) {

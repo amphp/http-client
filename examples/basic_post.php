@@ -3,9 +3,9 @@
 /**
  * For non-trivial requests Artax allows you to construct messages piece-by-piece. This example
  * sets the request method to POST and assigns an entity body. HTTP veterans will notice that
- * We don't bother to set a Content-Length (or Transfer-Encoding: chunked) header. Aerys will
+ * we don't bother to set a Content-Length (or Transfer-Encoding: chunked) header. Aerys will
  * automatically add/normalize missing headers for us so we don't need to worry about it. The only
- * property that _MUST_ be assigned when sending an `Artax\Request` is the absolute http:// or
+ * property that _MUST_ be assigned when sending an Artax\Request is the absolute http:// or
  * https:// request URI.
  */
 
