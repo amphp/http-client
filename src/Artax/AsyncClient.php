@@ -32,6 +32,10 @@ class AsyncClient implements ObservableClient {
     private $maxConnections = -1;
     private $maxConnectionsPerHost = 8;
     private $continueDelay = 3;
+    private $maxHeaderBytes = 8192;
+    private $maxBodyBytes = 1024;
+    private $bodySwapSize = 2097152;
+    private $storeBody = TRUE;
     private $bufferBody = TRUE;
     private $bindToIp;
     private $ioGranularity = 65536;
@@ -225,8 +229,15 @@ class AsyncClient implements ObservableClient {
     private function doSubscribe(RequestState $rs) {
         $rs->parser = $this->parserFactory->make();
         $rs->parser->setOptions([
+            'maxHeaderBytes' => $this->maxHeaderBytes,
+            'maxBodyBytes' => $this->maxBodyBytes,
+            'bodySwapSize' => $this->bodySwapSize,
+            'storeBody' => $this->storeBody,
             'preBodyHeadersCallback' => function($parsedResponseArr) use ($rs) {
                 $this->notify(self::HEADERS, [$rs->request, $parsedResponseArr]);
+            },
+            'onBodyData' => function($data) use ($rs) {
+                $this->notify(self::BODY_DATA, [$rs->request, $data]);
             }
         ]);
         
@@ -770,6 +781,10 @@ class AsyncClient implements ObservableClient {
             'maxConnectionsPerHost',
             'continueDelay',
             'bufferBody',
+            'maxHeaderBytes',
+            'maxBodyBytes',
+            'bodySwapSize',
+            'storeBody',
             'bindToIp',
             'ioGranularity',
             'allowGzipCompress',
@@ -840,6 +855,22 @@ class AsyncClient implements ObservableClient {
     
     private function setBufferBody($bool) {
         $this->bufferBody = filter_var($bool, FILTER_VALIDATE_BOOLEAN);
+    }
+    
+    private function setMaxHeaderBytes($bytes) {
+        $this->maxHeaderBytes = (int) $bytes;
+    }
+    
+    private function setMaxBodyBytes($bytes) {
+        $this->maxBodyBytes = (int) $bytes;
+    }
+    
+    private function setBodySwapSize($bytes) {
+        $this->bodySwapSize = (int) $bytes;
+    }
+    
+    private function setStoreBody($bool) {
+        $this->storeBody = filter_var($bool, FILTER_VALIDATE_BOOLEAN);
     }
     
     private function setIoGranularity($bytes) {
