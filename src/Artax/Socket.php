@@ -28,6 +28,7 @@ class Socket implements Observable {
     private $authority;
     private $onReadable;
     private $onWritable;
+    private $writeBuffer;
     
     private $connectTimeout = 5;
     private $keepAliveTimeout = 30;
