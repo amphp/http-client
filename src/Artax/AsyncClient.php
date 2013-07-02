@@ -225,7 +225,9 @@ class AsyncClient implements ObservableClient {
     private function doSubscribe(RequestState $rs) {
         $rs->parser = $this->parserFactory->make();
         $rs->parser->setOptions([
-            'returnHeadersBeforeBody' => TRUE    
+            'preBodyHeadersCallback' => function($parsedResponseArr) use ($rs) {
+                $this->notify(self::HEADERS, [$rs->request, $parsedResponseArr]);
+            }
         ]);
         
         $onSockReady = function() use ($rs) {
@@ -272,14 +274,10 @@ class AsyncClient implements ObservableClient {
     
     private function parse(RequestState $rs, $data) {
         try {
-            if (!$parsedResponseArr = $rs->parser->parse($data)) {
-                return;
-            } elseif ($parsedResponseArr['headersOnly']) {
-                $this->notify(self::HEADERS, [$rs->request, $parsedResponseArr]);
-                $this->parse($rs, $data = '');
-            } else {
+            while ($parsedResponseArr = $rs->parser->parse($data)) {
                 $rs->response = $this->buildResponseFromParsedArray($rs->request, $parsedResponseArr);;
                 $this->onResponse($rs);
+                $data = '';
             }
         } catch (ParseException $e) {
             $this->onError($rs, $e);
@@ -315,8 +313,7 @@ class AsyncClient implements ObservableClient {
     
     private function initializeTransferTimeout(RequestState $rs) {
         $rs->transferTimeoutSubscription = $this->reactor->once(function() use ($rs) {
-            $callback = $rs->onError;
-            $callback($rs->request, new TimeoutException);
+            $this->onError($rs, new TimeoutException);
         }, $delay = $this->transferTimeout);
     }
     

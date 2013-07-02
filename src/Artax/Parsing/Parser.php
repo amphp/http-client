@@ -13,9 +13,10 @@ interface Parser {
     const TRAILERS_START = 4;
     const TRAILERS = 5;
     
-    function parse($data);
     function setOptions(array $options);
+    function parse($data);
     function getState();
+    function getBuffer();
     function getParsedMessageArray();
     
 }
