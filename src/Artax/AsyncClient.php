@@ -661,7 +661,16 @@ class AsyncClient implements ObservableClient {
         }
         
         $authority = $this->generateAuthorityFromUri($uri);
-        $request->setHeader('Host', parse_url($authority, PHP_URL_HOST));
+        
+        /**
+         * Though servers are supposed to be able to handle standard port names on the end of the
+         * host some fail to do this correctly. As a result, we strip the port from the host header
+         * if it's a standard 80/443
+         */
+        if (stripos($authority, ':80') || stripos($authority, ':443')) {
+            $authority = parse_url($authority, PHP_URL_HOST);
+        }
+        $request->setHeader('Host', $authority);
         
         if (!$request->hasHeader('User-Agent')) {
             $request->setHeader('User-Agent', self::USER_AGENT);
