@@ -10,26 +10,25 @@ underlying HTTP protocol.
 
 #### FEATURES
 
- - Doesn't rely on *cURL/libcurl*; the HTTP protocol is implemented manually over TCP sockets
- - Supports parallel requests and event-driven parallelization in addition to serial requests
- - Retains persistent keep-alive connections when available
+ - Requires no cURL/libcurl dependency; Artax manually implements HTTP over TCP sockets
+ - Retains persistent "keep-alive" connections
  - Transparently follows redirects
  - Requests and decodes gzipped entity bodies
- - Provides access to raw headers and HTTP message data
+ - Provides access to raw headers and messages
  - Streams request and response entity bodies for hands-on memory management
- - Supports all standard and custom request methods as per the extensible HTTP/1.1 protocol
- - Exposes a simple subject/observer API for plugins and extensions
- - Offers full cookie support via the `CookieExtension`
- - Trivializes form submissions using the simple `FormBody` API.
+ - Supports all standard and custom request methods
+ - Offers full cookie support via the Cookie extension
+ - Trivializes submitting multipart and form-encoded entities the FormBody API.
  - Provides fully customizable and secure-by-default TLS (https://) support
- - Offers an executable script to always keep your TLS certificate authority file up-to-date
+ - Provides serial, synchronous parallel and event-driven parallel retrieval
+ - Exposes a simple subject/observer API for plugins and extensions
+ 
 
 #### PROJECT GOALS
 
+* Model all code as closely as possible to the protocol outlined in [RFC 2616][rfc2616];
 * Implement an HTTP/1.1 Client built on raw sockets with no libcurl dependency;
-* Model all relevant code on the HTTP/1.1 protocol as outlined in [RFC 2616][rfc2616];
-* Eschew the use of `static` entirely in favor of maximum testability and full API transparency;
-* Build all components using [SOLID][solid], readable and 100% unit-tested code;
+* Build all components using [SOLID][solid], readable and thoroughly unit-tested code;
 
 #### INSTALLATION
 
