@@ -108,8 +108,8 @@ class ClientHttpBinIntegrationTest extends PHPUnit_Framework_TestCase {
     function testVerboseSend() {
         $expectedOutput = '' .
             "GET / HTTP/1.1\r\n" .
-            "Host: httpbin.org\r\n" . 
             "User-Agent: " . Client::USER_AGENT . "\r\n" .
+            "Host: httpbin.org\r\n" . 
             "Accept-Encoding: gzip, identity" . "\r\n\r\n";
         
         $this->expectOutputString($expectedOutput);

@@ -11,7 +11,7 @@ class AsyncClient implements ObservableClient {
     
     use Subject;
     
-    const USER_AGENT = 'Artax/0.3.0 (PHP5.4+)';
+    const USER_AGENT = 'Artax/0.3.3-devel (PHP5.4+)';
     
     private $reactor;
     private $sockets;
@@ -33,7 +33,7 @@ class AsyncClient implements ObservableClient {
     private $maxConnectionsPerHost = 8;
     private $continueDelay = 3;
     private $maxHeaderBytes = 8192;
-    private $maxBodyBytes = 1024;
+    private $maxBodyBytes = 10485760;
     private $bodySwapSize = 2097152;
     private $storeBody = TRUE;
     private $bufferBody = TRUE;
@@ -233,7 +233,7 @@ class AsyncClient implements ObservableClient {
             'maxBodyBytes' => $this->maxBodyBytes,
             'bodySwapSize' => $this->bodySwapSize,
             'storeBody' => $this->storeBody,
-            'preBodyHeadersCallback' => function($parsedResponseArr) use ($rs) {
+            'beforeBody' => function($parsedResponseArr) use ($rs) {
                 $this->notify(self::HEADERS, [$rs->request, $parsedResponseArr]);
             },
             'onBodyData' => function($data) use ($rs) {
@@ -660,20 +660,12 @@ class AsyncClient implements ObservableClient {
             $request->setMethod($method);
         }
         
-        $authority = $this->generateAuthorityFromUri($uri);
-        
-        /**
-         * Though servers are supposed to be able to handle standard port names on the end of the
-         * host some fail to do this correctly. As a result, we strip the port from the host header
-         * if it's a standard 80/443
-         */
-        if (stripos($authority, ':80') || stripos($authority, ':443')) {
-            $authority = parse_url($authority, PHP_URL_HOST);
-        }
-        $request->setHeader('Host', $authority);
-        
         if (!$request->hasHeader('User-Agent')) {
             $request->setHeader('User-Agent', self::USER_AGENT);
+        }
+        
+        if (!$request->hasHeader('Host')) {
+            $this->normalizeRequestHostHeader($request);
         }
         
         if (!$protocol = $request->getProtocol()) {
@@ -716,6 +708,21 @@ class AsyncClient implements ObservableClient {
         }
         
         return $request;
+    }
+    
+    private function normalizeRequestHostHeader(Request $request) {
+        $authority = $this->generateAuthorityFromUri($request->getUri());
+        
+        /**
+         * Though servers are supposed to be able to handle standard port names on the end of the
+         * host some fail to do this correctly. As a result, we strip the port from the host header
+         * if it's a standard 80/443
+         */
+        if (stripos($authority, ':80') || stripos($authority, ':443')) {
+            $authority = parse_url($authority, PHP_URL_HOST);
+        }
+        
+        $request->setHeader('Host', $authority);
     }
     
     private function normalizeBodyAggregateRequest(Request $request) {
