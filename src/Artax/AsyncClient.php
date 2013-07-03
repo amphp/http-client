@@ -286,8 +286,10 @@ class AsyncClient implements ObservableClient {
     private function parse(RequestState $rs, $data) {
         try {
             while ($parsedResponseArr = $rs->parser->parse($data)) {
-                $rs->response = $this->buildResponseFromParsedArray($rs->request, $parsedResponseArr);;
-                $this->onResponse($rs);
+                $rs->response = $this->buildResponseFromParsedArray($rs->request, $parsedResponseArr);
+                if ($parsedResponseArr['status'] != 100) {
+                    $this->onResponse($rs);
+                }
                 $data = '';
             }
         } catch (ParseException $e) {
@@ -530,6 +532,9 @@ class AsyncClient implements ObservableClient {
     
     private function endContinueDelay(Request $request) {
         $rs = $this->requests->offsetGet($request);
+        $rs->continueDelaySubscription->cancel();
+        $rs->continueDelaySubscription = NULL;
+        
         $this->initializeBodyWrite($rs);
     }
     
@@ -539,20 +544,16 @@ class AsyncClient implements ObservableClient {
             return NULL;
         }
         
-        $response = new Response;
-        
         if (($body = $parsedResponseArr['body']) && $this->bufferBody) {
             $body = stream_get_contents($body);
         }
         
+        $response = new Response;
         $response->setStatus($parsedResponseArr['status']);
         $response->setReason($parsedResponseArr['reason']);
         $response->setProtocol($parsedResponseArr['protocol']);
         $response->setBody($body);
-        
-        foreach ($parsedResponseArr['headers'] as $field => $valueArr) {
-            $response->setHeader($field, $valueArr);
-        }
+        $response->setAllHeaders($parsedResponseArr['headers']);
         
         return $response;
     }
