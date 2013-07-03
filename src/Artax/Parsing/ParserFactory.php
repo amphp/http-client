@@ -10,10 +10,10 @@ class ParserFactory {
         $this->hasPeclHttpExt = extension_loaded('http');
     }
     
-    function make() {
+    function make($mode = Parser::MODE_RESPONSE) {
         return $this->hasPeclHttpExt
-            ? new PeclMessageParser(Parser::MODE_RESPONSE)
-            : new MessageParser(Parser::MODE_RESPONSE);
+            ? new PeclMessageParser($mode)
+            : new MessageParser($mode);
     }
     
 }
