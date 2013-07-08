@@ -11,7 +11,7 @@ class AsyncClient implements ObservableClient {
     
     use Subject;
     
-    const USER_AGENT = 'Artax/0.3.3-devel (PHP5.4+)';
+    const USER_AGENT = 'Artax/0.3.3 (PHP5.4+)';
     
     private $reactor;
     private $sockets;

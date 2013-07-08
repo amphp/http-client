@@ -125,11 +125,14 @@ class Client implements ObservableClient {
     }
     
     function cancel(Request $request) {
-        return $this->asyncClient->cancel($request);
+        $this->asyncClient->cancel($request);
+        $this->clearPendingMultiRequest($request);
     }
     
     function cancelAll() {
-        return $this->asyncClient->cancelAll();
+        $this->asyncClient->cancelAll();
+        $this->pendingMultiRequests = new \SplObjectStorage;
+        $this->reactor->stop();
     }
     
     function setResponse(Request $request, Response $response) {
