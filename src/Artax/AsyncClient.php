@@ -98,6 +98,7 @@ class AsyncClient implements ObservableClient {
         
         $rs->request = $request;
         $rs->authority = $this->generateAuthorityFromUri($request->getUri());
+        
         $rs->onResponse = $onResponse;
         $rs->onError = $onError;
         
@@ -105,12 +106,43 @@ class AsyncClient implements ObservableClient {
         
         $this->notify(self::REQUEST, [$request, NULL]);
         
-        // Notified listeners may have already fulfilled the request
-        if ($rs->response) {
+        // @TODO REFACTOR FOR NON-BLOCKING DNS RESOLUTION
+        // 
+        // This DNS resolution step was added to correct problems for garbage host names.
+        // It needs to be refactored with the rest of the code to allow for non-blocking
+        // DNS lookups once LibDNS is stable. Does it work? Yes. Is it suboptimal and in
+        // dire need of refactoring? Yes :(
+        if (!$this->resolveDns($rs)) {
+            return;
+        } elseif ($rs->response) {
+            // Notified listeners may have already fulfilled the request
             $this->onResponse($rs);
         } else {
             $this->assignRequestSockets();
         }
+    }
+    
+    /**
+     * @TODO FIX THE DNS RESOLUTION MESS
+     */
+    private function resolveDns(RequestState $rs) {
+        $urlParts = parse_url($rs->authority);
+        $ip = gethostbyname($urlParts['host']);
+        
+        if (filter_var($urlParts['host'], FILTER_VALIDATE_IP)) {
+            $didDnsLookupSucceed = TRUE;
+        } elseif (($ip = gethostbyname($urlParts['host'])) && ($ip === $urlParts['host'])) {
+            $this->requests->attach($rs->request, $rs);
+            $this->onError($rs, new DnsException(
+                'DNS resolution failed for ' . $urlParts['host']
+            ));
+            $didDnsLookupSucceed = FALSE;
+        } else {
+            $rs->authority = $ip . ':' . $urlParts['port'];
+            $didDnsLookupSucceed = TRUE;
+        }
+        
+        return $didDnsLookupSucceed;
     }
     
     private function generateAuthorityFromUri($uri) {
@@ -164,7 +196,7 @@ class AsyncClient implements ObservableClient {
             $this->sockets->attach($socket, $rs);
             
             $onSockGoneSub = $socket->subscribe([
-                Socket::TIMEOUT => function() use ($socket) { $this->clearSocket($socket); }
+                Socket::TIMEOUT => function() use ($rs) { $this->clearSocket($rs); }
             ]);
             $onSockGoneSub->disable();
             
@@ -444,7 +476,7 @@ class AsyncClient implements ObservableClient {
     private function doError(RequestState $rs, \Exception $e) {
         $this->endRequestSubscriptions($rs);
         
-        $partialMsgArr = $rs->parser->getParsedMessageArray();
+        $partialMsgArr = $rs->parser ? $rs->parser->getParsedMessageArray() : [];
         $this->notify(self::ERROR, [$rs->request, $partialMsgArr]);
         
         // Only inform the error callback if event subscribers don't cancel the request
