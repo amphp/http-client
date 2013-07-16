@@ -198,11 +198,12 @@ class ProgressExtension implements Extension, Observable {
         $this->notify(self::RESPONSE, [$request, $progress]);
     }
     
-    private function onError(array $dataArr, \Exception $e) {
+    private function onError(array $dataArr) {
         $request = $dataArr[0];
+        $error = $dataArr[2];
         $progress = $this->requests->offsetGet($request);
         
-        $this->notify(self::ERROR, [$request, $progress, $e]);
+        $this->notify(self::ERROR, [$request, $progress, $error]);
     }
     
     private function clear(array $dataArr) {

@@ -24,8 +24,10 @@ class ExtCookiesHttpBinIntegrationTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals(200, $response->getStatus());
         
         $body = json_decode($response->getBody(), TRUE);
-        $this->assertEquals('v1', $body['cookies']['k1']);
-        $this->assertEquals('v2,', $body['cookies']['k2']);
+        
+        // httpbin.org inexplicably adds a comma when returning cookie values
+        $this->assertEquals('v1,', $body['cookies']['k1']);
+        $this->assertEquals('v2', $body['cookies']['k2']);
     }
     
     function testFileCookieJar() {
@@ -46,8 +48,10 @@ class ExtCookiesHttpBinIntegrationTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals(200, $response->getStatus());
         
         $body = json_decode($response->getBody(), TRUE);
-        $this->assertEquals('v1', $body['cookies']['k1']);
-        $this->assertEquals('v2,', $body['cookies']['k2']);
+        
+        // httpbin.org inexplicably adds a comma when returning cookie values
+        $this->assertEquals('v1,', $body['cookies']['k1']);
+        $this->assertEquals('v2', $body['cookies']['k2']);
         
         $ext->unextend();
         unset($ext, $cookieJar);

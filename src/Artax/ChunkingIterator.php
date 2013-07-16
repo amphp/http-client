@@ -15,7 +15,7 @@ class ChunkingIterator implements \Iterator {
         if ($this->isLastChunk) {
             $current = '';
         } elseif (($current = $this->iterator->current()) === '') {
-            $current === NULL;
+            $current = NULL;
         }
         
         return ($current === NULL) ? $current : $this->applyChunkEncoding($current);

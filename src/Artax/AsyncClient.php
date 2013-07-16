@@ -280,7 +280,7 @@ class AsyncClient implements ObservableClient {
         $onSockSend = function($data) use ($rs) { $this->onSend($rs, $data); };
         $onSockData = function($data) use ($rs) { $this->onData($rs, $data); };
         $onSockError = function($e) use ($rs) { $this->onError($rs, $e); };
-        $onSockTimeout = function() use ($rs) { $this->handleSockReadTimeout($rs->socket); };
+        $onSockTimeout = function() use ($rs) { $this->handleSockReadTimeout($rs); };
         
         $rs->sockSub = $rs->socket->subscribe([
             Socket::READY => $onSockReady,
@@ -329,11 +329,11 @@ class AsyncClient implements ObservableClient {
         }
     }
     
-    private function handleSockReadTimeout(Socket $socket) {
+    private function handleSockReadTimeout(RequestState $rs) {
         // We only clear the socket on a read timeout if it's NOT IN USE because the transfer
         // timeout is the primary timeout as long as the socket is alive and a transfer is active.
-        if (!$isInUse = $this->sockets->offsetGet($socket)) {
-            $this->clearSocket($socket);
+        if (!$isInUse = $this->sockets->offsetGet($rs->socket)) {
+            $this->clearSocket($rs);
         }
     }
     
@@ -477,7 +477,7 @@ class AsyncClient implements ObservableClient {
         $this->endRequestSubscriptions($rs);
         
         $partialMsgArr = $rs->parser ? $rs->parser->getParsedMessageArray() : [];
-        $this->notify(self::ERROR, [$rs->request, $partialMsgArr]);
+        $this->notify(self::ERROR, [$rs->request, $partialMsgArr, $e]);
         
         // Only inform the error callback if event subscribers don't cancel the request
         if ($this->requests->contains($rs->request)) {
