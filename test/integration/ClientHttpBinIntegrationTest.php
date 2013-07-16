@@ -177,5 +177,17 @@ class ClientHttpBinIntegrationTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals(file_get_contents($file2), $result['files']['file2']);
         $this->assertEquals('multipart/form-data; boundary=' . $boundary, $result['headers']['Content-Type']);
     }
+    
+    function testClientAddsZeroContentLengthHeaderForEmptyBodiesOnPost() {
+        $uri = 'http://httpbin.org/post';
+        
+        $request = (new Request)->setUri($uri)->setMethod('POST');
+        $response = $this->client->request($request);
+        $rcvdBody = $response->getBody();
+        
+        $result = json_decode($rcvdBody);
+        
+        $this->assertEquals('0', $result->headers->{'Content-Length'});
+    }
 }
 

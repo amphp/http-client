@@ -11,7 +11,7 @@ class AsyncClient implements ObservableClient {
     
     use Subject;
     
-    const USER_AGENT = 'Artax/0.3.3 (PHP5.4+)';
+    const USER_AGENT = 'Artax/0.3.5 (PHP5.4+)';
     
     private $reactor;
     private $sockets;
@@ -715,7 +715,10 @@ class AsyncClient implements ObservableClient {
             $body = $this->normalizeBodyAggregateRequest($request);
         }
         
-        if (is_scalar($body) && $body !== '') {
+        if (empty($body) && $body !== '0' && in_array($method, ['POST', 'PUT', 'PATCH'])) {
+            $request->setHeader('Content-Length', '0');
+            $request->removeHeader('Transfer-Encoding');
+        } elseif (is_scalar($body) && $body !== '') {
             $body = (string) $body;
             $request->setBody($body);
             $request->setHeader('Content-Length', strlen($body));
@@ -726,7 +729,7 @@ class AsyncClient implements ObservableClient {
             throw new \InvalidArgumentException(
                 'Request entity body must be a scalar or Iterator'
             );
-        }
+        } 
         
         if ($method === 'TRACE' || $method === 'HEAD' || $method === 'OPTIONS') {
             $request->setBody(NULL);
