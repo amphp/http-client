@@ -949,7 +949,7 @@ class AsyncClient implements ObservableClient {
     }
     
     private function setTlsOptions(array $opt) {
-        $opt = array_filter(array_intersect_key($this->tlsOptions, $opt), function($k) { return !is_null($k); });
+        $opt = array_filter(array_intersect_key($opt, $this->tlsOptions), function($k) { return !is_null($k); });
         $this->tlsOptions = array_merge($this->tlsOptions, $opt);
     }
     
