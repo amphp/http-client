@@ -33,6 +33,12 @@ underlying HTTP protocol.
 #### INSTALLATION
 
 ```bash
+$ php composer.phar require rdlowrey/artax:0.3.*
+```
+
+Or
+
+```bash
 $ git clone --recursive https://github.com/rdlowrey/Artax.git
 ```
 
