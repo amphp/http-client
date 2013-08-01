@@ -4,7 +4,7 @@ namespace Artax;
 
 use Amp\Reactor, Amp\ReactorFactory;
 
-class Client implements BlockingMultiClient {
+class Client implements BlockingClient {
     
     private $reactor;
     private $asyncClient;
