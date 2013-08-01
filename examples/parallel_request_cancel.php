@@ -11,7 +11,7 @@ $reactor = (new ReactorFactory)->select();
 $client = new AsyncClient($reactor);
 
 // Subscribe to CANCEL events to demonstrate in the console that our cancellations worked
-$client->subscribe([
+$client->addObservation([
     AsyncClient::CANCEL => function($eventArr) {
         $request = current($eventArr);
         echo 'Request cancelled: ', $request->getUri(), "\n";
