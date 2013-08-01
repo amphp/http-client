@@ -23,7 +23,7 @@
  * 
  * Artax also ships with an executable file, bin/cert-updater.php that you can run periodically to
  * update your trusted certificate authorities. This file is generally updated every few months and
- * you should endeaver to keep yours current for maximum security.
+ * you should endeavor to keep yours current for maximum security.
  */
 
 if (!extension_loaded('openssl')) {
