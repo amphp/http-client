@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<!--[if lt IE 7 ]><html class="ie ie6" lang="en"> <![endif]-->
+<!--[if IE 7 ]><html class="ie ie7" lang="en"> <![endif]-->
+<!--[if IE 8 ]><html class="ie ie8" lang="en"> <![endif]-->
+<!--[if (gte IE 9)|!(IE)]><!--><html lang="en"> <!--<![endif]-->
+<head>
+
+	<!-- Basic Page Needs
+  ================================================== -->
+	<meta charset="utf-8">
+	<title>Artax HTTP Client</title>
+	<meta name="description" content="">
+	<meta name="author" content="Daniel Lowrey">
+
+	<!-- Mobile Specific Metas
+  ================================================== -->
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+	<!-- CSS
+  ================================================== -->
+	<link rel="stylesheet" href="/styles/base.css">
+	<link rel="stylesheet" href="/styles/skeleton.css">
+	<link rel="stylesheet" href="/styles/layout.css">
+
+	<!--[if lt IE 9]>
+		<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+	<![endif]-->
+
+	<!-- Favicons
+	================================================== 
+	<link rel="shortcut icon" href="img/favicon.ico">
+	<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+	<link rel="apple-touch-icon" sizes="72x72" href="img/apple-touch-icon-72x72.png">
+	<link rel="apple-touch-icon" sizes="114x114" href="img/apple-touch-icon-114x114.png">
+    -->
+    
+</head>
+<body>
+
+
+
+	<!-- Primary Page Layout
+	================================================== -->
+
+	<!-- Delete everything in this .container and get started on your own site! -->
+
+	<div class="container">
+		<div class="sixteen columns">
+			<h1 class="remove-bottom" style="margin-top: 40px">Artax</h1>
+			<h3>An object-oriented HTTP/1.1 client (PHP 5.4+)</h3>
+			<h5>Version 0.4.0</h5>
+			<hr />
+		</div>
+		<div class="one-third column">
+			<h3>What Does It Do?</h3>
+			<p>
+			    Artax is a full-featured HTTP/1.1 client as specified in RFC 2616. Its API simplifies
+			    standards-compliant HTTP resource traversal and RESTful web service consumption without
+			    obscuring the underlying HTTP protocol. The project exposes APIs for <em>(1)</em> 
+			    serial blocking requests, <em>(2)</em> parallel retrieval of multiple HTTP resources
+			    with synchronous semantics and <em>(3)</em> fully asynchronous event-driven parallelization
+			    within non-blocking event loops.
+			</p>
+		</div>
+		<div class="one-third column">
+			<h3>Project Goals</h3>
+			<p>Artax aims to meet three specific goals:</p>
+			<ul class="square">
+				<li><strong>Standards Compliance:</strong> Fully and accurately model HTTP/1.1 as outlined by RFC 2616;</li>
+                <li><strong>cURL Avoidance:</strong> Utilize raw sockets with no <em>libcurl</em> dependency;</li>
+                <li><strong>Clean Code:</strong> Build all components using SOLID, readable and thoroughly unit-tested code.</li>
+			</ul>
+		</div>
+		<div class="one-third column">
+			<h3>Examples &amp; Usage</h3>
+			<p>
+			    Like most libraries, the easiest way to learn how Artax works is to get your hands
+			    dirty with code.<br/>
+			    <strong><a href="/examples/" title="Artax Examples">Show me some examples ...</a></strong>
+			</p>
+			
+			<h4>Shameless Self-Promotion</h4>
+            <p>
+                <iframe src="http://ghbtns.com/github-btn.html?user=rdlowrey&repo=Artax&type=watch&count=true" allowtransparency="true" frameborder="0" scrolling="0" width="170" height="25"></iframe>
+                <br/>
+                <iframe src="http://ghbtns.com/github-btn.html?user=rdlowrey&type=follow&count=true" allowtransparency="true" frameborder="0" scrolling="0" width="165" height="25"></iframe>
+                <br/>
+                <a href="https://twitter.com/share?text=OMG%20Artax%20is%20awesome!&count=none" class="twitter-share-button" data-lang="en">Tweet</a>
+            </p>
+            
+		</div>
+        
+        <div class="sixteen columns">
+            <hr />
+        </div>
+        
+        <div class="two-thirds column">
+            <h3>Features</h3>
+            
+            <li>Requires <em>no cURL/libcurl dependency;</em> Artax manually implements HTTP over TCP sockets</li>
+            <li>Retains persistent "keep-alive" connections</li>
+            <li>Transparently follows redirects</li>
+            <li>Requests and decodes gzipped entity bodies</li>
+            <li>Provides access to raw headers and messages</li>
+            <li>Streams request and response entity bodies for hands-on memory management</li>
+            <li>Supports all standard and custom request methods</li>
+            <li>Offers full cookie support via the Cookie extension</li>
+            <li>Trivializes submitting multipart and form-encoded HTML forms with the FormBody API.</li>
+            <li>Provides fully customizable and secure-by-default TLS (https://) support</li>
+            <li>Provides serial, synchronous parallel and event-driven parallel retrieval</li>
+            <li>Exposes a simple subject/observer API for plugins and extensions</li>
+        </div>
+        
+        <div class="one-third column">
+            <h3>Get Some Artax</h3>
+            
+            <h5>Composer</h5>
+            <p>
+                <a href="https://packagist.org/packages/rdlowrey/artax">rdlowrey/artax:0.4.*</a>
+            </p>
+            
+            <h5>Github</h5>
+            <p>
+                Clone the master development branch from the <a href="https://github.com/rdlowrey/Artax" title="Artax on Github">Artax Github repository</a>.
+            </p>
+            
+            <hr />
+            
+            <h4>Help Out</h4>
+            <p>
+                Want to contribute? Awesome! Fork the <a href="https://github.com/rdlowrey/Artax" title="Artax on Github">Artax Github repository</a>
+                and send a pull request!
+            </p>
+            
+            <p>
+                Do you have issues or bugs to report? Please use the <a href="https://github.com/rdlowrey/Artax/issues?state=open" title="Issue Tracker">Github repo issue tracker</a>.
+            </p>
+            
+        </div>
+        
+        
+        <div class="sixteen columns">
+            <hr />
+        </div>
+        
+        <div class="sixteen columns">
+            <p>© Lusitanian's Mom 2013</p>
+        </div>
+        
+	</div><!-- container -->
+
+
+<!-- End Document
+================================================== -->
+</body>
+    </html>
+
+<script type="text/javascript" src="http://octophile.com/widgets.js"></script>
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="https://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>

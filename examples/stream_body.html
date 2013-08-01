@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<!--[if lt IE 7 ]><html class="ie ie6" lang="en"> <![endif]-->
+<!--[if IE 7 ]><html class="ie ie7" lang="en"> <![endif]-->
+<!--[if IE 8 ]><html class="ie ie8" lang="en"> <![endif]-->
+<!--[if (gte IE 9)|!(IE)]><!--><html lang="en"> <!--<![endif]-->
+<head>
+
+	<!-- Basic Page Needs
+  ================================================== -->
+	<meta charset="utf-8">
+	<title>Artax Streaming Request Example</title>
+	<meta name="description" content="">
+	<meta name="author" content="Daniel Lowrey">
+
+	<!-- Mobile Specific Metas
+  ================================================== -->
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+	<!-- CSS
+  ================================================== -->
+	<link rel="stylesheet" href="/styles/base.css">
+	<link rel="stylesheet" href="/styles/skeleton.css">
+	<link rel="stylesheet" href="/styles/layout.css">
+
+	<!--[if lt IE 9]>
+		<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+	<![endif]-->
+    
+    <!-- Code Highlighting
+      ================================================== -->
+    <link rel="stylesheet" href="/highlight.js/styles/github.css">
+    <script src="/highlight.js/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    
+</head>
+<body>
+
+
+
+	<!-- Primary Page Layout
+	================================================== -->
+
+	<div class="container">
+		<div class="sixteen columns">
+			<h1 class="remove-bottom" style="margin-top: 40px">Artax</h1>
+			<h3>An object-oriented HTTP/1.1 client (PHP 5.4+)</h3>
+			<h5>Version 0.4.0</h5>
+			<hr />
+		</div>
+        
+        <div class="sixteen columns">
+            
+            <div class="four columns alpha">
+                <h3><a href="/" title="Artax Home">Home</a></h3>
+                
+                <h4 style="margin-bottom:25px;">Synchronous</h4>
+                
+                <li><a href="index.html" title="Basic Artax GET Example">Basic GET</a></li>
+                <li><a href="basic_post.html" title="Basic Artax POST Example">Basic POST</a></li>
+                <li><a href="forms.html" title="Artax Form Submission Example">Form Submission</a></li>
+                <li><a href="multi_requests.html" title="Synchronous Parallel Request Example">Multi Requests</a></li>
+                <li><a href="client_options.html" title="Client Option Assignement Example">Client Options</a></li>
+                <li><a href="cookies.html" title="Cookie Extension Example">Cookies</a></li>
+                <li><a href="tls_encryption.html" title="TLS Encryption Example">TLS Encryption</a></li>
+                <li>Stream Request Bodies</li>
+                <li><a href="progress_bar.html" title="Progress Bar Example">Progress Bar</a></li>
+                
+                <h4 style="margin:25px 0;">Asynchronous</h4>
+                
+                <li><a href="evented_parallelization.html" title="Evented Parallelization Example">Evented Parallelization</a></li>
+                
+            </div>
+            
+            <div class="twelve columns omega">
+            
+                <h4>Streaming Request Body</h4>
+                <pre style="margin:25px 0;"><code class="php" style="padding:0;">&lt;?php
+
+/**
+ * Artax accepts two request body data types: scalars and Iterator instances. Iterators are required
+ * so that the client can adequately stream these bodies to remote servers. Built-in body iterators
+ * include:
+ * 
+ * - Artax\FileBody      Streams a file as the request entity body
+ * - Artax\ResourceBody  Streams any seekable stream resource as the request body
+ * - Artax\FormBody      Provides an interface for constructing form submissions
+ * 
+ * The FileBody and ResourceBody classes are demonstrated below. FormBody usage is demonstrated
+ * in the examples/forms.php file.
+ * 
+ * You can also specify your own custom iterator bodies. Custom iterator bodies should implement
+ * Countable if at all possible. If an iterator body is countable, Artax will use its count()
+ * return value to determine the Content-Length in the event of an HTTP/1.0 server that does not
+ * accept chunked entity bodies. If a Content-Lenght header is needed and an Iterator body isn't
+ * Countable, Artax will iterate until no longer valid to determine the length. Don't worry, though,
+ * it won't buffer the full body in memory at any given time.
+ */
+
+require dirname(__DIR__) . '/autoload.php'; // &lt;-- autoloader script
+
+$client = new Artax\Client;
+
+// Turn on verboseSend so we can watch the raw request message data as it's sent
+$client-&gt;setOption('verboseSend', TRUE);
+
+// Streaming File
+
+$body = new Artax\FileBody(__DIR__ . '/support/stream_body.txt');
+$request = (new Artax\Request)-&gt;setUri('http://httpbin.org/post')-&gt;setMethod('POST')-&gt;setBody($body);
+
+echo "\nArtax\FileBody: ----------------------------------------------------------------------\n\n";
+try {
+    $response = $client-&gt;request($request);
+} catch (Artax\ClientException $e) {
+    echo $e, "\n";
+}
+
+// Streaming Resource
+
+$stream = fopen('data://text/plain;base64,' . base64_encode(str_repeat('x', 256)), 'r');
+$body = new Artax\ResourceBody($stream);
+$request = (new Artax\Request)-&gt;setUri('http://httpbin.org/post')-&gt;setMethod('POST')-&gt;setBody($body);
+
+echo "\nArtax\ResourceBody: ------------------------------------------------------------------\n\n";
+try {
+    $response = $client-&gt;request($request);
+} catch (Artax\ClientException $e) {
+    echo $e;
+}
+
+// Custom userland Iterator body
+
+class MyStreamBody implements Iterator, Countable {
+    
+    private $count = 0;
+    private $position = 0;
+    private $parts = [
+        '&lt;html&gt;&lt;body style="font-family: Sans-Serif;"&gt;&lt;h1&gt;Hello, world.&lt;/h1&gt;',
+        '&lt;h2&gt;Streaming Iterator chunk 1&lt;/h2&gt;',
+        '&lt;h3&gt;Streaming Iterator chunk 2&lt;/h3&gt;',
+        '&lt;h4&gt;Streaming Iterator chunk 3&lt;/h4&gt;',
+        '&lt;/body&gt;&lt;/html&gt;'
+    ];
+    
+    function __construct() {
+        foreach ($this-&gt;parts as $part) {
+            $this-&gt;count += strlen($part);
+        }
+    }
+    function count() { return $this-&gt;count; }
+    function rewind() { $this-&gt;position = 0; }
+    function current() { return $this-&gt;parts[$this-&gt;position]; }
+    function key() { return $this-&gt;position; }
+    function next() { $this-&gt;position++; }
+    function valid() { return array_key_exists($this-&gt;position, $this-&gt;parts); }
+}
+
+$body = new MyStreamBody;
+$request = (new Artax\Request)-&gt;setUri('http://httpbin.org/post')-&gt;setMethod('POST')-&gt;setBody($body);
+
+echo "\nMyStreamBody: ------------------------------------------------------------------------\n\n";
+
+try {
+    $response = $client-&gt;request($request);
+} catch (Artax\ClientException $e) {
+    echo $e;
+}
+</code></pre>
+        
+            </div>
+        </div>
+        
+        <div class="sixteen columns">
+            <hr />
+        </div>
+        
+        <div class="sixteen columns">
+            <p>© Lusitanian's Mom 2013</p>
+        </div>
+        
+	</div><!-- container -->
+
+
+<!-- End Document
+================================================== -->
+</body>
+</html>

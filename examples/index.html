@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<!--[if lt IE 7 ]><html class="ie ie6" lang="en"> <![endif]-->
+<!--[if IE 7 ]><html class="ie ie7" lang="en"> <![endif]-->
+<!--[if IE 8 ]><html class="ie ie8" lang="en"> <![endif]-->
+<!--[if (gte IE 9)|!(IE)]><!--><html lang="en"> <!--<![endif]-->
+<head>
+
+	<!-- Basic Page Needs
+  ================================================== -->
+	<meta charset="utf-8">
+	<title>Artax HTTP Client</title>
+	<meta name="description" content="">
+	<meta name="author" content="Daniel Lowrey">
+
+	<!-- Mobile Specific Metas
+  ================================================== -->
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+	<!-- CSS
+  ================================================== -->
+	<link rel="stylesheet" href="/styles/base.css">
+	<link rel="stylesheet" href="/styles/skeleton.css">
+	<link rel="stylesheet" href="/styles/layout.css">
+
+	<!--[if lt IE 9]>
+		<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+	<![endif]-->
+    
+    <!-- Code Highlighting
+      ================================================== -->
+    <link rel="stylesheet" href="/highlight.js/styles/github.css">
+    <script src="/highlight.js/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    
+</head>
+<body>
+
+
+
+	<!-- Primary Page Layout
+	================================================== -->
+
+	<!-- Delete everything in this .container and get started on your own site! -->
+
+	<div class="container">
+		<div class="sixteen columns">
+			<h1 class="remove-bottom" style="margin-top: 40px">Artax</h1>
+			<h3>An object-oriented HTTP/1.1 client (PHP 5.4+)</h3>
+			<h5>Version 0.4.0</h5>
+			<hr />
+		</div>
+        
+        <div class="sixteen columns">
+            
+            <div class="four columns alpha">
+                <h3><a href="/" title="Artax Home">Home</a></h3>
+                
+                <h4 style="margin-bottom:25px;">Synchronous</h4>
+                
+                <li>Basic GET</li>
+                <li><a href="basic_post.html" title="Basic Artax POST Example">Basic POST</a></li>
+                <li><a href="forms.html" title="Artax Form Submission Example">Form Submission</a></li>
+                <li><a href="multi_requests.html" title="Synchronous Parallel Request Example">Multi Requests</a></li>
+                <li><a href="client_options.html" title="Client Option Assignement Example">Client Options</a></li>
+                <li><a href="cookies.html" title="Cookie Extension Example">Cookies</a></li>
+                <li><a href="tls_encryption.html" title="TLS Encryption Example">TLS Encryption</a></li>
+                <li><a href="stream_body.html" title="Streaming Body Example">Stream Request Bodies</a></li>
+                <li><a href="progress_bar.html" title="Progress Bar Example">Progress Bar</a></li>
+                
+                <h4 style="margin:25px 0;">Asynchronous</h4>
+                
+                <li><a href="evented_parallelization.html" title="Evented Parallelization Example">Evented Parallelization</a></li>
+                
+            </div>
+            
+            <div class="twelve columns omega">
+            
+                <h4>Basic GET Request</h4>
+                <pre style="margin:25px 0;"><code class="php" style="padding:0;">&lt;?php // basic_get.php
+
+/**
+ * Frequently we only care about simple GET retrieval. For such cases Artax accepts
+ * a lone URI as the request parameter.
+ */
+
+require dirname(__DIR__) . '/autoload.php'; // <-- autoloader script
+
+$client = new Artax\Client;
+
+try {
+    $response = $client-&gt;request('http://httpbin.org/user-agent');
+
+    echo "Response status code: ", $response-&gt;getStatus(), "\n";
+    echo "Response reason:      ", $response-&gt;getReason(), "\n";
+    echo "Response protocol:    ", $response-&gt;getProtocol(), "\n";
+    
+    print_r($response-&gt;getAllHeaders());
+    
+    echo $response-&gt;getBody(), "\n";
+    
+} catch (Artax\ClientException $e) {
+    // Connection failed, socket died or an unparsable response message was returned
+    // Client::request() is the only Artax retrieval method that can throw. The others work in
+    // parallel and instead notify error callbacks.
+    
+    echo $e;
+}</code></pre>
+        
+            </div>
+        </div>
+        
+        <div class="sixteen columns">
+            <hr />
+        </div>
+        
+        <div class="sixteen columns">
+            <p>© Lusitanian's Mom 2013</p>
+        </div>
+        
+	</div><!-- container -->
+
+
+<!-- End Document
+================================================== -->
+</body>
+</html>

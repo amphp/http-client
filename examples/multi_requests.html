@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<!--[if lt IE 7 ]><html class="ie ie6" lang="en"> <![endif]-->
+<!--[if IE 7 ]><html class="ie ie7" lang="en"> <![endif]-->
+<!--[if IE 8 ]><html class="ie ie8" lang="en"> <![endif]-->
+<!--[if (gte IE 9)|!(IE)]><!--><html lang="en"> <!--<![endif]-->
+<head>
+
+	<!-- Basic Page Needs
+  ================================================== -->
+	<meta charset="utf-8">
+	<title>Artax Synchronous Parallel Requests</title>
+	<meta name="description" content="">
+	<meta name="author" content="Daniel Lowrey">
+
+	<!-- Mobile Specific Metas
+  ================================================== -->
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+	<!-- CSS
+  ================================================== -->
+	<link rel="stylesheet" href="/styles/base.css">
+	<link rel="stylesheet" href="/styles/skeleton.css">
+	<link rel="stylesheet" href="/styles/layout.css">
+
+	<!--[if lt IE 9]>
+		<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+	<![endif]-->
+    
+    <!-- Code Highlighting
+      ================================================== -->
+    <link rel="stylesheet" href="/highlight.js/styles/github.css">
+    <script src="/highlight.js/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    
+</head>
+<body>
+
+
+
+	<!-- Primary Page Layout
+	================================================== -->
+
+	<div class="container">
+		<div class="sixteen columns">
+			<h1 class="remove-bottom" style="margin-top: 40px">Artax</h1>
+			<h3>An object-oriented HTTP/1.1 client (PHP 5.4+)</h3>
+			<h5>Version 0.4.0</h5>
+			<hr />
+		</div>
+        
+        <div class="sixteen columns">
+            
+            <div class="four columns alpha">
+                <h3><a href="/" title="Artax Home">Home</a></h3>
+                
+                <h4 style="margin-bottom:25px;">Synchronous</h4>
+                
+                <li><a href="index.html" title="Basic Artax GET Example">Basic GET</a></li>
+                <li><a href="basic_post.html" title="Basic Artax POST Example">Basic POST</a></li>
+                <li><a href="forms.html" title="Artax Form Submission Example">Form Submission</a></li>
+                <li>Multi Requests</li>
+                <li><a href="client_options.html" title="Client Option Assignement Example">Client Options</a></li>
+                <li><a href="cookies.html" title="Cookie Extension Example">Cookies</a></li>
+                <li><a href="tls_encryption.html" title="TLS Encryption Example">TLS Encryption</a></li>
+                <li><a href="stream_body.html" title="Streaming Body Example">Stream Request Bodies</a></li>
+                <li><a href="progress_bar.html" title="Progress Bar Example">Progress Bar</a></li>
+                
+                <h4 style="margin:25px 0;">Asynchronous</h4>
+                
+                <li><a href="evented_parallelization.html" title="Evented Parallelization Example">Evented Parallelization</a></li>
+                
+            </div>
+            
+            <div class="twelve columns omega">
+            
+                <h4>Synchronous Multi Requests</h4>
+                <pre style="margin:25px 0;"><code class="php" style="padding:0;">&lt;?php
+
+/**
+ * Artax eliminates the difficulty of threaded or event-looped concurrency and allows the retrieval
+ * of many requests in parallel while still retaining a synchronous API. Note that though the
+ * individual requests in the batch are retrieved in parallel, the Client::requestMulti() call
+ * itself will block until all the requests complete or error out.
+ */
+
+require dirname(__DIR__) . '/autoload.php'; // &lt;-- autoloader script
+
+$client = new Artax\Client;
+
+// What to do when an individual response in the batch completes
+$onResponse = function($requestKey, Artax\Response $response) {
+    echo 'Response: (', $requestKey, ') ', $response-&gt;getStatus(), "\n";
+};
+
+// What to do if an individual request in the batch fails
+$onError = function($requestKey, Exception $error) {
+    echo 'Error: (', $requestKey, ') ', get_class($error), "\n";
+};
+
+$requests = [
+    'google' =&gt; 'http://www.google.com',
+    'google news' =&gt; 'http://news.google.com',
+    'bing' =&gt; 'http://www.bing.com',
+    'yahoo' =&gt; 'http://www.yahoo.com',
+    'php' =&gt; 'http://www.php.net'
+];
+
+$client-&gt;requestMulti($requests, $onResponse, $onError);
+</code></pre>
+        
+            </div>
+        </div>
+        
+        <div class="sixteen columns">
+            <hr />
+        </div>
+        
+        <div class="sixteen columns">
+            <p>© Lusitanian's Mom 2013</p>
+        </div>
+        
+	</div><!-- container -->
+
+
+<!-- End Document
+================================================== -->
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<!--[if lt IE 7 ]><html class="ie ie6" lang="en"> <![endif]-->
+<!--[if IE 7 ]><html class="ie ie7" lang="en"> <![endif]-->
+<!--[if IE 8 ]><html class="ie ie8" lang="en"> <![endif]-->
+<!--[if (gte IE 9)|!(IE)]><!--><html lang="en"> <!--<![endif]-->
+<head>
+
+	<!-- Basic Page Needs
+  ================================================== -->
+	<meta charset="utf-8">
+	<title>Artax Client Options</title>
+	<meta name="description" content="">
+	<meta name="author" content="Daniel Lowrey">
+
+	<!-- Mobile Specific Metas
+  ================================================== -->
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+	<!-- CSS
+  ================================================== -->
+	<link rel="stylesheet" href="/styles/base.css">
+	<link rel="stylesheet" href="/styles/skeleton.css">
+	<link rel="stylesheet" href="/styles/layout.css">
+
+	<!--[if lt IE 9]>
+		<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+	<![endif]-->
+    
+    <!-- Code Highlighting
+      ================================================== -->
+    <link rel="stylesheet" href="/highlight.js/styles/github.css">
+    <script src="/highlight.js/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    
+</head>
+<body>
+
+
+
+	<!-- Primary Page Layout
+	================================================== -->
+
+	<div class="container">
+		<div class="sixteen columns">
+			<h1 class="remove-bottom" style="margin-top: 40px">Artax</h1>
+			<h3>An object-oriented HTTP/1.1 client (PHP 5.4+)</h3>
+			<h5>Version 0.4.0</h5>
+			<hr />
+		</div>
+        
+        <div class="sixteen columns">
+            
+            <div class="four columns alpha">
+                <h3><a href="/" title="Artax Home">Home</a></h3>
+                
+                <h4 style="margin-bottom:25px;">Synchronous</h4>
+                
+                <li><a href="index.html" title="Basic Artax GET Example">Basic GET</a></li>
+                <li><a href="basic_post.html" title="Basic Artax POST Example">Basic POST</a></li>
+                <li><a href="forms.html" title="Artax Form Submission Example">Form Submission</a></li>
+                <li><a href="multi_requests.html" title="Synchronous Parallel Request Example">Multi Requests</a></li>
+                <li>Client Options</li>
+                <li><a href="cookies.html" title="Cookie Extension Example">Cookies</a></li>
+                <li><a href="tls_encryption.html" title="TLS Encryption Example">TLS Encryption</a></li>
+                <li><a href="stream_body.html" title="Streaming Body Example">Stream Request Bodies</a></li>
+                <li><a href="progress_bar.html" title="Progress Bar Example">Progress Bar</a></li>
+                
+                <h4 style="margin:25px 0;">Asynchronous</h4>
+                
+                <li><a href="evented_parallelization.html" title="Evented Parallelization Example">Evented Parallelization</a></li>
+                
+            </div>
+            
+            <div class="twelve columns omega">
+            
+                <h4>Client Option Assignment</h4>
+                <pre style="margin:25px 0;"><code class="php" style="padding:0;">&lt;?php
+
+/**
+ * Clients accept option assignment via setOption() and setAllOptions(). Though the
+ * defaults are generally fine, you can tweak any of the values presented below.
+ */
+
+require dirname(__DIR__) . '/autoload.php'; // &lt;-- autoloader script
+
+$client = new Artax\Client;
+
+// Set one option value at a time:
+$client-&gt;setOption('maxConnectionsPerHost', 4);
+
+// Set multiple option values:
+$client-&gt;setAllOptions([
+    'useKeepAlive'          =&gt; TRUE,    // Use persistent connections (when the remote server allows it)
+    'connectTimeout'        =&gt; 15,      // Timeout connect attempts after N seconds
+    'transferTimeout'       =&gt; 30,      // Timeout transfers after N seconds
+    'keepAliveTimeout'      =&gt; 30,      // How long to retain socket connections after a keep-alive request
+    'followLocation'        =&gt; TRUE,    // Transparently follow redirects
+    'autoReferer'           =&gt; TRUE,    // Automatically set the Referer header when following Location headers
+    'maxConnections'        =&gt; -1,      // Max number of simultaneous sockets allowed (unlimited by default)
+    'maxConnectionsPerHost' =&gt; 8,       // Max number of simultaneous sockets allowed per unique host
+    'continueDelay'         =&gt; 3,       // How many seconds to wait for a 100 Continue response if Expect: 100-continue header used
+    'bufferBody'            =&gt; TRUE,    // TRUE to buffer response bodies as strings, FALSE to keep them as temp streams
+    'bindToIp'              =&gt; NULL,    // Optionally bind request sockets to a specific local IP on your machine
+    'ioGranularity'         =&gt; 65536,   // Max bytes to read/write per socket IO operation
+    'verboseRead'           =&gt; FALSE,   // If TRUE, write all raw message data received to STDOUT
+    'verboseSend'           =&gt; FALSE,   // If TRUE, write all raw message data sent to STDOUT
+    'tlsOptions'            =&gt; [        // The default set of TLS options
+        'verify_peer' =&gt; TRUE,
+        'allow_self_signed' =&gt; FALSE,
+        'cafile' =&gt; '/hard/path/to/artax/certs/cacert.pem',
+        'capath' =&gt; NULL,
+        'local_cert' =&gt; NULL,
+        'passphrase' =&gt; NULL,
+        'CN_match' =&gt; NULL,
+        'verify_depth' =&gt; NULL,
+        'ciphers' =&gt; NULL,
+        'SNI_enabled' =&gt; NULL,
+        'SNI_server_name' =&gt; NULL
+    ]
+]);
+</code></pre>
+        
+            </div>
+        </div>
+        
+        <div class="sixteen columns">
+            <hr />
+        </div>
+        
+        <div class="sixteen columns">
+            <p>© Lusitanian's Mom 2013</p>
+        </div>
+        
+	</div><!-- container -->
+
+
+<!-- End Document
+================================================== -->
+</body>
+</html>

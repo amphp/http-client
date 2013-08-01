@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<!--[if lt IE 7 ]><html class="ie ie6" lang="en"> <![endif]-->
+<!--[if IE 7 ]><html class="ie ie7" lang="en"> <![endif]-->
+<!--[if IE 8 ]><html class="ie ie8" lang="en"> <![endif]-->
+<!--[if (gte IE 9)|!(IE)]><!--><html lang="en"> <!--<![endif]-->
+<head>
+
+	<!-- Basic Page Needs
+  ================================================== -->
+	<meta charset="utf-8">
+	<title>Artax Evented Parallelization Example</title>
+	<meta name="description" content="">
+	<meta name="author" content="Daniel Lowrey">
+
+	<!-- Mobile Specific Metas
+  ================================================== -->
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+	<!-- CSS
+  ================================================== -->
+	<link rel="stylesheet" href="/styles/base.css">
+	<link rel="stylesheet" href="/styles/skeleton.css">
+	<link rel="stylesheet" href="/styles/layout.css">
+
+	<!--[if lt IE 9]>
+		<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+	<![endif]-->
+    
+    <!-- Code Highlighting
+      ================================================== -->
+    <link rel="stylesheet" href="/highlight.js/styles/github.css">
+    <script src="/highlight.js/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    
+</head>
+<body>
+
+
+
+	<!-- Primary Page Layout
+	================================================== -->
+
+	<div class="container">
+		<div class="sixteen columns">
+			<h1 class="remove-bottom" style="margin-top: 40px">Artax</h1>
+			<h3>An object-oriented HTTP/1.1 client (PHP 5.4+)</h3>
+			<h5>Version 0.4.0</h5>
+			<hr />
+		</div>
+        
+        <div class="sixteen columns">
+            
+            <div class="four columns alpha">
+                <h3><a href="/" title="Artax Home">Home</a></h3>
+                
+                <h4 style="margin-bottom:25px;">Synchronous</h4>
+                
+                <li><a href="index.html" title="Basic Artax GET Example">Basic GET</a></li>
+                <li><a href="basic_post.html" title="Basic Artax POST Example">Basic POST</a></li>
+                <li><a href="forms.html" title="Artax Form Submission Example">Form Submission</a></li>
+                <li><a href="multi_requests.html" title="Synchronous Parallel Request Example">Multi Requests</a></li>
+                <li><a href="client_options.html" title="Client Option Assignement Example">Client Options</a></li>
+                <li><a href="cookies.html" title="Cookie Extension Example">Cookies</a></li>
+                <li><a href="tls_encryption.html" title="TLS Encryption Example">TLS Encryption</a></li>
+                <li><a href="stream_body.html" title="Streaming Body Example">Stream Request Bodies</a></li>
+                <li><a href="progress_bar.html" title="Progress Bar Example">Progress Bar</a></li>
+                
+                <h4 style="margin:25px 0;">Asynchronous</h4>
+                
+                <li>Evented Parallelization</li>
+                
+            </div>
+            
+            <div class="twelve columns omega">
+            
+                <h4>Evented Parallelization</h4>
+                <pre style="margin:25px 0;"><code class="php" style="padding:0;">&lt;?php
+
+/**
+ * The paradigm of event-driven parallelism is beyond the scope of this example but the main
+ * takeaway for our purposes is that everything takes place inside a non-blocking event loop.
+ * Artax\AsyncClient relies on the Amp library's event reactor to function. This example
+ * demonstrates how to schedule and execute a set of parallel requests in the context of an
+ * event loop. You'll notice that the individual responses return in a different order from that
+ * in which they were originally requested.
+ */
+
+require dirname(__DIR__) . '/autoload.php'; // &lt;-- autoloader script
+
+$reactor = (new Amp\ReactorFactory)-&gt;select();
+$client = new Artax\AsyncClient($reactor);
+
+// Generate a request URI for each letter a-z
+$requests = array_map(function($alpha) { return 'http://www.bing.com/search?q=' . $alpha; }, range('a', 'z'));
+
+// We need to track how many requests remain so we can stop the program when they're all finished
+$unfinishedRequests = count($requests);
+
+// What to do when an individual request completes
+$onResponse = function(Artax\Response $response, Artax\Request $request) use (&$unfinishedRequests, $reactor) {
+    echo $request-&gt;getUri(), ' -- ';
+    echo 'HTTP/', $response-&gt;getProtocol(), ' ', $response-&gt;getStatus(), ' ', $response-&gt;getReason(), "\n";
+    if (!--$unfinishedRequests) {
+        $reactor-&gt;stop();
+    }
+};
+
+// What to do if a request encounters an exceptional error
+$onError = function(Exception $e, Artax\Request $request) use (&$unfinishedRequests, $reactor) {
+    echo $request-&gt;getUri(), " failed (", get_class($e), ") :(\n";
+    if (!--$unfinishedRequests) {
+        $reactor-&gt;stop();
+    }
+};
+
+// Schedule this to happen as soon as the reactor starts
+$reactor-&gt;once(function() use ($client, $requests, $onResponse, $onError) {
+    echo 'Requesting ', count($requests), ' URIs ...', "\n";
+    foreach ($requests as $uri) {
+        $client-&gt;request($uri, $onResponse, $onError);
+    }
+});
+
+// The reactor IS our task scheduler and the program runs inside it. Nothing will happen until the
+// event reactor is started, so release the hounds!
+$reactor-&gt;run();
+</code></pre>
+        
+            </div>
+        </div>
+        
+        <div class="sixteen columns">
+            <hr />
+        </div>
+        
+        <div class="sixteen columns">
+            <p>© Lusitanian's Mom 2013</p>
+        </div>
+        
+	</div><!-- container -->
+
+
+<!-- End Document
+================================================== -->
+</body>
+</html>
