@@ -1,22 +1,22 @@
 <?php
 
-use Artax\Subscription,
+use Artax\Observation,
     Artax\Observable,
-    Artax\Subject;
+    Artax\ObservableSubject;
 
-class SubscriptionTest extends PHPUnit_Framework_TestCase {
+class ObservationTest extends PHPUnit_Framework_TestCase {
     
     function testListenerInvocation() {
         $counter = 0;
         $listener = function() use (&$counter) { $counter++; };
         
-        $subject = new SubscriptionTestSubjectStub;
+        $subject = new ObservationTestSubjectStub;
         $event = 'event';
-        $subscription = new Subscription($subject, [
+        $observation = new Observation($subject, [
             $event => $listener
         ]);
         
-        $subscription->__invoke($event);
+        $observation->__invoke($event);
         
         $this->assertEquals(1, $counter);
     }
@@ -24,17 +24,17 @@ class SubscriptionTest extends PHPUnit_Framework_TestCase {
     /**
      * @expectedException InvalidArgumentException
      */
-    function testSubscriptionThrowsOnEmptyListenerArray() {
-        $subject = new SubscriptionTestSubjectStub;
-        $subscription = new Subscription($subject, array());
+    function testObservationThrowsOnEmptyListenerArray() {
+        $subject = new ObservationTestSubjectStub;
+        $observation = new Observation($subject, array());
     }
     
     /**
      * @expectedException InvalidArgumentException
      */
-    function testSubscriptionThrowsOnNonCallableListener() {
-        $subject = new SubscriptionTestSubjectStub;
-        $subscription = new Subscription($subject, array(
+    function testObservationThrowsOnNonCallableListener() {
+        $subject = new ObservationTestSubjectStub;
+        $observation = new Observation($subject, array(
             'event' => 'this is supposed to be callable'
         ));
     }
@@ -45,23 +45,23 @@ class SubscriptionTest extends PHPUnit_Framework_TestCase {
             $tracker++;
         };
         
-        $subject = new SubscriptionTestSubjectStub;
-        $subscription = new Subscription($subject, array(
+        $subject = new ObservationTestSubjectStub;
+        $observation = new Observation($subject, array(
             'event' => $listener
         ));
         
-        $subscription('event');
-        $subscription('event');
+        $observation('event');
+        $observation('event');
         $this->assertEquals(2, $tracker);
         
-        $subscription->disable();
+        $observation->disable();
         
-        $subscription('event');
+        $observation('event');
         $this->assertEquals(2, $tracker);
         
-        $subscription->enable();
+        $observation->enable();
         
-        $subscription('event');
+        $observation('event');
         $this->assertEquals(3, $tracker);
     }
     
@@ -71,16 +71,16 @@ class SubscriptionTest extends PHPUnit_Framework_TestCase {
             $tracker++;
         };
         
-        $subject = new SubscriptionTestSubjectStub;
-        $subscription = new Subscription($subject, array(
+        $subject = new ObservationTestSubjectStub;
+        $observation = new Observation($subject, array(
             'event' => $listener
         ));
         
-        $subscription('event');
-        $subscription('event');
+        $observation('event');
+        $observation('event');
         $this->assertEquals(2, $tracker);
         
-        $subscription->cancel();
+        $observation->cancel();
         
         $subject->notify('event');
         $this->assertEquals(2, $tracker);
@@ -95,20 +95,20 @@ class SubscriptionTest extends PHPUnit_Framework_TestCase {
             $tracker += 10;
         };
         
-        $subject = new SubscriptionTestSubjectStub;
-        $subscription = new Subscription($subject, array(
+        $subject = new ObservationTestSubjectStub;
+        $observation = new Observation($subject, array(
             'event1' => $listener1,
             'event2' => $listener2
         ));
         
-        $subscription('event1');
+        $observation('event1');
         $this->assertEquals(1, $tracker);
         
-        $subscription->modify([
+        $observation->modify([
             'event1' => $listener2
         ]);
         
-        $subscription('event1');
+        $observation('event1');
         $this->assertEquals(11, $tracker);
     }
     
@@ -121,27 +121,31 @@ class SubscriptionTest extends PHPUnit_Framework_TestCase {
             $tracker--;
         };
         
-        $subject = new SubscriptionTestSubjectStub;
-        $subscription = new Subscription($subject, array(
+        $subject = new ObservationTestSubjectStub;
+        $observation = new Observation($subject, array(
             'event1' => $listener1,
             'event2' => $listener2
         ));
         
-        $subscription('event1');
+        $observation('event1');
         $this->assertEquals(1, $tracker);
-        $subscription('event2');
+        $observation('event2');
         $this->assertEquals(0, $tracker);
         
-        $subscription->replace([
+        $observation->replace([
             'event1' => $listener2
         ]);
         
-        $subscription('event1');
+        $observation('event1');
         $this->assertEquals(-1, $tracker);
     }
     
 }
 
-class SubscriptionTestSubjectStub implements Observable {
-    use Subject;
+class ObservationTestSubjectStub implements Observable {
+    use ObservableSubject;
+    
+    function notify($event, $data = NULL) {
+        $this->notifyObservations($event, $data);
+    }
 }

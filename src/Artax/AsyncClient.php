@@ -7,11 +7,9 @@ use Amp\Reactor,
     Artax\Parsing\ParseException,
     Artax\Parsing\ParserFactory;
 
-class AsyncClient implements ObservableClient {
+class AsyncClient implements NonBlockingClient {
     
-    use Subject;
-    
-    const USER_AGENT = 'Artax/0.3.5 (PHP5.4+)';
+    use ObservableSubject;
     
     private $reactor;
     private $sockets;
@@ -43,9 +41,9 @@ class AsyncClient implements ObservableClient {
     private $verboseSend = FALSE;
     private $tlsOptions;
     
-    function __construct(Reactor $reactor, ParserFactory $opf = NULL, SocketFactory $sf = NULL) {
+    function __construct(Reactor $reactor, ParserFactory $pf = NULL, SocketFactory $sf = NULL) {
         $this->reactor = $reactor;
-        $this->parserFactory = $opf ?: new ParserFactory;
+        $this->parserFactory = $pf ?: new ParserFactory;
         $this->socketFactory = $sf ?: new SocketFactory;
         $this->sockets = new \SplObjectStorage;
         $this->requests = new \SplObjectStorage;
@@ -72,14 +70,14 @@ class AsyncClient implements ObservableClient {
     function cancel(Request $request) {
         if ($this->requestQueue->contains($request)) {
             $this->requestQueue->detach($request);
-            $this->notify(self::CANCEL, [$request, NULL]);
+            $this->notifyObservations(self::CANCEL, [$request, NULL]);
         } elseif ($this->requests->contains($request)) {
             $rs = $this->requests->offsetGet($request);
             $this->checkinSocket($rs);
             $this->clearSocket($rs);
             $this->endRequestSubscriptions($rs);
             $this->requests->detach($request);
-            $this->notify(self::CANCEL, [$request, NULL]);
+            $this->notifyObservations(self::CANCEL, [$request, NULL]);
         }
     }
     
@@ -104,7 +102,7 @@ class AsyncClient implements ObservableClient {
         
         $this->requestQueue->attach($request, $rs);
         
-        $this->notify(self::REQUEST, [$request, NULL]);
+        $this->notifyObservations(self::REQUEST, [$request, NULL]);
         
         // @TODO REFACTOR FOR NON-BLOCKING DNS RESOLUTION
         // 
@@ -195,12 +193,12 @@ class AsyncClient implements ObservableClient {
             $socket = $this->socketFactory->make($this->reactor, $rs->authority);
             $this->sockets->attach($socket, $rs);
             
-            $onSockGoneSub = $socket->subscribe([
+            $onSockGoneObservation = $socket->addObservation([
                 Socket::TIMEOUT => function() use ($rs) { $this->clearSocket($rs); }
             ]);
-            $onSockGoneSub->disable();
+            $onSockGoneObservation->disable();
             
-            $this->idleSocketSubscriptions->attach($socket, $onSockGoneSub);
+            $this->idleSocketSubscriptions->attach($socket, $onSockGoneObservation);
             
             return $socket;
         }
@@ -244,15 +242,15 @@ class AsyncClient implements ObservableClient {
             $isInUse = FALSE;
             $this->sockets->attach($socket, $isInUse);
             
-            $onSockGoneSubscription = $this->idleSocketSubscriptions->offsetGet($socket);
-            $onSockGoneSubscription->enable();
+            $onSockGoneObservationscription = $this->idleSocketSubscriptions->offsetGet($socket);
+            $onSockGoneObservationscription->enable();
         }
     }
     
     private function clearSocket(RequestState $rs) {
         if ($socket = $rs->socket) {
             $socket->stop();
-            $socket->unsubscribeAll();
+            $socket->removeAllObservations();
             $this->sockets->detach($socket);
             $this->idleSocketSubscriptions->detach($socket);
         }
@@ -266,23 +264,23 @@ class AsyncClient implements ObservableClient {
             'bodySwapSize' => $this->bodySwapSize,
             'storeBody' => $this->storeBody,
             'beforeBody' => function($parsedResponseArr) use ($rs) {
-                $this->notify(self::HEADERS, [$rs->request, $parsedResponseArr]);
+                $this->notifyObservations(self::HEADERS, [$rs->request, $parsedResponseArr]);
             },
             'onBodyData' => function($data) use ($rs) {
-                $this->notify(self::BODY_DATA, [$rs->request, $data]);
+                $this->notifyObservations(self::BODY_DATA, [$rs->request, $data]);
             }
         ]);
         
         $onSockReady = function() use ($rs) {
-            $this->notify(self::SOCKET, [$rs->request, NULL]);
+            $this->notifyObservations(self::SOCKET, [$rs->request, NULL]);
             $this->initializeHeaderWrite($rs);
         };
-        $onSockSend = function($data) use ($rs) { $this->onSend($rs, $data); };
-        $onSockData = function($data) use ($rs) { $this->onData($rs, $data); };
+        $onSockSend = function($data) use ($rs) { $this->onSockDataWrite($rs, $data); };
+        $onSockData = function($data) use ($rs) { $this->onSockDataRead($rs, $data); };
         $onSockError = function($e) use ($rs) { $this->onError($rs, $e); };
         $onSockTimeout = function() use ($rs) { $this->handleSockReadTimeout($rs); };
         
-        $rs->sockSub = $rs->socket->subscribe([
+        $rs->socketObservation = $rs->socket->addObservation([
             Socket::READY => $onSockReady,
             Socket::SEND => $onSockSend,
             Socket::DATA => $onSockData,
@@ -293,14 +291,14 @@ class AsyncClient implements ObservableClient {
         $rs->socket->start();
     }
     
-    private function onSend(RequestState $rs, $dataSent) {
+    private function onSockDataWrite(RequestState $rs, $dataSent) {
         if ($this->verboseSend) {
             echo $dataSent;
         }
-        $this->notify(self::SEND, [$rs->request, $dataSent]);
+        $this->notifyObservations(self::SOCK_DATA_OUT, [$rs->request, $dataSent]);
     }
     
-    private function onData(RequestState $rs, $data) {
+    private function onSockDataRead(RequestState $rs, $data) {
         if ($data !== '') {
             $this->notifyOnData($rs->request, $data);
         }
@@ -312,7 +310,7 @@ class AsyncClient implements ObservableClient {
         if ($this->verboseRead) {
             echo $data;
         }
-        $this->notify(self::DATA, [$request, $data]);
+        $this->notifyObservations(self::SOCK_DATA_IN, [$request, $data]);
     }
     
     private function parse(RequestState $rs, $data) {
@@ -348,7 +346,7 @@ class AsyncClient implements ObservableClient {
         $rawHeaders = $this->generateRawRequestHeaders($request);
         
         if ($request->hasBody()) {
-            $rs->bodyDrainSubscription = $socket->subscribe([
+            $rs->bodyDrainObservation = $socket->addObservation([
                 Socket::DRAIN => function() use ($rs) { $this->afterHeaderWrite($rs); }
             ]);
         }
@@ -395,12 +393,12 @@ class AsyncClient implements ObservableClient {
         $socket = $rs->socket;
         
         if (is_string($body)) {
-            $rs->bodyDrainSubscription->cancel();
+            $rs->bodyDrainObservation->cancel();
             // IMPORTANT: we have to cancel the DRAIN subscription BEFORE sending the body or we'll
             // be stuck in an infinite loop repeatedly sending the entity body.
             $socket->send($body);
         } elseif ($body instanceof \Iterator) {
-            $rs->bodyDrainSubscription->modify([
+            $rs->bodyDrainObservation->modify([
                 Socket::DRAIN => function() use ($rs) { $this->streamRequestEntityBodyInstance($rs); }
             ]);
             $this->streamRequestEntityBodyInstance($rs);
@@ -419,8 +417,8 @@ class AsyncClient implements ObservableClient {
             $socket = $rs->socket;
             $socket->send($chunk);
         } else {
-            $bodyDrainSubscription = $rs->bodyDrainSubscription;
-            $bodyDrainSubscription->cancel();
+            $bodyDrainObservation = $rs->bodyDrainObservation;
+            $bodyDrainObservation->cancel();
         }
     }
     
@@ -477,7 +475,7 @@ class AsyncClient implements ObservableClient {
         $this->endRequestSubscriptions($rs);
         
         $partialMsgArr = $rs->parser ? $rs->parser->getParsedMessageArray() : [];
-        $this->notify(self::ERROR, [$rs->request, $partialMsgArr, $e]);
+        $this->notifyObservations(self::ERROR, [$rs->request, $partialMsgArr, $e]);
         
         // Only inform the error callback if event subscribers don't cancel the request
         if ($this->requests->contains($rs->request)) {
@@ -492,13 +490,13 @@ class AsyncClient implements ObservableClient {
     private function endRequestSubscriptions(RequestState $rs) {
         $rs->socket = NULL;
         
-        if ($rs->sockSub) {
-            $rs->sockSub->cancel();
-            $rs->sockSub = NULL;
+        if ($rs->socketObservation) {
+            $rs->socketObservation->cancel();
+            $rs->socketObservation = NULL;
         }
-        if ($rs->bodyDrainSubscription) {
-            $rs->bodyDrainSubscription->cancel();
-            $rs->bodyDrainSubscription = NULL;
+        if ($rs->bodyDrainObservation) {
+            $rs->bodyDrainObservation->cancel();
+            $rs->bodyDrainObservation = NULL;
         }
         if ($rs->transferTimeoutSubscription) {
             $rs->transferTimeoutSubscription->cancel();
@@ -522,7 +520,7 @@ class AsyncClient implements ObservableClient {
         if ($newUri = $this->getRedirectUri($rs)) {
             $this->redirect($rs, $newUri);
         } else {
-            $this->notify(self::RESPONSE, [$rs->request, $rs->response]);
+            $this->notifyObservations(self::RESPONSE, [$rs->request, $rs->response]);
             $onResponse = $rs->onResponse;
             $onResponse($rs->response, $rs->request);
             $this->requests->detach($rs->request);
@@ -665,7 +663,7 @@ class AsyncClient implements ObservableClient {
         }
         
         $this->requestQueue->attach($request, $rs);
-        $this->notify(self::REDIRECT, [$request, $redirectResponse]);
+        $this->notifyObservations(self::REDIRECT, [$request, $redirectResponse]);
     }
     
     private function normalizeRequest($request) {
@@ -694,7 +692,7 @@ class AsyncClient implements ObservableClient {
         }
         
         if (!$request->hasHeader('User-Agent')) {
-            $request->setHeader('User-Agent', self::USER_AGENT);
+            $request->setHeader('User-Agent', ObservableClient::USER_AGENT);
         }
         
         if (!$request->hasHeader('Host')) {

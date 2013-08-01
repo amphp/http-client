@@ -2,15 +2,15 @@
 
 namespace Artax\Ext\Progress;
 
-use Artax\Extension,
-    Artax\Subject,
+use Artax\Ext\Extension,
+    Artax\ObservableSubject,
     Artax\Observable,
     Artax\ObservableClient,
     Artax\Response;
 
 class ProgressExtension implements Extension, Observable {
     
-    use Subject;
+    use ObservableSubject;
     
     const PROGRESS = 'progress';
     const RESPONSE = 'response';
@@ -20,7 +20,7 @@ class ProgressExtension implements Extension, Observable {
     private $progressBarIncrementChar = '=';
     private $progressBarEmptyIncrementChar = '.';
     private $progressBarLeadingChar = '>';
-    private $eventSubscription;
+    private $observation;
     
     function __construct() {
         $this->requests = new \SplObjectStorage;
@@ -72,9 +72,9 @@ class ProgressExtension implements Extension, Observable {
     }
     
     function unextend() {
-        if ($this->eventSubscription) {
-            $this->eventSubscription->cancel();
-            $this->eventSubscription = NULL;
+        if ($this->observation) {
+            $this->observation->cancel();
+            $this->observation = NULL;
         }
         
         return $this;
@@ -82,10 +82,10 @@ class ProgressExtension implements Extension, Observable {
     
     function extend(ObservableClient $client) {
         $this->unextend();
-        $this->eventSubscription = $client->subscribe([
+        $this->observation = $client->addObservation([
             ObservableClient::REQUEST => function($dataArr) { $this->onRequest($dataArr); },
             ObservableClient::SOCKET => function($dataArr) { $this->onSocket($dataArr); },
-            ObservableClient::DATA => function($dataArr) { $this->onData($dataArr); },
+            ObservableClient::SOCK_DATA_IN => function($dataArr) { $this->onData($dataArr); },
             ObservableClient::HEADERS => function($dataArr) { $this->onHeaders($dataArr); },
             ObservableClient::REDIRECT => function($dataArr) { $this->onRedirect($dataArr); },
             ObservableClient::RESPONSE => function($dataArr) { $this->onResponse($dataArr); },
@@ -128,7 +128,7 @@ class ProgressExtension implements Extension, Observable {
             $progress->progressBar = $this->generateProgressBarOfUnknownSize();
         }
         
-        $this->notify(self::PROGRESS, [$request, clone $progress]);
+        $this->notifyObservations(self::PROGRESS, [$request, clone $progress]);
     }
     
     private function generateProgressBar($percentComplete) {
@@ -195,7 +195,7 @@ class ProgressExtension implements Extension, Observable {
         $progress->progressBar = $this->generateProgressBar(1.0);
         $this->requests->detach($request);
         
-        $this->notify(self::RESPONSE, [$request, $progress]);
+        $this->notifyObservations(self::RESPONSE, [$request, $progress]);
     }
     
     private function onError(array $dataArr) {
@@ -203,7 +203,7 @@ class ProgressExtension implements Extension, Observable {
         $error = $dataArr[2];
         $progress = $this->requests->offsetGet($request);
         
-        $this->notify(self::ERROR, [$request, $progress, $error]);
+        $this->notifyObservations(self::ERROR, [$request, $progress, $error]);
     }
     
     private function clear(array $dataArr) {

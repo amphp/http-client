@@ -6,7 +6,7 @@ use Amp\Reactor;
 
 class Socket implements Observable {
     
-    use Subject;
+    use ObservableSubject;
     
     const S_UNCONNECTED = 0;
     const S_PENDING = 1;
@@ -19,6 +19,11 @@ class Socket implements Observable {
     const E_TLS_HANDSHAKE_FAILED = 903;
     const E_WOULDBLOCK = 10035;
     
+    const READY = 'ready';
+    const SEND = 'send';
+    const DATA = 'data';
+    const DRAIN = 'drain';
+    const ERROR = 'error';
     const CONNECT = 'connect';
     const TIMEOUT = 'timeout';
     
@@ -66,9 +71,9 @@ class Socket implements Observable {
         } elseif ($this->state === self::S_PAUSED) {
             $this->enableIoSubscriptions();
             $this->state = self::S_CONNECTED;
-            $this->notify(self::READY);
+            $this->notifyObservations(self::READY);
         } else {
-            $this->notify(self::READY);
+            $this->notifyObservations(self::READY);
         }
     }
     
@@ -124,7 +129,7 @@ class Socket implements Observable {
         } else {
             $this->state = self::S_UNCONNECTED;
             $error = new SocketException(NULL, self::E_CONNECT_FAILURE);
-            $this->notify(self::ERROR, $error);
+            $this->notifyObservations(self::ERROR, $error);
         }
     }
     
@@ -159,7 +164,7 @@ class Socket implements Observable {
     
     private function doConnectTimeout() {
         $error = new SocketException(NULL, self::E_CONNECT_TIMEOUT);
-        $this->notify(self::ERROR, $error);
+        $this->notifyObservations(self::ERROR, $error);
         $this->stop();
     }
     
@@ -180,7 +185,7 @@ class Socket implements Observable {
         } elseif ($result === FALSE) {
             $errMsg = error_get_last()['message'];
             $e = new SocketException($errMsg, self::E_TLS_HANDSHAKE_FAILED);
-            $this->notify(self::ERROR, $e);
+            $this->notifyObservations(self::ERROR, $e);
             $this->stop();
         } elseif (time() > ($this->tlsHandshakeStartedAt + $this->tlsHandshakeTimeout)) {
             $this->doConnectTimeout();
@@ -195,13 +200,13 @@ class Socket implements Observable {
             $this->keepAliveTimeout
         );
         $this->connectedAt = microtime(TRUE);
-        $this->notify(self::CONNECT);
-        $this->notify(self::READY);
+        $this->notifyObservations(self::CONNECT);
+        $this->notifyObservations(self::READY);
     }
     
     private function read($trigger) {
         if ($trigger === Reactor::TIMEOUT) {
-            $this->notify(self::TIMEOUT);
+            $this->notifyObservations(self::TIMEOUT);
         } else {
             $this->lastDataRcvdAt = microtime(TRUE);
             $this->doRead();
@@ -213,7 +218,7 @@ class Socket implements Observable {
             $data = @fread($this->socket, $this->ioGranularity);
             
             if (strlen($data)) {
-                $this->notify(self::DATA, $data);
+                $this->notifyObservations(self::DATA, $data);
             } else {
                 break;
             }
@@ -222,7 +227,7 @@ class Socket implements Observable {
         if (!$this->isConnected()) {
             $this->state = self::S_UNCONNECTED;
             $error = new SocketException(NULL, self::E_SOCKET_GONE);
-            $this->notify(self::ERROR, $error);
+            $this->notifyObservations(self::ERROR, $error);
         }
     }
     
@@ -250,18 +255,18 @@ class Socket implements Observable {
         $bytesSent = @fwrite($this->socket, $this->writeBuffer);
         
         if ($bytesSent === $dataLen) {
-            $this->notify(self::SEND, $this->writeBuffer);
+            $this->notifyObservations(self::SEND, $this->writeBuffer);
             $this->writeBuffer = '';
             $this->disableWriteSubscription();
-            $this->notify(self::DRAIN);
+            $this->notifyObservations(self::DRAIN);
         } elseif ($bytesSent > 0) {
-            $this->notify(self::SEND, substr($this->writeBuffer, 0, $bytesSent));
+            $this->notifyObservations(self::SEND, substr($this->writeBuffer, 0, $bytesSent));
             $this->writeBuffer = substr($this->writeBuffer, $bytesSent);
             $this->enableWriteSubscription();
         } elseif ($bytesSent === FALSE && !(is_resource($this->socket) && !feof($this->socket))){
             $this->state = self::S_UNCONNECTED;
             $error = new SocketException(NULL, self::E_SOCKET_GONE);
-            $this->notify(self::ERROR, $error);
+            $this->notifyObservations(self::ERROR, $error);
         }
     }
     
@@ -365,7 +370,7 @@ class Socket implements Observable {
     
     function __destruct() {
         $this->stop();
-        $this->unsubscribeAll();
+        $this->removeAllObservations();
     }
 }
 

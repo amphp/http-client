@@ -3,13 +3,13 @@
 namespace Artax\Ext\Cookies;
 
 use Artax\ObservableClient,
-    Artax\Extension;
+    Artax\Ext\Extension;
 
 class CookieExtension implements Extension {
     
     private $cookieJar;
     private $cookieParser;
-    private $eventSubscription;
+    private $observation;
     
     function __construct(CookieJar $cookieJar = NULL, CookieParser $cookieParser = NULL) {
         $this->cookieJar = $cookieJar ?: new ArrayCookieJar;
@@ -17,15 +17,15 @@ class CookieExtension implements Extension {
     }
     
     function unextend() {
-        if ($this->eventSubscription) {
-            $this->eventSubscription->cancel();
-            $this->eventSubscription = NULL;
+        if ($this->observation) {
+            $this->observation->cancel();
+            $this->observation = NULL;
         }
     }
     
     function extend(ObservableClient $client) {
         $this->unextend();
-        $this->eventSubscription = $client->subscribe([
+        $this->observation = $client->addObservation([
             ObservableClient::REQUEST => function($dataArr) { $this->onRequest($dataArr); },
             ObservableClient::RESPONSE => function($dataArr) { $this->onResponse($dataArr); }
         ]);

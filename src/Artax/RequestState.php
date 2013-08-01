@@ -8,13 +8,13 @@ class RequestState {
     public $request;
     public $authority;
     public $socket;
-    public $sockSub;
+    public $socketObservation;
     public $onResponse;
     public $onError;
     public $parser;
     public $redirectHistory = [];
     public $transferTimeoutSubscription;
-    public $bodyDrainSubscription;
+    public $bodyDrainObservation;
     public $continueDelaySubscription;
     
 }

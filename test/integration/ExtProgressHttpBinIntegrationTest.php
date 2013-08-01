@@ -12,7 +12,7 @@ class ExtProgressHttpBinIntegrationTest extends PHPUnit_Framework_TestCase {
         
         $progress;
         
-        $ext->subscribe([
+        $ext->addObservation([
             ProgressExtension::PROGRESS => function($dataArr) use (&$progress) {
                 $progress = $dataArr[1];
             }
