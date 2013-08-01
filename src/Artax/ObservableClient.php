@@ -4,7 +4,7 @@ namespace Artax;
 
 interface ObservableClient extends Observable {
 
-    const USER_AGENT = 'Artax/0.4.0-dev (PHP5.4+)';
+    const USER_AGENT = 'Artax/0.4.0 (PHP5.4+)';
 
     const REQUEST = 'request';
     const SOCKET = 'socket';
