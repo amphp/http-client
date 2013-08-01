@@ -37,7 +37,7 @@ $ext->setProgressBarEmptyIncrementChar('.');    // defaults to '.'
 $ext->setProgressBarLeadingChar('>');           // defaults to '>'
 // --- END optional progress bar config ---
 
-$ext->subscribe([
+$ext->addObservation([
     ProgressExtension::PROGRESS => function($dataArr) {
         echo "\r", ProgressDisplay::display($dataArr[1]);
     }

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Client/AsyncClient accept option assignment via setOption() and setAllOptions(). Though the
+ * Clients accept option assignment via setOption() and setAllOptions(). Though the
  * defaults are generally fine, you can tweak any of the values presented below.
  */
 

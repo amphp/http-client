@@ -1,9 +1,9 @@
 <?php
 
 /**
- * This demo is more to execute than to read. Run this script in the console and awesomeness ensues.
- * The script downloads several HTTP resources in parallel while updating the console with progress
- * displays for each request in real time.
+ * This demo is more to execute than to read. Run this script in the console and watch the ensuing
+ * awesomeness. The script downloads several HTTP resources in parallel while updating the console
+ * with progress displays for each request in real time.
  */
 
 use Artax\Client,
@@ -18,7 +18,7 @@ $client = new Client;
 
 // --- Modify all requests for our specific use-case ---------------------------------------------->
 
-$client->subscribe([
+$client->addObservation([
     Client::REQUEST => function($dataArr) {
         $request = $dataArr[0];
         // Use HTTP/1.0 to prevent chunked encoding and hopefully receive a Content-Length header.
@@ -70,7 +70,7 @@ function updateDisplay(array $displayLines) {
 $ext = new ProgressExtension;
 $ext->extend($client);
 $ext->setProgressBarSize(30);
-$ext->subscribe([
+$ext->addObservation([
     ProgressExtension::PROGRESS => function($dataArr) use ($requestNameMap, &$displayLines, &$lastUpdate) {
         $now = microtime(TRUE);
         if (($now - $lastUpdate) > 0.05) { // Limit updates to 20fps to avoid a choppy display
@@ -81,13 +81,13 @@ $ext->subscribe([
             updateDisplay($displayLines);
         }
     },
-    ProgressExtension::RESPONSE => function($dataArr) use ($requestNameMap, &$displayLines) {
+    Client::RESPONSE => function($dataArr) use ($requestNameMap, &$displayLines) {
         list($request, $progress) = $dataArr;
         $requestKey = $requestNameMap->offsetGet($request);
         $displayLines[$requestKey] = str_pad($requestKey, 15) . ProgressDisplay::display($progress);
         updateDisplay($displayLines);
     },
-    ProgressExtension::ERROR => function($dataArr) use (&$displayLines, $requestNameMap) {
+    Client::ERROR => function($dataArr) use (&$displayLines, $requestNameMap) {
         list($request, $progress, $error) = $dataArr;
         $requestKey = $requestNameMap->offsetGet($request);
         $displayLines[$requestKey] = str_pad($requestKey, 15) . 'Error: ' . $error->getMessage();
