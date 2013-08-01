@@ -3,4 +3,3 @@
 namespace Artax;
 
 class DnsException extends ClientException {}
-
