@@ -33,7 +33,7 @@ underlying HTTP protocol.
 #### INSTALLATION
 
 ```bash
-$ php composer.phar require rdlowrey/artax:0.3.*
+$ php composer.phar require rdlowrey/artax:0.4.*
 ```
 
 Or
