@@ -1,3 +1,20 @@
+v0.5.0
+------
+
+- Fixed redundant addition of *Accept-Encoding* headers when reusing the same `Request` object for
+  multiple requests.
+- Option name change: *allowGzipCompress* -> *autoEncoding*. Artax automatically sets or removes
+  the *Accept-Encoding* header for you when this option is enabled (ON by default). If this option
+  is disabled Artax will not modify the header in any way. Clients still automatically decompress
+  gzipped response bodies (if zlib is enabled and the response contains the appropriate headers)
+  regardless of this setting.
+- Improved IDE support using explicit method calls when setting client options.
+- Removed deprecated `AsyncClient::setResponse` method (which mistakenly survived the v0.4.0 cull).
+
+#### BC BREAKS:
+
+* Option key name change: *allowGzipCompress* -> *autoEncoding* (still enabled by default).
+
 v0.4.0
 ------
 
@@ -9,6 +26,11 @@ v0.4.0
   existing client objects.
 - Updated `Artax\Observable` and friends. These changes affect extension authors who must now use
   the new API for observing client event broadcasts.
+
+#### BC BREAKS:
+
+* The entire API for observable events) has changed and must be updated in extensions migrating to
+this version from earlier releases.
 
 v0.X.X
 ------
