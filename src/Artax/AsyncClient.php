@@ -20,7 +20,7 @@ class AsyncClient implements NonBlockingClient {
     private $idleSocketSubscriptions;
     
     private $hasExtZlib;
-    private $allowGzipCompress = TRUE;
+    private $autoEncoding = TRUE;
     private $useKeepAlive = TRUE;
     private $connectTimeout = 15;
     private $transferTimeout = 30;
@@ -737,8 +737,10 @@ class AsyncClient implements NonBlockingClient {
             $request->setHeader('Connection', 'close');
         }
         
-        if ($this->allowGzipCompress && $this->hasExtZlib) {
-            $request->appendHeader('Accept-Encoding', 'gzip, identity');
+        if ($this->autoEncoding && $this->hasExtZlib) {
+            $request->setHeader('Accept-Encoding', 'gzip, identity');
+        } elseif ($this->autoEncoding) {
+            $request->removeHeader('Accept-Encoding');
         }
         
         return $request;
@@ -806,46 +808,92 @@ class AsyncClient implements NonBlockingClient {
         }
     }
     
-    function setResponse(Request $request, Response $response) {
-        if ($this->requests->contains($request)) {
-            $rs = $this->requests->offsetGet($request);
-            $rs->response = $response;
-        }
-    }
-    
+    /**
+     * Assign multiple client options from a key-value array
+     * 
+     * @param array $options An array matching option name keys to option values
+     * @throws \DomainException On unknown option key
+     * @return void
+     */
     function setAllOptions(array $options) {
         foreach ($options as $key => $value) {
             $this->setOption($key, $value);
         }
     }
     
+    /**
+     * Assign a client option
+     * 
+     * @param string $key Option key
+     * @param mixed $value Option value
+     * @throws \DomainException On unknown option key
+     * @return void
+     */
     function setOption($key, $value) {
-        $validKeys = array(
-            'useKeepAlive',
-            'connectTimeout',
-            'transferTimeout',
-            'keepAliveTimeout',
-            'followLocation',
-            'autoReferer',
-            'maxConnections',
-            'maxConnectionsPerHost',
-            'continueDelay',
-            'bufferBody',
-            'maxHeaderBytes',
-            'maxBodyBytes',
-            'bodySwapSize',
-            'storeBody',
-            'bindToIp',
-            'ioGranularity',
-            'allowGzipCompress',
-            'verboseRead',
-            'verboseSend',
-            'tlsOptions'
-        );
-        
-        if (in_array($key, $validKeys)) {
-            $setter = 'set' . ucfirst($key);
-            $this->$setter($value);
+        switch (strtolower($key)) {
+            case 'usekeepalive':
+                $this->setUseKeepAlive($value);
+                break;
+            case 'connecttimeout':
+                $this->setConnectTimeout($value);
+                break;
+            case 'transfertimeout':
+                $this->setTransferTimeout($value);
+                break;
+            case 'keepalivetimeout':
+                $this->setKeepAliveTimeout($value);
+                break;
+            case 'followlocation':
+                $this->setFollowLocation($value);
+                break;
+            case 'autoreferer':
+                $this->setAutoReferer($value);
+                break;
+            case 'maxconnections':
+                $this->setMaxConnections($value);
+                break;
+            case 'maxconnectionsperhost':
+                $this->setMaxConnectionsPerHost($value);
+                break;
+            case 'continuedelay':
+                $this->setContinueDelay($value);
+                break;
+            case 'bufferbody':
+                $this->setBufferBody($value);
+                break;
+            case 'maxheaderbytes':
+                $this->setMaxHeaderBytes($value);
+                break;
+            case 'maxbodybytes':
+                $this->setMaxBodyBytes($value);
+                break;
+            case 'bodyswapsize':
+                $this->setBodySwapSize($value);
+                break;
+            case 'storebody':
+                $this->setStoreBody($value);
+                break;
+            case 'bindtoip':
+                $this->setBindToIp($value);
+                break;
+            case 'iogranularity':
+                $this->setIoGranularity($value);
+            case 'autoencoding':
+                $this->setAutoEncoding($value);
+                break;
+            case 'verboseread':
+                $this->setVerboseRead($value);
+                break;
+            case 'verbosesend':
+                $this->setVerboseSend($value);
+                break;
+            case 'tlsoptions':
+                $this->setTlsOptions($value);
+                break;
+            default:
+                throw new \DomainException(
+                    "Unknown option key: {$key}"
+                );
         }
     }
     
@@ -934,8 +982,8 @@ class AsyncClient implements NonBlockingClient {
         $this->bindToIp = filter_var($ip, FILTER_VALIDATE_IP);
     }
     
-    private function setAllowGzipCompress($bool) {
-        $this->allowGzipCompress = filter_var($bool, FILTER_VALIDATE_BOOLEAN);
+    private function setAutoEncoding($bool) {
+        $this->autoEncoding = filter_var($bool, FILTER_VALIDATE_BOOLEAN);
     }
     
     private function setVerboseRead($bool) {
