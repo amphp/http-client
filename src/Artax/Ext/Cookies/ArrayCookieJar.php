@@ -107,14 +107,17 @@ class ArrayCookieJar implements CookieJar {
      * @link http://tools.ietf.org/html/rfc6265#section-5.1.3
      */
     private function matchesDomain($requestDomain, $cookieDomain) {
-        $matchPos = strrpos($requestDomain, $cookieDomain);
-        
         if ($requestDomain === $cookieDomain) {
+            return $isMatch = TRUE;
+        }
+        
+        if (!($isWildcardCookieDomain = ($cookieDomain[0] === '.'))) {
+            $isMatch = FALSE;
+        } elseif (filter_var($requestDomain, FILTER_VALIDATE_IP)) {
+            $isMatch = FALSE;
+        } elseif (rtrim($requestDomain, $cookieDomain) . $cookieDomain === $requestDomain) {
             $isMatch = TRUE;
-        } elseif (($matchPos = (strrpos($requestDomain, $cookieDomain)) !== FALSE)
-            && $cookieDomain[0] === '.'
-            && !filter_var($requestDomain, FILTER_VALIDATE_IP)
-        ) {
+        } elseif (strrpos($cookieDomain, $requestDomain) !== FALSE) {
             $isMatch = TRUE;
         } else {
             $isMatch = FALSE;

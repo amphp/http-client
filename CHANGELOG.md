@@ -1,3 +1,9 @@
+#### v0.5.1
+
+- Fixed bug in cookie extension preventing correct wildcard domain resolution of cookies set using
+  the format `.domain.com` for requests to domains of the format `subdomain.domain.com` and
+  `domain.com`
+
 v0.5.0
 ------
 
@@ -11,7 +17,7 @@ v0.5.0
 - Improved IDE support using explicit method calls when setting client options.
 - Removed deprecated `AsyncClient::setResponse` method (which mistakenly survived the v0.4.0 cull).
 
-#### BC BREAKS:
+##### BC BREAKS:
 
 * Option key name change: *allowGzipCompress* -> *autoEncoding* (still enabled by default).
 
@@ -27,7 +33,7 @@ v0.4.0
 - Updated `Artax\Observable` and friends. These changes affect extension authors who must now use
   the new API for observing client event broadcasts.
 
-#### BC BREAKS:
+##### BC BREAKS:
 
 * The entire API for observable events) has changed and must be updated in extensions migrating to
 this version from earlier releases.
