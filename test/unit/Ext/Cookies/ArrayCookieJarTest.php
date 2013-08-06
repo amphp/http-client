@@ -24,6 +24,20 @@ class ArrayCookieJarTest extends PHPUnit_Framework_TestCase {
         $this->assertSame($cookie, $fetched);
     }
     
+    function testGetMatchesDotSubdomain() {
+        $rawCookieStr = 'NID=67=HYYufVEDmbRDoqR56XYYo-2Of3r4LBitqd22wc0Ma0-aiKe9YKuAZjsTX4FTzFoLOTLg' .
+            'C5_N8o1NR_Akc74mzHsQet-5UJds3eMJbdkNczmNRUSWTh2gkKhGaKlpiJHU; expires=Tue, ' .
+            '17-Dec-2013 18:01:46 GMT; path=/; domain=.google.com; HttpOnly';
+        
+        $cookie = Cookie::fromString($rawCookieStr);
+        
+        $jar = new ArrayCookieJar;
+        $jar->store($cookie);
+        
+        $fetched = current($jar->get($domain = 'google.com', $path = '/'));
+        $this->assertSame($cookie, $fetched);
+    }
+    
     function testGetMatchesWildcardSubdomain() {
         $rawCookieStr = 'NID=67=HYYufVEDmbRDoqR56XYYo-2Of3r4LBitqd22wc0Ma0-aiKe9YKuAZjsTX4FTzFoLOTLg' .
             'C5_N8o1NR_Akc74mzHsQet-5UJds3eMJbdkNczmNRUSWTh2gkKhGaKlpiJHU; expires=Tue, ' .
