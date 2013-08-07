@@ -40,12 +40,17 @@ class CookieExtension implements Extension {
         $path = isset($urlParts['path']) ? $urlParts['path'] : '/';
         
         $applicableCookies = $this->cookieJar->get($domain, $path);
+
+        $cookieKeyValuePairs = [];
         
         foreach ($applicableCookies as $cookie) {
             if (!$cookie->getSecure() || !strcasecmp($scheme, 'https')) {
-                $cookieStr = $cookie->getName() . '=' . $cookie->getValue();
-                $request->appendHeader('Cookie', $cookieStr);
+                $cookieKeyValuePairs[] = $cookie->getName() . '=' . $cookie->getValue();
             }
+        }
+
+        if (!empty($cookieKeyValuePairs)) {
+            $request->setHeader('Cookie', implode('; ', $cookieKeyValuePairs));
         }
     }
     
