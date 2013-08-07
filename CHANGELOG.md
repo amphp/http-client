@@ -1,3 +1,8 @@
+#### master
+
+- Fixed a bug where the cookie extension sent one header per cookie, instead of a single header
+  containing a semicolon delimited list of cookie key/value pairs.
+
 #### v0.5.1
 
 - Fixed bug in cookie extension preventing correct wildcard domain resolution of cookies set using
