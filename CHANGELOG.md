@@ -1,7 +1,8 @@
 #### master
 
-- Fixed a bug where the cookie extension sent one header per cookie, instead of a single header
-  containing a semicolon delimited list of cookie key/value pairs.
+- Added a `combineResponseCookies` property to the cookies extension which enables combining all
+  cookie values into a single header as some servers do not correctly handle multiple Cookie
+  headers. This behavior is off by default.
 
 #### v0.5.1
 
