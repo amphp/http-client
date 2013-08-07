@@ -1,3 +1,9 @@
+#### master
+
+- Added a `combineResponseCookies` property to the cookies extension which enables combining all
+  cookie values into a single header as some servers do not correctly handle multiple Cookie
+  headers. This behavior is off by default.
+
 #### v0.5.1
 
 - Fixed bug in cookie extension preventing correct wildcard domain resolution of cookies set using

@@ -10,6 +10,7 @@ class CookieExtension implements Extension {
     private $cookieJar;
     private $cookieParser;
     private $observation;
+    private $combineResponseCookies = false;
     
     function __construct(CookieJar $cookieJar = NULL, CookieParser $cookieParser = NULL) {
         $this->cookieJar = $cookieJar ?: new ArrayCookieJar;
@@ -38,13 +39,28 @@ class CookieExtension implements Extension {
         $scheme = $urlParts['scheme'];
         $domain = $urlParts['host'];
         $path = isset($urlParts['path']) ? $urlParts['path'] : '/';
-        
+
         $applicableCookies = $this->cookieJar->get($domain, $path);
         
-        foreach ($applicableCookies as $cookie) {
-            if (!$cookie->getSecure() || !strcasecmp($scheme, 'https')) {
-                $cookieStr = $cookie->getName() . '=' . $cookie->getValue();
-                $request->appendHeader('Cookie', $cookieStr);
+        if ($this->combineResponseCookies) {
+            $cookieKeyValuePairs = [];
+            
+            foreach ($applicableCookies as $cookie) {
+                if (!$cookie->getSecure() || !strcasecmp($scheme, 'https')) {
+                    $cookieKeyValuePairs[] = $cookie->getName() . '=' . $cookie->getValue();
+                }
+            }
+
+            if (!empty($cookieKeyValuePairs)) {
+                $request->setHeader('Cookie', implode('; ', $cookieKeyValuePairs));
+            }
+        }
+        else {
+            foreach ($applicableCookies as $cookie) {
+                if (!$cookie->getSecure() || !strcasecmp($scheme, 'https')) {
+                    $cookieStr = $cookie->getName() . '=' . $cookie->getValue();
+                    $request->appendHeader('Cookie', $cookieStr);
+                }
             }
         }
     }
@@ -82,4 +98,10 @@ class CookieExtension implements Extension {
         }
     }
     
+    public function combineResponseCookies($combine = true)
+    {
+        $this->combineResponseCookies = $combine;
+
+        return $this;
+    }
 }
