@@ -1,2 +1,0 @@
-k2=v2; expires=Thu, 01 Jan 1970 00:00:00 GMT+0000; domain=httpbin.org; path=/; httpOnly
-k1=v1; expires=Thu, 01 Jan 1970 00:00:00 GMT+0000; domain=httpbin.org; path=/; httpOnly
