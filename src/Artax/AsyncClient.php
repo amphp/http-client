@@ -528,17 +528,13 @@ class AsyncClient implements NonBlockingClient {
     }
     
     private function afterRequestHeaderWrite(RequestState $rs) {
-        return $this->requestExpects100Continue($rs->request)
-            ? $this->initializeContinueDelaySubscription($rs)
-            : $this->initializeRequestBodyWrite($rs);
-    }
-    
-    private function initializeContinueDelaySubscription(RequestState $rs) {
-        $rs->continueDelayWatcher = $this->reactor->once(function() use ($rs) {
-            $this->reactor->cancel($rs->continueDelayWatcher);
-            $rs->continueDelayWatcher = NULL;
+        if ($this->requestExpects100Continue($rs->request)) {
+            $rs->continueDelayWatcher = $this->reactor->once(function() use ($rs) {
+                $this->initializeRequestBodyWrite($rs);
+            }, $this->continueDelay);
+        } else {
             $this->initializeRequestBodyWrite($rs);
-        }, $this->continueDelay);
+        }
     }
     
     private function requestExpects100Continue(Request $request) {
@@ -554,8 +550,7 @@ class AsyncClient implements NonBlockingClient {
     }
     
     private function initializeRequestBodyWrite(RequestState $rs) {
-        $request = $rs->request;
-        $body = $request->getBody();
+        $body = $rs->request->getBody();
         $socket = $rs->socket;
         
         if (is_string($body)) {
@@ -568,8 +563,6 @@ class AsyncClient implements NonBlockingClient {
                 Socket::DRAIN => function() use ($rs) { $this->streamIteratorRequestEntityBody($rs); }
             ]);
             $this->streamIteratorRequestEntityBody($rs);
-        } else {
-            throw new \UnexpectedValueException;
         }
     }
     
@@ -583,8 +576,7 @@ class AsyncClient implements NonBlockingClient {
             $socket = $rs->socket;
             $socket->send($chunk);
         } else {
-            $bodyDrainObservation = $rs->bodyDrainObservation;
-            $bodyDrainObservation->cancel();
+            $rs->bodyDrainObservation->cancel();
         }
     }
     
@@ -664,6 +656,10 @@ class AsyncClient implements NonBlockingClient {
         if ($rs->bodyDrainObservation) {
             $rs->bodyDrainObservation->cancel();
             $rs->bodyDrainObservation = NULL;
+        }
+        if ($rs->continueDelayWatcher) {
+            $this->reactor->cancel($rs->continueDelayWatcher);
+            $rs->continueDelayWatcher = NULL;
         }
         if ($rs->transferTimeoutWatcher) {
             $this->reactor->cancel($rs->transferTimeoutWatcher);
