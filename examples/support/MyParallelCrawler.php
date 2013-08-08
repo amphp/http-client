@@ -24,7 +24,7 @@ class MyParallelCrawler {
      * is started.
      */
     function crawl($uri) {
-        $this->reactor->once(function() use ($uri) {
+        $this->reactor->immediately(function() use ($uri) {
             $this->doRequest($uri);
         });
         

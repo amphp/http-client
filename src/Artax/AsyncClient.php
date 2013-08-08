@@ -2,10 +2,7 @@
 
 namespace Artax;
 
-use Amp\Reactor,
-    Artax\Parsing\Parser,
-    Artax\Parsing\ParseException,
-    Artax\Parsing\ParserFactory;
+use Alert\Reactor;
 
 class AsyncClient implements NonBlockingClient {
     
@@ -15,9 +12,7 @@ class AsyncClient implements NonBlockingClient {
     private $sockets;
     private $requests;
     private $requestQueue;
-    private $parserFactory;
     private $socketFactory;
-    private $idleSocketSubscriptions;
     
     private $hasExtZlib;
     private $autoEncoding = TRUE;
@@ -29,44 +24,74 @@ class AsyncClient implements NonBlockingClient {
     private $autoReferer = TRUE;
     private $maxConnections = -1;
     private $maxConnectionsPerHost = 8;
-    private $continueDelay = 3;
-    private $maxHeaderBytes = 8192;
-    private $maxBodyBytes = 10485760;
+    private $maxHeaderBytes = -1;
+    private $maxBodyBytes = -1;
     private $bodySwapSize = 2097152;
     private $storeBody = TRUE;
     private $bufferBody = TRUE;
     private $bindToIp;
+    private $continueDelay = 3;
+    private $expectContinue = TRUE;
     private $ioGranularity = 65536;
     private $verboseRead = FALSE;
     private $verboseSend = FALSE;
-    private $tlsOptions;
+    private $tlsOptions = [
+        'verify_peer' => TRUE,
+        'allow_self_signed' => NULL,
+        'cafile' => NULL,
+        'capath' => NULL,
+        'local_cert' => NULL,
+        'passphrase' => NULL,
+        'CN_match' => NULL,
+        'verify_depth' => NULL,
+        'ciphers' => NULL,
+        'SNI_enabled' => NULL,
+        'SNI_server_name' => NULL
+    ];
     
-    function __construct(Reactor $reactor, ParserFactory $pf = NULL, SocketFactory $sf = NULL) {
+    function __construct(Reactor $reactor, SocketFactory $sf = NULL) {
         $this->reactor = $reactor;
-        $this->parserFactory = $pf ?: new ParserFactory;
         $this->socketFactory = $sf ?: new SocketFactory;
         $this->sockets = new \SplObjectStorage;
         $this->requests = new \SplObjectStorage;
         $this->requestQueue = new \SplObjectStorage;
-        $this->idleSocketSubscriptions = new \SplObjectStorage;
-        
+        $this->tlsOptions['cafile'] = dirname(dirname(__DIR__)) . '/certs/cacert.pem';
         $this->hasExtZlib = extension_loaded('zlib');
-        
-        $this->tlsOptions = [
-            'verify_peer' => TRUE,
-            'allow_self_signed' => NULL,
-            'cafile' => dirname(dirname(__DIR__)) . '/certs/cacert.pem',
-            'capath' => NULL,
-            'local_cert' => NULL,
-            'passphrase' => NULL,
-            'CN_match' => NULL,
-            'verify_depth' => NULL,
-            'ciphers' => NULL,
-            'SNI_enabled' => NULL,
-            'SNI_server_name' => NULL
-        ];
     }
     
+    /**
+     * Asynchronously request an HTTP resource
+     * 
+     * @param mixed $uriOrRequest An HTTP URI string or Artax\Request instance
+     * @param callable $onResponse A callback to receive the Artax\Response object on completion
+     * @param callable $onError A callback to receive an exception object on retrieval failure
+     * @return void
+     */
+    function request($uriOrRequest, callable $onResponse, callable $onError) {
+        $request = $this->normalizeRequest($uriOrRequest);
+        $rs = new RequestState;
+        
+        $rs->request = $request;
+        $rs->authority = $this->generateAuthorityFromUri($request->getUri());
+        
+        $rs->onResponse = $onResponse;
+        $rs->onError = $onError;
+        
+        $this->requestQueue->attach($request, $rs);
+        
+        $this->notifyObservations(self::REQUEST, [$request, NULL]);
+        
+        if ($this->resolveDns($rs)) {
+            $this->assignRequestSockets();
+        }
+    }
+    
+    /**
+     * Cancel a specific outstanding request
+     * 
+     * @param \Artax\Request $request
+     * @return void
+     */
     function cancel(Request $request) {
         if ($this->requestQueue->contains($request)) {
             $this->requestQueue->detach($request);
@@ -81,6 +106,11 @@ class AsyncClient implements NonBlockingClient {
         }
     }
     
+    /**
+     * Cancel all outstanding requests
+     * 
+     * @return void
+     */
     function cancelAll() {
         foreach ($this->requests as $request) {
             $this->cancel($request);
@@ -90,57 +120,226 @@ class AsyncClient implements NonBlockingClient {
         }
     }
     
-    function request($request, callable $onResponse, callable $onError) {
-        $request = $this->normalizeRequest($request);
-        $rs = new RequestState;
-        
-        $rs->request = $request;
-        $rs->authority = $this->generateAuthorityFromUri($request->getUri());
-        
-        $rs->onResponse = $onResponse;
-        $rs->onError = $onError;
-        
-        $this->requestQueue->attach($request, $rs);
-        
-        $this->notifyObservations(self::REQUEST, [$request, NULL]);
-        
-        // @TODO REFACTOR FOR NON-BLOCKING DNS RESOLUTION
-        // 
-        // This DNS resolution step was added to correct problems for garbage host names.
-        // It needs to be refactored with the rest of the code to allow for non-blocking
-        // DNS lookups once LibDNS is stable. Does it work? Yes. Is it suboptimal and in
-        // dire need of refactoring? Yes :(
-        if (!$this->resolveDns($rs)) {
-            return;
-        } elseif ($rs->response) {
-            // Notified listeners may have already fulfilled the request
-            $this->onResponse($rs);
-        } else {
-            $this->assignRequestSockets();
+    /**
+     * Assign multiple client options from a key-value array
+     * 
+     * @param array $options An array matching option name keys to option values
+     * @throws \DomainException On unknown option key
+     * @return void
+     */
+    function setAllOptions(array $options) {
+        foreach ($options as $key => $value) {
+            $this->setOption($key, $value);
         }
     }
     
     /**
-     * @TODO FIX THE DNS RESOLUTION MESS
+     * Assign a client option
+     * 
+     * @param string $key Option key
+     * @param mixed $value Option value
+     * @throws \DomainException On unknown option key
+     * @return void
+     */
+    function setOption($key, $value) {
+        switch (strtolower($key)) {
+            case 'usekeepalive':
+                $this->setUseKeepAlive($value);
+                break;
+            case 'connecttimeout':
+                $this->setConnectTimeout($value);
+                break;
+            case 'transfertimeout':
+                $this->setTransferTimeout($value);
+                break;
+            case 'keepalivetimeout':
+                $this->setKeepAliveTimeout($value);
+                break;
+            case 'followlocation':
+                $this->setFollowLocation($value);
+                break;
+            case 'autoreferer':
+                $this->setAutoReferer($value);
+                break;
+            case 'maxconnections':
+                $this->setMaxConnections($value);
+                break;
+            case 'maxconnectionsperhost':
+                $this->setMaxConnectionsPerHost($value);
+                break;
+            case 'continuedelay':
+                $this->setContinueDelay($value);
+                break;
+            case 'bufferbody':
+                $this->setBufferBody($value);
+                break;
+            case 'maxheaderbytes':
+                $this->setMaxHeaderBytes($value);
+                break;
+            case 'maxbodybytes':
+                $this->setMaxBodyBytes($value);
+                break;
+            case 'bodyswapsize':
+                $this->setBodySwapSize($value);
+                break;
+            case 'storebody':
+                $this->setStoreBody($value);
+                break;
+            case 'bindtoip':
+                $this->setBindToIp($value);
+                break;
+            case 'expectcontinue':
+                $this->setExpectContinue($value);
+                break;
+            case 'iogranularity':
+                $this->setIoGranularity($value);
+            case 'autoencoding':
+                $this->setAutoEncoding($value);
+                break;
+            case 'verboseread':
+                $this->setVerboseRead($value);
+                break;
+            case 'verbosesend':
+                $this->setVerboseSend($value);
+                break;
+            case 'tlsoptions':
+                $this->setTlsOptions($value);
+                break;
+            default:
+                throw new \DomainException(
+                    "Unknown option key: {$key}"
+                );
+        }
+    }
+    
+    private function setUseKeepAlive($bool) {
+        $this->useKeepAlive = filter_var($bool, FILTER_VALIDATE_BOOLEAN);
+    }
+    
+    private function setConnectTimeout($seconds) {
+        $this->connectTimeout = filter_var($seconds, FILTER_VALIDATE_INT, array('options' => array(
+            'default' => 5,
+            'min_range' => -1
+        )));
+    }
+    
+    private function setTransferTimeout($seconds) {
+        $this->transferTimeout = filter_var($seconds, FILTER_VALIDATE_INT, array('options' => array(
+            'default' => 30,
+            'min_range' => -1
+        )));
+    }
+    
+    private function setKeepAliveTimeout($seconds) {
+        $this->keepAliveTimeout = filter_var($seconds, FILTER_VALIDATE_INT, array('options' => array(
+            'default' => 30,
+            'min_range' => 0
+        )));
+    }
+    
+    private function setFollowLocation($bool) {
+        $this->followLocation = filter_var($bool, FILTER_VALIDATE_BOOLEAN);
+    }
+    
+    private function setAutoReferer($bool) {
+        $this->autoReferer = filter_var($bool, FILTER_VALIDATE_BOOLEAN);
+    }
+    
+    private function setMaxConnections($int) {
+        $this->maxConnections = filter_var($int, FILTER_VALIDATE_INT, array('options' => array(
+            'default' => -1,
+            'min_range' => -1
+        )));
+    }
+    
+    private function setMaxConnectionsPerHost($int) {
+        $this->maxConnectionsPerHost = filter_var($int, FILTER_VALIDATE_INT, array('options' => array(
+            'default' => 8,
+            'min_range' => -1
+        )));
+    }
+    
+    private function setContinueDelay($seconds) {
+        $this->continueDelay = filter_var($seconds, FILTER_VALIDATE_INT, array('options' => array(
+            'default' => 3,
+            'min_range' => 0
+        )));
+    }
+    
+    private function setBufferBody($bool) {
+        $this->bufferBody = filter_var($bool, FILTER_VALIDATE_BOOLEAN);
+    }
+    
+    private function setMaxHeaderBytes($bytes) {
+        $this->maxHeaderBytes = (int) $bytes;
+    }
+    
+    private function setMaxBodyBytes($bytes) {
+        $this->maxBodyBytes = (int) $bytes;
+    }
+    
+    private function setBodySwapSize($bytes) {
+        $this->bodySwapSize = (int) $bytes;
+    }
+    
+    private function setStoreBody($bool) {
+        $this->storeBody = filter_var($bool, FILTER_VALIDATE_BOOLEAN);
+    }
+    
+    private function setIoGranularity($bytes) {
+        $this->ioGranularity = filter_var($bytes, FILTER_VALIDATE_INT, array('options' => array(
+            'default' => 65536,
+            'min_range' => 1
+        )));
+    }
+    
+    private function setBindToIp($ip) {
+        $this->bindToIp = filter_var($ip, FILTER_VALIDATE_IP);
+    }
+    
+    private function setExpectContinue($bool) {
+        $this->expectContinue = filter_var($bool, FILTER_VALIDATE_BOOLEAN);
+    }
+    
+    private function setAutoEncoding($bool) {
+        $this->autoEncoding = filter_var($bool, FILTER_VALIDATE_BOOLEAN);
+    }
+    
+    private function setVerboseRead($bool) {
+        $this->verboseRead = filter_var($bool, FILTER_VALIDATE_BOOLEAN);
+    }
+    
+    private function setVerboseSend($bool) {
+        $this->verboseSend = filter_var($bool, FILTER_VALIDATE_BOOLEAN);
+    }
+    
+    private function setTlsOptions(array $opt) {
+        $opt = array_filter(array_intersect_key($opt, $this->tlsOptions), function($k) { return !is_null($k); });
+        $this->tlsOptions = array_merge($this->tlsOptions, $opt);
+    }
+    
+    /**
+     * @TODO Refactor to allow for non-blocking DNS lookups. Currently this is the only part of the
+     * process that has the potential to block because it relies on PHP for DNS lookups.
      */
     private function resolveDns(RequestState $rs) {
         $urlParts = parse_url($rs->authority);
         $ip = gethostbyname($urlParts['host']);
         
         if (filter_var($urlParts['host'], FILTER_VALIDATE_IP)) {
-            $didDnsLookupSucceed = TRUE;
+            $dnsLookupSucceeded = TRUE;
         } elseif (($ip = gethostbyname($urlParts['host'])) && ($ip === $urlParts['host'])) {
             $this->requests->attach($rs->request, $rs);
             $this->onError($rs, new DnsException(
                 'DNS resolution failed for ' . $urlParts['host']
             ));
-            $didDnsLookupSucceed = FALSE;
+            $dnsLookupSucceeded = FALSE;
         } else {
             $rs->authority = $ip . ':' . $urlParts['port'];
-            $didDnsLookupSucceed = TRUE;
+            $dnsLookupSucceeded = TRUE;
         }
         
-        return $didDnsLookupSucceed;
+        return $dnsLookupSucceeded;
     }
     
     private function generateAuthorityFromUri($uri) {
@@ -163,13 +362,13 @@ class AsyncClient implements NonBlockingClient {
             
             if ($socket = $this->checkoutExistingSocket($rs)) {
                 $rs->socket = $socket;
-                $this->doSubscribe($rs);
+                $this->applyRequestSocketObservations($rs);
                 $this->requestQueue->detach($request);
                 $this->requests->attach($request, $rs);
             } elseif ($socket = $this->checkoutNewSocket($rs)) {
                 $rs->socket = $socket;
                 $this->assignSocketOptions($request, $rs->socket);
-                $this->doSubscribe($rs);
+                $this->applyRequestSocketObservations($rs);
                 $this->requestQueue->detach($request);
                 $this->requests->attach($request, $rs);
             }
@@ -192,13 +391,6 @@ class AsyncClient implements NonBlockingClient {
         if ($this->isNewConnectionAllowed($rs->authority)) {
             $socket = $this->socketFactory->make($this->reactor, $rs->authority);
             $this->sockets->attach($socket, $rs);
-            
-            $onSockGoneObservation = $socket->addObservation([
-                Socket::TIMEOUT => function() use ($rs) { $this->clearSocket($rs); }
-            ]);
-            $onSockGoneObservation->disable();
-            
-            $this->idleSocketSubscriptions->attach($socket, $onSockGoneObservation);
             
             return $socket;
         }
@@ -224,13 +416,9 @@ class AsyncClient implements NonBlockingClient {
     private function assignSocketOptions(Request $request, Socket $socket) {
         $opts = [
             'connectTimeout' => $this->connectTimeout,
-            'keepAliveTimeout' => $this->keepAliveTimeout,
             'bindToIp' => $this->bindToIp,
         ];
-        
-        $uri = $request->getUri();
-        
-        if (parse_url($uri, PHP_URL_SCHEME) === 'https'){
+        if (parse_url($request->getUri(), PHP_URL_SCHEME) === 'https'){
             $opts['tlsOptions'] = $this->tlsOptions;
         }
         
@@ -241,9 +429,6 @@ class AsyncClient implements NonBlockingClient {
         if ($socket = $rs->socket) {
             $isInUse = FALSE;
             $this->sockets->attach($socket, $isInUse);
-            
-            $onSockGoneObservationscription = $this->idleSocketSubscriptions->offsetGet($socket);
-            $onSockGoneObservationscription->enable();
         }
     }
     
@@ -252,12 +437,11 @@ class AsyncClient implements NonBlockingClient {
             $socket->stop();
             $socket->removeAllObservations();
             $this->sockets->detach($socket);
-            $this->idleSocketSubscriptions->detach($socket);
         }
     }
     
-    private function doSubscribe(RequestState $rs) {
-        $rs->parser = $this->parserFactory->make();
+    private function applyRequestSocketObservations(RequestState $rs) {
+        $rs->parser = new MessageParser(MessageParser::MODE_RESPONSE);
         $rs->parser->setOptions([
             'maxHeaderBytes' => $this->maxHeaderBytes,
             'maxBodyBytes' => $this->maxBodyBytes,
@@ -271,49 +455,44 @@ class AsyncClient implements NonBlockingClient {
             }
         ]);
         
-        $onSockReady = function() use ($rs) {
-            $this->notifyObservations(self::SOCKET, [$rs->request, NULL]);
-            $this->initializeHeaderWrite($rs);
-        };
-        $onSockSend = function($data) use ($rs) { $this->onSockDataWrite($rs, $data); };
-        $onSockData = function($data) use ($rs) { $this->onSockDataRead($rs, $data); };
+        $onSockReady = function() use ($rs) { $this->onSockReady($rs); };
+        $onSockWrite = function($data) use ($rs) { $this->onSockWrite($rs, $data); };
+        $onSockRead  = function($data) use ($rs) { $this->onSockRead($rs, $data); };
         $onSockError = function($e) use ($rs) { $this->onError($rs, $e); };
-        $onSockTimeout = function() use ($rs) { $this->handleSockReadTimeout($rs); };
         
         $rs->socketObservation = $rs->socket->addObservation([
             Socket::READY => $onSockReady,
-            Socket::SEND => $onSockSend,
-            Socket::DATA => $onSockData,
+            Socket::SEND => $onSockWrite,
+            Socket::DATA => $onSockRead,
             Socket::ERROR => $onSockError,
-            Socket::TIMEOUT => $onSockTimeout
         ]);
         
         $rs->socket->start();
     }
     
-    private function onSockDataWrite(RequestState $rs, $dataSent) {
+    private function onSockReady(RequestState $rs) {
+        $this->notifyObservations(self::SOCKET, [$rs->request, NULL]);
+        $this->initializeRequestHeaderWrite($rs);
+    }
+    
+    private function onSockWrite(RequestState $rs, $dataSent) {
         if ($this->verboseSend) {
             echo $dataSent;
         }
+        
         $this->notifyObservations(self::SOCK_DATA_OUT, [$rs->request, $dataSent]);
     }
     
-    private function onSockDataRead(RequestState $rs, $data) {
-        if ($data !== '') {
-            $this->notifyOnData($rs->request, $data);
-        }
-        
-        $this->parse($rs, $data);
-    }
-    
-    private function notifyOnData(Request $request, $data) {
+    private function onSockRead(RequestState $rs, $data) {
         if ($this->verboseRead) {
             echo $data;
         }
-        $this->notifyObservations(self::SOCK_DATA_IN, [$request, $data]);
+        
+        $this->notifyObservations(self::SOCK_DATA_IN, [$rs->request, $data]);
+        $this->parseSockData($rs, $data);
     }
     
-    private function parse(RequestState $rs, $data) {
+    private function parseSockData(RequestState $rs, $data) {
         try {
             while ($parsedResponseArr = $rs->parser->parse($data)) {
                 $rs->response = $this->buildResponseFromParsedArray($rs->request, $parsedResponseArr);
@@ -322,22 +501,16 @@ class AsyncClient implements NonBlockingClient {
                 }
                 $data = '';
             }
-        } catch (ParseException $e) {
+        } catch (MessageParseException $e) {
             $this->onError($rs, $e);
         }
     }
     
-    private function handleSockReadTimeout(RequestState $rs) {
-        // We only clear the socket on a read timeout if it's NOT IN USE because the transfer
-        // timeout is the primary timeout as long as the socket is alive and a transfer is active.
-        if (!$isInUse = $this->sockets->offsetGet($rs->socket)) {
-            $this->clearSocket($rs);
-        }
-    }
-    
-    private function initializeHeaderWrite(RequestState $rs) {
-        if ($this->transferTimeout >= 0) {
-            $this->initializeTransferTimeout($rs);
+    private function initializeRequestHeaderWrite(RequestState $rs) {
+        if ($this->transferTimeout > 0) {
+            $rs->transferTimeoutWatcher = $this->reactor->once(function() use ($rs) {
+                $this->onError($rs, new TimeoutException);
+            }, $this->transferTimeout);
         }
         
         $request = $rs->request;
@@ -347,67 +520,60 @@ class AsyncClient implements NonBlockingClient {
         
         if ($request->hasBody()) {
             $rs->bodyDrainObservation = $socket->addObservation([
-                Socket::DRAIN => function() use ($rs) { $this->afterHeaderWrite($rs); }
+                Socket::DRAIN => function() use ($rs) { $this->afterRequestHeaderWrite($rs); }
             ]);
         }
         
         $socket->send($rawHeaders);
     }
     
-    private function initializeTransferTimeout(RequestState $rs) {
-        $rs->transferTimeoutSubscription = $this->reactor->once(function() use ($rs) {
-            $this->onError($rs, new TimeoutException);
-        }, $delay = $this->transferTimeout);
-    }
-    
-    private function afterHeaderWrite(RequestState $rs) {
-        $request = $rs->request;
-        
-        return $this->expects100Continue($request)
+    private function afterRequestHeaderWrite(RequestState $rs) {
+        return $this->requestExpects100Continue($rs->request)
             ? $this->initializeContinueDelaySubscription($rs)
-            : $this->initializeBodyWrite($rs);
+            : $this->initializeRequestBodyWrite($rs);
     }
     
     private function initializeContinueDelaySubscription(RequestState $rs) {
-        $rs->continueDelaySubscription = $this->reactor->once(function() use ($rs) {
-            $rs->continueDelaySubscription->cancel();
-            $this->initializeBodyWrite($rs->request, $rs->socket);
-        }, $delay = $this->continueDelay);
+        $rs->continueDelayWatcher = $this->reactor->once(function() use ($rs) {
+            $this->reactor->cancel($rs->continueDelayWatcher);
+            $rs->continueDelayWatcher = NULL;
+            $this->initializeRequestBodyWrite($rs);
+        }, $this->continueDelay);
     }
     
-    private function expects100Continue(Request $request) {
+    private function requestExpects100Continue(Request $request) {
         if (!$request->hasHeader('Expect')) {
             $expectsContinue = FALSE;
-        } elseif (strcasecmp(current($request->getHeader('Expect')), '100-continue')) {
-            $expectsContinue = FALSE;
-        } else {
+        } elseif (stristr(implode(',', $request->getHeader('Expect')), '100-continue')) {
             $expectsContinue = TRUE;
+        } else {
+            $expectsContinue = FALSE;
         }
         
         return $expectsContinue;
     }
     
-    private function initializeBodyWrite(RequestState $rs) {
+    private function initializeRequestBodyWrite(RequestState $rs) {
         $request = $rs->request;
         $body = $request->getBody();
         $socket = $rs->socket;
         
         if (is_string($body)) {
+            // IMPORTANT: cancel the DRAIN observation BEFORE sending the body or we'll be stuck in
+            // an infinite send/drain loop.
             $rs->bodyDrainObservation->cancel();
-            // IMPORTANT: we have to cancel the DRAIN subscription BEFORE sending the body or we'll
-            // be stuck in an infinite loop repeatedly sending the entity body.
             $socket->send($body);
         } elseif ($body instanceof \Iterator) {
             $rs->bodyDrainObservation->modify([
-                Socket::DRAIN => function() use ($rs) { $this->streamRequestEntityBodyInstance($rs); }
+                Socket::DRAIN => function() use ($rs) { $this->streamIteratorRequestEntityBody($rs); }
             ]);
-            $this->streamRequestEntityBodyInstance($rs);
+            $this->streamIteratorRequestEntityBody($rs);
         } else {
             throw new \UnexpectedValueException;
         }
     }
     
-    private function streamRequestEntityBodyInstance(RequestState $rs) {
+    private function streamIteratorRequestEntityBody(RequestState $rs) {
         $request = $rs->request;
         $body = $request->getBody();
         
@@ -422,9 +588,10 @@ class AsyncClient implements NonBlockingClient {
         }
     }
     
+    /**
+     * @TODO Add support for sending proxy-style absolute URIs in the raw request message
+     */
     private function generateRawRequestHeaders(Request $request) {
-        // @TODO Add support for proxy-style absolute URIs
-        
         $uri = $request->getUri();
         $uri = new Uri($uri);
         
@@ -451,7 +618,7 @@ class AsyncClient implements NonBlockingClient {
         $parser = $rs->parser;
         
         if ($e->getCode() === Socket::E_SOCKET_GONE
-            && $parser->getState() == Parser::BODY_IDENTITY_EOF
+            && $parser->getState() == MessageParser::BODY_IDENTITY_EOF
         ) {
             $this->finalizeBodyEofResponse($rs);
         } else {
@@ -498,9 +665,9 @@ class AsyncClient implements NonBlockingClient {
             $rs->bodyDrainObservation->cancel();
             $rs->bodyDrainObservation = NULL;
         }
-        if ($rs->transferTimeoutSubscription) {
-            $rs->transferTimeoutSubscription->cancel();
-            $rs->transferTimeoutSubscription = NULL;
+        if ($rs->transferTimeoutWatcher) {
+            $this->reactor->cancel($rs->transferTimeoutWatcher);
+            $rs->transferTimeoutWatcher = NULL;
         }
     }
     
@@ -537,9 +704,9 @@ class AsyncClient implements NonBlockingClient {
             return;
         }
         
-        $teHeader = current($response->getHeader('Content-Encoding'));
+        $ceHeader = trim(current($response->getHeader('Content-Encoding')));
         
-        if (!strcasecmp($teHeader, 'gzip')) {
+        if (!strcasecmp($ceHeader, 'gzip')) {
             $this->doGzipInflate($response);
         }
     }
@@ -562,10 +729,10 @@ class AsyncClient implements NonBlockingClient {
     
     private function endContinueDelay(Request $request) {
         $rs = $this->requests->offsetGet($request);
-        $rs->continueDelaySubscription->cancel();
-        $rs->continueDelaySubscription = NULL;
+        $this->reactor->cancel($rs->continueDelayWatcher);
+        $rs->continueDelayWatcher = NULL;
         
-        $this->initializeBodyWrite($rs);
+        $this->initializeRequestBodyWrite($rs);
     }
     
     private function buildResponseFromParsedArray(Request $request, array $parsedResponseArr) {
@@ -729,6 +896,10 @@ class AsyncClient implements NonBlockingClient {
             );
         } 
         
+        if ($body && $this->expectContinue && !$request->hasHeader('Expect')) {
+            $request->setHeader('Expect', '100-continue');
+        }
+        
         if ($method === 'TRACE' || $method === 'HEAD' || $method === 'OPTIONS') {
             $request->setBody(NULL);
         }
@@ -751,7 +922,7 @@ class AsyncClient implements NonBlockingClient {
         
         /**
          * Though servers are supposed to be able to handle standard port names on the end of the
-         * host some fail to do this correctly. As a result, we strip the port from the host header
+         * Host header some fail to do this correctly. As a result, we strip the port from the end
          * if it's a standard 80/443
          */
         if (stripos($authority, ':80') || stripos($authority, ':443')) {
@@ -806,197 +977,6 @@ class AsyncClient implements NonBlockingClient {
         } catch (\DomainException $e) {
             return NULL;
         }
-    }
-    
-    /**
-     * Assign multiple client options from a key-value array
-     * 
-     * @param array $options An array matching option name keys to option values
-     * @throws \DomainException On unknown option key
-     * @return void
-     */
-    function setAllOptions(array $options) {
-        foreach ($options as $key => $value) {
-            $this->setOption($key, $value);
-        }
-    }
-    
-    /**
-     * Assign a client option
-     * 
-     * @param string $key Option key
-     * @param mixed $value Option value
-     * @throws \DomainException On unknown option key
-     * @return void
-     */
-    function setOption($key, $value) {
-        switch (strtolower($key)) {
-            case 'usekeepalive':
-                $this->setUseKeepAlive($value);
-                break;
-            case 'connecttimeout':
-                $this->setConnectTimeout($value);
-                break;
-            case 'transfertimeout':
-                $this->setTransferTimeout($value);
-                break;
-            case 'keepalivetimeout':
-                $this->setKeepAliveTimeout($value);
-                break;
-            case 'followlocation':
-                $this->setFollowLocation($value);
-                break;
-            case 'autoreferer':
-                $this->setAutoReferer($value);
-                break;
-            case 'maxconnections':
-                $this->setMaxConnections($value);
-                break;
-            case 'maxconnectionsperhost':
-                $this->setMaxConnectionsPerHost($value);
-                break;
-            case 'continuedelay':
-                $this->setContinueDelay($value);
-                break;
-            case 'bufferbody':
-                $this->setBufferBody($value);
-                break;
-            case 'maxheaderbytes':
-                $this->setMaxHeaderBytes($value);
-                break;
-            case 'maxbodybytes':
-                $this->setMaxBodyBytes($value);
-                break;
-            case 'bodyswapsize':
-                $this->setBodySwapSize($value);
-                break;
-            case 'storebody':
-                $this->setStoreBody($value);
-                break;
-            case 'bindtoip':
-                $this->setBindToIp($value);
-                break;
-            case 'iogranularity':
-                $this->setIoGranularity($value);
-            case 'autoencoding':
-                $this->setAutoEncoding($value);
-                break;
-            case 'verboseread':
-                $this->setVerboseRead($value);
-                break;
-            case 'verbosesend':
-                $this->setVerboseSend($value);
-                break;
-            case 'tlsoptions':
-                $this->setTlsOptions($value);
-                break;
-            default:
-                throw new \DomainException(
-                    "Unknown option key: {$key}"
-                );
-        }
-    }
-    
-    private function setUseKeepAlive($bool) {
-        $this->useKeepAlive = filter_var($bool, FILTER_VALIDATE_BOOLEAN);
-    }
-    
-    private function setConnectTimeout($seconds) {
-        $this->connectTimeout = filter_var($seconds, FILTER_VALIDATE_INT, array('options' => array(
-            'default' => 5,
-            'min_range' => -1
-        )));
-    }
-    
-    private function setTransferTimeout($seconds) {
-        $this->transferTimeout = filter_var($seconds, FILTER_VALIDATE_INT, array('options' => array(
-            'default' => 30,
-            'min_range' => -1
-        )));
-    }
-    
-    private function setKeepAliveTimeout($seconds) {
-        $this->keepAliveTimeout = filter_var($seconds, FILTER_VALIDATE_INT, array('options' => array(
-            'default' => 30,
-            'min_range' => 0
-        )));
-    }
-    
-    private function setFollowLocation($bool) {
-        $this->followLocation = filter_var($bool, FILTER_VALIDATE_BOOLEAN);
-    }
-    
-    private function setAutoReferer($bool) {
-        $this->autoReferer = filter_var($bool, FILTER_VALIDATE_BOOLEAN);
-    }
-    
-    private function setMaxConnections($int) {
-        $this->maxConnections = filter_var($int, FILTER_VALIDATE_INT, array('options' => array(
-            'default' => -1,
-            'min_range' => -1
-        )));
-    }
-    
-    private function setMaxConnectionsPerHost($int) {
-        $this->maxConnectionsPerHost = filter_var($int, FILTER_VALIDATE_INT, array('options' => array(
-            'default' => 8,
-            'min_range' => -1
-        )));
-    }
-    
-    private function setContinueDelay($seconds) {
-        $this->continueDelay = filter_var($seconds, FILTER_VALIDATE_INT, array('options' => array(
-            'default' => 3,
-            'min_range' => 0
-        )));
-    }
-    
-    private function setBufferBody($bool) {
-        $this->bufferBody = filter_var($bool, FILTER_VALIDATE_BOOLEAN);
-    }
-    
-    private function setMaxHeaderBytes($bytes) {
-        $this->maxHeaderBytes = (int) $bytes;
-    }
-    
-    private function setMaxBodyBytes($bytes) {
-        $this->maxBodyBytes = (int) $bytes;
-    }
-    
-    private function setBodySwapSize($bytes) {
-        $this->bodySwapSize = (int) $bytes;
-    }
-    
-    private function setStoreBody($bool) {
-        $this->storeBody = filter_var($bool, FILTER_VALIDATE_BOOLEAN);
-    }
-    
-    private function setIoGranularity($bytes) {
-        $this->ioGranularity = filter_var($bytes, FILTER_VALIDATE_INT, array('options' => array(
-            'default' => 65536,
-            'min_range' => 1
-        )));
-    }
-    
-    private function setBindToIp($ip) {
-        $this->bindToIp = filter_var($ip, FILTER_VALIDATE_IP);
-    }
-    
-    private function setAutoEncoding($bool) {
-        $this->autoEncoding = filter_var($bool, FILTER_VALIDATE_BOOLEAN);
-    }
-    
-    private function setVerboseRead($bool) {
-        $this->verboseRead = filter_var($bool, FILTER_VALIDATE_BOOLEAN);
-    }
-    
-    private function setVerboseSend($bool) {
-        $this->verboseSend = filter_var($bool, FILTER_VALIDATE_BOOLEAN);
-    }
-    
-    private function setTlsOptions(array $opt) {
-        $opt = array_filter(array_intersect_key($opt, $this->tlsOptions), function($k) { return !is_null($k); });
-        $this->tlsOptions = array_merge($this->tlsOptions, $opt);
     }
     
 }

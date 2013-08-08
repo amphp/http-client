@@ -1,6 +1,6 @@
 <?php
 
-use Amp\ReactorFactory,
+use Alert\ReactorFactory,
     Artax\AsyncClient;
 
 require dirname(__DIR__) . '/autoload.php';

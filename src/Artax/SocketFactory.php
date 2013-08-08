@@ -2,7 +2,7 @@
 
 namespace Artax;
 
-use Amp\Reactor;
+use Alert\Reactor;
 
 class SocketFactory {
     

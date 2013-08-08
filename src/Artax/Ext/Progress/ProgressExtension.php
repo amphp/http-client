@@ -14,6 +14,7 @@ class ProgressExtension implements Extension, Observable {
     
     const PROGRESS = 'progress';
     const RESPONSE = 'response';
+    const ERROR = 'error';
     
     private $requests;
     private $progressBarSize = 40;

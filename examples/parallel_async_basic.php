@@ -11,7 +11,7 @@
 
 require dirname(__DIR__) . '/autoload.php'; // <-- autoloader script
 
-$reactor = (new Amp\ReactorFactory)->select();
+$reactor = (new Alert\ReactorFactory)->select();
 $client = new Artax\AsyncClient($reactor);
 
 // Generate a request URI for each letter a-z

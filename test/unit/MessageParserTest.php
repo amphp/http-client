@@ -1,6 +1,6 @@
 <?php
 
-use Artax\Parsing\MessageParser;
+use Artax\MessageParser;
 
 class MessageParserTest extends PHPUnit_Framework_TestCase {
     

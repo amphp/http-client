@@ -1,6 +1,6 @@
 <?php
 
-use Amp\ReactorFactory,
+use Alert\ReactorFactory,
     Artax\Request,
     Artax\AsyncClient,
     Artax\ClientException;
