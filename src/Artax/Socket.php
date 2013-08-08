@@ -2,7 +2,7 @@
 
 namespace Artax;
 
-use Amp\Reactor;
+use Alert\Reactor;
 
 class Socket implements Observable {
     
@@ -11,7 +11,6 @@ class Socket implements Observable {
     const S_UNCONNECTED = 0;
     const S_PENDING = 1;
     const S_CONNECTED = 2;
-    const S_PAUSED = 3;
     
     const E_CONNECT_TIMEOUT = 900;
     const E_CONNECT_FAILURE = 901;
@@ -25,27 +24,22 @@ class Socket implements Observable {
     const DRAIN = 'drain';
     const ERROR = 'error';
     const CONNECT = 'connect';
-    const TIMEOUT = 'timeout';
     
     private $reactor;
     private $state = self::S_UNCONNECTED;
     private $socket;
     private $authority;
-    private $onReadable;
-    private $onWritable;
+    private $readWatcher;
+    private $writeWatcher;
     private $writeBuffer;
-    
-    private $connectTimeout = 5;
-    private $keepAliveTimeout = 30;
-    private $bindToIp;
-    private $ioGranularity = 65536;
-    private $tlsHandshakeTimeout = 5;
-    private $tlsOptions;
-    private $isTls = FALSE;
-    private $tlsHandshakeStartedAt;
-    
     private $connectedAt;
     private $lastDataRcvdAt;
+    
+    private $connectTimeout = 5;
+    private $ioGranularity = 65536;
+    private $tlsOptions;
+    private $isTls = FALSE;
+    private $bindToIp;
     
     function __construct(Reactor $reactor, $authority) {
         $this->reactor = $reactor;
@@ -66,21 +60,10 @@ class Socket implements Observable {
     }
     
     function start() {
-        if (!$this->state) {
-            $this->doConnect();
-        } elseif ($this->state === self::S_PAUSED) {
-            $this->enableIoSubscriptions();
-            $this->state = self::S_CONNECTED;
+        if ($this->state) {
             $this->notifyObservations(self::READY);
         } else {
-            $this->notifyObservations(self::READY);
-        }
-    }
-    
-    function pause() {
-        if ($this->state === self::S_CONNECTED) {
-            $this->disableIoSubscriptions();
-            $this->state = self::S_PAUSED;
+            $this->doConnect();
         }
     }
     
@@ -89,43 +72,18 @@ class Socket implements Observable {
             @fclose($this->socket);
         }
         
-        $this->cancelSubscriptions();
-    }
-    
-    private function enableIoSubscriptions() {
-        $this->onWritable->enable();
-        $this->onReadable->enable();
-    }
-    
-    private function disableIoSubscriptions() {
-        $this->onWritable->disable();
-        $this->onReadable->disable();
-    }
-    
-    private function cancelSubscriptions() {
-        if ($this->onWritable) {
-            $this->onWritable->cancel();
-            $this->onWritable = NULL;
-        }
-        
-        if ($this->onReadable) {
-            $this->onReadable->cancel();
-            $this->onReadable = NULL;
-        }
+        $this->reactor->cancel($this->writeWatcher);
+        $this->reactor->cancel($this->readWatcher);
     }
     
     private function doConnect() {
         $flags = STREAM_CLIENT_CONNECT | STREAM_CLIENT_ASYNC_CONNECT;
         $timeout = 42; // <--- not applicable with STREAM_CLIENT_ASYNC_CONNECT
         $ctx = $this->generateContext();
-        $this->socket = @stream_socket_client($this->authority, $errNo, $errStr, $timeout, $flags, $ctx);
+        $socket = @stream_socket_client($this->authority, $errNo, $errStr, $timeout, $flags, $ctx);
         
-        if ($this->socket || $errNo === self::E_WOULDBLOCK) {
-            $this->state = self::S_PENDING;
-            $connectTimeout = ($this->connectTimeout >= 0) ? $this->connectTimeout : -1;
-            $this->onWritable = $this->reactor->onWritable($this->socket, function($s, $trigger) {
-                $this->initializeConnectedSock($trigger);
-            }, $connectTimeout);
+        if ($socket || $errNo === self::E_WOULDBLOCK) {
+            $this->initializePendingSock($socket);
         } else {
             $this->state = self::S_UNCONNECTED;
             $error = new SocketException(NULL, self::E_CONNECT_FAILURE);
@@ -134,7 +92,8 @@ class Socket implements Observable {
     }
     
     private function generateContext() {
-        $opts = array();
+        $opts = [];
+        
         if ($this->bindToIp) {
             $opts['socket']['bindto'] = $this->bindToIp;
         }
@@ -145,94 +104,78 @@ class Socket implements Observable {
         return stream_context_create($opts);
     }
     
-    private function initializeConnectedSock($trigger) {
-        if ($trigger === Reactor::TIMEOUT) {
-            return $this->doConnectTimeout();
+    private function initializePendingSock($socket) {
+        stream_set_blocking($socket, FALSE);
+        
+        $this->socket = $socket;
+        $this->state = self::S_PENDING;
+        
+        $this->writeWatcher = $this->reactor->onWritable($this->socket, function() {
+            $this->initializeConnectedSock();
+        });
+        
+        if ($this->connectTimeout >= 0) {
+            $this->timeoutWatcher = $this->reactor->once(function() {
+                $this->state = self::S_UNCONNECTED;
+                $error = new SocketException(NULL, self::E_CONNECT_TIMEOUT);
+                $this->notifyObservations(self::ERROR, $error);
+                $this->stop();
+            }, $this->connectTimeout);
         }
-        
-        stream_set_blocking($this->socket, FALSE);
-        
-        $this->onWritable->cancel();
-        $this->onWritable = NULL;
-        
+    }
+    
+    private function initializeConnectedSock() {
         if ($this->isTls) {
-            $this->initializeTlsSubscription();
+            $this->reactor->cancel($this->writeWatcher);
+            $this->writeWatcher = $this->reactor->onWritable($this->socket, function() {
+                $this->enableSockEncryption();
+            });
         } else {
             $this->finalizeConnection();
         }
     }
     
-    private function doConnectTimeout() {
-        $error = new SocketException(NULL, self::E_CONNECT_TIMEOUT);
-        $this->notifyObservations(self::ERROR, $error);
-        $this->stop();
-    }
-    
-    private function initializeTlsSubscription() {
-        $this->tlsHandshakeStartedAt = time();
-        $this->onWritable = $this->reactor->onWritable($this->socket, function() {
-            $this->enableTls();
-        });
-    }
-    
-    private function enableTls() {
+    private function enableSockEncryption() {
         $result = @stream_socket_enable_crypto($this->socket, TRUE, STREAM_CRYPTO_METHOD_TLS_CLIENT);
         
         if ($result) {
-            $this->onWritable->cancel();
-            $this->onWritable = NULL;
             $this->finalizeConnection();
         } elseif ($result === FALSE) {
             $errMsg = error_get_last()['message'];
             $e = new SocketException($errMsg, self::E_TLS_HANDSHAKE_FAILED);
             $this->notifyObservations(self::ERROR, $e);
             $this->stop();
-        } elseif (time() > ($this->tlsHandshakeStartedAt + $this->tlsHandshakeTimeout)) {
-            $this->doConnectTimeout();
         }
     }
     
     private function finalizeConnection() {
         $this->state = self::S_CONNECTED;
-        $this->onReadable = $this->reactor->onReadable(
-            $this->socket,
-            function($sock, $trigger) { $this->read($trigger); },
-            $this->keepAliveTimeout
-        );
+        
+        $this->readWatcher = $this->reactor->onReadable($this->socket, function() {
+            $this->read();
+        });
+        
+        $this->reactor->cancel($this->writeWatcher);
+        $this->writeWatcher = $this->reactor->onWritable($this->socket, function() {
+            $this->doSend();
+        }, $enableNow = FALSE);
+        
         $this->connectedAt = microtime(TRUE);
         $this->notifyObservations(self::CONNECT);
         $this->notifyObservations(self::READY);
     }
     
-    private function read($trigger) {
-        if ($trigger === Reactor::TIMEOUT) {
-            $this->notifyObservations(self::TIMEOUT);
-        } else {
+    private function read() {
+        while (($data = @fread($this->socket, $this->ioGranularity)) || $data === '0') {
             $this->lastDataRcvdAt = microtime(TRUE);
-            $this->doRead();
-        }
-    }
-    
-    private function doRead() {
-        while (TRUE) {
-            $data = @fread($this->socket, $this->ioGranularity);
-            
-            if (strlen($data)) {
-                $this->notifyObservations(self::DATA, $data);
-            } else {
-                break;
-            }
+            $this->notifyObservations(self::DATA, $data);
         }
         
-        if (!$this->isConnected()) {
+        if (!is_resource($this->socket) || @feof($this->socket)) {
             $this->state = self::S_UNCONNECTED;
             $error = new SocketException(NULL, self::E_SOCKET_GONE);
             $this->notifyObservations(self::ERROR, $error);
         }
-    }
-    
-    function isConnected() {
-        return ($this->state === self::S_CONNECTED && is_resource($this->socket) && !feof($this->socket));
     }
     
     function send($data) {
@@ -257,41 +200,40 @@ class Socket implements Observable {
         if ($bytesSent === $dataLen) {
             $this->notifyObservations(self::SEND, $this->writeBuffer);
             $this->writeBuffer = '';
-            $this->disableWriteSubscription();
+            $this->reactor->disable($this->writeWatcher);
             $this->notifyObservations(self::DRAIN);
-        } elseif ($bytesSent > 0) {
+        } elseif ($bytesSent !== FALSE) {
             $this->notifyObservations(self::SEND, substr($this->writeBuffer, 0, $bytesSent));
             $this->writeBuffer = substr($this->writeBuffer, $bytesSent);
-            $this->enableWriteSubscription();
-        } elseif ($bytesSent === FALSE && !(is_resource($this->socket) && !feof($this->socket))){
+            $this->reactor->enable($this->writeWatcher);
+        } elseif (!is_resource($this->socket) || @feof($this->socket)){
             $this->state = self::S_UNCONNECTED;
             $error = new SocketException(NULL, self::E_SOCKET_GONE);
             $this->notifyObservations(self::ERROR, $error);
         }
     }
     
-    private function disableWriteSubscription() {
-        if ($this->onWritable) {
-            $this->onWritable->disable();
-        }
-    }
-    
-    private function enableWriteSubscription() {
-        if (!$this->onWritable) {
-            $this->onWritable = $this->reactor->onReadable($this->socket, function() {
-                $this->doSend();
-            });
-        } else {
-            $this->onWritable->enable();
-        }
-    }
-    
+    /**
+     * Set multiple socket options at once
+     * 
+     * @param array $options An array matching option keys to their values
+     * @throws \DomainException On unknown option key
+     * @return void
+     */
     function setAllOptions(array $options) {
         foreach ($options as $key => $value) {
             $this->setOption($key, $value);
         }
     }
     
+    /**
+     * Set a socket option
+     * 
+     * @param string $key An option key
+     * @param mixed $value The option value to assign
+     * @throws \DomainException On unknown option key
+     * @return void
+     */
     function setOption($key, $value) {
         if ($this->state) {
             throw new \LogicException(
@@ -299,22 +241,23 @@ class Socket implements Observable {
             );
         }
         
-        $validKeys = array(
-            'connectTimeout',
-            'keepAliveTimeout',
-            'bindToIp',
-            'ioGranularity',
-            'tlsHandshakeTimeout',
-            'tlsOptions'
-        );
-        
-        if (in_array($key, $validKeys)) {
-            $setter = 'set' . ucfirst($key);
-            $this->$setter($value);
-        } else {
-            throw new \DomainException(
-                'Invalid option key: ' . $key
-            );
+        switch (strtolower($key)) {
+            case 'connecttimeout':
+                $this->setConnectTimeout($value);
+                break;
+            case 'bindtoip':
+                $this->setBindToIp($value);
+                break;
+            case 'iogranularity':
+                $this->setIoGranularity($value);
+                break;
+            case 'tlsoptions':
+                $this->setTlsOptions($value);
+                break;
+            default:
+                throw new \DomainException(
+                    "Unknown option key: {$key}"
+                );
         }
     }
     
@@ -325,18 +268,8 @@ class Socket implements Observable {
         )));
     }
     
-    private function setKeepAliveTimeout($seconds) {
-        $this->keepAliveTimeout = filter_var($seconds, FILTER_VALIDATE_INT, array('options' => array(
-            'default' => 30,
-            'min_range' => -1
-        )));
-    }
-    
-    private function setTlsHandshakeTimeout($seconds) {
-        $this->tlsHandshakeTimeout = filter_var($seconds, FILTER_VALIDATE_INT, array('options' => array(
-            'default' => 5,
-            'min_range' => -1
-        )));
+    private function setBindToIp($ip) {
+        $this->bindToIp = filter_var($ip, FILTER_VALIDATE_IP);
     }
     
     private function setIoGranularity($bytes) {
@@ -344,10 +277,6 @@ class Socket implements Observable {
             'default' => 65536,
             'min_range' => 1
         )));
-    }
-    
-    private function setBindToIp($ip) {
-        $this->bindToIp = filter_var($ip, FILTER_VALIDATE_IP);
     }
     
     private function setTlsOptions(array $opt) {

@@ -2,7 +2,7 @@
 
 use Artax\Client,
     Artax\AsyncClient,
-    Amp\ReactorFactory;
+    Alert\ReactorFactory;
 
 class DnsResolutionFailureIntegrationTest extends PHPUnit_Framework_TestCase {
 

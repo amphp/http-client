@@ -1,8 +1,29 @@
 <?php
 
-namespace Artax\Parsing;
+namespace Artax;
 
-class PeclMessageParser implements Parser {
+class MessageParser {
+    
+    const STATUS_LINE_PATTERN = "#^
+        HTTP/(?P<protocol>\d+\.\d+)[\x20\x09]+
+        (?P<status>[1-5]\d\d)[\x20\x09]*
+        (?P<reason>[^\x01-\x08\x10-\x19]*)
+    $#ix";
+    
+    const HEADERS_PATTERN = "/
+        (?P<field>[^\(\)<>@,;:\\\"\/\[\]\?\={}\x20\x09\x01-\x1F\x7F]+):[\x20\x09]*
+        (?P<value>[^\x01-\x08\x0A-\x1F\x7F]*)[\x0D]?[\x20\x09]*[\r]?[\n]
+    /x";
+    
+    const MODE_REQUEST = 1;
+    const MODE_RESPONSE = 2;
+    
+    const AWAITING_HEADERS = 0;
+    const BODY_IDENTITY = 1;
+    const BODY_IDENTITY_EOF = 2;
+    const BODY_CHUNKS = 3;
+    const TRAILERS_START = 4;
+    const TRAILERS = 5;
     
     private $mode;
     private $state = self::AWAITING_HEADERS;
@@ -17,7 +38,7 @@ class PeclMessageParser implements Parser {
     private $body;
     private $remainingBodyBytes;
     private $bodyBytesConsumed = 0;
-    private $chunkLenRemaining;
+    private $chunkLenRemaining = NULL;
     
     private $parseFlowHeaders = [
         'TRANSFER-ENCODING' => NULL,
@@ -85,8 +106,15 @@ class PeclMessageParser implements Parser {
         awaiting_headers: {
             if (!$startLineAndHeaders = $this->shiftHeadersFromMessageBuffer()) {
                 goto more_data_needed;
+            } else {
+                goto start_line;
             }
-            
+        }
+        
+        start_line: {
+            $startLineEndPos = strpos($startLineAndHeaders, "\n");
+            $startLine = substr($startLineAndHeaders, 0, $startLineEndPos);
+            $rawHeaders = substr($startLineAndHeaders, $startLineEndPos + 1);
             $this->traceBuffer = $startLineAndHeaders;
             
             if ($this->mode === self::MODE_REQUEST) {
@@ -97,23 +125,76 @@ class PeclMessageParser implements Parser {
         }
         
         request_line_and_headers: {
-            $msgObj = @http_parse_message($startLineAndHeaders);
-            
-            if (!($msgObj && $msgObj->type == self::MODE_REQUEST)) {
-                throw new ParseException(
+            $parts = explode(' ', trim($startLine));
+        
+            if (isset($parts[0]) && ($method = trim($parts[0]))) {
+                $this->requestMethod = $method;
+            } else {
+                throw new MessageParseException(
                     $this->getParsedMessageArray(),
-                    $msg = 'Invalid request line and/or headers',
+                    $msg = 'Invalid request line',
                     $code = 400,
                     $previousException = NULL
                 );
             }
             
-            $this->protocol = $msgObj->httpVersion == 1 ? '1.0' : $msgObj->httpVersion;
-            $this->requestMethod = $msgObj->requestMethod;
-            $this->requestUri = $msgObj->requestUrl;
-            $this->headers = $this->normalizeHeaders($msgObj->headers);
+            if (isset($parts[1]) && ($uri = trim($parts[1]))) {
+                $this->requestUri = $uri;
+            } else {
+                throw new MessageParseException(
+                    $this->getParsedMessageArray(),
+                    $msg = 'Invalid request line',
+                    $code = 400,
+                    $previousException = NULL
+                );
+            }
+            
+            if (isset($parts[2]) && ($protocol = str_ireplace('HTTP/', '', trim($parts[2])))) {
+                $this->protocol = $protocol;
+            } else {
+                throw new MessageParseException(
+                    $this->getParsedMessageArray(),
+                    $msg = 'Invalid request line',
+                    $code = 400,
+                    $previousException = NULL
+                );
+            }
+            
+            if (!($protocol === '1.0' || '1.1' === $protocol)) {
+                throw new MessageParseException(
+                    $this->getParsedMessageArray(),
+                    $msg = 'Protocol not supported: {$protocol}',
+                    $code = 505,
+                    $previousException = NULL
+                );
+            }
+            
+            if ($rawHeaders) {
+                $this->headers = $this->parseHeadersFromRaw($rawHeaders);
+            }
             
             goto transition_from_request_headers_to_body;
+        }
+        
+        status_line_and_headers: {
+            if (preg_match(self::STATUS_LINE_PATTERN, $startLine, $m)) {
+                $this->protocol = $m['protocol'];
+                $this->responseCode = $m['status'];
+                $this->responseReason = trim($m['reason']);
+            } else {
+                throw new MessageParseException(
+                    $this->getParsedMessageArray(),
+                    $msg = 'Invalid status line',
+                    $code = 400,
+                    $previousException = NULL
+                );
+            }
+            
+            if ($rawHeaders) {
+                $this->headers = $this->parseHeadersFromRaw($rawHeaders);
+            }
+            
+            goto transition_from_response_headers_to_body;
         }
         
         transition_from_request_headers_to_body: {
@@ -129,26 +210,6 @@ class PeclMessageParser implements Parser {
             } else {
                 goto complete;
             }
-        }
-        
-        status_line_and_headers: {
-            $msgObj = @http_parse_message($startLineAndHeaders);
-            
-            if (!($msgObj && $msgObj->type == self::MODE_RESPONSE)) {
-                throw new ParseException(
-                    $this->getParsedMessageArray(),
-                    $msg = 'Invalid start line and/or headers',
-                    $code = 400,
-                    $previousException = NULL
-                );
-            }
-            
-            $this->protocol = $msgObj->httpVersion == 1 ? '1.0' : $msgObj->httpVersion;
-            $this->responseCode = $msgObj->responseCode;
-            $this->responseReason = $msgObj->responseStatus;
-            $this->headers = $this->normalizeHeaders($msgObj->headers);
-            
-            goto transition_from_response_headers_to_body;
         }
         
         transition_from_response_headers_to_body: {
@@ -201,16 +262,16 @@ class PeclMessageParser implements Parser {
         body_identity: {
             $bufferDataSize = strlen($this->buffer);
         
-            if ($bufferDataSize === $this->remainingBodyBytes) {
-                $this->addToBody($this->buffer);
-                $this->buffer = NULL;
-                $this->remainingBodyBytes = 0;
-                goto complete;
-            } elseif ($bufferDataSize < $this->remainingBodyBytes) {
+            if ($bufferDataSize < $this->remainingBodyBytes) {
                 $this->addToBody($this->buffer);
                 $this->buffer = NULL;
                 $this->remainingBodyBytes -= $bufferDataSize;
                 goto more_data_needed;
+            } elseif ($bufferDataSize == $this->remainingBodyBytes) {
+                $this->addToBody($this->buffer);
+                $this->buffer = NULL;
+                $this->remainingBodyBytes = 0;
+                goto complete;
             } else {
                 $bodyData = substr($this->buffer, 0, $this->remainingBodyBytes);
                 $this->addToBody($bodyData);
@@ -244,6 +305,7 @@ class PeclMessageParser implements Parser {
                 $this->buffer = substr($this->buffer, 2);
                 goto complete;
             } else {
+                
                 $this->state = self::TRAILERS;
                 goto trailers;
             }
@@ -302,7 +364,7 @@ class PeclMessageParser implements Parser {
         }
         
         if ($this->maxHeaderBytes > 0 && $headersSize > $this->maxHeaderBytes) {
-            throw new ParseException(
+            throw new MessageParseException(
                 $this->getParsedMessageArray(),
                 $msg = "Maximum allowable header size exceeded: {$this->maxHeaderBytes}",
                 $code = 431,
@@ -313,18 +375,40 @@ class PeclMessageParser implements Parser {
         return $headers;
     }
     
-    private function normalizeHeaders(array $headers) {
-        $normalized = [];
-        
-        foreach ($headers as $field => $value) {
-            if ($value === (array) $value) {
-                $normalized[$field] = $value;
-            } else {
-                $normalized[$field][] = $value;
-            }
+    private function parseHeadersFromRaw($rawHeaders) {
+        if (strpos($rawHeaders, "\n\x20") || strpos($rawHeaders, "\n\t")) {
+            $rawHeaders = preg_replace("/(?:\r\n|\n)[\x20\t]+/", ' ', $rawHeaders);
         }
         
-        $ucKeyHeaders = array_change_key_case($normalized, CASE_UPPER);
+        if (!preg_match_all(self::HEADERS_PATTERN, $rawHeaders, $matches)) {
+            throw new MessageParseException(
+                $this->getParsedMessageArray(),
+                $msg = 'Invalid headers',
+                $code = 400,
+                $previousException = NULL
+            );
+        }
+        
+        $headers = [];
+        
+        $aggregateMatchedHeaders = '';
+        
+        for ($i=0, $c=count($matches[0]); $i < $c; $i++) {
+            $aggregateMatchedHeaders .= $matches[0][$i];
+            $field = $matches['field'][$i];
+            $headers[$field][] = $matches['value'][$i];
+        }
+        
+        if (strlen($rawHeaders) !== strlen($aggregateMatchedHeaders)) {
+            throw new MessageParseException(
+                $this->getParsedMessageArray(),
+                $msg = 'Invalid headers',
+                $code = 400,
+                $previousException = NULL
+            );
+        }
+        
+        $ucKeyHeaders = array_change_key_case($headers, CASE_UPPER);
         
         if (isset($ucKeyHeaders['TRANSFER-ENCODING'])
             && strcasecmp('identity', $ucKeyHeaders['TRANSFER-ENCODING'][0])
@@ -334,7 +418,7 @@ class PeclMessageParser implements Parser {
             $this->parseFlowHeaders['CONTENT-LENGTH'] = (int) $ucKeyHeaders['CONTENT-LENGTH'][0];
         }
         
-        return $normalized;
+        return $headers;
     }
     
     private function dechunk() {
@@ -346,7 +430,7 @@ class PeclMessageParser implements Parser {
             if (FALSE === ($lineEndPos = strpos($this->buffer, "\r\n"))) {
                 goto more_data_needed;
             } elseif ($lineEndPos === 0) {
-                throw new ParseException(
+                throw new MessageParseException(
                     $this->getParsedMessageArray(),
                     $msg = 'Invalid new line; hexadecimal chunk size expected',
                     $code = 400,
@@ -361,7 +445,7 @@ class PeclMessageParser implements Parser {
             if ($hex == dechex($dec)) {
                 $this->chunkLenRemaining = $dec;
             } else {
-                throw new ParseException(
+                throw new MessageParseException(
                     $this->getParsedMessageArray(),
                     $msg = 'Invalid hexadecimal chunk size',
                     $code = 400,
@@ -412,7 +496,7 @@ class PeclMessageParser implements Parser {
     }
     
     private function parseTrailers($trailers) {
-        $trailerHeaders = http_parse_headers($trailers);
+        $trailerHeaders = $this->parseHeadersFromRaw($trailers);
         $ucKeyTrailerHeaders = array_change_key_case($trailerHeaders, CASE_UPPER);
         $ucKeyHeaders = array_change_key_case($this->headers, CASE_UPPER);
         
@@ -425,18 +509,14 @@ class PeclMessageParser implements Parser {
         foreach (array_keys($this->headers) as $key) {
             $ucKey = strtoupper($key);
             if (isset($ucKeyTrailerHeaders[$ucKey])) {
-                $value = $ucKeyTrailerHeaders[$ucKey];
-                $value = ($value === (array) $value) ? $value : [$value];
-                $this->headers[$key] = $value;
+                $this->headers[$key] = $ucKeyTrailerHeaders[$ucKey];
             }
         }
         
         foreach (array_keys($trailerHeaders) as $key) {
             $ucKey = strtoupper($key);
             if (!isset($ucKeyHeaders[$ucKey])) {
-                $value = $trailerHeaders[$key];
-                $value = ($value === (array) $value) ? $value : [$value];
-                $this->headers[$key] = $value;
+                $this->headers[$key] = $trailerHeaders[$key];
             }
         }
     }
@@ -468,7 +548,7 @@ class PeclMessageParser implements Parser {
         $this->bodyBytesConsumed += strlen($data);
         
         if ($this->maxBodyBytes > 0 && $this->bodyBytesConsumed > $this->maxBodyBytes) {
-            throw new ParseException(
+            throw new MessageParseException(
                 $this->getParsedMessageArray(),
                 $msg = "Maximum allowable body size exceeded: {$this->maxBodyBytes}",
                 $code = 413,

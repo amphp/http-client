@@ -13,8 +13,8 @@ class RequestState {
     public $onError;
     public $parser;
     public $redirectHistory = [];
-    public $transferTimeoutSubscription;
+    public $transferTimeoutWatcher;
+    public $continueDelayWatcher;
     public $bodyDrainObservation;
-    public $continueDelaySubscription;
     
 }

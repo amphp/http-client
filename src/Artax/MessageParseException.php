@@ -1,8 +1,8 @@
 <?php
 
-namespace Artax\Parsing;
+namespace Artax;
 
-class ParseException extends \RuntimeException {
+class MessageParseException extends \RuntimeException {
     
     private $parsedMsgArr;
     

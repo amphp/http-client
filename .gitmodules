@@ -1,3 +1,3 @@
-[submodule "vendor/Amp"]
-	path = vendor/Amp
-	url = https://github.com/rdlowrey/Amp.git
+[submodule "vendor/Alert"]
+	path = vendor/Alert
+	url = git://github.com/rdlowrey/Alert.git
