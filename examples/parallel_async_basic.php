@@ -38,7 +38,7 @@ $onError = function(Exception $e, Artax\Request $request) use (&$unfinishedReque
 };
 
 // Schedule this to happen as soon as the reactor starts
-$reactor->once(function() use ($client, $requests, $onResponse, $onError) {
+$reactor->immediately(function() use ($client, $requests, $onResponse, $onError) {
     echo 'Requesting ', count($requests), ' URIs ...', "\n";
     foreach ($requests as $uri) {
         $client->request($uri, $onResponse, $onError);

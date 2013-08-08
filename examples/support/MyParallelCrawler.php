@@ -1,6 +1,6 @@
 <?php
 
-use Amp\Reactor,
+use Alert\Reactor,
     Artax\Uri,
     Artax\Request,
     Artax\Response,

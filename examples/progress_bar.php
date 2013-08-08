@@ -19,7 +19,6 @@
 
 use Artax\Client,
     Artax\Request,
-    Artax\Response,
     Artax\ClientException,
     Artax\Ext\Progress\ProgressDisplay,
     Artax\Ext\Progress\ProgressExtension;

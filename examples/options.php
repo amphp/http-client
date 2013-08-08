@@ -23,6 +23,7 @@ $client->setAllOptions([
     'maxConnections'        => -1,      // Max number of simultaneous sockets allowed (unlimited by default)
     'maxConnectionsPerHost' => 8,       // Max number of simultaneous sockets allowed per unique host
     'continueDelay'         => 3,       // How many seconds to wait for a 100 Continue response if `Expect: 100-continue` header used
+    'expectContinue'        => TRUE,    // Auto-add Expect: 100-continue header for requests with entity bodies
     'bufferBody'            => TRUE,    // TRUE to buffer response bodies as strings, FALSE to keep them as temp streams
     'bindToIp'              => NULL,    // Optionally bind request sockets to a specific local IP on your machine
     'ioGranularity'         => 65536,   // Max bytes to read/write per socket IO operation

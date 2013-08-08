@@ -2,8 +2,7 @@
 
 use Alert\ReactorFactory,
     Artax\Request,
-    Artax\AsyncClient,
-    Artax\ClientException;
+    Artax\AsyncClient;
 
 require dirname(__DIR__) . '/autoload.php';
 
@@ -27,7 +26,7 @@ foreach ($aToZ as $alpha) {
 }
 
 // Schedule the requests to be fired when the reactor starts
-$reactor->once(function() use ($reactor, $client, $requests, &$completionCount) {
+$reactor->immediately(function() use ($reactor, $client, $requests, &$completionCount) {
     foreach ($requests as $request) {
         $uri = $request->getUri();
         

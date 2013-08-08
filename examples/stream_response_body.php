@@ -15,8 +15,9 @@ $client->setOption('bufferBody', FALSE);
 try {
 
     $response = $client->request('http://www.google.com');
-    assert(is_resource($response->getBody()));
     echo 'HTTP/' , $response->getProtocol() , ' ' , $response->getStatus() , ' ' , $response->getReason() , "\n";
+    $body = $response->getBody();
+    var_dump(stream_get_contents($body));
     
 } catch (Artax\ClientException $e) {
     // Connection failed, socket died or an unparsable response message was returned
