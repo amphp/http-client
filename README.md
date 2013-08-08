@@ -1,8 +1,9 @@
 # Artax HTTP Client
 
-Artax is a full-featured HTTP/1.1 client as specified in RFC 2616.  Its API is designed to simplify
+Artax is a full-featured HTTP/1.1 client as specified in RFC 2616. Its API is designed to simplify
 standards-compliant HTTP resource traversal and RESTful web service consumption without obscuring the
-underlying HTTP protocol.
+underlying HTTP protocol. The code manually implements the HTTP over TCP sockets; as such it has no
+dependency on PHP's disastrous `curl_*` API and requires no non-standard PHP extensions.
 
 > **HEY!** Checkout out the [EXAMPLES SECTION](https://github.com/rdlowrey/Artax/tree/master/examples)
 > to see some of the cool stuff Artax can do. Or, scroll to the bottom of this file to see examples
@@ -10,63 +11,73 @@ underlying HTTP protocol.
 
 #### FEATURES
 
- - Requires no cURL/libcurl dependency; Artax manually implements HTTP over TCP sockets
+ - Eschews any cURL/libcurl dependency
+ - Exposes APIs for synchronous, parallel and event-driven request/response
  - Retains persistent "keep-alive" connections
  - Transparently follows redirects
  - Requests and decodes gzipped entity bodies
- - Provides access to raw headers and messages
+ - Provides access to all raw request/response headers and message data
  - Streams request and response entity bodies for hands-on memory management
  - Supports all standard and custom request methods
- - Offers full cookie support via the Cookie extension
- - Trivializes submitting multipart and form-encoded entities the FormBody API.
+ - Trivializes submitting HTTP forms for multipart and form-encoded entities via the `FormBody` API
  - Provides fully customizable and secure-by-default TLS (https://) support
- - Provides serial, synchronous parallel and event-driven parallel retrieval
  - Exposes a simple subject/observer API for plugins and extensions
+ - Offers advanced connection limiting options on a per-host basis
+ - Provides fully automatic cookie support via the Cookie extension
+ - Offers built-in progress bar and tracking support via the Progress extension
  
 
 #### PROJECT GOALS
 
 * Model all code as closely as possible to the protocol outlined in [RFC 2616][rfc2616];
-* Implement an HTTP/1.1 Client built on raw sockets with no libcurl dependency;
+* Implement an HTTP/1.1 client built on raw sockets with no libcurl dependency;
 * Build all components using [SOLID][solid], readable and thoroughly unit-tested code;
 
 #### INSTALLATION
 
-```bash
-$ php composer.phar require rdlowrey/artax:0.5.*
-```
-
-Or
+###### Git:
 
 ```bash
-$ git clone --recursive https://github.com/rdlowrey/Artax.git
+$ git clone --recursive https://github.com/rdlowrey/artax.git
 ```
+
+Successful recursive clones will place the [Alert][alert-github] dependency in the `vendor/` 
+directory. When included in your project the `autoload.php` script will register class autoloaders
+for both `Artax` and `Alert` namespaces.
+
+###### Composer:
+
+```bash
+$ php composer.phar require rdlowrey/artax:0.6.*
+```
+
 
 #### REQUIREMENTS
 
 * PHP 5.4+
-* The [Amp][amp-github] library (installed automatically if you use `git clone --recursive`).
-* PHP's `openssl` extension if you need TLS (https://)
-* PHP's `zlib` extension if you wish to request/decompress gzipped response bodies
+* The [Alert][alert-github] library (installed automatically if you `git clone --recursive`)
+* PHP's `openssl` extension if you need TLS (https://) encryption support
+* PHP's `zlib` extension if you wish to request/decompress gzipped responses
 
 
 #### SERIAL vs. ASYNC
 
 Artax offers two APIs for your HTTP needs:
 
-- **Serial:** `Artax\Client` is fully synchronous. You can requests invidual HTTP resources serially or in parallel,
-but retrieval function calls are always synchronous.
+- **Serial:** `Artax\Client` is fully synchronous. You can requests invidual HTTP resources serially
+or in parallel, but retrieval function calls are always synchronous.
 
-- **Async:** `Artax\AsyncClient` is fully asynchronous and runs inside a non-blocking event loop. The asynchronous
-client allows for full IO and computational parallelization. But with great power comes great responsibility;
-an understand non-blocking IO is needed to effectively write code using this paradigm.
+- **Async:** `Artax\AsyncClient` is fully asynchronous and runs inside a non-blocking event loop.
+The asynchronous client allows for full IO and computational parallelization. But with great power
+comes great responsibility; an understand non-blocking IO is needed to effectively write code using
+this paradigm.
 
 
 #### BASIC USAGE
 
 ###### Simple GET Request
 
-Often we only care about simple GET retrieval. For such cases Artax accepts a simple URI as the
+Often we only care about simple GET retrieval. For such cases Artax accepts a basic HTTP URI as the
 request parameter:
 
 ```php
@@ -102,7 +113,7 @@ $request->setProtocol('1.1');
 $request->setMethod('POST');
 $request->setAllHeaders([
     'Content-Type' => 'text/plain; charset=utf-8',
-    'Set-Cookie' => ['Cookie1=val1', 'Cookie2=val2']
+    'Cookie' => ['Cookie1=val1', 'Cookie2=val2']
 ]);
 $request->setBody('woot!');
 
@@ -116,8 +127,8 @@ POST /post HTTP/1.1
 Host: httpbin.org
 Content-Length: 5
 Content-Type: text/plain; charset=utf-8
-Set-Cookie: Cookie1=val1
-Set-Cookie: Cookie2=val2
+Cookie: Cookie1=val1
+Cookie: Cookie2=val2
 
 woot!
 ```
@@ -203,7 +214,7 @@ the scene where Atreyu's faithful steed, Artax, died in the Swamp of Sadness. Th
 
 
 [rfc2616]: http://www.w3.org/Protocols/rfc2616/rfc2616.html
-[amp-github]: https://github.com/rdlowrey/Amp
+[alert-github]: https://github.com/rdlowrey/Alert
 [solid]: http://en.wikipedia.org/wiki/SOLID_(object-oriented_design) "S.O.L.I.D."
 [neverending]: http://www.imdb.com/title/tt0088323/ "The NeverEnding Story"
 
