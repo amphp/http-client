@@ -94,11 +94,11 @@ if (!$forceOverwrite) {
 
 $client = new Client;
 $progressDisplay = new ProgressDisplay;
-(new ProgressExtension)->extend($client)->subscribe([
+(new ProgressExtension)->extend($client)->addObservation([
     ProgressExtension::PROGRESS => function($dataArr) use ($progressDisplay) {
         $progress = $dataArr[1];
         if (isset($progress->headerBytes)) {
-            echo $progressDisplay->display($progress);
+            echo "\r", $progressDisplay->display($progress), "\r";
         }
     }
 ]);
