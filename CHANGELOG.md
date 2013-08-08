@@ -1,8 +1,26 @@
-#### master
+#### master (moving towards v0.6.0)
 
-- Added a `combineResponseCookies` property to the cookies extension which enables combining all
-  cookie values into a single header as some servers do not correctly handle multiple Cookie
-  headers. This behavior is off by default.
+- Amp submodule removed in favor of new lightweight Alert reactor dependency. Applications relying
+  on the Amp submodule's API for evented code using `Artax\AsyncClient` may require updates.
+  Evented applications should replace `Amp\*` references with equivalent `Alert\*` values.
+
+- Added a `combineOutboundCookies` property to the cookies extension which enables combining all
+  cookie values into a single header as some servers do not correctly handle multiple `Cookie:`
+  headers. This behavior is now enabled by default.
+
+- Added new `expectContinue` client option for auto-adding `Expect: 100-continue` headers to
+  requests with an entity body (if no `Expect:` header is already assigned). This option is enabled
+  by default.
+
+- `MessageParser` moved into main Artax namespace, PECL parser removed, `Parser` interface removed
+
+- Miscellaneous naming, formatting, documentation, bugfixes and other internal improvements.
+
+##### BC BREAKS:
+
+- Request cookies sent via the Cookies extension are now combined by default instead of being split
+  into multiple headers.
+- Code relying on the now removed Amp submodule API must update to the new Alert API.
 
 #### v0.5.1
 
