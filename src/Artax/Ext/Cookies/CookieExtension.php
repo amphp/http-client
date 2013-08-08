@@ -10,20 +10,19 @@ class CookieExtension implements Extension {
     private $cookieJar;
     private $cookieParser;
     private $observation;
-    private $combineResponseCookies = false;
+    private $combineOutboundCookies = TRUE;
     
     function __construct(CookieJar $cookieJar = NULL, CookieParser $cookieParser = NULL) {
         $this->cookieJar = $cookieJar ?: new ArrayCookieJar;
         $this->cookieParser = $cookieParser ?: new CookieParser;
     }
     
-    function unextend() {
-        if ($this->observation) {
-            $this->observation->cancel();
-            $this->observation = NULL;
-        }
-    }
-    
+    /**
+     * Observer event broadcasts from the specified client
+     * 
+     * @param Artax\ObservableClient $client The client whose events we want to observe
+     * @return void
+     */
     function extend(ObservableClient $client) {
         $this->unextend();
         $this->observation = $client->addObservation([
@@ -32,36 +31,58 @@ class CookieExtension implements Extension {
         ]);
     }
     
+    /**
+     * Clear an existing client observation
+     * 
+     * @return void
+     */
+    function unextend() {
+        if ($this->observation) {
+            $this->observation->cancel();
+            $this->observation = NULL;
+        }
+    }
+    
+    /**
+     * Should multiple cookies be merged into a single cookie header when sent to servers?
+     * 
+     * While servers are technically required to correctly handle cookies split across multiple
+     * headers, some fail in this regard. To provide maximum compatibility we combine cookie values
+     * into a single header by default.
+     * 
+     * @param bool $combine Whether or not to auto-combine cookie headers on send
+     * @return \Artax\Ext\Cookies\CookieExtension Returns the current object instance
+     */
+    public function combineOutboundCookies($combine = TRUE) {
+        $this->combineOutboundCookies = filter_var($combine, FILTER_VALIDATE_BOOLEAN);
+        
+        return $this;
+    }
+    
     private function onRequest(array $dataArr) {
         $request = current($dataArr);
         
         $urlParts = parse_url($request->getUri());
-        $scheme = $urlParts['scheme'];
         $domain = $urlParts['host'];
         $path = isset($urlParts['path']) ? $urlParts['path'] : '/';
-
-        $applicableCookies = $this->cookieJar->get($domain, $path);
         
-        if ($this->combineResponseCookies) {
-            $cookieKeyValuePairs = [];
-            
-            foreach ($applicableCookies as $cookie) {
-                if (!$cookie->getSecure() || !strcasecmp($scheme, 'https')) {
-                    $cookieKeyValuePairs[] = $cookie->getName() . '=' . $cookie->getValue();
-                }
-            }
-
-            if (!empty($cookieKeyValuePairs)) {
-                $request->setHeader('Cookie', implode('; ', $cookieKeyValuePairs));
+        if ($applicableCookies = $this->cookieJar->get($domain, $path)) {
+            $isRequestSecure = !strcasecmp($urlParts['scheme'], 'https');
+            $this->assignApplicableCookies($request, $applicableCookies, $isRequestSecure);
+        }
+    }
+    
+    private function assignApplicableCookies($request, $applicableCookies, $isRequestSecure) {
+        $cookiePairs = [];
+        foreach ($applicableCookies as $cookie) {
+            if (!$cookie->getSecure() || $isRequestSecure) {
+                $cookiePairs[] = $cookie->getName() . '=' . $cookie->getValue();
             }
         }
-        else {
-            foreach ($applicableCookies as $cookie) {
-                if (!$cookie->getSecure() || !strcasecmp($scheme, 'https')) {
-                    $cookieStr = $cookie->getName() . '=' . $cookie->getValue();
-                    $request->appendHeader('Cookie', $cookieStr);
-                }
-            }
+        
+        if ($cookiePairs) {
+            $value = $this->combineOutboundCookies ? implode('; ', $cookiePairs) : $cookiePairs;
+            $request->setHeader('Cookie', $value);
         }
     }
     
@@ -91,17 +112,11 @@ class CookieExtension implements Extension {
                     $cookie->getHttpOnly()
                 );
             }
+            
             $this->cookieJar->store($cookie);
             
         } catch (\InvalidArgumentException $e) {
             // Ignore malformed Set-Cookie headers
         }
-    }
-    
-    public function combineResponseCookies($combine = true)
-    {
-        $this->combineResponseCookies = $combine;
-
-        return $this;
     }
 }
