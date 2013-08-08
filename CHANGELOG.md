@@ -1,4 +1,5 @@
-#### master (moving towards v0.6.0)
+v0.6.0
+------
 
 - Amp submodule removed in favor of new lightweight Alert reactor dependency. Applications relying
   on the Amp submodule's API for evented code using `Artax\AsyncClient` may require updates.
