@@ -13,7 +13,7 @@
   ],
   "require": {
     "php": ">=5.4.0",
-    "rdlowrey/alert": ">=0.1.0"
+    "rdlowrey/alert": "~0.1.0"
   },
   "autoload": {
     "psr-0": {
