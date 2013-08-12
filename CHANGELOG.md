@@ -1,3 +1,7 @@
+#### v0.6.1
+
+- Updated `Alert` dependency to v0.1.2 for latest bugfixes
+
 v0.6.0
 ------
 
