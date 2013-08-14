@@ -11,7 +11,7 @@ dependency on PHP's disastrous `curl_*` API and requires no non-standard PHP ext
 
 #### FEATURES
 
- - Eschews any cURL/libcurl dependency
+ - Eschews any cURL/libcurl dependency because only people with weak HTTP-fu would ever use `curl_*`
  - Exposes APIs for synchronous, parallel and event-driven request/response
  - Retains persistent "keep-alive" connections
  - Transparently follows redirects
