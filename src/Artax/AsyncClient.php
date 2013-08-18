@@ -516,6 +516,7 @@ class AsyncClient implements NonBlockingClient {
         $request = $rs->request;
         $socket = $rs->socket;
         
+        $rs->parser->enqueueResponseMethodMatch($request->getMethod());
         $rawHeaders = $this->generateRawRequestHeaders($request);
         
         if ($request->hasBody()) {
