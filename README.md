@@ -38,7 +38,7 @@ dependency on PHP's disastrous `curl_*` API and requires no non-standard PHP ext
 ###### Git:
 
 ```bash
-$ git clone --recursive https://github.com/rdlowrey/artax.git
+$ git clone --recursive https://github.com/rdlowrey/Artax.git
 ```
 
 Successful recursive clones will place the [Alert][alert-github] dependency in the `vendor/` 
@@ -48,7 +48,7 @@ for both `Artax` and `Alert` namespaces.
 ###### Composer:
 
 ```bash
-$ php composer.phar require rdlowrey/artax:0.6.*
+$ php composer.phar require rdlowrey/Artax:0.6.*
 ```
 
 
