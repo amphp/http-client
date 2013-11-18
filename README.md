@@ -69,7 +69,7 @@ or in parallel, but retrieval function calls are always synchronous.
 
 - **Async:** `Artax\AsyncClient` is fully asynchronous and runs inside a non-blocking event loop.
 The asynchronous client allows for full IO and computational parallelization. But with great power
-comes great responsibility; an understand non-blocking IO is needed to effectively write code using
+comes great responsibility; an understanding of non-blocking IO is needed to effectively write code using
 this paradigm.
 
 
