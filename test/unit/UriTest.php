@@ -190,6 +190,19 @@ class UriTest extends PHPUnit_Framework_TestCase {
                     'fragment' => ''
                 )
             ),
+            array(
+                'rawUri' => 'http://localhost/test.php?params[]=1&params[]=2',
+                'expectedVals' => array (
+                    'scheme' => 'http',
+                    'user' => '',
+                    'pass' => '',
+                    'host' => 'localhost',
+                    'port' => '',
+                    'path' => '/test.php',
+                    'query' => http_build_query(array('params'=>array(1,2))),
+                    'fragment' => ''
+                )
+            )
         );
     }
     
@@ -207,19 +220,16 @@ class UriTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals($expectedVals['query'], $uri->getQuery());
         $this->assertEquals($expectedVals['fragment'], $uri->getFragment());
     }
+    
+    public function testQueryParams() {
+        $uri = new Uri('http://localhost/test.php?params[]=1&params[]=2');
+        $expected = array('params' => array(1, 2));
+        $actual = $uri->getAllQueryParameters();
+        $this->assertEquals($expected, $actual);
+        
+        $uri = new Uri('http://localhost/test.php?params[1][0]=1&params[1][1]=2');
+        $expected = array('params' => array(1 => array(1, 2)));
+        $actual = $uri->getAllQueryParameters();
+        $this->assertEquals($expected, $actual);
+    }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

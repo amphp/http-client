@@ -434,15 +434,10 @@ class Uri {
     
     private function parseQueryParameters() {
         if ($this->query) {
-            parse_str($this->query, $parameters);
+            parse_str(rawurldecode($this->query), $parameters);
             
-            $keys = array_map('rawurldecode', array_keys($parameters));
-            $values = array_map('rawurldecode', array_values($parameters));
-            
-            $query = array_combine($keys, $values);
-            $this->queryParameters = $query;
-            
-            $this->query = str_replace('+', '%20', http_build_query($query, NULL, '&'));
+            $this->queryParameters = $parameters;
+            $this->query = str_replace('+', '%20', http_build_query($parameters, NULL, '&'));
             
             // Fix http_build_query adding equals sign to empty keys
             $this->query = str_replace('=&', '&', rtrim($this->query, '='));
