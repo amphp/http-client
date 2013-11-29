@@ -107,7 +107,7 @@ when sending an `Artax\Request` is the absolute *http://* or *https://* request 
 <?php
 
 $client = new Artax\Client;
-$request = new Artax\Request
+$request = new Artax\Request;
 $request->setUri('http://httpbin.org/post');
 $request->setProtocol('1.1');
 $request->setMethod('POST');
