@@ -3,7 +3,7 @@
 Artax is a full-featured HTTP/1.1 client as specified in RFC 2616. Its API is designed to simplify
 standards-compliant HTTP resource traversal and RESTful web service consumption without obscuring the
 underlying HTTP protocol. The code manually implements the HTTP over TCP sockets; as such it has no
-dependency on PHP's disastrous `curl_*` API and requires no non-standard PHP extensions.
+dependency on PHP's `curl_*` API and requires no non-standard PHP extensions.
 
 > **HEY!** Checkout out the [EXAMPLES SECTION](https://github.com/rdlowrey/Artax/tree/master/examples)
 > to see some of the cool stuff Artax can do. Or, scroll to the bottom of this file to see examples
@@ -11,7 +11,7 @@ dependency on PHP's disastrous `curl_*` API and requires no non-standard PHP ext
 
 #### FEATURES
 
- - Eschews any cURL/libcurl dependency because only people with weak HTTP-fu would ever use `curl_*`
+ - Eschews any cURL/libcurl dependency
  - Exposes APIs for synchronous, parallel and event-driven request/response
  - Retains persistent "keep-alive" connections
  - Transparently follows redirects
