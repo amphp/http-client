@@ -6,11 +6,20 @@ use Alert\Reactor, Alert\ReactorFactory;
 
 class Client implements BlockingClient {
 
+    /** @var \Alert\LibeventReactor|\Alert\NativeReactor */
     private $reactor;
+    /** @var AsyncClient */
     private $asyncClient;
+    /** @var  Response */
     private $response;
+    /** @var  ClientException */
     private $error;
+    /** @var  \SplObjectStorage */
     private $pendingMultiRequests;
+    /** @var  callable */
+    private $onMultiResult;
+    /** @var  callable */
+    private $onMultiError;
 
     /**
      * The constructor parameters allow for lazy injection and improved testability. Unless you
@@ -28,7 +37,7 @@ class Client implements BlockingClient {
     /**
      * Synchronously request an HTTP resource
      *
-     * @param $uriOrRequest An http:// or https:// URI string or Artax\Request instance
+     * @param $uriOrRequest string|Request An http:// or https:// URI string or Artax\Request instance
      * @throws \Artax\ClientException On socket-level connection issues
      * @return \Artax\Response A mutable object modeling the raw HTTP response
      */
@@ -138,25 +147,27 @@ class Client implements BlockingClient {
      * @return void
      */
     function setAllOptions(array $options) {
-        return $this->asyncClient->setAllOptions($options);
+        $this->asyncClient->setAllOptions($options);
     }
 
     /**
      * Assign a client option
      *
-     * @param string $key Option key
+     * @param       $option
      * @param mixed $value Option value
      * @throws \DomainException On unknown option key
      * @return void
      */
     function setOption($option, $value) {
-        return $this->asyncClient->setOption($option, $value);
+        $this->asyncClient->setOption($option, $value);
     }
 
     /**
      * Attach an array of event observations
      *
-     * @param array $listeners A key-value array mapping event names to callable listeners
+     * @param array $eventListenerMap
+     *
+     * @internal param array $listeners A key-value array mapping event names to callable listeners
      * @return \Artax\Observation
      */
     function addObservation(array $eventListenerMap) {
@@ -170,7 +181,7 @@ class Client implements BlockingClient {
      * @return void
      */
     function removeObservation(Observation $observation) {
-        return $this->asyncClient->removeObservation($observation);
+        $this->asyncClient->removeObservation($observation);
     }
 
     /**
@@ -179,7 +190,7 @@ class Client implements BlockingClient {
      * @return void
      */
     function removeAllObservations() {
-        return $this->asyncClient->removeAllObservations();
+        $this->asyncClient->removeAllObservations();
     }
 
     /**
