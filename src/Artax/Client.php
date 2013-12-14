@@ -6,13 +6,13 @@ use Alert\Reactor, Alert\ReactorFactory;
 
 class Client implements BlockingClient {
 
-    /** @var \Alert\LibeventReactor|\Alert\NativeReactor */
+    /** @var \Alert\Reactor */
     private $reactor;
-    /** @var AsyncClient */
+    /** @var \Artax\AsyncClient */
     private $asyncClient;
-    /** @var  Response */
+    /** @var  \Artax\Response */
     private $response;
-    /** @var  ClientException */
+    /** @var  \Artax\ClientException */
     private $error;
     /** @var  \SplObjectStorage */
     private $pendingMultiRequests;
@@ -37,7 +37,7 @@ class Client implements BlockingClient {
     /**
      * Synchronously request an HTTP resource
      *
-     * @param $uriOrRequest string|Request An http:// or https:// URI string or Artax\Request instance
+     * @param $uriOrRequest string|Request A URI address or Artax\Request instance
      * @throws \Artax\ClientException On socket-level connection issues
      * @return \Artax\Response A mutable object modeling the raw HTTP response
      */
@@ -153,7 +153,7 @@ class Client implements BlockingClient {
     /**
      * Assign a client option
      *
-     * @param       $option
+     * @param string $option
      * @param mixed $value Option value
      * @throws \DomainException On unknown option key
      * @return void
