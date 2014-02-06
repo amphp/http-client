@@ -35,6 +35,7 @@ class AsyncClient implements NonBlockingClient {
     private $ioGranularity = 65536;
     private $verboseRead = FALSE;
     private $verboseSend = FALSE;
+    private $userAgentString = '';
     private $tlsOptions = [
         'verify_peer' => TRUE,
         'allow_self_signed' => NULL,
@@ -205,10 +206,23 @@ class AsyncClient implements NonBlockingClient {
             case 'tlsoptions':
                 $this->setTlsOptions($value);
                 break;
+            case 'useragentstring':
+                $this->setUserAgentString($value);
+                break;
             default:
                 throw new \DomainException(
                     "Unknown option key: {$key}"
                 );
+        }
+    }
+    
+    private function setUserAgentString($value) {
+        if ($value && is_string($value)) {
+            $this->userAgentString = $value;
+        } else {
+            throw new \InvalidArgumentException(
+                'User Agent requires a non-empty string'
+            );
         }
     }
     
@@ -856,7 +870,8 @@ class AsyncClient implements NonBlockingClient {
         }
         
         if (!$request->hasHeader('User-Agent')) {
-            $request->setHeader('User-Agent', ObservableClient::USER_AGENT);
+            $userAgentString = $this->userAgentString ?: ObservableClient::USER_AGENT;
+            $request->setHeader('User-Agent', $userAgentString);
         }
         
         if (!$request->hasHeader('Host')) {
