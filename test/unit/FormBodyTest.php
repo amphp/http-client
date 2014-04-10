@@ -53,6 +53,26 @@ class FormBodyTest extends PHPUnit_Framework_TestCase {
         
         $return[] = [$fields, $expectedOutput];
         
+        // 3 -------------------------------------------------------------------------------------->
+        
+        $fields = [
+            ['field', ['val1', 'val2']]
+        ];
+        
+        $expectedOutput = http_build_query(['field' => ['val1', 'val2']]);
+        
+        $return[] = [$fields, $expectedOutput];
+        
+        // 4 -------------------------------------------------------------------------------------->
+        
+        $fields = [
+            ['field', ['val1', 'val2', 'nest'=> [1,2,3]]]
+        ];
+        
+        $expectedOutput = http_build_query(['field' => ['val1', 'val2', 'nest'=> [1,2,3]]]);
+        
+        $return[] = [$fields, $expectedOutput];
+        
         // x -------------------------------------------------------------------------------------->
         
         return $return;
@@ -148,8 +168,7 @@ class FormBodyTest extends PHPUnit_Framework_TestCase {
     
     function provideBadStrings() {
         return [
-            [new StdClass],
-            [[]]
+            [new StdClass]
         ];
     }
     
