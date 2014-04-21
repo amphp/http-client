@@ -31,7 +31,7 @@ class FormBody implements BodyAggregate {
     private function validateFieldValue($value) {
         if (!(is_scalar($value) || is_array($value))) {
             throw new \InvalidArgumentException(
-                'Invalid field value; string expected'
+                'Invalid field value; scalar or array expected'
             );
         }
     }
