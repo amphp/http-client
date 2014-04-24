@@ -35,10 +35,18 @@ class FormBody implements BodyAggregate {
             );
         }
     }
+    
+    private function validateFileFieldValue($value) {
+        if (!is_string($value)) {
+            throw new \InvalidArgumentException(
+                'Invalid field value; string expected'
+            );
+        }
+    }
 
     function addFileField($name, $filePath, $contentType = 'application/octet-stream') {
         $this->validateFieldName($name);
-        $this->validateFieldValue($filePath);
+        $this->validateFileFieldValue($filePath);
 
         $fileName = basename($filePath);
         $this->fields[] = [$name, new FileBody($filePath), $contentType, $fileName];
@@ -48,11 +56,12 @@ class FormBody implements BodyAggregate {
     }
 
     function getBody() {
-        return $this->isMultipart ? $this->getIterableMultipartBody() : $this->getFormEncodedBody();
+        return $this->isMultipart
+            ? $this->getIterableMultipartBody()
+            : $this->getFormEncodedBody();
     }
 
     private function getFormEncodedBody() {
-        $bodyParts = [];
         $fields = [];
 
         foreach ($this->fields as $fieldArr) {

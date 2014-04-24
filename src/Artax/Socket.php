@@ -117,7 +117,11 @@ class Socket implements Observable {
         if ($this->connectTimeout >= 0) {
             $this->timeoutWatcher = $this->reactor->once(function() {
                 $this->state = self::S_UNCONNECTED;
-                $error = new SocketException(NULL, self::E_CONNECT_TIMEOUT);
+                $msg = sprintf(
+                    "Attempt to connect lasted more than %d seconds",
+                    $this->connectTimeout
+                );
+                $error = new SocketException($msg, self::E_CONNECT_TIMEOUT);
                 $this->notifyObservations(self::ERROR, $error);
                 $this->stop();
             }, $this->connectTimeout);

@@ -6,6 +6,7 @@ class ResourceBody implements \Iterator, \Countable {
     
     private $resource;
     private $lengthCache;
+    private $currentCache;
     private $currentIterCache;
     private $streamGranularity = 32768;
     
@@ -13,6 +14,7 @@ class ResourceBody implements \Iterator, \Countable {
         if (is_resource($resource)) {
             $this->validateSeekability($resource);
             $this->resource = $resource;
+            $this->currentCache = 0;
         } else {
             throw new \InvalidArgumentException(
                 'Invalid stream resource'
@@ -100,13 +102,16 @@ class ResourceBody implements \Iterator, \Countable {
     }
     
     private function getResourceChunk($resource) {
-        $chunk = @fread($resource, $this->streamGranularity);
+        $remaining = $this->lengthCache - $this->currentCache;
+        $chunk = @fread($resource, min($remaining, $this->streamGranularity));
         
         if ($chunk === FALSE) {
             throw new \RuntimeException(
                 'Failed reading from stream'
             );
         }
+        
+        $this->currentCache += strlen($chunk);
         
         return $chunk;
     }
@@ -117,6 +122,7 @@ class ResourceBody implements \Iterator, \Countable {
 
     function next() {
         $this->currentIterCache = NULL;
+        return $this->currentCache < $this->count();
     }
 
     function valid() {

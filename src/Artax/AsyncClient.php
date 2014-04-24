@@ -376,16 +376,14 @@ class AsyncClient implements NonBlockingClient {
             
             if ($socket = $this->checkoutExistingSocket($rs)) {
                 $rs->socket = $socket;
-                $this->applyRequestSocketObservations($rs);
-                $this->requestQueue->detach($request);
-                $this->requests->attach($request, $rs);
             } elseif ($socket = $this->checkoutNewSocket($rs)) {
                 $rs->socket = $socket;
                 $this->assignSocketOptions($request, $rs->socket);
-                $this->applyRequestSocketObservations($rs);
-                $this->requestQueue->detach($request);
-                $this->requests->attach($request, $rs);
             }
+            
+            $this->applyRequestSocketObservations($rs);
+            $this->requestQueue->detach($request);
+            $this->requests->attach($request, $rs);
         }
     }
     
@@ -555,7 +553,7 @@ class AsyncClient implements NonBlockingClient {
     private function requestExpects100Continue(Request $request) {
         if (!$request->hasHeader('Expect')) {
             $expectsContinue = FALSE;
-        } elseif (stristr(implode(',', $request->getHeader('Expect')), '100-continue')) {
+        } elseif (stripos(implode(',', $request->getHeader('Expect')), '100-continue') !== FALSE) {
             $expectsContinue = TRUE;
         } else {
             $expectsContinue = FALSE;
