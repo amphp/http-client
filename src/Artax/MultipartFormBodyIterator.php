@@ -32,8 +32,12 @@ class MultipartFormBodyIterator implements \Iterator, \Countable {
 
     function next() {
         $this->currentCache = NULL;
-        if (current($this->fields) instanceof FormBody) {
-            current($this->fields)->next();
+        if (current($this->fields) instanceof FileBody) {
+            $continue = current($this->fields)->next();
+            
+            if(!$continue) {
+                next($this->fields);
+            }
         } else {
             next($this->fields);
         }
