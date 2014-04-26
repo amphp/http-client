@@ -19,6 +19,16 @@ class FormBody implements BodyAggregate {
 
         return $this;
     }
+    
+    function addAllFields(array $fields, $contentType = 'text/plain') {
+        foreach($fields as $name => $value) {
+		    $this->validateFieldName($name);
+		    $this->validateFieldValue($value);
+		    $this->fields[] = [$name, $value, $contentType, $fileName = NULL];
+		}
+
+        return $this;
+    }
 
     private function validateFieldName($name) {
         if (!(is_string($name) && strlen($name))) {
@@ -85,7 +95,7 @@ class FormBody implements BodyAggregate {
 
             $fields[] = "--{$this->boundary}\r\n";
 
-            $fields[] = is_string($field)
+            $fields[] = is_scalar($field)
                 ? $this->generateMultipartFieldHeader($name, $contentType)
                 : $this->generateMultipartFileHeader($name, $fileName, $contentType);
 
@@ -96,7 +106,7 @@ class FormBody implements BodyAggregate {
         $fields[] = "--{$this->boundary}--";
 
         foreach ($fields as $field) {
-            $length += is_string($field) ? strlen($field) : $field->count();
+            $length += is_scalar($field) ? strlen($field) : $field->count();
         }
         reset($fields);
 
