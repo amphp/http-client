@@ -369,24 +369,28 @@ class AsyncClient implements NonBlockingClient {
         
         return $host . ':' . $port;
     }
-    
+
     private function assignRequestSockets() {
         foreach ($this->requestQueue as $request) {
             $rs = $this->requestQueue->offsetGet($request);
-            
             if ($socket = $this->checkoutExistingSocket($rs)) {
-                $rs->socket = $socket;
+                $this->finalizeRequestSocket($rs, $request, $socket, $isNewSocket = FALSE);
             } elseif ($socket = $this->checkoutNewSocket($rs)) {
-                $rs->socket = $socket;
-                $this->assignSocketOptions($request, $rs->socket);
+                $this->finalizeRequestSocket($rs, $request, $socket, $isNewSocket = TRUE);
             }
-            
-            $this->applyRequestSocketObservations($rs);
-            $this->requestQueue->detach($request);
-            $this->requests->attach($request, $rs);
         }
     }
-    
+
+    private function finalizeRequestSocket(RequestState $rs, Request $request, $socket, $isNewSocket) {
+        $rs->socket = $socket;
+        if ($isNewSocket) {
+            $this->assignSocketOptions($request, $rs->socket);
+        }
+        $this->applyRequestSocketObservations($rs);
+        $this->requestQueue->detach($request);
+        $this->requests->attach($request, $rs);
+    }
+
     private function checkoutExistingSocket(RequestState $rs) {
         foreach ($this->sockets as $socket) {
             $isInUse = (bool) $this->sockets->offsetGet($socket);

@@ -3,64 +3,66 @@
 namespace Artax;
 
 class MultipartFormBodyIterator implements \Iterator, \Countable {
-    
     private $fields;
     private $length;
     private $currentCache;
     private $position = 0;
-    
-    function __construct(array $fields, $length) {
+
+    public function __construct(array $fields, $length) {
         $this->fields = $fields;
         $this->length = $length;
     }
-    
-    function current() {
+
+    public function current() {
         if (isset($this->currentCache)) {
-            $current = $this->currentCache;
-        } elseif (current($this->fields) instanceof FileBody) {
-            $current = $this->currentCache = current($this->fields)->current();
-        } else {
-            $current = $this->currentCache = current($this->fields);
+            return $current = $this->currentCache;
         }
-        
-        return $current;
+
+        $current = current($this->fields);
+
+        return ($current instanceof FileBody)
+            ? ($this->currentCache = $current->current())
+            : $current;
     }
-    
-    function key() {
+
+    public function key() {
         return key($this->fields);
     }
 
-    function next() {
+    public function next() {
         $this->currentCache = NULL;
-        if (current($this->fields) instanceof FileBody) {
-            $continue = current($this->fields)->next();
-            
-            if(!$continue) {
-                next($this->fields);
-            }
+        $current = current($this->fields);
+        if ($current instanceof FileBody) {
+            $this->advanceFileBodyIterator($current);
         } else {
             next($this->fields);
         }
     }
 
-    function valid() {
+    private function advanceFileBodyIterator(FileBody $fileBody) {
+        $fileBody->next();
+        if (!$fileBody->valid()) {
+            next($this->fields);
+        }
+    }
+
+    public function valid() {
         return isset($this->fields[key($this->fields)]);
     }
 
-    function rewind() {
+    public function rewind() {
         foreach ($this->fields as $field) {
             if ($field instanceof MultipartFormFile) {
                 $field->rewind();
             }
         }
-        
+
         reset($this->fields);
-        
+
         $this->currentCache = NULL;
     }
-    
-    function count() {
+
+    public function count() {
         return $this->length;
     }
 }
-
