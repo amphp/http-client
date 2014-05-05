@@ -15,7 +15,7 @@ class MultipartFormBodyIterator implements \Iterator, \Countable {
 
     public function current() {
         if (isset($this->currentCache)) {
-            return $current = $this->currentCache;
+            return $this->currentCache;
         }
 
         $current = current($this->fields);
