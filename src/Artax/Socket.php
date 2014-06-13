@@ -125,7 +125,7 @@ class Socket implements Observable {
                 $error = new SocketException($msg, self::E_CONNECT_TIMEOUT);
                 $this->notifyObservations(self::ERROR, $error);
                 $this->stop();
-            }, $this->connectTimeout);
+            }, $this->connectTimeout * 1000);
         }
     }
     
