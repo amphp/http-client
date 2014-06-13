@@ -338,8 +338,7 @@ class AsyncClient implements NonBlockingClient {
      */
     private function resolveDns(RequestState $rs) {
         $urlParts = parse_url($rs->authority);
-        $ip = gethostbyname($urlParts['host']);
-        
+
         if (filter_var($urlParts['host'], FILTER_VALIDATE_IP)) {
             $dnsLookupSucceeded = TRUE;
         } elseif (($ip = gethostbyname($urlParts['host'])) && ($ip === $urlParts['host'])) {
