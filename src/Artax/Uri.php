@@ -258,6 +258,7 @@ class Uri {
     }
     
     /**
+     * @param string $toResolve
      * @return Uri
      * @link http://tools.ietf.org/html/rfc3986#section-5.2.2
      */
@@ -455,6 +456,7 @@ class Uri {
     /**
      * @param string $parameter
      * @return string
+     * @throws \DomainException
      */
     function getQueryParameter($parameter) {
         if (!$this->hasQueryParameter($parameter)) {

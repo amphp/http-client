@@ -15,7 +15,7 @@ interface BlockingClient extends ObservableClient {
      * Synchronously request multiple HTTP resources in parallel
      * 
      * @param array $requests An array of URI strings and/or Artax\Request instances
-     * @param callable $onEachResult Receives Artax\Response instance on request completion
+     * @param callable $onEachResponse Receives Artax\Response instance on request completion
      * @param callable $onEachError Receives an Exception instance on request completion
      */
     function requestMulti(array $requests, callable $onEachResponse, callable $onEachError);
