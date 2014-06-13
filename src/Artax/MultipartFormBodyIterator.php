@@ -52,7 +52,7 @@ class MultipartFormBodyIterator implements \Iterator, \Countable {
 
     public function rewind() {
         foreach ($this->fields as $field) {
-            if ($field instanceof MultipartFormFile) {
+            if ($field instanceof FileBody) {
                 $field->rewind();
             }
         }
