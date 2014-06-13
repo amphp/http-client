@@ -74,7 +74,7 @@ abstract class Message {
     }
     
     private function validateHeader(array $headerValues) {
-        foreach ($headerValues as $key => $value) {
+        foreach ($headerValues as $value) {
             if (!is_scalar($value)) {
                 return FALSE;
             }

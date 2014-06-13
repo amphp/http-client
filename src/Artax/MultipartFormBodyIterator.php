@@ -6,7 +6,6 @@ class MultipartFormBodyIterator implements \Iterator, \Countable {
     private $fields;
     private $length;
     private $currentCache;
-    private $position = 0;
 
     public function __construct(array $fields, $length) {
         $this->fields = $fields;
