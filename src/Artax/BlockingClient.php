@@ -7,7 +7,7 @@ interface BlockingClient extends ObservableClient {
     /**
      * Synchronously request an HTTP resource
      * 
-     * @param string $uriOrRequest An http:// or https:// URI string or \Artax\Request instance
+     * @param string|Request $uriOrRequest An http:// or https:// URI string or \Artax\Request instance
      */
     function request($uriOrRequest);
     
