@@ -338,8 +338,7 @@ class AsyncClient implements NonBlockingClient {
      */
     private function resolveDns(RequestState $rs) {
         $urlParts = parse_url($rs->authority);
-        $ip = gethostbyname($urlParts['host']);
-        
+
         if (filter_var($urlParts['host'], FILTER_VALIDATE_IP)) {
             $dnsLookupSucceeded = TRUE;
         } elseif (($ip = gethostbyname($urlParts['host'])) && ($ip === $urlParts['host'])) {
@@ -526,7 +525,7 @@ class AsyncClient implements NonBlockingClient {
         if ($this->transferTimeout > 0) {
             $rs->transferTimeoutWatcher = $this->reactor->once(function() use ($rs) {
                 $this->onError($rs, new TimeoutException);
-            }, $this->transferTimeout);
+            }, $this->transferTimeout * 1000);
         }
         
         $request = $rs->request;
@@ -548,7 +547,7 @@ class AsyncClient implements NonBlockingClient {
         if ($this->requestExpects100Continue($rs->request)) {
             $rs->continueDelayWatcher = $this->reactor->once(function() use ($rs) {
                 $this->initializeRequestBodyWrite($rs);
-            }, $this->continueDelay);
+            }, $this->continueDelay * 1000);
         } else {
             $this->initializeRequestBodyWrite($rs);
         }

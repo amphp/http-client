@@ -15,8 +15,7 @@ class Uri {
     private $queryParameters = array();
     private $isIpV4 = FALSE;
     private $isIpV6 = FALSE;
-    private $components = array('scheme', 'host', 'port', 'user', 'pass', 'path', 'query', 'fragment');
-    
+
     function __construct($uri) {
         $uri = (string) $uri;
         
@@ -151,7 +150,7 @@ class Uri {
         
         return $this->reconstitute(
             $this->scheme,
-            $this->authority,
+            $this->getAuthority(),
             $path,
             $this->query,
             $this->fragment
@@ -194,7 +193,7 @@ class Uri {
         $patternB1 = ',^(/\./),';
         $patternB2 = ',^(/\.)$,';
         $patternC  = ',^(/\.\./|/\.\.),';
-        $patternD  = ',^(\.\.?)$,';
+        // $patternD  = ',^(\.\.?)$,';
         $patternE  = ',(/*[^/]*),';
         
         while ($input !== '') {
@@ -249,7 +248,7 @@ class Uri {
         }
         
         try {
-            $uri = new Uri($toResolve);
+            (new Uri($toResolve));
         } catch (\DomainException $e) {
             return FALSE;
         }
@@ -258,6 +257,7 @@ class Uri {
     }
     
     /**
+     * @param string $toResolve
      * @return Uri
      * @link http://tools.ietf.org/html/rfc3986#section-5.2.2
      */
@@ -393,7 +393,7 @@ class Uri {
     function getAbsoluteUri() {
         return $this->reconstitute(
             $this->scheme,
-            $this->authority,
+            $this->getAuthority(),
             $this->path,
             $this->query,
             $fragment = ''
@@ -417,9 +417,11 @@ class Uri {
     /**
      * @link http://www.apps.ietf.org/rfc/rfc3986.html#sec-3.2
      */
-    function getAuthority() {
+    function getAuthority($hiddenPass = true) {
         $authority = $this->user;
-        $authority.= $this->pass ? (':' . '********') : '';
+        $authority.= $this->pass !== ''
+            ? (':' . ($hiddenPass ? '********' : $this->pass))
+            : '';
         $authority.= $authority ? '@' : '';
         
         if ($this->isIpV6) {
@@ -455,6 +457,7 @@ class Uri {
     /**
      * @param string $parameter
      * @return string
+     * @throws \DomainException
      */
     function getQueryParameter($parameter) {
         if (!$this->hasQueryParameter($parameter)) {

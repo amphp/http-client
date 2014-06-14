@@ -20,7 +20,7 @@ class CookieExtension implements Extension {
     /**
      * Observer event broadcasts from the specified client
      * 
-     * @param Artax\ObservableClient $client The client whose events we want to observe
+     * @param ObservableClient $client The client whose events we want to observe
      * @return void
      */
     function extend(ObservableClient $client) {

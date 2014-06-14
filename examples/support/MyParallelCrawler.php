@@ -31,7 +31,7 @@ class MyParallelCrawler {
         $this->reactor->once(function() {
             $this->reactor->stop();
             die;
-        }, $delay = 15);
+        }, $delay = 15000);
         
         $this->reactor->run();
     }

@@ -31,6 +31,7 @@ class Socket implements Observable {
     private $authority;
     private $readWatcher;
     private $writeWatcher;
+    private $timeoutWatcher;
     private $writeBuffer;
     private $connectedAt;
     private $lastDataRcvdAt;
@@ -124,13 +125,14 @@ class Socket implements Observable {
                 $error = new SocketException($msg, self::E_CONNECT_TIMEOUT);
                 $this->notifyObservations(self::ERROR, $error);
                 $this->stop();
-            }, $this->connectTimeout);
+            }, $this->connectTimeout * 1000);
         }
     }
     
     private function initializeConnectedSock() {
         if ($this->isTls) {
             $this->reactor->cancel($this->writeWatcher);
+            $this->reactor->cancel($this->timeoutWatcher);
             $this->writeWatcher = $this->reactor->onWritable($this->socket, function() {
                 $this->enableSockEncryption();
             });
