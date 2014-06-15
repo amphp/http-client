@@ -13,7 +13,8 @@
   ],
   "require": {
     "php": ">=5.4.0",
-    "rdlowrey/alert": "~0.8.1"
+    "rdlowrey/alert": "~0.8.1",
+    "daverandom/addr": "~0.2.1"
   },
   "autoload": {
     "psr-0": {
