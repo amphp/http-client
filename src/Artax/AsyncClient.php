@@ -13,6 +13,7 @@ class AsyncClient implements NonBlockingClient {
     private $requests;
     private $requestQueue;
     private $socketFactory;
+    private $dnsResolver;
     
     private $hasExtZlib;
     private $autoEncoding = TRUE;
@@ -50,9 +51,10 @@ class AsyncClient implements NonBlockingClient {
         'SNI_server_name' => NULL
     ];
     
-    function __construct(Reactor $reactor, SocketFactory $sf = NULL) {
+    function __construct(Reactor $reactor, SocketFactory $sf = NULL, DnsResolver $dnsResolver = NULL) {
         $this->reactor = $reactor;
         $this->socketFactory = $sf ?: new SocketFactory;
+        $this->dnsResolver = $dnsResolver ?: new AddrDnsResolver($reactor);
         $this->sockets = new \SplObjectStorage;
         $this->requests = new \SplObjectStorage;
         $this->requestQueue = new \SplObjectStorage;
@@ -82,9 +84,7 @@ class AsyncClient implements NonBlockingClient {
         
         $this->notifyObservations(self::REQUEST, [$request, NULL]);
         
-        if ($this->resolveDns($rs)) {
-            $this->assignRequestSockets();
-        }
+        $this->resolveDns($rs);
     }
     
     /**
@@ -332,27 +332,26 @@ class AsyncClient implements NonBlockingClient {
         $this->tlsOptions = array_merge($this->tlsOptions, $opt);
     }
     
-    /**
-     * @TODO Refactor to allow for non-blocking DNS lookups. Currently this is the only part of the
-     * process that has the potential to block because it relies on PHP for DNS lookups.
-     */
     private function resolveDns(RequestState $rs) {
         $urlParts = parse_url($rs->authority);
 
-        if (filter_var($urlParts['host'], FILTER_VALIDATE_IP)) {
-            $dnsLookupSucceeded = TRUE;
-        } elseif (($ip = gethostbyname($urlParts['host'])) && ($ip === $urlParts['host'])) {
-            $this->requests->attach($rs->request, $rs);
-            $this->onError($rs, new DnsException(
-                'DNS resolution failed for ' . $urlParts['host']
-            ));
-            $dnsLookupSucceeded = FALSE;
-        } else {
-            $rs->authority = $ip . ':' . $urlParts['port'];
-            $dnsLookupSucceeded = TRUE;
-        }
-        
-        return $dnsLookupSucceeded;
+        $this->dnsResolver->resolve($urlParts['host'], function($ip, $type) use ($rs, $urlParts) {
+            if ($ip === NULL) {
+                $this->requests->attach($rs->request, $rs);
+                $this->onError($rs, new DnsException(
+                    'DNS resolution failed for ' . $urlParts['host'] . ' (error code: ' . $type . ')'
+                ));
+                return;
+            }
+
+            if ($type === DnsResolver::ADDR_INET6) {
+                $rs->authority = '[' . $ip . ']:' . $urlParts['port'];
+            } else {
+                $rs->authority = $ip . ':' . $urlParts['port'];
+            }
+
+            $this->assignRequestSockets();
+        });
     }
     
     private function generateAuthorityFromUri($uri) {
