@@ -3,6 +3,7 @@
 namespace Artax;
 
 use Addr\AddressModes;
+use Addr\ResolutionErrors;
 use Alert\Reactor,
     Addr\Resolver,
     Addr\ResolverFactory;
@@ -20,6 +21,15 @@ class AddrDnsResolver implements DnsResolver {
     private $familyMap = [
         AddressModes::INET4_ADDR => self::ADDR_INET4,
         AddressModes::INET6_ADDR => self::ADDR_INET6,
+    ];
+
+    /**
+     * @var int[]
+     */
+    private $resolutionErrors = [
+        ResolutionErrors::ERR_INVALID_NAME => 'Invalid Name',
+        ResolutionErrors::ERR_NO_RECORD => 'No Record Found',
+        ResolutionErrors::ERR_SERVER_TIMEOUT => 'Server Timeout',
     ];
 
     /**
@@ -46,7 +56,13 @@ class AddrDnsResolver implements DnsResolver {
      */
     public function resolve($name, callable $callback) {
         $this->resolver->resolve($name, function($addr, $type) use($callback) {
-            $callback($addr, $this->familyMap[$type]);
+                if(null !== $addr && array_key_exists($type, $this->familyMap)) {
+                    $callback($addr, $this->familyMap[$type]);
+                } else if(null === $addr && array_key_exists($type, $this->resolutionErrors)) {
+                    throw new DnsException('DNS Resolution error: '. $this->resolutionErrors[$type]);
+                } else {
+                    throw new DnsException("DNS Resolution error: Unknown response type [$type]");
+                }
         });
     }
 
