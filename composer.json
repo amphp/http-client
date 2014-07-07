@@ -18,7 +18,7 @@
   },
   "autoload": {
     "psr-0": {
-      "": "src/"
+      "Artax": "src/"
     }
   },
    "branch-alias": {
