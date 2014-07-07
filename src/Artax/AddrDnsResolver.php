@@ -46,7 +46,8 @@ class AddrDnsResolver implements DnsResolver {
      */
     public function resolve($name, callable $callback) {
         $this->resolver->resolve($name, function($addr, $type) use($callback) {
-            $callback($addr, $this->familyMap[$type]);
+            $type = $addr !== null ? $this->familyMap[$type] : $type;
+            $callback($addr, $type);
         });
     }
 
