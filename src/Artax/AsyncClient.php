@@ -60,6 +60,10 @@ class AsyncClient implements NonBlockingClient {
         $this->requestQueue = new \SplObjectStorage;
         $this->tlsOptions['cafile'] = dirname(dirname(__DIR__)) . '/certs/cacert.pem';
         $this->hasExtZlib = extension_loaded('zlib');
+
+        $reactor->repeat(function() {
+            $this->assignRequestSockets();
+        }, 0.1);
     }
     
     /**
@@ -647,6 +651,9 @@ class AsyncClient implements NonBlockingClient {
     }
     
     private function doError(RequestState $rs, \Exception $e) {
+        $this->checkinSocket($rs);
+        $this->clearSocket($rs);
+
         $this->endRequestSubscriptions($rs);
         
         $partialMsgArr = $rs->parser ? $rs->parser->getParsedMessageArray() : [];
@@ -993,4 +1000,3 @@ class AsyncClient implements NonBlockingClient {
     }
     
 }
-
