@@ -60,10 +60,6 @@ class AsyncClient implements NonBlockingClient {
         $this->requestQueue = new \SplObjectStorage;
         $this->tlsOptions['cafile'] = dirname(dirname(__DIR__)) . '/certs/cacert.pem';
         $this->hasExtZlib = extension_loaded('zlib');
-
-        $reactor->repeat(function() {
-            $this->assignRequestSockets();
-        }, 0.1);
     }
     
     /**
@@ -667,6 +663,8 @@ class AsyncClient implements NonBlockingClient {
             $onError = $rs->onError;
             $onError($e, $rs->request);
         }
+
+        $this->assignRequestSockets();
     }
     
     private function endRequestSubscriptions(RequestState $rs) {
