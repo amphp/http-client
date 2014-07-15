@@ -194,6 +194,7 @@ class AsyncClient implements NonBlockingClient {
                 break;
             case 'iogranularity':
                 $this->setIoGranularity($value);
+                break;
             case 'autoencoding':
                 $this->setAutoEncoding($value);
                 break;
