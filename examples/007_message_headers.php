@@ -1,7 +1,6 @@
 <?php // 007_message_headers.php
 
-//require __DIR__ . '/../vendor/autoload.php';
-require __DIR__ . '/../src/bootstrap.php';
+require __DIR__ . '/../vendor/autoload.php';
 
 $request = new Artax\Request;
 

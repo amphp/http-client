@@ -1,7 +1,6 @@
 <?php // 012_notifications.php
 
-//require __DIR__ . '/../vendor/autoload.php';
-require __DIR__ . '/../src/bootstrap.php';
+require __DIR__ . '/../vendor/autoload.php';
 
 /**
  * All Artax progress notifications take the form of an indexed array. The first element is a

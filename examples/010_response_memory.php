@@ -7,8 +7,7 @@
  * Artax will return the body in its stream form without buffering it first.
  */
 
-//require __DIR__ . '/../vendor/autoload.php';
-require __DIR__ . '/../src/bootstrap.php';
+require __DIR__ . '/../vendor/autoload.php';
 
 $client = new Artax\BlockingClient;
 $client->setOption(Client::OP_BUFFER_BODY, FALSE);

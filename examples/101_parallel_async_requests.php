@@ -1,34 +1,33 @@
 <?php // 101_parallel_async_requests.php
 
-//require __DIR__ . '/../vendor/autoload.php';
-require __DIR__ . '/../src/bootstrap.php';
+require __DIR__ . '/../vendor/autoload.php';
 
 (new Alert\ReactorFactory)->select()->run(function($reactor) {
     $client = new Artax\Client($reactor);
-    $reqsRemaining = 26;
     $startTime = microtime(true);
+    $promises = [];
 
     foreach (range('a', 'z') as $alpha) {
         $uri = 'http://www.bing.com/search?q=' . $alpha;
-        $future = $client->request($uri);
-        $future->onResolution(function($future) use (&$reqsRemaining, $reactor, $uri) {
-            if ($future->succeeded()) {
-                $response = $future->getValue();
+        $promise = $client->request($uri);
+        $promise->onResolution(function($error, $result) use ($reactor, $uri) {
+            if ($error) {
+                echo $error->getMessage(), "\n";
+            } else {
                 printf(
                     "HTTP/%s %d %s | %s\n",
-                    $response->getProtocol(),
-                    $response->getStatus(),
-                    $response->getReason(),
+                    $result->getProtocol(),
+                    $result->getStatus(),
+                    $result->getReason(),
                     $uri
                 );
-            } else {
-                echo $future->getError(), "\n";
-            }
-
-            if (--$reqsRemaining === 0) {
-                printf("26 parallel HTTP requests completed in %s seconds\n", microtime(true) - $startTime);
-                $reactor->stop();
             }
         });
+        $promises[$alpha] = $promise;
     }
+
+    After\some($promises)->onResolution(function() use ($reactor, $startTime) {
+        printf("26 parallel HTTP requests completed in %s seconds\n", microtime(true) - $startTime);
+        $reactor->stop();
+    });
 });
