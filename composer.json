@@ -20,7 +20,7 @@
     ],
     "require": {
         "php": ">=5.4.0",
-        "rdlowrey/alert": "~0.8.1",
+        "rdlowrey/alert": "~0.9.x",
         "daverandom/addr": "0.2.*",
         "rdlowrey/after": "0.1.*"
     },
