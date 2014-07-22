@@ -1,3 +1,12 @@
+
+Woah, slow down, cowboy! **THIS IS THE DEV BRANCH** and this README has not yet been updated. It
+reflects code from the master branch. If you want to know how to use this branch you need to check
+out the [example files](https://github.com/rdlowrey/Artax/tree/dev/examples).
+
+
+----------------------------------------------------------------------------------------------------
+
+
 # Artax HTTP Client
 
 Artax is a full-featured HTTP/1.1 client as specified in RFC 2616. Its API is designed to simplify

@@ -1,7 +1,8 @@
 v0.8.0
 ------
 
-- More test coverage
+- Update README to reflect the massive changes
+- Get some freaking test coverage
 - Fix/update SSL/TLS to actually work and to also support new 5.6 capabilities
 - Fix custom `Iterator` body WTFs.
 - Provide progress bar functionality (old extension system was garbage, removed it)
