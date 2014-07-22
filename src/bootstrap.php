@@ -7,6 +7,6 @@ spl_autoload_register(function($class) {
     }
 });
 
-require __DIR__ . '../vendor/Alert/src/bootstrap.php';
-require __DIR__ . '../vendor/After/src/bootstrap.php';
-require __DIR__ . '../vendor/Addr/src/bootstrap.php';
+require __DIR__ . '/../vendor/Alert/src/bootstrap.php';
+require __DIR__ . '/../vendor/Addr/src/bootstrap.php';
+require __DIR__ . '/../vendor/After/src/bootstrap.php';
