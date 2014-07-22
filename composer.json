@@ -1,27 +1,49 @@
 {
-  "name": "rdlowrey/artax",
-  "homepage": "https://github.com/rdlowrey/Artax",
-  "description": "An object-oriented HTTP/1.1 client with no cURL dependency",
-  "keywords": ["http", "rest", "client", "parallel", "async"],
-  "license": "MIT",
-  "authors": [
-    {
-      "name": "Daniel Lowrey",
-      "email": "rdlowrey@gmail.com",
-      "role": "Creator / Lead Developer"
+    "name":           "rdlowrey/artax",
+    "homepage":       "https://github.com/rdlowrey/Artax",
+    "description":    "Non-blocking HTTP/1.1 client",
+    "keywords": [
+        "http",
+        "rest",
+        "client",
+        "parallel",
+        "async",
+        "non-blocking"
+    ],
+    "license":        "MIT",
+    "authors": [
+        {
+            "name": "Daniel Lowrey",
+            "email": "rdlowrey@gmail.com",
+            "role": "Creator / Lead Developer"
+        }
+    ],
+    "require": {
+        "php": ">=5.4.0",
+        "rdlowrey/alert": "~0.8.1",
+        "daverandom/addr": "0.2.*",
+        "rdlowrey/after": "0.1.*"
+    },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/rdlowrey/Alert.git"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/rdlowrey/After.git"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/DaveRandom/Addr.git"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Artax\\": "lib/"
+        }
+    },
+    "branch-alias": {
+        "dev-master": "0.8.x-dev"
     }
-  ],
-  "require": {
-    "php": ">=5.4.0",
-    "rdlowrey/alert": "~0.8.1",
-    "daverandom/addr": "~0.2.1"
-  },
-  "autoload": {
-    "psr-0": {
-      "Artax": "src/"
-    }
-  },
-   "branch-alias": {
-     "dev-master": "0.6.x-dev"
-  }
 }

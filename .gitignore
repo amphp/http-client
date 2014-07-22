@@ -1,4 +1,5 @@
 test/coverage
-vendor/autoload.php
+vendor
+composer.lock
 certs/.cacert-etag
 .idea
