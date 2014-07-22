@@ -138,8 +138,8 @@ class BlockingClient {
      * @throws \DomainException on Unknown option key
      * @return self
      */
-    public function setAllOptions($option, $value) {
-        $this->client->setAllOptions($option, $value);
+    public function setAllOptions(array $options) {
+        $this->client->setAllOptions($options);
 
         return $this;
     }
