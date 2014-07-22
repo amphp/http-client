@@ -1,3 +1,37 @@
+#### master (complete rewrite)
+
+- `Artax\Client` is now the asynchronous non-blocking client class
+- `Artax\BlockingClient` may be used for synchronous requests
+- All client option settings must now be assigned using `Artax\Client::OP_*` constants
+- Result callbacks are no longer passed at call-time for async requests
+- Async calls to `Artax\Client::request()` now returns an `After\Future` placeholder value that
+  will resolve when the response eventually succeeds or fails.
+- Cookie handling is now integrated as part of the standard client classes
+- Exceptions and error handling have been significantly improved
+- Old extension system eracinated because garbage.
+- Issues #14, #25 and #26 have been resolved
+- Remove submodules, migrate to composer as the primary dependency resolution strategy
+- Updated examples
+
+##### BC BREAKS:
+
+- The breakage in this release is extensive as the entire library has been rewritten. **DO NOT**
+  upgrade your application to use this release and expect existing code to "just work." You have
+  been warned.
+
+#### v0.7.1
+
+- @TODO Update this ???
+
+v0.7.0
+------
+
+- @TODO Update this ???
+
+#### v0.6.2
+
+- @TODO Update this ???
+
 #### v0.6.1
 
 - Updated `Alert` dependency to v0.1.2 for latest bugfixes
