@@ -20,9 +20,9 @@
     ],
     "require": {
         "php": ">=5.4.0",
-        "rdlowrey/alert": "~0.9.x",
-        "daverandom/addr": "0.2.*",
-        "rdlowrey/after": "0.1.*"
+        "rdlowrey/alert": "~0.9.0",
+        "daverandom/addr": "0.2.0",
+        "rdlowrey/after": "0.1.0"
     },
     "repositories": [
         {
