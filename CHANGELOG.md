@@ -1,14 +1,15 @@
 #### master (complete rewrite)
 
+- Now works behind HTTP proxy servers!
 - `Artax\Client` is now the asynchronous non-blocking client class
-- `Artax\BlockingClient` may be used for synchronous requests
+- The `Artax\BlockingClient` wrapper class may be used for synchronous requests
 - All client option settings must now be assigned using `Artax\Client::OP_*` constants
 - Result callbacks are no longer passed at call-time for async requests
 - Async calls to `Artax\Client::request()` now returns an `After\Future` placeholder value that
   will resolve when the response eventually succeeds or fails.
 - Cookie handling is now integrated as part of the standard client classes
 - Exceptions and error handling have been significantly improved
-- Old extension system eracinated because garbage.
+- Old extension system eracinated because: garbage.
 - Issues #14, #25 and #26 have been resolved
 - Remove submodules, migrate to composer as the primary dependency resolution strategy
 - Updated examples

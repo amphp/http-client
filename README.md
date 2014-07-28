@@ -14,33 +14,31 @@ standards-compliant HTTP resource traversal and RESTful web service consumption 
 underlying HTTP protocol. The code manually implements the HTTP over TCP sockets; as such it has no
 dependency on PHP's `curl_*` API and requires no non-standard PHP extensions.
 
-> **HEY!** Checkout out the [EXAMPLES SECTION](https://github.com/rdlowrey/Artax/tree/master/examples)
-> to see some of the cool stuff Artax can do. Or, scroll to the bottom of this file to see examples
-> of basic usage.
+> **HEY!** Checkout out the [EXAMPLES SECTION](https://github.com/rdlowrey/Artax/tree/dev/examples)
+> to see more of what the Artax client can do.
 
 #### FEATURES
 
- - Eschews any cURL/libcurl dependency
- - Exposes APIs for synchronous, parallel and event-driven request/response
+ - Exposes non-blocking, parallel and synchronous APIs
  - Retains persistent "keep-alive" connections
  - Transparently follows redirects
  - Requests and decodes gzipped entity bodies
  - Provides access to all raw request/response headers and message data
- - Streams request and response entity bodies for hands-on memory management
+ - Streams entity bodies for managing memory usage with large transfers
  - Supports all standard and custom request methods
- - Trivializes submitting HTTP forms for multipart and form-encoded entities via the `FormBody` API
+ - Trivializes HTTP form submissions via the `FormBody` API
  - Provides fully customizable and secure-by-default TLS (https://) support
- - Exposes a simple subject/observer API for plugins and extensions
  - Offers advanced connection limiting options on a per-host basis
- - Provides fully automatic cookie support via the Cookie extension
- - Offers built-in progress bar and tracking support via the Progress extension
- 
+ - Transparently supports cookies and sessions
+ - Transparently functions behind HTTP proxy servers
+ - Eschews any cURL/libcurl dependency
+
 
 #### PROJECT GOALS
 
-* Model all code as closely as possible to the protocol outlined in [RFC 2616][rfc2616];
+* Model all code as closely as possible to the relevant HTTP protocols;
 * Implement an HTTP/1.1 client built on raw sockets with no libcurl dependency;
-* Build all components using [SOLID][solid], readable and thoroughly unit-tested code;
+* Build all components using [SOLID][solid], readable and tested code;
 
 #### INSTALLATION
 
@@ -48,38 +46,49 @@ dependency on PHP's `curl_*` API and requires no non-standard PHP extensions.
 
 ```bash
 $ git clone --recursive https://github.com/rdlowrey/Artax.git
+$ cd Artax
+$ composer.phar install
 ```
 
-Successful recursive clones will place the [Alert][alert-github] dependency in the `vendor/` 
-directory. When included in your project the `autoload.php` script will register class autoloaders
-for both `Artax` and `Alert` namespaces.
+> **NOTE:** The recursive option is necessary to pull in the SSL certificate bundle for encrypted *https://* communication.
 
 ###### Composer:
 
 ```bash
-$ php composer.phar require rdlowrey/Artax:0.6.*
+$ php composer.phar require rdlowrey/Artax:~0.8.0
 ```
 
 
 #### REQUIREMENTS
 
 * PHP 5.4+
-* The [Alert][alert-github] library (installed automatically if you `git clone --recursive`)
-* PHP's `openssl` extension if you need TLS (https://) encryption support
-* PHP's `zlib` extension if you wish to request/decompress gzipped responses
+* [Alert][alert-github]
+* [After][after-github]
+* `ext/openssl` PHP extension for TLS (https://) encryption support
+* `ext/zlib` PHP extension for requesting/decompressing gzipped responses
 
 
-#### SERIAL vs. ASYNC
+#### ASYNC vs. SYNC
 
 Artax offers two APIs for your HTTP needs:
 
-- **Serial:** `Artax\Client` is fully synchronous. You can requests invidual HTTP resources serially
-or in parallel, but retrieval function calls are always synchronous.
-
-- **Async:** `Artax\AsyncClient` is fully asynchronous and runs inside a non-blocking event loop.
+- **Async:** `Artax\Client` is fully asynchronous and runs inside a non-blocking event loop.
 The asynchronous client allows for full IO and computational parallelization. But with great power
-comes great responsibility; an understanding of non-blocking IO is needed to effectively write code using
-this paradigm.
+comes great responsibility; an understanding of non-blocking IO is needed to effectively write code
+using this paradigm.
+
+- **Sync:** `Artax\BlcokingClient` exposes an easy-to-use synchronous wrapper around the non-blocking
+client code. You can use it to execute requests invidually or in parallel, but its method calls are
+always synchronous and will block to completion.
+
+
+
+
+@TODO
+----------------------------------------------------------------------------------------------------
+Haven't updated anything below here yet
+
+
 
 
 #### BASIC USAGE
@@ -212,7 +221,7 @@ Note that though the individual requests in the `$requests` batch are retrieved 
 
 ###### Still Want More?
 
-Check out [more examples](https://github.com/rdlowrey/Artax/tree/master/examples) demonstrating 
+Check out [more examples](https://github.com/rdlowrey/Artax/tree/master/examples) demonstrating
 features such as cookies, progress bars, TLS support, asynchronous requests, etc ...
 
 
@@ -224,6 +233,7 @@ the scene where Atreyu's faithful steed, Artax, died in the Swamp of Sadness. Th
 
 [rfc2616]: http://www.w3.org/Protocols/rfc2616/rfc2616.html
 [alert-github]: https://github.com/rdlowrey/Alert
+[after-github]: https://github.com/rdlowrey/After
 [solid]: http://en.wikipedia.org/wiki/SOLID_(object-oriented_design) "S.O.L.I.D."
 [neverending]: http://www.imdb.com/title/tt0088323/ "The NeverEnding Story"
 
