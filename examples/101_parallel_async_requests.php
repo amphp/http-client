@@ -10,7 +10,7 @@ require __DIR__ . '/../vendor/autoload.php';
     foreach (range('a', 'z') as $alpha) {
         $uri = 'http://www.bing.com/search?q=' . $alpha;
         $promise = $client->request($uri);
-        $promise->onResolution(function($error, $result) use ($reactor, $uri) {
+        $promise->onResolve(function($error, $result) use ($reactor, $uri) {
             if ($error) {
                 echo $error->getMessage(), "\n";
             } else {
@@ -26,7 +26,7 @@ require __DIR__ . '/../vendor/autoload.php';
         $promises[$alpha] = $promise;
     }
 
-    After\some($promises)->onResolution(function() use ($reactor, $startTime) {
+    After\some($promises)->onResolve(function() use ($reactor, $startTime) {
         printf("26 parallel HTTP requests completed in %s seconds\n", microtime(true) - $startTime);
         $reactor->stop();
     });
