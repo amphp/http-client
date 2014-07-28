@@ -32,6 +32,9 @@ class Client {
     const OP_COMBINE_COOKIES = 17;
     const OP_USER_AGENT = 18;
     const OP_MS_DNS_TIMEOUT = 19;
+    const OP_CRYPTO = 20;
+    const OP_PROXY_HTTP = 21;
+    const OP_PROXY_HTTPS = 22;
 
     const VERBOSE_NONE = 0b00;
     const VERBOSE_SEND = 0b01;
@@ -41,7 +44,9 @@ class Client {
     private $reactor;
     private $cookieJar;
     private $socketPool;
+    private $cryptoBroker;
     private $hasZlib;
+    private $defaultTlsCiphers;
     private $opAutoEncoding = true;
     private $opUseKeepAlive = true;
     private $opMsTransferTimeout = 120000;
@@ -56,11 +61,55 @@ class Client {
     private $opCombineCookies = true;
     private $opUserAgent = self::USER_AGENT;
 
-    public function __construct(Reactor $reactor, CookieJar $cookieJar = null, SocketPool $socketPool = null) {
+    public function __construct(
+        Reactor $reactor,
+        CookieJar $cookieJar = null,
+        HttpSocketPool $socketPool = null,
+        CryptoBroker $cryptoBroker = null
+    ) {
         $this->reactor = $reactor;
         $this->cookieJar = $cookieJar ?: new ArrayCookieJar;
-        $this->socketPool = $socketPool ?: new SocketPool($reactor);
+        $this->socketPool = $socketPool ?: new HttpSocketPool($reactor);
+        $this->cryptoBroker = $cryptoBroker ?: new CryptoBroker($reactor);
         $this->hasZlib = extension_loaded('zlib');
+        $this->defaultTlsCiphers = implode(':', array(
+            'ECDHE-RSA-AES128-GCM-SHA256',
+            'ECDHE-ECDSA-AES128-GCM-SHA256',
+            'ECDHE-RSA-AES256-GCM-SHA384',
+            'ECDHE-ECDSA-AES256-GCM-SHA384',
+            'DHE-RSA-AES128-GCM-SHA256',
+            'DHE-DSS-AES128-GCM-SHA256',
+            'kEDH+AESGCM',
+            'ECDHE-RSA-AES128-SHA256',
+            'ECDHE-ECDSA-AES128-SHA256',
+            'ECDHE-RSA-AES128-SHA',
+            'ECDHE-ECDSA-AES128-SHA',
+            'ECDHE-RSA-AES256-SHA384',
+            'ECDHE-ECDSA-AES256-SHA384',
+            'ECDHE-RSA-AES256-SHA',
+            'ECDHE-ECDSA-AES256-SHA',
+            'DHE-RSA-AES128-SHA256',
+            'DHE-RSA-AES128-SHA',
+            'DHE-DSS-AES128-SHA256',
+            'DHE-RSA-AES256-SHA256',
+            'DHE-DSS-AES256-SHA',
+            'DHE-RSA-AES256-SHA',
+            'AES128-GCM-SHA256',
+            'AES256-GCM-SHA384',
+            'ECDHE-RSA-RC4-SHA',
+            'ECDHE-ECDSA-RC4-SHA',
+            'AES128',
+            'AES256',
+            'RC4-SHA',
+            'HIGH',
+            '!aNULL',
+            '!eNULL',
+            '!EXPORT',
+            '!DES',
+            '!3DES',
+            '!MD5',
+            '!PSK'
+        ));
     }
 
     /**
@@ -71,11 +120,25 @@ class Client {
      */
     public function request($uriOrRequest) {
         try {
+            list($request, $uri) = $this->generateRequestFromUri($uriOrRequest);
+
             $cycle = new RequestCycle;
+            $cycle->uri = $uri;
+            $cycle->request = $request;
             $cycle->deferredResponse = new DeferredLock;
-            $cycle->request = $request = $this->normalizeRequest($uriOrRequest);
-            $authority = $this->generateAuthorityFromUri($request->getUri());
-            $deferredSocket = $this->socketPool->checkout($authority);
+
+            $this->normalizeRequestMethod($request);
+            $this->normalizeRequestUserAgent($request);
+            $this->normalizeRequestProtocol($request);
+            $this->normalizeRequestBodyHeaders($request);
+            $this->normalizeRequestKeepAliveHeader($request);
+            $this->normalizeRequestEncodingHeaderForZlib($request);
+            $this->normalizeRequestHostHeader($request, $uri);
+            $this->assignApplicableRequestCookies($request);
+
+            $authority = $this->generateAuthorityFromUri($cycle->uri);
+            $checkoutUri = $uri->getScheme() . "://{$authority}";
+            $deferredSocket = $this->socketPool->checkout($checkoutUri);
             $deferredSocket->onResolve(function($error, $result) use ($cycle) {
                 $this->onSocketResolve($cycle, $error, $result);
             });
@@ -84,21 +147,6 @@ class Client {
         }
 
         return $cycle->deferredResponse->promise();
-    }
-
-    private function normalizeRequest($uriOrRequest) {
-        $request = $this->generateRequestFromUri($uriOrRequest);
-
-        $this->normalizeRequestMethod($request);
-        $this->normalizeRequestUserAgent($request);
-        $this->normalizeRequestProtocol($request);
-        $this->normalizeRequestBodyHeaders($request);
-        $this->normalizeRequestKeepAliveHeader($request);
-        $this->normalizeRequestEncodingHeaderForZlib($request);
-        $this->normalizeRequestHostHeader($request);
-        $this->assignApplicableRequestCookies($request);
-
-        return $request;
     }
 
     private function generateRequestFromUri($uriOrRequest) {
@@ -116,7 +164,7 @@ class Client {
 
         $request->setUri($uri);
 
-        return $request;
+        return [$request, $uri];
     }
 
     private function buildUriFromString($str) {
@@ -124,18 +172,11 @@ class Client {
             $uri = new Uri($str);
             $scheme = $uri->getScheme();
 
-            // @TODO Remove this once SSL/TLS is fixed!
-            if ($scheme === 'https') {
-                throw new \Exception(
-                    'Sorry! SSL/TLS isn\'t re-implemented yet :( working on it ...'
-                );
-            }
-
             if (($scheme === 'http' || $scheme === 'https') && $uri->getHost()) {
-                return (string) $uri;
+                return $uri;
             } else {
                 throw new \InvalidArgumentException(
-                    $msg = 'Request must specify a valid HTTP URI'
+                    'Request must specify a valid HTTP URI'
                 );
             }
         } catch (\DomainException $e) {
@@ -243,8 +284,8 @@ class Client {
         }
     }
 
-    private function normalizeRequestHostHeader(Request $request) {
-        $authority = $this->generateAuthorityFromUri($request->getUri());
+    private function normalizeRequestHostHeader(Request $request, Uri $uri) {
+        $authority = $this->generateAuthorityFromUri($uri);
 
         // Though servers are supposed to be able to handle standard port names on the end of the
         // Host header some fail to do this correctly. As a result, we strip the port from the end
@@ -280,27 +321,90 @@ class Client {
         }
     }
 
-    private function generateAuthorityFromUri($uri) {
-        $uriParts = parse_url($uri);
-        $host = $uriParts['host'];
-        $needsEncryption = (strtolower($uriParts['scheme']) === 'https');
-
-        if (empty($uriParts['port'])) {
-            $port = $needsEncryption ? 443 : 80;
-        } else {
-            $port = $uriParts['port'];
+    private function generateAuthorityFromUri(Uri $uri) {
+        $scheme = $uri->getScheme();
+        $host = $uri->getHost();
+        $port = $uri->getPort();
+        if (empty($port)) {
+            $port = ($scheme === 'https') ? 443 : 80;
         }
 
-        return $host . ':' . $port;
+        return "{$host}:{$port}";
     }
 
-    private function onSocketResolve(RequestCycle $cycle, $error, $result) {
+    private function onSocketResolve(RequestCycle $cycle, $error, $socket) {
         if ($error) {
             $this->fail($cycle, $error);
             return;
         }
 
-        $socket = $result;
+        $cycle->socket = $socket;
+        $cycle->socketProcuredAt = microtime(true);
+        $cycle->deferredResponse->progress([Notify::SOCK_PROCURED, null]);
+
+        if ($cycle->uri->getScheme() === 'https') {
+            $this->enableCrypto($cycle);
+        } else {
+            $this->onCryptoCompletion($cycle);
+        }
+    }
+
+    private function enableCrypto(RequestCycle $cycle) {
+        $cryptoOptions = $this->generateCryptoOptions($cycle);
+        $deferredCryptoResult = $this->cryptoBroker->encrypt($cycle->socket, $cryptoOptions);
+        $deferredCryptoResult->onResolve(function($error, $result) use ($cycle) {
+            if ($error) {
+                $this->fail($cycle, $error);
+            } else {
+                $this->onCryptoCompletion($cycle);
+            }
+        });
+    }
+
+    private function generateCryptoOptions(RequestCycle $cycle) {
+        $peerName = $cycle->uri->getHost();
+        $isLegacyTls = (PHP_VERSION_ID < 50600);
+
+        if ($isLegacyTls) {
+            $options = [
+                'verify_peer' => true,
+                'ciphers' => $this->defaultTlsCiphers,
+                'CN_match' => $peerName,
+                'SNI_enabled' => true,
+            ];
+        } else {
+            $options = [
+                'peer_name' => $peerName,
+            ];
+        }
+
+        // Although SNI is enabled by default in 5.6 it will use the IP address for name verification
+        // and fail because we're manually resolving the DNS name and using the IP to connect. To
+        // avoid this failure we make sure to set the name manually.
+        $options['SNI_server_name'] = $peerName;
+        $options['allow_self_signed'] = false;
+        $options['cafile'] = __DIR__ . '/../certs/ca-bundle.crt';
+
+        // Even though pre-5.6 doesn't use this context option, our crypto broker needs it so it
+        // can determine which method to pass the garbage stream_socket_enable_crypto() function.
+        $options['crypto_method'] = $isLegacyTls
+            ? STREAM_CRYPTO_METHOD_SSLv23_CLIENT
+            : STREAM_CRYPTO_METHOD_ANY_CLIENT;
+
+        // Allow client-wide TLS settings
+        if (!empty($this->opCrypto)) {
+            $options = array_merge($options, $this->opCrypto);
+        }
+
+        // Allow per-request TLS settings
+        if (!empty($cycle->options[self::OP_CRYPTO])) {
+            $options = array_merge($options, $cycle->options[self::OP_CRYPTO]);
+        }
+
+        return $options;
+    }
+
+    private function onCryptoCompletion(RequestCycle $cycle) {
         $parser = new Parser(Parser::MODE_RESPONSE);
         $parser->enqueueResponseMethodMatch($cycle->request->getMethod());
         $parser->setAllOptions([
@@ -318,11 +422,8 @@ class Client {
             }
         ]);
 
-        $cycle->deferredResponse->progress([Notify::SOCK_PROCURED, null]);
-        $cycle->socketProcuredAt = microtime(true);
-        $cycle->socket = $socket;
         $cycle->parser = $parser;
-        $cycle->readWatcher = $this->reactor->onReadable($socket, function() use ($cycle) {
+        $cycle->readWatcher = $this->reactor->onReadable($cycle->socket, function() use ($cycle) {
             $this->onReadableSocket($cycle);
         });
 
@@ -554,9 +655,13 @@ class Client {
         $request = $cycle->request;
         $refererUri = $request->getUri();
         $cycle->response = null;
+        $cycle->uri = $newUri;
         $authority = $this->generateAuthorityFromUri($newUri);
+        $checkoutUri = $uri->getScheme() . "://{$authority}";
         $request->setUri($newUri->__toString());
-        $request->setHeader('Host', parse_url($authority, PHP_URL_HOST));
+        $port = $newUri->getPort();
+        $host = ($port == 80 || $port == 443) ? $newUri->getHost() : $authority;
+        $request->setHeader('Host', $host);
         $this->assignApplicableRequestCookies($request);
 
         if (($body = $request->getBody()) && $body instanceof \Iterator) {
@@ -566,7 +671,7 @@ class Client {
         if ($this->opAutoReferer) {
             $this->assignRedirectRefererHeader($refererUri, $newUri, $request);
         }
-        
+
         // @TODO Remove this once SSL/TLS is re-implemented!
         if ($newUri->getScheme() === 'https') {
             $cycle->deferredResponse->fail(new \Exception(
@@ -575,7 +680,7 @@ class Client {
             return;
         }
 
-        $deferredSocket = $this->socketPool->checkout($authority);
+        $deferredSocket = $this->socketPool->checkout($checkoutUri);
         $deferredSocket->onResolve(function($error, $result) use ($cycle) {
             $this->onSocketResolve($cycle, $error, $result);
         });
@@ -897,6 +1002,15 @@ class Client {
                 break;
             case self::OP_MS_DNS_TIMEOUT:
                 $this->socketPool->setOption(SocketPool::OP_MS_DNS_TIMEOUT, $value);
+                break;
+            case self::OP_PROXY_HTTP:
+                $this->socketPool->setOption(SocketPool::OP_PROXY_HTTP, $value);
+                break;
+            case self::OP_PROXY_HTTPS:
+                $this->socketPool->setOption(SocketPool::OP_PROXY_HTTPS, $value);
+                break;
+            case self::OP_CRYPTO:
+                $this->opCrypto = (array) $value;
                 break;
             default:
                 throw new \DomainException(

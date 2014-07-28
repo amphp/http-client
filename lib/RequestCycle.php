@@ -8,14 +8,14 @@ class RequestCycle {
     public $writeWatcher;
     public $continueWatcher;
     public $transferTimeoutWatcher;
-    public $parser;
+    public $uri;
     public $request;
     public $response;
     public $requestBody;
-    public $writeFuture;
     public $writeBuffer;
     public $isWritingBody;
     public $redirectHistory;
+    public $parser;
     public $socketProcuredAt;
     public $lastDataRcvdAt;
     public $lastDataSentAt;

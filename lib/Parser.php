@@ -109,7 +109,7 @@ class Parser {
     public function getState() {
         return $this->state;
     }
-    
+
     public function buffer($data) {
         $this->buffer .= $data;
     }
@@ -119,7 +119,7 @@ class Parser {
             $this->buffer .= $data;
         }
 
-        if (!($this->buffer || $this->buffer === '0')) {
+        if ($this->buffer == '') {
             goto more_data_needed;
         }
 
@@ -254,6 +254,7 @@ class Parser {
                 || $this->responseCode == 304
                 || $this->responseCode < 200
                 || $requestMethod === 'HEAD'
+                || $requestMethod === 'CONNECT'
             ) {
                 goto complete;
             } elseif ($this->parseFlowHeaders['TRANSFER-ENCODING']) {
