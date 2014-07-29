@@ -672,12 +672,12 @@ class Client {
         $cycle->response = null;
         $cycle->uri = $newUri;
         $authority = $this->generateAuthorityFromUri($newUri);
-        $checkoutUri = $uri->getScheme() . "://{$authority}";
+        $checkoutUri = $newUri->getScheme() . "://{$authority}";
         $request->setUri($newUri->__toString());
         $port = $newUri->getPort();
         $host = ($port == 80 || $port == 443) ? $newUri->getHost() : $authority;
         $request->setHeader('Host', $host);
-        $this->assignApplicableRequestCookies($request);
+        $this->assignApplicableRequestCookies($request, $cycle->options);
 
         if (($body = $request->getBody()) && $body instanceof \Iterator) {
             $body->rewind();
