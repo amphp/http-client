@@ -8,18 +8,25 @@ use Alert\Reactor,
     After\Deferred;
 
 class TcpPool implements SocketPool {
-    const OP_HOST_CONNECTION_LIMIT = 0;
-    const OP_MAX_QUEUE_SIZE = 1;
-    const OP_MS_IDLE_TIMEOUT = 2;
+    const OP_HOST_CONNECTION_LIMIT = 'op.host-conn-limit';
+    const OP_MAX_QUEUE_SIZE = 'op.max-queue-size';
+    const OP_MS_IDLE_TIMEOUT = 'op.ms-idle-timeout';
     const OP_MS_CONNECT_TIMEOUT = TcpConnector::OP_MS_CONNECT_TIMEOUT;
-    const OP_MS_DNS_TIMEOUT = TcpConnector::OP_MS_DNS_TIMEOUT;
     const OP_BIND_IP_ADDRESS = TcpConnector::OP_BIND_IP_ADDRESS;
+    // @TODO const OP_MS_DNS_TIMEOUT = TcpConnector::OP_MS_DNS_TIMEOUT; // Wait until Addr DNS lib API stabilizes
 
     private $reactor;
     private $tcpConnector;
     private $sockets = [];
     private $queuedSocketRequests = [];
     private $socketIdUriMap = [];
+    private $options = [
+        self::OP_HOST_CONNECTION_LIMIT => 8,
+        self::OP_MAX_QUEUE_SIZE => 512,
+        self::OP_MS_IDLE_TIMEOUT => 10000,
+        self::OP_MS_CONNECT_TIMEOUT => 30000,
+        self::OP_BIND_IP_ADDRESS => '',
+    ];
     private $opMaxConnectionsPerHost = 8;
     private $opMaxQueuedSockets = 512;
     private $opMsIdleTimeout = 10000;
@@ -27,40 +34,6 @@ class TcpPool implements SocketPool {
     public function __construct(Reactor $reactor, TcpConnector $tcpConnector = null) {
         $this->reactor = $reactor;
         $this->tcpConnector = $tcpConnector ?: new TcpConnector($reactor);
-    }
-
-    /**
-     * Set socket pool options
-     *
-     * @param int $option
-     * @param mixed $value
-     * @return void
-     */
-    public function setOption($option, $value) {
-        switch ($option) {
-            case self::OP_HOST_CONNECTION_LIMIT:
-                $this->opMaxConnectionsPerHost = (int) $value;
-                break;
-            case self::OP_MAX_QUEUE_SIZE:
-                $this->opMaxQueuedSockets = (int) $value;
-                break;
-            case self::OP_MS_CONNECT_TIMEOUT:
-                $this->tcpConnector->setOption($option, $value);
-                break;
-            case self::OP_MS_IDLE_TIMEOUT:
-                $this->opMsIdleTimeout = (int) $value;
-                break;
-            case self::OP_MS_DNS_TIMEOUT:
-                $this->tcpConnector->setOption($option, $value);
-                break;
-            case self::OP_BIND_IP_ADDRESS:
-                $this->tcpConnector->setOption($option, $value);
-                break;
-            default:
-                throw new \DomainException(
-                    sprintf('Unknown option: %s', $option)
-                );
-        }
     }
 
     /**
@@ -73,7 +46,7 @@ class TcpPool implements SocketPool {
      * @param string $name A string of the form somedomain.com:80 or 192.168.1.1:443
      * @return After\Promise Returns a promise that resolves to a socket once a connection is available
      */
-    public function checkout($uri) {
+    public function checkout($uri, array $options = []) {
         $uri = strtolower($uri);
         $uriParts = @parse_url($uri);
         if (empty($uriParts['host']) || empty($uriParts['port'])) {
@@ -82,34 +55,50 @@ class TcpPool implements SocketPool {
             ));
         }
         $authority = $uriParts['host'] . ':' . $uriParts['port'];
+        $options = $options ? array_merge($this->options, $options) : $this->options;
 
-        return ($socket = $this->checkoutExistingSocket($uri))
+        return ($socket = $this->checkoutExistingSocket($uri, $options))
             ? new Success($socket)
-            : $this->checkoutNewSocket($uri, $authority);
+            : $this->checkoutNewSocket($uri, $authority, $options);
     }
 
-    private function checkoutExistingSocket($uri) {
+    private function checkoutExistingSocket($uri, $options) {
         if (empty($this->sockets[$uri])) {
             return null;
         }
+
+        $needsRebind = false;
+
         foreach ($this->sockets[$uri] as $socketId => $tcpPoolStruct) {
             if (!$tcpPoolStruct->isAvailable) {
                 continue;
             } elseif ($this->isSocketDead($tcpPoolStruct->resource)) {
                 unset($this->sockets[$uri][$socketId]);
+            } elseif (($bindToIp = @stream_context_get_options($tcpPoolStruct->resource)['socket']['bindto'])
+                && ($bindToIp == $options[self::OP_BIND_IP_ADDRESS])
+            ) {
+                $tcpPoolStruct->isAvailable = false;
+                $this->reactor->disable($tcpPoolStruct->idleWatcher);
+                return $tcpPoolStruct->resource;
+            } elseif ($bindToIp) {
+                $needsRebind = true;
             } else {
                 $tcpPoolStruct->isAvailable = false;
                 $this->reactor->disable($tcpPoolStruct->idleWatcher);
                 return $tcpPoolStruct->resource;
             }
         }
+
+        $this->needsRebind = $needsRebind;
+
         return null;
     }
 
-    private function checkoutNewSocket($uri, $authority) {
-        if ($this->allowsNewConnection($uri)) {
+    private function checkoutNewSocket($uri, $authority, $options) {
+        if ($this->allowsNewConnection($uri) || $this->needsRebind) {
             $deferred = new Deferred;
-            $this->initializeNewConnection($deferred, $uri, $authority);
+            $this->initializeNewConnection($deferred, $uri, $authority, $options);
+            $this->needsRebind = false;
             return $deferred->promise();
         } elseif (count($this->queuedSocketRequests) < $this->opMaxQueuedSockets) {
             $deferred = new Deferred;
@@ -136,8 +125,8 @@ class TcpPool implements SocketPool {
         return false;
     }
 
-    private function initializeNewConnection(Deferred $deferred, $uri, $authority) {
-        $deferredSocket = $this->tcpConnector->connect($authority);
+    private function initializeNewConnection(Deferred $deferred, $uri, $authority, $options) {
+        $deferredSocket = $this->tcpConnector->connect($authority, $options);
         $deferredSocket->onResolve(function($error, $socket) use ($deferred, $uri) {
             if ($error) {
                 $deferred->fail($error);
@@ -245,5 +234,38 @@ class TcpPool implements SocketPool {
         } else {
             $this->reactor->enable($tcpPoolStruct->idleWatcher);
         }
+    }
+
+    /**
+     * Set socket pool options
+     *
+     * @param int $option
+     * @param mixed $value
+     * @return self
+     */
+    public function setOption($option, $value) {
+        switch ($option) {
+            case self::OP_HOST_CONNECTION_LIMIT:
+                $this->options[self::OP_HOST_CONNECTION_LIMIT] = (int) $value;
+                break;
+            case self::OP_MAX_QUEUE_SIZE:
+                $this->options[self::OP_MAX_QUEUE_SIZE] = (int) $value;
+                break;
+            case self::OP_MS_CONNECT_TIMEOUT:
+                $this->options[self::OP_MS_CONNECT_TIMEOUT] = $value;
+                break;
+            case self::OP_MS_IDLE_TIMEOUT:
+                $this->options[self::OP_MS_IDLE_TIMEOUT] = (int) $value;
+                break;
+            case self::OP_BIND_IP_ADDRESS:
+                $this->options[self::OP_BIND_IP_ADDRESS] = $value;
+                break;
+            default:
+                throw new \DomainException(
+                    sprintf('Unknown option: %s', $option)
+                );
+        }
+
+        return $this;
     }
 }

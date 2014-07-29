@@ -12,4 +12,5 @@ class TcpConnectorStruct {
     public $connectWatcher;
     public $timeoutWatcher;
     public $deferred;
+    public $options;
 }

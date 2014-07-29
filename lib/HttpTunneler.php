@@ -6,16 +6,19 @@ use Alert\Reactor,
     After\Deferred;
 
 class HttpTunneler {
-    const READ_GRANULARITY = 32768;
-    
     private $reactor;
+    private static $READ_GRANULARITY = 32768;
 
     public function __construct(Reactor $reactor) {
         $this->reactor = $reactor;
     }
 
     /**
-     * @return After\Promise
+     * Establish an HTTP tunnel to the specified authority over this socket
+     *
+     * @param resource $socket
+     * @param string $authority
+     * @return \After\Promise
      */
     public function tunnel($socket, $authority) {
         $struct = new HttpTunnelStruct;
@@ -66,7 +69,7 @@ class HttpTunneler {
 
     private function doRead(HttpTunnelStruct $struct) {
         $socket = $struct->socket;
-        $data = @fread($socket, self::READ_GRANULARITY);
+        $data = @fread($socket, self::$READ_GRANULARITY);
         if ($data != '') {
             $this->parseSocketData($struct, $data);
         } elseif ($this->isSocketDead($socket)) {

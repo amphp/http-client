@@ -27,7 +27,7 @@ class CryptoBroker {
      * @param array $options
      * @return After\Promise
      */
-    public function encrypt($socket, array $options) {
+    public function enable($socket, array $options) {
         $socketId = (int) $socket;
 
         if (isset($this->pending[$socketId])) {
@@ -36,12 +36,18 @@ class CryptoBroker {
             ));
         }
 
-        // @TODO Check if the currently assigned crypto options match those specified
-        // in the $options array. If not, disable crypto and renegotiate using the
-        // new settings. For now, we'll just pretend this doesn't happen and treat
-        // the original TLS negotiation as authoritative.
-        if (!empty(stream_context_get_options($socket)['ssl'])) {
+        $existingContext = @stream_context_get_options($socket)['ssl'];
+
+        if ($existingContext && ($existingContext == $options)) {
             return new Success($socket);
+        } elseif ($existingContext) {
+            // If crypto was previously enabled for this socket we need to disable
+            // it before we can negotiate the new options.
+            return $this->renegotiate($socket, $options);
+        }
+
+        if (PHP_VERSION_ID < 50600 && isset($options['peer_name'])) {
+            $options['CN_match'] = $options['peer_name'];
         }
 
         stream_context_set_option($socket, ['ssl'=> $options]);
@@ -51,8 +57,29 @@ class CryptoBroker {
         } elseif ($result === false) {
             return new Failure($this->generateErrorException());
         } else {
-            return $this->enablePendingWatcher($socket);
+            return $this->watch($socket, 'doEnable');
         }
+    }
+
+    private function renegotiate($socket, $options) {
+        $deferred = new Deferred;
+        $deferredDisable = $this->disable($socket);
+        $deferredDisable->onResolve(function($error, $result) use ($deferred, $options) {
+            if ($error) {
+                $deferred->fail(new CryptoException(
+                    'Failed renegotiating crypto',
+                    0,
+                    $error
+                ));
+            } else {
+                $deferredEnable = $this->encrypt($result, $options);
+                $deferredEnable->onResolve(function($error, $result) use ($deferred) {
+                    return $error ? $deferred->fail($error) : $deferred->succeed($result);
+                });
+            }
+        });
+
+        return $deferred->promise();
     }
 
     private function doEnable($socket) {
@@ -64,15 +91,21 @@ class CryptoBroker {
         return @stream_socket_enable_crypto($socket, true, $cryptoMethod);
     }
 
-    private function enablePendingWatcher($socket) {
+    private function generateErrorException() {
+        return new CryptoException(
+            sprintf('Crypto error: %s', error_get_last()['message'])
+        );
+    }
+
+    private function watch($socket, $func) {
         $socketId = (int) $socket;
         $cryptoStruct = new CryptoStruct;
         $cryptoStruct->id = $socketId;
         $cryptoStruct->socket = $socket;
         $cryptoStruct->deferred = new Deferred;
-        $cryptoStruct->pendingWatcher = $this->reactor->onWritable($socket, function() use ($cryptoStruct) {
+        $cryptoStruct->pendingWatcher = $this->reactor->onWritable($socket, function() use ($cryptoStruct, $func) {
             $socket = $cryptoStruct->socket;
-            if ($result = $this->doEnable($socket)) {
+            if ($result = $this->{$func}($socket)) {
                 $cryptoStruct->deferred->succeed($socket);
                 $this->unloadPendingStruct($cryptoStruct);
             } elseif ($result === false) {
@@ -82,7 +115,7 @@ class CryptoBroker {
         });
         $cryptoStruct->timeoutWatcher = $this->reactor->once(function() use ($cryptoStruct) {
             $cryptoStruct->deferred->fail(new TimeoutException(
-                sprintf('Crypto enabling timeout exceeded: %d ms', $this->opMsCryptoTimeout)
+                sprintf('Crypto timeout exceeded: %d ms', $this->opMsCryptoTimeout)
             ));
             $this->unloadPendingStruct($cryptoStruct);
         }, $this->opMsCryptoTimeout);
@@ -92,16 +125,70 @@ class CryptoBroker {
         return $cryptoStruct->deferred;
     }
 
-    private function generateErrorException() {
-        return new CryptoException(
-            sprintf('Crypto failure: %s', error_get_last()['message'])
-        );
-    }
-
     private function unloadPendingStruct(CryptoStruct $cryptoStruct) {
         $socketId = $cryptoStruct->id;
         unset($this->pending[$socketId]);
         $this->reactor->cancel($cryptoStruct->pendingWatcher);
         $this->reactor->cancel($cryptoStruct->timeoutWatcher);
     }
+
+    /**
+     *
+     */
+    public function disable($socket) {
+        $socketId = (int) $socket;
+
+        if (isset($this->pending[$socketId])) {
+            return new Failure(new CryptoException(
+                'Cannot disable crypto: operation currently in progress for this socket'
+            ));
+        }
+
+        // @TODO This may be unnecessary. Decide if it is.
+        if (!@stream_context_get_options($socket)['ssl']) {
+            // If crypto is already disabled we're finished here
+            return new Success($socket);
+        } elseif ($result = $this->doDisable($socket)) {
+            return new Success($socket);
+        } elseif ($result === false) {
+            return new Failure($this->generateErrorException());
+        } else {
+            return $this->watch($socket, 'doDisable');
+        }
+    }
+
+    private function doDisable($socket) {
+        return @stream_socket_enable_crypto($socket, false);
+    }
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -16,14 +16,16 @@ class TcpConnector {
     const ADDR_INET4 = 1;
     const ADDR_INET6 = 2;
 
-    const OP_MS_CONNECT_TIMEOUT = 'op.sc.connect-timeout';
-    const OP_MS_DNS_TIMEOUT = 'op.sc.dns-timeout';
-    const OP_BIND_IP_ADDRESS = 'op.sc.bind-ip';
+    const OP_BIND_IP_ADDRESS = 'op.bind-ip-address';
+    const OP_MS_CONNECT_TIMEOUT = 'op.ms-connect-timeout';
+    // @TODO const OP_MS_DNS_TIMEOUT = 3; // Wait until Addr DNS lib API stabilizes
 
     private $reactor;
     private $dnsResolver;
-    private $opMsConnectTimeout = 30000;
-    private $opBindIpAddress = null;
+    private $options = [
+        self::OP_BIND_IP_ADDRESS => '',
+        self::OP_MS_CONNECT_TIMEOUT => 30000
+    ];
 
     public function __construct(Reactor $reactor, Resolver $dnsResolver = null) {
         $this->reactor = $reactor;
@@ -34,9 +36,10 @@ class TcpConnector {
      * Make a socket connection to the specified URI
      *
      * @param string $uri
+     * @param array $options
      * @return After\Promise
      */
-    public function connect($uri) {
+    public function connect($uri, array $options = []) {
         // Host names are always case-insensitive
         $uri = strtolower($uri);
         extract(@parse_url($uri));
@@ -46,12 +49,15 @@ class TcpConnector {
             ));
         }
 
-        $tcpConnectorStruct = new TcpConnectorStruct;
         $scheme = isset($scheme) ? $scheme : 'tcp';
+        $options = $options ? array_merge($this->options, $options) : $this->options;
+
+        $tcpConnectorStruct = new TcpConnectorStruct;
         $tcpConnectorStruct->scheme = $scheme;
         $tcpConnectorStruct->host = $host;
         $tcpConnectorStruct->port = $port;
-        $tcpConnectorStruct->uri = "{$scheme}://{$host}:{$port}" ;
+        $tcpConnectorStruct->uri = "{$scheme}://{$host}:{$port}";
+        $tcpConnectorStruct->options = $options;
         $tcpConnectorStruct->deferred = new Deferred;
 
         $this->dnsResolver->resolve($host, function($resolvedIp, $ipType) use ($tcpConnectorStruct) {
@@ -83,8 +89,9 @@ class TcpConnector {
         $flags = STREAM_CLIENT_CONNECT | STREAM_CLIENT_ASYNC_CONNECT;
         $timeout = 42; // <--- timeout not applicable for async connections
         $contextOptions = [];
-        if ($this->opBindIpAddress) {
-            $contextOptions['socket']['bindto'] = $this->opBindIpAddress;
+        $bindToIp = $tcpConnectorStruct->options[self::OP_BIND_IP_ADDRESS];
+        if ($bindToIp) {
+            $contextOptions['socket']['bindto'] = $bindToIp;
         }
         $ctx = stream_context_create($contextOptions);
         $addr = $tcpConnectorStruct->resolvedAddress;
@@ -109,10 +116,11 @@ class TcpConnector {
         $socketId = (int) $socket;
         stream_set_blocking($socket, false);
 
-        if ($this->opMsConnectTimeout > 0) {
+        $timeout = $tcpConnectorStruct->options[self::OP_MS_CONNECT_TIMEOUT];
+        if ($timeout > 0) {
             $tcpConnectorStruct->timeoutWatcher = $this->reactor->once(function() use ($tcpConnectorStruct) {
                 $this->timeoutSocket($tcpConnectorStruct);
-            }, $this->opMsConnectTimeout);
+            }, $timeout);
         }
 
         $tcpConnectorStruct->connectWatcher = $this->reactor->onWritable($socket, function() use ($tcpConnectorStruct) {
@@ -123,8 +131,9 @@ class TcpConnector {
     private function timeoutSocket(TcpConnectorStruct $tcpConnectorStruct) {
         $this->reactor->cancel($tcpConnectorStruct->connectWatcher);
         $this->reactor->cancel($tcpConnectorStruct->timeoutWatcher);
+        $timeout = $tcpConnectorStruct->options[self::OP_MS_CONNECT_TIMEOUT];
         $tcpConnectorStruct->deferred->fail(new SocketException(
-            sprintf('Socket connect timeout exceeded: %d ms', $this->opMsConnectTimeout)
+            sprintf('Socket connect timeout exceeded: %d ms', $timeout)
         ));
     }
 
@@ -141,7 +150,7 @@ class TcpConnector {
      * Set multiple socket connector options at once
      *
      * @param array $options
-     * @throws DomainException on unknown option key
+     * @throws \DomainException on unknown option key
      * @return self
      */
     public function setAllOptions(array $options) {
@@ -157,19 +166,16 @@ class TcpConnector {
      *
      * @param mixed $option
      * @param mixed $value
-     * @throws DomainException on unknown option key
+     * @throws \DomainException on unknown option key
      * @return self
      */
     public function setOption($option, $value) {
         switch ($option) {
-            case self::OP_MS_DNS_TIMEOUT:
-                $this->dnsResolver->setRequestTimeout($value);
-                break;
             case self::OP_MS_CONNECT_TIMEOUT:
-                $this->opMsConnectTimeout = (int) $value;
+                $this->options[self::OP_MS_CONNECT_TIMEOUT] = (int) $value;
                 break;
             case self::OP_BIND_IP_ADDRESS:
-                $this->opBindIpAddress = (string) $value;
+                $this->options[self::OP_BIND_IP_ADDRESS] = (string) $value;
                 break;
             default:
                 throw new \DomainException(

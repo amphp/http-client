@@ -13,28 +13,27 @@ use Alert\Reactor,
 class Client {
     const USER_AGENT = 'Artax/0.8.0-dev (PHP5.4+)';
 
-    const OP_AUTO_ENCODING = 1;
-    const OP_USE_KEEP_ALIVE = 2;
-    const OP_HOST_CONNECTION_LIMIT = 3;
-    const OP_QUEUED_SOCKET_LIMIT = 4;
-    const OP_MS_CONNECT_TIMEOUT = 5;
-    const OP_MS_KEEP_ALIVE_TIMEOUT = 6;
-    const OP_MS_TRANSFER_TIMEOUT = 7;
-    const OP_MS_100_CONTINUE_TIMEOUT = 8;
-    const OP_EXPECT_CONTINUE = 9;
-    const OP_FOLLOW_LOCATION = 10;
-    const OP_AUTO_REFERER = 11;
-    const OP_BUFFER_BODY = 12;
-    const OP_DISCARD_BODY = 13;
-    const OP_VERBOSE = 14;
-    const OP_IO_GRANULARITY = 15;
-    const OP_BIND_IP_ADDRESS = 16;
-    const OP_COMBINE_COOKIES = 17;
-    const OP_USER_AGENT = 18;
-    const OP_MS_DNS_TIMEOUT = 19;
-    const OP_CRYPTO = 20;
-    const OP_PROXY_HTTP = 21;
-    const OP_PROXY_HTTPS = 22;
+    const OP_BIND_IP_ADDRESS = TcpConnector::OP_BIND_IP_ADDRESS;
+    const OP_MS_CONNECT_TIMEOUT = TcpConnector::OP_MS_CONNECT_TIMEOUT;
+    const OP_HOST_CONNECTION_LIMIT = TcpPool::OP_HOST_CONNECTION_LIMIT;
+    const OP_QUEUED_SOCKET_LIMIT = TcpPool::OP_MAX_QUEUE_SIZE;
+    const OP_MS_KEEP_ALIVE_TIMEOUT = TcpPool::OP_MS_IDLE_TIMEOUT;
+    const OP_PROXY_HTTP = HttpSocketPool::OP_PROXY_HTTP;
+    const OP_PROXY_HTTPS = HttpSocketPool::OP_PROXY_HTTPS;
+    const OP_AUTO_ENCODING = 'op.auto-encoding';
+    const OP_USE_KEEP_ALIVE = 'op.use-keep-alive';
+    const OP_MS_TRANSFER_TIMEOUT = 'op.ms-transfer-timeout';
+    const OP_MS_100_CONTINUE_TIMEOUT = 'op.ms-100-continue-timeout';
+    const OP_EXPECT_CONTINUE = 'op.expect-continue';
+    const OP_FOLLOW_LOCATION = 'op.follow-location';
+    const OP_AUTO_REFERER = 'op.auto-referer';
+    const OP_BUFFER_BODY = 'op.buffer-body';
+    const OP_DISCARD_BODY = 'op.discard-body';
+    const OP_IO_GRANULARITY = 'op.io-granularity';
+    const OP_VERBOSITY = 'op.verbosity';
+    const OP_COMBINE_COOKIES = 'op.combine-cookies';
+    const OP_USER_AGENT = 'op.user-agent';
+    const OP_CRYPTO = 'op.crypto';
 
     const VERBOSE_NONE = 0b00;
     const VERBOSE_SEND = 0b01;
@@ -47,19 +46,29 @@ class Client {
     private $cryptoBroker;
     private $hasZlib;
     private $defaultTlsCiphers;
-    private $opAutoEncoding = true;
-    private $opUseKeepAlive = true;
-    private $opMsTransferTimeout = 120000;
-    private $opMs100ContinueTimeout = 3000;
-    private $opExpectContinue = false;
-    private $opFollowLocation = true;
-    private $opAutoReferer = true;
-    private $opBufferBody = true;
-    private $opDiscardBody = false;
-    private $opIoGranularity = 32768;
-    private $opVerbose = self::VERBOSE_NONE;
-    private $opCombineCookies = true;
-    private $opUserAgent = self::USER_AGENT;
+    private $options = [
+        self::OP_BIND_IP_ADDRESS => '',
+        self::OP_MS_CONNECT_TIMEOUT => 30000,
+        self::OP_HOST_CONNECTION_LIMIT => 8,
+        self::OP_QUEUED_SOCKET_LIMIT => 512,
+        self::OP_MS_KEEP_ALIVE_TIMEOUT => 30000,
+        self::OP_PROXY_HTTP => '',
+        self::OP_PROXY_HTTPS => '',
+        self::OP_AUTO_ENCODING => true,
+        self::OP_USE_KEEP_ALIVE => true,
+        self::OP_MS_TRANSFER_TIMEOUT => 120000,
+        self::OP_MS_100_CONTINUE_TIMEOUT => 3000,
+        self::OP_EXPECT_CONTINUE => false,
+        self::OP_FOLLOW_LOCATION => true,
+        self::OP_AUTO_REFERER => true,
+        self::OP_BUFFER_BODY => true,
+        self::OP_DISCARD_BODY => false,
+        self::OP_IO_GRANULARITY => 32768,
+        self::OP_VERBOSITY => self::VERBOSE_NONE,
+        self::OP_COMBINE_COOKIES => true,
+        self::OP_USER_AGENT => self::USER_AGENT,
+        self::OP_CRYPTO => [],
+    ];
 
     public function __construct(
         Reactor $reactor,
@@ -72,7 +81,7 @@ class Client {
         $this->socketPool = $socketPool ?: new HttpSocketPool($reactor);
         $this->cryptoBroker = $cryptoBroker ?: new CryptoBroker($reactor);
         $this->hasZlib = extension_loaded('zlib');
-        $this->defaultTlsCiphers = implode(':', array(
+        $this->defaultTlsCiphers = implode(':', [
             'ECDHE-RSA-AES128-GCM-SHA256',
             'ECDHE-ECDSA-AES128-GCM-SHA256',
             'ECDHE-RSA-AES256-GCM-SHA384',
@@ -109,16 +118,17 @@ class Client {
             '!3DES',
             '!MD5',
             '!PSK'
-        ));
+        ]);
     }
 
     /**
      * Make an asynchronous HTTP request
      *
      * @param string|Artax\Request An HTTP URI string or Artax\Request instance
-     * @return After\Promise A placeholder value that resolves when the response completes or fails
+     * @param array $options An array specifying one-off options applicable only for this request
+     * @return \After\Promise A placeholder value that resolves when the response completes or fails
      */
-    public function request($uriOrRequest) {
+    public function request($uriOrRequest, array $options = []) {
         try {
             list($request, $uri) = $this->generateRequestFromUri($uriOrRequest);
 
@@ -126,15 +136,18 @@ class Client {
             $cycle->uri = $uri;
             $cycle->request = $request;
             $cycle->deferredResponse = new DeferredLock;
+            $cycle->options = $options = $options
+                ? array_merge($this->options, $options)
+                : $this->options;
 
             $this->normalizeRequestMethod($request);
-            $this->normalizeRequestUserAgent($request);
             $this->normalizeRequestProtocol($request);
-            $this->normalizeRequestBodyHeaders($request);
-            $this->normalizeRequestKeepAliveHeader($request);
-            $this->normalizeRequestEncodingHeaderForZlib($request);
+            $this->normalizeRequestBodyHeaders($request, $options);
+            $this->normalizeRequestKeepAliveHeader($request, $options);
+            $this->normalizeRequestEncodingHeaderForZlib($request, $options);
             $this->normalizeRequestHostHeader($request, $uri);
-            $this->assignApplicableRequestCookies($request);
+            $this->normalizeRequestUserAgent($request, $options);
+            $this->assignApplicableRequestCookies($request, $options);
 
             $authority = $this->generateAuthorityFromUri($cycle->uri);
             $checkoutUri = $uri->getScheme() . "://{$authority}";
@@ -194,12 +207,6 @@ class Client {
         }
     }
 
-    private function normalizeRequestUserAgent(Request $request) {
-        if (!$request->hasHeader('User-Agent')) {
-            $request->setHeader('User-Agent', $this->opUserAgent);
-        }
-    }
-
     private function normalizeRequestProtocol(Request $request) {
         if (!$protocol = $request->getProtocol()) {
             $request->setProtocol('1.1');
@@ -210,7 +217,7 @@ class Client {
         }
     }
 
-    private function normalizeRequestBodyHeaders(Request $request) {
+    private function normalizeRequestBodyHeaders(Request $request, array $options) {
         $body = $request->getBody();
         $method = $request->getMethod();
 
@@ -234,7 +241,7 @@ class Client {
             );
         }
 
-        if ($body && $this->opExpectContinue && !$request->hasHeader('Expect')) {
+        if ($body && $options[self::OP_EXPECT_CONTINUE] && !$request->hasHeader('Expect')) {
             $request->setHeader('Expect', '100-continue');
         }
 
@@ -270,16 +277,17 @@ class Client {
         }
     }
 
-    private function normalizeRequestKeepAliveHeader(Request $request) {
-        if (!$this->opUseKeepAlive) {
+    private function normalizeRequestKeepAliveHeader(Request $request, array $options) {
+        if (empty($options[self::OP_USE_KEEP_ALIVE])) {
             $request->setHeader('Connection', 'close');
         }
     }
 
-    private function normalizeRequestEncodingHeaderForZlib(Request $request) {
-        if ($this->opAutoEncoding && $this->hasZlib) {
+    private function normalizeRequestEncodingHeaderForZlib(Request $request, array $options) {
+        $autoEncoding = $options[self::OP_AUTO_ENCODING];
+        if ($autoEncoding && $this->hasZlib) {
             $request->setHeader('Accept-Encoding', 'gzip, identity');
-        } elseif ($this->opAutoEncoding) {
+        } elseif ($autoEncoding) {
             $request->removeHeader('Accept-Encoding');
         }
     }
@@ -297,7 +305,13 @@ class Client {
         $request->setHeader('Host', $authority);
     }
 
-    private function assignApplicableRequestCookies($request) {
+    private function normalizeRequestUserAgent(Request $request, array $options) {
+        if (!$request->hasHeader('User-Agent')) {
+            $request->setHeader('User-Agent', $options[self::OP_USER_AGENT]);
+        }
+    }
+
+    private function assignApplicableRequestCookies($request, array $options) {
         $urlParts = parse_url($request->getUri());
         $domain = $urlParts['host'];
         $path = isset($urlParts['path']) ? $urlParts['path'] : '/';
@@ -316,7 +330,7 @@ class Client {
         }
 
         if ($cookiePairs) {
-            $value = $this->opCombineCookies ? implode('; ', $cookiePairs) : $cookiePairs;
+            $value = $options[self::OP_COMBINE_COOKIES] ? implode('; ', $cookiePairs) : $cookiePairs;
             $request->setHeader('Cookie', $value);
         }
     }
@@ -351,7 +365,7 @@ class Client {
 
     private function enableCrypto(RequestCycle $cycle) {
         $cryptoOptions = $this->generateCryptoOptions($cycle);
-        $deferredCryptoResult = $this->cryptoBroker->encrypt($cycle->socket, $cryptoOptions);
+        $deferredCryptoResult = $this->cryptoBroker->enable($cycle->socket, $cryptoOptions);
         $deferredCryptoResult->onResolve(function($error, $result) use ($cycle) {
             if ($error) {
                 $this->fail($cycle, $error);
@@ -380,20 +394,20 @@ class Client {
 
         // Although SNI is enabled by default in 5.6 it will use the IP address for name verification
         // and fail because we're manually resolving the DNS name and using the IP to connect. To
-        // avoid this failure we make sure to set the name manually.
+        // avoid this failure we make sure to set the name manually just as we set the peer_name.
         $options['SNI_server_name'] = $peerName;
         $options['allow_self_signed'] = false;
         $options['cafile'] = __DIR__ . '/../certs/ca-bundle.crt';
 
         // Even though pre-5.6 doesn't use this context option, our crypto broker needs it so it
-        // can determine which method to pass the garbage stream_socket_enable_crypto() function.
+        // can determine which method to pass the terrible stream_socket_enable_crypto() function.
         $options['crypto_method'] = $isLegacyTls
             ? STREAM_CRYPTO_METHOD_SSLv23_CLIENT
             : STREAM_CRYPTO_METHOD_ANY_CLIENT;
 
         // Allow client-wide TLS settings
-        if (!empty($this->opCrypto)) {
-            $options = array_merge($options, $this->opCrypto);
+        if ($this->options[self::OP_CRYPTO]) {
+            $options = array_merge($options, $this->options[self::OP_CRYPTO]);
         }
 
         // Allow per-request TLS settings
@@ -415,7 +429,7 @@ class Client {
             Parser::OP_MAX_BODY_BYTES => $this->maxBodyBytes,
             Parser::OP_BODY_SWAP_SIZE => $this->bodySwapSize,
             */
-            Parser::OP_DISCARD_BODY => $this->opDiscardBody,
+            Parser::OP_DISCARD_BODY => $cycle->options[self::OP_DISCARD_BODY],
             Parser::OP_RETURN_BEFORE_ENTITY => true,
             Parser::OP_BODY_DATA_CALLBACK => function($data) use ($cycle) {
                 $cycle->deferredResponse->progress([Notify::RESPONSE_BODY_DATA, $data]);
@@ -427,12 +441,13 @@ class Client {
             $this->onReadableSocket($cycle);
         });
 
-        if ($this->opMsTransferTimeout > 0) {
-                $cycle->transferTimeoutWatcher = $this->reactor->once(function() use ($cycle) {
+        $timeout = $cycle->options[self::OP_MS_TRANSFER_TIMEOUT];
+        if ($timeout > 0) {
+                $cycle->transferTimeoutWatcher = $this->reactor->once(function() use ($cycle, $timeout) {
                 $this->fail($cycle, new TimeoutException(
-                    sprintf('Allowed transfer timeout exceeded: %d ms', $this->opMsTransferTimeout)
+                    sprintf('Allowed transfer timeout exceeded: %d ms', $timeout)
                 ));
-            }, $this->opMsTransferTimeout);
+            }, $timeout);
         }
 
         $this->writeRequest($cycle);
@@ -440,7 +455,7 @@ class Client {
 
     private function onReadableSocket(RequestCycle $cycle) {
         $socket = $cycle->socket;
-        $data = @fread($socket, $this->opIoGranularity);
+        $data = @fread($socket, $cycle->options[self::OP_IO_GRANULARITY]);
 
         if ($data != '') {
             $this->consumeSocketData($cycle, $data);
@@ -455,7 +470,7 @@ class Client {
     private function consumeSocketData(RequestCycle $cycle, $data) {
         $cycle->lastDataRcvdAt = microtime(true);
         $cycle->bytesRcvd += strlen($data);
-        if ($this->opVerbose & self::VERBOSE_READ) {
+        if ($cycle->options[self::OP_VERBOSITY] & self::VERBOSE_READ) {
             echo $data;
         }
         $cycle->deferredResponse->progress([Notify::SOCK_DATA_IN, $data]);
@@ -484,7 +499,7 @@ class Client {
     private function assignParsedResponse(RequestCycle $cycle, array $parsedResponseArr) {
         $this->collectRequestCycleWatchers($cycle);
 
-        if (($body = $parsedResponseArr['body']) && $this->opBufferBody) {
+        if (($body = $parsedResponseArr['body']) && $cycle->options[self::OP_BUFFER_BODY]) {
             $body = stream_get_contents($body);
         }
 
@@ -560,7 +575,7 @@ class Client {
             return true;
         } elseif ($response->getProtocol() == '1.0' && !$responseConnHeader) {
             return true;
-        } elseif (!$this->opUseKeepAlive) {
+        } elseif (!$cycle->options[self::OP_USE_KEEP_ALIVE]) {
             return true;
         }
 
@@ -620,7 +635,7 @@ class Client {
         $request = $cycle->request;
         $response = $cycle->response;
 
-        if (!($this->opFollowLocation && $response->hasHeader('Location'))) {
+        if (!($cycle->options[self::OP_FOLLOW_LOCATION] && $response->hasHeader('Location'))) {
             return null;
         }
 
@@ -668,7 +683,7 @@ class Client {
             $body->rewind();
         }
 
-        if ($this->opAutoReferer) {
+        if ($cycle->options[self::OP_AUTO_REFERER]) {
             $this->assignRedirectRefererHeader($refererUri, $newUri, $request);
         }
 
@@ -733,6 +748,8 @@ class Client {
 
     /**
      * @TODO Send absolute URIs in the request line when using a proxy server
+     *       Right now this doesn't matter because all proxy requests use a CONNECT
+     *       tunnel but this likely will not always be the case.
      */
     private function generateRawRequestHeaders(Request $request) {
         $uri = $request->getUri();
@@ -759,7 +776,7 @@ class Client {
 
     private function write(RequestCycle $cycle) {
         $bytesToWrite = strlen($cycle->writeBuffer);
-        $bytesWritten = @fwrite($cycle->socket, $cycle->writeBuffer, $this->opIoGranularity);
+        $bytesWritten = @fwrite($cycle->socket, $cycle->writeBuffer, $cycle->options[self::OP_IO_GRANULARITY]);
         $cycle->bytesSent += $bytesWritten;
 
         $notifyData = substr($cycle->writeBuffer, 0, $bytesWritten);
@@ -768,7 +785,7 @@ class Client {
             $cycle->deferredResponse->progress([Notify::SOCK_DATA_OUT, $notifyData]);
         }
 
-        if ($bytesWritten && $this->opVerbose & self::VERBOSE_SEND) {
+        if ($bytesWritten && $cycle->options[self::OP_VERBOSITY] & self::VERBOSE_SEND) {
             echo $notifyData;
         }
 
@@ -856,9 +873,9 @@ class Client {
             // We're finished if there's no body in the request.
             $this->finalizeSuccessfulWrite($cycle);
         } elseif ($this->requestExpects100Continue($cycle->request)) {
-        $cycle->continueWatcher = $this->reactor->once(function() use ($cycle) {
+            $cycle->continueWatcher = $this->reactor->once(function() use ($cycle) {
                 $this->proceedFrom100ContinueState($cycle);
-            }, $this->opMs100ContinueTimeout);
+            }, $cycle->options[self::OP_MS_100_CONTINUE_TIMEOUT]);
         } else {
             $this->initiateBodyWrite($cycle);
         }
@@ -946,71 +963,68 @@ class Client {
     public function setOption($option, $value) {
         switch ($option) {
             case self::OP_AUTO_ENCODING:
-                $this->opAutoEncoding = (bool) $value;
+                $this->options[self::OP_AUTO_ENCODING] = (bool) $value;
                 break;
             case self::OP_USE_KEEP_ALIVE:
-                $this->opUseKeepAlive = (bool) $value;
+                $this->options[self::OP_USE_KEEP_ALIVE] = (bool) $value;
                 break;
             case self::OP_HOST_CONNECTION_LIMIT:
-                $this->socketPool->setOption(SocketPool::OP_HOST_CONNECTION_LIMIT, $value);
+                $this->options[self::OP_HOST_CONNECTION_LIMIT] = $value;
                 break;
             case self::OP_QUEUED_SOCKET_LIMIT:
-                $this->socketPool->setOption(SocketPool::OP_QUEUED_SOCKET_LIMIT, $value);
+                $this->options[self::OP_QUEUED_SOCKET_LIMIT] = $value;
                 break;
             case self::OP_MS_CONNECT_TIMEOUT:
-                $this->socketPool->setOption(SocketPool::OP_MS_CONNECT_TIMEOUT, $value);
+                $this->options[self::OP_MS_CONNECT_TIMEOUT] = $value;
                 break;
             case self::OP_MS_KEEP_ALIVE_TIMEOUT:
-                $this->socketPool->setOption(SocketPool::OP_MS_IDLE_TIMEOUT, $value);
+                $this->options[self::OP_MS_KEEP_ALIVE_TIMEOUT] = $value;
                 break;
             case self::OP_MS_TRANSFER_TIMEOUT:
-                $this->opMsTransferTimeout = (int) $value;
+                $this->options[self::OP_MS_TRANSFER_TIMEOUT] = (int) $value;
                 break;
             case self::OP_MS_100_CONTINUE_TIMEOUT:
-                $this->opMs100ContinueTimeout = (int) $value;
+                $this->options[self::OP_MS_100_CONTINUE_TIMEOUT] = (int) $value;
                 break;
             case self::OP_EXPECT_CONTINUE:
-                $this->opExpectContinue = (bool) $value;
+                $this->options[self::OP_EXPECT_CONTINUE] = (bool) $value;
                 break;
             case self::OP_FOLLOW_LOCATION:
-                $this->opFollowLocation = (bool) $value;
+                $this->options[self::OP_FOLLOW_LOCATION] = (bool) $value;
                 break;
             case self::OP_AUTO_REFERER:
-                $this->opAutoReferer = (bool) $value;
+                $this->options[self::OP_AUTO_REFERER] = (bool) $value;
                 break;
             case self::OP_BUFFER_BODY:
-                $this->opBufferBody = (bool) $value;
+                $this->options[self::OP_BUFFER_BODY] = (bool) $value;
                 break;
             case self::OP_DISCARD_BODY:
-                $this->opDiscardBody = (bool) $value;
+                $this->options[self::OP_DISCARD_BODY] = (bool) $value;
                 break;
-            case self::OP_VERBOSE:
-                $this->opVerbose = (int) $value;
+            case self::OP_VERBOSITY:
+                $this->options[self::OP_VERBOSITY] = (int) $value;
                 break;
             case self::OP_IO_GRANULARITY:
                 $value = (int) $value;
-                $this->opIoGranularity = $value > 0 ? $value : 32768;
+                $this->options[self::OP_IO_GRANULARITY] = $value > 0 ? $value : 32768;
                 break;
             case self::OP_BIND_IP_ADDRESS:
-                $this->socketPool->setOption(SocketPool::OP_BIND_IP_ADDRESS, $value);
+                $this->options[self::OP_BIND_IP_ADDRESS] = $value;
                 break;
             case self::OP_COMBINE_COOKIES:
-                $this->opCombineCookies = (bool) $value;
+                $this->options[self::OP_COMBINE_COOKIES] = (bool) $value;
                 break;
             case self::OP_USER_AGENT:
-                $this->opUserAgent = (string) $value;
-                break;
-            case self::OP_MS_DNS_TIMEOUT:
-                $this->socketPool->setOption(SocketPool::OP_MS_DNS_TIMEOUT, $value);
+                $this->options[self::OP_USER_AGENT] = (string) $value;
                 break;
             case self::OP_PROXY_HTTP:
-                $this->socketPool->setOption(SocketPool::OP_PROXY_HTTP, $value);
+                $this->options[self::OP_PROXY_HTTP] = $value;
                 break;
             case self::OP_PROXY_HTTPS:
-                $this->socketPool->setOption(SocketPool::OP_PROXY_HTTPS, $value);
+                $this->options[self::OP_PROXY_HTTPS] = $value;
                 break;
             case self::OP_CRYPTO:
-                $this->opCrypto = (array) $value;
+                $this->options[self::OP_CRYPTO] = (array) $value;
                 break;
             default:
                 throw new \DomainException(
