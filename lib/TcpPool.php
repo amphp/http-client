@@ -13,7 +13,6 @@ class TcpPool implements SocketPool {
     const OP_MS_IDLE_TIMEOUT = 'op.ms-idle-timeout';
     const OP_MS_CONNECT_TIMEOUT = TcpConnector::OP_MS_CONNECT_TIMEOUT;
     const OP_BIND_IP_ADDRESS = TcpConnector::OP_BIND_IP_ADDRESS;
-    // @TODO const OP_MS_DNS_TIMEOUT = TcpConnector::OP_MS_DNS_TIMEOUT; // Wait until Addr DNS lib API stabilizes
 
     private $reactor;
     private $tcpConnector;
@@ -44,7 +43,7 @@ class TcpPool implements SocketPool {
      * checkin sockets will result in memory leaks and socket queue blockage.
      *
      * @param string $name A string of the form somedomain.com:80 or 192.168.1.1:443
-     * @return After\Promise Returns a promise that resolves to a socket once a connection is available
+     * @return \After\Promise Returns a promise that resolves to a socket once a connection is available
      */
     public function checkout($uri, array $options = []) {
         $uri = strtolower($uri);
@@ -152,7 +151,7 @@ class TcpPool implements SocketPool {
      * Remove the specified socket from the pool
      *
      * @param resource $resource
-     * @return void
+     * @return self
      */
     public function clear($resource) {
         $socketId = (int) $resource;
@@ -160,6 +159,8 @@ class TcpPool implements SocketPool {
             $uri = $this->socketIdUriMap[$socketId];
             $this->unloadSocket($uri, $socketId);
         }
+
+        return $this;
     }
 
     private function unloadSocket($uri, $socketId) {
@@ -189,7 +190,7 @@ class TcpPool implements SocketPool {
      *
      * @param resource $resource
      * @throws \DomainException on resource unknown to the pool
-     * @return void
+     * @return self
      */
     public function checkin($resource) {
         $socketId = (int) $resource;
@@ -207,6 +208,8 @@ class TcpPool implements SocketPool {
         } else {
             $this->finalizeSocketCheckin($uri, $socketId);
         }
+
+        return $this;
     }
 
     private function isSocketDead($resource) {

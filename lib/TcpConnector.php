@@ -37,7 +37,7 @@ class TcpConnector {
      *
      * @param string $uri
      * @param array $options
-     * @return After\Promise
+     * @return \After\Promise
      */
     public function connect($uri, array $options = []) {
         // Host names are always case-insensitive
@@ -144,21 +144,6 @@ class TcpConnector {
         }
 
         $tcpConnectorStruct->deferred->succeed($tcpConnectorStruct->socket);
-    }
-
-    /**
-     * Set multiple socket connector options at once
-     *
-     * @param array $options
-     * @throws \DomainException on unknown option key
-     * @return self
-     */
-    public function setAllOptions(array $options) {
-        foreach ($options as $option => $value) {
-            $this->setOption($option, $value);
-        }
-
-        return $this;
     }
 
     /**

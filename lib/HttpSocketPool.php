@@ -45,8 +45,10 @@ class HttpSocketPool implements SocketPool {
     }
 
     /**
+     * I give you a URI, you promise me a socket at some point in the future
      *
-     * @return After\Promise
+     * @param string $uri
+     * @return \After\Promise
      */
     public function checkout($uri, array $options = []) {
         // Normalize away any IPv6 brackets -- DNS resolution will handle those distinctions for us
@@ -104,21 +106,35 @@ class HttpSocketPool implements SocketPool {
     }
 
     /**
+     * Checkin a previously checked-out socket
      *
+     * @param resource $socket
+     * @return self
      */
     public function checkin($socket) {
         $this->tcpPool->checkin($socket);
+
+        return $this;
     }
 
     /**
+     * Clear a previously checked-out socket from the pool
      *
+     * @param resource $socket
+     * @return self
      */
     public function clear($socket) {
         $this->tcpPool->clear($socket);
+
+        return $this;
     }
 
     /**
+     * Set a socket pool option
      *
+     * @param int|string $option
+     * @param mixed $value
+     * @return self
      */
     public function setOption($option, $value) {
         switch ($option) {

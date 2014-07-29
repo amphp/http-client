@@ -8,36 +8,74 @@ abstract class Message {
     private $headerCaseMap = [];
     private $body;
 
+    /**
+     * Retrieve the message's HTTP protocol version
+     *
+     * @return string
+     */
     public function getProtocol() {
         return $this->protocol;
     }
 
+    /**
+     * Assign the message's HTTP protocol version
+     *
+     * @param string $protocol
+     */
     public function setProtocol($protocol) {
-        $this->protocol = $protocol;
+        $this->protocol = (string) $protocol;
 
         return $this;
     }
 
+    /**
+     * Retrieve the message entity body
+     *
+     * @return mixed
+     */
     public function getBody() {
         return $this->body;
     }
 
+    /**
+     * Assign the message entity body
+     *
+     * @param mixed $body
+     * @return self
+     */
     public function setBody($body) {
         $this->body = $body;
 
         return $this;
     }
 
+    /**
+     * Does the message contain an entity body?
+     *
+     * @return bool
+     */
     public function hasBody() {
-        return ($this->body || $this->body === '0');
+        return ($this->body !== '');
     }
 
+    /**
+     * Does the message contain the specified header field (case-insensitive)?
+     *
+     * @param string $field
+     * @return bool
+     */
     public function hasHeader($field) {
         $fieldUpper = strtoupper($field);
 
         return isset($this->headerCaseMap[$fieldUpper]);
     }
 
+    /**
+     * Retrieve an array of values for the specified header field
+     *
+     * @param string $field
+     * @return array
+     */
     public function getHeader($field) {
         $fieldUpper = strtoupper($field);
 
@@ -51,10 +89,22 @@ abstract class Message {
         }
     }
 
+    /**
+     * Retrieve an associative array of headers matching field names to an array of field values
+     *
+     * @return array
+     */
     public function getAllHeaders() {
         return $this->headers;
     }
 
+    /**
+     * Assign a value for the specified header field (replaces any existing values for that field)
+     *
+     * @param string $field
+     * @param string $value
+     * @return self
+     */
     public function setHeader($field, $value) {
         if (is_scalar($value)) {
             $value = array($value);
@@ -82,6 +132,19 @@ abstract class Message {
         return true;
     }
 
+    /**
+     * Assign multiple header field values at once
+     *
+     * Example:
+     *
+     *     $msg->setAllHeaders([
+     *         'X-My-Header' => '42',
+     *         'Cookie' => [1, 2, 3, 4, 5]
+     *     ]);
+     *
+     * @param array $headers
+     * @return self
+     */
     public function setAllHeaders(array $headers) {
         foreach ($headers as $field => $value) {
             $this->setHeader($field, $value);
@@ -90,6 +153,13 @@ abstract class Message {
         return $this;
     }
 
+    /**
+     * Appends a header for the specified field (instead of replacing via setHeader())
+     *
+     * @param string $field
+     * @param string $value
+     * @return self
+     */
     public function appendHeader($field, $value) {
         if ($this->hasHeader($field)) {
             $existingHeaders = $this->getHeader($field);
@@ -103,6 +173,12 @@ abstract class Message {
         return $result;
     }
 
+    /**
+     * Remove the specified header field from the message
+     *
+     * @param string $field
+     * @return self
+     */
     public function removeHeader($field) {
         $fieldUpper = strtoupper($field);
 
@@ -117,6 +193,11 @@ abstract class Message {
         return $this;
     }
 
+    /**
+     * Remove all header fields from the message
+     *
+     * @return self
+     */
     public function removeAllHeaders() {
         $this->headers = [];
         $this->headerCaseMap = [];

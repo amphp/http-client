@@ -4,12 +4,12 @@ namespace Artax;
 
 interface SocketPool {
     /**
-     * I give you a name, you promise me a socket
+     * I give you a URI, you promise me a socket at some point in the future
      *
-     * @param string $name
+     * @param string $uri
      * @return After\Promise
      */
-    public function checkout($name);
+    public function checkout($uri);
 
     /**
      * Checkin a previously checked-out socket
@@ -20,6 +20,8 @@ interface SocketPool {
 
     /**
      * Clear a previously checked-out socket from the pool
+     * 
+     * @param resource $socket
      */
     public function clear($socket);
 
