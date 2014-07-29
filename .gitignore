@@ -1,4 +1,4 @@
 test/coverage
 vendor
-certs/.cacert-etag
 .idea
+composer.lock

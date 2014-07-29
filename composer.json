@@ -21,7 +21,7 @@
     "require": {
         "php": ">=5.4.0",
         "rdlowrey/alert": "~0.9.0",
-        "daverandom/addr": "~0.2.0",
+        "daverandom/addr": "dev-master#cd5a6a7636909d5525bf3868e2a9949af642ef36",
         "rdlowrey/after": "~0.1.0"
     },
     "repositories": [
