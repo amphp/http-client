@@ -687,14 +687,6 @@ class Client {
             $this->assignRedirectRefererHeader($refererUri, $newUri, $request);
         }
 
-        // @TODO Remove this once SSL/TLS is re-implemented!
-        if ($newUri->getScheme() === 'https') {
-            $cycle->deferredResponse->fail(new \Exception(
-                'Sorry! SSL/TLS isn\'t re-implemented yet :( working on it ...'
-            ));
-            return;
-        }
-
         $deferredSocket = $this->socketPool->checkout($checkoutUri);
         $deferredSocket->onResolve(function($error, $result) use ($cycle) {
             $this->onSocketResolve($cycle, $error, $result);
