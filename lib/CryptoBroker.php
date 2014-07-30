@@ -249,7 +249,10 @@ class CryptoBroker {
     }
 
     /**
-     *
+     * Disable crypto on the specified socket
+     * 
+     * @param resource $socket
+     * @return \After\Promise
      */
     public function disable($socket) {
         $socketId = (int) $socket;
