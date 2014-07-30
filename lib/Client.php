@@ -147,6 +147,7 @@ class Client {
             $this->normalizeRequestEncodingHeaderForZlib($request, $options);
             $this->normalizeRequestHostHeader($request, $uri);
             $this->normalizeRequestUserAgent($request, $options);
+            $this->normalizeRequestAcceptHeader($request);
             $this->assignApplicableRequestCookies($request, $options);
 
             $authority = $this->generateAuthorityFromUri($cycle->uri);
@@ -293,6 +294,10 @@ class Client {
     }
 
     private function normalizeRequestHostHeader(Request $request, Uri $uri) {
+        if ($request->hasHeader('Host')) {
+            return;
+        }
+
         $authority = $this->generateAuthorityFromUri($uri);
 
         // Though servers are supposed to be able to handle standard port names on the end of the
@@ -308,6 +313,12 @@ class Client {
     private function normalizeRequestUserAgent(Request $request, array $options) {
         if (!$request->hasHeader('User-Agent')) {
             $request->setHeader('User-Agent', $options[self::OP_USER_AGENT]);
+        }
+    }
+
+    private function normalizeRequestAcceptHeader(Request $request) {
+        if (!$request->hasHeader('Accept')) {
+            $request->setHeader('Accept', '*/*');
         }
     }
 
@@ -368,6 +379,9 @@ class Client {
         $deferredCryptoResult = $this->cryptoBroker->enable($cycle->socket, $cryptoOptions);
         $deferredCryptoResult->onResolve(function($error, $result) use ($cycle) {
             if ($error) {
+                // If crypto failed we make sure the socket pool gets rid of its reference
+                // to this socket connection.
+                $this->socketPool->clear($cycle->socket);
                 $this->fail($cycle, $error);
             } else {
                 $this->onCryptoCompletion($cycle);
