@@ -18,13 +18,14 @@ class TcpConnector {
 
     const OP_BIND_IP_ADDRESS = 'op.bind-ip-address';
     const OP_MS_CONNECT_TIMEOUT = 'op.ms-connect-timeout';
-    // @TODO const OP_MS_DNS_TIMEOUT = 3; // Wait until Addr DNS lib API stabilizes
+    const OP_DISABLE_SNI_HACK = 'op.disable-sni-hack';
 
     private $reactor;
     private $dnsResolver;
     private $options = [
         self::OP_BIND_IP_ADDRESS => '',
-        self::OP_MS_CONNECT_TIMEOUT => 30000
+        self::OP_MS_CONNECT_TIMEOUT => 30000,
+        self::OP_DISABLE_SNI_HACK => false
     ];
 
     public function __construct(Reactor $reactor, Resolver $dnsResolver = null) {
@@ -88,7 +89,21 @@ class TcpConnector {
     private function doConnect(TcpConnectorStruct $tcpConnectorStruct) {
         $flags = STREAM_CLIENT_CONNECT | STREAM_CLIENT_ASYNC_CONNECT;
         $timeout = 42; // <--- timeout not applicable for async connections
-        $contextOptions = [];
+        $disableSniHack = $tcpConnectorStruct->options[self::OP_DISABLE_SNI_HACK];
+
+        if (PHP_VERSION_ID < 50600 && empty($disableSniHack)) {
+            // Prior to PHP 5.6 the SNI_server_name only registers if assigned to the stream
+            // context at the time the socket is first connected (NOT with stream_socket_enable_crypto()).
+            // So we always add the necessary ctx option here along with our own custom SNI_nb_hack
+            // key to communicate our intent to the CryptoBroker if it's subsequently used
+            $contextOptions = ['ssl' => [
+                'SNI_server_name' => $tcpConnectorStruct->host,
+                'SNI_nb_hack' => true // PHP TLS hates you before 5.6
+            ]];
+        } else {
+            $contextOptions = [];
+        }
+
         $bindToIp = $tcpConnectorStruct->options[self::OP_BIND_IP_ADDRESS];
         if ($bindToIp) {
             $contextOptions['socket']['bindto'] = $bindToIp;
@@ -161,6 +176,9 @@ class TcpConnector {
                 break;
             case self::OP_BIND_IP_ADDRESS:
                 $this->options[self::OP_BIND_IP_ADDRESS] = (string) $value;
+                break;
+            case self::OP_DISABLE_SNI_HACK:
+                $this->options[self::OP_DISABLE_SNI_HACK] = (bool) $value;
                 break;
             default:
                 throw new \DomainException(

@@ -39,25 +39,20 @@ class CryptoBroker {
         }
 
         if ($this->isLegacy) {
-            // For pre-5.6 we always manually verify names in userland using the captured
-            // peer certificate
-            $options['capture_peer_cert'] = true;
-            if (isset($options['CN_match'])) {
-                $options['peer_name'] = $options['CN_match'];
-                unset($options['CN_match']);
-            }
+            $options = $this->normalizeLegacyCryptoOptions($options);
         }
 
         $existingContext = @stream_context_get_options($socket)['ssl'];
 
-        if ($existingContext && ($existingContext == $options)) {
+        if ($this->isContextOptionMatch($existingContext, $options)) {
             return new Success($socket);
-        } elseif ($existingContext) {
+        } elseif ($existingContext && empty($existingContext['SNI_nb_hack'])) {
             // If crypto was previously enabled for this socket we need to disable
             // it before we can negotiate the new options.
             return $this->renegotiate($socket, $options);
         }
 
+        $options['SNI_nb_hack'] = false;
         stream_context_set_option($socket, ['ssl'=> $options]);
 
         if ($result = $this->doEnable($socket)) {
@@ -67,6 +62,25 @@ class CryptoBroker {
         } else {
             return $this->watch($socket, 'doEnable');
         }
+    }
+
+    private function isContextOptionMatch(array $a, array $b) {
+        unset($a['SNI_nb_hack'], $b['SNI_nb_hack'], $a['peer_certificate'], $b['peer_certificate']);
+
+        return ($a == $b);
+    }
+
+    private function normalizeLegacyCryptoOptions(array $options) {
+        // For pre-5.6 we always manually verify names in userland using the captured
+        // peer certificate
+        $options['capture_peer_cert'] = true;
+        if (isset($options['CN_match'])) {
+            $peerName = $options['CN_match'];
+            $options['peer_name'] = $peerName;
+            unset($options['CN_match']);
+        }
+
+        return $options;
     }
 
     private function renegotiate($socket, $options) {
@@ -98,18 +112,9 @@ class CryptoBroker {
 
     private function doLegacyEnable($socket) {
         $cryptoOpts = stream_context_get_options($socket)['ssl'];
-
         $cryptoMethod = empty($cryptoOpts['crypto_method'])
             ? $this->defaultCryptoMethod
             : $cryptoOpts['crypto_method'];
-
-        $peerName = isset($cryptoOpts['peer_name'])
-            ? $cryptoOpts['peer_name']
-            : null;
-
-        $peerFingerprint = isset($cryptoOpts['peer_fingerprint'])
-            ? $cryptoOpts['peer_fingerprint']
-            : null;
 
         // If PHP's internal verification routines return false or zero we're finished
         if (!$result = @stream_socket_enable_crypto($socket, true, $cryptoMethod)) {
@@ -119,10 +124,18 @@ class CryptoBroker {
         $cert = stream_context_get_options($socket)['ssl']['peer_certificate'];
         $certInfo = openssl_x509_parse($cert);
 
+        $peerFingerprint = isset($cryptoOpts['peer_fingerprint'])
+            ? $cryptoOpts['peer_fingerprint']
+            : null;
+
         if ($peerFingerprint && !$this->legacyVerifyPeerFingerprint($peerFingerprint, $cert)) {
             @trigger_error('Peer fingerprint verification failed', E_USER_WARNING);
             return false;
         }
+
+        $peerName = isset($cryptoOpts['peer_name'])
+            ? $cryptoOpts['peer_name']
+            : null;
 
         if ($peerName && !$this->legacyVerifyPeerName($peerName, $certInfo)) {
             @trigger_error('Peer name verification failed', E_USER_WARNING);
@@ -219,7 +232,7 @@ class CryptoBroker {
         $cryptoStruct->id = $socketId;
         $cryptoStruct->socket = $socket;
         $cryptoStruct->deferred = new Deferred;
-        $cryptoStruct->pendingWatcher = $this->reactor->onWritable($socket, function() use ($cryptoStruct, $func) {
+        $cryptoStruct->pendingWatcher = $this->reactor->onReadable($socket, function() use ($cryptoStruct, $func) {
             $socket = $cryptoStruct->socket;
             if ($result = $this->{$func}($socket)) {
                 $cryptoStruct->deferred->succeed($socket);
@@ -250,7 +263,7 @@ class CryptoBroker {
 
     /**
      * Disable crypto on the specified socket
-     * 
+     *
      * @param resource $socket
      * @return \After\Promise
      */
