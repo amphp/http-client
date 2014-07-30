@@ -10,12 +10,14 @@ use Alert\Reactor,
 class CryptoBroker {
     private $reactor;
     private $pending = [];
+    private $isLegacy;
     private $defaultCryptoMethod;
     private $opMsCryptoTimeout = 10000;
 
     public function __construct(Reactor $reactor) {
         $this->reactor = $reactor;
-        $this->defaultCryptoMethod = (PHP_VERSION_ID < 50600)
+        $this->isLegacy = $isLegacy = (PHP_VERSION_ID < 50600);
+        $this->defaultCryptoMethod = $isLegacy
             ? STREAM_CRYPTO_METHOD_SSLv23_CLIENT
             : STREAM_CRYPTO_METHOD_ANY_CLIENT;
     }
@@ -36,6 +38,16 @@ class CryptoBroker {
             ));
         }
 
+        if ($this->isLegacy) {
+            // For pre-5.6 we always manually verify names in userland using the captured
+            // peer certificate
+            $options['capture_peer_cert'] = true;
+            if (isset($options['CN_match'])) {
+                $options['peer_name'] = $options['CN_match'];
+                unset($options['CN_match']);
+            }
+        }
+
         $existingContext = @stream_context_get_options($socket)['ssl'];
 
         if ($existingContext && ($existingContext == $options)) {
@@ -44,10 +56,6 @@ class CryptoBroker {
             // If crypto was previously enabled for this socket we need to disable
             // it before we can negotiate the new options.
             return $this->renegotiate($socket, $options);
-        }
-
-        if (PHP_VERSION_ID < 50600 && isset($options['peer_name'])) {
-            $options['CN_match'] = $options['peer_name'];
         }
 
         stream_context_set_option($socket, ['ssl'=> $options]);
@@ -83,12 +91,120 @@ class CryptoBroker {
     }
 
     private function doEnable($socket) {
+        return $this->isLegacy
+            ? $this->doLegacyEnable($socket)
+            : @stream_socket_enable_crypto($socket, true);
+    }
+
+    private function doLegacyEnable($socket) {
         $cryptoOpts = stream_context_get_options($socket)['ssl'];
+
         $cryptoMethod = empty($cryptoOpts['crypto_method'])
             ? $this->defaultCryptoMethod
             : $cryptoOpts['crypto_method'];
 
-        return @stream_socket_enable_crypto($socket, true, $cryptoMethod);
+        $peerName = isset($cryptoOpts['peer_name'])
+            ? $cryptoOpts['peer_name']
+            : null;
+
+        $peerFingerprint = isset($cryptoOpts['peer_fingerprint'])
+            ? $cryptoOpts['peer_fingerprint']
+            : null;
+
+        // If PHP's internal verification routines return false or zero we're finished
+        if (!$result = @stream_socket_enable_crypto($socket, true, $cryptoMethod)) {
+            return $result;
+        }
+
+        $cert = stream_context_get_options($socket)['ssl']['peer_certificate'];
+        $certInfo = openssl_x509_parse($cert);
+
+        if ($peerFingerprint && !$this->legacyVerifyPeerFingerprint($peerFingerprint, $cert)) {
+            @trigger_error('Peer fingerprint verification failed', E_USER_WARNING);
+            return false;
+        }
+
+        if ($peerName && !$this->legacyVerifyPeerName($peerName, $certInfo)) {
+            @trigger_error('Peer name verification failed', E_USER_WARNING);
+            return false;
+        }
+
+        return true;
+    }
+
+    private function legacyVerifyPeerFingerprint($peerFingerprint, $cert) {
+        if (is_string($peerFingerprint)) {
+            $peerFingerprint = [$peerFingerprint];
+        } elseif (!is_array($peerFingerprint)) {
+            @trigger_error(
+                sprintf('Invalid peer_fingerprint; string or array required (%s)', gettype($peerFingerprint)),
+                E_USER_WARNING
+            );
+            return false;
+        }
+
+        if (!openssl_x509_export($cert, $str, false)) {
+            @trigger_error('Failed exporting peer cert for fingerprint verification', E_USER_WARNING);
+            return false;
+        }
+
+        if (!preg_match("/-+BEGIN CERTIFICATE-+(.+)-+END CERTIFICATE-+/s", $str, $matches)) {
+            @trigger_error('Failed parsing cert PEM for fingerprint verification', E_USER_WARNING);
+            return false;
+        }
+
+        $pem = $matches[1];
+        $pem = base64_decode($pem);
+
+        foreach ($peerFingerprint as $expectedFingerprint) {
+            $algo = (strlen($expectedFingerprint) === 40) ? 'sha1' : 'md5';
+            $actualFingerprint = openssl_digest($pem, $algo);
+            if ($expectedFingerprint === $actualFingerprint) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function legacyVerifyPeerName($peerName, array $certInfo) {
+        if ($this->matchesWildcardName($peerName, $certInfo['subject']['CN'])) {
+            return true;
+        }
+
+        if (empty($certInfo['extensions']['subjectAltName'])) {
+            return false;
+        }
+
+        $subjectAltNames = array_map('trim', explode(',', $certInfo['extensions']['subjectAltName']));
+
+        foreach ($subjectAltNames as $san) {
+            if (stripos($san, 'DNS:') !== 0) {
+                continue;
+            }
+            $sanName = substr($san, 4);
+
+            if ($this->matchesWildcardName($peerName, $sanName)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function matchesWildcardName($peerName, $certName) {
+        if (strcasecmp($peerName, $certName) === 0) {
+            return true;
+        }
+        if (!(stripos($certName, '*.') === 0 && stripos($peerName, '.'))) {
+            return false;
+        }
+        $certName = substr($certName, 2);
+        $peerName = explode(".", $peerName);
+        unset($peerName[0]);
+        $peerName = implode(".", $peerName);
+
+        return ($peerName == $certName);
     }
 
     private function generateErrorException() {
@@ -162,33 +278,3 @@ class CryptoBroker {
     }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
