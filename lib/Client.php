@@ -399,17 +399,13 @@ class Client {
                 'ciphers' => $this->defaultTlsCiphers,
                 'CN_match' => $peerName,
                 'SNI_enabled' => true,
+                'SNI_server_name' => $peerName,
             ];
         } else {
             $options = [
                 'peer_name' => $peerName,
             ];
         }
-
-        // Although SNI is enabled by default in 5.6 it will use the IP address for name verification
-        // and fail because we're manually resolving the DNS name and using the IP to connect. To
-        // avoid this failure we make sure to set the name manually just as we set the peer_name.
-        $options['SNI_server_name'] = $peerName;
         $options['allow_self_signed'] = false;
         $options['cafile'] = __DIR__ . '/../certs/ca-bundle.crt';
 
