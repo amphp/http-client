@@ -1,3 +1,0 @@
-[submodule "certs"]
-	path = certs
-	url = https://github.com/bagder/ca-bundle.git
