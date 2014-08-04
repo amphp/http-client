@@ -1,15 +1,18 @@
 #### master (complete rewrite)
 
-- Now works behind HTTP proxy servers!
-- `Artax\Client` is now the asynchronous non-blocking client class
-- The `Artax\BlockingClient` wrapper class may be used for synchronous requests
-- All client option settings must now be assigned using `Artax\Client::OP_*` constants
-- Result callbacks are no longer passed at call-time for async requests
-- Async calls to `Artax\Client::request()` now returns an `After\Future` placeholder value that
-  will resolve when the response eventually succeeds or fails.
+- Now functions transparently behind HTTP proxy servers!
+- `Artax\Client` is now the only client class (previously `Artax\AsyncClient`)
+- The old blocking implementation of `Artax\Client` used for synchronous requests has been removed
+  completely. Instead, users may call `wait()` on the `After\Promise` instance returned by
+  `Artax\Client::request()`.
+- `Artax\Client::request()` now accepts an array of URIs and/or requests. In such cases the return
+  value is an array of `After\Promise` instances whose keys match those of the original array.
+- All optional settings are now referenced using `Artax\Client::OP_*` constants (previously used string literals)
+- Result callbacks are no longer passed at call-time for async requests; `After\Promise` objects are used instead.
 - Cookie handling is now integrated as part of the standard client classes
 - Exceptions and error handling have been significantly improved
-- Old extension system eracinated because: garbage.
+- Old extension system removed because: garbage.
+- Individual request progress updates now use the `After\Promise::watch()` API.
 - Issues #14, #25 and #26 have been resolved
 - Remove submodules, migrate to composer as the primary dependency resolution strategy
 - Updated examples
@@ -18,7 +21,8 @@
 
 - The breakage in this release is extensive as the entire library has been rewritten. **DO NOT**
   upgrade your application to use this release and expect existing code to "just work." You have
-  been warned.
+  been warned. The best course of action for those upgrading is to examine the `examples/` directory
+  to see how things work with the new version.
 
 #### v0.7.1
 
