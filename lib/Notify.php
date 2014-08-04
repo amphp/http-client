@@ -13,3 +13,4 @@ class Notify {
     const REDIRECT = 8;
     const ERROR = -1;
 }
+

@@ -1,78 +1,60 @@
 <?php
 
-namespace Artax\Test;
+namespace ArtaxTest;
 
-use Artax\Client,
-    Artax\Request,
-    Artax\FormBody,
-    Artax\ResourceBody,
-    Alert\NativeReactor;
+use Artax\Client;
+use Artax\Request;
+use Artax\FormBody;
+use Artax\ResourceBody;
+use Alert\NativeReactor;
 
 class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
-    private function generateClientAndReactor() {
-        $reactor = new NativeReactor;
-        $client = new Client($reactor);
-        return [$client, $reactor];
+    /**
+     * @return \Artax\Client
+     */
+    private function generateClient() {
+        return new Client(new NativeReactor);
     }
 
     public function testDefaultUserAgentSent() {
         $uri = 'http://httpbin.org/user-agent';
-        list($client, $reactor) = $this->generateClientAndReactor();
+        $client = $this->generateClient();
 
-        $promise = $client->request($uri);
-        $promise->onResolve(function($error, $response) use ($reactor) {
-            $reactor->stop();
-            $this->assertNull($error);
-            $this->assertInstanceOf('Artax\Response', $response);
-            $body = $response->getBody();
-            $result = json_decode($body);
-            $this->assertSame(Client::USER_AGENT, $result->{'user-agent'});
-        });
-
-        $reactor->run();
+        $response = $client->request($uri)->wait();
+        $this->assertInstanceOf('Artax\Response', $response);
+        $body = $response->getBody();
+        $result = json_decode($body);
+        $this->assertSame(Client::USER_AGENT, $result->{'user-agent'});
     }
 
     public function testCustomUserAgentSentIfAssigned() {
         $uri = 'http://httpbin.org/user-agent';
-        list($client, $reactor) = $this->generateClientAndReactor();
+        $client = $this->generateClient();
 
         $customUserAgent = 'test-user-agent';
         $client->setOption(Client::OP_USER_AGENT, $customUserAgent);
-        $promise = $client->request($uri);
-
-        $promise->onResolve(function($error, $response) use ($reactor, $customUserAgent) {
-            $reactor->stop();
-            $this->assertNull($error);
-            $this->assertInstanceOf('Artax\Response', $response);
-            $body = $response->getBody();
-            $result = json_decode($body);
-            $this->assertSame($customUserAgent, $result->{'user-agent'});
-        });
-
-        $reactor->run();
+        $response = $client->request($uri)->wait();
+        $this->assertInstanceOf('Artax\Response', $response);
+        $body = $response->getBody();
+        $result = json_decode($body);
+        $this->assertSame($customUserAgent, $result->{'user-agent'});
     }
 
     public function testPostStringBody() {
         $uri = 'http://httpbin.org/post';
-        list($client, $reactor) = $this->generateClientAndReactor();
+        $client = $this->generateClient();
 
         $body = 'zanzibar';
         $request = (new Request)->setUri($uri)->setMethod('POST')->setBody($body);
-        $promise = $client->request($request);
-        $promise->onResolve(function($error, $response) use ($reactor, $body) {
-            $reactor->stop();
-            $this->assertNull($error);
-            $this->assertInstanceOf('Artax\Response', $response);
-            $result = json_decode($response->getBody());
-            $this->assertEquals($body, $result->data);
-        });
-
-        $reactor->run();
+        $response = $client->request($request)->wait();
+        $this->assertInstanceOf('Artax\Response', $response);
+        $result = json_decode($response->getBody());
+        $this->assertEquals($body, $result->data);
     }
 
     public function testPostResourceBody() {
         $uri = 'http://httpbin.org/post';
-        list($client, $reactor) = $this->generateClientAndReactor();
+        $client = $this->generateClient();
 
         $bodyString = 'zanzibar';
         $bodyStream = fopen('php://memory', 'r+');
@@ -81,34 +63,22 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
         $resourceBody = new ResourceBody($bodyStream);
 
         $request = (new Request)->setUri($uri)->setMethod('POST')->setBody($resourceBody);
-        $promise = $client->request($request);
-        $promise->onResolve(function($error, $response) use ($reactor, $bodyString) {
-            $reactor->stop();
-            $this->assertNull($error);
-            $this->assertInstanceOf('Artax\Response', $response);
-            $result = json_decode($response->getBody());
-            $this->assertEquals($bodyString, $result->data);
-        });
-
-        $reactor->run();
+        $response = $client->request($request)->wait();
+        $this->assertInstanceOf('Artax\Response', $response);
+        $result = json_decode($response->getBody());
+        $this->assertEquals($bodyString, $result->data);
     }
 
     public function testPutStringBody() {
         $uri = 'http://httpbin.org/put';
-        list($client, $reactor) = $this->generateClientAndReactor();
+        $client = $this->generateClient();
 
         $body = 'zanzibar';
         $request = (new Request)->setUri($uri)->setMethod('PUT')->setBody($body);
-        $promise = $client->request($request);
-        $promise->onResolve(function($error, $response) use ($reactor, $body) {
-            $reactor->stop();
-            $this->assertNull($error);
-            $this->assertInstanceOf('Artax\Response', $response);
-            $result = json_decode($response->getBody());
-            $this->assertEquals($body, $result->data);
-        });
-
-        $reactor->run();
+        $response = $client->request($request)->wait();
+        $this->assertInstanceOf('Artax\Response', $response);
+        $result = json_decode($response->getBody());
+        $this->assertEquals($body, $result->data);
     }
 
     /**
@@ -116,17 +86,11 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
      */
     public function testStatusCodeResponses($statusCode) {
         $uri = "http://httpbin.org/status/{$statusCode}";
-        list($client, $reactor) = $this->generateClientAndReactor();
+        $client = $this->generateClient();
 
-        $promise = $client->request($uri);
-        $promise->onResolve(function($error, $response) use ($reactor, $statusCode) {
-            $reactor->stop();
-            $this->assertNull($error);
-            $this->assertInstanceOf('Artax\Response', $response);
-            $this->assertEquals($statusCode, $response->getStatus());
-        });
-
-        $reactor->run();
+        $response = $client->request($uri)->wait();
+        $this->assertInstanceOf('Artax\Response', $response);
+        $this->assertEquals($statusCode, $response->getStatus());
     }
 
     public function provideStatusCodes() {
@@ -140,49 +104,32 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
 
     public function testReason() {
         $uri = "http://httpbin.org/status/418";
-        list($client, $reactor) = $this->generateClientAndReactor();
+        $client = $this->generateClient();
 
-        $promise = $client->request($uri);
-        $promise->onResolve(function($error, $response) use ($reactor) {
-            $reactor->stop();
-            $this->assertNull($error);
-            $this->assertInstanceOf('Artax\Response', $response);
-            $expectedReason = "I'M A TEAPOT";
-            $actualReason = $response->getReason();
-            $this->assertEquals($expectedReason, $actualReason);
-        });
-
-        $reactor->run();
+        $response = $client->request($uri)->wait();
+        $this->assertInstanceOf('Artax\Response', $response);
+        $expectedReason = "I'M A TEAPOT";
+        $actualReason = $response->getReason();
+        $this->assertSame($expectedReason, $actualReason);
     }
 
     public function testRedirect() {
         $statusCode = 299;
         $redirectTo = "/status/{$statusCode}";
         $uri = "http://httpbin.org/redirect-to?url={$redirectTo}";
-        list($client, $reactor) = $this->generateClientAndReactor();
+        $client = $this->generateClient();
 
-        $promise = $client->request($uri);
-        $promise->onResolve(function($error, $response) use ($reactor, $statusCode) {
-            $this->assertNull($error);
-            $this->assertInstanceOf('Artax\Response', $response);
-            $this->assertEquals($statusCode, $response->getStatus());
-            $reactor->stop();
-        });
-
-        $reactor->run();
+        $response = $client->request($uri)->wait();
+        $this->assertInstanceOf('Artax\Response', $response);
+        $this->assertEquals($statusCode, $response->getStatus());
     }
 
     public function testVerboseSend() {
         $uri = "http://httpbin.org/";
-        list($client, $reactor) = $this->generateClientAndReactor();
+        $client = $this->generateClient();
 
         $client->setOption(Client::OP_VERBOSITY, Client::VERBOSE_SEND);
-        $promise = $client->request($uri);
-        $promise->onResolve(function() use ($reactor) {
-            $reactor->stop();
-        });
-
-        $reactor->run();
+        $client->request($uri)->wait();
 
         $expectedOutput = '' .
             "GET / HTTP/1.1\r\n" .
@@ -196,25 +143,19 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
 
     public function testClientAddsZeroContentLengthHeaderForEmptyBodiesOnPost() {
         $uri = 'http://httpbin.org/post';
-        list($client, $reactor) = $this->generateClientAndReactor();
+        $client = $this->generateClient();
 
         $request = (new Request)->setUri($uri)->setMethod('POST');
-        $promise = $client->request($request);
-        $promise->onResolve(function($error, $response) use ($reactor) {
-            $this->assertNull($error);
-            $this->assertInstanceOf('Artax\Response', $response);
-            $body = $response->getBody();
-            $result = json_decode($body);
-            $this->assertEquals('0', $result->headers->{'Content-Length'});
-            $reactor->stop();
-        });
-
-        $reactor->run();
+        $response = $client->request($request)->wait();
+        $this->assertInstanceOf('Artax\Response', $response);
+        $body = $response->getBody();
+        $result = json_decode($body);
+        $this->assertEquals('0', $result->headers->{'Content-Length'});
     }
 
     public function testFormEncodedBodyRequest() {
         $uri = 'http://httpbin.org/post';
-        list($client, $reactor) = $this->generateClientAndReactor();
+        $client = $this->generateClient();
 
         $body = new FormBody;
         $field1 = 'test val';
@@ -223,26 +164,19 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
         $body->addField('field2', $field2);
 
         $request = (new Request)->setBody($body)->setUri($uri)->setMethod('POST');
-        $promise = $client->request($request);
-        $promise->onResolve(function($error, $response) use ($reactor, $field1, $field2) {
-            $this->assertNull($error);
-            $this->assertInstanceOf('Artax\Response', $response);
-            $body = $response->getBody();
-            $result = json_decode($response->getBody(), true);
-            $this->assertEquals($field1, $result['form']['field1']);
-            $this->assertEquals($field2, $result['form']['field2']);
-            $this->assertEquals('application/x-www-form-urlencoded', $result['headers']['Content-Type']);
-            $reactor->stop();
-        });
-
-        $reactor->run();
+        $response = $client->request($request)->wait();
+        $this->assertInstanceOf('Artax\Response', $response);
+        $result = json_decode($response->getBody(), true);
+        $this->assertEquals($field1, $result['form']['field1']);
+        $this->assertEquals($field2, $result['form']['field2']);
+        $this->assertEquals('application/x-www-form-urlencoded', $result['headers']['Content-Type']);
     }
 
     public function testMultipartBodyRequest() {
         $this->markTestSkipped("Don't think this one will work yet");
-        
+
         // -----------------------------------------------------------------------------------------
-        
+
         $client = new Client;
         $field1 = 'test val';
         $file1 = dirname(__DIR__) . '/fixture/lorem.txt';

@@ -3,6 +3,7 @@
 namespace Artax;
 
 class HttpTunnelStruct {
+    public $future;
     public $socket;
     public $writeBuffer;
     public $writeWatcher;

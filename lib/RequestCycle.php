@@ -3,6 +3,9 @@
 namespace Artax;
 
 class RequestCycle {
+    public $futureResponse;
+    public $futureWriteResult;
+    public $options;
     public $socket;
     public $readWatcher;
     public $writeWatcher;

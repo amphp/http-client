@@ -20,9 +20,10 @@
     ],
     "require": {
         "php": ">=5.4.0",
-        "rdlowrey/alert": "~0.9.0",
-        "daverandom/addr": "dev-master#cd5a6a7636909d5525bf3868e2a9949af642ef36",
-        "rdlowrey/after": "~0.1.0"
+        "rdlowrey/alert": "0.10.2 as 0.9.0",
+        "rdlowrey/after": "~0.2.0",
+        "rdlowrey/acesync": "dev-master",
+        "bagder/ca-bundle": "dev-master"
     },
     "repositories": [
         {
@@ -35,7 +36,19 @@
         },
         {
             "type": "vcs",
-            "url": "https://github.com/DaveRandom/Addr.git"
+            "url": "https://github.com/rdlowrey/Acesync.git"
+        },
+        {
+            "type": "package",
+            "package": {
+                "name": "bagder/ca-bundle",
+                "version": "dev-master",
+                "source": {
+                    "url": "https://github.com/bagder/ca-bundle",
+                    "type": "git",
+                    "reference": "origin/master"
+                }
+            }
         }
     ],
     "autoload": {

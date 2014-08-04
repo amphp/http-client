@@ -2,7 +2,7 @@
 
 namespace Artax;
 
-class TcpPoolStruct {
+class SocketPoolStruct {
     public $id;
     public $uri;
     public $resource;

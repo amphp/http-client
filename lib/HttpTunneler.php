@@ -2,8 +2,8 @@
 
 namespace Artax;
 
-use Alert\Reactor,
-    After\Deferred;
+use Alert\Reactor;
+use After\Future;
 
 class HttpTunneler {
     private $reactor;
@@ -22,12 +22,12 @@ class HttpTunneler {
      */
     public function tunnel($socket, $authority) {
         $struct = new HttpTunnelStruct;
-        $struct->deferred = new Deferred;
+        $struct->future = new Future($this->reactor);
         $struct->socket = $socket;
         $struct->writeBuffer = "CONNECT {$authority} HTTP/1.1\r\n\r\n";
         $this->doWrite($struct);
 
-        return $struct->deferred->promise();
+        return $struct->future->promise();
     }
 
     private function doWrite(HttpTunnelStruct $struct) {
@@ -47,7 +47,7 @@ class HttpTunneler {
             $this->enableWriteWatcher($struct);
         } elseif ($this->isSocketDead($socket)) {
             $this->reactor->cancel($struct->writeWatcher);
-            $struct->deferred->fail(new SocketException(
+            $struct->future->fail(new SocketException(
                 'Proxy CONNECT failed: socket went away while writing tunneling request'
             ));
         } else {
@@ -74,7 +74,7 @@ class HttpTunneler {
             $this->parseSocketData($struct, $data);
         } elseif ($this->isSocketDead($socket)) {
             $this->reactor->cancel($struct->readWatcher);
-            $struct->deferred->fail(new SocketException(
+            $struct->future->fail(new SocketException(
                 'Proxy CONNECT failed: socket went away while awaiting tunneling response'
             ));
         }
@@ -91,17 +91,17 @@ class HttpTunneler {
             if ($status == 200) {
                 // Tunnel connected! We're finished \o/ #WinningAtLife #DealWithIt
                 stream_context_set_option($struct->socket, 'artax*', 'is_tunneled', true);
-                $struct->deferred->succeed($struct->socket);
+                $struct->future->succeed($struct->socket);
                 $this->reactor->cancel($struct->readWatcher);
             } else {
-                $struct->deferred->fail(new ClientException(
+                $struct->future->fail(new ClientException(
                     sprintf('Unexpected response status received from proxy: %d', $status)
                 ));
                 $this->reactor->cancel($struct->readWatcher);
             }
         } catch (ParseException $e) {
             $this->reactor->cancel($struct->readWatcher);
-            $struct->deferred->fail(new ClientException(
+            $struct->future->fail(new ClientException(
                 'Invalid HTTP response received from proxy while establishing tunnel',
                 0,
                 $e

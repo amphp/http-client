@@ -3,8 +3,10 @@
 namespace Artax;
 
 use Alert\Reactor,
-    After\Deferred,
-    After\DeferredLock,
+    Alert\ReactorFactory,
+    After\Future,
+    Acesync\Encryptor,
+    Acesync\Connector,
     Artax\Cookie\Cookie,
     Artax\Cookie\CookieJar,
     Artax\Cookie\ArrayCookieJar,
@@ -13,11 +15,11 @@ use Alert\Reactor,
 class Client {
     const USER_AGENT = 'Artax/0.8.0-dev (PHP5.4+)';
 
-    const OP_BIND_IP_ADDRESS = TcpConnector::OP_BIND_IP_ADDRESS;
-    const OP_MS_CONNECT_TIMEOUT = TcpConnector::OP_MS_CONNECT_TIMEOUT;
-    const OP_HOST_CONNECTION_LIMIT = TcpPool::OP_HOST_CONNECTION_LIMIT;
-    const OP_QUEUED_SOCKET_LIMIT = TcpPool::OP_MAX_QUEUE_SIZE;
-    const OP_MS_KEEP_ALIVE_TIMEOUT = TcpPool::OP_MS_IDLE_TIMEOUT;
+    const OP_BIND_IP_ADDRESS = Connector::OP_BIND_IP_ADDRESS;
+    const OP_MS_CONNECT_TIMEOUT = Connector::OP_MS_CONNECT_TIMEOUT;
+    const OP_HOST_CONNECTION_LIMIT = SocketPool::OP_HOST_CONNECTION_LIMIT;
+    const OP_QUEUED_SOCKET_LIMIT = SocketPool::OP_MAX_QUEUE_SIZE;
+    const OP_MS_KEEP_ALIVE_TIMEOUT = SocketPool::OP_MS_IDLE_TIMEOUT;
     const OP_PROXY_HTTP = HttpSocketPool::OP_PROXY_HTTP;
     const OP_PROXY_HTTPS = HttpSocketPool::OP_PROXY_HTTPS;
     const OP_AUTO_ENCODING = 'op.auto-encoding';
@@ -43,9 +45,8 @@ class Client {
     private $reactor;
     private $cookieJar;
     private $socketPool;
-    private $cryptoBroker;
+    private $encryptor;
     private $hasZlib;
-    private $defaultTlsCiphers;
     private $options = [
         self::OP_BIND_IP_ADDRESS => '',
         self::OP_MS_CONNECT_TIMEOUT => 30000,
@@ -71,71 +72,48 @@ class Client {
     ];
 
     public function __construct(
-        Reactor $reactor,
+        Reactor $reactor = null,
         CookieJar $cookieJar = null,
         HttpSocketPool $socketPool = null,
-        CryptoBroker $cryptoBroker = null
+        Encryptor $encryptor = null
     ) {
+        $reactor = $reactor ?: ReactorFactory::select();
         $this->reactor = $reactor;
         $this->cookieJar = $cookieJar ?: new ArrayCookieJar;
         $this->socketPool = $socketPool ?: new HttpSocketPool($reactor);
-        $this->cryptoBroker = $cryptoBroker ?: new CryptoBroker($reactor);
+        $this->encryptor = $encryptor ?: new Encryptor($reactor);
         $this->hasZlib = extension_loaded('zlib');
-        $this->defaultTlsCiphers = implode(':', [
-            'ECDHE-RSA-AES128-GCM-SHA256',
-            'ECDHE-ECDSA-AES128-GCM-SHA256',
-            'ECDHE-RSA-AES256-GCM-SHA384',
-            'ECDHE-ECDSA-AES256-GCM-SHA384',
-            'DHE-RSA-AES128-GCM-SHA256',
-            'DHE-DSS-AES128-GCM-SHA256',
-            'kEDH+AESGCM',
-            'ECDHE-RSA-AES128-SHA256',
-            'ECDHE-ECDSA-AES128-SHA256',
-            'ECDHE-RSA-AES128-SHA',
-            'ECDHE-ECDSA-AES128-SHA',
-            'ECDHE-RSA-AES256-SHA384',
-            'ECDHE-ECDSA-AES256-SHA384',
-            'ECDHE-RSA-AES256-SHA',
-            'ECDHE-ECDSA-AES256-SHA',
-            'DHE-RSA-AES128-SHA256',
-            'DHE-RSA-AES128-SHA',
-            'DHE-DSS-AES128-SHA256',
-            'DHE-RSA-AES256-SHA256',
-            'DHE-DSS-AES256-SHA',
-            'DHE-RSA-AES256-SHA',
-            'AES128-GCM-SHA256',
-            'AES256-GCM-SHA384',
-            'ECDHE-RSA-RC4-SHA',
-            'ECDHE-ECDSA-RC4-SHA',
-            'AES128',
-            'AES256',
-            'RC4-SHA',
-            'HIGH',
-            '!aNULL',
-            '!eNULL',
-            '!EXPORT',
-            '!DES',
-            '!3DES',
-            '!MD5',
-            '!PSK'
-        ]);
     }
 
     /**
-     * Make an asynchronous HTTP request
+     * Asynchronously request HTTP resource(s)
      *
-     * @param string|Artax\Request An HTTP URI string or Artax\Request instance
+     * @param mixed[string|\Artax\Request|array] An HTTP URI, Request or array of URIs/requests
      * @param array $options An array specifying one-off options applicable only for this request
-     * @return \After\Promise A placeholder value that resolves when the response completes or fails
+     * @return mixed[\After\Promise|array] A promise or an array of promises
      */
-    public function request($uriOrRequest, array $options = []) {
+    public function request($uriOrRequestOrArray, array $options = []) {
+        if (is_array($uriOrRequestOrArray)) {
+            $promises = [];
+            foreach ($uriOrRequestOrArray as $key => $request) {
+                $promises[$key] = $this->doRequest($request, $options);
+            }
+            return $promises;
+        } else {
+            return $this->doRequest($uriOrRequestOrArray, $options);
+        }
+    }
+
+    private function doRequest($uriOrRequest, array $options) {
+        $cycle = new RequestCycle;
+
         try {
+            $cycle->futureResponse = new Future($this->reactor);
+
             list($request, $uri) = $this->generateRequestFromUri($uriOrRequest);
 
-            $cycle = new RequestCycle;
             $cycle->uri = $uri;
             $cycle->request = $request;
-            $cycle->deferredResponse = new DeferredLock;
             $cycle->options = $options = $options
                 ? array_merge($this->options, $options)
                 : $this->options;
@@ -152,15 +130,15 @@ class Client {
 
             $authority = $this->generateAuthorityFromUri($cycle->uri);
             $checkoutUri = $uri->getScheme() . "://{$authority}";
-            $deferredSocket = $this->socketPool->checkout($checkoutUri);
-            $deferredSocket->onResolve(function($error, $result) use ($cycle) {
+            $futureSocket = $this->socketPool->checkout($checkoutUri);
+            $futureSocket->when(function($error, $result) use ($cycle) {
                 $this->onSocketResolve($cycle, $error, $result);
             });
         } catch (\Exception $e) {
-            $cycle->deferredResponse->fail($e);
+            $cycle->futureResponse->fail($e);
         }
 
-        return $cycle->deferredResponse->promise();
+        return $cycle->futureResponse->promise();
     }
 
     private function generateRequestFromUri($uriOrRequest) {
@@ -299,15 +277,19 @@ class Client {
         }
 
         $authority = $this->generateAuthorityFromUri($uri);
+        $host = $this->removePortFromHost($authority);
+        $request->setHeader('Host', $host);
+    }
 
+    private function removePortFromHost($host) {
         // Though servers are supposed to be able to handle standard port names on the end of the
         // Host header some fail to do this correctly. As a result, we strip the port from the end
-        // if it's a standard 80/443 port.
-        if (stripos($authority, ':80') || stripos($authority, ':443')) {
-            $authority = parse_url($authority, PHP_URL_HOST);
+        // if it's a standard 80 or 443
+        if (stripos($host, ':80') || stripos($host, ':443')) {
+            $host = parse_url($host, PHP_URL_HOST);
         }
 
-        $request->setHeader('Host', $authority);
+        return $host;
     }
 
     private function normalizeRequestUserAgent(Request $request, array $options) {
@@ -365,7 +347,7 @@ class Client {
 
         $cycle->socket = $socket;
         $cycle->socketProcuredAt = microtime(true);
-        $cycle->deferredResponse->progress([Notify::SOCK_PROCURED, null]);
+        $cycle->futureResponse->update([Notify::SOCK_PROCURED, null]);
 
         if ($cycle->uri->getScheme() === 'https') {
             $this->enableCrypto($cycle);
@@ -376,8 +358,8 @@ class Client {
 
     private function enableCrypto(RequestCycle $cycle) {
         $cryptoOptions = $this->generateCryptoOptions($cycle);
-        $deferredCryptoResult = $this->cryptoBroker->enable($cycle->socket, $cryptoOptions);
-        $deferredCryptoResult->onResolve(function($error, $result) use ($cycle) {
+        $cryptoPromise = $this->encryptor->enable($cycle->socket, $cryptoOptions);
+        $cryptoPromise->when(function($error) use ($cycle) {
             if ($error) {
                 // If crypto failed we make sure the socket pool gets rid of its reference
                 // to this socket connection.
@@ -390,30 +372,7 @@ class Client {
     }
 
     private function generateCryptoOptions(RequestCycle $cycle) {
-        $peerName = $cycle->uri->getHost();
-        $isLegacyTls = (PHP_VERSION_ID < 50600);
-
-        if ($isLegacyTls) {
-            $options = [
-                'verify_peer' => true,
-                'ciphers' => $this->defaultTlsCiphers,
-                'CN_match' => $peerName,
-                'SNI_enabled' => true,
-                'SNI_server_name' => $peerName,
-            ];
-        } else {
-            $options = [
-                'peer_name' => $peerName,
-            ];
-        }
-        $options['allow_self_signed'] = false;
-        $options['cafile'] = __DIR__ . '/../certs/ca-bundle.crt';
-
-        // Even though pre-5.6 doesn't use this context option, our crypto broker needs it so it
-        // can determine which method to pass the terrible stream_socket_enable_crypto() function.
-        $options['crypto_method'] = $isLegacyTls
-            ? STREAM_CRYPTO_METHOD_SSLv23_CLIENT
-            : STREAM_CRYPTO_METHOD_ANY_CLIENT;
+        $options = ['peer_name' => $cycle->uri->getHost()];
 
         // Allow client-wide TLS settings
         if ($this->options[self::OP_CRYPTO]) {
@@ -421,7 +380,7 @@ class Client {
         }
 
         // Allow per-request TLS settings
-        if (!empty($cycle->options[self::OP_CRYPTO])) {
+        if ($cycle->options[self::OP_CRYPTO]) {
             $options = array_merge($options, $cycle->options[self::OP_CRYPTO]);
         }
 
@@ -432,17 +391,12 @@ class Client {
         $parser = new Parser(Parser::MODE_RESPONSE);
         $parser->enqueueResponseMethodMatch($cycle->request->getMethod());
         $parser->setAllOptions([
-            /*
-            // @TODO Determine if we actually care about these in a client context
             // @TODO Expose a Client::OP_BODY_SWAP_SIZE option
-            Parser::OP_MAX_HEADER_BYTES => $this->maxHeaderBytes,
-            Parser::OP_MAX_BODY_BYTES => $this->maxBodyBytes,
-            Parser::OP_BODY_SWAP_SIZE => $this->bodySwapSize,
-            */
+            // @TODO Add support for non-blocking filesystem IO
             Parser::OP_DISCARD_BODY => $cycle->options[self::OP_DISCARD_BODY],
             Parser::OP_RETURN_BEFORE_ENTITY => true,
             Parser::OP_BODY_DATA_CALLBACK => function($data) use ($cycle) {
-                $cycle->deferredResponse->progress([Notify::RESPONSE_BODY_DATA, $data]);
+                $cycle->futureResponse->update([Notify::RESPONSE_BODY_DATA, $data]);
             }
         ]);
 
@@ -483,7 +437,7 @@ class Client {
         if ($cycle->options[self::OP_VERBOSITY] & self::VERBOSE_READ) {
             echo $data;
         }
-        $cycle->deferredResponse->progress([Notify::SOCK_DATA_IN, $data]);
+        $cycle->futureResponse->update([Notify::SOCK_DATA_IN, $data]);
         $cycle->parser->buffer($data);
         $this->parseSocketData($cycle, $data);
     }
@@ -492,8 +446,8 @@ class Client {
         try {
             while ($parsedResponseArr = $cycle->parser->parse()) {
                 if ($parsedResponseArr['headersOnly']) {
-                    $data = [Notify::RESPONSE_HEADERS, $parsedResponseArr['headers']];
-                    $cycle->deferredResponse->progress($data);
+                    $data = [Notify::RESPONSE_HEADERS, $parsedResponseArr];
+                    $cycle->futureResponse->update($data);
                     continue;
                 } elseif (isset($cycle->continueWatcher) && ($parsedResponseArr['status'] == 100)) {
                     $this->proceedFrom100ContinueState($cycle);
@@ -543,8 +497,8 @@ class Client {
         if ($newUri = $this->getRedirectUri($cycle)) {
             $this->redirect($cycle, $newUri);
         } else {
-            $cycle->deferredResponse->progress([Notify::RESPONSE, $cycle->response]);
-            $cycle->deferredResponse->succeed($response);
+            $cycle->futureResponse->update([Notify::RESPONSE, $cycle->response]);
+            $cycle->futureResponse->succeed($response);
         }
     }
 
@@ -685,7 +639,7 @@ class Client {
         $checkoutUri = $newUri->getScheme() . "://{$authority}";
         $request->setUri($newUri->__toString());
         $port = $newUri->getPort();
-        $host = ($port == 80 || $port == 443) ? $newUri->getHost() : $authority;
+        $host = $this->removePortFromHost($authority);
         $request->setHeader('Host', $host);
         $this->assignApplicableRequestCookies($request, $cycle->options);
 
@@ -697,12 +651,12 @@ class Client {
             $this->assignRedirectRefererHeader($refererUri, $newUri, $request);
         }
 
-        $deferredSocket = $this->socketPool->checkout($checkoutUri);
-        $deferredSocket->onResolve(function($error, $result) use ($cycle) {
+        $futureSocket = $this->socketPool->checkout($checkoutUri);
+        $futureSocket->when(function($error, $result) use ($cycle) {
             $this->onSocketResolve($cycle, $error, $result);
         });
 
-        $cycle->deferredResponse->progress([Notify::REDIRECT, $refererUri, (string)$newUri]);
+        $cycle->futureResponse->update([Notify::REDIRECT, $refererUri, (string)$newUri]);
     }
 
     /**
@@ -738,8 +692,8 @@ class Client {
 
     private function writeRequest(RequestCycle $cycle) {
         $cycle->writeBuffer = $this->generateRawRequestHeaders($cycle->request);
-        $cycle->deferredWriteResult = new Deferred;
-        $cycle->deferredWriteResult->onResolve(function($error, $result) use ($cycle) {
+        $cycle->futureWriteResult = new Future($this->reactor);
+        $cycle->futureWriteResult->when(function($error) use ($cycle) {
             if ($error) {
                 $this->fail($cycle, $error);
             }
@@ -784,7 +738,7 @@ class Client {
         $notifyData = substr($cycle->writeBuffer, 0, $bytesWritten);
 
         if ($bytesWritten) {
-            $cycle->deferredResponse->progress([Notify::SOCK_DATA_OUT, $notifyData]);
+            $cycle->futureResponse->update([Notify::SOCK_DATA_OUT, $notifyData]);
         }
 
         if ($bytesWritten && $cycle->options[self::OP_VERBOSITY] & self::VERBOSE_SEND) {
@@ -830,8 +784,8 @@ class Client {
         if ($cycle->writeWatcher !== null) {
             $this->reactor->disable($cycle->writeWatcher);
         }
-        $cycle->deferredResponse->progress([Notify::REQUEST_SENT, null]);
-        $cycle->deferredWriteResult->succeed();
+        $cycle->futureResponse->update([Notify::REQUEST_SENT, null]);
+        $cycle->futureWriteResult->succeed();
     }
 
     private function advanceIteratorBody(RequestCycle $cycle) {
@@ -840,8 +794,8 @@ class Client {
         $body->next();
 
         if ($next instanceof Promise) {
-            $next->onResolve(function($error, $result) use ($cycle) {
-                $this->onDeferredBodyElementResolution($cycle, $error, $result);
+            $next->when(function($error, $result) use ($cycle) {
+                $this->onFutureBodyElementResolution($cycle, $error, $result);
             });
         } elseif (is_string($next)) {
             $cycle->writeBuffer = $next;
@@ -852,7 +806,7 @@ class Client {
         }
     }
 
-    private function onDeferredBodyElementResolution(Cycle $cycle, $error, $result) {
+    private function onFutureBodyElementResolution(Cycle $cycle, $error, $result) {
         if ($error) {
             $this->fail($cycle, $error);
             return;
@@ -917,14 +871,13 @@ class Client {
     }
 
     private function onPartialDrain(RequestCycle $cycle) {
-        // The explicit === null check is important as the writeWatcher may === 0
-        if ($cycle->writeWatcher === null) {
-            $socket = $writeWatcher->socket;
+        if (isset($cycle->writeWatcher)) {
+            $this->reactor->enable($cycle->writeWatcher);
+        } else {
+            $socket = $cycle->socket;
             $cycle->writeWatcher = $this->reactor->onWritable($socket, function() use ($cycle) {
                 $this->write($cycle);
             });
-        } else {
-            $this->reactor->enable($cycle->writeWatcher);
         }
     }
 
@@ -935,8 +888,8 @@ class Client {
             $this->socketPool->clear($cycle->socket);
         }
 
-        $cycle->deferredResponse->progress([Notify::ERROR, $error]);
-        $cycle->deferredResponse->fail($error);
+        $cycle->futureResponse->update([Notify::ERROR, $error]);
+        $cycle->futureResponse->fail($error);
     }
 
     /**
