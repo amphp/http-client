@@ -1,21 +1,21 @@
-<?php // 006_submitting_forms.php
+<?php
 
 require __DIR__ . '/../vendor/autoload.php';
 
-$client = new Artax\BlockingClient;
+$body = (new Artax\FormBody)
+    ->addField('field1', 'my value')
+    ->addFileField('file1', __DIR__ . '/support/lorem.txt')
+    ->addFileField('file2', __DIR__ . '/support/answer.txt')
+;
 
-$body = new Artax\FormBody;
-$body->addField('field1', 'my value');
-$body->addFileField('file1', __DIR__ . '/support/lorem.txt');
-$body->addFileField('file2', __DIR__ . '/support/answer.txt');
-
-$request = new Artax\Request;
-$request->setUri('http://httpbin.org/post');
-$request->setMethod('POST');
-$request->setBody($body);
+$request = (new Artax\Request)
+    ->setUri('http://httpbin.org/post')
+    ->setMethod('POST')
+    ->setBody($body)
+;
 
 try {
-    $response = $client->request($request);
+    $response = (new Artax\Client)->request($request)->wait();
 
     printf(
         "HTTP/%s %d %s\n------- RESPONSE BODY -------\n%s",

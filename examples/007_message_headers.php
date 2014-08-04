@@ -1,4 +1,4 @@
-<?php // 007_message_headers.php
+<?php
 
 require __DIR__ . '/../vendor/autoload.php';
 

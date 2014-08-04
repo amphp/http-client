@@ -1,25 +1,36 @@
-<?php // 002_custom_request.php
+<?php
 
 require __DIR__ . '/../vendor/autoload.php';
 
-$client = new Artax\BlockingClient;
-
 try {
-    $request = new Artax\Request;
-    $request->setMethod('GET');
-    $request->setUri('http://httpbin.org/user-agent');
-    $request->setHeader('X-My-Header', 'some-value');
+    // Instantiate the HTTP client
+    $client = new Artax\Client;
 
-    $response = $client->request('http://httpbin.org/user-agent');
+    // Let's build up a custom Request object
+    $request = (new Artax\Request)
+        ->setMethod('GET') // <-- defaults to GET if not assigned, so this isn't strictly necessary
+        ->setUri('http://httpbin.org/user-agent')
+        ->setHeader('X-My-Header', 'some-value')
+    ;
 
+    // Make an asynchronous HTTP request
+    $promise = $client->request($request);
+
+    // Client::request() is asynchronous! It doesn't return a response. Instead, it
+    // returns a promise to resolve the response at some point in the future when
+    // it's finished. Here we tell the promise that we want to wait for it to complete.
+    $response = $promise->wait();
+
+    // Output the results
     printf(
-        "\nHTTP/%s %d %s\n\n------- RESPONSE BODY -------\n%s\n\n",
+        "\nHTTP/%s %d %s\n",
         $response->getProtocol(),
         $response->getStatus(),
-        $response->getReason(),
-        $response->getBody()
+        $response->getReason()
     );
 
 } catch (Artax\ClientException $e) {
+    // If something goes wrong the Promise::wait() call will throw the relevant
+    // exception. The Client::request() method itself will never throw.
     echo $e;
 }
