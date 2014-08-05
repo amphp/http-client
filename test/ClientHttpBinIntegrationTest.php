@@ -131,14 +131,15 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
         $client->setOption(Client::OP_VERBOSITY, Client::VERBOSE_SEND);
         $client->request($uri)->wait();
 
-        $expectedOutput = '' .
-            "GET / HTTP/1.1\r\n" .
-            "Accept-Encoding: gzip, identity" . "\r\n" .
-            "Host: httpbin.org" . "\r\n" .
-            "User-Agent: " . Client::USER_AGENT . "\r\n" .
-            "\r\n";
+        $expectedLines = [
+            "GET / HTTP/1.1",
+            "Accept-Encoding: gzip, identity",
+            "Host: httpbin.org",
+            "User-Agent: " . Client::USER_AGENT,
+            "Accept: */*",
+        ];
 
-        $this->expectOutputString($expectedOutput);
+        $this->expectOutputString(implode("\r\n", $expectedLines) . "\r\n\r\n");
     }
 
     public function testClientAddsZeroContentLengthHeaderForEmptyBodiesOnPost() {
