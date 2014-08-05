@@ -12,51 +12,27 @@ class FormBody implements AggregateBody {
     }
 
     public function addField($name, $value, $contentType = 'text/plain') {
-        $this->validateFieldName($name);
-        $this->validateFieldValue($value);
-        $this->fields[] = [$name, $value, $contentType, $fileName = null];
+        $name = $this->normalizeFieldName($name);
+
+        $this->fields[] = [$name, (string) $value, $contentType, $fileName = null];
 
         return $this;
     }
 
-    public function addAllFields(array $fields, $contentType = 'text/plain') {
-        foreach($fields as $name => $value) {
-		    $this->validateFieldName($name);
-		    $this->validateFieldValue($value);
-		    $this->fields[] = [$name, $value, $contentType, $fileName = null];
-		}
-
-        return $this;
-    }
-
-    private function validateFieldName($name) {
-        if (!(is_string($name) && strlen($name))) {
+    private function normalizeFieldName($name) {
+        $name = (string) $name;
+        if (!isset($name[0])) {
             throw new \InvalidArgumentException(
-                'Invalid field name; string expected'
+                'Invalid field name; non-empty string required'
             );
         }
-    }
 
-    private function validateFieldValue($value) {
-        if (!(is_scalar($value) || is_array($value))) {
-            throw new \InvalidArgumentException(
-                'Invalid field value; scalar or array expected'
-            );
-        }
-    }
-
-    private function validateFileFieldValue($value) {
-        if (!is_string($value)) {
-            throw new \InvalidArgumentException(
-                'Invalid field value; string expected'
-            );
-        }
+        return $name;
     }
 
     public function addFileField($name, $filePath, $contentType = 'application/octet-stream') {
-        $this->validateFieldName($name);
-        $this->validateFileFieldValue($filePath);
-
+        $name = $this->normalizeFieldName($name);
+        $filePath = (string) $filePath;
         $fileName = basename($filePath);
         $this->fields[] = [$name, new FileBody($filePath), $contentType, $fileName];
         $this->isMultipart = true;
