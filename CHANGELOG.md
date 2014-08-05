@@ -1,5 +1,10 @@
 #### master (complete rewrite)
 
+- none
+
+v0.8.0-dev
+----------
+
 - Now functions transparently behind HTTP proxy servers!
 - `Artax\Client` is now the only client class (previously `Artax\AsyncClient`)
 - The old blocking implementation of `Artax\Client` used for synchronous requests has been removed
