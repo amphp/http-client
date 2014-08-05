@@ -5,11 +5,11 @@ v0.8.0
 - ~~Add proxy server support~~ (implemented)
 - ~~Provide progress bar functionality (old extension system was garbage, removed it)~~ (implemented)
 - Fix custom `Iterator` body WTFs.
-- Get some test coverage
-- Update README to reflect massive changes from previous releases
+- Get more test coverage
 
 v1.0.0
 ------
 
+- Get full test coverage
 - Support non-blocking file-system operations for streaming request and response entity bodies.
   Package adapters to work with either pthreads/php-uv for non-blocking fs operations.

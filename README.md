@@ -8,7 +8,7 @@ dependency on PHP's `curl_*` API and requires no non-standard PHP extensions.
 
 ##### Features
 
- - Full non-blocking API
+ - Exposes a fully non-blocking API
  - Pools persistent "keep-alive" connections
  - Transparently follows redirects
  - Requests and decodes gzipped entity bodies
@@ -30,23 +30,20 @@ dependency on PHP's `curl_*` API and requires no non-standard PHP extensions.
 
 ##### Installation
 
-_Git:_
-
 ```bash
 $ git clone https://github.com/rdlowrey/Artax.git
 $ cd Artax
 $ composer.phar install
 ```
 
-_Composer:_
+The relevant composer/packagist lib is `rdlowrey/artax`.
 
-```json
-    "require": {
-        "rdlowrey/artax": "~v0.8.0"
-    }
-```
 
-## Examples
+
+Examples
+--------
+
+Note that extensive code examples are available in the [`examples/`](examples) directory.
 
 ##### Simple URI GET
 
@@ -189,7 +186,7 @@ $googlePromise->when(function($error, $result) use (&$googleResponse) {
 
 // After\all() combines our array of promises into a single promise that will
 // fail if any one of the individual promises fails. Remember that Promise::wait()
-// will throw if resolutionfails!
+// will throw if resolution fails!
 $comboPromise = After\all([$googlePromise, $bingPromise]);
 list($googleResponse2, $bingResponse) = $comboPromise->wait();
 
@@ -289,6 +286,14 @@ printf(
 );
 ```
 
+
+##### Option Assignment
+
+@TODO Discuss Client-wide assignment
+
+@TODO Discuss per-request assignment
+
+
 ##### Progress Bars
 
 Generating a progress bar depends on a few details from the HTTP spec regarding message size. To
@@ -308,9 +313,3 @@ $promise->watch(new Artax\Progress(function($update) {
 $response = $promise->wait();
 
 ```
-
-
-##### Option Assignment
-
-@TODO Discuss Client-wide assignment
-@TODO Discuss per-request assignment
