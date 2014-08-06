@@ -15,7 +15,7 @@ use Alert\Reactor,
 class Client {
     const USER_AGENT = 'Artax/0.8.0-dev (PHP5.4+)';
 
-    const OP_BIND_ADDRESS = Connector::OP_BIND_ADDRESS;
+    const OP_BINDTO = Connector::OP_BIND_IP_ADDRESS;
     const OP_MS_CONNECT_TIMEOUT = Connector::OP_MS_CONNECT_TIMEOUT;
     const OP_HOST_CONNECTION_LIMIT = SocketPool::OP_HOST_CONNECTION_LIMIT;
     const OP_QUEUED_SOCKET_LIMIT = SocketPool::OP_MAX_QUEUE_SIZE;
@@ -48,7 +48,7 @@ class Client {
     private $encryptor;
     private $hasZlib;
     private $options = [
-        self::OP_BIND_ADDRESS => '',
+        self::OP_BINDTO => '',
         self::OP_MS_CONNECT_TIMEOUT => 30000,
         self::OP_HOST_CONNECTION_LIMIT => 8,
         self::OP_QUEUED_SOCKET_LIMIT => 512,
@@ -963,8 +963,8 @@ class Client {
                 $value = (int) $value;
                 $this->options[self::OP_IO_GRANULARITY] = $value > 0 ? $value : 32768;
                 break;
-            case self::OP_BIND_ADDRESS:
-                $this->options[self::OP_BIND_ADDRESS] = $value;
+            case self::OP_BINDTO:
+                $this->options[self::OP_BINDTO] = $value;
                 break;
             case self::OP_COMBINE_COOKIES:
                 $this->options[self::OP_COMBINE_COOKIES] = (bool) $value;
