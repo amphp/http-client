@@ -2,8 +2,6 @@
 
 namespace Artax;
 
-use After\Promise, After\Future;
-
 class ChunkingIterator implements \Iterator {
     private $iterator;
     private $isLastChunk = false;
@@ -14,34 +12,13 @@ class ChunkingIterator implements \Iterator {
 
     public function current() {
         if ($this->isLastChunk) {
-            $current = '';
-            return $this->applyChunkEncoding("");
+            return $this->applyChunkEncoding('');
         } elseif (($current = $this->iterator->current()) === '') {
             return null;
         } elseif (is_string($current)) {
             return $this->applyChunkEncoding($current);
-        } elseif ($current instanceof Future) {
-            $chunkFuture = new Promise;
-            $current->onResolution(function($future) use ($chunkFuture) {
-                $this->onFutureChunk($iteratorFuture, $chunkFuture);
-            });
-            return $chunkFuture;
-        }
-    }
-
-    private function onFutureChunk(Future $future, $chunkFuture) {
-        if (!$future->succeeded()) {
-            $chunkFuture->fail($future->getError());
-            return;
-        }
-
-        $data = $future->getValue();
-        if (is_string($data)) {
-            $chunkFuture->succeed($this->applyChunkEncoding($data));
         } else {
-            $chunkFuture->fail(new \DomainException(
-                sprintf('Unexpected request body iterator element: %s', gettype($data))
-            ));
+            // @TODO How to react to an invalid type returned from an iterator?
         }
     }
 

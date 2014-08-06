@@ -13,7 +13,7 @@ class SocketPool {
     const OP_MAX_QUEUE_SIZE = 'op.max-queue-size';
     const OP_MS_IDLE_TIMEOUT = 'op.ms-idle-timeout';
     const OP_MS_CONNECT_TIMEOUT = Connector::OP_MS_CONNECT_TIMEOUT;
-    const OP_BIND_IP_ADDRESS = Connector::OP_BIND_IP_ADDRESS;
+    const OP_BIND_ADDRESS = Connector::OP_BIND_ADDRESS;
 
     private $reactor;
     private $connector;
@@ -25,7 +25,7 @@ class SocketPool {
         self::OP_MAX_QUEUE_SIZE => 512,
         self::OP_MS_IDLE_TIMEOUT => 10000,
         self::OP_MS_CONNECT_TIMEOUT => 30000,
-        self::OP_BIND_IP_ADDRESS => '',
+        self::OP_BIND_ADDRESS => '',
     ];
     private $opMaxConnectionsPerHost = 8;
     private $opMaxQueuedSockets = 512;
@@ -68,7 +68,7 @@ class SocketPool {
             } elseif ($this->isSocketDead($poolStruct->resource)) {
                 unset($this->sockets[$uri][$socketId]);
             } elseif (($bindToIp = @stream_context_get_options($poolStruct->resource)['socket']['bindto'])
-                && ($bindToIp == $options[self::OP_BIND_IP_ADDRESS])
+                && ($bindToIp == $options[self::OP_BIND_ADDRESS])
             ) {
                 $poolStruct->isAvailable = false;
                 $this->reactor->disable($poolStruct->idleWatcher);
@@ -254,8 +254,8 @@ class SocketPool {
             case self::OP_MS_IDLE_TIMEOUT:
                 $this->options[self::OP_MS_IDLE_TIMEOUT] = (int) $value;
                 break;
-            case self::OP_BIND_IP_ADDRESS:
-                $this->options[self::OP_BIND_IP_ADDRESS] = $value;
+            case self::OP_BIND_ADDRESS:
+                $this->options[self::OP_BIND_ADDRESS] = $value;
                 break;
             default:
                 throw new \DomainException(
