@@ -81,7 +81,7 @@ class CookieParser {
         );
     }
 
-    private function parseDate($dateStr) {
+    private static function parseDate($dateStr) {
         foreach (self::$dateFormats as $dateFormat) {
             if ($date = \DateTime::createFromFormat($dateFormat, $dateStr, new \DateTimeZone('GMT'))) {
                 return $date->getTimestamp();
