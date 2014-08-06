@@ -134,15 +134,16 @@ class HttpSocketPool {
      *
      * @param int|string $option
      * @param mixed $value
+     * @throws \DomainException on unknown option
      * @return self
      */
     public function setOption($option, $value) {
         switch ($option) {
-            case self::OP_HTTP_PROXY_ADDR:
-                $this->options[self::OP_HTTP_PROXY_ADDR] = (string) $value;
+            case self::OP_PROXY_HTTP:
+                $this->options[self::OP_PROXY_HTTP] = (string) $value;
                 break;
-            case self::OP_HTTPS_PROXY_ADDR:
-                $this->options[self::OP_HTTPS_PROXY_ADDR] = (string) $value;
+            case self::OP_PROXY_HTTPS:
+                $this->options[self::OP_PROXY_HTTPS] = (string) $value;
                 break;
             default:
                 throw new \DomainException(

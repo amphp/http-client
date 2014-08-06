@@ -806,7 +806,7 @@ class Client {
         }
     }
 
-    private function onFutureBodyElementResolution(Cycle $cycle, $error, $result) {
+    private function onFutureBodyElementResolution(RequestCycle $cycle, $error, $result) {
         if ($error) {
             $this->fail($cycle, $error);
             return;

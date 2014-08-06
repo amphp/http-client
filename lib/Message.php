@@ -21,6 +21,7 @@ abstract class Message {
      * Assign the message's HTTP protocol version
      *
      * @param string $protocol
+     * @return self
      */
     public function setProtocol($protocol) {
         $this->protocol = (string) $protocol;
@@ -74,6 +75,7 @@ abstract class Message {
      * Retrieve an array of values for the specified header field
      *
      * @param string $field
+     * @throws \DomainException on unknown header field
      * @return array
      */
     public function getHeader($field) {
@@ -103,6 +105,7 @@ abstract class Message {
      *
      * @param string $field
      * @param string $value
+     * @throws \InvalidArgumentException on invalid header value
      * @return self
      */
     public function setHeader($field, $value) {

@@ -31,7 +31,7 @@ class ChunkingIterator implements \Iterator {
     }
 
     public function next() {
-        return $this->iterator->next();
+        $this->iterator->next();
     }
 
     public function valid() {
@@ -47,7 +47,6 @@ class ChunkingIterator implements \Iterator {
 
     public function rewind() {
         $this->isLastChunk = false;
-
-        return $this->iterator->rewind();
+        $this->iterator->rewind();
     }
 }

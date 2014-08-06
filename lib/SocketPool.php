@@ -30,6 +30,7 @@ class SocketPool {
     private $opMaxConnectionsPerHost = 8;
     private $opMaxQueuedSockets = 512;
     private $opMsIdleTimeout = 10000;
+    private $needsRebind;
 
     public function __construct(Reactor $reactor, Connector $connector = null) {
         $this->reactor = $reactor;
@@ -239,6 +240,7 @@ class SocketPool {
      *
      * @param int $option
      * @param mixed $value
+     * @throws \DomainException on unknown option
      * @return self
      */
     public function setOption($option, $value) {
