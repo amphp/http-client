@@ -86,25 +86,32 @@ class Client {
     }
 
     /**
-     * Asynchronously request HTTP resource(s)
+     * Request multiple HTTP resources asynchronously
      *
-     * @param mixed[string|\Artax\Request|array] An HTTP URI, Request or array of URIs/requests
-     * @param array $options An array specifying one-off options applicable only for this request
-     * @return mixed[\After\Promise|array] A promise or an array of promises
+     * Note that this method is simply a convenience as storing the results of multiple calls to
+     * Client::request() in an array will achieve the same effect as Client::requestMulti().
+     *
+     * @param array $urisAndRequests
+     * @param array $options
+     * @return array[\After\Promise] An array of promises whose keys match the request array
      */
-    public function request($uriOrRequestOrArray, array $options = []) {
-        if (is_array($uriOrRequestOrArray)) {
-            $promises = [];
-            foreach ($uriOrRequestOrArray as $key => $request) {
-                $promises[$key] = $this->doRequest($request, $options);
-            }
-            return $promises;
-        } else {
-            return $this->doRequest($uriOrRequestOrArray, $options);
+    public function requestMulti(array $urisAndRequests, array $options = []) {
+        $promises = [];
+        foreach ($urisAndRequests as $key => $request) {
+            $promises[$key] = $this->request($request, $options);
         }
+
+        return $promises;
     }
 
-    private function doRequest($uriOrRequest, array $options) {
+    /**
+     * Asynchronously request an HTTP resource
+     *
+     * @param mixed[string|\Artax\Request] An HTTP URI string or an \Artax\Request
+     * @param array $options An array specifying options applicable only for this request
+     * @return \After\Promise A promise to resolve the request at some point in the future
+     */
+    private function request($uriOrRequest, array $options) {
         $cycle = new RequestCycle;
 
         try {

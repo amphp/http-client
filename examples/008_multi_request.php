@@ -2,7 +2,13 @@
 
 require __DIR__ . '/../vendor/autoload.php';
 
-$arrayOfPromises = (new Artax\Client)->request([
+/**
+ * Note that Client::requestMulti() is nothing more than a convenience wrapper
+ * to prevent us from having to call Client::request() several times and store
+ * the resulting promises in an array ourselves. Doing so would have the exact
+ * same effect and all requests would be executed in parallel either way.
+ */
+$arrayOfPromises = (new Artax\Client)->requestMulti([
     'google'    => 'http://www.google.com',
     'news'      => 'http://news.google.com',
     'bing'      => 'http://www.bing.com',

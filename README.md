@@ -144,8 +144,8 @@ same thing:
 <?php
 $client = new Artax\Client;
 
-// Here we pass two requests at the same time
-$arrayOfPromises = $client->request([
+// Here we pass dispatch two requests at the same time
+$arrayOfPromises = $client->requestMulti([
     'http://www.google.com',
     'http://www.bing.com'
 ]);
