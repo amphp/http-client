@@ -56,7 +56,7 @@ abstract class Message {
      * @return bool
      */
     public function hasBody() {
-        return ($this->body !== '');
+        return ($this->body != '');
     }
 
     /**
