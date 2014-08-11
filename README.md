@@ -1,3 +1,9 @@
+**IMPORTANT:** Artax is still very unstable! APIs are constantly changing and things may be broken
+due to the current lack of testing. The lib is getting close to a v1.0.0 release candidate but it
+is not there yet. Use at your own risk!
+
+----------------------------------------------------------------------
+
 Artax HTTP Client
 =================
 

@@ -5,7 +5,7 @@
 v0.8.0-dev
 ----------
 
-- Now functions transparently behind HTTP proxy servers!
+- Now functions transparently behind HTTP proxy servers.
 - `Artax\Client` is now the only client class (previously `Artax\AsyncClient`)
 - The old blocking implementation of `Artax\Client` used for synchronous requests has been removed
   completely. Instead, users may call `wait()` on the `After\Promise` instance returned by
@@ -13,6 +13,7 @@ v0.8.0-dev
 - `Artax\Client::request()` now accepts an array of URIs and/or requests. In such cases the return
   value is an array of `After\Promise` instances whose keys match those of the original array.
 - All optional settings are now referenced using `Artax\Client::OP_*` constants (previously used string literals)
+- Options may now also be assigned on a per-request basis instead of always applying client-wide
 - Result callbacks are no longer passed at call-time for async requests; `After\Promise` objects are used instead.
 - Cookie handling is now integrated as part of the standard client classes
 - Exceptions and error handling have been significantly improved
