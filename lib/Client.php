@@ -5,6 +5,7 @@ namespace Artax;
 use Alert\Reactor,
     Alert\ReactorFactory,
     After\Future,
+    After\Promise,
     Acesync\Encryptor,
     Acesync\Connector,
     Artax\Cookie\Cookie,
@@ -111,7 +112,7 @@ class Client {
      * @param array $options An array specifying options applicable only for this request
      * @return \After\Promise A promise to resolve the request at some point in the future
      */
-    private function request($uriOrRequest, array $options) {
+    public function request($uriOrRequest, array $options = []) {
         $cycle = new RequestCycle;
 
         try {
@@ -446,10 +447,10 @@ class Client {
         }
         $cycle->futureResponse->update([Notify::SOCK_DATA_IN, $data]);
         $cycle->parser->buffer($data);
-        $this->parseSocketData($cycle, $data);
+        $this->parseSocketData($cycle);
     }
 
-    private function parseSocketData(RequestCycle $cycle, $data) {
+    private function parseSocketData(RequestCycle $cycle) {
         try {
             while ($parsedResponseArr = $cycle->parser->parse()) {
                 if ($parsedResponseArr['headersOnly']) {
@@ -474,6 +475,9 @@ class Client {
             $body = stream_get_contents($body);
         }
 
+        /**
+         * @var $response \Artax\Response
+         */
         $cycle->response = $response = (new Response)
             ->setStatus($parsedResponseArr['status'])
             ->setReason($parsedResponseArr['reason'])
@@ -645,7 +649,6 @@ class Client {
         $authority = $this->generateAuthorityFromUri($newUri);
         $checkoutUri = $newUri->getScheme() . "://{$authority}";
         $request->setUri($newUri->__toString());
-        $port = $newUri->getPort();
         $host = $this->removePortFromHost($authority);
         $request->setHeader('Host', $host);
         $this->assignApplicableRequestCookies($request, $cycle->options);

@@ -36,7 +36,6 @@ class HttpSocketPool {
 
     private function getUriAuthority($uri) {
         $uriParts = @parse_url(strtolower($uri));
-        $scheme = isset($uriParts['scheme']) ? $uriParts['scheme'] : null;
         $host = $uriParts['host'];
         $port = $uriParts['port'];
 
@@ -93,7 +92,7 @@ class HttpSocketPool {
     private function tunnelThroughProxy(Future $future, $socket, $authority) {
         if (empty(stream_context_get_options($socket)['artax*']['is_tunneled'])) {
             $futureTunnel = $this->tunneler->tunnel($socket, $authority);
-            $futureTunnel->when(function($error, $result) use ($future, $socket) {
+            $futureTunnel->when(function($error) use ($future, $socket) {
                 if ($error) {
                     $future->fail($error);
                 } else {

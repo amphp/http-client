@@ -3,7 +3,14 @@
 namespace Artax;
 
 class RequestCycle {
+    /**
+     * @var \After\Future
+     */
     public $futureResponse;
+
+    /**
+     * @var \After\Future
+     */
     public $futureWriteResult;
     public $options;
     public $socket;

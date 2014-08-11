@@ -51,9 +51,12 @@ class FileCookieJar extends ArrayCookieJar {
     public function __destruct() {
         $cookieData = '';
 
-        foreach ($this->getAll() as $domain => $pathArr) {
-            foreach ($pathArr as $path => $cookieArr) {
-                foreach ($cookieArr as $name => $cookie) {
+        foreach ($this->getAll() as $pathArr) {
+            foreach ($pathArr as $cookieArr) {
+                /**
+                 * @var $cookie \Artax\Cookie\Cookie
+                 */
+                foreach ($cookieArr as $cookie) {
                     if (!$cookie->isExpired()) {
                         $cookieData .= $cookie . PHP_EOL;
                     }

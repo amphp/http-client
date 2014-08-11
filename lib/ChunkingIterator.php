@@ -19,6 +19,7 @@ class ChunkingIterator implements \Iterator {
             return $this->applyChunkEncoding($current);
         } else {
             // @TODO How to react to an invalid type returned from an iterator?
+            return null;
         }
     }
 

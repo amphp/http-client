@@ -97,7 +97,7 @@ class SocketPool {
             return $future->promise();
         } elseif (count($this->queuedSocketRequests) < $this->opMaxQueuedSockets) {
             $future = new Future($this->reactor);
-            $this->queuedSocketRequests[$uri][] = $future;
+            $this->queuedSocketRequests[$uri][] = [$future, $options];
             return $future->promise();
         } else {
             return new Failure(new TooBusyException(
@@ -174,8 +174,8 @@ class SocketPool {
     }
 
     private function dequeueNextWaitingSocket($uri) {
-        $future = array_shift($this->queuedSocketRequests[$uri]);
-        $this->initializeNewConnection($future, $uri);
+        list($future, $options) = array_shift($this->queuedSocketRequests[$uri]);
+        $this->initializeNewConnection($future, $uri, $options);
         if (empty($this->queuedSocketRequests[$uri])) {
             unset($this->queuedSocketRequests[$uri]);
         }
