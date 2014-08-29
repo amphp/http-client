@@ -2,8 +2,8 @@
 
 - none
 
-v0.8.0
--------
+v0.1.0-dev
+----------
 
 - Now functions transparently behind HTTP proxy servers.
 - `Artax\Client` is now the only client class (previously `Artax\AsyncClient`)
