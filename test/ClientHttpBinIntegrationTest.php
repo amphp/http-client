@@ -4,6 +4,7 @@ namespace ArtaxTest;
 
 use Artax\Client;
 use Artax\Request;
+use Artax\FileBody;
 use Artax\FormBody;
 use Artax\ResourceBody;
 use Alert\NativeReactor;
@@ -32,8 +33,8 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
         $client = $this->generateClient();
 
         $customUserAgent = 'test-user-agent';
-        $client->setOption(Client::OP_USER_AGENT, $customUserAgent);
-        $response = $client->request($uri)->wait();
+        $request = (new Request)->setUri($uri)->setHeader('User-Agent', $customUserAgent);
+        $response = $client->request($request)->wait();
         $this->assertInstanceOf('Artax\Response', $response);
         $body = $response->getBody();
         $result = json_decode($body);
@@ -50,23 +51,6 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
         $this->assertInstanceOf('Artax\Response', $response);
         $result = json_decode($response->getBody());
         $this->assertEquals($body, $result->data);
-    }
-
-    public function testPostResourceBody() {
-        $uri = 'http://httpbin.org/post';
-        $client = $this->generateClient();
-
-        $bodyString = 'zanzibar';
-        $bodyStream = fopen('php://memory', 'r+');
-        fwrite($bodyStream, $bodyString);
-        rewind($bodyStream);
-        $resourceBody = new ResourceBody($bodyStream);
-
-        $request = (new Request)->setUri($uri)->setMethod('POST')->setBody($resourceBody);
-        $response = $client->request($request)->wait();
-        $this->assertInstanceOf('Artax\Response', $response);
-        $result = json_decode($response->getBody());
-        $this->assertEquals($bodyString, $result->data);
     }
 
     public function testPutStringBody() {
@@ -155,6 +139,7 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
     }
 
     public function testFormEncodedBodyRequest() {
+        //$this->markTestSkipped();
         $uri = 'http://httpbin.org/post';
         $client = $this->generateClient();
 
@@ -173,15 +158,27 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals('application/x-www-form-urlencoded', $result['headers']['Content-Type']);
     }
 
+    public function testFileBodyRequest() {
+        $uri = 'http://httpbin.org/post';
+        $client = $this->generateClient();
+
+        $bodyPath = __DIR__ . '/fixture/answer.txt';
+        $body = new FileBody($bodyPath);
+        $request = (new Request)->setBody($body)->setUri($uri)->setMethod('POST');
+        $response = $client->request($request)->wait();
+        $this->assertInstanceOf('Artax\Response', $response);
+        $result = json_decode($response->getBody(), true);
+        $this->assertEquals(file_get_contents($bodyPath), $result['data']);
+    }
+
     public function testMultipartBodyRequest() {
-        $this->markTestSkipped("Don't think this one will work yet");
+        $this->markTestSkipped("Multipart form bodies are still broken");
 
-        // -----------------------------------------------------------------------------------------
-
-        $client = new Client;
+        $uri = 'http://httpbin.org/post';
+        $client = $this->generateClient();
         $field1 = 'test val';
-        $file1 = dirname(__DIR__) . '/fixture/lorem.txt';
-        $file2 = dirname(__DIR__) . '/fixture/answer.txt';
+        $file1 = __DIR__ . '/fixture/lorem.txt';
+        $file2 = __DIR__ . '/fixture/answer.txt';
 
         $boundary = 'AaB03x';
 
@@ -191,7 +188,7 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
         $body->addFileField('file2', $file2);
 
         $request = (new Request)->setBody($body)->setUri('http://httpbin.org/post')->setMethod('POST');
-        $response = $client->request($request);
+        $response = $client->request($request)->wait();
         $this->assertEquals(200, $response->getStatus());
 
         $result = json_decode($response->getBody(), true);

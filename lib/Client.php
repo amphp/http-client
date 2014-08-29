@@ -5,6 +5,7 @@ namespace Artax;
 use Alert\Reactor,
     Alert\ReactorFactory,
     After\Future,
+    After\Failure,
     After\Promise,
     Acesync\Encryptor,
     Acesync\Connector,
@@ -13,8 +14,8 @@ use Alert\Reactor,
     Artax\Cookie\ArrayCookieJar,
     Artax\Cookie\CookieParser;
 
-class Client {
-    const USER_AGENT = 'Artax/0.8.0-dev (PHP5.4+)';
+class Client implements HttpClient {
+    const USER_AGENT = 'Artax/1.0.0-dev (PHP)';
 
     const OP_BINDTO = Connector::OP_BIND_IP_ADDRESS;
     const OP_MS_CONNECT_TIMEOUT = Connector::OP_MS_CONNECT_TIMEOUT;
@@ -24,7 +25,6 @@ class Client {
     const OP_PROXY_HTTP = HttpSocketPool::OP_PROXY_HTTP;
     const OP_PROXY_HTTPS = HttpSocketPool::OP_PROXY_HTTPS;
     const OP_AUTO_ENCODING = 'op.auto-encoding';
-    const OP_USE_KEEP_ALIVE = 'op.use-keep-alive';
     const OP_MS_TRANSFER_TIMEOUT = 'op.ms-transfer-timeout';
     const OP_MS_100_CONTINUE_TIMEOUT = 'op.ms-100-continue-timeout';
     const OP_EXPECT_CONTINUE = 'op.expect-continue';
@@ -35,7 +35,6 @@ class Client {
     const OP_IO_GRANULARITY = 'op.io-granularity';
     const OP_VERBOSITY = 'op.verbosity';
     const OP_COMBINE_COOKIES = 'op.combine-cookies';
-    const OP_USER_AGENT = 'op.user-agent';
     const OP_CRYPTO = 'op.crypto';
 
     const VERBOSE_NONE = 0b00;
@@ -47,6 +46,7 @@ class Client {
     private $cookieJar;
     private $socketPool;
     private $encryptor;
+    private $writerFactory;
     private $hasZlib;
     private $options = [
         self::OP_BINDTO => '',
@@ -57,7 +57,6 @@ class Client {
         self::OP_PROXY_HTTP => '',
         self::OP_PROXY_HTTPS => '',
         self::OP_AUTO_ENCODING => true,
-        self::OP_USE_KEEP_ALIVE => true,
         self::OP_MS_TRANSFER_TIMEOUT => 120000,
         self::OP_MS_100_CONTINUE_TIMEOUT => 3000,
         self::OP_EXPECT_CONTINUE => false,
@@ -68,7 +67,6 @@ class Client {
         self::OP_IO_GRANULARITY => 32768,
         self::OP_VERBOSITY => self::VERBOSE_NONE,
         self::OP_COMBINE_COOKIES => true,
-        self::OP_USER_AGENT => self::USER_AGENT,
         self::OP_CRYPTO => [],
     ];
 
@@ -76,24 +74,26 @@ class Client {
         Reactor $reactor = null,
         CookieJar $cookieJar = null,
         HttpSocketPool $socketPool = null,
-        Encryptor $encryptor = null
+        Encryptor $encryptor = null,
+        WriterFactory $writerFactory = null
     ) {
         $reactor = $reactor ?: ReactorFactory::select();
         $this->reactor = $reactor;
         $this->cookieJar = $cookieJar ?: new ArrayCookieJar;
         $this->socketPool = $socketPool ?: new HttpSocketPool($reactor);
         $this->encryptor = $encryptor ?: new Encryptor($reactor);
+        $this->writerFactory = $writerFactory ?: new WriterFactory;
         $this->hasZlib = extension_loaded('zlib');
     }
 
     /**
-     * Request multiple HTTP resources asynchronously
+     * Asynchronously request multiple HTTP resources
      *
      * Note that this method is simply a convenience as storing the results of multiple calls to
      * Client::request() in an array will achieve the same effect as Client::requestMulti().
      *
-     * @param array $urisAndRequests
-     * @param array $options
+     * @param array $urisAndRequests An array of URI strings and/or Request instances
+     * @param array $options An array specifying options applicable only for this request batch
      * @return array[\After\Promise] An array of promises whose keys match the request array
      */
     public function requestMulti(array $urisAndRequests, array $options = []) {
@@ -108,7 +108,7 @@ class Client {
     /**
      * Asynchronously request an HTTP resource
      *
-     * @param mixed[string|\Artax\Request] An HTTP URI string or an \Artax\Request
+     * @param mixed[string|\Artax\Request] An HTTP URI string or an \Artax\Request instance
      * @param array $options An array specifying options applicable only for this request
      * @return \After\Promise A promise to resolve the request at some point in the future
      */
@@ -126,27 +126,65 @@ class Client {
                 ? array_merge($this->options, $options)
                 : $this->options;
 
-            $this->normalizeRequestMethod($request);
-            $this->normalizeRequestProtocol($request);
-            $this->normalizeRequestBodyHeaders($request, $options);
-            $this->normalizeRequestKeepAliveHeader($request, $options);
-            $this->normalizeRequestEncodingHeaderForZlib($request, $options);
-            $this->normalizeRequestHostHeader($request, $uri);
-            $this->normalizeRequestUserAgent($request, $options);
-            $this->normalizeRequestAcceptHeader($request);
-            $this->assignApplicableRequestCookies($request, $options);
+            $body = $request->getBody();
 
-            $authority = $this->generateAuthorityFromUri($cycle->uri);
-            $checkoutUri = $uri->getScheme() . "://{$authority}";
-            $futureSocket = $this->socketPool->checkout($checkoutUri);
-            $futureSocket->when(function($error, $result) use ($cycle) {
-                $this->onSocketResolve($cycle, $error, $result);
-            });
+            if ($body instanceof AggregateBody) {
+                $this->processAggregateBody($cycle, $body);
+            } else {
+                $this->finalizeRequest($cycle);
+            }
         } catch (\Exception $e) {
             $cycle->futureResponse->fail($e);
         }
 
         return $cycle->futureResponse->promise();
+    }
+
+    private function processAggregateBody(RequestCycle $cycle, AggregateBody $body) {
+        $promise = $body->getBody($this->reactor);
+        $promise->when(function($error, $result) use ($cycle, $body) {
+            if ($error) {
+                $this->fail($cycle, $error);
+            } else {
+                $cycle->request->setBody($result);
+                $this->processAggregateBodyHeaders($cycle, $body);
+            }
+        });
+    }
+
+    private function processAggregateBodyHeaders(RequestCycle $cycle, AggregateBody $body) {
+        $promise = $body->getHeaders($this->reactor);
+        $promise->when(function($error, $result) use ($cycle, $body) {
+            if ($error) {
+                $this->fail($cycle, $error);
+            } else {
+                $cycle->request->setAllHeaders($result);
+                $this->finalizeRequest($cycle);
+            }
+        });
+    }
+
+    private function finalizeRequest(RequestCycle $cycle) {
+        $uri = $cycle->uri;
+        $options = $cycle->options;
+        $future = $cycle->futureResponse;
+        $request = $cycle->request;
+
+        $this->normalizeRequestMethod($request);
+        $this->normalizeRequestProtocol($request);
+        $this->normalizeRequestBodyHeaders($request, $options, $future);
+        $this->normalizeRequestEncodingHeaderForZlib($request, $options);
+        $this->normalizeRequestHostHeader($request, $uri);
+        $this->normalizeRequestUserAgent($request, $options);
+        $this->normalizeRequestAcceptHeader($request);
+        $this->assignApplicableRequestCookies($request, $options);
+
+        $authority = $this->generateAuthorityFromUri($uri);
+        $checkoutUri = $uri->getScheme() . "://{$authority}";
+        $futureSocket = $this->socketPool->checkout($checkoutUri);
+        $futureSocket->when(function($error, $result) use ($cycle) {
+            $this->onSocketResolve($cycle, $error, $result);
+        });
     }
 
     private function generateRequestFromUri($uriOrRequest) {
@@ -205,12 +243,13 @@ class Client {
     }
 
     private function normalizeRequestBodyHeaders(Request $request, array $options) {
+        if ($request->hasHeader('Content-Length')) {
+            // If the user manually assigned a Content-Length we don't need to do anything here.
+            return;
+        }
+
         $body = $request->getBody();
         $method = $request->getMethod();
-
-        if ($body instanceof AggregateBody) {
-            $body = $this->normalizeRequestAggregate($request);
-        }
 
         if (empty($body) && $body !== '0' && in_array($method, ['POST', 'PUT', 'PATCH'])) {
             $request->setHeader('Content-Length', '0');
@@ -221,7 +260,10 @@ class Client {
             $request->setHeader('Content-Length', strlen($body));
             $request->removeHeader('Transfer-Encoding');
         } elseif ($body instanceof \Iterator) {
-            $this->normalizeIteratorBodyRequest($request);
+            $request->removeHeader('Content-Length');
+            $request->setHeader('Transfer-Encoding', 'chunked');
+            $chunkedBody = new ChunkingIterator($body);
+            $request->setBody($chunkedBody);
         } elseif ($body !== null) {
             throw new \InvalidArgumentException(
                 'Request entity body must be a scalar or Iterator'
@@ -234,39 +276,6 @@ class Client {
 
         if ($method === 'TRACE' || $method === 'HEAD' || $method === 'OPTIONS') {
             $request->setBody(null);
-        }
-    }
-
-    private function normalizeRequestAggregate(Request $request) {
-        $body = $request->getBody();
-        $request->setAllHeaders($body->getHeaders());
-        $aggregatedBody = $body->getBody();
-        $request->setBody($aggregatedBody);
-
-        return $aggregatedBody;
-    }
-
-    private function normalizeIteratorBodyRequest(Request $request) {
-        $body = $request->getBody();
-
-        if ($body instanceof \Countable) {
-            $request->setHeader('Content-Length', $body->count());
-            $request->removeHeader('Transfer-Encoding');
-        } elseif ($request->getProtocol() >= 1.1) {
-            $request->removeHeader('Content-Length');
-            $request->setHeader('Transfer-Encoding', 'chunked');
-            $chunkedBody = new ChunkingIterator($body);
-            $request->setBody($chunkedBody);
-        } else {
-            $resourceBody = $this->bufferIteratorResource($body);
-            $request->setHeader('Content-Length', $resourceBody->count());
-            $request->setBody($resourceBody);
-        }
-    }
-
-    private function normalizeRequestKeepAliveHeader(Request $request, array $options) {
-        if (empty($options[self::OP_USE_KEEP_ALIVE])) {
-            $request->setHeader('Connection', 'close');
         }
     }
 
@@ -302,7 +311,7 @@ class Client {
 
     private function normalizeRequestUserAgent(Request $request, array $options) {
         if (!$request->hasHeader('User-Agent')) {
-            $request->setHeader('User-Agent', $options[self::OP_USER_AGENT]);
+            $request->setHeader('User-Agent', self::USER_AGENT);
         }
     }
 
@@ -518,10 +527,6 @@ class Client {
             $this->reactor->cancel($cycle->readWatcher);
             $cycle->readWatcher = null;
         }
-        if (isset($cycle->writeWatcher)) {
-            $this->reactor->cancel($cycle->writeWatcher);
-            $cycle->writeWatcher = null;
-        }
         if (isset($cycle->continueWatcher)) {
             $this->reactor->cancel($cycle->continueWatcher);
             $cycle->continueWatcher = null;
@@ -550,11 +555,9 @@ class Client {
             return true;
         } elseif ($response->getProtocol() == '1.0' && !$responseConnHeader) {
             return true;
-        } elseif (!$cycle->options[self::OP_USE_KEEP_ALIVE]) {
-            return true;
+        } else {
+            return false;
         }
-
-        return false;
     }
 
     private function canDecompressResponseBody(Response $response) {
@@ -701,15 +704,21 @@ class Client {
     }
 
     private function writeRequest(RequestCycle $cycle) {
-        $cycle->writeBuffer = $this->generateRawRequestHeaders($cycle->request);
-        $cycle->futureWriteResult = new Future($this->reactor);
-        $cycle->futureWriteResult->when(function($error) use ($cycle) {
-            if ($error) {
-                $this->fail($cycle, $error);
+        $rawHeaders = $this->generateRawRequestHeaders($cycle->request);
+        $writePromise = (new BufferWriter)->write($this->reactor, $cycle->socket, $rawHeaders);
+        $writePromise->watch(function($update) use ($cycle) {
+            $cycle->futureResponse->update([Notify::SOCK_DATA_OUT, $update]);
+            if ($cycle->options[self::OP_VERBOSITY] & self::VERBOSE_SEND) {
+                echo $update;
             }
         });
-
-        $this->write($cycle);
+        $writePromise->when(function($error, $response) use ($cycle) {
+            if ($error) {
+                $this->fail($cycle, $error);
+            } else {
+                $this->afterHeaderWrite($cycle);
+            }
+        });
     }
 
     /**
@@ -740,110 +749,18 @@ class Client {
         return $str;
     }
 
-    private function write(RequestCycle $cycle) {
-        $bytesToWrite = strlen($cycle->writeBuffer);
-        $bytesWritten = @fwrite($cycle->socket, $cycle->writeBuffer, $cycle->options[self::OP_IO_GRANULARITY]);
-        $cycle->bytesSent += $bytesWritten;
+    private function afterHeaderWrite(RequestCycle $cycle) {
+        $body = $cycle->request->getBody();
 
-        $notifyData = substr($cycle->writeBuffer, 0, $bytesWritten);
-
-        if ($bytesWritten) {
-            $cycle->futureResponse->update([Notify::SOCK_DATA_OUT, $notifyData]);
-        }
-
-        if ($bytesWritten && $cycle->options[self::OP_VERBOSITY] & self::VERBOSE_SEND) {
-            echo $notifyData;
-        }
-
-        if ($bytesToWrite === $bytesWritten) {
-            $cycle->lastDataSentAt = microtime(true);
-            $this->onWriteBufferDrain($cycle);
-        } elseif ($bytesWritten > 0) {
-            $cycle->lastDataSentAt = microtime(true);
-            $this->onPartialDrain($cycle);
-        } elseif ($this->isSocketDead($cycle->socket)) {
-            $this->fail($cycle, new SocketException(
-                'Socket disconnected prior to write completion :('
-            ));
-        } else {
-            $this->onPartialDrain($cycle);
-        }
-    }
-
-    private function onWriteBufferDrain(RequestCycle $cycle) {
-        $cycle->writeBuffer = null;
-        if ($cycle->isWritingBody) {
-            $this->onWriteBufferBodyDrain($cycle);
-        } else {
-            $this->onWriteBufferHeaderDrain($cycle);
-        }
-    }
-
-    private function onWriteBufferBodyDrain(RequestCycle $cycle) {
-        if (!$cycle->requestBody instanceof \Iterator) {
-            $this->finalizeSuccessfulWrite($cycle);
-        } elseif ($cycle->requestBody->valid()) {
-            $this->advanceIteratorBody($cycle);
-            $this->write($cycle);
-        } else {
-            $this->finalizeSuccessfulWrite($cycle);
-        }
-    }
-
-    private function finalizeSuccessfulWrite(RequestCycle $cycle) {
-        if ($cycle->writeWatcher !== null) {
-            $this->reactor->disable($cycle->writeWatcher);
-        }
-        $cycle->futureResponse->update([Notify::REQUEST_SENT, null]);
-        $cycle->futureWriteResult->succeed();
-    }
-
-    private function advanceIteratorBody(RequestCycle $cycle) {
-        $body = $cycle->requestBody;
-        $next = $body->current();
-        $body->next();
-
-        if ($next instanceof Promise) {
-            $next->when(function($error, $result) use ($cycle) {
-                $this->onFutureBodyElementResolution($cycle, $error, $result);
-            });
-        } elseif (is_string($next)) {
-            $cycle->writeBuffer = $next;
-        } else {
-            $this->fail($cycle, new \DomainException(
-                sprintf('Unexpected request body iterator element: %s', gettype($next))
-            ));
-        }
-    }
-
-    private function onFutureBodyElementResolution(RequestCycle $cycle, $error, $result) {
-        if ($error) {
-            $this->fail($cycle, $error);
-            return;
-        }
-
-        $next = $result;
-        if (is_string($next)) {
-            $cycle->writeBuffer = $next;
-            $this->write($cycle);
-        } else {
-            $this->fail($cycle, new \DomainException(
-                sprintf('Unexpected request body element resolved from future: %s', gettype($next))
-            ));
-        }
-    }
-
-    private function onWriteBufferHeaderDrain(RequestCycle $cycle) {
-        $body = $cycle->requestBody = $cycle->request->getBody();
         if ($body == '') {
             // We're finished if there's no body in the request.
-            $this->finalizeSuccessfulWrite($cycle);
+            $cycle->futureResponse->update([Notify::REQUEST_SENT, $cycle->request]);
         } elseif ($this->requestExpects100Continue($cycle->request)) {
             $cycle->continueWatcher = $this->reactor->once(function() use ($cycle) {
                 $this->proceedFrom100ContinueState($cycle);
             }, $cycle->options[self::OP_MS_100_CONTINUE_TIMEOUT]);
         } else {
-            $this->initiateBodyWrite($cycle);
+            $this->writeBody($cycle, $body);
         }
     }
 
@@ -861,33 +778,28 @@ class Client {
         $continueWatcher = $cycle->continueWatcher;
         $cycle->continueWatcher = null;
         $this->reactor->cancel($continueWatcher);
-        $this->initiateBodyWrite($cycle);
+        $this->writeBody($cycle);
     }
 
-    private function initiateBodyWrite(RequestCycle $cycle) {
-        $cycle->isWritingBody = true;
-        $body = $cycle->requestBody;
-        if (is_string($body)) {
-            $cycle->writeBuffer = $body;
-            $this->write($cycle);
-        } elseif ($body instanceof \Iterator) {
-            $this->advanceIteratorBody($cycle);
-            $this->write($cycle);
-        } else {
-            $this->fail($cycle, new \DomainException(
-                sprintf('Unexpected request body type: %s', gettype($body))
-            ));
-        }
-    }
-
-    private function onPartialDrain(RequestCycle $cycle) {
-        if (isset($cycle->writeWatcher)) {
-            $this->reactor->enable($cycle->writeWatcher);
-        } else {
-            $socket = $cycle->socket;
-            $cycle->writeWatcher = $this->reactor->onWritable($socket, function() use ($cycle) {
-                $this->write($cycle);
+    private function writeBody(RequestCycle $cycle, $body) {
+        try {
+            $writer = $this->writerFactory->make($body);
+            $writePromise = $writer->write($this->reactor, $cycle->socket, $body);
+            $writePromise->watch(function($update) use ($cycle) {
+                $cycle->futureResponse->update([Notify::SOCK_DATA_OUT, $update]);
+                if ($cycle->options[self::OP_VERBOSITY] & self::VERBOSE_SEND) {
+                    echo $update;
+                }
             });
+            $writePromise->when(function($error, $result) use ($cycle) {
+                if ($error) {
+                    $this->fail($cycle, $error);
+                } else {
+                    $cycle->futureResponse->update([Notify::REQUEST_SENT, $cycle->request]);
+                }
+            });
+        } catch (\Exception $e) {
+            $this->fail($cycle, $e);
         }
     }
 
@@ -929,9 +841,6 @@ class Client {
         switch ($option) {
             case self::OP_AUTO_ENCODING:
                 $this->options[self::OP_AUTO_ENCODING] = (bool) $value;
-                break;
-            case self::OP_USE_KEEP_ALIVE:
-                $this->options[self::OP_USE_KEEP_ALIVE] = (bool) $value;
                 break;
             case self::OP_HOST_CONNECTION_LIMIT:
                 $this->options[self::OP_HOST_CONNECTION_LIMIT] = $value;
@@ -978,9 +887,6 @@ class Client {
                 break;
             case self::OP_COMBINE_COOKIES:
                 $this->options[self::OP_COMBINE_COOKIES] = (bool) $value;
-                break;
-            case self::OP_USER_AGENT:
-                $this->options[self::OP_USER_AGENT] = (string) $value;
                 break;
             case self::OP_PROXY_HTTP:
                 $this->options[self::OP_PROXY_HTTP] = $value;

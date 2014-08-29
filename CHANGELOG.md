@@ -2,8 +2,8 @@
 
 - none
 
-v0.8.0-dev
-----------
+v0.8.0
+-------
 
 - Now functions transparently behind HTTP proxy servers.
 - `Artax\Client` is now the only client class (previously `Artax\AsyncClient`)
@@ -21,6 +21,7 @@ v0.8.0-dev
 - Individual request progress updates now use the `After\Promise::watch()` API.
 - Issues #14, #25 and #26 have been resolved
 - Remove submodules, migrate to composer as the primary dependency resolution strategy
+- `Artax\Client` now implements `Artax\HttpClient` interface for simplified testing and composition support
 - Updated examples
 
 ##### BC BREAKS:
@@ -28,7 +29,9 @@ v0.8.0-dev
 - The breakage in this release is extensive as the entire library has been rewritten. **DO NOT**
   upgrade your application to use this release and expect existing code to "just work." You have
   been warned. The best course of action for those upgrading is to examine the `examples/` directory
-  to see how things work with the new version.
+  to see how things work with the new version. The plan is to use this new API as the basis for a
+  forthcoming v1.0.0. Unless you really need the functionality in this release you should probably
+  wait for a better-tested v1 release.
 
 #### v0.7.1
 

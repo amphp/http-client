@@ -2,14 +2,16 @@
 
 namespace Artax;
 
-class MultipartFormBodyIterator implements \Iterator, \Countable {
+class MultipartIterator implements \Iterator {
     private $fields;
-    private $length;
     private $currentCache;
 
-    public function __construct(array $fields, $length) {
+    public function __construct(array $fields) {
         $this->fields = $fields;
-        $this->length = $length;
+    }
+
+    public function getFields() {
+        return $this->fields;
     }
 
     public function current() {
@@ -19,7 +21,7 @@ class MultipartFormBodyIterator implements \Iterator, \Countable {
 
         $current = current($this->fields);
 
-        return ($current instanceof FileBody)
+        return ($current instanceof \Iterator)
             ? ($this->currentCache = $current->current())
             : $current;
     }
@@ -31,16 +33,16 @@ class MultipartFormBodyIterator implements \Iterator, \Countable {
     public function next() {
         $this->currentCache = null;
         $current = current($this->fields);
-        if ($current instanceof FileBody) {
-            $this->advanceFileBodyIterator($current);
+        if ($current instanceof \Iterator) {
+            $this->advanceElementIterator($current);
         } else {
             next($this->fields);
         }
     }
 
-    private function advanceFileBodyIterator(FileBody $fileBody) {
-        $fileBody->next();
-        if (!$fileBody->valid()) {
+    private function advanceElementIterator(\Iterator $element) {
+        $element->next();
+        if (!$element->valid()) {
             next($this->fields);
         }
     }
@@ -51,7 +53,7 @@ class MultipartFormBodyIterator implements \Iterator, \Countable {
 
     public function rewind() {
         foreach ($this->fields as $field) {
-            if ($field instanceof FileBody) {
+            if ($field instanceof \Iterator) {
                 $field->rewind();
             }
         }
@@ -59,9 +61,5 @@ class MultipartFormBodyIterator implements \Iterator, \Countable {
         reset($this->fields);
 
         $this->currentCache = null;
-    }
-
-    public function count() {
-        return $this->length;
     }
 }

@@ -2,21 +2,32 @@
 
 namespace Artax;
 
+use Alert\Reactor;
+
 /**
- * An interface allowing custom HTTP message bodies
+ * An interface for generating customized HTTP message bodies + headers.
  */
 interface AggregateBody {
-    /**
-     * Returns the raw HTTP message body
-     *
-     * @return mixed Must return a scalar value or Iterator instance
-     */
-    public function getBody();
 
     /**
-     * Return a key-value array of headers to add to the outbound request
+     * Retrieve the HTTP message body to be sent
      *
-     * @return array
+     * The resolved promise value may be a string or an Iterator. An event reactor is always passed
+     * to assist with asynchronous value resolution.
+     *
+     * @param \Alert\Reactor $reactor
+     * @return \After\Promise
      */
-    public function getHeaders();
+    public function getBody(Reactor $reactor);
+
+    /**
+     * Retrieve a key-value array of headers to add to the outbound request
+     *
+     * The resolved promise value must be a key-value array mapping header fields to values. An
+     * event reactor is always passed to assist with asynchronous value resolution.
+     *
+     * @param \Alert\Reactor $reactor
+     * @return \After\Promise
+     */
+    public function getHeaders(Reactor $reactor);
 }

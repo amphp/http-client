@@ -1,6 +1,26 @@
-**IMPORTANT:** Artax is still very unstable! APIs are constantly changing and things may be broken
-due to the current lack of testing. The lib is getting close to a v1.0.0 release candidate but it
-is not there yet. Use at your own risk!
+**IMPORTANT:** Artax is still unstable! The API is frozen but things may be broken due to the
+current lack of testing. The lib is getting close to a v1.0.0 release candidate but it is not
+there yet. Use at your own risk! The current release roadmap is as follows:
+
+- v1.0.0-alpha (Aug. 29, 2014)
+
+First usable tagged release with a stable, frozen API. Things still missing:
+
+    * Significant testing gaps
+    * Non-blocking capabilities for filesystem IO
+    * Multipart FormBody usage with file fields is currently broken
+
+- v1.0.0-beta (Sep. 12, 2014)
+
+Significant testing additions, complete non-blocking filesystem capability
+
+- v1.0.0-rc1 (Sep. 26, 2014)
+
+Unforeseen bugfixes only. The RC period should be short-lived. If a non-trivial number of bugs are
+discovered during the RC phase there may be multiple individual RC tags.
+
+- v1.0.0 (Oct. 10, 2014 - tentative, depending on RC period length)
+
 
 ----------------------------------------------------------------------
 
