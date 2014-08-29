@@ -20,9 +20,9 @@
     ],
     "require": {
         "php": ">=5.4.0",
-        "rdlowrey/alert": "~0.10.0",
-        "rdlowrey/after": "~0.3.0",
-        "rdlowrey/acesync": "~0.2.0",
+        "rdlowrey/alert": "~0.10",
+        "rdlowrey/after": "~0.2",
+        "rdlowrey/acesync": "~0.2",
         "bagder/ca-bundle": "dev-master"
     },
     "repositories": [
