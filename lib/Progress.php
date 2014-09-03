@@ -145,8 +145,12 @@ class Progress {
     private function getStats() {
         if ($this->headerBytes) {
             $bar = $this->generateBar();
-        } else {
+        } elseif ($this->isRequestSendComplete) {
             $bar = $this->isComplete ? '[COMPLETE]            ' : '[DETERMINING_LENGTH]';
+        } elseif ($this->socketProcuredAt) {
+            $bar = '[SENDING REQUEST]   ';
+        } else {
+            $bar = '[CONNECTING]        ';
         }
 
         return [
