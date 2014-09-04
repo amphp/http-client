@@ -12,7 +12,7 @@ try {
 
     // Enable verbose send so we can see our raw request messages in the console
     // as they're sent to the server.
-    $client->setOption(Artax\Client::OP_VERBOSE, Artax\Client::VERBOSE_SEND);
+    $client->setOption(Artax\Client::OP_VERBOSITY, Artax\Client::VERBOSE_SEND);
 
     // This request will receive and store google's Set-Cookie headers.
     $client->request('http://www.google.com/')->wait();
