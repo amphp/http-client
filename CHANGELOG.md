@@ -5,6 +5,8 @@
 - Issue #48: more descriptive progress update messages
 - `AggregateBody`, `FileBody` and `FormBody` have been updated to use promises in preparation for
   non-blocking filesystem IO support.
+- `FormBody::addFileField()` has been renamed to `FormBody::addFile()`. Please update code
+  references as needed.
 - Added tests
 
 v0.1.0-alpha
