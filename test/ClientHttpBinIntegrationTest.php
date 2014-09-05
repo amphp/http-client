@@ -172,8 +172,6 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
     }
 
     public function testMultipartBodyRequest() {
-        $this->markTestSkipped("Multipart form bodies are still broken");
-
         $uri = 'http://httpbin.org/post';
         $client = $this->generateClient();
         $field1 = 'test val';
@@ -184,8 +182,8 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
 
         $body = new FormBody($boundary);
         $body->addField('field1', $field1);
-        $body->addFileField('file1', $file1);
-        $body->addFileField('file2', $file2);
+        $body->addFile('file1', $file1);
+        $body->addFile('file2', $file2);
 
         $request = (new Request)->setBody($body)->setUri('http://httpbin.org/post')->setMethod('POST');
         $response = $client->request($request)->wait();
@@ -198,5 +196,4 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals(file_get_contents($file2), $result['files']['file2']);
         $this->assertEquals('multipart/form-data; boundary=' . $boundary, $result['headers']['Content-Type']);
     }
-
 }

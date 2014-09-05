@@ -30,4 +30,15 @@ interface AggregateBody {
      * @return \After\Promise
      */
     public function getHeaders(Reactor $reactor);
+
+    /**
+     * Retrieve the entity body's content length
+     *
+     * The resolved value must either be an integer length or null if the entity body's content
+     * length is not known.
+     *
+     * @param \Alert\Reactor $reactor
+     * @return \After\Promise
+     */
+    public function getLength(Reactor $reactor);
 }

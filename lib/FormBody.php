@@ -11,57 +11,70 @@ class FormBody implements AggregateBody {
     private $boundary;
     private $isMultipart = false;
     private $cachedBody;
-    private $cachedHeaders;
+    private $cachedLength;
 
+    /**
+     * @param string $boundary An optional multipart boundary string
+     */
     public function __construct($boundary = null) {
-        $this->boundary = $boundary ?: md5(uniqid());
+        $this->boundary = $boundary ?: md5(uniqid($prefix = '', $moreEntropy = true));
     }
 
+    /**
+     * Add a data field to the form entity body
+     *
+     * @param string $name
+     * @param string $value
+     * @param string $contentType
+     * @return self
+     */
     public function addField($name, $value, $contentType = 'text/plain') {
         $this->fields[] = [(string) $name, (string) $value, (string) $contentType, $fileName = null];
-        $this->cachedBody = $this->cachedHeaders = null;
-
-        return $this;
-    }
-
-    public function addFileField($name, $filePath, $contentType = 'application/octet-stream') {
-        $filePath = (string) $filePath;
-        $fileName = basename($filePath);
-        $this->fields[] = [(string) $name, new FileBody($filePath), $contentType, $fileName];
-        $this->isMultipart = true;
-        $this->cachedBody = $this->cachedHeaders = null;
+        $this->cachedBody = $this->cachedLength = $this->cachedFields = null;
 
         return $this;
     }
 
     /**
+     * Add a file field to the form entity body
+     *
+     * @param string $name
+     * @param string $filePath
+     * @param string $contentType
+     * @return self
+     */
+    public function addFile($name, $filePath, $contentType = 'application/octet-stream') {
+        $filePath = (string) $filePath;
+        $fileName = basename($filePath);
+        $this->fields[] = [(string) $name, new FileBody($filePath), $contentType, $fileName];
+        $this->isMultipart = true;
+        $this->cachedBody = $this->cachedLength = $this->cachedFields = null;
+
+        return $this;
+    }
+
+    /**
+     * Retrieve the sendable Artax entity body representation
+     *
+     * AggregateBody::getBody() implementations always return a Promise instance to allow
+     * for future resolution of non-blocking operations (e.g. when the entity body comprises
+     * filesystem resources).
+     *
      * @param \Alert\Reactor $reactor
      * @return \After\Promise
      */
     public function getBody(Reactor $reactor) {
-        return $this->isMultipart
-            ? $this->getIterableMultipartBody($reactor)
-            : $this->getFormEncodedBodyString();
+        if ($this->isMultipart) {
+            $fields = $this->getMultipartFieldArray();
+            return $this->generateMultipartIteratorFromFields($reactor, $fields);
+        } else {
+            return new Success($this->getFormEncodedBodyString());
+        }
     }
 
-    private function getFormEncodedBodyString() {
-        $fields = [];
-
-        foreach ($this->fields as $fieldArr) {
-            list($name, $value) = $fieldArr;
-            $fields[$name][] = $value;
-        }
-
-        foreach ($fields as $key => $value) {
-            $fields[$key] = isset($value[1]) ? $value : $value[0];
-        }
-
-        return new Success(http_build_query($fields));
-    }
-
-    private function getIterableMultipartBody($reactor) {
-        if ($this->cachedBody) {
-            return new Success($this->cachedBody);
+    private function getMultipartFieldArray() {
+        if (isset($this->cachedFields)) {
+            return $this->cachedFields;
         }
 
         $fields = [];
@@ -74,15 +87,13 @@ class FormBody implements AggregateBody {
                 ? $this->generateMultipartFileHeader($name, $fileName, $contentType)
                 : $this->generateMultipartFieldHeader($name, $contentType);
 
-            $fields[] = $field instanceof FileBody ? $field->getBody($reactor) : $field;
+            $fields[] = $field;
             $fields[] = "\r\n";
         }
 
         $fields[] = "--{$this->boundary}--";
 
-        $this->cachedBody = new MultipartIterator($fields);
-
-        return new Success($this->cachedBody);
+        return $this->cachedFields = $fields;
     }
 
     private function generateMultipartFileHeader($name, $fileName, $contentType) {
@@ -100,23 +111,61 @@ class FormBody implements AggregateBody {
         return $header;
     }
 
+    private function generateMultipartIteratorFromFields(Reactor $reactor, array $fields) {
+        foreach ($fields as $key => $field) {
+            $fields[$key] = $field instanceof FileBody ? $field->getBody($reactor) : $field;
+        }
+
+        $future = new Future;
+        \After\all($fields)->when(function($error, $result) use ($future) {
+            if ($error) {
+                $future->fail($error);
+            } else {
+                $this->cachedBody = $result;
+                $future->succeed(new MultipartIterator($result));
+            }
+        });
+
+        return $future->promise();
+    }
+
+    private function getFormEncodedBodyString() {
+        $fields = [];
+
+        foreach ($this->fields as $fieldArr) {
+            list($name, $value) = $fieldArr;
+            $fields[$name][] = $value;
+        }
+
+        foreach ($fields as $key => $value) {
+            $fields[$key] = isset($value[1]) ? $value : $value[0];
+        }
+
+        return http_build_query($fields);
+    }
+
     /**
      * Retrieve a key-value array of headers to add to the outbound request
+     *
+     * AggregateBody::getHeaders() implementations always return a Promise instance to allow
+     * for future resolution of non-blocking operations (e.g. when using filesystem stats to
+     * generate content-length headers).
      *
      * @param \Alert\Reactor $reactor
      * @return \After\Promise
      */
     public function getHeaders(Reactor $reactor) {
-        if ($this->cachedHeaders) {
-            return new Success($this->cachedHeaders);
-        }
-
         $future = new Future;
-        $this->getBody($reactor)->when(function($error, $result) use ($reactor, $future) {
+        $length = $this->getLength($reactor);
+        $length->when(function($error, $result) use ($future) {
             if ($error) {
                 $future->fail($error);
             } else {
-                $this->determineContentLength($reactor, $result, $future);
+                $type = $this->determineContentType();
+                $future->succeed([
+                    'Content-Type' => $type,
+                    'Content-Length' => $result
+                ]);
             }
         });
 
@@ -129,48 +178,53 @@ class FormBody implements AggregateBody {
             : 'application/x-www-form-urlencoded';
     }
 
-    private function determineContentLength($reactor, $body, $future) {
-        if (is_string($body)) {
-            $this->cachedHeaders = [
-                'Content-Type' => $this->determineContentType(),
-                'Content-Length' => strlen($body)
-            ];
-            $future->succeed($this->cachedHeaders);
+    /**
+     * Retrieve the content length of the form entity body
+     *
+     * AggregateBody::getLength() implementations always return a Promise instance to allow
+     * for future resolution of non-blocking operations (e.g. when using filesystem stats to
+     * determine entity body length).
+     *
+     * @param \Alert\Reactor $reactor
+     * @return \After\Promise
+     */
+    public function getLength(Reactor $reactor) {
+        if (isset($this->cachedLength)) {
+            return new Success($this->cachedLength);
+        } elseif ($this->isMultipart) {
+            $fields = $this->getMultipartFieldArray($reactor);
+            $length = $this->sumMultipartFieldLengths($reactor, $fields);
+            $length->when(function($error, $result) {
+                if (empty($error)) {
+                    $this->cachedLength = $result;
+                }
+            });
+            return $length;
         } else {
-            $this->determineMultipartLength($reactor, $body, $future);
+            $length = strlen($this->getFormEncodedBodyString());
+            return new Success($length);
         }
     }
 
-    private function determineMultipartLength($reactor, $body, $future) {
-        $lengths = array_map(function($el) use ($reactor) {
-            return is_string($el) ? strlen($el) : $el;
-        }, $body->getFields());
+    private function sumMultipartFieldLengths(Reactor $reactor, array $fields) {
+        $lengths = [];
+        foreach ($fields as $field) {
+            if (is_string($field)) {
+                $lengths[] = strlen($field);
+            } else {
+                $lengths[] = $field->getLength($reactor);
+            }
+        }
 
+        $future = new Future;
         \After\all($lengths)->when(function($error, $result) use ($future) {
             if ($error) {
                 $future->fail($error);
             } else {
-                $this->cachedHeaders = [
-                    'Content-Type' => $this->determineContentType(),
-                    'Content-Length' => $this->countResolvedLengths($result)
-                ];
-                $future->succeed($this->cachedHeaders);
+                $future->succeed(array_sum($result));
             }
         });
-    }
 
-    private function countResolvedLengths(array $lengths) {
-        $length = 0;
-        foreach ($lengths as $el) {
-            if (is_int($el)) {
-                $length += $el;
-            } elseif (isset($el['Content-Length'])) {
-                $length += is_array($el['Content-Length'])
-                    ? $el['Content-Length'][0]
-                    : $el['Content-Length'];
-            }
-        }
-
-        return $length;
+        return $future->promise();
     }
 }

@@ -4,8 +4,8 @@ require __DIR__ . '/../vendor/autoload.php';
 
 $body = (new Artax\FormBody)
     ->addField('field1', 'my value')
-    ->addFileField('file1', __DIR__ . '/support/lorem.txt')
-    ->addFileField('file2', __DIR__ . '/support/answer.txt')
+    ->addFile('file1', __DIR__ . '/support/lorem.txt')
+    ->addFile('file2', __DIR__ . '/support/answer.txt')
 ;
 
 $request = (new Artax\Request)

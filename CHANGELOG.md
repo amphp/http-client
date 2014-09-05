@@ -1,8 +1,13 @@
-#### master (complete rewrite)
+#### v0.1.0-beta
 
-- none
+- Issue #51: Multipart `FormBody` is no longer broken
+- Issue #51: Fix fatal error from bad constant name in example script
+- Issue #48: more descriptive progress update messages
+- `AggregateBody`, `FileBody` and `FormBody` have been updated to use promises in preparation for
+  non-blocking filesystem IO support.
+- Added tests
 
-v0.1.0-dev
+v0.1.0-alpha
 ----------
 
 - Now functions transparently behind HTTP proxy servers.
