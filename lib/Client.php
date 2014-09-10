@@ -122,7 +122,7 @@ class Client implements HttpClient {
 
             $cycle->uri = $uri;
             $cycle->request = $request;
-            $cycle->options = $options = $options
+            $cycle->options = $options
                 ? array_merge($this->options, $options)
                 : $this->options;
 
@@ -181,7 +181,7 @@ class Client implements HttpClient {
 
         $authority = $this->generateAuthorityFromUri($uri);
         $checkoutUri = $uri->getScheme() . "://{$authority}";
-        $futureSocket = $this->socketPool->checkout($checkoutUri);
+        $futureSocket = $this->socketPool->checkout($checkoutUri, $options);
         $futureSocket->when(function($error, $result) use ($cycle) {
             $this->onSocketResolve($cycle, $error, $result);
         });

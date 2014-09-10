@@ -3,6 +3,12 @@
 - Issue #51: Multipart `FormBody` is no longer broken
 - Issue #51: Fix fatal error from bad constant name in example script
 - Issue #48: more descriptive progress update messages
+- Fixed bug preventing correct implementation of the following option settings:
+    . Client::OP_HOST_CONNECTION_LIMIT
+    . Client::OP_MAX_QUEUE_SIZE
+    . Client::OP_MS_IDLE_TIMEOUT
+    . Client::OP_MS_CONNECT_TIMEOUT
+    . Client::OP_BINDTO
 - `AggregateBody`, `FileBody` and `FormBody` have been updated to use promises in preparation for
   non-blocking filesystem IO support.
 - `FormBody::addFileField()` has been renamed to `FormBody::addFile()`. Please update code

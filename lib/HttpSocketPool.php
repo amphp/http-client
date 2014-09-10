@@ -75,7 +75,7 @@ class HttpSocketPool {
         $authority = "{$host}:{$port}";
         $uri = $proxy ? "tcp://{$proxy}#{$authority}" : "tcp://{$authority}";
         $future = new Future($this->reactor);
-        $futureCheckout = $this->sockPool->checkout($uri);
+        $futureCheckout = $this->sockPool->checkout($uri, $options);
         $futureCheckout->when(function($error, $socket) use ($future, $proxy, $authority) {
             if ($error) {
                 $future->fail($error);
