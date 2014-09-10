@@ -1,4 +1,4 @@
-#### v0.1.0-beta
+#### v1.0.0-beta
 
 - Issue #51: Multipart `FormBody` is no longer broken
 - Issue #51: Fix fatal error from bad constant name in example script
@@ -15,7 +15,7 @@
   references as needed.
 - Added tests
 
-v0.1.0-alpha
+v1.0.0-alpha
 ----------
 
 - Now functions transparently behind HTTP proxy servers.
