@@ -17,52 +17,42 @@ namespace Artax;
  *      $promise = $client->request('http://www.google.com');
  *      $promise->watch(new Progress(function($data) {
  *          // what to do with progress info when broadcast by the promise
- *          printf("\r%s %s%%\r", $data['bar'], round($data['percent_complete'] * 100));
+ *          var_dump($data['fraction_complete'] * 100);
  *      });
  *      $response = $promise->wait();
- *
- * @package Artax
  */
 class Progress {
-    const OP_BAR_WIDTH = 1;
-    const OP_BAR_FULL_CHAR = 2;
-    const OP_BAR_EMPTY_CHAR = 3;
-    const OP_BAR_LEAD_CHAR = 4;
-    const OP_MS_UPDATE_FREQUENCY = 5;
+    const CONNECTING = 0;
+    const SENDING_REQUEST = 1;
+    const AWAITING_RESPONSE = 2;
+    const REDIRECTING = 4;
+    const READING_LENGTH = 8;
+    const READING_UNKNOWN = 16;
+    const COMPLETE = 32;
+    const ERROR = 33;
 
-    private static $defaultOptions = [
-        self::OP_BAR_WIDTH => 60,
-        self::OP_BAR_FULL_CHAR => '=',
-        self::OP_BAR_EMPTY_CHAR => '.',
-        self::OP_BAR_LEAD_CHAR => '>',
-        self::OP_MS_UPDATE_FREQUENCY => 20,
-    ];
-
-    private $options;
+    private $state = self::CONNECTING;
+    private $msUpdateFrequency;
     private $lastBroadcastAt;
-    private $socketProcuredAt;
-    private $elapsedTime;
+    private $connectedAt;
     private $bytesRcvd;
     private $bytesPerSecond;
-    private $headerBytes;
+    private $headerLength;
     private $contentLength;
-    private $percentComplete;
+    private $fractionComplete;
     private $redirectCount;
-    private $isRequestSendComplete;
-    private $isComplete;
-    private $isError;
 
     /**
      * @param callable $onUpdateCallback
-     * @TODO Allow custom option specification
+     * @param int $msUpdateFrequency Limit updates to fire only once every n milliseconds
      */
-    public function __construct(callable $onUpdateCallback) {
+    public function __construct(callable $onUpdateCallback, $msUpdateFrequency = 30) {
         $this->onUpdateCallback = $onUpdateCallback;
-        $this->options = self::$defaultOptions;
+        $this->msUpdateFrequency = ($msUpdateFrequency / 1000);
     }
 
     /**
-     * A convenience allowing applications to pass instances directly to Promise::watch()
+     * A convenience method allowing applications to pass instances directly to Promise::watch()
      *
      * @param $progress
      * @return void
@@ -72,7 +62,7 @@ class Progress {
     }
 
     /**
-     * Invoke on response progress via Promise::watch()
+     * Watch for request progress events
      *
      * @param array $progress
      * @return void
@@ -81,10 +71,11 @@ class Progress {
         $event = array_shift($progress);
         switch ($event) {
             case Notify::SOCK_PROCURED:
-                $this->socketProcuredAt = microtime(true);
+                $this->connectedAt = microtime(true);
+                $this->state = self::SENDING_REQUEST;
                 break;
             case Notify::REQUEST_SENT:
-                $this->isRequestSendComplete = true;
+                $this->state = self::AWAITING_RESPONSE;
                 break;
             case Notify::SOCK_DATA_IN:
                 $this->onSockDataIn($progress);
@@ -94,27 +85,25 @@ class Progress {
                 break;
             case Notify::REDIRECT:
                 $this->redirectCount++;
-                $this->socketProcuredAt = null;
-                $this->elapsedTime = null;
+                $this->connectedAt = null;
                 $this->bytesRcvd = null;
                 $this->bytesPerSecond = null;
-                $this->headerBytes = null;
+                $this->headerLength = null;
                 $this->contentLength = null;
-                $this->percentComplete = null;
-                $this->isRequestSendComplete = null;
+                $this->fractionComplete = null;
+                $this->state = self::REDIRECTING;
                 break;
             case Notify::RESPONSE:
-                $this->percentComplete = 1.0;
-                $this->isComplete = true;
+                $this->fractionComplete = 1.00;
+                $this->state = self::COMPLETE;
                 break;
             case Notify::ERROR:
-                $this->isComplete = $this->isError = true;
+                $this->state = self::ERROR;
                 break;
         }
 
         $now = microtime(true);
-        $msUpdateFrequency = $this->options[self::OP_MS_UPDATE_FREQUENCY] / 1000;
-        if ($this->isComplete || ($now - $this->lastBroadcastAt) > $msUpdateFrequency) {
+        if ($this->state & self::COMPLETE || ($now - $this->lastBroadcastAt) > $this->msUpdateFrequency) {
             $this->lastBroadcastAt = $now;
             $onUpdateCallback = $this->onUpdateCallback;
             $onUpdateCallback($this->getStats());
@@ -124,92 +113,37 @@ class Progress {
     private function onSockDataIn($progress) {
         list($rawDataRcvd) = $progress;
         $this->bytesRcvd += strlen($rawDataRcvd);
-        $this->elapsedTime = microtime(true) - $this->socketProcuredAt;
-        $this->bytesPerSecond = round($this->bytesRcvd / $this->elapsedTime);
+        $elapsedTime = microtime(true) - $this->connectedAt;
+        $this->bytesPerSecond = round($this->bytesRcvd / $elapsedTime);
 
-        if (isset($this->headerBytes, $this->contentLength)) {
-            $whole = $this->headerBytes + $this->contentLength;
-            $this->percentComplete = $this->bytesRcvd/$whole;
+        if (isset($this->headerLength, $this->contentLength)) {
+            $whole = $this->headerLength + $this->contentLength;
+            $this->fractionComplete = round(($this->bytesRcvd/$whole), 3);
         }
     }
 
     private function onResponseHeaders($progress) {
         list($parsedResponseArr) = $progress;
-        $this->headerBytes = strlen($parsedResponseArr['trace']);
+        $this->headerLength = strlen($parsedResponseArr['trace']);
         $response = (new Response)->setAllHeaders($parsedResponseArr['headers']);
         if ($response->hasHeader('Content-Length')) {
             $this->contentLength = (int) $response->getHeader('Content-Length')[0];
+            $this->state = self::READING_LENGTH;
+        } else {
+            $this->state = self::READING_UNKNOWN;
         }
     }
 
     private function getStats() {
-        if ($this->headerBytes) {
-            $bar = $this->generateBar();
-        } elseif ($this->isRequestSendComplete) {
-            $bar = $this->isComplete ? '[COMPLETE]            ' : '[DETERMINING_LENGTH]';
-        } elseif ($this->socketProcuredAt) {
-            $bar = '[SENDING REQUEST]   ';
-        } else {
-            $bar = '[CONNECTING]        ';
-        }
-
         return [
-            'sock_procured_at' => $this->socketProcuredAt,
-            'redirect_count' => $this->redirectCount,
+            'request_state' => $this->state,
+            'connected_at' => $this->connectedAt,
             'bytes_rcvd' => $this->bytesRcvd,
-            'header_bytes' => $this->headerBytes,
-            'content_length' => $this->contentLength,
-            'percent_complete' => $this->percentComplete,
             'bytes_per_second' => $this->bytesPerSecond,
-            'is_request_sent' => (bool) $this->isRequestSendComplete,
-            'is_complete' => (bool) $this->isComplete,
-            'is_error' =>(bool)  $this->isError,
-            'bar' => $bar
+            'header_length' => $this->headerLength,
+            'content_length' => $this->contentLength,
+            'fraction_complete' => $this->fractionComplete,
+            'redirect_count' => $this->redirectCount,
         ];
-    }
-
-    private function generateBar() {
-        if ($this->isError) {
-            return '[ERROR]';
-        } elseif ($this->isComplete || isset($this->headerBytes, $this->contentLength)) {
-            return $this->generateBarOfKnownSize();
-        } else {
-            return $this->generateBarOfUnknownSize();
-        }
-    }
-
-    private function generateBarOfKnownSize() {
-        $maxIncrements = $this->options[self::OP_BAR_WIDTH] - 3;
-        $fullIncrements = round($this->percentComplete * $maxIncrements);
-        $emptyIncrements = $maxIncrements - $fullIncrements;
-
-        $bar[] = '[';
-        $bar[] = str_repeat($this->options[self::OP_BAR_FULL_CHAR], $fullIncrements);
-        $bar[] = $this->options[self::OP_BAR_LEAD_CHAR];
-        $bar[] = str_repeat($this->options[self::OP_BAR_EMPTY_CHAR], $emptyIncrements);
-        $bar[] = ']';
-
-        return implode($bar);
-    }
-
-    private function generateBarOfUnknownSize() {
-        $msg = 'SIZE UNKNOWN';
-        $maxIncrements = $this->options[self::OP_BAR_WIDTH] - 2;
-        $emptyChar = $this->options[self::OP_BAR_EMPTY_CHAR];
-        $emptyIncrements = $maxIncrements - strlen($msg);
-        if ($emptyIncrements % 2 === 0) {
-            $leftEmpty = $rightEmpty = $emptyIncrements / 2;
-        } else {
-            $leftEmpty = floor($emptyIncrements / 2);
-            $rightEmpty = $leftEmpty + 1;
-        }
-
-        $bar[] = '[';
-        $bar[] = str_repeat($emptyChar, $leftEmpty);
-        $bar[] = $msg;
-        $bar[] = str_repeat($emptyChar, $rightEmpty);
-        $bar[] = ']';
-
-        return implode($bar);
     }
 }
