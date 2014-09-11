@@ -20,8 +20,6 @@ namespace Artax;
  *          var_dump($data['fraction_complete'] * 100);
  *      });
  *      $response = $promise->wait();
- *
- * @package Artax
  */
 class Progress {
     const CONNECTING = 0;
@@ -46,6 +44,7 @@ class Progress {
 
     /**
      * @param callable $onUpdateCallback
+     * @param int $msUpdateFrequency Limit updates to fire only once every n milliseconds
      */
     public function __construct(callable $onUpdateCallback, $msUpdateFrequency = 30) {
         $this->onUpdateCallback = $onUpdateCallback;
