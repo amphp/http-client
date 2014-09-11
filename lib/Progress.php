@@ -17,7 +17,7 @@ namespace Artax;
  *      $promise = $client->request('http://www.google.com');
  *      $promise->watch(new Progress(function($data) {
  *          // what to do with progress info when broadcast by the promise
- *          printf("\r%s %s%%\r", $data['bar'], round($data['percent_complete'] * 100));
+ *          var_dump($data['fraction_complete'] * 100);
  *      });
  *      $response = $promise->wait();
  *
@@ -41,17 +41,15 @@ class Progress {
     private $bytesPerSecond;
     private $headerLength;
     private $contentLength;
-    private $percentComplete;
+    private $fractionComplete;
     private $redirectCount;
-
 
     /**
      * @param callable $onUpdateCallback
-     * @TODO Allow custom option specification
      */
-    public function __construct(callable $onUpdateCallback, $msUpdateFrequency = 20) {
+    public function __construct(callable $onUpdateCallback, $msUpdateFrequency = 30) {
         $this->onUpdateCallback = $onUpdateCallback;
-        $this->msUpdateFrequency = (int) $msUpdateFrequency > 0 ? $msUpdateFrequency : 20;
+        $this->msUpdateFrequency = ($msUpdateFrequency / 1000);
     }
 
     /**
@@ -93,11 +91,11 @@ class Progress {
                 $this->bytesPerSecond = null;
                 $this->headerLength = null;
                 $this->contentLength = null;
-                $this->percentComplete = null;
+                $this->fractionComplete = null;
                 $this->state = self::REDIRECTING;
                 break;
             case Notify::RESPONSE:
-                $this->percentComplete = 1.00;
+                $this->fractionComplete = 1.00;
                 $this->state = self::COMPLETE;
                 break;
             case Notify::ERROR:
@@ -121,7 +119,7 @@ class Progress {
 
         if (isset($this->headerLength, $this->contentLength)) {
             $whole = $this->headerLength + $this->contentLength;
-            $this->percentComplete = round(($this->bytesRcvd/$whole), 3);
+            $this->fractionComplete = round(($this->bytesRcvd/$whole), 3);
         }
     }
 
@@ -145,7 +143,7 @@ class Progress {
             'bytes_per_second' => $this->bytesPerSecond,
             'header_length' => $this->headerLength,
             'content_length' => $this->contentLength,
-            'percent_complete' => $this->percentComplete,
+            'fraction_complete' => $this->fractionComplete,
             'redirect_count' => $this->redirectCount,
         ];
     }
