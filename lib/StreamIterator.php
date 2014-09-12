@@ -2,7 +2,7 @@
 
 namespace Artax;
 
-abstract class FileIterator implements \Iterator {
+abstract class StreamIterator implements \Iterator {
     protected $readSize = 32768;
     public function setReadSize($int) {
         $this->readSize = (int) $int;

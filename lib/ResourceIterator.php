@@ -2,7 +2,7 @@
 
 namespace Artax;
 
-class ResourceIterator extends FileIterator {
+class ResourceIterator extends StreamIterator {
     private $resource;
     private $currentCache;
 
