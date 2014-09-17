@@ -13,7 +13,9 @@
   non-blocking filesystem IO support.
 - `FormBody::addFileField()` has been renamed to `FormBody::addFile()`. Please update code
   references as needed.
+- Non-blocking file system entity body streaming temporarily removed due to php-uv segfaults
 - Added tests
+- Composer file no longer requires manual updating for CA certs
 
 #### v1.0.0-alpha
 
