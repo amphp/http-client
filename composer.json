@@ -22,8 +22,7 @@
         "php": ">=5.4.0",
         "rdlowrey/alert": "~0.10",
         "rdlowrey/after": "~0.2",
-        "rdlowrey/acesync": "~0.2",
-        "bagder/ca-bundle": "dev-master"
+        "rdlowrey/acesync": "~0.3"
     },
     "repositories": [
         {
@@ -37,18 +36,6 @@
         {
             "type": "vcs",
             "url": "https://github.com/rdlowrey/Acesync.git"
-        },
-        {
-            "type": "package",
-            "package": {
-                "name": "bagder/ca-bundle",
-                "version": "dev-master",
-                "source": {
-                    "url": "https://github.com/bagder/ca-bundle",
-                    "type": "git",
-                    "reference": "origin/master"
-                }
-            }
         }
     ],
     "autoload": {
@@ -57,6 +44,6 @@
         }
     },
     "branch-alias": {
-        "dev-master": "0.8.x-dev"
+        "dev-master": "1.0.x-dev"
     }
 }
