@@ -1,3 +1,7 @@
+#### v1.0.0-rc1
+
+- Issue #51: Fix composer dep declarations for easy install
+
 #### v1.0.0-beta
 
 - Issue #51: Multipart `FormBody` is no longer broken
