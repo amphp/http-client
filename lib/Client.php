@@ -613,14 +613,18 @@ class Client implements HttpClient {
         $request = $cycle->request;
         $response = $cycle->response;
 
-        if (!($cycle->options[self::OP_FOLLOW_LOCATION] && $response->hasHeader('Location'))) {
+        if (!$cycle->options[self::OP_FOLLOW_LOCATION]) {
+            return null;
+        }
+
+        if (!$response->hasHeader('Location')) {
             return null;
         }
 
         $status = $response->getStatus();
         $method = $request->getMethod();
 
-        if ($status < 200 || $status > 399 || !($method === 'GET' || $method === 'HEAD')) {
+        if ($status < 200 || $status > 399 || $method === 'HEAD') {
             return null;
         }
 

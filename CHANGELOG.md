@@ -1,6 +1,7 @@
 #### v1.0.0-rc1
 
 - Issue #51: Fix composer dep declarations for easy install
+- Issue #54: Fix bug preventing redirect if request method was not GET or HEAD
 
 #### v1.0.0-beta
 
