@@ -7,10 +7,15 @@ there yet. Use at your own risk! The current release roadmap is as follows:
 
 - v1.0.0 (Oct. 10, 2014 - tentative, depending on RC period length)
 
-- v1.0.0-rc1 (Sep. 24, 2014)
+- v1.0.0-rc1 (Oct. 3, 2014)
 
 Unforeseen bugfixes only. The RC period should be short-lived. If a non-trivial number of bugs are
 discovered during the RC phase there may be multiple individual RC tags.
+
+- v1.0.0-beta2 (Sep. 24, 2014)
+
+   * Bugfixes
+   * Migrate to [amphp](https://github.com/amphp) framework
 
 - v1.0.0-beta (Sep. 17, 2014)
 
@@ -63,12 +68,12 @@ dependency on PHP's `curl_*` API and requires no non-standard PHP extensions.
 ##### Installation
 
 ```bash
-$ git clone https://github.com/rdlowrey/Artax.git
-$ cd Artax
+$ git clone https://github.com/amphp/artax.git
+$ cd artax
 $ composer.phar install
 ```
 
-The relevant composer/packagist lib is `rdlowrey/artax`.
+The relevant composer/packagist lib is `amphp/artax`.
 
 
 
@@ -86,7 +91,7 @@ as the request parameter:
 <?php
 
 try {
-    $response = (new Artax\Client)->request('http://www.google.com')->wait();
+    $response = (new Amp\Artax\Client)->request('http://www.google.com')->wait();
     printf(
         "\nHTTP/%s %d %s\n",
         $response->getProtocol(),
@@ -105,13 +110,13 @@ For non-trivial requests Artax allows you to construct messages piece-by-piece. 
 sets the request method to POST and assigns an entity body. HTTP veterans will notice that
 we don't bother to set a `Content-Length` or `Host` header. Artax will automatically add/normalize
 missing headers for us so we don't need to worry about it. The only property that _MUST_ be assigned
-when sending an `Artax\Request` is the absolute *http://* or *https://* request URI:
+when sending an `Amp\Artax\Request` is the absolute *http://* or *https://* request URI:
 
 ```php
 <?php
 
 try {
-    $request = (new Artax\Request)
+    $request = (new Amp\Artax\Request)
         ->setUri('http://httpbin.org/post')
         ->setProtocol('1.1')
         ->setMethod('POST')
@@ -122,7 +127,7 @@ try {
         ])
     ;
 
-    $response = (new Artax\Client)->request($request)->wait();
+    $response = (new Amp\Artax\Client)->request($request)->wait();
 
 } catch (Exception $error) {
     echo $error;
@@ -146,24 +151,24 @@ Assume `httpbin.org/post` contains the following HTML form:
  </form>
 ```
 
-We can easily submit this form using the `Artax\FormBody` API:
+We can easily submit this form using the `Amp\Artax\FormBody` API:
 
 ```php
 <?php
 
-$body = (new Artax\FormBody)
+$body = (new Amp\Artax\FormBody)
     ->addField('name', 'Zoroaster')
     ->addFileField('file1', '/hard/path/to/some/file1')
     ->addFileField('file2', '/hard/path/to/some/file2')
 ;
 
-$request = (new Artax\Request)
+$request = (new Amp\Artax\Request)
     ->setUri('http://httpbin.org/post')
     ->setMethod('POST')
     ->setBody($body)
 ;
 
-$response = (new Artax\Client)->request($request)->wait();
+$response = (new Amp\Artax\Client)->request($request)->wait();
 ```
 
 ##### Parallel Requests
@@ -174,7 +179,7 @@ same thing:
 
 ```php
 <?php
-$client = new Artax\Client;
+$client = new Amp\Artax\Client;
 
 // Here we pass dispatch two requests at the same time
 $arrayOfPromises = $client->requestMulti([
@@ -191,14 +196,14 @@ $comboPromise = After\all([$googlePromise, $bingPromise]);
 list($googleResponse, $bingResponse) = $comboPromise->wait();
 ```
 
-Remember that `Artax\Client::request()` *always* returns a promise instance. So if we want to
+Remember that `Amp\Artax\Client::request()` *always* returns a promise instance. So if we want to
 specify individualized callbacks for progress events on those promises we're perfectly able to
 do so. In the below example we use the `Promise::when()` method (which accepts an error-first
 callback) to react to the completion of an individual response:
 
 ```php
 <?php
-$client = new Artax\Client;
+$client = new Amp\Artax\Client;
 
 list($googlePromise, $bingPromise) = $client->request([
     'http://www.google.com',
@@ -233,7 +238,7 @@ combinator function. Consider:
 ```php
 <?php
 
-$arrayOfPromises = (new Artax\Client)->request([
+$arrayOfPromises = (new Amp\Artax\Client)->request([
     'google'    => 'http://www.google.com',
     'news'      => 'http://news.google.com',
     'bing'      => 'http://www.bing.com',
@@ -258,7 +263,7 @@ foreach ($responses as $key => $response) {
 
 ##### Progress Events
 
-Once again we note that `Artax\Client::request()` always returns a promise instance. This means
+Once again we note that `Amp\Artax\Client::request()` always returns a promise instance. This means
 we can use the `Promise::watch()` method to observe updates/events for a particular request:
 
 ```php
@@ -271,31 +276,31 @@ we can use the `Promise::watch()` method to observe updates/events for a particu
 function myNotifyCallback(array $notifyData) {
     $event = array_shift($notifyData);
     switch ($event) {
-        case Artax\Notify::SOCK_PROCURED:
+        case Amp\Artax\Notify::SOCK_PROCURED:
             echo "SOCK_PROCURED\n";
             break;
-        case Artax\Notify::SOCK_DATA_IN:
+        case Amp\Artax\Notify::SOCK_DATA_IN:
             echo "SOCK_DATA_IN\n";
             break;
-        case Artax\Notify::SOCK_DATA_OUT:
+        case Amp\Artax\Notify::SOCK_DATA_OUT:
             echo "SOCK_DATA_OUT\n";
             break;
-        case Artax\Notify::REQUEST_SENT:
+        case Amp\Artax\Notify::REQUEST_SENT:
             echo "REQUEST_SENT\n";
             break;
-        case Artax\Notify::RESPONSE_HEADERS:
+        case Amp\Artax\Notify::RESPONSE_HEADERS:
             echo "RESPONSE_HEADERS\n";
             break;
-        case Artax\Notify::RESPONSE_BODY_DATA:
+        case Amp\Artax\Notify::RESPONSE_BODY_DATA:
             echo "RESPONSE_BODY_DATA\n";
             break;
-        case Artax\Notify::RESPONSE:
+        case Amp\Artax\Notify::RESPONSE:
             echo "RESPONSE\n";
             break;
-        case Artax\Notify::REDIRECT:
+        case Amp\Artax\Notify::REDIRECT:
             echo "REDIRECT\n";
             break;
-        case Artax\Notify::ERROR:
+        case Amp\Artax\Notify::ERROR:
             echo "ERROR\n";
             break;
     }
@@ -306,7 +311,7 @@ function myNotifyCallback(array $notifyData) {
  * notifications simply pass a callback to Promise::watch() as demonstrated
  * below.
  */
-$promise = (new Artax\Client)->request('http://www.google.com');
+$promise = (new Amp\Artax\Client)->request('http://www.google.com');
 $promise->watch('myNotifyCallback');
 $response = $promise->wait();
 
@@ -329,17 +334,17 @@ printf(
 ##### Progress Bars
 
 Generating a progress bar depends on a few details from the HTTP spec regarding message size. To
-make this easier for end users Artax exposes the `Artax\Progress` object which makes generating
+make this easier for end users Artax exposes the `Amp\Artax\Progress` object which makes generating
 a usable progress bar on a per-request basis trivial. Consider:
 
 ```php
 <?php
-$promise = (new Artax\Client)->request($request);
-$promise->watch(new Artax\Progress(function($update) {
+$promise = (new Amp\Artax\Client)->request($request);
+$promise->watch(new Amp\Artax\Progress(function($update) {
     printf(
         "\r%s %s%%\r",
         $update['bar'],
-        round($update['percent_complete'] * 100)
+        round($update['fraction_complete'] * 100)
     );
 }));
 $response = $promise->wait();

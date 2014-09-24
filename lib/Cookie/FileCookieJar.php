@@ -1,6 +1,6 @@
 <?php
 
-namespace Artax\Cookie;
+namespace Amp\Artax\Cookie;
 
 class FileCookieJar extends ArrayCookieJar {
     private $storagePath;
@@ -54,7 +54,7 @@ class FileCookieJar extends ArrayCookieJar {
         foreach ($this->getAll() as $pathArr) {
             foreach ($pathArr as $cookieArr) {
                 /**
-                 * @var $cookie \Artax\Cookie\Cookie
+                 * @var $cookie \Amp\Artax\Cookie\Cookie
                  */
                 foreach ($cookieArr as $cookie) {
                     if (!$cookie->isExpired()) {

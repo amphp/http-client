@@ -1,10 +1,11 @@
 <?php
 
-namespace Artax;
+namespace Amp\Artax;
 
-use Alert\Reactor;
-use After\Future;
-use After\Success;
+use Amp\Reactor;
+use Amp\Success;
+use Amp\Future;
+use Amp\Combinator;
 
 class FormBody implements AggregateBody {
     private $fields = [];
@@ -54,14 +55,14 @@ class FormBody implements AggregateBody {
     }
 
     /**
-     * Retrieve the sendable Artax entity body representation
+     * Retrieve the sendable Amp\Artax entity body representation
      *
      * AggregateBody::getBody() implementations always return a Promise instance to allow
      * for future resolution of non-blocking operations (e.g. when the entity body comprises
      * filesystem resources).
      *
-     * @param \Alert\Reactor $reactor
-     * @return \After\Promise
+     * @param \Amp\Reactor $reactor
+     * @return \Amp\Promise
      */
     public function getBody(Reactor $reactor) {
         if ($this->isMultipart) {
@@ -116,8 +117,8 @@ class FormBody implements AggregateBody {
             $fields[$key] = $field instanceof FileBody ? $field->getBody($reactor) : $field;
         }
 
-        $future = new Future;
-        \After\all($fields)->when(function($error, $result) use ($future) {
+        $future = new Future($reactor);
+        (new Combinator($reactor))->all($fields)->when(function($error, $result) use ($future) {
             if ($error) {
                 $future->fail($error);
             } else {
@@ -151,11 +152,11 @@ class FormBody implements AggregateBody {
      * for future resolution of non-blocking operations (e.g. when using filesystem stats to
      * generate content-length headers).
      *
-     * @param \Alert\Reactor $reactor
-     * @return \After\Promise
+     * @param \Amp\Reactor $reactor
+     * @return \Amp\Promise
      */
     public function getHeaders(Reactor $reactor) {
-        $future = new Future;
+        $future = new Future($reactor);
         $length = $this->getLength($reactor);
         $length->when(function($error, $result) use ($future) {
             if ($error) {
@@ -185,8 +186,8 @@ class FormBody implements AggregateBody {
      * for future resolution of non-blocking operations (e.g. when using filesystem stats to
      * determine entity body length).
      *
-     * @param \Alert\Reactor $reactor
-     * @return \After\Promise
+     * @param \Amp\Reactor $reactor
+     * @return \Amp\Promise
      */
     public function getLength(Reactor $reactor) {
         if (isset($this->cachedLength)) {
@@ -216,8 +217,8 @@ class FormBody implements AggregateBody {
             }
         }
 
-        $future = new Future;
-        \After\all($lengths)->when(function($error, $result) use ($future) {
+        $future = new Future($reactor);
+        (new Combinator($reactor))->all($lengths)->when(function($error, $result) use ($future) {
             if ($error) {
                 $future->fail($error);
             } else {

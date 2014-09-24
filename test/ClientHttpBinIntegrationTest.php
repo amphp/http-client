@@ -1,17 +1,17 @@
 <?php
 
-namespace ArtaxTest;
+namespace Amp\ArtaxTest;
 
-use Artax\Client;
-use Artax\Request;
-use Artax\FileBody;
-use Artax\FormBody;
-use Artax\ResourceBody;
-use Alert\NativeReactor;
+use Amp\Artax\Client;
+use Amp\Artax\Request;
+use Amp\Artax\FileBody;
+use Amp\Artax\FormBody;
+use Amp\Artax\ResourceBody;
+use Amp\NativeReactor;
 
 class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
     /**
-     * @return \Artax\Client
+     * @return \Amp\Artax\Client
      */
     private function generateClient() {
         return new Client(new NativeReactor);
@@ -22,7 +22,7 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
         $client = $this->generateClient();
 
         $response = $client->request($uri)->wait();
-        $this->assertInstanceOf('Artax\Response', $response);
+        $this->assertInstanceOf('Amp\Artax\Response', $response);
         $body = $response->getBody();
         $result = json_decode($body);
         $this->assertSame(Client::USER_AGENT, $result->{'user-agent'});
@@ -35,7 +35,7 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
         $customUserAgent = 'test-user-agent';
         $request = (new Request)->setUri($uri)->setHeader('User-Agent', $customUserAgent);
         $response = $client->request($request)->wait();
-        $this->assertInstanceOf('Artax\Response', $response);
+        $this->assertInstanceOf('Amp\Artax\Response', $response);
         $body = $response->getBody();
         $result = json_decode($body);
         $this->assertSame($customUserAgent, $result->{'user-agent'});
@@ -48,7 +48,7 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
         $body = 'zanzibar';
         $request = (new Request)->setUri($uri)->setMethod('POST')->setBody($body);
         $response = $client->request($request)->wait();
-        $this->assertInstanceOf('Artax\Response', $response);
+        $this->assertInstanceOf('Amp\Artax\Response', $response);
         $result = json_decode($response->getBody());
         $this->assertEquals($body, $result->data);
     }
@@ -60,7 +60,7 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
         $body = 'zanzibar';
         $request = (new Request)->setUri($uri)->setMethod('PUT')->setBody($body);
         $response = $client->request($request)->wait();
-        $this->assertInstanceOf('Artax\Response', $response);
+        $this->assertInstanceOf('Amp\Artax\Response', $response);
         $result = json_decode($response->getBody());
         $this->assertEquals($body, $result->data);
     }
@@ -73,7 +73,7 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
         $client = $this->generateClient();
 
         $response = $client->request($uri)->wait();
-        $this->assertInstanceOf('Artax\Response', $response);
+        $this->assertInstanceOf('Amp\Artax\Response', $response);
         $this->assertEquals($statusCode, $response->getStatus());
     }
 
@@ -91,7 +91,7 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
         $client = $this->generateClient();
 
         $response = $client->request($uri)->wait();
-        $this->assertInstanceOf('Artax\Response', $response);
+        $this->assertInstanceOf('Amp\Artax\Response', $response);
         $expectedReason = "I'M A TEAPOT";
         $actualReason = $response->getReason();
         $this->assertSame($expectedReason, $actualReason);
@@ -104,7 +104,7 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
         $client = $this->generateClient();
 
         $response = $client->request($uri)->wait();
-        $this->assertInstanceOf('Artax\Response', $response);
+        $this->assertInstanceOf('Amp\Artax\Response', $response);
         $this->assertEquals($statusCode, $response->getStatus());
     }
 
@@ -132,7 +132,7 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
 
         $request = (new Request)->setUri($uri)->setMethod('POST');
         $response = $client->request($request)->wait();
-        $this->assertInstanceOf('Artax\Response', $response);
+        $this->assertInstanceOf('Amp\Artax\Response', $response);
         $body = $response->getBody();
         $result = json_decode($body);
         $this->assertEquals('0', $result->headers->{'Content-Length'});
@@ -151,7 +151,7 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
 
         $request = (new Request)->setBody($body)->setUri($uri)->setMethod('POST');
         $response = $client->request($request)->wait();
-        $this->assertInstanceOf('Artax\Response', $response);
+        $this->assertInstanceOf('Amp\Artax\Response', $response);
         $result = json_decode($response->getBody(), true);
         $this->assertEquals($field1, $result['form']['field1']);
         $this->assertEquals($field2, $result['form']['field2']);
@@ -166,7 +166,7 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
         $body = new FileBody($bodyPath);
         $request = (new Request)->setBody($body)->setUri($uri)->setMethod('POST');
         $response = $client->request($request)->wait();
-        $this->assertInstanceOf('Artax\Response', $response);
+        $this->assertInstanceOf('Amp\Artax\Response', $response);
         $result = json_decode($response->getBody(), true);
         $this->assertEquals(file_get_contents($bodyPath), $result['data']);
     }

@@ -1,5 +1,5 @@
 <?php
 
-namespace Artax;
+namespace Amp\Artax;
 
 class SocketException extends ClientException {}

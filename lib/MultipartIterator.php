@@ -1,6 +1,6 @@
 <?php
 
-namespace Artax;
+namespace Amp\Artax;
 
 class MultipartIterator implements \Iterator {
     private $fields;

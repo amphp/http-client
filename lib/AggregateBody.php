@@ -1,8 +1,8 @@
 <?php
 
-namespace Artax;
+namespace Amp\Artax;
 
-use Alert\Reactor;
+use Amp\Reactor;
 
 /**
  * An interface for generating customized HTTP message bodies + headers.
@@ -15,8 +15,8 @@ interface AggregateBody {
      * The resolved promise value may be a string or an Iterator. An event reactor is always passed
      * to assist with asynchronous value resolution.
      *
-     * @param \Alert\Reactor $reactor
-     * @return \After\Promise
+     * @param \Amp\Reactor $reactor
+     * @return \Amp\Promise
      */
     public function getBody(Reactor $reactor);
 
@@ -26,8 +26,8 @@ interface AggregateBody {
      * The resolved promise value must be a key-value array mapping header fields to values. An
      * event reactor is always passed to assist with asynchronous value resolution.
      *
-     * @param \Alert\Reactor $reactor
-     * @return \After\Promise
+     * @param \Amp\Reactor $reactor
+     * @return \Amp\Promise
      */
     public function getHeaders(Reactor $reactor);
 
@@ -37,8 +37,8 @@ interface AggregateBody {
      * The resolved value must either be an integer length or null if the entity body's content
      * length is not known.
      *
-     * @param \Alert\Reactor $reactor
-     * @return \After\Promise
+     * @param \Amp\Reactor $reactor
+     * @return \Amp\Promise
      */
     public function getLength(Reactor $reactor);
 }

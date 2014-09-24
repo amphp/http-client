@@ -4,10 +4,11 @@ require __DIR__ . '/../vendor/autoload.php';
 
 try {
     // Instantiate the HTTP client
-    $client = new Artax\Client;
+    $client = new Amp\Artax\Client;
+    $client->setOption(Amp\Artax\Client::OP_VERBOSITY, Amp\Artax\Client::VERBOSE_ALL);
 
     // Let's build up a custom Request object
-    $request = (new Artax\Request)
+    $request = (new Amp\Artax\Request)
         ->setMethod('POST')
         ->setUri('http://httpbin.org/post')
         ->setBody('zanzibar!')
@@ -30,7 +31,7 @@ try {
         $response->getBody()
     );
 
-} catch (Artax\ClientException $e) {
+} catch (Amp\Artax\ClientException $e) {
     // If something goes wrong the Promise::wait() call will throw the relevant
     // exception. The Client::request() method itself will never throw.
     echo $e;

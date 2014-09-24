@@ -1,6 +1,6 @@
 <?php
 
-namespace Artax;
+namespace Amp\Artax;
 
 class Notify {
     const SOCK_PROCURED = 1;

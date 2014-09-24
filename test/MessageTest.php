@@ -1,25 +1,25 @@
 <?php
 
-namespace Artax\Test;
+namespace Amp\Test\Artax;
 
-use Artax\Message;
+use Amp\Artax\Message;
 
 class MessageTest extends \PHPUnit_Framework_TestCase {
 
     public function testGetAndSetProtocol() {
-        $msg = $this->getMockForAbstractClass('Artax\Message');
+        $msg = $this->getMockForAbstractClass('Amp\Artax\Message');
         $msg->setProtocol('1.1');
         $this->assertEquals('1.1', $msg->getProtocol());
     }
 
     public function testGetAndSetBody() {
-        $msg = $this->getMockForAbstractClass('Artax\Message');
+        $msg = $this->getMockForAbstractClass('Amp\Artax\Message');
         $msg->setBody('test');
         $this->assertEquals('test', $msg->getBody());
     }
 
     public function testHasBody() {
-        $msg = $this->getMockForAbstractClass('Artax\Message');
+        $msg = $this->getMockForAbstractClass('Amp\Artax\Message');
 
         $this->assertFalse($msg->hasBody());
 
@@ -34,12 +34,12 @@ class MessageTest extends \PHPUnit_Framework_TestCase {
     }
 
     public function testHasHeaderIsFalseBeforeAssignment() {
-        $msg = $this->getMockForAbstractClass('Artax\Message');
+        $msg = $this->getMockForAbstractClass('Amp\Artax\Message');
         $this->assertFalse($msg->hasHeader('My-Header'));
     }
 
     public function testHasHeaderFieldNameIsCaseInsensitive() {
-        $msg = $this->getMockForAbstractClass('Artax\Message');
+        $msg = $this->getMockForAbstractClass('Amp\Artax\Message');
         $msg->setHeader('mY-hEaDeR', 'value');
         $this->assertTrue($msg->hasHeader('MY-HEADER'));
     }
@@ -48,7 +48,7 @@ class MessageTest extends \PHPUnit_Framework_TestCase {
      * @dataProvider provideHeaderExpectations
      */
     public function testHasHeaderTrueWhenSpecified($header, $value) {
-        $msg = $this->getMockForAbstractClass('Artax\Message');
+        $msg = $this->getMockForAbstractClass('Amp\Artax\Message');
         $msg->setHeader($header, $value);
         $this->assertTrue($msg->hasHeader($header));
     }
@@ -66,14 +66,14 @@ class MessageTest extends \PHPUnit_Framework_TestCase {
      * @dataProvider provideHeaderExpectations
      */
     public function testGetHeaderReturnsStoredValue($header, $value) {
-        $msg = $this->getMockForAbstractClass('Artax\Message');
+        $msg = $this->getMockForAbstractClass('Amp\Artax\Message');
         $msg->setHeader($header, $value);
         $expectedValue = is_array($value) ? $value : [$value];
         $this->assertEquals($expectedValue, $msg->getHeader($header));
     }
 
     public function testGetHeaderFieldNameIsCaseInsensitive() {
-        $msg = $this->getMockForAbstractClass('Artax\Message');
+        $msg = $this->getMockForAbstractClass('Amp\Artax\Message');
         $msg->setHeader('mY-hEaDeR', 'value');
         $this->assertEquals(['value'], $msg->getHeader('MY-HEADER'));
     }
@@ -82,17 +82,17 @@ class MessageTest extends \PHPUnit_Framework_TestCase {
      * @expectedException DomainException
      */
     public function testGetHeaderThrowsExceptionOnNonexistentHeaderField() {
-        $msg = $this->getMockForAbstractClass('Artax\Message');
+        $msg = $this->getMockForAbstractClass('Amp\Artax\Message');
         $msg->getHeader('Some-Nonexistent-Header');
     }
 
     public function testGetAllHeadersReturnsEmptyArrayIfNoHeadersStored() {
-        $msg = $this->getMockForAbstractClass('Artax\Message');
+        $msg = $this->getMockForAbstractClass('Amp\Artax\Message');
         $this->assertEquals([], $msg->getAllHeaders());
     }
 
     public function testGetAllHeadersReturnsArrayOfStoredHeaders() {
-        $msg = $this->getMockForAbstractClass('Artax\Message');
+        $msg = $this->getMockForAbstractClass('Amp\Artax\Message');
 
         $msg->setHeader('My-Header1', 'val');
         $msg->setHeader('My-Header2', ['val1', 'val2']);
@@ -110,7 +110,7 @@ class MessageTest extends \PHPUnit_Framework_TestCase {
      * @expectedException InvalidArgumentException
      */
     public function testSetHeaderThrowsExceptionOnBadValue($badValue) {
-        $msg = $this->getMockForAbstractClass('Artax\Message');
+        $msg = $this->getMockForAbstractClass('Amp\Artax\Message');
         $msg->setHeader('Some-Header', $badValue);
     }
 
@@ -122,7 +122,7 @@ class MessageTest extends \PHPUnit_Framework_TestCase {
     }
 
     public function testSetAllHeaders() {
-        $msg = $this->getMockForAbstractClass('Artax\Message');
+        $msg = $this->getMockForAbstractClass('Amp\Artax\Message');
         $msg->setAllHeaders([
             'My-Header1' => 'val1',
             'My-Header2' => ['val1', 'val2']
@@ -133,7 +133,7 @@ class MessageTest extends \PHPUnit_Framework_TestCase {
     }
 
     public function testAppendHeaderAddsToExistingHeaderIfAlreadyExists() {
-        $msg = $this->getMockForAbstractClass('Artax\Message');
+        $msg = $this->getMockForAbstractClass('Amp\Artax\Message');
         $msg->appendHeader('My-Header', 'val1');
         $this->assertEquals(['val1'], $msg->getHeader('my-header'));
 
@@ -144,7 +144,7 @@ class MessageTest extends \PHPUnit_Framework_TestCase {
     }
 
     public function testRemoveHeader() {
-        $msg = $this->getMockForAbstractClass('Artax\Message');
+        $msg = $this->getMockForAbstractClass('Amp\Artax\Message');
         $msg->appendHeader('My-Header', ['val1', 'val2']);
         $this->assertTrue($msg->hasHeader('my-header'));
         $msg->removeHeader('MY-HEADER');
@@ -152,7 +152,7 @@ class MessageTest extends \PHPUnit_Framework_TestCase {
     }
 
     public function testRemoveAllHeaders() {
-        $msg = $this->getMockForAbstractClass('Artax\Message');
+        $msg = $this->getMockForAbstractClass('Amp\Artax\Message');
         $msg->setHeader('My-Header', ['val1', 'val2']);
         $this->assertTrue($msg->hasHeader('my-header'));
         $msg->setHeader('My-Other-Header', ['val1', 'val2']);

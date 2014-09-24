@@ -1,6 +1,6 @@
 <?php
 
-namespace Artax\Cookie;
+namespace Amp\Artax\Cookie;
 
 class CookieParser {
     private static $dateFormats = array(

@@ -1,12 +1,12 @@
 <?php
 
-namespace Artax;
+namespace Amp\Artax;
 
-use Alert\Reactor;
-use Alert\UvReactor;
-use After\Future;
-use After\Failure;
-use After\Success;
+use Amp\Reactor;
+use Amp\UvReactor;
+use Amp\Future;
+use Amp\Failure;
+use Amp\Success;
 
 class FileBody implements AggregateBody {
     private $path;
@@ -19,10 +19,10 @@ class FileBody implements AggregateBody {
     }
 
     /**
-     * Retrieve the sendable Artax entity body representation
+     * Retrieve the sendable Amp\Artax entity body representation
      *
-     * @param \Alert\Reactor $reactor
-     * @return \After\Promise
+     * @param \Amp\Reactor $reactor
+     * @return \Amp\Promise
      */
     public function getBody(Reactor $reactor) {
         return ($reactor instanceof UvReactor)
@@ -51,13 +51,13 @@ class FileBody implements AggregateBody {
      * Return a key-value array of headers to add to the outbound request
      *
      * @param Reactor $reactor
-     * @return \After\Promise
+     * @return \Amp\Promise
      * @TODO
      */
     public function getHeaders(Reactor $reactor) {
         return ($reactor instanceof UvReactor)
             ? $this->generateUvHeaders($reactor)
-            : $this->generateNaiveHeaders();
+            : $this->generateNaiveHeaders($reactor);
     }
 
     private function generateUvHeaders($reactor) {
@@ -67,8 +67,8 @@ class FileBody implements AggregateBody {
         return $this->generateNaiveBody();
     }
 
-    private function generateNaiveHeaders() {
-        $future = new Future;
+    private function generateNaiveHeaders($reactor) {
+        $future = new Future($reactor);
         $this->generateNaiveLength()->when(function($error, $result) use ($future) {
             if ($error) {
                 $future->fail($error);
@@ -83,8 +83,8 @@ class FileBody implements AggregateBody {
     /**
      * Retrieve the entity body's content length
      *
-     * @param \Alert\Reactor $reactor
-     * @return \After\Promise
+     * @param \Amp\Reactor $reactor
+     * @return \Amp\Promise
      */
     public function getLength(Reactor $reactor) {
         return ($reactor instanceof UvReactor)

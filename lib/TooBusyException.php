@@ -1,5 +1,5 @@
 <?php
 
-namespace Artax;
+namespace Amp\Artax;
 
 class TooBusyException extends ClientException {}

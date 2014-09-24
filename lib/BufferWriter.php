@@ -1,9 +1,9 @@
 <?php
 
-namespace Artax;
+namespace Amp\Artax;
 
-use Alert\Reactor;
-use After\Future;
+use Amp\Reactor;
+use Amp\Future;
 
 class BufferWriter implements Writer {
     private $reactor;
@@ -15,14 +15,14 @@ class BufferWriter implements Writer {
     /**
      * Write specified $dataToWrite to the $socket destination stream
      *
-     * @param \Alert\Reactor $reactor
+     * @param \Amp\Reactor $reactor
      * @param resource $socket
      * @param string $dataToWrite
-     * @return \After\Promise
+     * @return \Amp\Promise
      */
     public function write(Reactor $reactor, $socket, $dataToWrite) {
         $this->reactor = $reactor;
-        $this->future = new Future;
+        $this->future = new Future($reactor);
         $this->socket = $socket;
         $this->buffer = $dataToWrite;
         $reactor->immediately(function() {

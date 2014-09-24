@@ -1,10 +1,10 @@
 <?php
 
-namespace Artax;
+namespace Amp\Artax;
 
-use Alert\Reactor;
-use After\Failure;
-use After\Future;
+use Amp\Reactor;
+use Amp\Failure;
+use Amp\Future;
 
 class HttpSocketPool {
     const OP_PROXY_HTTP = 'op.proxy-http';
@@ -47,7 +47,7 @@ class HttpSocketPool {
      *
      * @param string $uri
      * @param array $options
-     * @return \After\Promise
+     * @return \Amp\Promise
      */
     public function checkout($uri, array $options = []) {
         // Normalize away any IPv6 brackets -- socket resolution will handle that

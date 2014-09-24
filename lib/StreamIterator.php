@@ -1,6 +1,6 @@
 <?php
 
-namespace Artax;
+namespace Amp\Artax;
 
 abstract class StreamIterator implements \Iterator {
     protected $readSize = 32768;

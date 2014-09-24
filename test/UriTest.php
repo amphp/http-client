@@ -1,8 +1,8 @@
 <?php
 
-namespace Artax\Test;
+namespace Amp\Test\Artax;
 
-use Artax\Uri;
+use Amp\Artax\Uri;
 
 class UriTest extends \PHPUnit_Framework_TestCase {
     public function provideResolvables() {

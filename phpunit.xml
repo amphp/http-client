@@ -1,4 +1,4 @@
-<phpunit bootstrap="./test/bootstrap.php" colors="true">
+<phpunit bootstrap="./vendor/autoload.php" colors="true">
     <testsuites>
         <testsuite name="Tests">
             <directory>./test</directory>
@@ -28,6 +28,6 @@
             lowUpperBound="35"
             highLowerBound="70"
         />
-        
+
     </logging>
 </phpunit>

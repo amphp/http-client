@@ -1,7 +1,14 @@
-#### v1.0.0-rc1
+#### v1.0.0-beta2
 
 - Issue #51: Fix composer dep declarations for easy install
 - Issue #54: Fix bug preventing redirect if request method was not GET or HEAD
+- Migrate to amphp framework
+
+##### BC BREAKS:
+
+- Because the library has been migrated to the amphp concurrency framework all `Artax` namespace
+  declarations in your code must be updated to `Amp\Artax`. Additionally, return values from both
+  `Client::request()` and `Client::requestMulti()` now implement `Amp\Promise` (was `After\Promise`).
 
 #### v1.0.0-beta
 

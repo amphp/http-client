@@ -4,7 +4,7 @@ require __DIR__ . '/../vendor/autoload.php';
 
 try {
     // Instantiate the HTTP client
-    $client = new Artax\Client;
+    $client = new Amp\Artax\Client;
 
     // Make an asynchronous HTTP request
     $promise = $client->request('http://httpbin.org/user-agent');
@@ -22,7 +22,7 @@ try {
         $response->getReason()
     );
 
-} catch (Artax\ClientException $error) {
+} catch (Amp\Artax\ClientException $error) {
     // If something goes wrong the Promise::wait() call will throw the relevant
     // exception. The Client::request() method itself will never throw.
     echo $error;

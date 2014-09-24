@@ -1,5 +1,5 @@
 {
-    "name":           "rdlowrey/artax",
+    "name":           "amphp/artax",
     "homepage":       "https://github.com/rdlowrey/Artax",
     "description":    "Non-blocking HTTP/1.1 client",
     "keywords": [
@@ -19,28 +19,32 @@
         }
     ],
     "require": {
-        "php": ">=5.4.0",
-        "rdlowrey/alert": "~0.10",
-        "rdlowrey/after": "~0.2",
-        "rdlowrey/acesync": "~0.2"
+        "php": ">=5.5.0",
+        "amphp/amp": "~0.11",
+        "rdlowrey/nbsock": "~0.4"
     },
     "repositories": [
         {
             "type": "vcs",
-            "url": "https://github.com/rdlowrey/Alert.git"
+            "url": "https://github.com/amphp/amp.git"
         },
         {
             "type": "vcs",
-            "url": "https://github.com/rdlowrey/After.git"
+            "url": "https://github.com/amphp/dns.git"
         },
         {
             "type": "vcs",
-            "url": "https://github.com/rdlowrey/Acesync.git"
+            "url": "https://github.com/rdlowrey/nbsock.git"
         }
     ],
     "autoload": {
         "psr-4": {
-            "Artax\\": "lib/"
+            "Amp\\Artax\\": "lib/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Amp\\Test\\Artax\\": "test/"
         }
     },
     "extra": {

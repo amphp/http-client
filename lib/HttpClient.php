@@ -1,6 +1,6 @@
 <?php
 
-namespace Artax;
+namespace Amp\Artax;
 
 interface HttpClient {
     public function request($uriOrRequest);

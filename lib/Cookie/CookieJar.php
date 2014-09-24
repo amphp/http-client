@@ -1,6 +1,6 @@
 <?php
 
-namespace Artax\Cookie;
+namespace Amp\Artax\Cookie;
 
 interface CookieJar {
     public function get($domain, $path = '', $name = null);

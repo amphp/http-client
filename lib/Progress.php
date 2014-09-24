@@ -1,19 +1,19 @@
 <?php
 
-namespace Artax;
+namespace Amp\Artax;
 
 /**
  * Progress notifier
  *
- * The Artax\Client::request method returns a promise to asynchronously fulfill a response at some
+ * The Amp\Artax\Client::request method returns a promise to asynchronously fulfill a response at some
  * point in the future when it completes. We can react to progress events on the promise using the
- * Promise::watch() method. The Artax\Progress class hides the HTTP protocol details needed to
+ * Promise::watch() method. The Amp\Artax\Progress class hides the HTTP protocol details needed to
  * create an accurate progress bar from the progress events emitted by the promise.
  *
  * Example:
  *
  *      <?php
- *      $client = new Artax\Client;
+ *      $client = new Amp\Artax\Client;
  *      $promise = $client->request('http://www.google.com');
  *      $promise->watch(new Progress(function($data) {
  *          // what to do with progress info when broadcast by the promise

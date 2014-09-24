@@ -1,11 +1,11 @@
 <?php
 
-namespace Artax;
+namespace Amp\Artax;
 
-use Alert\Reactor;
-use After\Success;
-use After\Future;
-use After\Promise;
+use Amp\Reactor;
+use Amp\Success;
+use Amp\Future;
+use Amp\Promise;
 
 class IteratorWriter implements Writer {
     private $writerFactory;
@@ -16,7 +16,7 @@ class IteratorWriter implements Writer {
     private $writer;
 
     /**
-     * @param \Artax\WriterFactory $writerFactory
+     * @param \Amp\Artax\WriterFactory $writerFactory
      */
     public function __construct(WriterFactory $writerFactory = null) {
         $this->writerFactory = $writerFactory ?: new WriterFactory;
@@ -29,7 +29,7 @@ class IteratorWriter implements Writer {
      * @param resource $socket
      * @param mixed $iterator
      * @throws \DomainException On invalid iterator element.
-     * @return \After\Promise
+     * @return \Amp\Promise
      */
     public function write(Reactor $reactor, $socket, $iterator) {
         if (!$iterator->valid()) {
@@ -39,7 +39,7 @@ class IteratorWriter implements Writer {
         $this->reactor = $reactor;
         $this->socket = $socket;
         $this->iterator = $iterator;
-        $this->future = $future = new Future;
+        $this->future = $future = new Future($reactor);
         $this->writeNextElement();
 
         return $future->promise();

@@ -1,8 +1,8 @@
 <?php
 
-namespace Artax\Test;
+namespace Amp\Test\Artax;
 
-use Artax\Response;
+use Amp\Artax\Response;
 
 class ResponseTest extends \PHPUnit_Framework_TestCase {
     public function testGetAndSetStatus() {

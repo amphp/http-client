@@ -1,6 +1,6 @@
 <?php
 
-namespace Artax\Test;
+namespace Amp\Test\Artax;
 
 class ChunkingIteratorTest extends \PHPUnit_Framework_TestCase {
 
@@ -11,7 +11,7 @@ class ChunkingIteratorTest extends \PHPUnit_Framework_TestCase {
             'c'
         ]);
 
-        $chunkingIter = new \Artax\ChunkingIterator($iter);
+        $chunkingIter = new \Amp\Artax\ChunkingIterator($iter);
         $expected = "3\r\naaa\r\n2\r\nbb\r\n1\r\nc\r\n0\r\n\r\n";
         $actual = "";
         foreach ($chunkingIter as $chunk) {
@@ -23,17 +23,17 @@ class ChunkingIteratorTest extends \PHPUnit_Framework_TestCase {
 
     public function testNullReturnedOnInvalidElement() {
         $iter = new \ArrayIterator([new \StdClass]);
-        $chunkingIter = new \Artax\ChunkingIterator($iter);
+        $chunkingIter = new \Amp\Artax\ChunkingIterator($iter);
         $this->assertNull($chunkingIter->current());
     }
 
     public function testFutureElementResolution() {
         $iter = new \ArrayIterator([
             'aaa',
-            new \After\Success('bb'),
+            new \Amp\Success('bb'),
             'c'
         ]);
-        $chunkingIter = new \Artax\ChunkingIterator($iter);
+        $chunkingIter = new \Amp\Artax\ChunkingIterator($iter);
         $this->assertSame("3\r\naaa\r\n", $chunkingIter->current());
         $chunkingIter->next();
         $promise = $chunkingIter->current();

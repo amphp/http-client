@@ -2,12 +2,12 @@
 
 require __DIR__ . '/../vendor/autoload.php';
 
-$request = new Artax\Request;
+$request = new Amp\Artax\Request;
 
 
 
 /**
- * **IMPORTANT:** All of the following examples apply to Artax\Request *and* Artax\Response.
+ * **IMPORTANT:** All of the following examples apply to Amp\Artax\Request *and* Amp\Artax\Response.
  *
  * Headers are stored with case-insensitive keys (as per RFC 2616 Sec4.2). You can access and
  * assign message headers in requests/responses without worrying about case. Assigning headers is
@@ -28,7 +28,7 @@ assert($request->getHeader('Content-Type')[0] === 'text/plain'); // true
 
 /**
  * You can assign multiple header lines by passing an array of scalar values as the header value.
- * When sent by Artax the relevant portion of the raw request message for the below set of headers
+ * When sent by Amp\Artax the relevant portion of the raw request message for the below set of headers
  * will look like this:
  *
  * Cookie: cookie1=val1
@@ -72,7 +72,7 @@ assert( ! $request->hasHeader('Cookie')); // true
 
 
 /**
- * If you attempt to retrieve a non-existent header Artax will throw a DomainException:
+ * If you attempt to retrieve a non-existent header Amp\Artax will throw a DomainException:
  */
 try {
     $request->getHeader('Some-Header-That-Isnt-Assigned');

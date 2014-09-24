@@ -1,21 +1,21 @@
 <?php
 
-namespace Artax;
+namespace Amp\Artax;
 
-use Alert\Reactor,
-    Alert\ReactorFactory,
-    After\Future,
-    After\Failure,
-    After\Promise,
-    Acesync\Encryptor,
-    Acesync\Connector,
-    Artax\Cookie\Cookie,
-    Artax\Cookie\CookieJar,
-    Artax\Cookie\ArrayCookieJar,
-    Artax\Cookie\CookieParser;
+use Amp\Reactor,
+    Amp\ReactorFactory,
+    Amp\Future,
+    Amp\Failure,
+    Amp\Promise,
+    Nbsock\Encryptor,
+    Nbsock\Connector,
+    Amp\Artax\Cookie\Cookie,
+    Amp\Artax\Cookie\CookieJar,
+    Amp\Artax\Cookie\ArrayCookieJar,
+    Amp\Artax\Cookie\CookieParser;
 
 class Client implements HttpClient {
-    const USER_AGENT = 'Artax/1.0.0-dev (PHP)';
+    const USER_AGENT = 'Amp\Artax/1.0.0-dev (PHP)';
 
     const OP_BINDTO = Connector::OP_BIND_IP_ADDRESS;
     const OP_MS_CONNECT_TIMEOUT = Connector::OP_MS_CONNECT_TIMEOUT;
@@ -94,7 +94,7 @@ class Client implements HttpClient {
      *
      * @param array $urisAndRequests An array of URI strings and/or Request instances
      * @param array $options An array specifying options applicable only for this request batch
-     * @return array[\After\Promise] An array of promises whose keys match the request array
+     * @return array[\Amp\Promise] An array of promises whose keys match the request array
      */
     public function requestMulti(array $urisAndRequests, array $options = []) {
         $promises = [];
@@ -108,9 +108,9 @@ class Client implements HttpClient {
     /**
      * Asynchronously request an HTTP resource
      *
-     * @param mixed[string|\Artax\Request] An HTTP URI string or an \Artax\Request instance
+     * @param mixed[string|\Amp\Artax\Request] An HTTP URI string or an \Amp\Artax\Request instance
      * @param array $options An array specifying options applicable only for this request
-     * @return \After\Promise A promise to resolve the request at some point in the future
+     * @return \Amp\Promise A promise to resolve the request at some point in the future
      */
     public function request($uriOrRequest, array $options = []) {
         $cycle = new RequestCycle;
@@ -196,7 +196,7 @@ class Client implements HttpClient {
             $request = $uriOrRequest;
         } else {
             throw new \InvalidArgumentException(
-                'Request must be a valid HTTP URI or Artax\Request instance'
+                'Request must be a valid HTTP URI or Amp\Artax\Request instance'
             );
         }
 
@@ -485,7 +485,7 @@ class Client implements HttpClient {
         }
 
         /**
-         * @var $response \Artax\Response
+         * @var $response \Amp\Artax\Response
          */
         $cycle->response = $response = (new Response)
             ->setStatus($parsedResponseArr['status'])

@@ -1,8 +1,8 @@
 <?php
 
-namespace Artax\Test;
+namespace Amp\Test\Artax;
 
-use Artax\Request;
+use Amp\Artax\Request;
 
 class RequestTest extends \PHPUnit_Framework_TestCase {
     public function testGetAndSetMethod() {

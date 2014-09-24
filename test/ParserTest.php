@@ -1,8 +1,8 @@
 <?php
 
-namespace Artax\Test;
+namespace Amp\Test\Artax;
 
-use Artax\Parser;
+use Amp\Artax\Parser;
 
 class ParserTest extends \PHPUnit_Framework_TestCase {
     /**

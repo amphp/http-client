@@ -1,10 +1,10 @@
 <?php
 
-namespace Artax;
+namespace Amp\Artax;
 
 class RequestCycle {
     /**
-     * @var \After\Future
+     * @var \Amp\Future
      */
     public $futureResponse;
     public $options;

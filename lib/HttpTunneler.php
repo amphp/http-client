@@ -1,9 +1,9 @@
 <?php
 
-namespace Artax;
+namespace Amp\Artax;
 
-use Alert\Reactor;
-use After\Future;
+use Amp\Reactor;
+use Amp\Future;
 
 class HttpTunneler {
     private $reactor;
@@ -18,7 +18,7 @@ class HttpTunneler {
      *
      * @param resource $socket
      * @param string $authority
-     * @return \After\Promise
+     * @return \Amp\Promise
      */
     public function tunnel($socket, $authority) {
         $struct = new HttpTunnelStruct;

@@ -1,6 +1,6 @@
 <?php
 
-namespace Artax;
+namespace Amp\Artax;
 
 class Parser {
     const STATUS_LINE_PATTERN = "#^

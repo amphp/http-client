@@ -1,17 +1,17 @@
 <?php
 
-namespace Artax;
+namespace Amp\Artax;
 
-use Alert\Reactor;
+use Amp\Reactor;
 
 interface Writer {
     /**
      * Write the specified entity body data to the socket
      *
-     * @param \Alert\Reactor $reactor
+     * @param \Amp\Reactor $reactor
      * @param resource $socket
      * @param mixed $dataToWrite
-     * @return \After\Promise
+     * @return \Amp\Promise
      */
     public function write(Reactor $reactor, $socket, $dataToWrite);
 }

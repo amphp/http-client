@@ -4,10 +4,10 @@ require __DIR__ . '/../vendor/autoload.php';
 
 try {
     // Instantiate the HTTP client
-    $client = new Artax\Client;
+    $client = new Amp\Artax\Client;
 
     // Let's build up a custom Request object
-    $request = (new Artax\Request)
+    $request = (new Amp\Artax\Request)
         ->setMethod('GET') // <-- defaults to GET if not assigned, so this isn't strictly necessary
         ->setUri('http://httpbin.org/user-agent')
         ->setHeader('X-My-Header', 'some-value')
@@ -29,7 +29,7 @@ try {
         $response->getReason()
     );
 
-} catch (Artax\ClientException $e) {
+} catch (Amp\Artax\ClientException $e) {
     // If something goes wrong the Promise::wait() call will throw the relevant
     // exception. The Client::request() method itself will never throw.
     echo $e;

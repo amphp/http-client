@@ -1,9 +1,9 @@
 <?php
 
-namespace Artax;
+namespace Amp\Artax;
 
-use After\Promise;
-use After\Future;
+use Amp\Promise;
+use Amp\Future;
 
 /**
  * Wraps Iterators to add chunk encoding for each element
