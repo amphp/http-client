@@ -1,7 +1,7 @@
 {
     "name":           "amphp/artax",
-    "homepage":       "https://github.com/rdlowrey/Artax",
-    "description":    "Non-blocking HTTP/1.1 client",
+    "homepage":       "https://github.com/amphp/artax",
+    "description":    "Asynchronous parallel HTTP/1.1 client built on the Amp concurrency framework",
     "keywords": [
         "http",
         "rest",
@@ -23,20 +23,6 @@
         "amphp/amp": "~0.11",
         "rdlowrey/nbsock": "~0.4"
     },
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/amphp/amp.git"
-        },
-        {
-            "type": "vcs",
-            "url": "https://github.com/amphp/dns.git"
-        },
-        {
-            "type": "vcs",
-            "url": "https://github.com/rdlowrey/nbsock.git"
-        }
-    ],
     "autoload": {
         "psr-4": {
             "Amp\\Artax\\": "lib/"
