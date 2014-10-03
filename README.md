@@ -1,42 +1,5 @@
-### Release Roadmap
-
-**IMPORTANT:** Artax is still unstable! The API is frozen but things may be broken due to the
-current lack of testing. The lib is getting close to a v1.0.0 release candidate but it is not
-there yet. Use at your own risk! The current release roadmap is as follows:
-
-
-- v1.0.0 (Oct. 10, 2014 - tentative, depending on RC period length)
-
-- v1.0.0-rc1 (Oct. 3, 2014)
-
-Unforeseen bugfixes only. The RC period should be short-lived. If a non-trivial number of bugs are
-discovered during the RC phase there may be multiple individual RC tags.
-
-- v1.0.0-beta2 (Sep. 24, 2014)
-
-   * Bugfixes
-   * Migrate to [amphp](https://github.com/amphp) framework
-
-- v1.0.0-beta (Sep. 17, 2014)
-
-    * bagder cert package no longer needed in composer.json
-    * Fixed several bugs (see CHANGELOG)
-    * Temporarily removed support for non-blocking file system entity streaming via php-uv
-      due to unresolved segfaults in the extension.
-
-- v1.0.0-alpha (Aug. 29, 2014)
-
-First usable tagged release with a stable, frozen API. Things still missing:
-
-    * Significant testing gaps
-    * Non-blocking capabilities for filesystem IO
-    * Multipart FormBody usage with file fields is currently broken
-
-
-----------------------------------------------------------------------
-
-Artax HTTP Client
-=================
+Artax
+=====
 
 Artax is a full-featured HTTP/1.1 client as specified in RFC 2616. Its API is designed to simplify
 standards-compliant HTTP resource traversal and RESTful web service consumption without obscuring the
@@ -73,7 +36,7 @@ $ cd artax
 $ composer.phar install
 ```
 
-The relevant composer/packagist lib is `amphp/artax`.
+The relevant packagist lib is `amphp/artax`.
 
 
 
