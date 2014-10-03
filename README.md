@@ -141,7 +141,7 @@ whether or not you invoke them at the same time. Because artax utilizes the amph
 framework we have a few options for flow control when requesting multiple resources at once:
 
 
-- **Generators**
+**Generators**
 
 ```php
 <?php
@@ -164,7 +164,7 @@ Amp\run(function() {
 });
 ```
 
-- **Synchronous Wait**
+**Synchronous Wait**
 
 ```php
 <?php
