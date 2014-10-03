@@ -134,83 +134,70 @@ $request = (new Amp\Artax\Request)
 $response = (new Amp\Artax\Client)->request($request)->wait();
 ```
 
-##### Parallel Requests
+##### Concurrent Requests
 
-It's important to understand that *all* Artax requests are processed in parallel regardless of
-whether or not you invoke them at the same time. The following two operations will do the exact
-same thing:
-
-```php
-<?php
-$client = new Amp\Artax\Client;
-
-// Here we pass dispatch two requests at the same time
-$arrayOfPromises = $client->requestMulti([
-    'http://www.google.com',
-    'http://www.bing.com'
-]);
-list($googleResponse, $bingResponse) = After\all($arrayOfPromises)->wait();
+It's important to understand that *all* artax requests are processed concurrently regardless of
+whether or not you invoke them at the same time. Because artax utilizes the amphp concurrency
+framework we have a few options for flow control when requesting multiple resources at once:
 
 
-// Here we invoke the two requests individually
-$googlePromise = $client->request('http://www.google.com');
-$bingPromise = $client->request('http://www.bing.com');
-$comboPromise = After\all([$googlePromise, $bingPromise]);
-list($googleResponse, $bingResponse) = $comboPromise->wait();
-```
-
-Remember that `Amp\Artax\Client::request()` *always* returns a promise instance. So if we want to
-specify individualized callbacks for progress events on those promises we're perfectly able to
-do so. In the below example we use the `Promise::when()` method (which accepts an error-first
-callback) to react to the completion of an individual response:
+- **Generators**
 
 ```php
 <?php
-$client = new Amp\Artax\Client;
+Amp\run(function() {
+    $client = new Amp\Artax\Client;
 
-list($googlePromise, $bingPromise) = $client->request([
-    'http://www.google.com',
-    'http://www.bing.com'
-]);
+    // Dispatch two requests at the same time
+    $promiseArray = $client->requestMulti([
+        'http://www.google.com',
+        'http://www.bing.com',
+    ]);
 
-$googleResponse = null;
-$googlePromise->when(function($error, $result) use (&$googleResponse) {
-    if ($error) {
-        // the request failed for some reason. Get the exception message
-        echo $error->getMessage();
-    } else {
-        // Do something with the completed $response here
-        $googleResponse = $result;
+    try {
+        // Yield control until all requests finish (magic sauce)
+        list($google, $bing) = (yield Amp\all($promiseArray));
+        var_dump($google->getStatus(), $bing->getStatus());
+    } catch (Exception $e) {
+        echo $e;
     }
 });
-
-// After\all() combines our array of promises into a single promise that will
-// fail if any one of the individual promises fails. Remember that Promise::wait()
-// will throw if resolution fails!
-$comboPromise = After\all([$googlePromise, $bingPromise]);
-list($googleResponse2, $bingResponse) = $comboPromise->wait();
-
-// They're the same instance!
-assert($googleResponse === $googleResponse2);
 ```
 
-Note that resolving a combined promise results in the same array keys as those passed to the
-combinator function. Consider:
+- **Synchronous Wait**
 
+```php
+<?php
+$client = new Amp\Artax\Client;
+
+// Dispatch two requests at the same time
+$promiseArray = $client->requestMulti([
+    'http://www.google.com',
+    'http://www.bing.com',
+]);
+
+try {
+    list($google, $bing) = Amp\all($promiseArray)->wait();
+    var_dump($google->getStatus(), $bing->getStatus());
+} catch (Exception $e) {
+    echo $e;
+}
+```
+
+Note that resolving a combined promise always results in the same array keys as those passed to the
+combinator function (`Amp\all()` in this example). Consider:
 
 ```php
 <?php
 
-$arrayOfPromises = (new Amp\Artax\Client)->request([
+$promiseArray = (new Amp\Artax\Client)->request([
     'google'    => 'http://www.google.com',
     'news'      => 'http://news.google.com',
     'bing'      => 'http://www.bing.com',
     'yahoo'     => 'https://www.yahoo.com',
 ]);
 
-// After\all() combines our array of promises into a single promise that
-// will fail if any one of the individual promises fails
-$responses = After\all($promises)->wait();
+$responses = Amp\all($promiseArray)->wait();
 
 foreach ($responses as $key => $response) {
     printf(
@@ -221,13 +208,14 @@ foreach ($responses as $key => $response) {
         $response->getReason()
     );
 }
-
 ```
+
 
 ##### Progress Events
 
-Once again we note that `Amp\Artax\Client::request()` always returns a promise instance. This means
-we can use the `Promise::watch()` method to observe updates/events for a particular request:
+Because responses are retrieved asynchronously the artax client *always* returns a promise (or array
+of promises) when requesting an HTTP resource. This means we can employ the `Promise::watch()`
+method to observe individual updates for a particular requests:
 
 ```php
 <?php
@@ -289,9 +277,7 @@ printf(
 
 ##### Option Assignment
 
-@TODO Discuss Client-wide assignment
-
-@TODO Discuss per-request assignment
+@TODO
 
 
 ##### Progress Bars
