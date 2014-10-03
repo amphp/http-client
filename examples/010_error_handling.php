@@ -17,26 +17,34 @@ require __DIR__ . '/../vendor/autoload.php';
  * All successful responses are modeled as an Amp\Artax\Response and this result is used to resolve
  * the promise result. Status codes are accessible via the standard Amp\Artax\Response::getStatus()
  * method. These should be consulted to determine the success or failure of completed responses.
- *
- * Amp\Artax\Client::request() will NEVER throw an exception. However, calling Promise::wait() on a
- * response promise CAN throw if the promise resolves as a failure.
  */
 
 $badUri = "this isn't even a real URI!";
+$client = new Amp\Artax\Client;
 
-// Demonstrate the lack of a thrown exception inside the event loop
-Amp\run(function() use ($badUri) {
-    (new Amp\Artax\Client)->request($badUri)->when(function($error, $result) {
-        assert($error instanceof \Exception);
-        assert(is_null($result));
-        echo "See, no throw; the promise resolves as a failure using the relevant exception\n";
-        Amp\stop();
-    });
+// Yielding a promise that fails will result in an exception
+// being thrown back into your generator.
+Amp\run(function() use ($client, $badUri) {
+    try {
+        $response = (yield $client->request($badUri));
+    } catch (Exception $e) {
+        echo $e->getMessage(), "\n";
+    }
 });
 
-// Demonstrate that Promise::wait() can and will throw in synchronous code if a promise fails
+// Synchronously waiting on a promise that fails will throw.
 try {
-    (new Amp\Artax\Client)->request($badUri)->wait();
+    $client->request($badUri)->wait();
 } catch (Exception $e) {
-    echo "See, I told you Promise::wait() would throw!\n";
+    echo $e->getMessage(), "\n";
 }
+
+// Amp\Promise::when() will never throw; errors are passed to
+// the error-first callback.
+Amp\run(function() use ($client, $badUri) {
+    $client->request($badUri)->when(function($error, $result) {
+        assert($error instanceof Exception);
+        assert(is_null($result));
+        echo $error->getMessage(), "\n";
+    });
+});
