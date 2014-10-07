@@ -1,25 +1,24 @@
 Artax
 =====
 
-Artax is a full-featured HTTP/1.1 client as specified in RFC 2616. Its API is designed to simplify
-standards-compliant HTTP resource traversal and RESTful web service consumption without obscuring the
-underlying HTTP protocol. The code manually implements HTTP over TCP sockets; as such it has no
-dependency on PHP's `curl_*` API and requires no non-standard PHP extensions.
+Artax is an asynchronous HTTP/1.1 client. Its API simplifies standards-compliant HTTP resource
+traversal and RESTful web service consumption without obscuring the underlying protocol. The library
+manually implements HTTP over TCP sockets; as such it has no dependency on `ext/curl`.
 
 ##### Features
 
- - Exposes a fully non-blocking API
+ - Requests asynchronously
  - Pools persistent "keep-alive" connections
  - Transparently follows redirects
- - Requests and decodes gzipped entity bodies
- - Provides access to raw request/response headers and message data
+ - Decodes gzipped entity bodies
+ - Exposes raw headers and message data
  - Streams entity bodies for managing memory usage with large transfers
  - Supports all standard and custom HTTP method verbs
- - Trivializes HTTP form submissions
+ - Simplifies HTTP form submissions
  - Implements secure-by-default TLS (https://) with userland support for new PHP 5.6 encryption
-   features in older 5.4 and 5.5 versions
- - Offers advanced connection limiting options on a per-host basis
- - Transparently supports cookies and sessions
+   features in older PHP versions
+ - Limits connections per-host to avoid IP bans in scraping contexts
+ - Supports cookies and sessions
  - Functions seamlessly behind HTTP proxy servers
 
 ##### Project Goals
