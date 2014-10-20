@@ -15,6 +15,7 @@ class RequestCycle {
     public $uri;
     public $request;
     public $response;
+    public $previousResponse;
     public $redirectHistory;
     public $parser;
     public $socketProcuredAt;

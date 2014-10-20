@@ -514,12 +514,18 @@ class Client implements HttpClient {
             }
         }
 
+        $response->setRequest($cycle->request);
+
         if ($newUri = $this->getRedirectUri($cycle)) {
-            $this->redirect($cycle, $newUri);
-        } else {
-            $cycle->futureResponse->update([Notify::RESPONSE, $cycle->response]);
-            $cycle->futureResponse->succeed($response);
+            return $this->redirect($cycle, $newUri);
         }
+
+        if ($cycle->previousResponse) {
+            $response->setPreviousResponse($cycle->previousResponse);
+        }
+
+        $cycle->futureResponse->update([Notify::RESPONSE, $cycle->response]);
+        $cycle->futureResponse->succeed($response);
     }
 
     private function collectRequestCycleWatchers(RequestCycle $cycle) {
@@ -649,7 +655,9 @@ class Client implements HttpClient {
             return;
         }
 
-        $request = $cycle->request;
+        $cycle->request = $request = clone $cycle->request;
+        $cycle->previousResponse = $cycle->response;
+
         $refererUri = $request->getUri();
         $cycle->response = null;
         $cycle->uri = $newUri;

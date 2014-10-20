@@ -1,3 +1,16 @@
+#### v1.0.0-rc2
+
+- Support retrieval of the final URI used when redirects are followed
+- Store intermediary response history on redirects
+- Add `Response::getRequest()`
+- Add `Response::getOriginalRequest()`
+- The `amphp/dns` dependency version has been updated to support valid URIs that
+  begin with numeric characters
+
+#### v1.0.0-rc1
+
+- n/a
+
 #### v1.0.0-beta2
 
 - Issue #51: Fix composer dep declarations for easy install

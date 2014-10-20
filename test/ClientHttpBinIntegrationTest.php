@@ -106,6 +106,8 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
         $response = $client->request($uri)->wait();
         $this->assertInstanceOf('Amp\Artax\Response', $response);
         $this->assertEquals($statusCode, $response->getStatus());
+        $originalUri = $response->getOriginalRequest()->getUri();
+        $this->assertSame($uri, urldecode($originalUri));
     }
 
     public function testVerboseSend() {
