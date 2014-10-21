@@ -79,10 +79,13 @@ class Response extends Message {
      * @return \Amp\Artax\Request
      */
     public function getOriginalRequest() {
-        $currentResponse = $this;
-        $originalRequest = $this->request;
-        while ($currentResponse = $currentResponse->getPreviousResponse()) {
-            $originalRequest = $currentResponse->getRequest();
+        if (empty($this->previousResponse)) {
+            return $this->request;
+        }
+
+        $current = $this;
+        while ($current = $current->getPreviousResponse()) {
+            $originalRequest = $current->getRequest();
         }
 
         return $originalRequest;

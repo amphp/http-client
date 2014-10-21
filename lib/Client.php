@@ -514,7 +514,7 @@ class Client implements HttpClient {
             }
         }
 
-        $response->setRequest($cycle->request);
+        $response->setRequest(clone $cycle->request);
 
         if ($newUri = $this->getRedirectUri($cycle)) {
             return $this->redirect($cycle, $newUri);
@@ -655,11 +655,12 @@ class Client implements HttpClient {
             return;
         }
 
-        $cycle->request = $request = clone $cycle->request;
-        $cycle->previousResponse = $cycle->response;
+        $cycle->previousResponse = clone $cycle->response;
+        $cycle->response = null;
+        $request = $cycle->request;
 
         $refererUri = $request->getUri();
-        $cycle->response = null;
+
         $cycle->uri = $newUri;
         $authority = $this->generateAuthorityFromUri($newUri);
         $checkoutUri = $newUri->getScheme() . "://{$authority}";
