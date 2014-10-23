@@ -1,3 +1,7 @@
+#### v1.0.0-rc3
+
+- Update amp dependency to eliminate combinator resolution memory leaks
+
 #### v1.0.0-rc2
 
 - Support retrieval of the final URI used when redirects are followed

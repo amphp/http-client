@@ -20,7 +20,7 @@
     ],
     "require": {
         "php": ">=5.4.0",
-        "amphp/amp": "~0.11",
+        "amphp/amp": "~0.12",
         "rdlowrey/nbsock": "~0.4"
     },
     "autoload": {
