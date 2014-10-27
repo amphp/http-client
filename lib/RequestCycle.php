@@ -23,4 +23,5 @@ class RequestCycle {
     public $lastDataSentAt;
     public $bytesRcvd;
     public $bytesSent;
+    public $retryCount;
 }

@@ -10,7 +10,6 @@ use Amp\Reactor,
 
 class SocketPool {
     const OP_HOST_CONNECTION_LIMIT = 'op.host-conn-limit';
-    const OP_MAX_QUEUE_SIZE = 'op.max-queue-size';
     const OP_MS_IDLE_TIMEOUT = 'op.ms-idle-timeout';
     const OP_MS_CONNECT_TIMEOUT = Connector::OP_MS_CONNECT_TIMEOUT;
     const OP_BINDTO = Connector::OP_BIND_IP_ADDRESS;
@@ -22,13 +21,10 @@ class SocketPool {
     private $socketIdUriMap = [];
     private $options = [
         self::OP_HOST_CONNECTION_LIMIT => 8,
-        self::OP_MAX_QUEUE_SIZE => 512,
         self::OP_MS_IDLE_TIMEOUT => 10000,
         self::OP_MS_CONNECT_TIMEOUT => 30000,
         self::OP_BINDTO => '',
     ];
-    private $opMaxConnectionsPerHost = 8;
-    private $opMaxQueuedSockets = 512;
     private $opMsIdleTimeout = 10000;
     private $needsRebind;
 
@@ -90,34 +86,30 @@ class SocketPool {
     }
 
     private function checkoutNewSocket($uri, $options) {
-        if ($this->allowsNewConnection($uri) || $this->needsRebind) {
-            $future = new Future($this->reactor);
+        $needsRebind = $this->needsRebind;
+        $this->needsRebind = null;
+        $future = new Future($this->reactor);
+        if ($this->allowsNewConnection($uri, $options) || $needsRebind) {
             $this->initializeNewConnection($future, $uri, $options);
-            $this->needsRebind = false;
-            return $future->promise();
-        } elseif (count($this->queuedSocketRequests) < $this->opMaxQueuedSockets) {
-            $future = new Future($this->reactor);
-            $this->queuedSocketRequests[$uri][] = [$future, $options];
-            return $future->promise();
         } else {
-            return new Failure(new TooBusyException(
-                'Request rejected: too busy. Try upping the OP_MAX_QUEUE_SIZE setting.'
-            ));
+            $this->queuedSocketRequests[$uri][] = [$future, $uri, $options];
         }
+
+        return $future;
     }
 
-    private function allowsNewConnection($uri) {
-        if ($this->opMaxConnectionsPerHost <= 0) {
-            return true;
-        }
-        if (empty($this->sockets[$uri])) {
-            return true;
-        }
-        if (count($this->sockets[$uri]) < $this->opMaxConnectionsPerHost) {
-            return true;
-        }
+    private function allowsNewConnection($uri, $options) {
+        $maxConnsPerHost = $options[self::OP_HOST_CONNECTION_LIMIT];
 
-        return false;
+        if ($maxConnsPerHost <= 0) {
+            return true;
+        } elseif (empty($this->sockets[$uri])) {
+            return true;
+        } elseif (count($this->sockets[$uri]) < $maxConnsPerHost) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     private function initializeNewConnection(Future $future, $uri, $options) {
@@ -160,6 +152,10 @@ class SocketPool {
     }
 
     private function unloadSocket($uri, $socketId) {
+        if (!isset($this->sockets[$uri][$socketId])) {
+            return;
+        }
+
         $poolStruct = $this->sockets[$uri][$socketId];
         if ($poolStruct->idleWatcher) {
             $this->reactor->cancel($poolStruct->idleWatcher);
@@ -174,7 +170,7 @@ class SocketPool {
     }
 
     private function dequeueNextWaitingSocket($uri) {
-        list($future, $options) = array_shift($this->queuedSocketRequests[$uri]);
+        list($future, $uri, $options) = array_shift($this->queuedSocketRequests[$uri]);
         $this->initializeNewConnection($future, $uri, $options);
         if (empty($this->queuedSocketRequests[$uri])) {
             unset($this->queuedSocketRequests[$uri]);
@@ -247,9 +243,6 @@ class SocketPool {
         switch ($option) {
             case self::OP_HOST_CONNECTION_LIMIT:
                 $this->options[self::OP_HOST_CONNECTION_LIMIT] = (int) $value;
-                break;
-            case self::OP_MAX_QUEUE_SIZE:
-                $this->options[self::OP_MAX_QUEUE_SIZE] = (int) $value;
                 break;
             case self::OP_MS_CONNECT_TIMEOUT:
                 $this->options[self::OP_MS_CONNECT_TIMEOUT] = $value;

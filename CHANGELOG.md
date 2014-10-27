@@ -1,3 +1,14 @@
+#### master
+
+- SocketPool now properly observes host connection limits
+- New `Client::OP_CONCURRENCY_LIMIT` setting queues outstanding requests beyond a certain number
+  (default 512) to help prevent naive applications from spiraling memory out of control without
+  worrying over the details of concurrency.
+
+##### BC BREAKS:
+
+- The `Client::OP_QUEUED_SOCKET_LIMIT` setting has been removed
+
 #### v1.0.0-rc3
 
 - Update amp dependency to eliminate combinator resolution memory leaks

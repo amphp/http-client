@@ -20,7 +20,6 @@ class Client implements HttpClient {
     const OP_BINDTO = Connector::OP_BIND_IP_ADDRESS;
     const OP_MS_CONNECT_TIMEOUT = Connector::OP_MS_CONNECT_TIMEOUT;
     const OP_HOST_CONNECTION_LIMIT = SocketPool::OP_HOST_CONNECTION_LIMIT;
-    const OP_QUEUED_SOCKET_LIMIT = SocketPool::OP_MAX_QUEUE_SIZE;
     const OP_MS_KEEP_ALIVE_TIMEOUT = SocketPool::OP_MS_IDLE_TIMEOUT;
     const OP_PROXY_HTTP = HttpSocketPool::OP_PROXY_HTTP;
     const OP_PROXY_HTTPS = HttpSocketPool::OP_PROXY_HTTPS;
@@ -48,11 +47,12 @@ class Client implements HttpClient {
     private $encryptor;
     private $writerFactory;
     private $hasZlib;
+    private $queue;
+    private $dequeuer;
     private $options = [
         self::OP_BINDTO => '',
         self::OP_MS_CONNECT_TIMEOUT => 30000,
         self::OP_HOST_CONNECTION_LIMIT => 8,
-        self::OP_QUEUED_SOCKET_LIMIT => 512,
         self::OP_MS_KEEP_ALIVE_TIMEOUT => 30000,
         self::OP_PROXY_HTTP => '',
         self::OP_PROXY_HTTPS => '',
@@ -84,6 +84,17 @@ class Client implements HttpClient {
         $this->encryptor = $encryptor ?: new Encryptor($reactor);
         $this->writerFactory = $writerFactory ?: new WriterFactory;
         $this->hasZlib = extension_loaded('zlib');
+        $this->dequeuer = function() {
+            if ($this->queue) {
+                $this->dequeueNextRequest();
+            }
+        };
+
+        /*
+        $this->reactor->repeat(function() {
+            printf("outstanding requests: %s\n", self::$outstandingRequests);
+        }, 1000);
+        */
     }
 
     /**
@@ -113,31 +124,34 @@ class Client implements HttpClient {
      * @return \Amp\Promise A promise to resolve the request at some point in the future
      */
     public function request($uriOrRequest, array $options = []) {
-        $cycle = new RequestCycle;
+        $promisor = new Future($this->reactor);
 
         try {
-            $cycle->futureResponse = new Future($this->reactor);
-
-            list($request, $uri) = $this->generateRequestFromUri($uriOrRequest);
-
-            $cycle->uri = $uri;
-            $cycle->request = $request;
-            $cycle->options = $options
-                ? array_merge($this->options, $options)
-                : $this->options;
-
-            $body = $request->getBody();
-
+            $cycle = new RequestCycle;
+            $cycle->futureResponse = $promisor;
+            list($cycle->request, $cycle->uri) = $this->generateRequestFromUri($uriOrRequest);
+            $cycle->options = $options ? array_merge($this->options, $options) : $this->options;
+            $body = $cycle->request->getBody();
             if ($body instanceof AggregateBody) {
                 $this->processAggregateBody($cycle, $body);
             } else {
                 $this->finalizeRequest($cycle);
             }
         } catch (\Exception $e) {
-            $cycle->futureResponse->fail($e);
+            $promisor->fail($e);
         }
 
-        return $cycle->futureResponse->promise();
+        return $promisor->promise();
+    }
+
+    private function dequeueNextRequest() {
+        $cycle = array_shift($this->queue);
+        $authority = $this->generateAuthorityFromUri($cycle->uri);
+        $checkoutUri = $cycle->uri->getScheme() . "://{$authority}";
+        $futureSocket = $this->socketPool->checkout($checkoutUri, $cycle->options);
+        $futureSocket->when(function($error, $result) use ($cycle) {
+            $this->onSocketResolve($cycle, $error, $result);
+        });
     }
 
     private function processAggregateBody(RequestCycle $cycle, AggregateBody $body) {
@@ -167,24 +181,24 @@ class Client implements HttpClient {
     private function finalizeRequest(RequestCycle $cycle) {
         $uri = $cycle->uri;
         $options = $cycle->options;
-        $future = $cycle->futureResponse;
+        $promisor = $cycle->futureResponse;
         $request = $cycle->request;
 
         $this->normalizeRequestMethod($request);
         $this->normalizeRequestProtocol($request);
-        $this->normalizeRequestBodyHeaders($request, $options, $future);
+        $this->normalizeRequestBodyHeaders($request, $options, $promisor);
         $this->normalizeRequestEncodingHeaderForZlib($request, $options);
         $this->normalizeRequestHostHeader($request, $uri);
         $this->normalizeRequestUserAgent($request, $options);
         $this->normalizeRequestAcceptHeader($request);
         $this->assignApplicableRequestCookies($request, $options);
 
-        $authority = $this->generateAuthorityFromUri($uri);
-        $checkoutUri = $uri->getScheme() . "://{$authority}";
-        $futureSocket = $this->socketPool->checkout($checkoutUri, $options);
-        $futureSocket->when(function($error, $result) use ($cycle) {
-            $this->onSocketResolve($cycle, $error, $result);
-        });
+        $this->queue[] = $cycle;
+        $promisor->when($this->dequeuer);
+
+        if (count($this->queue) < 512) {
+            $this->dequeueNextRequest();
+        }
     }
 
     private function generateRequestFromUri($uriOrRequest) {
@@ -413,8 +427,8 @@ class Client implements HttpClient {
             Parser::OP_DISCARD_BODY => $cycle->options[self::OP_DISCARD_BODY],
             Parser::OP_RETURN_BEFORE_ENTITY => true,
             Parser::OP_BODY_DATA_CALLBACK => function($data) use ($cycle) {
-                $cycle->futureResponse->update([Notify::RESPONSE_BODY_DATA, $data]);
-            }
+                    $cycle->futureResponse->update([Notify::RESPONSE_BODY_DATA, $data]);
+                }
         ]);
 
         $cycle->parser = $parser;
@@ -424,7 +438,7 @@ class Client implements HttpClient {
 
         $timeout = $cycle->options[self::OP_MS_TRANSFER_TIMEOUT];
         if ($timeout > 0) {
-                $cycle->transferTimeoutWatcher = $this->reactor->once(function() use ($cycle, $timeout) {
+            $cycle->transferTimeoutWatcher = $this->reactor->once(function() use ($cycle, $timeout) {
                 $this->fail($cycle, new TimeoutException(
                     sprintf('Allowed transfer timeout exceeded: %d ms', $timeout)
                 ));
@@ -677,12 +691,12 @@ class Client implements HttpClient {
             $this->assignRedirectRefererHeader($refererUri, $newUri, $request);
         }
 
+        $cycle->futureResponse->update([Notify::REDIRECT, $refererUri, (string)$newUri]);
+
         $futureSocket = $this->socketPool->checkout($checkoutUri);
         $futureSocket->when(function($error, $result) use ($cycle) {
             $this->onSocketResolve($cycle, $error, $result);
         });
-
-        $cycle->futureResponse->update([Notify::REDIRECT, $refererUri, (string)$newUri]);
     }
 
     /**
@@ -706,14 +720,29 @@ class Client implements HttpClient {
     }
 
     private function processDeadSocket(RequestCycle $cycle) {
-        if ($cycle->parser->getState() == Parser::BODY_IDENTITY_EOF) {
+        $parserState = $cycle->parser->getState();
+        if ($parserState == Parser::BODY_IDENTITY_EOF) {
             $parsedResponseArr = $cycle->parser->getParsedMessageArray();
             $this->assignParsedResponse($cycle, $parsedResponseArr);
+        } elseif ($parserState == Parser::AWAITING_HEADERS && empty($cycle->retryCount)) {
+            echo "\n\n --retry-- \n\n";
+            $this->retry($cycle);
         } else {
             $this->fail($cycle, new SocketException(
-                'Socket connection disconnected prior to response completion :('
+                sprintf(
+                    'Socket disconnected prior to response completion (Parser state: %s)',
+                    $parserState
+                )
             ));
         }
+    }
+
+    private function retry(RequestCycle $cycle) {
+        $cycle->retryCount++;
+        $this->collectRequestCycleWatchers($cycle);
+        $this->socketPool->clear($cycle->socket);
+        array_unshift($this->queue, $cycle);
+        $this->dequeueNextRequest();
     }
 
     private function writeRequest(RequestCycle $cycle) {
@@ -857,9 +886,6 @@ class Client implements HttpClient {
                 break;
             case self::OP_HOST_CONNECTION_LIMIT:
                 $this->options[self::OP_HOST_CONNECTION_LIMIT] = $value;
-                break;
-            case self::OP_QUEUED_SOCKET_LIMIT:
-                $this->options[self::OP_QUEUED_SOCKET_LIMIT] = $value;
                 break;
             case self::OP_MS_CONNECT_TIMEOUT:
                 $this->options[self::OP_MS_CONNECT_TIMEOUT] = $value;
