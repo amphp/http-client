@@ -1,11 +1,11 @@
-#### master
+### v1.0.0-rc4
 
 - SocketPool now properly observes host connection limits
 - New `Client::OP_CONCURRENCY_LIMIT` setting queues outstanding requests beyond a certain number
   (default 512) to help prevent naive applications from spiraling memory out of control without
   worrying over the details of concurrency.
 
-##### BC BREAKS:
+> **BC BREAKS:**
 
 - The `Client::OP_QUEUED_SOCKET_LIMIT` setting has been removed
 
@@ -32,7 +32,7 @@
 - Issue #54: Fix bug preventing redirect if request method was not GET or HEAD
 - Migrate to amphp framework
 
-##### BC BREAKS:
+> **BC BREAKS:**
 
 - Because the library has been migrated to the amphp concurrency framework all `Artax` namespace
   declarations in your code must be updated to `Amp\Artax`. Additionally, return values from both
@@ -79,7 +79,7 @@
 - `Artax\Client` now implements `Artax\HttpClient` interface for simplified testing and composition support
 - Updated examples
 
-##### BC BREAKS:
+> **BC BREAKS:**
 
 - The breakage in this release is extensive as the entire library has been rewritten. **DO NOT**
   upgrade your application to use this release and expect existing code to "just work." You have
