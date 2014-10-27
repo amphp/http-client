@@ -725,7 +725,6 @@ class Client implements HttpClient {
             $parsedResponseArr = $cycle->parser->getParsedMessageArray();
             $this->assignParsedResponse($cycle, $parsedResponseArr);
         } elseif ($parserState == Parser::AWAITING_HEADERS && empty($cycle->retryCount)) {
-            echo "\n\n --retry-- \n\n";
             $this->retry($cycle);
         } else {
             $this->fail($cycle, new SocketException(
