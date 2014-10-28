@@ -1,4 +1,8 @@
-### v1.0.0-rc4
+#### v1.0.0-rc5
+
+- Correctly reuse existing socket connections under high load
+
+#### v1.0.0-rc4
 
 - SocketPool now properly observes host connection limits
 - New `Client::OP_CONCURRENCY_LIMIT` setting queues outstanding requests beyond a certain number

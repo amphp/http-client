@@ -19,6 +19,7 @@ class SocketPool {
     private $sockets = [];
     private $queuedSocketRequests = [];
     private $socketIdUriMap = [];
+    private $pendingSockets = [];
     private $options = [
         self::OP_HOST_CONNECTION_LIMIT => 8,
         self::OP_MS_IDLE_TIMEOUT => 10000,
@@ -76,6 +77,7 @@ class SocketPool {
             } else {
                 $poolStruct->isAvailable = false;
                 $this->reactor->disable($poolStruct->idleWatcher);
+
                 return $poolStruct->resource;
             }
         }
@@ -89,6 +91,7 @@ class SocketPool {
         $needsRebind = $this->needsRebind;
         $this->needsRebind = null;
         $future = new Future($this->reactor);
+
         if ($this->allowsNewConnection($uri, $options) || $needsRebind) {
             $this->initializeNewConnection($future, $uri, $options);
         } else {
@@ -103,16 +106,23 @@ class SocketPool {
 
         if ($maxConnsPerHost <= 0) {
             return true;
-        } elseif (empty($this->sockets[$uri])) {
-            return true;
-        } elseif (count($this->sockets[$uri]) < $maxConnsPerHost) {
-            return true;
-        } else {
-            return false;
         }
+
+        $pendingCount = isset($this->pendingSockets[$uri]) ? $this->pendingSockets[$uri] : 0;
+        $existingCount = isset($this->sockets[$uri]) ? count($this->sockets[$uri]) : 0;
+        $totalCount = $pendingCount + $existingCount;
+
+        if ($totalCount < $maxConnsPerHost) {
+            return true;
+        }
+
+        return false;
     }
 
     private function initializeNewConnection(Future $future, $uri, $options) {
+        $this->pendingSockets[$uri] = isset($this->pendingSockets[$uri])
+            ? $this->pendingSockets[$uri] + 1
+            : 1;
         $futureSocket = $this->connector->connect($uri, $options);
         $futureSocket->when(function($error, $socket) use ($future, $uri) {
             if ($error) {
@@ -124,6 +134,9 @@ class SocketPool {
     }
 
     private function finalizeNewConnection(Future $future, $uri, $socket) {
+        if (--$this->pendingSockets[$uri] === 0) {
+            unset($this->pendingSockets[$uri]);
+        }
         $socketId = (int) $socket;
         $poolStruct = new SocketPoolStruct;
         $poolStruct->id = $socketId;
@@ -133,6 +146,10 @@ class SocketPool {
         $this->sockets[$uri][$socketId] = $poolStruct;
         $this->socketIdUriMap[$socketId] = $uri;
         $future->succeed($poolStruct->resource);
+
+        if (empty($this->queuedSocketRequests[$uri])) {
+            unset($this->queuedSocketRequests[$uri]);
+        }
     }
 
     /**
@@ -164,16 +181,29 @@ class SocketPool {
             $this->sockets[$uri][$socketId],
             $this->socketIdUriMap[$socketId]
         );
+
+        if (empty($this->sockets[$uri])) {
+            unset($this->sockets[$uri][$socketId]);
+        }
+
         if (!empty($this->queuedSocketRequests[$uri])) {
             $this->dequeueNextWaitingSocket($uri);
         }
     }
 
     private function dequeueNextWaitingSocket($uri) {
-        list($future, $uri, $options) = array_shift($this->queuedSocketRequests[$uri]);
-        $this->initializeNewConnection($future, $uri, $options);
-        if (empty($this->queuedSocketRequests[$uri])) {
-            unset($this->queuedSocketRequests[$uri]);
+        $queueStruct = current($this->queuedSocketRequests[$uri]);
+        list($future, $uri, $options) = $queueStruct;
+
+        if ($socket = $this->checkoutExistingSocket($uri, $options)) {
+            array_shift($this->queuedSocketRequests[$uri]);
+            $future->succeed($socket);
+            return;
+        }
+
+        if ($this->allowsNewConnection($uri, $options)) {
+            array_shift($this->queuedSocketRequests[$uri]);
+            $this->initializeNewConnection($future, $uri, $options);
         }
     }
 
@@ -186,7 +216,6 @@ class SocketPool {
      */
     public function checkin($resource) {
         $socketId = (int) $resource;
-
         if (!isset($this->socketIdUriMap[$socketId])) {
             throw new \DomainException(
                 sprintf('Unknown socket: %s', $resource)
@@ -220,14 +249,12 @@ class SocketPool {
     }
 
     private function initializeIdleTimeout(SocketPoolStruct $poolStruct) {
-        if ($poolStruct->idleWatcher === null) {
-            $poolStruct->idleWatcher = $this->reactor->once(function() use ($poolStruct) {
-                $uri = $poolStruct->uri;
-                $socketId = $poolStruct->id;
-                $this->unloadSocket($uri, $socketId);
-            }, $this->opMsIdleTimeout);
-        } else {
+        if (isset($poolStruct->idleWatcher)) {
             $this->reactor->enable($poolStruct->idleWatcher);
+        } else {
+            $poolStruct->idleWatcher = $this->reactor->once(function() use ($poolStruct) {
+                $this->unloadSocket($poolStruct->uri, $poolStruct->id);
+            }, $this->opMsIdleTimeout);
         }
     }
 
