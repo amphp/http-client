@@ -669,9 +669,10 @@ class Client implements HttpClient {
             return;
         }
 
-        $cycle->previousResponse = clone $cycle->response;
-        $cycle->response = null;
         $request = $cycle->request;
+        $response = $cycle->response;
+        $cycle->previousResponse = clone $response;
+        $cycle->response = null;
 
         $refererUri = $request->getUri();
 
@@ -683,7 +684,22 @@ class Client implements HttpClient {
         $request->setHeader('Host', $host);
         $this->assignApplicableRequestCookies($request, $cycle->options);
 
-        if (($body = $request->getBody()) && $body instanceof \Iterator) {
+        /**
+         * If this is a 302/303 we need to follow the location with a GET if the
+         * original request wasn't GET/HEAD. Otherwise, be sure to rewind the body
+         * if it's an Iterator instance because we'll need to send it again.
+         *
+         * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.3.3
+         */
+        $method = $request->getMethod();
+        $status = $response->getStatus();
+        if (($status == 302 || $status == 303) && !($method == 'GET' || $method == 'HEAD')) {
+            $request->setMethod('GET');
+            $request->removeHeader('Transfer-Encoding');
+            $request->removeHeader('Content-Length');
+            $request->removeHeader('Content-Type');
+            $request->setBody(null);
+        } elseif (($body = $request->getBody()) && $body instanceof \Iterator) {
             $body->rewind();
         }
 

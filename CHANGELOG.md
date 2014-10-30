@@ -1,3 +1,7 @@
+#### v1.0.0-rc6-dev
+
+- Follow 302/303 redirect from non-idempotent method with GET to new Location
+
 #### v1.0.0-rc5
 
 - Correctly reuse existing socket connections under high load
