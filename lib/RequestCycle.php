@@ -9,6 +9,8 @@ class RequestCycle {
     public $futureResponse;
     public $options;
     public $socket;
+    public $socketCheckoutUri;
+    public $redirectedSockets;
     public $readWatcher;
     public $continueWatcher;
     public $transferTimeoutWatcher;

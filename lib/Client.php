@@ -147,8 +147,9 @@ class Client implements HttpClient {
     private function dequeueNextRequest() {
         $cycle = array_shift($this->queue);
         $authority = $this->generateAuthorityFromUri($cycle->uri);
-        $checkoutUri = $cycle->uri->getScheme() . "://{$authority}";
-        $futureSocket = $this->socketPool->checkout($checkoutUri, $cycle->options);
+        $socketCheckoutUri = $cycle->uri->getScheme() . "://{$authority}";
+        $cycle->socketCheckoutUri = $socketCheckoutUri;
+        $futureSocket = $this->socketPool->checkout($socketCheckoutUri, $cycle->options);
         $futureSocket->when(function($error, $result) use ($cycle) {
             $this->onSocketResolve($cycle, $error, $result);
         });
@@ -509,13 +510,6 @@ class Client implements HttpClient {
             ->setAllHeaders($parsedResponseArr['headers'])
         ;
 
-        if ($this->shouldCloseSocketAfterResponse($cycle)) {
-            @fclose($cycle->socket);
-            $this->socketPool->clear($cycle->socket);
-        } else {
-            $this->socketPool->checkin($cycle->socket);
-        }
-
         if ($this->canDecompressResponseBody($response)) {
             $this->inflateGzipBody($response);
         }
@@ -532,6 +526,23 @@ class Client implements HttpClient {
 
         if ($newUri = $this->getRedirectUri($cycle)) {
             return $this->redirect($cycle, $newUri);
+        }
+
+        // Do socket check-in *after* redirects because we handle the socket
+        // differently if we need to redirect.
+        if ($this->shouldCloseSocketAfterResponse($cycle->request, $cycle->response)) {
+            @fclose($cycle->socket);
+            $this->socketPool->clear($cycle->socket);
+        } else {
+            $this->socketPool->checkin($cycle->socket);
+        }
+
+        // If we've held any sockets over from previous redirected requests
+        // we need to check those back in now.
+        if ($cycle->redirectedSockets) {
+            foreach ($cycle->redirectedSockets as $socket) {
+                $this->socketPool->checkin($cycle->socket);
+            }
         }
 
         if ($cycle->previousResponse) {
@@ -557,10 +568,7 @@ class Client implements HttpClient {
         }
     }
 
-    private function shouldCloseSocketAfterResponse(RequestCycle $cycle) {
-        $request = $cycle->request;
-        $response = $cycle->response;
-
+    private function shouldCloseSocketAfterResponse(Request $request, Response $response) {
         $requestConnHeader = $request->hasHeader('Connection')
             ? current($request->getHeader('Connection'))
             : null;
@@ -678,7 +686,7 @@ class Client implements HttpClient {
 
         $cycle->uri = $newUri;
         $authority = $this->generateAuthorityFromUri($newUri);
-        $checkoutUri = $newUri->getScheme() . "://{$authority}";
+        $socketCheckoutUri = $newUri->getScheme() . "://{$authority}";
         $request->setUri($newUri->__toString());
         $host = $this->removePortFromHost($authority);
         $request->setHeader('Host', $host);
@@ -709,10 +717,34 @@ class Client implements HttpClient {
 
         $cycle->futureResponse->update([Notify::REDIRECT, $refererUri, (string)$newUri]);
 
-        $futureSocket = $this->socketPool->checkout($checkoutUri);
-        $futureSocket->when(function($error, $result) use ($cycle) {
-            $this->onSocketResolve($cycle, $error, $result);
-        });
+        if ($this->shouldCloseSocketAfterResponse($request, $response)) {
+            // If the HTTP response dictated a connection close we need
+            // to inform the socket pool and checkout a new connection.
+            @fclose($cycle->socket);
+            $this->socketPool->clear($cycle->socket);
+            $cycle->socket = null;
+            $cycle->socketCheckoutUri = $socketCheckoutUri;
+            $futureSocket = $this->socketPool->checkout($socketCheckoutUri, $cycle->options);
+            $futureSocket->when(function($error, $result) use ($cycle) {
+                $this->onSocketResolve($cycle, $error, $result);
+            });
+        } elseif ($cycle->socketCheckoutUri === $socketCheckoutUri) {
+            // Woot! We can reuse the socket we already have \o/
+            $this->onSocketResolve($cycle, $error = null, $cycle->socket);
+        } else {
+            // Store the original socket and don't check it back into the
+            // pool until we are finished with all redirects. This helps
+            // prevent redirect checkout requests from being queued and
+            // causing unwanted waiting to complete redirects than need to
+            // traverse multiple host names.
+            $cycle->socketCheckoutUri = $socketCheckoutUri;
+            $cycle->redirectedSockets[] = $cycle->socket;
+            $cycle->socket = null;
+            $futureSocket = $this->socketPool->checkout($socketCheckoutUri, $cycle->options);
+            $futureSocket->when(function($error, $result) use ($cycle) {
+                $this->onSocketResolve($cycle, $error, $result);
+            });
+        }
     }
 
     /**

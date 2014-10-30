@@ -1,5 +1,6 @@
 #### v1.0.0-rc6-dev
 
+- Optimize socket pool checkin/checkout when following redirects
 - Follow 302/303 redirect from non-idempotent method with GET to new Location
 
 #### v1.0.0-rc5
