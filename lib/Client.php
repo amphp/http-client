@@ -3,7 +3,6 @@
 namespace Amp\Artax;
 
 use Amp\Reactor,
-    Amp\ReactorFactory,
     Amp\Future,
     Amp\Failure,
     Amp\Promise,
