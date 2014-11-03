@@ -1,5 +1,6 @@
 #### v1.0.0-rc6-dev
 
+- Additional Progress::CONNECTED request state notification added (Issue #62)
 - Fix Issue #62
 - Optimize socket pool checkin/checkout when following redirects
 - Follow 302/303 redirect from non-idempotent method with GET to new Location

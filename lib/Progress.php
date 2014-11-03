@@ -23,13 +23,14 @@ namespace Amp\Artax;
  */
 class Progress {
     const CONNECTING = 0;
-    const SENDING_REQUEST = 1;
-    const AWAITING_RESPONSE = 2;
-    const REDIRECTING = 4;
-    const READING_LENGTH = 8;
-    const READING_UNKNOWN = 16;
-    const COMPLETE = 32;
-    const ERROR = 33;
+    const CONNECTED = 1;
+    const SENDING_REQUEST = 2;
+    const AWAITING_RESPONSE = 4;
+    const REDIRECTING = 8;
+    const READING_LENGTH = 16;
+    const READING_UNKNOWN = 32;
+    const COMPLETE = 64;
+    const ERROR = 65;
 
     private $state = self::CONNECTING;
     private $msUpdateFrequency;
@@ -72,6 +73,9 @@ class Progress {
         switch ($event) {
             case Notify::SOCK_PROCURED:
                 $this->connectedAt = microtime(true);
+                $this->state = self::CONNECTED;
+                break;
+            case Notify::SOCK_DATA_OUT:
                 $this->state = self::SENDING_REQUEST;
                 break;
             case Notify::REQUEST_SENT:
