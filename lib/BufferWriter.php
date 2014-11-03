@@ -11,6 +11,7 @@ class BufferWriter implements Writer {
     private $socket;
     private $buffer;
     private $writeWatcher;
+    private $bytesWritten = 0;
 
     /**
      * Write specified $dataToWrite to the $socket destination stream
@@ -35,13 +36,14 @@ class BufferWriter implements Writer {
     private function doWrite() {
         $bytesToWrite = strlen($this->buffer);
         $bytesWritten = @fwrite($this->socket, $this->buffer);
+        $this->bytesWritten += $bytesWritten;
 
         if ($bytesToWrite === $bytesWritten) {
             $this->future->update($this->buffer);
             $this->succeed();
         } elseif (empty($bytesWritten) && $this->isSocketDead()) {
             $this->fail(new SocketException(
-                'Socket disconnected prior to write completion :('
+                $this->generateWriteFailureMessage()
             ));
         } else {
             $notifyData = substr($this->buffer, 0, $bytesWritten);
@@ -49,6 +51,19 @@ class BufferWriter implements Writer {
             $this->future->update($notifyData);
             $this->enableWriteWatcher();
         }
+    }
+
+    private function generateWriteFailureMessage() {
+        $sockContext = @stream_context_get_options($this->socket);
+        if ($this->bytesWritten === 0 && empty($sockContext['ssl'])) {
+            $msg = "Socket connection failed before data could be fully written. This *may* have ";
+            $msg.= "occurred because you're attempting to connect via HTTP when the remote server ";
+            $msg.= "only supports encrypted HTTPS connections. Try your request using an https:// URI.";
+        } else {
+            $msg = 'Connection to server severed before the request write could complete.';
+        }
+
+        return $msg;
     }
 
     private function isSocketDead() {
