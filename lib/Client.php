@@ -77,7 +77,7 @@ class Client implements HttpClient {
         Encryptor $encryptor = null,
         WriterFactory $writerFactory = null
     ) {
-        $reactor = $reactor ?: ReactorFactory::select();
+        $reactor = $reactor ?: \Amp\reactor();
         $this->reactor = $reactor;
         $this->cookieJar = $cookieJar ?: new ArrayCookieJar;
         $this->socketPool = $socketPool ?: new HttpSocketPool($reactor);
