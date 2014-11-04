@@ -1,25 +1,23 @@
 Artax
 =====
 
-Artax is an asynchronous HTTP/1.1 client. Its API simplifies standards-compliant HTTP resource
-traversal and RESTful web service consumption without obscuring the underlying protocol. The library
-manually implements HTTP over TCP sockets; as such it has no dependency on `ext/curl`.
+Artax is an asynchronous HTTP/1.1 client built on the [amp concurrency framework][1]. Its API simplifies standards-compliant HTTP resource traversal and RESTful web service consumption without obscuring the underlying protocol. The library manually implements HTTP over TCP sockets; as such it has no dependency on `ext/curl`.
 
 ##### Features
 
- - Requests asynchronously
- - Pools persistent "keep-alive" connections
+ - Requests asynchronously for full single-threaded concurrency
+ - Pools persistent keep-alive connections
  - Transparently follows redirects
  - Decodes gzipped entity bodies
  - Exposes raw headers and message data
- - Streams entity bodies for managing memory usage with large transfers
+ - Streams entity bodies for memory management with large transfers
  - Supports all standard and custom HTTP method verbs
  - Simplifies HTTP form submissions
  - Implements secure-by-default TLS (https://) with userland support for new PHP 5.6 encryption
    features in older PHP versions
- - Limits connections per-host to avoid IP bans in scraping contexts
+ - Limits connections per host to avoid IP bans in scraping contexts
  - Supports cookies and sessions
- - Functions seamlessly behind HTTP proxy servers
+ - Functions seamlessly behind HTTP proxies
 
 ##### Project Goals
 
@@ -40,20 +38,22 @@ The relevant packagist lib is `amphp/artax`.
 
 
 Examples
---------
+------------
 
-Note that extensive code examples are available in the [`examples/`](examples) directory.
+More extensive code examples reside in the [`examples`](examples) directory.
 
 ##### Simple URI GET
 
-Often we only care about simple GET retrieval. For such cases Artax accepts a basic HTTP URI string
+Often we only care about simple GET retrieval. For such cases artax accepts a basic HTTP URI string
 as the request parameter:
 
 ```php
 <?php
 
 try {
-    $response = (new Amp\Artax\Client)->request('http://www.google.com')->wait();
+    $client = new Amp\Artax\Client;
+    $promise = $client->request('http://www.google.com');
+    $response = $promise->wait();
     printf(
         "\nHTTP/%s %d %s\n",
         $response->getProtocol(),
@@ -68,11 +68,9 @@ try {
 
 ##### Customized Request Messages
 
-For non-trivial requests Artax allows you to construct messages piece-by-piece. This example
+For more advanced requests artax allows incremental message construction. This example
 sets the request method to POST and assigns an entity body. HTTP veterans will notice that
-we don't bother to set a `Content-Length` or `Host` header. Artax will automatically add/normalize
-missing headers for us so we don't need to worry about it. The only property that _MUST_ be assigned
-when sending an `Amp\Artax\Request` is the absolute *http://* or *https://* request URI:
+we don't bother to set a `Content-Length` or `Host` header. This is unnecessary because artax will automatically add/normalize missing headers for us so we don't need to worry about it. The only property that _MUST_ be assigned when sending an `Amp\Artax\Request` is the absolute *http://* or *https://* request URI:
 
 ```php
 <?php
@@ -120,8 +118,8 @@ We can easily submit this form using the `Amp\Artax\FormBody` API:
 
 $body = (new Amp\Artax\FormBody)
     ->addField('name', 'Zoroaster')
-    ->addFileField('file1', '/hard/path/to/some/file1')
-    ->addFileField('file2', '/hard/path/to/some/file2')
+    ->addFile('file1', '/hard/path/to/some/file1')
+    ->addFile('file2', '/hard/path/to/some/file2')
 ;
 
 $request = (new Amp\Artax\Request)
@@ -133,14 +131,14 @@ $request = (new Amp\Artax\Request)
 $response = (new Amp\Artax\Client)->request($request)->wait();
 ```
 
-##### Concurrent Requests
+### Concurrency
 
-It's important to understand that *all* artax requests are processed concurrently regardless of
-whether or not you invoke them at the same time. Because artax utilizes the amphp concurrency
-framework we have a few options for flow control when requesting multiple resources at once:
+You may have noticed from the previous examples that we called `wait()` on our `Client::request()` return result. This is necessary because the artax client never actually returns a response directly; instead, it returns an `Amp\Promise` instance to represent the future response. It's important to understand that *all* artax requests are processed concurrently. The synchronous `wait()` call simply allows us to sit around and wait for the response to resolve before proceeding. However, it's often undesirable to synchronously wait on a response. In cases where we want non-blocking concurrency  we have a few options ...
 
 
 **Generators**
+
+The [amp concurrency framework][1] run loop always acts as a co-routine for generators yielding `Amp\Promise` instances (e.g. our artax client) or other generators. Here we use a generator to make our code feel synchronous even though it's doing multiple things concurrently. If something goes wrong with one of the requests the relevant exception will be thrown back into our generator:
 
 ```php
 <?php
@@ -165,6 +163,8 @@ Amp\run(function() {
 
 **Synchronous Wait**
 
+All [amp][1]  `Promise` instances expose the ability to synchronously `wait()` for resolution. While blocking for a result isn't recommended in fully non-blocking applications it can trivialize the use of non-blocking libraries like artax in synchronous contexts.
+
 ```php
 <?php
 $client = new Amp\Artax\Client;
@@ -176,6 +176,8 @@ $promiseArray = $client->requestMulti([
 ]);
 
 try {
+    // Amp\all() flattens an array of promises into a new promise
+    // that on which we can wait()
     list($google, $bing) = Amp\all($promiseArray)->wait();
     var_dump($google->getStatus(), $bing->getStatus());
 } catch (Exception $e) {
@@ -189,7 +191,7 @@ combinator function (`Amp\all()` in this example). Consider:
 ```php
 <?php
 
-$promiseArray = (new Amp\Artax\Client)->request([
+$promiseArray = (new Amp\Artax\Client)->requestMulti([
     'google'    => 'http://www.google.com',
     'news'      => 'http://news.google.com',
     'bing'      => 'http://www.bing.com',
@@ -201,7 +203,7 @@ $responses = Amp\all($promiseArray)->wait();
 foreach ($responses as $key => $response) {
     printf(
         "%s | HTTP/%s %d %s\n",
-        $key, // <-- these keys will match those from our original request array
+        $key, // <-- these keys match those from our original request array
         $response->getProtocol(),
         $response->getStatus(),
         $response->getReason()
@@ -209,12 +211,37 @@ foreach ($responses as $key => $response) {
 }
 ```
 
+**Callbacks**
 
-##### Progress Events
+While callbacks are sometimes considered a clumsy way to manage concurrency, it's possible to use them to react to future response resolutions inside the context of the [amp][1] event loop. All `Amp\Promise` instances expose a `when()` method accepting an error-first callback that will be invoked upon promise resolution. Consider:
 
-Because responses are retrieved asynchronously the artax client *always* returns a promise (or array
-of promises) when requesting an HTTP resource. This means we can employ the `Promise::watch()`
-method to observe individual updates for a particular requests:
+```php
+<?php
+use Amp\Artax\Client;
+
+$reactor = Amp\reactor();
+$client = new Client($reactor);
+$request = (new Amp\Artax\Request)
+    ->setUri('http://www.google.com')
+    ->setHeader('Connection', 'close')
+;
+$promise = $client->request($request);
+$promise->when(function(Exception $error = null, $response = null) {
+    if ($error) {
+        // something went wrong :(
+    } else {
+        printf("Response complete: %d\n", $response->getStatus());
+    }
+});
+
+// Nothing will happen until the event reactor runs.
+$reactor->run();
+```
+
+
+**Progress Events**
+
+We can use the `Amp\Promise::watch()` method to subscribe to request progress updates while our responses resolve. Consider:
 
 ```php
 <?php
@@ -273,13 +300,57 @@ printf(
 );
 ```
 
+The above example will output updates to the console throughout the request-response cycle before the final `printf()` call prints the status line for the eventual response.
 
-##### Option Assignment
+### Options
 
-@TODO
+Client behavior may be modified in two ways:
+
+1. Modify behavior for all subsequent requests via `Client::setOption()`;
+2. Pass an options array to the second parameter of `Client::request()`.
+
+```php
+<?php
+use Amp\Artax\Client;
+
+$client = new Client;
+
+// Output all raw request messages to the console when sending
+$client->setOption(Client::OP_VERBOSITY, Client::VERBOSE_SEND);
+
+// Also output the raw response to the console for this one request
+$promise = $client->request('http://www.google.com', $options = [
+    Client::OP_VERBOSITY => Client::VERBOSE_ALL
+]);
+```
+
+A brief summary of the available options follows.
+
+| Option Constant       | Description                                       |
+| --------------------- | --------------------------------------------------|
+| OP_BINDTO                   | Specify the source IP address to which TCP socket connections will be bound (useful when you have multiple IPs). |
+| OP_MS_CONNECT_TIMEOUT       | How long in milliseconds before a connection attempt should timeout. |
+| OP_HOST_CONNECTION_LIMIT    | How many simultaneous connections will be open to any one unique host name (helpful to prevent your IP from being banned). |
+| OP_MS_KEEP_ALIVE_TIMEOUT    | How long in milliseconds to keep persistent connections alive after a request. If not used within this time frame the socket will be closed. |
+| OP_PROXY_HTTP               | An optional IP:PORT through which to proxy unencrypted HTTP requests. Note that artax auto-detects system wide proxy settings. |
+| OP_PROXY_HTTPS              | An optional IP:PORT through which to proxy encrypted HTTPS requests. Note that artax auto-detects system wide proxy settings. |
+| OP_AUTO_ENCODING            | A boolean (default: `true`) controlling whether or not to request and decode gzip entity bodies. |
+| OP_MS_TRANSFER_TIMEOUT      | How long in milliseconds before an individual transfer is cancelled (disabled by default). |
+| OP_MS_100_CONTINUE_TIMEOUT  | How long to wait for a 100 Continue response before proceeding when using an Expect header. |
+| OP_EXPECT_CONTINUE          | A boolean (default: `false`) controlling whether or not to send an Expect header with requests containing an entity body. |
+| OP_FOLLOW_LOCATION          | A boolean (default: `true`) responsible for the server automatically following redirects. |
+| OP_AUTO_REFERER             | A boolean (default: `true`) responsible for automatically adding a Referer header when following redirects. |
+| OP_BUFFER_BODY              | A boolean (default: `true`) which, if enabled, will result in the full response entity body being buffered as a string upon completion. If disabled a stream resource is returned from `Response::getBody()` |
+| OP_DISCARD_BODY             | Whether or not to store response entity bodies. This option can be used in conjunction with `Promise::watch()` to handle long-running/streaming response bodies (e.g. chunked twitter API feeds). |
+| OP_IO_GRANULARITY           | The maximum number of bytes to read/write to when performing IO operations on socket connections |
+| OP_VERBOSITY                | A bitmask of client constants controlling raw message output to the console. |
+| OP_COMBINE_COOKIES          | A boolean (default: `true`) controlling whether or not cookie headers are combined into a single header when sending requests. |
+| OP_CRYPTO                   | An array controlling TLS encryption options. |
 
 
-##### Progress Bars
+### Miscellaneous
+
+#### Progress Bars
 
 Generating a progress bar depends on a few details from the HTTP spec regarding message size. To
 make this easier for end users Artax exposes the `Amp\Artax\Progress` object which makes generating
@@ -287,14 +358,26 @@ a usable progress bar on a per-request basis trivial. Consider:
 
 ```php
 <?php
-$promise = (new Amp\Artax\Client)->request($request);
+$uri = "http://www.google.com";
+$promise = (new Amp\Artax\Client)->request($uri);
 $promise->watch(new Amp\Artax\Progress(function($update) {
-    printf(
-        "\r%s %s%%\r",
-        $update['bar'],
-        round($update['fraction_complete'] * 100)
-    );
+    echo "\r", round($update['fraction_complete'] * 100), " percent complete \r";
 }));
 $response = $promise->wait();
-
 ```
+
+The following keys are available in the `$update` array sent from the `Progress` object:
+
+-  request_state
+- connected_at
+- bytes_rcvd
+- bytes_per_second
+- header_length
+- content_length
+- fraction_complete
+- redirect_count
+
+
+
+
+  [1]: https://github.com/amphp/amp
