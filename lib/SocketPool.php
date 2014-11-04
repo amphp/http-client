@@ -26,7 +26,6 @@ class SocketPool {
         self::OP_MS_CONNECT_TIMEOUT => 30000,
         self::OP_BINDTO => '',
     ];
-    private $opMsIdleTimeout = 10000;
     private $needsRebind;
 
     public function __construct(Reactor $reactor, Connector $connector = null) {
@@ -124,16 +123,16 @@ class SocketPool {
             ? $this->pendingSockets[$uri] + 1
             : 1;
         $futureSocket = $this->connector->connect($uri, $options);
-        $futureSocket->when(function($error, $socket) use ($future, $uri) {
+        $futureSocket->when(function($error, $socket) use ($future, $uri, $options) {
             if ($error) {
                 $future->fail($error);
             } else {
-                $this->finalizeNewConnection($future, $uri, $socket);
+                $this->finalizeNewConnection($future, $uri, $socket, $options);
             }
         });
     }
 
-    private function finalizeNewConnection(Future $future, $uri, $socket) {
+    private function finalizeNewConnection(Future $future, $uri, $socket, $options) {
         if (--$this->pendingSockets[$uri] === 0) {
             unset($this->pendingSockets[$uri]);
         }
@@ -143,6 +142,7 @@ class SocketPool {
         $poolStruct->uri = $uri;
         $poolStruct->resource = $socket;
         $poolStruct->isAvailable = false;
+        $poolStruct->msIdleTimeout = $options[self::OP_MS_IDLE_TIMEOUT];
         $this->sockets[$uri][$socketId] = $poolStruct;
         $this->socketIdUriMap[$socketId] = $uri;
         $future->succeed($poolStruct->resource);
@@ -243,7 +243,7 @@ class SocketPool {
 
         if (!empty($this->queuedSocketRequests[$uri])) {
             $this->dequeueNextWaitingSocket($uri);
-        } elseif ($this->opMsIdleTimeout > 0) {
+        } elseif ($poolStruct->msIdleTimeout > 0) {
             $this->initializeIdleTimeout($poolStruct);
         }
     }
@@ -254,7 +254,7 @@ class SocketPool {
         } else {
             $poolStruct->idleWatcher = $this->reactor->once(function() use ($poolStruct) {
                 $this->unloadSocket($poolStruct->uri, $poolStruct->id);
-            }, $this->opMsIdleTimeout);
+            }, $poolStruct->msIdleTimeout);
         }
     }
 

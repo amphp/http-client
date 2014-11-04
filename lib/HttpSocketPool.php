@@ -145,9 +145,7 @@ class HttpSocketPool {
                 $this->options[self::OP_PROXY_HTTPS] = (string) $value;
                 break;
             default:
-                throw new \DomainException(
-                    sprintf("Unknown option: %s", $option)
-                );
+                return $this->sockPool->setOption($option, $value);
         }
 
         return $this;

@@ -8,4 +8,5 @@ class SocketPoolStruct {
     public $resource;
     public $isAvailable;
     public $idleWatcher;
+    public $msIdleTimeout;
 }

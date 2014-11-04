@@ -52,7 +52,7 @@ class Client implements HttpClient {
         self::OP_BINDTO => '',
         self::OP_MS_CONNECT_TIMEOUT => 30000,
         self::OP_HOST_CONNECTION_LIMIT => 8,
-        self::OP_MS_KEEP_ALIVE_TIMEOUT => 30000,
+        self::OP_MS_KEEP_ALIVE_TIMEOUT => 10000,
         self::OP_PROXY_HTTP => '',
         self::OP_PROXY_HTTPS => '',
         self::OP_AUTO_ENCODING => true,
