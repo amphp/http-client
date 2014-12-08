@@ -11,11 +11,13 @@ try {
     $client->setOption(Amp\Artax\Client::OP_VERBOSITY, Amp\Artax\Client::VERBOSE_SEND);
 
     // This request will receive and store google's Set-Cookie headers.
-    $response = $client->request('http://www.google.com/')->wait();
+    $promise = $client->request('http://www.google.com/');
+    $response = \Amp\wait($promise);
 
     // And this request will send the cookie we received in the first request.
     // In your console you'll see that this second request contains a Cookie header.
-    $response = $client->request('http://www.google.com/')->wait();
+    $promise = $client->request('http://www.google.com/');
+    $response = \Amp\wait($promise);
 
 } catch (Amp\Artax\ClientException $e) {
     // If something goes wrong the Promise::wait() call will throw the relevant

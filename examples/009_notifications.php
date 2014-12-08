@@ -49,7 +49,7 @@ function myNotifyCallback(array $notifyData) {
  */
 $promise = (new Amp\Artax\Client)->request('http://www.google.com');
 $promise->watch('myNotifyCallback');
-$response = $promise->wait();
+$response = Amp\wait($promise);
 
 printf(
     "\nResponse: HTTP/%s %d %s\n\n",

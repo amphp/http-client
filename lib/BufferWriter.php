@@ -7,7 +7,7 @@ use Amp\Future;
 
 class BufferWriter implements Writer {
     private $reactor;
-    private $future;
+    private $promisor;
     private $socket;
     private $buffer;
     private $writeWatcher;
@@ -23,14 +23,14 @@ class BufferWriter implements Writer {
      */
     public function write(Reactor $reactor, $socket, $dataToWrite) {
         $this->reactor = $reactor;
-        $this->future = new Future($reactor);
+        $this->promisor = new Future;
         $this->socket = $socket;
         $this->buffer = $dataToWrite;
         $reactor->immediately(function() {
             $this->doWrite();
         });
 
-        return $this->future->promise();
+        return $this->promisor->promise();
     }
 
     private function doWrite() {
@@ -39,7 +39,7 @@ class BufferWriter implements Writer {
         $this->bytesWritten += $bytesWritten;
 
         if ($bytesToWrite === $bytesWritten) {
-            $this->future->update($this->buffer);
+            $this->promisor->update($this->buffer);
             $this->succeed();
         } elseif (empty($bytesWritten) && $this->isSocketDead()) {
             $this->fail(new SocketException(
@@ -48,7 +48,7 @@ class BufferWriter implements Writer {
         } else {
             $notifyData = substr($this->buffer, 0, $bytesWritten);
             $this->buffer = substr($this->buffer, $bytesWritten);
-            $this->future->update($notifyData);
+            $this->promisor->update($notifyData);
             $this->enableWriteWatcher();
         }
     }
@@ -71,14 +71,14 @@ class BufferWriter implements Writer {
     }
 
     private function fail(\Exception $e) {
-        $this->future->fail($e);
+        $this->promisor->fail($e);
         if ($this->writeWatcher) {
             $this->reactor->cancel($this->writeWatcher);
         }
     }
 
     private function succeed() {
-        $this->future->succeed();
+        $this->promisor->succeed();
         if ($this->writeWatcher) {
             $this->reactor->cancel($this->writeWatcher);
         }

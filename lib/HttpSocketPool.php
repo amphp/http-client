@@ -74,7 +74,7 @@ class HttpSocketPool {
         // limits transparently even when connecting through a proxy.
         $authority = "{$host}:{$port}";
         $uri = $proxy ? "tcp://{$proxy}#{$authority}" : "tcp://{$authority}";
-        $future = new Future($this->reactor);
+        $future = new Future;
         $futureCheckout = $this->sockPool->checkout($uri, $options);
         $futureCheckout->when(function($error, $socket) use ($future, $proxy, $authority) {
             if ($error) {

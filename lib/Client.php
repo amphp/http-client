@@ -76,7 +76,7 @@ class Client implements HttpClient {
         Encryptor $encryptor = null,
         WriterFactory $writerFactory = null
     ) {
-        $reactor = $reactor ?: \Amp\reactor();
+        $reactor = $reactor ?: \Amp\getReactor();
         $this->reactor = $reactor;
         $this->cookieJar = $cookieJar ?: new ArrayCookieJar;
         $this->socketPool = $socketPool ?: new HttpSocketPool($reactor);
@@ -123,7 +123,7 @@ class Client implements HttpClient {
      * @return \Amp\Promise A promise to resolve the request at some point in the future
      */
     public function request($uriOrRequest, array $options = []) {
-        $promisor = new Future($this->reactor);
+        $promisor = new Future;
 
         try {
             $cycle = new RequestCycle;
@@ -167,7 +167,7 @@ class Client implements HttpClient {
     }
 
     private function processAggregateBodyHeaders(RequestCycle $cycle, AggregateBody $body) {
-        $promise = $body->getHeaders($this->reactor);
+        $promise = $body->getHeaders();
         $promise->when(function($error, $result) use ($cycle, $body) {
             if ($error) {
                 $this->fail($cycle, $error);

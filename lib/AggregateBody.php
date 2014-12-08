@@ -15,10 +15,9 @@ interface AggregateBody {
      * The resolved promise value may be a string or an Iterator. An event reactor is always passed
      * to assist with asynchronous value resolution.
      *
-     * @param \Amp\Reactor $reactor
      * @return \Amp\Promise
      */
-    public function getBody(Reactor $reactor);
+    public function getBody();
 
     /**
      * Retrieve a key-value array of headers to add to the outbound request
@@ -26,10 +25,9 @@ interface AggregateBody {
      * The resolved promise value must be a key-value array mapping header fields to values. An
      * event reactor is always passed to assist with asynchronous value resolution.
      *
-     * @param \Amp\Reactor $reactor
      * @return \Amp\Promise
      */
-    public function getHeaders(Reactor $reactor);
+    public function getHeaders();
 
     /**
      * Retrieve the entity body's content length
@@ -37,8 +35,7 @@ interface AggregateBody {
      * The resolved value must either be an integer length or null if the entity body's content
      * length is not known.
      *
-     * @param \Amp\Reactor $reactor
      * @return \Amp\Promise
      */
-    public function getLength(Reactor $reactor);
+    public function getLength();
 }

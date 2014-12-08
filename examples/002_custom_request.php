@@ -18,8 +18,9 @@ try {
 
     // Client::request() is asynchronous! It doesn't return a response. Instead, it
     // returns a promise to resolve the response at some point in the future when
-    // it's finished. Here we tell the promise that we want to wait for it to complete.
-    $response = $promise->wait();
+    // it's finished. Here we use the Amp concurrency framework to synchronously wait
+    // for the eventual promise result.
+    $response = \Amp\wait($promise);
 
     // Output the results
     printf(

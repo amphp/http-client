@@ -22,7 +22,7 @@ class HttpTunneler {
      */
     public function tunnel($socket, $authority) {
         $struct = new HttpTunnelStruct;
-        $struct->future = new Future($this->reactor);
+        $struct->future = new Future;
         $struct->socket = $socket;
         $struct->writeBuffer = "CONNECT {$authority} HTTP/1.1\r\n\r\n";
         $this->doWrite($struct);

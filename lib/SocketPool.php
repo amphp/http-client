@@ -89,7 +89,7 @@ class SocketPool {
     private function checkoutNewSocket($uri, $options) {
         $needsRebind = $this->needsRebind;
         $this->needsRebind = null;
-        $future = new Future($this->reactor);
+        $future = new Future;
 
         if ($this->allowsNewConnection($uri, $options) || $needsRebind) {
             $this->initializeNewConnection($future, $uri, $options);

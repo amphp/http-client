@@ -34,7 +34,7 @@ Amp\run(function() use ($client, $badUri) {
 
 // Synchronously waiting on a promise that fails will throw.
 try {
-    $client->request($badUri)->wait();
+    $response = Amp\wait($client->request($badUri));
 } catch (Exception $e) {
     echo $e->getMessage(), "\n";
 }

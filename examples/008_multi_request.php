@@ -18,11 +18,14 @@ $promises = (new Amp\Artax\Client)->requestMulti([
 // Tolerate errors in some of the requests. If any one of the promises in our array
 // succeeds then the result is a two-item array of errors and successes. If *none*
 // of our response promises succeed then this line will throw.
-list($errors, $responses) = Amp\some($promises)->wait();
+$comboPromise = Amp\some($promises);
+
+list($errors, $responses) = Amp\wait($comboPromise);
 
 // Alternatively we could use the following line to require all of our responses to succeed. If
 // any one of the response promises resolves as a failure then this line will throw:
-$responses = Amp\all($promises)->wait();
+$comboPromise = Amp\all($promises);
+$responses = Amp\wait($comboPromise);
 
 // Now, let's iterate over the responses to demonstrate that they retain the same keys from
 // our original call to Amp\Artax\Client::request():

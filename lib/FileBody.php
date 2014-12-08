@@ -2,8 +2,6 @@
 
 namespace Amp\Artax;
 
-use Amp\Reactor;
-use Amp\UvReactor;
 use Amp\Future;
 use Amp\Failure;
 use Amp\Success;
@@ -21,23 +19,12 @@ class FileBody implements AggregateBody {
     /**
      * Retrieve the sendable Amp\Artax entity body representation
      *
-     * @param \Amp\Reactor $reactor
      * @return \Amp\Promise
      */
-    public function getBody(Reactor $reactor) {
-        return ($reactor instanceof UvReactor)
-            ? $this->generateUvBody($reactor)
-            : $this->generateNaiveBody();
-    }
-
-    private function generateUvBody($reactor) {
+    public function getBody() {
         // @TODO Implement non-blocking php-uv iterator.
         // For now we'll just use the dumb blocking version.
         // v1.0.0 cannot be a thing until this is implemented.
-        return $this->generateNaiveBody();
-    }
-
-    private function generateNaiveBody() {
         if ($resource = @fopen($this->path, 'r')) {
             return new Success(new ResourceIterator($resource));
         } else {
@@ -50,56 +37,34 @@ class FileBody implements AggregateBody {
     /**
      * Return a key-value array of headers to add to the outbound request
      *
-     * @param Reactor $reactor
      * @return \Amp\Promise
      * @TODO
      */
-    public function getHeaders(Reactor $reactor) {
-        return ($reactor instanceof UvReactor)
-            ? $this->generateUvHeaders($reactor)
-            : $this->generateNaiveHeaders($reactor);
-    }
-
-    private function generateUvHeaders($reactor) {
+    public function getHeaders() {
         // @TODO Implement non-blocking php-uv header retrieval.
         // For now we'll just use the dumb blocking version.
         // v1.0.0 cannot be a thing until this is implemented.
-        return $this->generateNaiveBody();
-    }
-
-    private function generateNaiveHeaders($reactor) {
-        $future = new Future($reactor);
-        $this->generateNaiveLength()->when(function($error, $result) use ($future) {
+        $promisor = new Future;
+        $this->getLength()->when(function($error, $result) use ($promisor) {
             if ($error) {
-                $future->fail($error);
+                $promisor->fail($error);
             } else {
-                $future->succeed(['Content-Length' => $result]);
+                $promisor->succeed(['Content-Length' => $result]);
             }
         });
 
-        return $future->promise();
+        return $promisor->promise();
     }
 
     /**
      * Retrieve the entity body's content length
      *
-     * @param \Amp\Reactor $reactor
      * @return \Amp\Promise
      */
-    public function getLength(Reactor $reactor) {
-        return ($reactor instanceof UvReactor)
-            ? $this->generateUvLength($reactor)
-            : $this->generateNaiveLength();
-    }
-
-    private function generateUvLength($reactor) {
+    public function getLength() {
         // @TODO Implement non-blocking php-uv file size retrieval.
         // For now we'll just use the dumb blocking version.
         // v1.0.0 cannot be a thing until this is implemented.
-        return $this->generateNaiveLength();
-    }
-
-    private function generateNaiveLength() {
         $size = @filesize($this->path);
         if ($size === false) {
             return new Failure(new \RuntimeException(

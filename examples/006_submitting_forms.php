@@ -15,7 +15,8 @@ $request = (new Amp\Artax\Request)
 ;
 
 try {
-    $response = (new Amp\Artax\Client)->request($request)->wait();
+    $promise = $client->request($request);
+    $response = \Amp\wait($promise);
 
     printf(
         "HTTP/%s %d %s\n------- RESPONSE BODY -------\n%s",
@@ -24,7 +25,6 @@ try {
         $response->getReason(),
         $response->getBody()
     );
-
 } catch (Amp\Artax\ClientException $e) {
     echo $e;
 }

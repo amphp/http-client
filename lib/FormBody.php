@@ -2,10 +2,8 @@
 
 namespace Amp\Artax;
 
-use Amp\Reactor;
 use Amp\Success;
 use Amp\Future;
-use Amp\Combinator;
 
 class FormBody implements AggregateBody {
     private $fields = [];
@@ -61,13 +59,12 @@ class FormBody implements AggregateBody {
      * for future resolution of non-blocking operations (e.g. when the entity body comprises
      * filesystem resources).
      *
-     * @param \Amp\Reactor $reactor
      * @return \Amp\Promise
      */
-    public function getBody(Reactor $reactor) {
+    public function getBody() {
         if ($this->isMultipart) {
             $fields = $this->getMultipartFieldArray();
-            return $this->generateMultipartIteratorFromFields($reactor, $fields);
+            return $this->generateMultipartIteratorFromFields($fields);
         } else {
             return new Success($this->getFormEncodedBodyString());
         }
@@ -112,22 +109,22 @@ class FormBody implements AggregateBody {
         return $header;
     }
 
-    private function generateMultipartIteratorFromFields(Reactor $reactor, array $fields) {
+    private function generateMultipartIteratorFromFields(array $fields) {
         foreach ($fields as $key => $field) {
-            $fields[$key] = $field instanceof FileBody ? $field->getBody($reactor) : $field;
+            $fields[$key] = $field instanceof FileBody ? $field->getBody() : $field;
         }
 
-        $future = new Future($reactor);
-        (new Combinator($reactor))->all($fields)->when(function($error, $result) use ($future) {
+        $promisor = new Future;
+        \Amp\all($fields)->when(function($error, $result) use ($promisor) {
             if ($error) {
-                $future->fail($error);
+                $promisor->fail($error);
             } else {
                 $this->cachedBody = $result;
-                $future->succeed(new MultipartIterator($result));
+                $promisor->succeed(new MultipartIterator($result));
             }
         });
 
-        return $future->promise();
+        return $promisor->promise();
     }
 
     private function getFormEncodedBodyString() {
@@ -152,25 +149,24 @@ class FormBody implements AggregateBody {
      * for future resolution of non-blocking operations (e.g. when using filesystem stats to
      * generate content-length headers).
      *
-     * @param \Amp\Reactor $reactor
      * @return \Amp\Promise
      */
-    public function getHeaders(Reactor $reactor) {
-        $future = new Future($reactor);
-        $length = $this->getLength($reactor);
-        $length->when(function($error, $result) use ($future) {
+    public function getHeaders() {
+        $promisor = new Future;
+        $length = $this->getLength();
+        $length->when(function($error, $result) use ($promisor) {
             if ($error) {
-                $future->fail($error);
+                $promisor->fail($error);
             } else {
                 $type = $this->determineContentType();
-                $future->succeed([
+                $promisor->succeed([
                     'Content-Type' => $type,
                     'Content-Length' => $result
                 ]);
             }
         });
 
-        return $future->promise();
+        return $promisor->promise();
     }
 
     private function determineContentType() {
@@ -186,15 +182,14 @@ class FormBody implements AggregateBody {
      * for future resolution of non-blocking operations (e.g. when using filesystem stats to
      * determine entity body length).
      *
-     * @param \Amp\Reactor $reactor
      * @return \Amp\Promise
      */
-    public function getLength(Reactor $reactor) {
+    public function getLength() {
         if (isset($this->cachedLength)) {
             return new Success($this->cachedLength);
         } elseif ($this->isMultipart) {
-            $fields = $this->getMultipartFieldArray($reactor);
-            $length = $this->sumMultipartFieldLengths($reactor, $fields);
+            $fields = $this->getMultipartFieldArray();
+            $length = $this->sumMultipartFieldLengths($fields);
             $length->when(function($error, $result) {
                 if (empty($error)) {
                     $this->cachedLength = $result;
@@ -207,25 +202,25 @@ class FormBody implements AggregateBody {
         }
     }
 
-    private function sumMultipartFieldLengths(Reactor $reactor, array $fields) {
+    private function sumMultipartFieldLengths(array $fields) {
         $lengths = [];
         foreach ($fields as $field) {
             if (is_string($field)) {
                 $lengths[] = strlen($field);
             } else {
-                $lengths[] = $field->getLength($reactor);
+                $lengths[] = $field->getLength();
             }
         }
 
-        $future = new Future($reactor);
-        (new Combinator($reactor))->all($lengths)->when(function($error, $result) use ($future) {
+        $promisor = new Future;
+        \Amp\all($lengths)->when(function($error, $result) use ($promisor) {
             if ($error) {
-                $future->fail($error);
+                $promisor->fail($error);
             } else {
-                $future->succeed(array_sum($result));
+                $promisor->succeed(array_sum($result));
             }
         });
 
-        return $future->promise();
+        return $promisor->promise();
     }
 }

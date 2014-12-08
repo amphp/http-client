@@ -12,7 +12,7 @@ class IteratorWriter implements Writer {
     private $reactor;
     private $socket;
     private $iterator;
-    private $future;
+    private $promisor;
     private $writer;
 
     /**
@@ -39,10 +39,10 @@ class IteratorWriter implements Writer {
         $this->reactor = $reactor;
         $this->socket = $socket;
         $this->iterator = $iterator;
-        $this->future = $future = new Future($reactor);
+        $this->promisor = new Future;
         $this->writeNextElement();
 
-        return $future->promise();
+        return $this->promisor->promise();
     }
 
     private function writeNextElement() {
@@ -55,7 +55,7 @@ class IteratorWriter implements Writer {
 
         $current->when(function($error, $result) {
             if ($error) {
-                $this->future->fail($error);
+                $this->promisor->fail($error);
             } else {
                 $this->finalizeEventualWriteElement($result);
             }
@@ -67,14 +67,14 @@ class IteratorWriter implements Writer {
             $this->writer = $this->writerFactory->make($current);
             $writePromise = $this->writer->write($this->reactor, $this->socket, $current);
             $writePromise->watch(function($update) {
-                $this->future->update($update);
+                $this->promisor->update($update);
             });
             $writePromise->when(function($error, $result) {
                 $this->afterElementWrite($error, $result);
             });
         } catch (\Exception $e) {
             // Protect against bad userland iterator return values from Iterator::current()
-            $this->future->fail($e);
+            $this->promisor->fail($e);
         }
     }
 
@@ -82,11 +82,11 @@ class IteratorWriter implements Writer {
         $this->iterator->next();
 
         if ($error) {
-            $this->future->fail($error);
+            $this->promisor->fail($error);
         } elseif ($this->iterator->valid()) {
             $this->writeNextElement();
         } else {
-            $this->future->succeed();
+            $this->promisor->succeed();
         }
     }
 }

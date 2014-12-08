@@ -1,11 +1,13 @@
 <?php
 
+use Amp\Artax\Client;
+
 require __DIR__ . '/../vendor/autoload.php';
 
 try {
     // Instantiate the HTTP client
-    $client = new Amp\Artax\Client;
-    $client->setOption(Amp\Artax\Client::OP_VERBOSITY, Amp\Artax\Client::VERBOSE_ALL);
+    $client = new Client;
+    $client->setOption(Client::OP_VERBOSITY, Client::VERBOSE_ALL);
 
     // Let's build up a custom Request object
     $request = (new Amp\Artax\Request)
@@ -19,8 +21,9 @@ try {
 
     // Client::request() is asynchronous! It doesn't return a response. Instead, it
     // returns a promise to resolve the response at some point in the future when
-    // it's finished. Here we tell the promise that we want to wait for it to complete.
-    $response = $promise->wait();
+    // it's finished. Here we use the Amp concurrency framework to synchronously wait
+    // for the eventual promise result.
+    $response = \Amp\wait($promise);
 
     // Output the results
     printf(

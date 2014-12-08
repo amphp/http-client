@@ -19,7 +19,7 @@ namespace Amp\Artax;
  *          // what to do with progress info when broadcast by the promise
  *          var_dump($data['fraction_complete'] * 100);
  *      });
- *      $response = $promise->wait();
+ *      $response = \Amp\wait($promise);
  */
 class Progress {
     const CONNECTING = 0;
