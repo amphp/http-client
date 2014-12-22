@@ -60,12 +60,12 @@ class Uri {
     private function parse($uri) {
         // PHP 5.4.7 fixed the incorrect parsing of network path references
         // @codeCoverageIgnoreStart
-        if (version_compare(PHP_VERSION, '5.4.7') >= 0) {
+        if (PHP_VERSION_ID >= 50407) {
             return parse_url($uri);
         }
         // @codeCoverageIgnoreEnd
-        
-        $isPhp533 = (version_compare(PHP_VERSION, '5.3.3') >= 0);
+
+        $isPhp533 = PHP_VERSION_ID >= 50303;
         
         // PHP < 5.3.3 triggers E_WARNING on failure
         $parts = $isPhp533 ? parse_url($uri) : @parse_url($uri);
