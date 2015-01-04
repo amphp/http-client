@@ -53,7 +53,7 @@ as the request parameter:
 try {
     $client = new Amp\Artax\Client;
     $promise = $client->request('http://www.google.com');
-    $response = $promise->wait();
+    $response = Amp\wait($promise);
     printf(
         "\nHTTP/%s %d %s\n",
         $response->getProtocol(),
@@ -87,7 +87,7 @@ try {
         ])
     ;
 
-    $response = (new Amp\Artax\Client)->request($request)->wait();
+    $response = Amp\wait((new Amp\Artax\Client)->request($request));
 
 } catch (Exception $error) {
     echo $error;
@@ -128,12 +128,12 @@ $request = (new Amp\Artax\Request)
     ->setBody($body)
 ;
 
-$response = (new Amp\Artax\Client)->request($request)->wait();
+$response = Amp\wait((new Amp\Artax\Client)->request($request));
 ```
 
 ### Concurrency
 
-You may have noticed from the previous examples that we called `wait()` on our `Client::request()` return result. This is necessary because the artax client never actually returns a response directly; instead, it returns an `Amp\Promise` instance to represent the future response. It's important to understand that *all* artax requests are processed concurrently. The synchronous `wait()` call simply allows us to sit around and wait for the response to resolve before proceeding. However, it's often undesirable to synchronously wait on a response. In cases where we want non-blocking concurrency  we have a few options ...
+You may have noticed from the previous examples that we called `Amp\wait()` on our `Client::request()` return result. This is necessary because the artax client never actually returns a response directly; instead, it returns an `Amp\Promise` instance to represent the future response. It's important to understand that *all* artax requests are processed concurrently. The synchronous `Amp\wait()` call simply allows us to sit around and wait for the response to resolve before proceeding. However, it's often undesirable to synchronously wait on a response. In cases where we want non-blocking concurrency  we have a few options ...
 
 
 **Generators**
@@ -163,7 +163,7 @@ Amp\run(function() {
 
 **Synchronous Wait**
 
-All [amp][1]  `Promise` instances expose the ability to synchronously `wait()` for resolution. While blocking for a result isn't recommended in fully non-blocking applications it can trivialize the use of non-blocking libraries like artax in synchronous contexts.
+All [amp][1]  `Promise` instances expose the ability to synchronously `Amp\wait()` for resolution. While blocking for a result isn't recommended in fully non-blocking applications it can trivialize the use of non-blocking libraries like artax in synchronous contexts.
 
 ```php
 <?php
@@ -177,8 +177,8 @@ $promiseArray = $client->requestMulti([
 
 try {
     // Amp\all() flattens an array of promises into a new promise
-    // that on which we can wait()
-    list($google, $bing) = Amp\all($promiseArray)->wait();
+    // that on which we can Amp\wait()
+    list($google, $bing) = Amp\wait(Amp\all($promiseArray));
     var_dump($google->getStatus(), $bing->getStatus());
 } catch (Exception $e) {
     echo $e;
@@ -198,7 +198,7 @@ $promiseArray = (new Amp\Artax\Client)->requestMulti([
     'yahoo'     => 'https://www.yahoo.com',
 ]);
 
-$responses = Amp\all($promiseArray)->wait();
+$responses = Amp\wait(Amp\all($promiseArray));
 
 foreach ($responses as $key => $response) {
     printf(
@@ -290,7 +290,7 @@ function myNotifyCallback(array $notifyData) {
  */
 $promise = (new Amp\Artax\Client)->request('http://www.google.com');
 $promise->watch('myNotifyCallback');
-$response = $promise->wait();
+$response = Amp\wait($promise);
 
 printf(
     "\nResponse: HTTP/%s %d %s\n\n",
@@ -363,7 +363,7 @@ $promise = (new Amp\Artax\Client)->request($uri);
 $promise->watch(new Amp\Artax\Progress(function($update) {
     echo "\r", round($update['fraction_complete'] * 100), " percent complete \r";
 }));
-$response = $promise->wait();
+$response = Amp\wait($promise);
 ```
 
 The following keys are available in the `$update` array sent from the `Progress` object:
