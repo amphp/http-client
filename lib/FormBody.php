@@ -76,7 +76,7 @@ class FormBody implements AggregateBody {
     */
     public function addFiles(array $data, $contentType = 'application/octet-stream') {
         foreach ($data as $key => $value) {
-            $this->addField($key, $value, $contentType);
+            $this->addFile($key, $value, $contentType);
         }
 
         return $this;
