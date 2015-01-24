@@ -35,6 +35,21 @@ class FormBody implements AggregateBody {
     }
 
     /**
+    * Add each element of a associative array as a data field to the form entity body
+    *
+    * @param array $data
+    * @param string $contentType
+    * @return self
+    */
+    public function addFields(array $data, $contentType = 'text/plain') {
+        foreach ($data as $key => $value) {
+            $this->addField($key, $value, $contentType);
+        }
+
+        return $this;
+    }
+
+    /**
      * Add a file field to the form entity body
      *
      * @param string $name
@@ -48,6 +63,21 @@ class FormBody implements AggregateBody {
         $this->fields[] = [(string) $name, new FileBody($filePath), $contentType, $fileName];
         $this->isMultipart = true;
         $this->cachedBody = $this->cachedLength = $this->cachedFields = null;
+
+        return $this;
+    }
+
+    /**
+    * Add each element of a associative array as a file field to the form entity body
+    *
+    * @param array $data
+    * @param string $contentType
+    * @return self
+    */
+    public function addFiles(array $data, $contentType = 'application/octet-stream') {
+        foreach ($data as $key => $value) {
+            $this->addFile($key, $value, $contentType);
+        }
 
         return $this;
     }
