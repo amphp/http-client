@@ -2,6 +2,9 @@
 
 require __DIR__ . '/../vendor/autoload.php';
 
+// Instantiate the HTTP client
+$client = new Amp\Artax\Client;
+
 $body = (new Amp\Artax\FormBody)
     ->addField('field1', 'my value')
     ->addFile('file1', __DIR__ . '/support/lorem.txt')
