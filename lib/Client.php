@@ -485,6 +485,14 @@ class Client implements HttpClient {
                 } else {
                     $this->assignParsedResponse($cycle, $parsedResponseArr);
                 }
+                
+                if ($cycle->parser->getBuffer()) {
+                    $this->reactor->immediately(function() use ($cycle) {
+                        $this->parseSocketData($cycle);
+                    });
+                }
+
+                break;
             }
         } catch (ParseException $e) {
             $this->fail($cycle, $e);
