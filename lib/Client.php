@@ -30,6 +30,7 @@ class Client implements HttpClient {
     const OP_VERBOSITY = 'op.verbosity';
     const OP_COMBINE_COOKIES = 'op.combine-cookies';
     const OP_CRYPTO = 'op.crypto';
+    const OP_DEFAULT_USER_AGENT = 'op.default-user-agent';
 
     const VERBOSE_NONE = 0b00;
     const VERBOSE_SEND = 0b01;
@@ -61,6 +62,7 @@ class Client implements HttpClient {
         self::OP_VERBOSITY => self::VERBOSE_NONE,
         self::OP_COMBINE_COOKIES => true,
         self::OP_CRYPTO => [],
+        self::OP_DEFAULT_USER_AGENT => null,
     ];
 
     public function __construct(CookieJar $cookieJar = null, HttpSocketPool $socketPool = null, WriterFactory $writerFactory = null) {
@@ -310,7 +312,8 @@ class Client implements HttpClient {
 
     private function normalizeRequestUserAgent(Request $request, array $options) {
         if (!$request->hasHeader('User-Agent')) {
-            $request->setHeader('User-Agent', self::USER_AGENT);
+            $userAgent = $options[self::OP_DEFAULT_USER_AGENT] ?: self::USER_AGENT;
+            $request->setHeader('User-Agent', $userAgent);
         }
     }
 
