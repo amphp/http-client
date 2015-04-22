@@ -2,8 +2,6 @@
 
 namespace Amp\Artax;
 
-use Amp\Reactor;
-
 /**
  * An interface for generating customized HTTP message bodies + headers.
  */

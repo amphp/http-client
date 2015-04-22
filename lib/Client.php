@@ -4,7 +4,6 @@ namespace Amp\Artax;
 
 use Amp\Reactor,
     Amp\Future,
-    Amp\Failure,
     Amp\Promise,
     Nbsock\Encryptor,
     Nbsock\Connector,
