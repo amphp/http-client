@@ -43,10 +43,11 @@ class Uri {
             $this->normalizeDefaultPort();
         }
         
-        if (filter_var($this->host, FILTER_VALIDATE_URL, FILTER_FLAG_IPV4)) {
-            $this->isIpV4 = true;
-        } elseif (filter_var($this->host, FILTER_VALIDATE_URL, FILTER_FLAG_IPV6)) {
+        $ip = @inet_pton($this->host);
+        if (isset($ip[5])) {
             $this->isIpV6 = true;
+        } elseif ($ip) {
+            $this->isIpv4 = true;
         }
         
         $this->parseQueryParameters();
