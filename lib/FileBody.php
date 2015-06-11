@@ -2,7 +2,7 @@
 
 namespace Amp\Artax;
 
-use Amp\Future;
+use Amp\Deferred;
 use Amp\Failure;
 use Amp\Success;
 
@@ -44,7 +44,7 @@ class FileBody implements AggregateBody {
         // @TODO Implement non-blocking php-uv header retrieval.
         // For now we'll just use the dumb blocking version.
         // v1.0.0 cannot be a thing until this is implemented.
-        $promisor = new Future;
+        $promisor = new Deferred;
         $this->getLength()->when(function($error, $result) use ($promisor) {
             if ($error) {
                 $promisor->fail($error);

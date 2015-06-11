@@ -4,7 +4,7 @@ namespace Amp\Artax;
 
 use Amp\Reactor;
 use Amp\Success;
-use Amp\Future;
+use Amp\Deferred;
 use Amp\Promise;
 
 class IteratorWriter implements Writer {
@@ -39,7 +39,7 @@ class IteratorWriter implements Writer {
         $this->reactor = $reactor;
         $this->socket = $socket;
         $this->iterator = $iterator;
-        $this->promisor = new Future;
+        $this->promisor = new Deferred;
         $this->writeNextElement();
 
         return $this->promisor->promise();

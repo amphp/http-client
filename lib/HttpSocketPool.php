@@ -4,7 +4,7 @@ namespace Amp\Artax;
 
 use Amp\Reactor;
 use Amp\Failure;
-use Amp\Future;
+use Amp\Deferred;
 
 class HttpSocketPool {
     const OP_PROXY_HTTP = 'op.proxy-http';
@@ -74,33 +74,33 @@ class HttpSocketPool {
         // limits transparently even when connecting through a proxy.
         $authority = "{$host}:{$port}";
         $uri = $proxy ? "tcp://{$proxy}#{$authority}" : "tcp://{$authority}";
-        $future = new Future;
+        $promisor = new Deferred;
         $futureCheckout = $this->sockPool->checkout($uri, $options);
-        $futureCheckout->when(function($error, $socket) use ($future, $proxy, $authority) {
+        $futureCheckout->when(function($error, $socket) use ($promisor, $proxy, $authority) {
             if ($error) {
-                $future->fail($error);
+                $promisor->fail($error);
             } elseif ($proxy) {
-                $this->tunnelThroughProxy($future, $socket, $authority);
+                $this->tunnelThroughProxy($promisor, $socket, $authority);
             } else {
-                $future->succeed($socket);
+                $promisor->succeed($socket);
             }
         });
 
-        return $future->promise();
+        return $promisor->promise();
     }
 
-    private function tunnelThroughProxy(Future $future, $socket, $authority) {
+    private function tunnelThroughProxy(Deferred $promisor, $socket, $authority) {
         if (empty(stream_context_get_options($socket)['artax*']['is_tunneled'])) {
             $futureTunnel = $this->tunneler->tunnel($socket, $authority);
-            $futureTunnel->when(function($error) use ($future, $socket) {
+            $futureTunnel->when(function($error) use ($promisor, $socket) {
                 if ($error) {
-                    $future->fail($error);
+                    $promisor->fail($error);
                 } else {
-                    $future->succeed($socket);
+                    $promisor->succeed($socket);
                 }
             });
         } else {
-            $future->succeed($socket);
+            $promisor->succeed($socket);
         }
     }
 

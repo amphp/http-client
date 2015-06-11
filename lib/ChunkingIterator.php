@@ -3,7 +3,7 @@
 namespace Amp\Artax;
 
 use Amp\Promise;
-use Amp\Future;
+use Amp\Deferred;
 
 /**
  * Wraps Iterators to add chunk encoding for each element
@@ -27,19 +27,19 @@ class ChunkingIterator implements \Iterator {
         } elseif (is_string($current)) {
             return $this->applyChunkEncoding($current);
         } elseif ($current instanceof Promise) {
-            $future = new Future;
-            $current->when(function($error, $result) use ($future) {
+            $promisor = new Deferred;
+            $current->when(function($error, $result) use ($promisor) {
                 if ($error) {
-                    $future->fail($error);
+                    $promisor->fail($error);
                 } elseif (is_string($result)) {
-                    $future->succeed($this->applyChunkEncoding($result));
+                    $promisor->succeed($this->applyChunkEncoding($result));
                 } else {
-                    $future->fail(new \DomainException(
+                    $promisor->fail(new \DomainException(
                         sprintf('Only string/Promise elements may be chunked; %s provided', gettype($result))
                     ));
                 }
             });
-            return $future->promise();
+            return $promisor->promise();
         } else {
             // @TODO How to react to an invalid type returned from an iterator?
             return null;

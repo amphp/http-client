@@ -5,7 +5,7 @@ namespace Amp\Artax;
 use Amp\Reactor,
     Amp\Failure,
     Amp\Success,
-    Amp\Future,
+    Amp\Deferred,
     Nbsock\Connector;
 
 class SocketPool {
@@ -89,15 +89,15 @@ class SocketPool {
     private function checkoutNewSocket($uri, $options) {
         $needsRebind = $this->needsRebind;
         $this->needsRebind = null;
-        $future = new Future;
+        $promisor = new Deferred;
 
         if ($this->allowsNewConnection($uri, $options) || $needsRebind) {
-            $this->initializeNewConnection($future, $uri, $options);
+            $this->initializeNewConnection($promisor, $uri, $options);
         } else {
-            $this->queuedSocketRequests[$uri][] = [$future, $uri, $options];
+            $this->queuedSocketRequests[$uri][] = [$promisor, $uri, $options];
         }
 
-        return $future;
+        return $promisor->promise();
     }
 
     private function allowsNewConnection($uri, $options) {
@@ -118,21 +118,21 @@ class SocketPool {
         return false;
     }
 
-    private function initializeNewConnection(Future $future, $uri, $options) {
+    private function initializeNewConnection(Deferred $promisor, $uri, $options) {
         $this->pendingSockets[$uri] = isset($this->pendingSockets[$uri])
             ? $this->pendingSockets[$uri] + 1
             : 1;
         $futureSocket = $this->connector->connect($uri, $options);
-        $futureSocket->when(function($error, $socket) use ($future, $uri, $options) {
+        $futureSocket->when(function($error, $socket) use ($promisor, $uri, $options) {
             if ($error) {
-                $future->fail($error);
+                $promisor->fail($error);
             } else {
-                $this->finalizeNewConnection($future, $uri, $socket, $options);
+                $this->finalizeNewConnection($promisor, $uri, $socket, $options);
             }
         });
     }
 
-    private function finalizeNewConnection(Future $future, $uri, $socket, $options) {
+    private function finalizeNewConnection(Deferred $promisor, $uri, $socket, $options) {
         if (--$this->pendingSockets[$uri] === 0) {
             unset($this->pendingSockets[$uri]);
         }
@@ -145,7 +145,7 @@ class SocketPool {
         $poolStruct->msIdleTimeout = $options[self::OP_MS_IDLE_TIMEOUT];
         $this->sockets[$uri][$socketId] = $poolStruct;
         $this->socketIdUriMap[$socketId] = $uri;
-        $future->succeed($poolStruct->resource);
+        $promisor->succeed($poolStruct->resource);
 
         if (empty($this->queuedSocketRequests[$uri])) {
             unset($this->queuedSocketRequests[$uri]);
@@ -193,17 +193,17 @@ class SocketPool {
 
     private function dequeueNextWaitingSocket($uri) {
         $queueStruct = current($this->queuedSocketRequests[$uri]);
-        list($future, $uri, $options) = $queueStruct;
+        list($promisor, $uri, $options) = $queueStruct;
 
         if ($socket = $this->checkoutExistingSocket($uri, $options)) {
             array_shift($this->queuedSocketRequests[$uri]);
-            $future->succeed($socket);
+            $promisor->succeed($socket);
             return;
         }
 
         if ($this->allowsNewConnection($uri, $options)) {
             array_shift($this->queuedSocketRequests[$uri]);
-            $this->initializeNewConnection($future, $uri, $options);
+            $this->initializeNewConnection($promisor, $uri, $options);
         }
     }
 

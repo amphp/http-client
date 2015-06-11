@@ -3,7 +3,7 @@
 namespace Amp\Artax;
 
 use Amp\Reactor;
-use Amp\Future;
+use Amp\Deferred;
 
 class BufferWriter implements Writer {
     private $reactor;
@@ -23,7 +23,7 @@ class BufferWriter implements Writer {
      */
     public function write(Reactor $reactor, $socket, $dataToWrite) {
         $this->reactor = $reactor;
-        $this->promisor = new Future;
+        $this->promisor = new Deferred;
         $this->socket = $socket;
         $this->buffer = $dataToWrite;
         $reactor->immediately(function() {

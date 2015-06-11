@@ -4,7 +4,7 @@ namespace Amp\Artax;
 
 class RequestCycle {
     /**
-     * @var \Amp\Future
+     * @var \Amp\Deferred
      */
     public $futureResponse;
     public $options;

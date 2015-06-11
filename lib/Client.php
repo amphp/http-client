@@ -3,7 +3,7 @@
 namespace Amp\Artax;
 
 use Amp\Reactor,
-    Amp\Future,
+    Amp\Deferred,
     Amp\Failure,
     Amp\Promise,
     Nbsock\Encryptor,
@@ -76,7 +76,7 @@ class Client implements HttpClient {
         Encryptor $encryptor = null,
         WriterFactory $writerFactory = null
     ) {
-        $reactor = $reactor ?: \Amp\getReactor();
+        $reactor = $reactor ?: \Amp\reactor();
         $this->reactor = $reactor;
         $this->cookieJar = $cookieJar ?: new ArrayCookieJar;
         $this->socketPool = $socketPool ?: new HttpSocketPool($reactor);
@@ -123,7 +123,7 @@ class Client implements HttpClient {
      * @return \Amp\Promise A promise to resolve the request at some point in the future
      */
     public function request($uriOrRequest, array $options = []) {
-        $promisor = new Future;
+        $promisor = new Deferred;
 
         try {
             $cycle = new RequestCycle;
@@ -194,7 +194,7 @@ class Client implements HttpClient {
         $this->assignApplicableRequestCookies($request, $options);
 
         $this->queue[] = $cycle;
-        $promisor->when($this->dequeuer);
+        $promisor->promise()->when($this->dequeuer);
 
         if (count($this->queue) < 512) {
             $this->dequeueNextRequest();

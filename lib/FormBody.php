@@ -3,7 +3,7 @@
 namespace Amp\Artax;
 
 use Amp\Success;
-use Amp\Future;
+use Amp\Deferred;
 
 class FormBody implements AggregateBody {
     private $fields = [];
@@ -144,7 +144,7 @@ class FormBody implements AggregateBody {
             $fields[$key] = $field instanceof FileBody ? $field->getBody() : $field;
         }
 
-        $promisor = new Future;
+        $promisor = new Deferred;
         \Amp\all($fields)->when(function($error, $result) use ($promisor) {
             if ($error) {
                 $promisor->fail($error);
@@ -182,7 +182,7 @@ class FormBody implements AggregateBody {
      * @return \Amp\Promise
      */
     public function getHeaders() {
-        $promisor = new Future;
+        $promisor = new Deferred;
         $length = $this->getLength();
         $length->when(function($error, $result) use ($promisor) {
             if ($error) {
@@ -242,7 +242,7 @@ class FormBody implements AggregateBody {
             }
         }
 
-        $promisor = new Future;
+        $promisor = new Deferred;
         \Amp\all($lengths)->when(function($error, $result) use ($promisor) {
             if ($error) {
                 $promisor->fail($error);

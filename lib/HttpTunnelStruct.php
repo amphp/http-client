@@ -3,7 +3,7 @@
 namespace Amp\Artax;
 
 class HttpTunnelStruct {
-    public $future;
+    public $promisor;
     public $socket;
     public $writeBuffer;
     public $writeWatcher;
