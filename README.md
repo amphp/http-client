@@ -51,9 +51,8 @@ as the request parameter:
 <?php
 
 try {
-    $client = new Amp\Artax\Client;
-    $promise = $client->request('http://www.google.com');
-    $response = Amp\wait($promise);
+    $client = new Artax\Client;
+    $response = $client->request('http://www.google.com');
     printf(
         "\nHTTP/%s %d %s\n",
         $response->getProtocol(),
@@ -70,13 +69,13 @@ try {
 
 For more advanced requests artax allows incremental message construction. This example
 sets the request method to POST and assigns an entity body. HTTP veterans will notice that
-we don't bother to set a `Content-Length` or `Host` header. This is unnecessary because artax will automatically add/normalize missing headers for us so we don't need to worry about it. The only property that _MUST_ be assigned when sending an `Amp\Artax\Request` is the absolute *http://* or *https://* request URI:
+we don't bother to set a `Content-Length` or `Host` header. This is unnecessary because artax will automatically add/normalize missing headers for us so we don't need to worry about it. The only property that _MUST_ be assigned when sending an `Artax\Request` is the absolute *http://* or *https://* request URI:
 
 ```php
 <?php
 
 try {
-    $request = (new Amp\Artax\Request)
+    $request = (new Artax\Request)
         ->setUri('http://httpbin.org/post')
         ->setProtocol('1.1')
         ->setMethod('POST')
@@ -87,7 +86,7 @@ try {
         ])
     ;
 
-    $response = Amp\wait((new Amp\Artax\Client)->request($request));
+    $response = (new Artax\Client)->request($request);
 
 } catch (Exception $error) {
     echo $error;
@@ -111,24 +110,24 @@ Assume `httpbin.org/post` contains the following HTML form:
  </form>
 ```
 
-We can easily submit this form using the `Amp\Artax\FormBody` API:
+We can easily submit this form using the `Artax\FormBody` API:
 
 ```php
 <?php
 
-$body = (new Amp\Artax\FormBody)
+$body = (new Artax\FormBody)
     ->addField('name', 'Zoroaster')
     ->addFile('file1', '/hard/path/to/some/file1')
     ->addFile('file2', '/hard/path/to/some/file2')
 ;
 
-$request = (new Amp\Artax\Request)
+$request = (new Artax\Request)
     ->setUri('http://httpbin.org/post')
     ->setMethod('POST')
     ->setBody($body)
 ;
 
-$response = Amp\wait((new Amp\Artax\Client)->request($request));
+$response = (new Artax\Client)->request($request);
 ```
 
 ### Concurrency
@@ -142,23 +141,35 @@ The [amp concurrency framework][1] run loop always acts as a co-routine for gene
 
 ```php
 <?php
-Amp\run(function() {
-    $client = new Amp\Artax\Client;
+$client = new Artax\Client;
 
-    // Dispatch two requests at the same time
-    $promiseArray = $client->requestMulti([
+// What to do when an individual request completes
+$onResponse = function(Artax\Response $response, Artax\Request $request) {
+    echo $request->getUri(), ' -- ';
+    echo 'HTTP/', $response->getProtocol(), ' ', $response->getStatus(), ' ', $response->getReason(), "\n";
+};
+
+// What to do if a request encounters an exceptional error
+$onError = function(Exception $e, Artax\Request $request) {
+    echo $request->getUri(), " failed (", get_class($e), ") :(\n";
+};
+
+// Dispatch two requests at the same time
+$promiseArray = $client->requestMulti([
         'http://www.google.com',
         'http://www.bing.com',
-    ]);
+    ], 
+    $onResponse, 
+    $onError
+);
 
-    try {
-        // Yield control until all requests finish (magic sauce)
-        list($google, $bing) = (yield Amp\all($promiseArray));
-        var_dump($google->getStatus(), $bing->getStatus());
-    } catch (Exception $e) {
-        echo $e;
-    }
-});
+try {
+    // Yield control until all requests finish (magic sauce)
+    list($google, $bing) = (yield Amp\all($promiseArray));
+    var_dump($google->getStatus(), $bing->getStatus());
+} catch (Exception $e) {
+    echo $e;
+}
 ```
 
 **Synchronous Wait**
@@ -167,22 +178,13 @@ All [amp][1]  `Promise` instances expose the ability to synchronously `Amp\wait(
 
 ```php
 <?php
-$client = new Amp\Artax\Client;
+$client = new Artax\Client;
 
 // Dispatch two requests at the same time
 $promiseArray = $client->requestMulti([
     'http://www.google.com',
     'http://www.bing.com',
 ]);
-
-try {
-    // Amp\all() flattens an array of promises into a new promise
-    // that on which we can Amp\wait()
-    list($google, $bing) = Amp\wait(Amp\all($promiseArray));
-    var_dump($google->getStatus(), $bing->getStatus());
-} catch (Exception $e) {
-    echo $e;
-}
 ```
 
 Note that resolving a combined promise always results in the same array keys as those passed to the
@@ -191,7 +193,7 @@ combinator function (`Amp\all()` in this example). Consider:
 ```php
 <?php
 
-$promiseArray = (new Amp\Artax\Client)->requestMulti([
+$promiseArray = (new Artax\Client)->requestMulti([
     'google'    => 'http://www.google.com',
     'news'      => 'http://news.google.com',
     'bing'      => 'http://www.bing.com',
@@ -217,7 +219,7 @@ While callbacks are sometimes considered a clumsy way to manage concurrency, it'
 
 ```php
 <?php
-use Amp\Artax\Client;
+use Artax\Client;
 
 $reactor = Amp\reactor();
 $client = new Client($reactor);
@@ -311,7 +313,7 @@ Client behavior may be modified in two ways:
 
 ```php
 <?php
-use Amp\Artax\Client;
+use AArtax\Client;
 
 $client = new Client;
 
@@ -359,8 +361,8 @@ a usable progress bar on a per-request basis trivial. Consider:
 ```php
 <?php
 $uri = "http://www.google.com";
-$promise = (new Amp\Artax\Client)->request($uri);
-$promise->watch(new Amp\Artax\Progress(function($update) {
+$promise = (new Artax\Client)->request($uri);
+$promise->watch(new Artax\Progress(function($update) {
     echo "\r", round($update['fraction_complete'] * 100), " percent complete \r";
 }));
 $response = Amp\wait($promise);
