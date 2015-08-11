@@ -2,11 +2,9 @@
 
 namespace Amp\Artax;
 
-use Amp\Reactor;
 use Amp\Deferred;
 
 class BufferWriter implements Writer {
-    private $reactor;
     private $promisor;
     private $socket;
     private $buffer;
@@ -16,17 +14,15 @@ class BufferWriter implements Writer {
     /**
      * Write specified $dataToWrite to the $socket destination stream
      *
-     * @param \Amp\Reactor $reactor
      * @param resource $socket
      * @param string $dataToWrite
      * @return \Amp\Promise
      */
-    public function write(Reactor $reactor, $socket, $dataToWrite) {
-        $this->reactor = $reactor;
+    public function write($socket, $dataToWrite) {
         $this->promisor = new Deferred;
         $this->socket = $socket;
         $this->buffer = $dataToWrite;
-        $reactor->immediately(function() {
+        \Amp\immediately(function() {
             $this->doWrite();
         });
 
@@ -73,20 +69,20 @@ class BufferWriter implements Writer {
     private function fail(\Exception $e) {
         $this->promisor->fail($e);
         if ($this->writeWatcher) {
-            $this->reactor->cancel($this->writeWatcher);
+            \Amp\cancel($this->writeWatcher);
         }
     }
 
     private function succeed() {
         $this->promisor->succeed();
         if ($this->writeWatcher) {
-            $this->reactor->cancel($this->writeWatcher);
+            \Amp\cancel($this->writeWatcher);
         }
     }
 
     private function enableWriteWatcher() {
         if (empty($this->writeWatcher)) {
-            $this->writeWatcher = $this->reactor->onWritable($this->socket, function() {
+            $this->writeWatcher = \Amp\onWritable($this->socket, function() {
                 $this->doWrite();
             });
         }

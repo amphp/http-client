@@ -2,7 +2,6 @@
 
 namespace Amp\Artax;
 
-use Amp\Reactor;
 use Amp\Failure;
 use Amp\Deferred;
 
@@ -10,7 +9,6 @@ class HttpSocketPool {
     const OP_PROXY_HTTP = 'op.proxy-http';
     const OP_PROXY_HTTPS = 'op.proxy-https';
 
-    private $reactor;
     private $sockPool;
     private $tunneler;
     private $options = [
@@ -18,10 +16,9 @@ class HttpSocketPool {
         self::OP_PROXY_HTTPS => null,
     ];
 
-    public function __construct(Reactor $reactor, SocketPool $sockPool = null, HttpTunneler $tunneler = null) {
-        $this->reactor = $reactor;
-        $this->sockPool = $sockPool ?: new SocketPool($reactor);
-        $this->tunneler = $tunneler ?: new HttpTunneler($reactor);
+    public function __construct(SocketPool $sockPool = null, HttpTunneler $tunneler = null) {
+        $this->sockPool = $sockPool ?: new SocketPool();
+        $this->tunneler = $tunneler ?: new HttpTunneler();
         $this->autoDetectProxySettings();
     }
 

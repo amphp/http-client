@@ -5,7 +5,6 @@ namespace Amp\Test\Artax;
 use Amp\Artax\Message;
 
 class MessageTest extends \PHPUnit_Framework_TestCase {
-
     public function testGetAndSetProtocol() {
         $msg = $this->getMockForAbstractClass('Amp\Artax\Message');
         $msg->setProtocol('1.1');

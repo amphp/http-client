@@ -2,20 +2,15 @@
 
 namespace Amp\Artax;
 
-use Amp\Reactor,
-    Amp\Failure,
-    Amp\Success,
-    Amp\Deferred,
-    Nbsock\Connector;
+use Amp\Success,
+    Amp\Deferred;
 
 class SocketPool {
     const OP_HOST_CONNECTION_LIMIT = 'op.host-conn-limit';
     const OP_MS_IDLE_TIMEOUT = 'op.ms-idle-timeout';
-    const OP_MS_CONNECT_TIMEOUT = Connector::OP_MS_CONNECT_TIMEOUT;
-    const OP_BINDTO = Connector::OP_BIND_IP_ADDRESS;
+    const OP_MS_CONNECT_TIMEOUT = "timeout";
+    const OP_BINDTO = "bind_to";
 
-    private $reactor;
-    private $connector;
     private $sockets = [];
     private $queuedSocketRequests = [];
     private $socketIdUriMap = [];
@@ -27,11 +22,6 @@ class SocketPool {
         self::OP_BINDTO => '',
     ];
     private $needsRebind;
-
-    public function __construct(Reactor $reactor, Connector $connector = null) {
-        $this->reactor = $reactor;
-        $this->connector = $connector ?: new Connector($reactor);
-    }
 
     /**
      * Checkout a socket from the specified URI authority
@@ -69,13 +59,13 @@ class SocketPool {
                 && ($bindToIp == $options[self::OP_BINDTO])
             ) {
                 $poolStruct->isAvailable = false;
-                $this->reactor->disable($poolStruct->idleWatcher);
+                \Amp\disable($poolStruct->idleWatcher);
                 return $poolStruct->resource;
             } elseif ($bindToIp) {
                 $needsRebind = true;
             } else {
                 $poolStruct->isAvailable = false;
-                $this->reactor->disable($poolStruct->idleWatcher);
+                \Amp\disable($poolStruct->idleWatcher);
 
                 return $poolStruct->resource;
             }
@@ -122,7 +112,7 @@ class SocketPool {
         $this->pendingSockets[$uri] = isset($this->pendingSockets[$uri])
             ? $this->pendingSockets[$uri] + 1
             : 1;
-        $futureSocket = $this->connector->connect($uri, $options);
+        $futureSocket = \Amp\Socket\connect($uri, $options);
         $futureSocket->when(function($error, $socket) use ($promisor, $uri, $options) {
             if ($error) {
                 $promisor->fail($error);
@@ -175,7 +165,7 @@ class SocketPool {
 
         $poolStruct = $this->sockets[$uri][$socketId];
         if ($poolStruct->idleWatcher) {
-            $this->reactor->cancel($poolStruct->idleWatcher);
+            \Amp\cancel($poolStruct->idleWatcher);
         }
         unset(
             $this->sockets[$uri][$socketId],
@@ -250,9 +240,9 @@ class SocketPool {
 
     private function initializeIdleTimeout(SocketPoolStruct $poolStruct) {
         if (isset($poolStruct->idleWatcher)) {
-            $this->reactor->enable($poolStruct->idleWatcher);
+            \Amp\enable($poolStruct->idleWatcher);
         } else {
-            $poolStruct->idleWatcher = $this->reactor->once(function() use ($poolStruct) {
+            $poolStruct->idleWatcher = \Amp\once(function() use ($poolStruct) {
                 $this->unloadSocket($poolStruct->uri, $poolStruct->id);
             }, $poolStruct->msIdleTimeout);
         }

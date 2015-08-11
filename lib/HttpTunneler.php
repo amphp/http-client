@@ -2,16 +2,10 @@
 
 namespace Amp\Artax;
 
-use Amp\Reactor;
 use Amp\Deferred;
 
 class HttpTunneler {
-    private $reactor;
     private static $READ_GRANULARITY = 32768;
-
-    public function __construct(Reactor $reactor) {
-        $this->reactor = $reactor;
-    }
 
     /**
      * Establish an HTTP tunnel to the specified authority over this socket
@@ -36,17 +30,17 @@ class HttpTunneler {
         $bytesWritten = @fwrite($socket, $struct->writeBuffer);
 
         if ($bytesToWrite === $bytesWritten) {
-            $this->reactor->cancel($struct->writeWatcher);
+            \Amp\cancel($struct->writeWatcher);
             $struct->parser = new Parser(Parser::MODE_RESPONSE);
             $struct->parser->enqueueResponseMethodMatch('CONNECT');
-            $struct->readWatcher = $this->reactor->onReadable($socket, function() use ($struct) {
+            $struct->readWatcher = \Amp\onReadable($socket, function() use ($struct) {
                 $this->doRead($struct);
             });
         } elseif ($bytesWritten > 0) {
             $struct->writeBuffer = substr($struct->writeBuffer, 0, $bytesWritten);
             $this->enableWriteWatcher($struct);
         } elseif ($this->isSocketDead($socket)) {
-            $this->reactor->cancel($struct->writeWatcher);
+            \Amp\cancel($struct->writeWatcher);
             $struct->promisor->fail(new SocketException(
                 'Proxy CONNECT failed: socket went away while writing tunneling request'
             ));
@@ -61,7 +55,7 @@ class HttpTunneler {
 
     private function enableWriteWatcher(HttpTunnelStruct $struct) {
         if ($struct->writeWatcher === null) {
-            $struct->writeWatcher = $this->reactor->onWritable($struct->socket, function() use ($struct) {
+            $struct->writeWatcher = \Amp\onWritable($struct->socket, function() use ($struct) {
                 $this->doWrite($struct);
             });
         }
@@ -73,7 +67,7 @@ class HttpTunneler {
         if ($data != '') {
             $this->parseSocketData($struct, $data);
         } elseif ($this->isSocketDead($socket)) {
-            $this->reactor->cancel($struct->readWatcher);
+            \Amp\cancel($struct->readWatcher);
             $struct->promisor->fail(new SocketException(
                 'Proxy CONNECT failed: socket went away while awaiting tunneling response'
             ));
@@ -92,15 +86,15 @@ class HttpTunneler {
                 // Tunnel connected! We're finished \o/ #WinningAtLife #DealWithIt
                 stream_context_set_option($struct->socket, 'artax*', 'is_tunneled', true);
                 $struct->promisor->succeed($struct->socket);
-                $this->reactor->cancel($struct->readWatcher);
+                \Amp\cancel($struct->readWatcher);
             } else {
                 $struct->promisor->fail(new ClientException(
                     sprintf('Unexpected response status received from proxy: %d', $status)
                 ));
-                $this->reactor->cancel($struct->readWatcher);
+                \Amp\cancel($struct->readWatcher);
             }
         } catch (ParseException $e) {
-            $this->reactor->cancel($struct->readWatcher);
+            \Amp\cancel($struct->readWatcher);
             $struct->promisor->fail(new ClientException(
                 'Invalid HTTP response received from proxy while establishing tunnel',
                 0,

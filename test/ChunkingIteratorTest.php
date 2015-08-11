@@ -3,7 +3,6 @@
 namespace Amp\Test\Artax;
 
 class ChunkingIteratorTest extends \PHPUnit_Framework_TestCase {
-
     public function testIteratorOutputChunking() {
         $iter = new \ArrayIterator([
             'aaa',

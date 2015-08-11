@@ -2,12 +2,8 @@
 
 namespace Amp\Artax;
 
-use Amp\Reactor,
-    Amp\Deferred,
-    Amp\Failure,
-    Amp\Promise,
-    Nbsock\Encryptor,
-    Nbsock\Connector,
+use Amp\Deferred,
+    Amp\Socket as socket,
     Amp\Artax\Cookie\Cookie,
     Amp\Artax\Cookie\CookieJar,
     Amp\Artax\Cookie\ArrayCookieJar,
@@ -16,8 +12,8 @@ use Amp\Reactor,
 class Client implements HttpClient {
     const USER_AGENT = 'Amp\Artax/1.0.0-dev (PHP)';
 
-    const OP_BINDTO = Connector::OP_BIND_IP_ADDRESS;
-    const OP_MS_CONNECT_TIMEOUT = Connector::OP_MS_CONNECT_TIMEOUT;
+    const OP_BINDTO = "bind_to";
+    const OP_MS_CONNECT_TIMEOUT = "timeout";
     const OP_HOST_CONNECTION_LIMIT = SocketPool::OP_HOST_CONNECTION_LIMIT;
     const OP_MS_KEEP_ALIVE_TIMEOUT = SocketPool::OP_MS_IDLE_TIMEOUT;
     const OP_PROXY_HTTP = HttpSocketPool::OP_PROXY_HTTP;
@@ -40,10 +36,8 @@ class Client implements HttpClient {
     const VERBOSE_READ = 0b10;
     const VERBOSE_ALL  = 0b11;
 
-    private $reactor;
     private $cookieJar;
     private $socketPool;
-    private $encryptor;
     private $writerFactory;
     private $hasZlib;
     private $queue;
@@ -69,18 +63,9 @@ class Client implements HttpClient {
         self::OP_CRYPTO => [],
     ];
 
-    public function __construct(
-        Reactor $reactor = null,
-        CookieJar $cookieJar = null,
-        HttpSocketPool $socketPool = null,
-        Encryptor $encryptor = null,
-        WriterFactory $writerFactory = null
-    ) {
-        $reactor = $reactor ?: \Amp\reactor();
-        $this->reactor = $reactor;
+    public function __construct(CookieJar $cookieJar = null, HttpSocketPool $socketPool = null, WriterFactory $writerFactory = null) {
         $this->cookieJar = $cookieJar ?: new ArrayCookieJar;
-        $this->socketPool = $socketPool ?: new HttpSocketPool($reactor);
-        $this->encryptor = $encryptor ?: new Encryptor($reactor);
+        $this->socketPool = $socketPool ?: new HttpSocketPool();
         $this->writerFactory = $writerFactory ?: new WriterFactory;
         $this->hasZlib = extension_loaded('zlib');
         $this->dequeuer = function() {
@@ -90,7 +75,7 @@ class Client implements HttpClient {
         };
 
         /*
-        $this->reactor->repeat(function() {
+        \Amp\repeat(function() {
             printf("outstanding requests: %s\n", self::$outstandingRequests);
         }, 1000);
         */
@@ -155,7 +140,7 @@ class Client implements HttpClient {
     }
 
     private function processAggregateBody(RequestCycle $cycle, AggregateBody $body) {
-        $promise = $body->getBody($this->reactor);
+        $promise = $body->getBody();
         $promise->when(function($error, $result) use ($cycle, $body) {
             if ($error) {
                 $this->fail($cycle, $error);
@@ -389,7 +374,7 @@ class Client implements HttpClient {
 
     private function enableCrypto(RequestCycle $cycle) {
         $cryptoOptions = $this->generateCryptoOptions($cycle);
-        $cryptoPromise = $this->encryptor->enable($cycle->socket, $cryptoOptions);
+        $cryptoPromise = socket\cryptoEnable($cycle->socket, $cryptoOptions);
         $cryptoPromise->when(function($error) use ($cycle) {
             if ($error) {
                 // If crypto failed we make sure the socket pool gets rid of its reference
@@ -432,13 +417,13 @@ class Client implements HttpClient {
         ]);
 
         $cycle->parser = $parser;
-        $cycle->readWatcher = $this->reactor->onReadable($cycle->socket, function() use ($cycle) {
+        $cycle->readWatcher = \Amp\onReadable($cycle->socket, function() use ($cycle) {
             $this->onReadableSocket($cycle);
         });
 
         $timeout = $cycle->options[self::OP_MS_TRANSFER_TIMEOUT];
         if ($timeout > 0) {
-            $cycle->transferTimeoutWatcher = $this->reactor->once(function() use ($cycle, $timeout) {
+            $cycle->transferTimeoutWatcher = \Amp\once(function() use ($cycle, $timeout) {
                 $this->fail($cycle, new TimeoutException(
                     sprintf('Allowed transfer timeout exceeded: %d ms', $timeout)
                 ));
@@ -487,7 +472,7 @@ class Client implements HttpClient {
                 }
                 
                 if ($cycle->parser->getBuffer()) {
-                    $this->reactor->immediately(function() use ($cycle) {
+                    \Amp\immediately(function() use ($cycle) {
                         $this->parseSocketData($cycle);
                     });
                 }
@@ -562,15 +547,15 @@ class Client implements HttpClient {
 
     private function collectRequestCycleWatchers(RequestCycle $cycle) {
         if (isset($cycle->readWatcher)) {
-            $this->reactor->cancel($cycle->readWatcher);
+            \Amp\cancel($cycle->readWatcher);
             $cycle->readWatcher = null;
         }
         if (isset($cycle->continueWatcher)) {
-            $this->reactor->cancel($cycle->continueWatcher);
+            \Amp\cancel($cycle->continueWatcher);
             $cycle->continueWatcher = null;
         }
         if (isset($cycle->transferTimeoutWatcher)) {
-            $this->reactor->cancel($cycle->transferTimeoutWatcher);
+            \Amp\cancel($cycle->transferTimeoutWatcher);
             $cycle->transferTimeoutWatcher = null;
         }
     }
@@ -801,7 +786,7 @@ class Client implements HttpClient {
 
     private function writeRequest(RequestCycle $cycle) {
         $rawHeaders = $this->generateRawRequestHeaders($cycle->request);
-        $writePromise = (new BufferWriter)->write($this->reactor, $cycle->socket, $rawHeaders);
+        $writePromise = (new BufferWriter)->write($cycle->socket, $rawHeaders);
         $writePromise->watch(function($update) use ($cycle) {
             $cycle->futureResponse->update([Notify::SOCK_DATA_OUT, $update]);
             if ($cycle->options[self::OP_VERBOSITY] & self::VERBOSE_SEND) {
@@ -852,7 +837,7 @@ class Client implements HttpClient {
             // We're finished if there's no body in the request.
             $cycle->futureResponse->update([Notify::REQUEST_SENT, $cycle->request]);
         } elseif ($this->requestExpects100Continue($cycle->request)) {
-            $cycle->continueWatcher = $this->reactor->once(function() use ($cycle) {
+            $cycle->continueWatcher = \Amp\once(function() use ($cycle) {
                 $this->proceedFrom100ContinueState($cycle);
             }, $cycle->options[self::OP_MS_100_CONTINUE_TIMEOUT]);
         } else {
@@ -873,14 +858,14 @@ class Client implements HttpClient {
     private function proceedFrom100ContinueState(RequestCycle $cycle) {
         $continueWatcher = $cycle->continueWatcher;
         $cycle->continueWatcher = null;
-        $this->reactor->cancel($continueWatcher);
+        \Amp\cancel($continueWatcher);
         $this->writeBody($cycle);
     }
 
     private function writeBody(RequestCycle $cycle, $body) {
         try {
             $writer = $this->writerFactory->make($body);
-            $writePromise = $writer->write($this->reactor, $cycle->socket, $body);
+            $writePromise = $writer->write($cycle->socket, $body);
             $writePromise->watch(function($update) use ($cycle) {
                 $cycle->futureResponse->update([Notify::SOCK_DATA_OUT, $update]);
                 if ($cycle->options[self::OP_VERBOSITY] & self::VERBOSE_SEND) {

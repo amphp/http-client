@@ -2,14 +2,12 @@
 
 namespace Amp\Artax;
 
-use Amp\Reactor;
 use Amp\Success;
 use Amp\Deferred;
 use Amp\Promise;
 
 class IteratorWriter implements Writer {
     private $writerFactory;
-    private $reactor;
     private $socket;
     private $iterator;
     private $promisor;
@@ -25,18 +23,16 @@ class IteratorWriter implements Writer {
     /**
      * Write iterator content to the socket.
      *
-     * @param Reactor $reactor
      * @param resource $socket
      * @param mixed $iterator
      * @throws \DomainException On invalid iterator element.
      * @return \Amp\Promise
      */
-    public function write(Reactor $reactor, $socket, $iterator) {
+    public function write($socket, $iterator) {
         if (!$iterator->valid()) {
             return new Success;
         }
 
-        $this->reactor = $reactor;
         $this->socket = $socket;
         $this->iterator = $iterator;
         $this->promisor = new Deferred;
@@ -65,7 +61,7 @@ class IteratorWriter implements Writer {
     private function finalizeEventualWriteElement($current) {
         try {
             $this->writer = $this->writerFactory->make($current);
-            $writePromise = $this->writer->write($this->reactor, $this->socket, $current);
+            $writePromise = $this->writer->write($this->socket, $current);
             $writePromise->watch(function($update) {
                 $this->promisor->update($update);
             });

@@ -20,9 +20,15 @@
     ],
     "require": {
         "php": ">=5.5.0",
-        "amphp/amp": "1.0.x-dev",
-        "rdlowrey/nbsock": "~0.7.0"
+        "amphp/amp": "^1",
+        "amphp/socket": "~0.8.0"
     },
+    "require-dev": {
+        "phpunit/phpunit": "~4.8",
+        "fabpot/php-cs-fixer": "~1.9"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
     "autoload": {
         "psr-4": {
             "Amp\\Artax\\": "lib/"
