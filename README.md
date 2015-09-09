@@ -346,6 +346,7 @@ A brief summary of the available options follows.
 | OP_VERBOSITY                | A bitmask of client constants controlling raw message output to the console. |
 | OP_COMBINE_COOKIES          | A boolean (default: `true`) controlling whether or not cookie headers are combined into a single header when sending requests. |
 | OP_CRYPTO                   | An array controlling TLS encryption options. |
+| OP_DEFAULT_USER_AGENT       | A string that will be set for each request's User-Agent if one has not already been provided. |
 
 
 ### Miscellaneous
