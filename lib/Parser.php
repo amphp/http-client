@@ -341,7 +341,7 @@ class Parser {
         trailers_start: {
             $firstTwoBytes = substr($this->buffer, 0, 2);
 
-            if ($firstTwoBytes === false || $firstTwoBytes === "\r") {
+            if ($firstTwoBytes == "" || $firstTwoBytes === "\r") {
                 goto more_data_needed;
             } elseif ($firstTwoBytes === "\r\n") {
                 $this->buffer = substr($this->buffer, 2);

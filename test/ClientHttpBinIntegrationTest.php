@@ -6,6 +6,9 @@ use Amp\Artax\Client;
 use Amp\Artax\Request;
 use Amp\Artax\FileBody;
 use Amp\Artax\FormBody;
+use Amp\NativeReactor;
+
+\Amp\reactor(new NativeReactor());
 
 class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
     public function testDefaultUserAgentSent() {
