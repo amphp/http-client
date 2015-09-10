@@ -884,7 +884,7 @@ class Client implements HttpClient {
         }
     }
 
-    private function fail(RequestCycle $cycle, \Exception $error) {
+    private function fail(RequestCycle $cycle, $error) {
         $this->collectRequestCycleWatchers($cycle);
 
         if ($cycle->socket) {
