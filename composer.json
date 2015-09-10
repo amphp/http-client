@@ -1,54 +1,48 @@
 {
-  "name": "amphp/artax",
-  "homepage": "https://github.com/amphp/artax",
-  "description": "Asynchronous parallel HTTP/1.1 client built on the Amp concurrency framework",
-  "keywords": [
-    "http",
-    "rest",
-    "client",
-    "parallel",
-    "async",
-    "non-blocking"
-  ],
-  "license": "MIT",
-  "authors": [
-    {
-      "name": "Daniel Lowrey",
-      "email": "rdlowrey@gmail.com",
-      "role": "Creator / Lead Developer"
+    "name": "amphp/artax",
+    "homepage": "https://github.com/amphp/artax",
+    "description": "Asynchronous parallel HTTP/1.1 client built on the Amp concurrency framework",
+    "keywords": [
+        "http",
+        "rest",
+        "client",
+        "parallel",
+        "async",
+        "non-blocking"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Daniel Lowrey",
+            "email": "rdlowrey@gmail.com",
+            "role": "Creator / Lead Developer"
+        }
+    ],
+    "require": {
+        "php": ">=5.5.0",
+        "amphp/amp": "^1",
+        "amphp/socket": "^0.9"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "~4.8",
+        "fabpot/php-cs-fixer": "~1.9"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "autoload": {
+        "psr-4": {
+            "Amp\\Artax\\": "lib/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Amp\\Test\\Artax\\": "test/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "1.0.x-dev",
+            "dev-v2": "2.0.0-dev"
+        }
     }
-  ],
-  "require": {
-    "php": ">=5.5.0",
-    "amphp/amp": "^1",
-    "amphp/socket": "^0.9"
-  },
-  "require-dev": {
-    "phpunit/phpunit": "~4.8",
-    "fabpot/php-cs-fixer": "~1.9"
-  },
-  "minimum-stability": "dev",
-  "prefer-stable": true,
-  "autoload": {
-    "psr-4": {
-      "Amp\\Artax\\": "lib/"
-    }
-  },
-  "autoload-dev": {
-    "psr-4": {
-      "Amp\\Test\\Artax\\": "test/"
-    }
-  },
-  "extra": {
-    "branch-alias": {
-      "dev-master": "1.0.x-dev",
-      "dev-v2": "2.0.0-dev"
-    }
-  },
-  "repositories": [
-    {
-      "type": "git",
-      "url": "git@github.com:amphp/socket"
-    }
-  ]
 }
