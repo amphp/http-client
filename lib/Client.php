@@ -992,6 +992,9 @@ class Client implements HttpClient {
             case self::OP_CRYPTO:
                 $this->options[self::OP_CRYPTO] = (array) $value;
                 break;
+            case self::OP_DEFAULT_USER_AGENT:
+                $this->options[self::OP_DEFAULT_USER_AGENT] = (string) $value;
+                break;
             default:
                 throw new \DomainException(
                     sprintf("Unknown option: %s", $option)
