@@ -487,7 +487,7 @@ class Client implements HttpClient {
                 } else {
                     $this->assignParsedResponse($cycle, $parsedResponseArr);
                 }
-                
+
                 if ($cycle->parser->getBuffer()) {
                     $this->reactor->immediately(function() use ($cycle) {
                         $this->parseSocketData($cycle);
@@ -991,6 +991,9 @@ class Client implements HttpClient {
                 break;
             case self::OP_CRYPTO:
                 $this->options[self::OP_CRYPTO] = (array) $value;
+                break;
+            case self::OP_DEFAULT_USER_AGENT:
+                $this->options[self::OP_DEFAULT_USER_AGENT] = (string) $value;
                 break;
             default:
                 throw new \DomainException(
