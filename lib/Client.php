@@ -470,7 +470,7 @@ class Client implements HttpClient {
                 } else {
                     $this->assignParsedResponse($cycle, $parsedResponseArr);
                 }
-                
+
                 if ($cycle->parser->getBuffer()) {
                     \Amp\immediately(function() use ($cycle) {
                         $this->parseSocketData($cycle);
@@ -644,7 +644,7 @@ class Client implements HttpClient {
         $status = $response->getStatus();
         $method = $request->getMethod();
 
-        if ($status < 200 || $status > 399 || $method === 'HEAD') {
+        if ($status < 300 || $status > 399 || $method === 'HEAD') {
             return null;
         }
 
