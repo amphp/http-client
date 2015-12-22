@@ -83,17 +83,23 @@ class HttpTunneler {
             }
 
             $status = $parsedResponseArr['status'];
-            if ($status == 200) {
-                // Tunnel connected! We're finished \o/ #WinningAtLife #DealWithIt
-                stream_context_set_option($struct->socket, 'artax*', 'is_tunneled', true);
-                $struct->promisor->succeed($struct->socket);
-                \Amp\cancel($struct->readWatcher);
-            } else {
-                $struct->promisor->fail(new ClientException(
-                    sprintf('Unexpected response status received from proxy: %d', $status)
-                ));
-                \Amp\cancel($struct->readWatcher);
+            switch ($status) {
+                case 200:
+                    // Tunnel connected! We're finished \o/ #WinningAtLife #DealWithIt
+                    stream_context_set_option($struct->socket, 'artax*', 'is_tunneled', true);
+                    $struct->promisor->succeed($struct->socket);
+                    break;
+                case 407:
+                    $struct->promisor->fail(new ClientException(
+                        sprintf('Proxy requires authentication', $status)
+                    ));
+                    break;
+                default:
+                    $struct->promisor->fail(new ClientException(
+                        sprintf('Unexpected response status received from proxy: %d', $status)
+                    ));
             }
+            \Amp\cancel($struct->readWatcher);
         } catch (ParseException $e) {
             \Amp\cancel($struct->readWatcher);
             $struct->promisor->fail(new ClientException(
