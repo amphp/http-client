@@ -18,6 +18,8 @@ class Client implements HttpClient {
     const OP_MS_KEEP_ALIVE_TIMEOUT = SocketPool::OP_MS_IDLE_TIMEOUT;
     const OP_PROXY_HTTP = HttpSocketPool::OP_PROXY_HTTP;
     const OP_PROXY_HTTPS = HttpSocketPool::OP_PROXY_HTTPS;
+    const OP_PROXY_HTTP_AUTH = HttpSocketPool::OP_PROXY_HTTP_AUTH;
+    const OP_PROXY_HTTPS_AUTH = HttpSocketPool::OP_PROXY_HTTPS_AUTH;
     const OP_AUTO_ENCODING = 'op.auto-encoding';
     const OP_MS_TRANSFER_TIMEOUT = 'op.ms-transfer-timeout';
     const OP_MS_100_CONTINUE_TIMEOUT = 'op.ms-100-continue-timeout';
@@ -971,6 +973,12 @@ class Client implements HttpClient {
                 break;
             case self::OP_PROXY_HTTPS:
                 $this->options[self::OP_PROXY_HTTPS] = $value;
+                break;
+            case self::OP_PROXY_HTTP_AUTH:
+                $this->options[self::OP_PROXY_HTTP_AUTH] = $value;
+                break;
+            case self::OP_PROXY_HTTPS_AUTH:
+                $this->options[self::OP_PROXY_HTTPS_AUTH] = $value;
                 break;
             case self::OP_CRYPTO:
                 $this->options[self::OP_CRYPTO] = (array) $value;

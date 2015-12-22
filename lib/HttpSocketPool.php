@@ -8,12 +8,16 @@ use Amp\Deferred;
 class HttpSocketPool {
     const OP_PROXY_HTTP = 'op.proxy-http';
     const OP_PROXY_HTTPS = 'op.proxy-https';
+    const OP_PROXY_HTTP_AUTH = 'op.proxy-https-auth';
+    const OP_PROXY_HTTPS_AUTH = 'op.proxy-https-auth';
 
     private $sockPool;
     private $tunneler;
     private $options = [
         self::OP_PROXY_HTTP => null,
         self::OP_PROXY_HTTPS => null,
+        self::OP_PROXY_HTTP_AUTH => null,
+        self::OP_PROXY_HTTPS_AUTH => null,
     ];
 
     public function __construct(SocketPool $sockPool = null, HttpTunneler $tunneler = null) {
@@ -58,8 +62,10 @@ class HttpSocketPool {
 
         if ($scheme === 'http') {
             $proxy = $options[self::OP_PROXY_HTTP];
+            $proxyAuth = $options[self::OP_PROXY_HTTP_AUTH];
         } elseif ($scheme === 'https') {
             $proxy = $options[self::OP_PROXY_HTTPS];
+            $proxyAuth = $options[self::OP_PROXY_HTTPS_AUTH];
         } else {
             return new Failure(new \DomainException(
                 'Either http:// or https:// URI scheme required for HTTP socket checkout'
@@ -73,11 +79,11 @@ class HttpSocketPool {
         $uri = $proxy ? "tcp://{$proxy}#{$authority}" : "tcp://{$authority}";
         $promisor = new Deferred;
         $futureCheckout = $this->sockPool->checkout($uri, $options);
-        $futureCheckout->when(function($error, $socket) use ($promisor, $proxy, $authority) {
+        $futureCheckout->when(function($error, $socket) use ($promisor, $proxy, $authority, $proxyAuth) {
             if ($error) {
                 $promisor->fail($error);
             } elseif ($proxy) {
-                $this->tunnelThroughProxy($promisor, $socket, $authority);
+                $this->tunnelThroughProxy($promisor, $socket, $authority, $proxyAuth);
             } else {
                 $promisor->succeed($socket);
             }
@@ -86,9 +92,9 @@ class HttpSocketPool {
         return $promisor->promise();
     }
 
-    private function tunnelThroughProxy(Deferred $promisor, $socket, $authority) {
+    private function tunnelThroughProxy(Deferred $promisor, $socket, $authority, $proxyAuth) {
         if (empty(stream_context_get_options($socket)['artax*']['is_tunneled'])) {
-            $futureTunnel = $this->tunneler->tunnel($socket, $authority);
+            $futureTunnel = $this->tunneler->tunnel($socket, $authority, $proxyAuth);
             $futureTunnel->when(function($error) use ($promisor, $socket) {
                 if ($error) {
                     $promisor->fail($error);

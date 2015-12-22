@@ -14,11 +14,12 @@ class HttpTunneler {
      * @param string $authority
      * @return \Amp\Promise
      */
-    public function tunnel($socket, $authority) {
+    public function tunnel($socket, $authority, $proxyAuth) {
         $struct = new HttpTunnelStruct;
         $struct->promisor = new Deferred;
         $struct->socket = $socket;
-        $struct->writeBuffer = "CONNECT {$authority} HTTP/1.1\r\n\r\n";
+        $authHeader = $proxyAuth ? 'Proxy-Authorization: Basic ' . base64_encode($proxyAuth) . "\r\n" : '';
+        $struct->writeBuffer = "CONNECT {$authority} HTTP/1.1\r\n$authHeader\r\n";
         $this->doWrite($struct);
 
         return $struct->promisor->promise();
