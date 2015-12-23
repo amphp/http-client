@@ -8,7 +8,7 @@ use Amp\Deferred;
 class HttpSocketPool {
     const OP_PROXY_HTTP = 'op.proxy-http';
     const OP_PROXY_HTTPS = 'op.proxy-https';
-    const OP_PROXY_HTTP_AUTH = 'op.proxy-https-auth';
+    const OP_PROXY_HTTP_AUTH = 'op.proxy-http-auth';
     const OP_PROXY_HTTPS_AUTH = 'op.proxy-https-auth';
 
     private $sockPool;
