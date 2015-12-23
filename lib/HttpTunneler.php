@@ -14,7 +14,7 @@ class HttpTunneler {
      * @param string $authority
      * @return \Amp\Promise
      */
-    public function tunnel($socket, $authority, $proxyAuth) {
+    public function tunnel($socket, $authority, $proxyAuth = null) {
         $struct = new HttpTunnelStruct;
         $struct->promisor = new Deferred;
         $struct->socket = $socket;
