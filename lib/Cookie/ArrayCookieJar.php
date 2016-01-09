@@ -111,7 +111,7 @@ class ArrayCookieJar implements CookieJar {
             $isMatch = false;
         } elseif (filter_var($requestDomain, FILTER_VALIDATE_IP)) {
             $isMatch = false;
-        } elseif (rtrim($requestDomain, $cookieDomain) . $cookieDomain === $requestDomain) {
+        } elseif (substr($requestDomain, 0, -\strlen($cookieDomain)) . $cookieDomain === $requestDomain) {
             $isMatch = true;
         } elseif (strrpos($cookieDomain, $requestDomain) !== false) {
             $isMatch = true;
