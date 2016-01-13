@@ -36,10 +36,5 @@
         "psr-4": {
             "Amp\\Test\\Artax\\": "test/"
         }
-    },
-    "extra": {
-        "branch-alias": {
-            "dev-master": "1.0.x-dev"
-        }
     }
 }
