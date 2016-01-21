@@ -423,14 +423,15 @@ class Client implements HttpClient {
     private function onCryptoCompletion(RequestCycle $cycle) {
         $parser = new Parser(Parser::MODE_RESPONSE);
         $parser->enqueueResponseMethodMatch($cycle->request->getMethod());
+        $futureResponse = $cycle->futureResponse;
         $parser->setAllOptions([
             // @TODO Expose a Client::OP_BODY_SWAP_SIZE option
             // @TODO Add support for non-blocking filesystem IO
             Parser::OP_DISCARD_BODY => $cycle->options[self::OP_DISCARD_BODY],
             Parser::OP_RETURN_BEFORE_ENTITY => true,
-            Parser::OP_BODY_DATA_CALLBACK => function($data) use ($cycle) {
-                    $cycle->futureResponse->update([Notify::RESPONSE_BODY_DATA, $data]);
-                }
+            Parser::OP_BODY_DATA_CALLBACK => function($data) use ($futureResponse) {
+                $futureResponse->update([Notify::RESPONSE_BODY_DATA, $data]);
+            }
         ]);
 
         $cycle->parser = $parser;
