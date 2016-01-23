@@ -538,13 +538,31 @@ class Client implements HttpClient {
             return $this->redirect($cycle, $newUri);
         }
 
+        if ($cycle->previousResponse) {
+            $response->setPreviousResponse($cycle->previousResponse);
+        }
+
+        $socket = $cycle->socket;
+        $cycle->futureResponse->update([Notify::RESPONSE, $cycle->response, "export_socket" => function () use (&$socket, $parsedResponseArr) {
+            if ($socket) {
+                $sock = $socket;
+                $socket = null;
+                $this->socketPool->clear($sock);
+                return [$sock, $parsedResponseArr['buffer']];
+            }
+            throw new \LogicException("Cannot export socket after notification callback invocation");
+        }]);
+
         // Do socket check-in *after* redirects because we handle the socket
         // differently if we need to redirect.
-        if ($this->shouldCloseSocketAfterResponse($cycle->request, $cycle->response)) {
-            @fclose($cycle->socket);
-            $this->socketPool->clear($cycle->socket);
-        } else {
-            $this->socketPool->checkin($cycle->socket);
+        if ($socket) {
+            if ($this->shouldCloseSocketAfterResponse($cycle->request, $cycle->response)) {
+                @fclose($socket);
+                $this->socketPool->clear($socket);
+            } else {
+                $this->socketPool->checkin($socket);
+            }
+            $socket = null;
         }
 
         // If we've held any sockets over from previous redirected requests
@@ -555,11 +573,6 @@ class Client implements HttpClient {
             }
         }
 
-        if ($cycle->previousResponse) {
-            $response->setPreviousResponse($cycle->previousResponse);
-        }
-
-        $cycle->futureResponse->update([Notify::RESPONSE, $cycle->response]);
         $cycle->futureResponse->succeed($response);
     }
 
