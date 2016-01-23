@@ -573,6 +573,7 @@ class Parser {
             'headers'  => $this->headers,
             'body'     => $this->body,
             'trace'    => $this->traceBuffer,
+            'buffer'   => $this->buffer,
             'headersOnly' => false,
         ];
 
