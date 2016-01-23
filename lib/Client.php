@@ -534,7 +534,7 @@ class Client implements HttpClient {
         // we need to check those back in now.
         if ($cycle->redirectedSockets) {
             foreach ($cycle->redirectedSockets as $socket) {
-                $this->socketPool->checkin($cycle->socket);
+                $this->socketPool->checkin($socket);
             }
         }
 
