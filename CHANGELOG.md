@@ -1,3 +1,9 @@
+v1.0.2
+------
+
+- Complete Notify::RESPONSE with an export_socket function
+- Fixed cyclic reference with socket
+
 v1.0.1
 ------
 
