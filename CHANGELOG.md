@@ -1,3 +1,8 @@
+v2.0.2
+------
+
+- Include fixes from pull requests #78 and #87
+
 v2.0.1
 ------
 
