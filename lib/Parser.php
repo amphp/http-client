@@ -31,6 +31,10 @@ class Parser {
     const OP_BODY_DATA_CALLBACK = 5;
     const OP_RETURN_BEFORE_ENTITY = 6;
 
+    const DEFAULT_MAX_HEADER_BYTES = 8192;
+    const DEFAULT_MAX_BODY_BYTES = 10485760;
+    const DEFAULT_BODY_SWAP_SIZE = 2097152;
+
     private $mode;
     private $state = self::AWAITING_HEADERS;
     private $buffer = '';
@@ -51,9 +55,9 @@ class Parser {
         'CONTENT-LENGTH' => null
     ];
 
-    private $maxHeaderBytes = 8192;
-    private $maxBodyBytes = 10485760;
-    private $bodySwapSize = 2097152;
+    private $maxHeaderBytes = self::DEFAULT_MAX_HEADER_BYTES;
+    private $maxBodyBytes = self::DEFAULT_MAX_BODY_BYTES;
+    private $bodySwapSize = self::DEFAULT_BODY_SWAP_SIZE;
     private $discardBody = false;
     private $bodyDataCallback;
     private $returnBeforeEntity = false;
