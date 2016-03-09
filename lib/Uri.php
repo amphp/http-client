@@ -436,13 +436,13 @@ class Uri {
 
     private function parseQueryParameters() {
         if ($this->query) {
-            parse_str(rawurldecode($this->query), $parameters);
+            $parameters = [];
+            foreach (explode("&", $this->query) as $pair) {
+                $pair = explode("=", $pair, 2);
+                $parameters[rawurldecode($pair[0])][] = rawurldecode(isset($pair[1]) ? $pair[1] : "");
+            }
 
             $this->queryParameters = $parameters;
-            $this->query = str_replace('+', '%20', http_build_query($parameters, '', '&'));
-
-            // Fix http_build_query adding equals sign to empty keys
-            $this->query = str_replace('=&', '&', rtrim($this->query, '='));
         }
     }
 
