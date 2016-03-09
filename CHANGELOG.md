@@ -1,3 +1,8 @@
+v1.0.3
+------
+
+- Fix URI query string handling (do not rewrite)
+
 v1.0.2
 ------
 
