@@ -347,6 +347,9 @@ A brief summary of the available options follows.
 | OP_COMBINE_COOKIES          | A boolean (default: `true`) controlling whether or not cookie headers are combined into a single header when sending requests. |
 | OP_CRYPTO                   | An array controlling TLS encryption options. |
 | OP_DEFAULT_USER_AGENT       | A string set for each request's User-Agent if a UA has not already been provided. |
+| OP_BODY_SWAP_SIZE           | The size, in bytes, that should be used for body swap. |
+| OP_MAX_HEADER_BYTES         | The maximum size, in bytes, for a Response header. |
+| OP_MAX_BODY_BYTES           | The maximum size, in bytes, for a Response body. |
 
 
 ### Miscellaneous

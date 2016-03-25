@@ -31,6 +31,9 @@ class Client implements HttpClient {
     const OP_COMBINE_COOKIES = 'op.combine-cookies';
     const OP_CRYPTO = 'op.crypto';
     const OP_DEFAULT_USER_AGENT = 'op.default-user-agent';
+    const OP_BODY_SWAP_SIZE = 'op.body-swap-size';
+    const OP_MAX_HEADER_BYTES = 'op.max-header-bytes';
+    const OP_MAX_BODY_BYTES = 'op.max-body-bytes';
 
     const VERBOSE_NONE = 0b00;
     const VERBOSE_SEND = 0b01;
@@ -63,6 +66,9 @@ class Client implements HttpClient {
         self::OP_COMBINE_COOKIES => true,
         self::OP_CRYPTO => [],
         self::OP_DEFAULT_USER_AGENT => null,
+        self::OP_BODY_SWAP_SIZE => Parser::DEFAULT_BODY_SWAP_SIZE,
+        self::OP_MAX_HEADER_BYTES => Parser::DEFAULT_MAX_HEADER_BYTES,
+        self::OP_MAX_BODY_BYTES => Parser::DEFAULT_MAX_BODY_BYTES
     ];
 
     public function __construct(CookieJar $cookieJar = null, HttpSocketPool $socketPool = null, WriterFactory $writerFactory = null) {
@@ -411,9 +417,11 @@ class Client implements HttpClient {
         $parser->enqueueResponseMethodMatch($cycle->request->getMethod());
         $futureResponse = $cycle->futureResponse;
         $parser->setAllOptions([
-            // @TODO Expose a Client::OP_BODY_SWAP_SIZE option
             // @TODO Add support for non-blocking filesystem IO
             Parser::OP_DISCARD_BODY => $cycle->options[self::OP_DISCARD_BODY],
+            Parser::OP_BODY_SWAP_SIZE => $cycle->options[self::OP_BODY_SWAP_SIZE],
+            Parser::OP_MAX_HEADER_BYTES => $cycle->options[self::OP_MAX_HEADER_BYTES],
+            Parser::OP_MAX_BODY_BYTES => $cycle->options[self::OP_MAX_BODY_BYTES],
             Parser::OP_RETURN_BEFORE_ENTITY => true,
             Parser::OP_BODY_DATA_CALLBACK => function($data) use ($futureResponse) {
                 $futureResponse->update([Notify::RESPONSE_BODY_DATA, $data]);
@@ -994,6 +1002,15 @@ class Client implements HttpClient {
                 break;
             case self::OP_DEFAULT_USER_AGENT:
                 $this->options[self::OP_DEFAULT_USER_AGENT] = (string) $value;
+                break;
+            case self::OP_BODY_SWAP_SIZE:
+                $this->options[self::OP_BODY_SWAP_SIZE] = (int) $value;
+                break;
+            case self::OP_MAX_HEADER_BYTES:
+                $this->options[self::OP_MAX_HEADER_BYTES] = (int) $value;
+                break;
+            case self::OP_MAX_BODY_BYTES:
+                $this->options[self::OP_MAX_BODY_BYTES] = (int) $value;
                 break;
             default:
                 throw new \DomainException(
