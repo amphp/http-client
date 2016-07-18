@@ -1,3 +1,8 @@
+v2.0.4
+------
+
+- Fix CVE-2016-5385 "httpoxy" vulnerability with environment variables
+
 v2.0.3
 ------
 
