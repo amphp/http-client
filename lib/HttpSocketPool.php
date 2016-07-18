@@ -26,6 +26,12 @@ class HttpSocketPool {
     }
 
     private function autoDetectProxySettings() {
+        // See CVE-2016-5385, due to (emulation of) header copying with PHP web SAPIs into HTTP_* variables, HTTP_PROXY can be set by an user to any value he wants by setting the Proxy header
+        // Mitigate the vulnerability by only allowing CLI SAPIs to use HTTP(S)_PROXY environment variable
+        if (PHP_SAPI != "cli" && PHP_SAPI != "phpdbg" && PHP_SAPI != "embed") {
+            return;
+        }
+        
         if (($httpProxy = getenv('http_proxy')) || ($httpProxy = getenv('HTTP_PROXY'))) {
             $this->options[self::OP_PROXY_HTTP] = $this->getUriAuthority($httpProxy);
         }
