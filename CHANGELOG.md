@@ -1,3 +1,8 @@
+v2.0.5
+-----
+
+- Fix requests that use IPv6 addresses as host in the URL directly
+
 v2.0.4
 ------
 
