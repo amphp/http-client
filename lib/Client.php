@@ -317,8 +317,10 @@ class Client implements HttpClient {
         // Though servers are supposed to be able to handle standard port names on the end of the
         // Host header some fail to do this correctly. As a result, we strip the port from the end
         // if it's a standard 80 or 443
-        if (stripos($host, ':80') || stripos($host, ':443')) {
-            $host = parse_url($host, PHP_URL_HOST);
+        if (strpos($host, ':80') === strlen($host) - 3) {
+            $host = substr($host, 0, -3);
+        } else if (strpos($host, ':443') === strlen($host) - 4) {
+            $host = substr($host, 0, -4);
         }
 
         return $host;
