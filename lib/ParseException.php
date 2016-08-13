@@ -8,7 +8,7 @@ class ParseException extends ClientException {
     /**
      * Adds an array of parsed message values to the standard exception
      */
-    public function __construct(array $parsedMsgArr, $msg, $errno, \Exception $previousException = null) {
+    public function __construct(array $parsedMsgArr, $msg, $errno, \Throwable $previousException = null) {
         $this->parsedMsgArr = $parsedMsgArr;
         /** @noinspection PhpParamsInspection */
         parent::__construct($msg, $errno, $previousException);

@@ -142,7 +142,7 @@ The [amp concurrency framework][1] run loop always acts as a co-routine for gene
 
 ```php
 <?php
-Amp\run(function() {
+Amp\execute(function() {
     $client = new Amp\Artax\Client;
 
     // Dispatch two requests at the same time
@@ -219,23 +219,21 @@ While callbacks are sometimes considered a clumsy way to manage concurrency, it'
 <?php
 use Amp\Artax\Client;
 
-$reactor = Amp\reactor();
-$client = new Client($reactor);
-$request = (new Amp\Artax\Request)
-    ->setUri('http://www.google.com')
-    ->setHeader('Connection', 'close')
-;
-$promise = $client->request($request);
-$promise->when(function(Exception $error = null, $response = null) {
-    if ($error) {
-        // something went wrong :(
-    } else {
-        printf("Response complete: %d\n", $response->getStatus());
-    }
+Amp\execute(function() {
+	$client = new Client;
+	$request = (new Amp\Artax\Request)
+		->setUri('http://www.google.com')
+		->setHeader('Connection', 'close')
+	;
+	$promise = $client->request($request);
+	$promise->when(function(Exception $error = null, $response = null) {
+		if ($error) {
+			// something went wrong :(
+		} else {
+			printf("Response complete: %d\n", $response->getStatus());
+		}
+	});
 });
-
-// Nothing will happen until the event reactor runs.
-$reactor->run();
 ```
 
 
@@ -288,9 +286,9 @@ function myNotifyCallback(array $notifyData) {
  * notifications simply pass a callback to Promise::watch() as demonstrated
  * below.
  */
-$promise = (new Amp\Artax\Client)->request('http://www.google.com');
-$promise->watch('myNotifyCallback');
-$response = Amp\wait($promise);
+$observable = (new Amp\Artax\Client)->request('http://www.google.com');
+$observable->subscribe('myNotifyCallback');
+$response = Amp\wait($observable);
 
 printf(
     "\nResponse: HTTP/%s %d %s\n\n",
@@ -363,11 +361,11 @@ a usable progress bar on a per-request basis trivial. Consider:
 ```php
 <?php
 $uri = "http://www.google.com";
-$promise = (new Amp\Artax\Client)->request($uri);
-$promise->watch(new Amp\Artax\Progress(function($update) {
+$observable = (new Amp\Artax\Client)->request($uri);
+$observable->subscribe(new Amp\Artax\Progress(function($update) {
     echo "\r", round($update['fraction_complete'] * 100), " percent complete \r";
 }));
-$response = Amp\wait($promise);
+$response = Amp\wait($observable);
 ```
 
 The following keys are available in the `$update` array sent from the `Progress` object:

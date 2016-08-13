@@ -46,11 +46,11 @@ class HttpSocketPool {
     }
 
     /**
-     * I give you a URI, you promise me a socket at some point in the future
+     * I give you a URI, you awaitable me a socket at some point in the future
      *
      * @param string $uri
      * @param array $options
-     * @return \Amp\Promise
+     * @return \Interop\Async\Awaitable
      */
     public function checkout($uri, array $options = []) {
         // Normalize away any IPv6 brackets -- socket resolution will handle that
@@ -77,33 +77,33 @@ class HttpSocketPool {
         // limits transparently even when connecting through a proxy.
         $authority = "{$host}:{$port}";
         $uri = $proxy ? "tcp://{$proxy}#{$authority}" : "tcp://{$authority}";
-        $promisor = new Deferred;
+        $deferred = new Deferred;
         $futureCheckout = $this->sockPool->checkout($uri, $options);
-        $futureCheckout->when(function($error, $socket) use ($promisor, $proxy, $authority) {
+        $futureCheckout->when(function($error, $socket) use ($deferred, $proxy, $authority) {
             if ($error) {
-                $promisor->fail($error);
+                $deferred->fail($error);
             } elseif ($proxy) {
-                $this->tunnelThroughProxy($promisor, $socket, $authority);
+                $this->tunnelThroughProxy($deferred, $socket, $authority);
             } else {
-                $promisor->succeed($socket);
+                $deferred->resolve($socket);
             }
         });
 
-        return $promisor->promise();
+        return $deferred->getAwaitable();
     }
 
-    private function tunnelThroughProxy(Deferred $promisor, $socket, $authority) {
+    private function tunnelThroughProxy(Deferred $deferred, $socket, $authority) {
         if (empty(stream_context_get_options($socket)['artax*']['is_tunneled'])) {
             $futureTunnel = $this->tunneler->tunnel($socket, $authority);
-            $futureTunnel->when(function($error) use ($promisor, $socket) {
+            $futureTunnel->when(function($error) use ($deferred, $socket) {
                 if ($error) {
-                    $promisor->fail($error);
+                    $deferred->fail($error);
                 } else {
-                    $promisor->succeed($socket);
+                    $deferred->resolve($socket);
                 }
             });
         } else {
-            $promisor->succeed($socket);
+            $deferred->resolve($socket);
         }
     }
 

@@ -3,6 +3,7 @@
 namespace Amp\Artax;
 
 use Amp\Deferred,
+    Amp\Postponed,
     Amp\Socket as socket,
     Amp\Artax\Cookie\Cookie,
     Amp\Artax\Cookie\CookieJar,
@@ -83,9 +84,9 @@ class Client implements HttpClient {
         };
 
         /*
-        \Amp\repeat(function() {
+        \Amp\repeat(1000, function() {
             printf("outstanding requests: %s\n", self::$outstandingRequests);
-        }, 1000);
+        });
         */
     }
 
@@ -97,15 +98,15 @@ class Client implements HttpClient {
      *
      * @param array $urisAndRequests An array of URI strings and/or Request instances
      * @param array $options An array specifying options applicable only for this request batch
-     * @return array[\Amp\Promise] An array of promises whose keys match the request array
+     * @return array[\Amp\Observable] An array of awaitables whose keys match the request array
      */
     public function requestMulti(array $urisAndRequests, array $options = []) {
-        $promises = [];
+        $awaitables = [];
         foreach ($urisAndRequests as $key => $request) {
-            $promises[$key] = $this->request($request, $options);
+            $awaitables[$key] = $this->request($request, $options);
         }
 
-        return $promises;
+        return $awaitables;
     }
 
     /**
@@ -113,14 +114,14 @@ class Client implements HttpClient {
      *
      * @param mixed[string|\Amp\Artax\Request] An HTTP URI string or an \Amp\Artax\Request instance
      * @param array $options An array specifying options applicable only for this request
-     * @return \Amp\Promise A promise to resolve the request at some point in the future
+     * @return \Amp\Observable A awaitable to resolve the request at some point in the future
      */
     public function request($uriOrRequest, array $options = []) {
-        $promisor = new Deferred;
+        $postponed = new Postponed;
 
         try {
             $cycle = new RequestCycle;
-            $cycle->futureResponse = $promisor;
+            $cycle->futureResponse = $postponed;
             list($cycle->request, $cycle->uri) = $this->generateRequestFromUri($uriOrRequest);
             $cycle->options = $options ? array_merge($this->options, $options) : $this->options;
             $body = $cycle->request->getBody();
@@ -129,11 +130,11 @@ class Client implements HttpClient {
             } else {
                 $this->finalizeRequest($cycle);
             }
-        } catch (\Exception $e) {
-            $promisor->fail($e);
+        } catch (\Throwable $e) {
+            $postponed->fail($e);
         }
 
-        return $promisor->promise();
+        return $postponed->getObservable();
     }
 
     private function dequeueNextRequest() {
@@ -148,8 +149,8 @@ class Client implements HttpClient {
     }
 
     private function processAggregateBody(RequestCycle $cycle, AggregateBody $body) {
-        $promise = $body->getBody();
-        $promise->when(function($error, $result) use ($cycle, $body) {
+        $awaitable = $body->getBody();
+        $awaitable->when(function($error, $result) use ($cycle, $body) {
             if ($error) {
                 $this->fail($cycle, $error);
             } else {
@@ -160,8 +161,8 @@ class Client implements HttpClient {
     }
 
     private function processAggregateBodyHeaders(RequestCycle $cycle, AggregateBody $body) {
-        $promise = $body->getHeaders();
-        $promise->when(function($error, $result) use ($cycle, $body) {
+        $awaitable = $body->getHeaders();
+        $awaitable->when(function($error, $result) use ($cycle, $body) {
             if ($error) {
                 $this->fail($cycle, $error);
             } else {
@@ -174,12 +175,12 @@ class Client implements HttpClient {
     private function finalizeRequest(RequestCycle $cycle) {
         $uri = $cycle->uri;
         $options = $cycle->options;
-        $promisor = $cycle->futureResponse;
+        $postponed = $cycle->futureResponse;
         $request = $cycle->request;
 
         $this->normalizeRequestMethod($request);
         $this->normalizeRequestProtocol($request);
-        $this->normalizeRequestBodyHeaders($request, $options, $promisor);
+        $this->normalizeRequestBodyHeaders($request, $options);
         $this->normalizeRequestEncodingHeaderForZlib($request, $options);
         $this->normalizeRequestHostHeader($request, $uri);
         $this->normalizeRequestUserAgent($request, $options);
@@ -187,7 +188,7 @@ class Client implements HttpClient {
         $this->assignApplicableRequestCookies($request, $options);
 
         $this->queue[] = $cycle;
-        $promisor->promise()->when($this->dequeuer);
+        $postponed->getObservable()->when($this->dequeuer);
 
         if (count($this->queue) < 512) {
             $this->dequeueNextRequest();
@@ -374,7 +375,7 @@ class Client implements HttpClient {
 
         $cycle->socket = $socket;
         $cycle->socketProcuredAt = microtime(true);
-        $cycle->futureResponse->update([Notify::SOCK_PROCURED, null]);
+        $cycle->futureResponse->emit([Notify::SOCK_PROCURED, null]);
 
         if ($cycle->uri->getScheme() === 'https') {
             $this->enableCrypto($cycle);
@@ -385,8 +386,8 @@ class Client implements HttpClient {
 
     private function enableCrypto(RequestCycle $cycle) {
         $cryptoOptions = $this->generateCryptoOptions($cycle);
-        $cryptoPromise = socket\cryptoEnable($cycle->socket, $cryptoOptions);
-        $cryptoPromise->when(function($error) use ($cycle) {
+        $cryptoAwaitable = socket\cryptoEnable($cycle->socket, $cryptoOptions);
+        $cryptoAwaitable->when(function($error) use ($cycle) {
             if ($error) {
                 // If crypto failed we make sure the socket pool gets rid of its reference
                 // to this socket connection.
@@ -426,7 +427,7 @@ class Client implements HttpClient {
             Parser::OP_MAX_BODY_BYTES => $cycle->options[self::OP_MAX_BODY_BYTES],
             Parser::OP_RETURN_BEFORE_ENTITY => true,
             Parser::OP_BODY_DATA_CALLBACK => function($data) use ($futureResponse) {
-                $futureResponse->update([Notify::RESPONSE_BODY_DATA, $data]);
+                $futureResponse->emit([Notify::RESPONSE_BODY_DATA, $data]);
             }
         ]);
 
@@ -437,11 +438,11 @@ class Client implements HttpClient {
 
         $timeout = $cycle->options[self::OP_MS_TRANSFER_TIMEOUT];
         if ($timeout > 0) {
-            $cycle->transferTimeoutWatcher = \Amp\once(function() use ($cycle, $timeout) {
+            $cycle->transferTimeoutWatcher = \Amp\delay($timeout, function() use ($cycle, $timeout) {
                 $this->fail($cycle, new TimeoutException(
                     sprintf('Allowed transfer timeout exceeded: %d ms', $timeout)
                 ));
-            }, $timeout);
+            });
         }
 
         $this->writeRequest($cycle);
@@ -467,7 +468,7 @@ class Client implements HttpClient {
         if ($cycle->options[self::OP_VERBOSITY] & self::VERBOSE_READ) {
             echo $data;
         }
-        $cycle->futureResponse->update([Notify::SOCK_DATA_IN, $data]);
+        $cycle->futureResponse->emit([Notify::SOCK_DATA_IN, $data]);
         $cycle->parser->buffer($data);
         $this->parseSocketData($cycle);
     }
@@ -477,7 +478,7 @@ class Client implements HttpClient {
             while ($parsedResponseArr = $cycle->parser->parse()) {
                 if ($parsedResponseArr['headersOnly']) {
                     $data = [Notify::RESPONSE_HEADERS, $parsedResponseArr];
-                    $cycle->futureResponse->update($data);
+                    $cycle->futureResponse->emit($data);
                     continue;
                 } elseif (isset($cycle->continueWatcher) && ($parsedResponseArr['status'] == 100)) {
                     $this->proceedFrom100ContinueState($cycle);
@@ -486,7 +487,7 @@ class Client implements HttpClient {
                 }
 
                 if ($cycle->parser->getBuffer()) {
-                    \Amp\immediately(function() use ($cycle) {
+                    \Amp\defer(function() use ($cycle) {
                         $this->parseSocketData($cycle);
                     });
                 }
@@ -539,7 +540,7 @@ class Client implements HttpClient {
         }
 
         $socket = $cycle->socket;
-        $cycle->futureResponse->update([Notify::RESPONSE, $cycle->response, "export_socket" => function () use (&$socket, $parsedResponseArr) {
+        $cycle->futureResponse->emit([Notify::RESPONSE, $cycle->response, "export_socket" => function () use (&$socket, $parsedResponseArr) {
             if ($socket) {
                 $sock = $socket;
                 $socket = null;
@@ -569,7 +570,7 @@ class Client implements HttpClient {
             }
         }
 
-        $cycle->futureResponse->succeed($response);
+        $cycle->futureResponse->resolve($response);
     }
 
     private function collectRequestCycleWatchers(RequestCycle $cycle) {
@@ -734,7 +735,7 @@ class Client implements HttpClient {
             $this->assignRedirectRefererHeader($refererUri, $newUri, $request);
         }
 
-        $cycle->futureResponse->update([Notify::REDIRECT, $refererUri, (string)$newUri]);
+        $cycle->futureResponse->emit([Notify::REDIRECT, $refererUri, (string)$newUri]);
 
         if ($this->shouldCloseSocketAfterResponse($request, $response)) {
             // If the HTTP response dictated a connection close we need
@@ -813,14 +814,14 @@ class Client implements HttpClient {
 
     private function writeRequest(RequestCycle $cycle) {
         $rawHeaders = $this->generateRawRequestHeaders($cycle->request);
-        $writePromise = (new BufferWriter)->write($cycle->socket, $rawHeaders);
-        $writePromise->watch(function($update) use ($cycle) {
-            $cycle->futureResponse->update([Notify::SOCK_DATA_OUT, $update]);
+        $writeAwaitable = (new BufferWriter)->write($cycle->socket, $rawHeaders);
+        $writeAwaitable->subscribe(function($update) use ($cycle) {
+            $cycle->futureResponse->emit([Notify::SOCK_DATA_OUT, $update]);
             if ($cycle->options[self::OP_VERBOSITY] & self::VERBOSE_SEND) {
                 echo $update;
             }
         });
-        $writePromise->when(function($error, $response) use ($cycle) {
+        $writeAwaitable->when(function($error, $response) use ($cycle) {
             if ($error) {
                 $this->fail($cycle, $error);
             } else {
@@ -862,11 +863,11 @@ class Client implements HttpClient {
 
         if ($body == '') {
             // We're finished if there's no body in the request.
-            $cycle->futureResponse->update([Notify::REQUEST_SENT, $cycle->request]);
+            $cycle->futureResponse->emit([Notify::REQUEST_SENT, $cycle->request]);
         } elseif ($this->requestExpects100Continue($cycle->request)) {
-            $cycle->continueWatcher = \Amp\once(function() use ($cycle) {
+            $cycle->continueWatcher = \Amp\delay($cycle->options[self::OP_MS_100_CONTINUE_TIMEOUT], function() use ($cycle) {
                 $this->proceedFrom100ContinueState($cycle);
-            }, $cycle->options[self::OP_MS_100_CONTINUE_TIMEOUT]);
+            });
         } else {
             $this->writeBody($cycle, $body);
         }
@@ -892,21 +893,21 @@ class Client implements HttpClient {
     private function writeBody(RequestCycle $cycle, $body) {
         try {
             $writer = $this->writerFactory->make($body);
-            $writePromise = $writer->write($cycle->socket, $body);
-            $writePromise->watch(function($update) use ($cycle) {
-                $cycle->futureResponse->update([Notify::SOCK_DATA_OUT, $update]);
+            $writeAwaitable = $writer->write($cycle->socket, $body);
+            $writeAwaitable->subscribe(function($update) use ($cycle) {
+                $cycle->futureResponse->emit([Notify::SOCK_DATA_OUT, $update]);
                 if ($cycle->options[self::OP_VERBOSITY] & self::VERBOSE_SEND) {
                     echo $update;
                 }
             });
-            $writePromise->when(function($error, $result) use ($cycle) {
+            $writeAwaitable->when(function($error, $result) use ($cycle) {
                 if ($error) {
                     $this->fail($cycle, $error);
                 } else {
-                    $cycle->futureResponse->update([Notify::REQUEST_SENT, $cycle->request]);
+                    $cycle->futureResponse->emit([Notify::REQUEST_SENT, $cycle->request]);
                 }
             });
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $this->fail($cycle, $e);
         }
     }
@@ -918,7 +919,7 @@ class Client implements HttpClient {
             $this->socketPool->clear($cycle->socket);
         }
 
-        $cycle->futureResponse->update([Notify::ERROR, $error]);
+        $cycle->futureResponse->emit([Notify::ERROR, $error]);
         $cycle->futureResponse->fail($error);
     }
 

@@ -3,9 +3,7 @@
 namespace Amp\Artax;
 
 class RequestCycle {
-    /**
-     * @var \Amp\Deferred
-     */
+    /** @var \Amp\Postponed */
     public $futureResponse;
     public $options;
     public $socket;

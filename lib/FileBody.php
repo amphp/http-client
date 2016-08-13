@@ -19,7 +19,7 @@ class FileBody implements AggregateBody {
     /**
      * Retrieve the sendable Amp\Artax entity body representation
      *
-     * @return \Amp\Promise
+     * @return \Interop\Async\Awaitable
      */
     public function getBody() {
         // @TODO Implement non-blocking php-uv iterator.
@@ -37,29 +37,29 @@ class FileBody implements AggregateBody {
     /**
      * Return a key-value array of headers to add to the outbound request
      *
-     * @return \Amp\Promise
+     * @return \Interop\Async\Awaitable
      * @TODO
      */
     public function getHeaders() {
         // @TODO Implement non-blocking php-uv header retrieval.
         // For now we'll just use the dumb blocking version.
         // v1.0.0 cannot be a thing until this is implemented.
-        $promisor = new Deferred;
-        $this->getLength()->when(function($error, $result) use ($promisor) {
+        $deferred = new Deferred;
+        $this->getLength()->when(function($error, $result) use ($deferred) {
             if ($error) {
-                $promisor->fail($error);
+                $deferred->fail($error);
             } else {
-                $promisor->succeed(['Content-Length' => $result]);
+                $deferred->resolve(['Content-Length' => $result]);
             }
         });
 
-        return $promisor->promise();
+        return $deferred->getAwaitable();
     }
 
     /**
      * Retrieve the entity body's content length
      *
-     * @return \Amp\Promise
+     * @return \Interop\Async\Awaitable
      */
     public function getLength() {
         // @TODO Implement non-blocking php-uv file size retrieval.

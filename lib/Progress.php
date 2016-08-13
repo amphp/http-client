@@ -5,21 +5,21 @@ namespace Amp\Artax;
 /**
  * Progress notifier
  *
- * The Amp\Artax\Client::request method returns a promise to asynchronously fulfill a response at some
- * point in the future when it completes. We can react to progress events on the promise using the
- * Promise::watch() method. The Amp\Artax\Progress class hides the HTTP protocol details needed to
- * create an accurate progress bar from the progress events emitted by the promise.
+ * The Amp\Artax\Client::request method returns a awaitable to asynchronously fulfill a response at some
+ * point in the future when it completes. We can react to progress events on the awaitable using the
+ * Observable::subscribe() method. The Amp\Artax\Progress class hides the HTTP protocol details needed to
+ * create an accurate progress bar from the progress events emitted by the awaitable.
  *
  * Example:
  *
  *      <?php
  *      $client = new Amp\Artax\Client;
- *      $promise = $client->request('http://www.google.com');
- *      $promise->watch(new Progress(function($data) {
- *          // what to do with progress info when broadcast by the promise
+ *      $observable = $client->request('http://www.google.com');
+ *      $observable->subscribe(new Progress(function($data) {
+ *          // what to do with progress info when broadcast by the observable
  *          var_dump($data['fraction_complete'] * 100);
  *      });
- *      $response = \Amp\wait($promise);
+ *      $response = \Amp\wait($awaitable);
  */
 class Progress {
     const CONNECTING = 0;
@@ -53,13 +53,13 @@ class Progress {
     }
 
     /**
-     * A convenience method allowing applications to pass instances directly to Promise::watch()
+     * A convenience method allowing applications to pass instances directly to Observable::subscribe()
      *
      * @param $progress
      * @return void
      */
     public function __invoke($progress) {
-        $this->onPromiseUpdate($progress);
+        $this->onAwaitableUpdate($progress);
     }
 
     /**
@@ -68,7 +68,7 @@ class Progress {
      * @param array $progress
      * @return void
      */
-    public function onPromiseUpdate(array $progress) {
+    public function onAwaitableUpdate(array $progress) {
         $event = array_shift($progress);
         switch ($event) {
             case Notify::SOCK_PROCURED:

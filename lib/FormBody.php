@@ -85,11 +85,11 @@ class FormBody implements AggregateBody {
     /**
      * Retrieve the sendable Amp\Artax entity body representation
      *
-     * AggregateBody::getBody() implementations always return a Promise instance to allow
+     * AggregateBody::getBody() implementations always return a Awaitable instance to allow
      * for future resolution of non-blocking operations (e.g. when the entity body comprises
      * filesystem resources).
      *
-     * @return \Amp\Promise
+     * @return \Interop\Async\Awaitable
      */
     public function getBody() {
         if ($this->isMultipart) {
@@ -141,20 +141,20 @@ class FormBody implements AggregateBody {
 
     private function generateMultipartIteratorFromFields(array $fields) {
         foreach ($fields as $key => $field) {
-            $fields[$key] = $field instanceof FileBody ? $field->getBody() : $field;
+            $fields[$key] = $field instanceof FileBody ? $field->getBody() : new Success($field);
         }
 
-        $promisor = new Deferred;
-        \Amp\all($fields)->when(function($error, $result) use ($promisor) {
+        $deferred = new Deferred;
+        \Amp\all($fields)->when(function($error, $result) use ($deferred) {
             if ($error) {
-                $promisor->fail($error);
+                $deferred->fail($error);
             } else {
                 $this->cachedBody = $result;
-                $promisor->succeed(new MultipartIterator($result));
+                $deferred->resolve(new MultipartIterator($result));
             }
         });
 
-        return $promisor->promise();
+        return $deferred->getAwaitable();
     }
 
     private function getFormEncodedBodyString() {
@@ -175,28 +175,28 @@ class FormBody implements AggregateBody {
     /**
      * Retrieve a key-value array of headers to add to the outbound request
      *
-     * AggregateBody::getHeaders() implementations always return a Promise instance to allow
+     * AggregateBody::getHeaders() implementations always return a Awaitable instance to allow
      * for future resolution of non-blocking operations (e.g. when using filesystem stats to
      * generate content-length headers).
      *
-     * @return \Amp\Promise
+     * @return \Interop\Async\Awaitable
      */
     public function getHeaders() {
-        $promisor = new Deferred;
+        $deferred = new Deferred;
         $length = $this->getLength();
-        $length->when(function($error, $result) use ($promisor) {
+        $length->when(function($error, $result) use ($deferred) {
             if ($error) {
-                $promisor->fail($error);
+                $deferred->fail($error);
             } else {
                 $type = $this->determineContentType();
-                $promisor->succeed([
+                $deferred->resolve([
                     'Content-Type' => $type,
                     'Content-Length' => $result
                 ]);
             }
         });
 
-        return $promisor->promise();
+        return $deferred->getAwaitable();
     }
 
     private function determineContentType() {
@@ -208,11 +208,11 @@ class FormBody implements AggregateBody {
     /**
      * Retrieve the content length of the form entity body
      *
-     * AggregateBody::getLength() implementations always return a Promise instance to allow
+     * AggregateBody::getLength() implementations always return a Awaitable instance to allow
      * for future resolution of non-blocking operations (e.g. when using filesystem stats to
      * determine entity body length).
      *
-     * @return \Amp\Promise
+     * @return \Interop\Async\Awaitable
      */
     public function getLength() {
         if (isset($this->cachedLength)) {
@@ -236,21 +236,21 @@ class FormBody implements AggregateBody {
         $lengths = [];
         foreach ($fields as $field) {
             if (is_string($field)) {
-                $lengths[] = strlen($field);
+                $lengths[] = new Success(\strlen($field));
             } else {
                 $lengths[] = $field->getLength();
             }
         }
 
-        $promisor = new Deferred;
-        \Amp\all($lengths)->when(function($error, $result) use ($promisor) {
+        $deferred = new Deferred;
+        \Amp\all($lengths)->when(function($error, $result) use ($deferred) {
             if ($error) {
-                $promisor->fail($error);
+                $deferred->fail($error);
             } else {
-                $promisor->succeed(array_sum($result));
+                $deferred->resolve(array_sum($result));
             }
         });
 
-        return $promisor->promise();
+        return $deferred->getAwaitable();
     }
 }

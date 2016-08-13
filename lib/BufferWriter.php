@@ -2,10 +2,10 @@
 
 namespace Amp\Artax;
 
-use Amp\Deferred;
+use Amp\Postponed;
 
 class BufferWriter implements Writer {
-    private $promisor;
+    private $postponed;
     private $socket;
     private $buffer;
     private $writeWatcher;
@@ -16,17 +16,17 @@ class BufferWriter implements Writer {
      *
      * @param resource $socket
      * @param string $dataToWrite
-     * @return \Amp\Promise
+     * @return \Amp\Observable
      */
     public function write($socket, $dataToWrite) {
-        $this->promisor = new Deferred;
+        $this->postponed = new Postponed;
         $this->socket = $socket;
         $this->buffer = $dataToWrite;
-        \Amp\immediately(function() {
+        \Amp\defer(function() {
             $this->doWrite();
         });
 
-        return $this->promisor->promise();
+        return $this->postponed->getObservable();
     }
 
     private function doWrite() {
@@ -35,8 +35,8 @@ class BufferWriter implements Writer {
         $this->bytesWritten += $bytesWritten;
 
         if ($bytesToWrite === $bytesWritten) {
-            $this->promisor->update($this->buffer);
-            $this->succeed();
+            $this->postponed->emit($this->buffer);
+            $this->resolve();
         } elseif (empty($bytesWritten) && $this->isSocketDead()) {
             $this->fail(new SocketException(
                 $this->generateWriteFailureMessage()
@@ -44,7 +44,7 @@ class BufferWriter implements Writer {
         } else {
             $notifyData = substr($this->buffer, 0, $bytesWritten);
             $this->buffer = substr($this->buffer, $bytesWritten);
-            $this->promisor->update($notifyData);
+            $this->postponed->emit($notifyData);
             $this->enableWriteWatcher();
         }
     }
@@ -66,15 +66,15 @@ class BufferWriter implements Writer {
         return (!is_resource($this->socket) || @feof($this->socket));
     }
 
-    private function fail(\Exception $e) {
-        $this->promisor->fail($e);
+    private function fail(\Throwable $e) {
+        $this->postponed->fail($e);
         if ($this->writeWatcher) {
             \Amp\cancel($this->writeWatcher);
         }
     }
 
-    private function succeed() {
-        $this->promisor->succeed();
+    private function resolve() {
+        $this->postponed->resolve();
         if ($this->writeWatcher) {
             \Amp\cancel($this->writeWatcher);
         }

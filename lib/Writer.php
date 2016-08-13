@@ -8,7 +8,7 @@ interface Writer {
      *
      * @param resource $socket
      * @param mixed $dataToWrite
-     * @return \Amp\Promise
+     * @return \Amp\Observable
      */
     public function write($socket, $dataToWrite);
 }

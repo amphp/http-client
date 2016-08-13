@@ -32,7 +32,7 @@ class SocketPool {
      *
      * @param string $uri A string of the form somedomain.com:80 or 192.168.1.1:443
      * @param array $options
-     * @return \Amp\Promise Returns a promise that resolves to a socket once a connection is available
+     * @return \Interop\Async\Awaitable Returns a awaitable that resolves to a socket once a connection is available
      */
     public function checkout($uri, array $options = []) {
         $uri = (stripos($uri, 'unix://') === 0) ? $uri : strtolower($uri);
@@ -79,15 +79,15 @@ class SocketPool {
     private function checkoutNewSocket($uri, $options) {
         $needsRebind = $this->needsRebind;
         $this->needsRebind = null;
-        $promisor = new Deferred;
+        $deferred = new Deferred;
 
         if ($this->allowsNewConnection($uri, $options) || $needsRebind) {
-            $this->initializeNewConnection($promisor, $uri, $options);
+            $this->initializeNewConnection($deferred, $uri, $options);
         } else {
-            $this->queuedSocketRequests[$uri][] = [$promisor, $uri, $options];
+            $this->queuedSocketRequests[$uri][] = [$deferred, $uri, $options];
         }
 
-        return $promisor->promise();
+        return $deferred->getAwaitable();
     }
 
     private function allowsNewConnection($uri, $options) {
@@ -108,21 +108,21 @@ class SocketPool {
         return false;
     }
 
-    private function initializeNewConnection(Deferred $promisor, $uri, $options) {
+    private function initializeNewConnection(Deferred $deferred, $uri, $options) {
         $this->pendingSockets[$uri] = isset($this->pendingSockets[$uri])
             ? $this->pendingSockets[$uri] + 1
             : 1;
         $futureSocket = \Amp\Socket\connect($uri, $options);
-        $futureSocket->when(function($error, $socket) use ($promisor, $uri, $options) {
+        $futureSocket->when(function($error, $socket) use ($deferred, $uri, $options) {
             if ($error) {
-                $promisor->fail($error);
+                $deferred->fail($error);
             } else {
-                $this->finalizeNewConnection($promisor, $uri, $socket, $options);
+                $this->finalizeNewConnection($deferred, $uri, $socket, $options);
             }
         });
     }
 
-    private function finalizeNewConnection(Deferred $promisor, $uri, $socket, $options) {
+    private function finalizeNewConnection(Deferred $deferred, $uri, $socket, $options) {
         if (--$this->pendingSockets[$uri] === 0) {
             unset($this->pendingSockets[$uri]);
         }
@@ -135,7 +135,7 @@ class SocketPool {
         $poolStruct->msIdleTimeout = $options[self::OP_MS_IDLE_TIMEOUT];
         $this->sockets[$uri][$socketId] = $poolStruct;
         $this->socketIdUriMap[$socketId] = $uri;
-        $promisor->succeed($poolStruct->resource);
+        $deferred->resolve($poolStruct->resource);
 
         if (empty($this->queuedSocketRequests[$uri])) {
             unset($this->queuedSocketRequests[$uri]);
@@ -183,17 +183,17 @@ class SocketPool {
 
     private function dequeueNextWaitingSocket($uri) {
         $queueStruct = current($this->queuedSocketRequests[$uri]);
-        list($promisor, $uri, $options) = $queueStruct;
+        list($deferred, $uri, $options) = $queueStruct;
 
         if ($socket = $this->checkoutExistingSocket($uri, $options)) {
             array_shift($this->queuedSocketRequests[$uri]);
-            $promisor->succeed($socket);
+            $deferred->resolve($socket);
             return;
         }
 
         if ($this->allowsNewConnection($uri, $options)) {
             array_shift($this->queuedSocketRequests[$uri]);
-            $this->initializeNewConnection($promisor, $uri, $options);
+            $this->initializeNewConnection($deferred, $uri, $options);
         }
     }
 
@@ -242,9 +242,9 @@ class SocketPool {
         if (isset($poolStruct->idleWatcher)) {
             \Amp\enable($poolStruct->idleWatcher);
         } else {
-            $poolStruct->idleWatcher = \Amp\once(function() use ($poolStruct) {
+            $poolStruct->idleWatcher = \Amp\delay($poolStruct->msIdleTimeout, function() use ($poolStruct) {
                 $this->unloadSocket($poolStruct->uri, $poolStruct->id);
-            }, $poolStruct->msIdleTimeout);
+            });
         }
     }
 
