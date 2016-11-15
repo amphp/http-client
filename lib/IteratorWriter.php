@@ -4,7 +4,7 @@ namespace Amp\Artax;
 
 use Amp\Postponed;
 use Amp\Success;
-use Interop\Async\Awaitable;
+use Interop\Async\Promise;
 
 class IteratorWriter implements Writer {
     private $writerFactory;
@@ -38,13 +38,13 @@ class IteratorWriter implements Writer {
         $this->postponed = new Postponed;
         $this->writeNextElement();
 
-        return $this->postponed->getObservable();
+        return $this->postponed->observe();
     }
 
     private function writeNextElement() {
         $current = $this->iterator->current();
 
-        if (!$current instanceof Awaitable) {
+        if (!$current instanceof Promise) {
             $this->finalizeEventualWriteElement($current);
             return;
         }
@@ -61,11 +61,11 @@ class IteratorWriter implements Writer {
     private function finalizeEventualWriteElement($current) {
         try {
             $this->writer = $this->writerFactory->make($current);
-            $writeAwaitable = $this->writer->write($this->socket, $current);
-            $writeAwaitable->subscribe(function($update) {
+            $writePromise = $this->writer->write($this->socket, $current);
+            $writePromise->subscribe(function($update) {
                 $this->postponed->emit($update);
             });
-            $writeAwaitable->when(function($error, $result) {
+            $writePromise->when(function($error, $result) {
                 $this->afterElementWrite($error, $result);
             });
         } catch (\Throwable $e) {

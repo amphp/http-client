@@ -46,11 +46,11 @@ class HttpSocketPool {
     }
 
     /**
-     * I give you a URI, you awaitable me a socket at some point in the future
+     * I give you a URI, you promise me a socket at some point in the future
      *
      * @param string $uri
      * @param array $options
-     * @return \Interop\Async\Awaitable
+     * @return \Interop\Async\Promise
      */
     public function checkout($uri, array $options = []) {
         // Normalize away any IPv6 brackets -- socket resolution will handle that
@@ -89,7 +89,7 @@ class HttpSocketPool {
             }
         });
 
-        return $deferred->getAwaitable();
+        return $deferred->promise();
     }
 
     private function tunnelThroughProxy(Deferred $deferred, $socket, $authority) {

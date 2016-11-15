@@ -2,7 +2,7 @@
 
 namespace Amp\Artax;
 
-use Interop\Async\Awaitable;
+use Interop\Async\Promise;
 use Amp\Deferred;
 
 /**
@@ -26,7 +26,7 @@ class ChunkingIterator implements \Iterator {
             return null;
         } elseif (is_string($current)) {
             return $this->applyChunkEncoding($current);
-        } elseif ($current instanceof Awaitable) {
+        } elseif ($current instanceof Promise) {
             $deferred = new Deferred;
             $current->when(function($error, $result) use ($deferred) {
                 if ($error) {
@@ -35,11 +35,11 @@ class ChunkingIterator implements \Iterator {
                     $deferred->resolve($this->applyChunkEncoding($result));
                 } else {
                     $deferred->fail(new \DomainException(
-                        sprintf('Only string/Awaitable elements may be chunked; %s provided', gettype($result))
+                        sprintf('Only string/Promise elements may be chunked; %s provided', gettype($result))
                     ));
                 }
             });
-            return $deferred->getAwaitable();
+            return $deferred->promise();
         } else {
             // @TODO How to react to an invalid type returned from an iterator?
             return null;

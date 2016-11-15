@@ -5,10 +5,10 @@ namespace Amp\Artax;
 /**
  * Progress notifier
  *
- * The Amp\Artax\Client::request method returns a awaitable to asynchronously fulfill a response at some
- * point in the future when it completes. We can react to progress events on the awaitable using the
+ * The Amp\Artax\Client::request method returns a promise to asynchronously fulfill a response at some
+ * point in the future when it completes. We can react to progress events on the promise using the
  * Observable::subscribe() method. The Amp\Artax\Progress class hides the HTTP protocol details needed to
- * create an accurate progress bar from the progress events emitted by the awaitable.
+ * create an accurate progress bar from the progress events emitted by the promise.
  *
  * Example:
  *
@@ -19,7 +19,7 @@ namespace Amp\Artax;
  *          // what to do with progress info when broadcast by the observable
  *          var_dump($data['fraction_complete'] * 100);
  *      });
- *      $response = \Amp\wait($awaitable);
+ *      $response = \Amp\wait($promise);
  */
 class Progress {
     const CONNECTING = 0;
@@ -59,7 +59,7 @@ class Progress {
      * @return void
      */
     public function __invoke($progress) {
-        $this->onAwaitableUpdate($progress);
+        $this->onPromiseUpdate($progress);
     }
 
     /**
@@ -68,7 +68,7 @@ class Progress {
      * @param array $progress
      * @return void
      */
-    public function onAwaitableUpdate(array $progress) {
+    public function onPromiseUpdate(array $progress) {
         $event = array_shift($progress);
         switch ($event) {
             case Notify::SOCK_PROCURED:

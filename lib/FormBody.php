@@ -85,11 +85,11 @@ class FormBody implements AggregateBody {
     /**
      * Retrieve the sendable Amp\Artax entity body representation
      *
-     * AggregateBody::getBody() implementations always return a Awaitable instance to allow
+     * AggregateBody::getBody() implementations always return a Promise instance to allow
      * for future resolution of non-blocking operations (e.g. when the entity body comprises
      * filesystem resources).
      *
-     * @return \Interop\Async\Awaitable
+     * @return \Interop\Async\Promise
      */
     public function getBody() {
         if ($this->isMultipart) {
@@ -154,7 +154,7 @@ class FormBody implements AggregateBody {
             }
         });
 
-        return $deferred->getAwaitable();
+        return $deferred->promise();
     }
 
     private function getFormEncodedBodyString() {
@@ -175,11 +175,11 @@ class FormBody implements AggregateBody {
     /**
      * Retrieve a key-value array of headers to add to the outbound request
      *
-     * AggregateBody::getHeaders() implementations always return a Awaitable instance to allow
+     * AggregateBody::getHeaders() implementations always return a Promise instance to allow
      * for future resolution of non-blocking operations (e.g. when using filesystem stats to
      * generate content-length headers).
      *
-     * @return \Interop\Async\Awaitable
+     * @return \Interop\Async\Promise
      */
     public function getHeaders() {
         $deferred = new Deferred;
@@ -196,7 +196,7 @@ class FormBody implements AggregateBody {
             }
         });
 
-        return $deferred->getAwaitable();
+        return $deferred->promise();
     }
 
     private function determineContentType() {
@@ -208,11 +208,11 @@ class FormBody implements AggregateBody {
     /**
      * Retrieve the content length of the form entity body
      *
-     * AggregateBody::getLength() implementations always return a Awaitable instance to allow
+     * AggregateBody::getLength() implementations always return a Promise instance to allow
      * for future resolution of non-blocking operations (e.g. when using filesystem stats to
      * determine entity body length).
      *
-     * @return \Interop\Async\Awaitable
+     * @return \Interop\Async\Promise
      */
     public function getLength() {
         if (isset($this->cachedLength)) {
@@ -251,6 +251,6 @@ class FormBody implements AggregateBody {
             }
         });
 
-        return $deferred->getAwaitable();
+        return $deferred->promise();
     }
 }

@@ -12,7 +12,7 @@ class HttpTunneler {
      *
      * @param resource $socket
      * @param string $authority
-     * @return \Interop\Async\Awaitable
+     * @return \Interop\Async\Promise
      */
     public function tunnel($socket, $authority) {
         $struct = new HttpTunnelStruct;
@@ -21,7 +21,7 @@ class HttpTunneler {
         $struct->writeBuffer = "CONNECT {$authority} HTTP/1.1\r\n\r\n";
         $this->doWrite($struct);
 
-        return $struct->deferred->getAwaitable();
+        return $struct->deferred->promise();
     }
 
     private function doWrite(HttpTunnelStruct $struct) {

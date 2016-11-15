@@ -32,7 +32,7 @@ class SocketPool {
      *
      * @param string $uri A string of the form somedomain.com:80 or 192.168.1.1:443
      * @param array $options
-     * @return \Interop\Async\Awaitable Returns a awaitable that resolves to a socket once a connection is available
+     * @return \Interop\Async\Promise Returns a promise that resolves to a socket once a connection is available
      */
     public function checkout($uri, array $options = []) {
         $uri = (stripos($uri, 'unix://') === 0) ? $uri : strtolower($uri);
@@ -87,7 +87,7 @@ class SocketPool {
             $this->queuedSocketRequests[$uri][] = [$deferred, $uri, $options];
         }
 
-        return $deferred->getAwaitable();
+        return $deferred->promise();
     }
 
     private function allowsNewConnection($uri, $options) {

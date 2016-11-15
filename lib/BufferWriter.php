@@ -26,7 +26,7 @@ class BufferWriter implements Writer {
             $this->doWrite();
         });
 
-        return $this->postponed->getObservable();
+        return $this->postponed->observe();
     }
 
     private function doWrite() {
