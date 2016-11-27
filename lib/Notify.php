@@ -11,6 +11,6 @@ class Notify {
     const RESPONSE_BODY_DATA = 6;
     const RESPONSE = 7;
     const REDIRECT = 8;
+    const HANDSHAKE_COMPLETE = 9;
     const ERROR = -1;
 }
-
