@@ -1,6 +1,6 @@
 <?php
 
-namespace Amp\Test\Artax;
+namespace Amp\Artax\Test;
 
 use Amp\Artax\Parser;
 

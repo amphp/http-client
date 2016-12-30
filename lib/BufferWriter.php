@@ -3,6 +3,7 @@
 namespace Amp\Artax;
 
 use Amp\Postponed;
+use Interop\Async\Loop;
 
 class BufferWriter implements Writer {
     private $postponed;
@@ -22,7 +23,7 @@ class BufferWriter implements Writer {
         $this->postponed = new Postponed;
         $this->socket = $socket;
         $this->buffer = $dataToWrite;
-        \Amp\defer(function() {
+        Loop::defer(function() {
             $this->doWrite();
         });
 
@@ -69,20 +70,20 @@ class BufferWriter implements Writer {
     private function fail(\Throwable $e) {
         $this->postponed->fail($e);
         if ($this->writeWatcher) {
-            \Amp\cancel($this->writeWatcher);
+            Loop::cancel($this->writeWatcher);
         }
     }
 
     private function resolve() {
         $this->postponed->resolve();
         if ($this->writeWatcher) {
-            \Amp\cancel($this->writeWatcher);
+            Loop::cancel($this->writeWatcher);
         }
     }
 
     private function enableWriteWatcher() {
         if (empty($this->writeWatcher)) {
-            $this->writeWatcher = \Amp\onWritable($this->socket, function() {
+            $this->writeWatcher = Loop::onWritable($this->socket, function() {
                 $this->doWrite();
             });
         }

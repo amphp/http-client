@@ -2,13 +2,13 @@
 
 namespace Amp\Artax;
 
-use Amp\Deferred,
-    Amp\Postponed,
+use Amp\Postponed,
     Amp\Socket as socket,
     Amp\Artax\Cookie\Cookie,
     Amp\Artax\Cookie\CookieJar,
     Amp\Artax\Cookie\ArrayCookieJar,
     Amp\Artax\Cookie\CookieParser;
+use Interop\Async\Loop;
 
 class Client implements HttpClient {
     const USER_AGENT = 'Amp\Artax/1.0.0-dev (PHP)';
@@ -432,13 +432,13 @@ class Client implements HttpClient {
         ]);
 
         $cycle->parser = $parser;
-        $cycle->readWatcher = \Amp\onReadable($cycle->socket, function() use ($cycle) {
+        $cycle->readWatcher = Loop::onReadable($cycle->socket, function() use ($cycle) {
             $this->onReadableSocket($cycle);
         });
 
         $timeout = $cycle->options[self::OP_MS_TRANSFER_TIMEOUT];
         if ($timeout > 0) {
-            $cycle->transferTimeoutWatcher = \Amp\delay($timeout, function() use ($cycle, $timeout) {
+            $cycle->transferTimeoutWatcher = Loop::delay($timeout, function() use ($cycle, $timeout) {
                 $this->fail($cycle, new TimeoutException(
                     sprintf('Allowed transfer timeout exceeded: %d ms', $timeout)
                 ));
@@ -487,7 +487,7 @@ class Client implements HttpClient {
                 }
 
                 if ($cycle->parser->getBuffer()) {
-                    \Amp\defer(function() use ($cycle) {
+                    Loop::defer(function() use ($cycle) {
                         $this->parseSocketData($cycle);
                     });
                 }
@@ -575,15 +575,15 @@ class Client implements HttpClient {
 
     private function collectRequestCycleWatchers(RequestCycle $cycle) {
         if (isset($cycle->readWatcher)) {
-            \Amp\cancel($cycle->readWatcher);
+            Loop::cancel($cycle->readWatcher);
             $cycle->readWatcher = null;
         }
         if (isset($cycle->continueWatcher)) {
-            \Amp\cancel($cycle->continueWatcher);
+            Loop::cancel($cycle->continueWatcher);
             $cycle->continueWatcher = null;
         }
         if (isset($cycle->transferTimeoutWatcher)) {
-            \Amp\cancel($cycle->transferTimeoutWatcher);
+            Loop::cancel($cycle->transferTimeoutWatcher);
             $cycle->transferTimeoutWatcher = null;
         }
     }
@@ -865,7 +865,7 @@ class Client implements HttpClient {
             // We're finished if there's no body in the request.
             $cycle->futureResponse->emit([Notify::REQUEST_SENT, $cycle->request]);
         } elseif ($this->requestExpects100Continue($cycle->request)) {
-            $cycle->continueWatcher = \Amp\delay($cycle->options[self::OP_MS_100_CONTINUE_TIMEOUT], function() use ($cycle) {
+            $cycle->continueWatcher = Loop::delay($cycle->options[self::OP_MS_100_CONTINUE_TIMEOUT], function() use ($cycle) {
                 $this->proceedFrom100ContinueState($cycle);
             });
         } else {
@@ -886,7 +886,7 @@ class Client implements HttpClient {
     private function proceedFrom100ContinueState(RequestCycle $cycle) {
         $continueWatcher = $cycle->continueWatcher;
         $cycle->continueWatcher = null;
-        \Amp\cancel($continueWatcher);
+        Loop::cancel($continueWatcher);
         $this->writeBody($cycle);
     }
 

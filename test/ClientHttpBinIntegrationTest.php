@@ -1,6 +1,6 @@
 <?php
 
-namespace Amp\ArtaxTest;
+namespace Amp\Artax\Test;
 
 use Amp\Artax\Client;
 use Amp\Artax\Request;

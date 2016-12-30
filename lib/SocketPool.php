@@ -4,6 +4,7 @@ namespace Amp\Artax;
 
 use Amp\Success,
     Amp\Deferred;
+use Interop\Async\Loop;
 
 class SocketPool {
     const OP_HOST_CONNECTION_LIMIT = 'op.host-conn-limit';
@@ -59,13 +60,13 @@ class SocketPool {
                 && ($bindToIp == $options[self::OP_BINDTO])
             ) {
                 $poolStruct->isAvailable = false;
-                \Amp\disable($poolStruct->idleWatcher);
+                Loop::disable($poolStruct->idleWatcher);
                 return $poolStruct->resource;
             } elseif ($bindToIp) {
                 $needsRebind = true;
             } else {
                 $poolStruct->isAvailable = false;
-                \Amp\disable($poolStruct->idleWatcher);
+                Loop::disable($poolStruct->idleWatcher);
 
                 return $poolStruct->resource;
             }
@@ -165,7 +166,7 @@ class SocketPool {
 
         $poolStruct = $this->sockets[$uri][$socketId];
         if ($poolStruct->idleWatcher) {
-            \Amp\cancel($poolStruct->idleWatcher);
+            Loop::cancel($poolStruct->idleWatcher);
         }
         unset(
             $this->sockets[$uri][$socketId],
@@ -240,9 +241,9 @@ class SocketPool {
 
     private function initializeIdleTimeout(SocketPoolStruct $poolStruct) {
         if (isset($poolStruct->idleWatcher)) {
-            \Amp\enable($poolStruct->idleWatcher);
+            Loop::enable($poolStruct->idleWatcher);
         } else {
-            $poolStruct->idleWatcher = \Amp\delay($poolStruct->msIdleTimeout, function() use ($poolStruct) {
+            $poolStruct->idleWatcher = Loop::delay($poolStruct->msIdleTimeout, function() use ($poolStruct) {
                 $this->unloadSocket($poolStruct->uri, $poolStruct->id);
             });
         }

@@ -1,6 +1,6 @@
 <?php
 
-namespace Amp\Test\Artax;
+namespace Amp\Artax\Test;
 
 class ChunkingIteratorTest extends \PHPUnit_Framework_TestCase {
     public function testIteratorOutputChunking() {
