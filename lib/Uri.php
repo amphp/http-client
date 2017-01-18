@@ -15,11 +15,9 @@ class Uri {
     private $isIpV4 = false;
     private $isIpV6 = false;
 
-    public function __construct($uri) {
-        $uri = (string) $uri;
-
+    public function __construct(string $uri) {
         if (!$parts = $this->parse($uri)) {
-            throw new \DomainException(
+            throw new \Error(
                 'Invalid URI specified at ' . get_class($this) . '::__construct Argument 1'
             );
         }
@@ -93,7 +91,7 @@ class Uri {
         return $parts;
     }
 
-    public function __toString() {
+    public function __toString(): string {
         return $this->reconstitute(
             $this->scheme,
             $this->getAuthority(),
@@ -138,7 +136,7 @@ class Uri {
      *
      * @return string
      */
-    public function normalize() {
+    public function normalize(): string {
         if (!$this->uri) {
             return '';
         }
@@ -242,14 +240,14 @@ class Uri {
     /**
      * Is the specified URI string resolvable against the current URI instance?
      */
-    public function canResolve($toResolve) {
+    public function canResolve($toResolve): bool {
         if (!(is_string($toResolve) || method_exists($toResolve, '__toString'))) {
             return false;
         }
 
         try {
-            (new Uri($toResolve));
-        } catch (\DomainException $e) {
+            (new self($toResolve));
+        } catch (\Error $e) {
             return false;
         }
 
@@ -261,8 +259,8 @@ class Uri {
      * @return Uri
      * @link http://tools.ietf.org/html/rfc3986#section-5.2.2
      */
-    public function resolve($toResolve) {
-        $r = new Uri($toResolve);
+    public function resolve($toResolve): self {
+        $r = new self($toResolve);
 
         if ($r->__toString() === '') {
             return clone $this;
@@ -312,7 +310,7 @@ class Uri {
 
         $result = $this->reconstitute($t->scheme, $t->authority, $t->path, $t->query, $t->fragment);
 
-        return new Uri($result);
+        return new self($result);
     }
 
     /**
@@ -334,63 +332,63 @@ class Uri {
     /**
      * @return string
      */
-    public function getScheme() {
+    public function getScheme(): string {
         return $this->scheme;
     }
 
     /**
      * @return string
      */
-    public function getUser() {
+    public function getUser(): string {
         return $this->user;
     }
 
     /**
      * @return string
      */
-    public function getPass() {
+    public function getPass(): string {
         return $this->pass;
     }
 
     /**
      * @return string
      */
-    public function getHost() {
+    public function getHost(): string {
         return $this->host;
     }
 
     /**
-     * @return int
+     * @return int|null
      */
     public function getPort() {
-        return $this->port;
+        return empty($this->port) ? null : $this->port;
     }
 
     /**
      * @return string
      */
-    public function getPath() {
+    public function getPath(): string {
         return $this->path;
     }
 
     /**
      * @return string
      */
-    public function getQuery() {
+    public function getQuery(): string {
         return $this->query;
     }
 
     /**
      * @return string
      */
-    public function getFragment() {
+    public function getFragment(): string {
         return $this->fragment;
     }
 
     /**
      * Retrieve the URI without the fragment component
      */
-    public function getAbsoluteUri() {
+    public function getAbsoluteUri(): string {
         return $this->reconstitute(
             $this->scheme,
             $this->getAuthority(),
@@ -403,21 +401,21 @@ class Uri {
     /**
      * @return bool
      */
-    public function isIpV4() {
+    public function isIpV4(): bool {
         return $this->isIpV4;
     }
 
     /**
      * @return bool
      */
-    public function isIpV6() {
+    public function isIpV6(): bool {
         return $this->isIpV6;
     }
 
     /**
      * @link http://www.apps.ietf.org/rfc/rfc3986.html#sec-3.2
      */
-    public function getAuthority($hiddenPass = true) {
+    public function getAuthority(bool $hiddenPass = true): string {
         $authority = $this->user;
         $authority.= $this->pass !== ''
             ? (':' . ($hiddenPass ? '********' : $this->pass))
@@ -450,18 +448,18 @@ class Uri {
      * @param string $parameter
      * @return bool
      */
-    public function hasQueryParameter($parameter) {
+    public function hasQueryParameter(string $parameter): bool {
         return isset($this->queryParameters[$parameter]);
     }
 
     /**
      * @param string $parameter
      * @return string
-     * @throws \DomainException
+     * @throws \Error
      */
     public function getQueryParameter($parameter) {
         if (!$this->hasQueryParameter($parameter)) {
-            throw new \DomainException(
+            throw new \Error(
                 "Invalid query parameter: `$parameter` does not exist"
            );
         }
@@ -471,14 +469,14 @@ class Uri {
     /**
      * @return array
      */
-    public function getAllQueryParameters() {
+    public function getAllQueryParameters(): array {
         return $this->queryParameters;
     }
 
     /**
      * @return array
      */
-    public function getOriginalUri() {
+    public function getOriginalUri(): string {
         return $this->uri;
     }
 }

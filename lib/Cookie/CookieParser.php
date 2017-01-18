@@ -3,7 +3,7 @@
 namespace Amp\Artax\Cookie;
 
 class CookieParser {
-    private static $dateFormats = array(
+    private static $dateFormats = [
         'D, d M Y H:i:s T',
         'D, d-M-y H:i:s T',
         'D, d-M-Y H:i:s T',
@@ -11,9 +11,9 @@ class CookieParser {
         'D, d-m-Y H:i:s T',
         'D M j G:i:s Y',
         'D M d H:i:s Y T'
-    );
+    ];
 
-    public static function parse($rawCookieStr) {
+    public static function parse(string $rawCookieStr): Cookie {
         if (!$rawCookieStr) {
             throw new \InvalidArgumentException(
                 'Invalid cookie string'

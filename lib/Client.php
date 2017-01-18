@@ -2,13 +2,9 @@
 
 namespace Amp\Artax;
 
-use Amp\Postponed,
-    Amp\Socket as socket,
-    Amp\Artax\Cookie\Cookie,
-    Amp\Artax\Cookie\CookieJar,
-    Amp\Artax\Cookie\ArrayCookieJar,
-    Amp\Artax\Cookie\CookieParser;
-use Interop\Async\Loop;
+use Amp\{ Emitter, Socket as socket, Stream };
+use Amp\Artax\Cookie\{ Cookie, CookieJar, ArrayCookieJar, CookieParser };
+use AsyncInterop\Loop;
 
 class Client implements HttpClient {
     const USER_AGENT = 'Amp\Artax/1.0.0-dev (PHP)';
@@ -98,9 +94,9 @@ class Client implements HttpClient {
      *
      * @param array $urisAndRequests An array of URI strings and/or Request instances
      * @param array $options An array specifying options applicable only for this request batch
-     * @return array[\Amp\Observable] An array of promises whose keys match the request array
+     * @return array[\Amp\Stream] An array of promises whose keys match the request array
      */
-    public function requestMulti(array $urisAndRequests, array $options = []) {
+    public function requestMulti(array $urisAndRequests, array $options = []): array {
         $promises = [];
         foreach ($urisAndRequests as $key => $request) {
             $promises[$key] = $this->request($request, $options);
@@ -114,14 +110,14 @@ class Client implements HttpClient {
      *
      * @param mixed[string|\Amp\Artax\Request] An HTTP URI string or an \Amp\Artax\Request instance
      * @param array $options An array specifying options applicable only for this request
-     * @return \Amp\Observable A promise to resolve the request at some point in the future
+     * @return \Amp\Stream A promise to resolve the request at some point in the future
      */
-    public function request($uriOrRequest, array $options = []) {
-        $postponed = new Postponed;
+    public function request($uriOrRequest, array $options = []): Stream {
+        $emitter = new Emitter;
 
         try {
             $cycle = new RequestCycle;
-            $cycle->futureResponse = $postponed;
+            $cycle->futureResponse = $emitter;
             list($cycle->request, $cycle->uri) = $this->generateRequestFromUri($uriOrRequest);
             $cycle->options = $options ? array_merge($this->options, $options) : $this->options;
             $body = $cycle->request->getBody();
@@ -131,10 +127,10 @@ class Client implements HttpClient {
                 $this->finalizeRequest($cycle);
             }
         } catch (\Throwable $e) {
-            $postponed->fail($e);
+            $emitter->fail($e);
         }
 
-        return $postponed->observe();
+        return $emitter->stream();
     }
 
     private function dequeueNextRequest() {
@@ -175,7 +171,7 @@ class Client implements HttpClient {
     private function finalizeRequest(RequestCycle $cycle) {
         $uri = $cycle->uri;
         $options = $cycle->options;
-        $postponed = $cycle->futureResponse;
+        $emitter = $cycle->futureResponse;
         $request = $cycle->request;
 
         $this->normalizeRequestMethod($request);
@@ -188,7 +184,7 @@ class Client implements HttpClient {
         $this->assignApplicableRequestCookies($request, $options);
 
         $this->queue[] = $cycle;
-        $postponed->observe()->when($this->dequeuer);
+        $emitter->stream()->when($this->dequeuer);
 
         if (count($this->queue) < 512) {
             $this->dequeueNextRequest();
@@ -225,7 +221,7 @@ class Client implements HttpClient {
                     'Request must specify a valid HTTP URI'
                 );
             }
-        } catch (\DomainException $e) {
+        } catch (\Error $e) {
             throw new \InvalidArgumentException(
                 $msg = 'Request must specify a valid HTTP URI',
                 $code = 0,
@@ -814,14 +810,14 @@ class Client implements HttpClient {
 
     private function writeRequest(RequestCycle $cycle) {
         $rawHeaders = $this->generateRawRequestHeaders($cycle->request);
-        $writePromise = (new BufferWriter)->write($cycle->socket, $rawHeaders);
-        $writePromise->subscribe(function($update) use ($cycle) {
+        $stream = (new BufferWriter)->write($cycle->socket, $rawHeaders);
+        $stream->listen(function($update) use ($cycle) {
             $cycle->futureResponse->emit([Notify::SOCK_DATA_OUT, $update]);
             if ($cycle->options[self::OP_VERBOSITY] & self::VERBOSE_SEND) {
                 echo $update;
             }
         });
-        $writePromise->when(function($error, $response) use ($cycle) {
+        $stream->when(function($error, $response) use ($cycle) {
             if ($error) {
                 $this->fail($cycle, $error);
             } else {
@@ -887,20 +883,20 @@ class Client implements HttpClient {
         $continueWatcher = $cycle->continueWatcher;
         $cycle->continueWatcher = null;
         Loop::cancel($continueWatcher);
-        $this->writeBody($cycle);
+        $this->writeBody($cycle, "");
     }
 
     private function writeBody(RequestCycle $cycle, $body) {
         try {
             $writer = $this->writerFactory->make($body);
-            $writePromise = $writer->write($cycle->socket, $body);
-            $writePromise->subscribe(function($update) use ($cycle) {
+            $stream = $writer->write($cycle->socket, $body);
+            $stream->listen(function($update) use ($cycle) {
                 $cycle->futureResponse->emit([Notify::SOCK_DATA_OUT, $update]);
                 if ($cycle->options[self::OP_VERBOSITY] & self::VERBOSE_SEND) {
                     echo $update;
                 }
             });
-            $writePromise->when(function($error, $result) use ($cycle) {
+            $stream->when(function($error, $result) use ($cycle) {
                 if ($error) {
                     $this->fail($cycle, $error);
                 } else {
@@ -927,10 +923,10 @@ class Client implements HttpClient {
      * Set multiple Client options at once
      *
      * @param array $options An array of the form [OP_CONSTANT => $value]
-     * @throws \DomainException on Unknown option key
+     * @throws \Error on Unknown option key
      * @return self
      */
-    public function setAllOptions(array $options) {
+    public function setAllOptions(array $options): HttpClient {
         foreach ($options as $option => $value) {
             $this->setOption($option, $value);
         }
@@ -943,10 +939,10 @@ class Client implements HttpClient {
      *
      * @param int $option A Client option constant
      * @param mixed $value The option value to assign
-     * @throws \DomainException On unknown option key
+     * @throws \Error On unknown option key
      * @return self
      */
-    public function setOption($option, $value) {
+    public function setOption($option, $value): HttpClient {
         switch ($option) {
             case self::OP_AUTO_ENCODING:
                 $this->options[self::OP_AUTO_ENCODING] = (bool) $value;
@@ -1016,7 +1012,7 @@ class Client implements HttpClient {
                 $this->options[self::OP_MAX_BODY_BYTES] = (int) $value;
                 break;
             default:
-                throw new \DomainException(
+                throw new \Error(
                     sprintf("Unknown option: %s", $option)
                 );
         }

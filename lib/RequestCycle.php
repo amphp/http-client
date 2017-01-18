@@ -3,7 +3,9 @@
 namespace Amp\Artax;
 
 class RequestCycle {
-    /** @var \Amp\Postponed */
+    use \Amp\Struct;
+    
+    /** @var \Amp\Emitter */
     public $futureResponse;
     public $options;
     public $socket;

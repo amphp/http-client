@@ -3,8 +3,8 @@
 namespace Amp\Artax;
 
 class Response extends Message {
-    private $status;
-    private $reason;
+    private $status = 200;
+    private $reason = '';
     private $request;
     private $previousResponse;
 
@@ -13,7 +13,7 @@ class Response extends Message {
      *
      * @return int
      */
-    public function getStatus() {
+    public function getStatus(): int {
         return $this->status;
     }
 
@@ -23,8 +23,8 @@ class Response extends Message {
      * @param int $status
      * @return self
      */
-    public function setStatus($status) {
-        $this->status = (int) $status;
+    public function setStatus(int $status): self {
+        $this->status = $status;
 
         return $this;
     }
@@ -34,7 +34,7 @@ class Response extends Message {
      *
      * @return string
      */
-    public function getReason() {
+    public function getReason(): string {
         return $this->reason;
     }
 
@@ -44,8 +44,8 @@ class Response extends Message {
      * @param string $reason
      * @return self
      */
-    public function setReason($reason) {
-        $this->reason = (string) $reason;
+    public function setReason(string $reason): self {
+        $this->reason = $reason;
 
         return $this;
     }
@@ -53,7 +53,7 @@ class Response extends Message {
     /**
      * Retrieve the Request instance that resulted in this Response
      *
-     * @return \Amp\Artax\Request
+     * @return \Amp\Artax\Request|null
      */
     public function getRequest() {
         return $this->request;
@@ -65,7 +65,7 @@ class Response extends Message {
      * @param \Amp\Artax\Request $request
      * @return self
      */
-    public function setRequest(Request $request) {
+    public function setRequest(Request $request): self {
         $this->request = $request;
         return $this;
     }
@@ -76,7 +76,7 @@ class Response extends Message {
      * A given Response may be the result of one or more redirects. This method is a shortcut to
      * access information from the original Request that led to this response.
      *
-     * @return \Amp\Artax\Request
+     * @return \Amp\Artax\Request|null
      */
     public function getOriginalRequest() {
         if (empty($this->previousResponse)) {
@@ -94,7 +94,7 @@ class Response extends Message {
     /**
      * If this Response is the result of a redirect traverse up the redirect history
      *
-     * @return null|\Amp\Artax\Response
+     * @return null|\Amp\Artax\Response|null
      */
     public function getPreviousResponse() {
         return $this->previousResponse;
@@ -106,7 +106,7 @@ class Response extends Message {
      * @param \Amp\Artax\Response $response
      * @return self
      */
-    public function setPreviousResponse(Response $response) {
+    public function setPreviousResponse(Response $response): self {
         $this->previousResponse = $response;
         return $this;
     }

@@ -2,8 +2,7 @@
 
 namespace Amp\Artax;
 
-use Amp\Failure;
-use Amp\Deferred;
+use Amp\{ Deferred, Failure };
 
 class HttpSocketPool {
     const OP_PROXY_HTTP = 'op.proxy-http';
@@ -50,7 +49,7 @@ class HttpSocketPool {
      *
      * @param string $uri
      * @param array $options
-     * @return \Interop\Async\Promise
+     * @return \AsyncInterop\Promise
      */
     public function checkout($uri, array $options = []) {
         // Normalize away any IPv6 brackets -- socket resolution will handle that
@@ -67,7 +66,7 @@ class HttpSocketPool {
         } elseif ($scheme === 'https') {
             $proxy = $options[self::OP_PROXY_HTTPS];
         } else {
-            return new Failure(new \DomainException(
+            return new Failure(new \Error(
                 'Either http:// or https:// URI scheme required for HTTP socket checkout'
             ));
         }
@@ -136,7 +135,7 @@ class HttpSocketPool {
      *
      * @param int|string $option
      * @param mixed $value
-     * @throws \DomainException on unknown option
+     * @throws \Error on unknown option
      * @return self
      */
     public function setOption($option, $value) {

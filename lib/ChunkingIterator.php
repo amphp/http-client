@@ -2,8 +2,8 @@
 
 namespace Amp\Artax;
 
-use Interop\Async\Promise;
 use Amp\Deferred;
+use AsyncInterop\Promise;
 
 /**
  * Wraps Iterators to add chunk encoding for each element
@@ -34,7 +34,7 @@ class ChunkingIterator implements \Iterator {
                 } elseif (is_string($result)) {
                     $deferred->resolve($this->applyChunkEncoding($result));
                 } else {
-                    $deferred->fail(new \DomainException(
+                    $deferred->fail(new \Error(
                         sprintf('Only string/Promise elements may be chunked; %s provided', gettype($result))
                     ));
                 }

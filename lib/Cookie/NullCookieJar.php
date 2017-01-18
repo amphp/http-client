@@ -3,10 +3,10 @@
 namespace Amp\Artax\Cookie;
 
 class NullCookieJar implements CookieJar {
-    public function get($domain, $path = '', $name = null) {
+    public function get(string $domain, string $path = '', string $name = null): array {
         return [];
     }
-    public function getAll() {
+    public function getAll(): array {
         return [];
     }
     public function store(Cookie $cookie) {

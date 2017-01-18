@@ -3,7 +3,7 @@
 namespace Amp\Artax;
 
 abstract class Message {
-    private $protocol;
+    private $protocol = '1.1';
     private $headers = [];
     private $headerCaseMap = [];
     private $body;
@@ -13,7 +13,7 @@ abstract class Message {
      *
      * @return string
      */
-    public function getProtocol() {
+    public function getProtocol(): string {
         return $this->protocol;
     }
 
@@ -23,8 +23,8 @@ abstract class Message {
      * @param string $protocol
      * @return self
      */
-    public function setProtocol($protocol) {
-        $this->protocol = (string) $protocol;
+    public function setProtocol(string $protocol): self {
+        $this->protocol = $protocol;
 
         return $this;
     }
@@ -44,7 +44,7 @@ abstract class Message {
      * @param mixed $body
      * @return self
      */
-    public function setBody($body) {
+    public function setBody($body): self {
         $this->body = $body;
 
         return $this;
@@ -55,7 +55,7 @@ abstract class Message {
      *
      * @return bool
      */
-    public function hasBody() {
+    public function hasBody(): bool {
         return ($this->body != '');
     }
 
@@ -65,7 +65,7 @@ abstract class Message {
      * @param string $field
      * @return bool
      */
-    public function hasHeader($field) {
+    public function hasHeader(string $field): bool {
         $fieldUpper = strtoupper($field);
 
         return isset($this->headerCaseMap[$fieldUpper]);
@@ -78,7 +78,7 @@ abstract class Message {
      * @throws \DomainException on unknown header field
      * @return array
      */
-    public function getHeader($field) {
+    public function getHeader(string $field): array {
         $fieldUpper = strtoupper($field);
 
         if (isset($this->headerCaseMap[$fieldUpper])) {
@@ -96,7 +96,7 @@ abstract class Message {
      *
      * @return array
      */
-    public function getAllHeaders() {
+    public function getAllHeaders(): array {
         return $this->headers;
     }
 
@@ -104,11 +104,11 @@ abstract class Message {
      * Assign a value for the specified header field (replaces any existing values for that field)
      *
      * @param string $field
-     * @param string $value
+     * @param mixed $value
      * @throws \InvalidArgumentException on invalid header value
      * @return self
      */
-    public function setHeader($field, $value) {
+    public function setHeader(string $field, $value): self {
         if (is_scalar($value)) {
             $value = array($value);
         } elseif (!(is_array($value) && $this->validateHeader($value))) {
@@ -148,7 +148,7 @@ abstract class Message {
      * @param array $headers
      * @return self
      */
-    public function setAllHeaders(array $headers) {
+    public function setAllHeaders(array $headers): self {
         foreach ($headers as $field => $value) {
             $this->setHeader($field, $value);
         }
@@ -160,10 +160,10 @@ abstract class Message {
      * Appends a header for the specified field (instead of replacing via setHeader())
      *
      * @param string $field
-     * @param string $value
+     * @param mixed $value
      * @return self
      */
-    public function appendHeader($field, $value) {
+    public function appendHeader(string $field, $value): self {
         if ($this->hasHeader($field)) {
             $existingHeaders = $this->getHeader($field);
             $value = is_scalar($value) ? [$value] : $value;
@@ -182,7 +182,7 @@ abstract class Message {
      * @param string $field
      * @return self
      */
-    public function removeHeader($field) {
+    public function removeHeader(string $field): self {
         $fieldUpper = strtoupper($field);
 
         if (isset($this->headerCaseMap[$fieldUpper])) {
@@ -201,7 +201,7 @@ abstract class Message {
      *
      * @return self
      */
-    public function removeAllHeaders() {
+    public function removeAllHeaders(): self {
         $this->headers = [];
         $this->headerCaseMap = [];
 

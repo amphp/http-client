@@ -8,16 +8,16 @@ class WriterFactory {
      *
      * @param $body
      * @return \Amp\Artax\Writer
-     * @throws \DomainException
+     * @throws \Error
      */
-    public function make($body) {
+    public function make($body): Writer {
         if (is_string($body)) {
             return new BufferWriter;
         } elseif ($body instanceof \Iterator) {
             return new IteratorWriter($this);
         } else {
-            throw new \DomainException(
-                sprintf('Invalid write subject: %s. String or Iterator required', gettype($body))
+            throw new \Error(
+                sprintf('Invalid write subject: %s; string or instance of \Iterator required', gettype($body))
             );
         }
     }

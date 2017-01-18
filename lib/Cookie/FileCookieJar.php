@@ -5,7 +5,7 @@ namespace Amp\Artax\Cookie;
 class FileCookieJar extends ArrayCookieJar {
     private $storagePath;
 
-    public function __construct($storagePath) {
+    public function __construct(string $storagePath) {
 
         if (!file_exists($storagePath)) {
             $cookieFileHandle = $this->createStorageFile($storagePath);

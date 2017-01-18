@@ -2,9 +2,8 @@
 
 namespace Amp\Artax;
 
-use Amp\Success,
-    Amp\Deferred;
-use Interop\Async\Loop;
+use Amp\{ Deferred, Success };
+use AsyncInterop\{ Loop, Promise };
 
 class SocketPool {
     const OP_HOST_CONNECTION_LIMIT = 'op.host-conn-limit';
@@ -33,9 +32,9 @@ class SocketPool {
      *
      * @param string $uri A string of the form somedomain.com:80 or 192.168.1.1:443
      * @param array $options
-     * @return \Interop\Async\Promise Returns a promise that resolves to a socket once a connection is available
+     * @return \AsyncInterop\Promise Returns a promise that resolves to a socket once a connection is available
      */
-    public function checkout($uri, array $options = []) {
+    public function checkout(string $uri, array $options = []): Promise {
         $uri = (stripos($uri, 'unix://') === 0) ? $uri : strtolower($uri);
         $options = $options ? array_merge($this->options, $options) : $this->options;
 
@@ -149,7 +148,7 @@ class SocketPool {
      * @param resource $resource
      * @return self
      */
-    public function clear($resource) {
+    public function clear($resource): self {
         $socketId = (int) $resource;
         if (isset($this->socketIdUriMap[$socketId])) {
             $uri = $this->socketIdUriMap[$socketId];
@@ -202,13 +201,13 @@ class SocketPool {
      * Return a previously checked-out socket to the pool
      *
      * @param resource $resource
-     * @throws \DomainException on resource unknown to the pool
+     * @throws \Error on resource unknown to the pool
      * @return self
      */
-    public function checkin($resource) {
+    public function checkin($resource): self {
         $socketId = (int) $resource;
         if (!isset($this->socketIdUriMap[$socketId])) {
-            throw new \DomainException(
+            throw new \Error(
                 sprintf('Unknown socket: %s', $resource)
             );
         }
@@ -254,10 +253,10 @@ class SocketPool {
      *
      * @param int $option
      * @param mixed $value
-     * @throws \DomainException on unknown option
+     * @throws \Error on unknown option
      * @return self
      */
-    public function setOption($option, $value) {
+    public function setOption(int $option, $value): self {
         switch ($option) {
             case self::OP_HOST_CONNECTION_LIMIT:
                 $this->options[self::OP_HOST_CONNECTION_LIMIT] = (int) $value;
@@ -272,7 +271,7 @@ class SocketPool {
                 $this->options[self::OP_BINDTO] = $value;
                 break;
             default:
-                throw new \DomainException(
+                throw new \Error(
                     sprintf('Unknown option: %s', $option)
                 );
         }

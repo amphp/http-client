@@ -2,8 +2,8 @@
 
 namespace Amp\Artax;
 
-use Amp\Success;
-use Amp\Deferred;
+use Amp\{ Success, Deferred };
+use AsyncInterop\Promise;
 
 class FormBody implements AggregateBody {
     private $fields = [];
@@ -15,7 +15,7 @@ class FormBody implements AggregateBody {
     /**
      * @param string $boundary An optional multipart boundary string
      */
-    public function __construct($boundary = null) {
+    public function __construct(string $boundary = null) {
         $this->boundary = $boundary ?: md5(uniqid($prefix = '', $moreEntropy = true));
     }
 
@@ -27,7 +27,7 @@ class FormBody implements AggregateBody {
      * @param string $contentType
      * @return self
      */
-    public function addField($name, $value, $contentType = 'text/plain') {
+    public function addField(string $name, $value, string $contentType = 'text/plain'): self {
         $this->fields[] = [(string) $name, (string) $value, (string) $contentType, $fileName = null];
         $this->cachedBody = $this->cachedLength = $this->cachedFields = null;
 
@@ -41,7 +41,7 @@ class FormBody implements AggregateBody {
     * @param string $contentType
     * @return self
     */
-    public function addFields(array $data, $contentType = 'text/plain') {
+    public function addFields(array $data, string $contentType = 'text/plain'): self {
         foreach ($data as $key => $value) {
             $this->addField($key, $value, $contentType);
         }
@@ -57,7 +57,7 @@ class FormBody implements AggregateBody {
      * @param string $contentType
      * @return self
      */
-    public function addFile($name, $filePath, $contentType = 'application/octet-stream') {
+    public function addFile(string $name, string $filePath, string $contentType = 'application/octet-stream'): self {
         $filePath = (string) $filePath;
         $fileName = basename($filePath);
         $this->fields[] = [(string) $name, new FileBody($filePath), $contentType, $fileName];
@@ -74,7 +74,7 @@ class FormBody implements AggregateBody {
     * @param string $contentType
     * @return self
     */
-    public function addFiles(array $data, $contentType = 'application/octet-stream') {
+    public function addFiles(array $data, string $contentType = 'application/octet-stream'): self {
         foreach ($data as $key => $value) {
             $this->addFile($key, $value, $contentType);
         }
@@ -89,9 +89,9 @@ class FormBody implements AggregateBody {
      * for future resolution of non-blocking operations (e.g. when the entity body comprises
      * filesystem resources).
      *
-     * @return \Interop\Async\Promise
+     * @return \AsyncInterop\Promise
      */
-    public function getBody() {
+    public function getBody(): Promise {
         if ($this->isMultipart) {
             $fields = $this->getMultipartFieldArray();
             return $this->generateMultipartIteratorFromFields($fields);
@@ -179,9 +179,9 @@ class FormBody implements AggregateBody {
      * for future resolution of non-blocking operations (e.g. when using filesystem stats to
      * generate content-length headers).
      *
-     * @return \Interop\Async\Promise
+     * @return \AsyncInterop\Promise
      */
-    public function getHeaders() {
+    public function getHeaders(): Promise {
         $deferred = new Deferred;
         $length = $this->getLength();
         $length->when(function($error, $result) use ($deferred) {
@@ -212,9 +212,9 @@ class FormBody implements AggregateBody {
      * for future resolution of non-blocking operations (e.g. when using filesystem stats to
      * determine entity body length).
      *
-     * @return \Interop\Async\Promise
+     * @return \AsyncInterop\Promise
      */
-    public function getLength() {
+    public function getLength(): Promise {
         if (isset($this->cachedLength)) {
             return new Success($this->cachedLength);
         } elseif ($this->isMultipart) {

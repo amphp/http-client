@@ -93,7 +93,7 @@ class Parser {
                 $this->returnBeforeEntity = (bool) $value;
                 break;
             default:
-                throw new \DomainException(
+                throw new \Error(
                     sprintf('Unknown parser option: %s', $option)
                 );
         }
@@ -102,23 +102,26 @@ class Parser {
     /**
      * @TODO Change this method name because it's terrible
      */
-    public function enqueueResponseMethodMatch($method) {
+    public function enqueueResponseMethodMatch(string $method) {
         $this->responseMethodMatch[] = $method;
     }
 
-    public function getBuffer() {
+    /**
+     * @return string|null
+     */
+    public function getBuffer() /* : ?string */ {
         return $this->buffer;
     }
 
-    public function getState() {
+    public function getState(): int {
         return $this->state;
     }
 
-    public function buffer($data) {
+    public function buffer(string $data) {
         $this->buffer .= $data;
     }
 
-    public function parse($data = null) {
+    public function parse(string $data = null) {
         if ($data !== null) {
             $this->buffer .= $data;
         }
@@ -567,7 +570,7 @@ class Parser {
         }
     }
 
-    public function getParsedMessageArray() {
+    public function getParsedMessageArray(): array {
         if ($this->body) {
             rewind($this->body);
         }

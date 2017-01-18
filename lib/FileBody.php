@@ -2,26 +2,26 @@
 
 namespace Amp\Artax;
 
-use Amp\Deferred;
-use Amp\Failure;
-use Amp\Success;
+use Amp\{ Deferred, Failure, Success };
+use AsyncInterop\Promise;
 
 class FileBody implements AggregateBody {
+    /** @var string */
     private $path;
 
     /**
      * @param string $path The filesystem path for the file we wish to send
      */
-    public function __construct($path) {
-        $this->path = (string) $path;
+    public function __construct(string $path) {
+        $this->path = $path;
     }
 
     /**
      * Retrieve the sendable Amp\Artax entity body representation
      *
-     * @return \Interop\Async\Promise
+     * @return \AsyncInterop\Promise
      */
-    public function getBody() {
+    public function getBody(): Promise {
         // @TODO Implement non-blocking php-uv iterator.
         // For now we'll just use the dumb blocking version.
         // v1.0.0 cannot be a thing until this is implemented.
@@ -37,10 +37,10 @@ class FileBody implements AggregateBody {
     /**
      * Return a key-value array of headers to add to the outbound request
      *
-     * @return \Interop\Async\Promise
+     * @return \AsyncInterop\Promise
      * @TODO
      */
-    public function getHeaders() {
+    public function getHeaders(): Promise {
         // @TODO Implement non-blocking php-uv header retrieval.
         // For now we'll just use the dumb blocking version.
         // v1.0.0 cannot be a thing until this is implemented.
@@ -59,9 +59,9 @@ class FileBody implements AggregateBody {
     /**
      * Retrieve the entity body's content length
      *
-     * @return \Interop\Async\Promise
+     * @return \AsyncInterop\Promise
      */
-    public function getLength() {
+    public function getLength(): Promise {
         // @TODO Implement non-blocking php-uv file size retrieval.
         // For now we'll just use the dumb blocking version.
         // v1.0.0 cannot be a thing until this is implemented.

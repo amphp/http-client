@@ -3,7 +3,7 @@
 namespace Amp\Artax;
 
 use Amp\Deferred;
-use Interop\Async\Loop;
+use AsyncInterop\{ Loop, Promise };
 
 class HttpTunneler {
     private static $READ_GRANULARITY = 32768;
@@ -13,9 +13,9 @@ class HttpTunneler {
      *
      * @param resource $socket
      * @param string $authority
-     * @return \Interop\Async\Promise
+     * @return \AsyncInterop\Promise
      */
-    public function tunnel($socket, $authority) {
+    public function tunnel($socket, string $authority): Promise {
         $struct = new HttpTunnelStruct;
         $struct->deferred = new Deferred;
         $struct->socket = $socket;

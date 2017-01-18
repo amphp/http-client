@@ -2,11 +2,14 @@
 
 namespace Amp\Artax;
 
-use Amp\Postponed;
-use Interop\Async\Loop;
+use Amp\{ Emitter, Stream };
+use AsyncInterop\Loop;
 
 class BufferWriter implements Writer {
-    private $postponed;
+    /** @var \Amp\Emitter */
+    private $emitter;
+
+    /** @var resource */
     private $socket;
     private $buffer;
     private $writeWatcher;
@@ -17,17 +20,21 @@ class BufferWriter implements Writer {
      *
      * @param resource $socket
      * @param string $dataToWrite
-     * @return \Amp\Observable
+     * @return \Amp\Stream
      */
-    public function write($socket, $dataToWrite) {
-        $this->postponed = new Postponed;
+    public function write($socket, $dataToWrite): Stream {
+        if (!is_string($dataToWrite)) {
+            throw new \TypeError("\$dataToWrite must be a string");
+        }
+
+        $this->emitter = new Emitter;
         $this->socket = $socket;
         $this->buffer = $dataToWrite;
         Loop::defer(function() {
             $this->doWrite();
         });
 
-        return $this->postponed->observe();
+        return $this->emitter->stream();
     }
 
     private function doWrite() {
@@ -36,7 +43,7 @@ class BufferWriter implements Writer {
         $this->bytesWritten += $bytesWritten;
 
         if ($bytesToWrite === $bytesWritten) {
-            $this->postponed->emit($this->buffer);
+            $this->emitter->emit($this->buffer);
             $this->resolve();
         } elseif (empty($bytesWritten) && $this->isSocketDead()) {
             $this->fail(new SocketException(
@@ -45,7 +52,7 @@ class BufferWriter implements Writer {
         } else {
             $notifyData = substr($this->buffer, 0, $bytesWritten);
             $this->buffer = substr($this->buffer, $bytesWritten);
-            $this->postponed->emit($notifyData);
+            $this->emitter->emit($notifyData);
             $this->enableWriteWatcher();
         }
     }
@@ -68,14 +75,14 @@ class BufferWriter implements Writer {
     }
 
     private function fail(\Throwable $e) {
-        $this->postponed->fail($e);
+        $this->emitter->fail($e);
         if ($this->writeWatcher) {
             Loop::cancel($this->writeWatcher);
         }
     }
 
     private function resolve() {
-        $this->postponed->resolve();
+        $this->emitter->resolve();
         if ($this->writeWatcher) {
             Loop::cancel($this->writeWatcher);
         }

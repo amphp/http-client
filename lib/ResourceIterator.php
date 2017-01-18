@@ -13,7 +13,7 @@ class ResourceIterator extends StreamIterator {
         if (is_resource($resource)) {
             $this->resource = $resource;
         } else {
-            throw new \DomainException(
+            throw new \Error(
                 sprintf('ResourceIterator requires a resource (duh); %s provided', gettype($resource))
             );
         }

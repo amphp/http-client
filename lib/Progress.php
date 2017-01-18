@@ -7,7 +7,7 @@ namespace Amp\Artax;
  *
  * The Amp\Artax\Client::request method returns a promise to asynchronously fulfill a response at some
  * point in the future when it completes. We can react to progress events on the promise using the
- * Observable::subscribe() method. The Amp\Artax\Progress class hides the HTTP protocol details needed to
+ * Stream::listen() method. The Amp\Artax\Progress class hides the HTTP protocol details needed to
  * create an accurate progress bar from the progress events emitted by the promise.
  *
  * Example:
@@ -15,7 +15,7 @@ namespace Amp\Artax;
  *      <?php
  *      $client = new Amp\Artax\Client;
  *      $observable = $client->request('http://www.google.com');
- *      $observable->subscribe(new Progress(function($data) {
+ *      $observable->listen(new Progress(function($data) {
  *          // what to do with progress info when broadcast by the observable
  *          var_dump($data['fraction_complete'] * 100);
  *      });
@@ -47,13 +47,13 @@ class Progress {
      * @param callable $onUpdateCallback
      * @param int $msUpdateFrequency Limit updates to fire only once every n milliseconds
      */
-    public function __construct(callable $onUpdateCallback, $msUpdateFrequency = 30) {
+    public function __construct(callable $onUpdateCallback, int $msUpdateFrequency = 30) {
         $this->onUpdateCallback = $onUpdateCallback;
         $this->msUpdateFrequency = ($msUpdateFrequency / 1000);
     }
 
     /**
-     * A convenience method allowing applications to pass instances directly to Observable::subscribe()
+     * A convenience method allowing applications to pass instances directly to Stream::listen()
      *
      * @param $progress
      * @return void

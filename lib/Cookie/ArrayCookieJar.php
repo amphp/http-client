@@ -31,7 +31,7 @@ class ArrayCookieJar implements CookieJar {
      * @return void
      */
     public function removeAll() {
-        $this->cookies = array();
+        $this->cookies = [];
     }
 
     /**
@@ -39,7 +39,7 @@ class ArrayCookieJar implements CookieJar {
      *
      * @return array Returns array in the format $arr[$domain][$path][$cookieName]
      */
-    public function getAll() {
+    public function getAll(): array {
         return $this->cookies;
     }
 
@@ -51,7 +51,7 @@ class ArrayCookieJar implements CookieJar {
      * @param string $name
      * @return array Returns an array (possibly empty) of all cookie matches
      */
-    public function get($domain, $path = '', $name = null) {
+    public function get(string $domain, string $path = '', string $name = null): array {
         $this->clearExpiredCookies();
 
         $path = ($path === '') ? '/' : $path;

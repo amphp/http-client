@@ -31,39 +31,39 @@ class Cookie {
         $this->httpOnly = (bool) $httpOnly;
     }
 
-    public function getName() {
+    public function getName(): string {
         return $this->name;
     }
 
-    public function getValue() {
+    public function getValue(): string {
         return $this->value;
     }
 
-    public function getExpirationTime() {
+    public function getExpirationTime(): int {
         return $this->expires;
     }
 
-    public function isExpired() {
+    public function isExpired(): bool {
         return $this->expires && $this->expires < time();
     }
 
-    public function getPath() {
+    public function getPath(): string {
         return $this->path;
     }
 
-    public function getDomain() {
+    public function getDomain(): string {
         return $this->domain;
     }
 
-    public function getSecure() {
+    public function getSecure(): bool {
         return $this->secure;
     }
 
-    public function getHttpOnly() {
+    public function getHttpOnly(): bool {
         return $this->httpOnly;
     }
 
-    public function __toString() {
+    public function __toString(): string {
         $cookieStr = $this->name . '=' . $this->value;
 
         if ($this->expires !== null) {
@@ -90,7 +90,7 @@ class Cookie {
         return $cookieStr;
     }
 
-    static function fromString($rawCookieStr) {
+    static function fromString(string $rawCookieStr): self {
         if (!$rawCookieStr) {
             throw new \InvalidArgumentException(
                 'Invalid cookie string'
@@ -147,7 +147,7 @@ class Cookie {
             $attrStruct['expires'] = self::parseDate($attrStruct['expires']);
         }
 
-        return new Cookie(
+        return new self(
             $name,
             $value,
             $attrStruct['expires'],

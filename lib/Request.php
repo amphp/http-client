@@ -3,15 +3,15 @@
 namespace Amp\Artax;
 
 class Request extends Message {
-    private $method;
-    private $uri;
+    private $method = '';
+    private $uri = '';
 
     /**
      * Retrieve the request's HTTP method verb
      *
      * @return string
      */
-    public function getMethod() {
+    public function getMethod(): string {
         return $this->method;
     }
 
@@ -21,8 +21,8 @@ class Request extends Message {
      * @param string $method
      * @return self
      */
-    public function setMethod($method) {
-        $this->method = (string) $method;
+    public function setMethod(string $method): self {
+        $this->method = $method;
 
         return $this;
     }
@@ -32,7 +32,7 @@ class Request extends Message {
      *
      * @return string
      */
-    public function getUri() {
+    public function getUri(): string {
         return $this->uri;
     }
 
@@ -42,8 +42,8 @@ class Request extends Message {
      * @param string
      * @return self
      */
-    public function setUri($uri) {
-        $this->uri = (string) $uri;
+    public function setUri(string $uri): self {
+        $this->uri = $uri;
 
         return $this;
     }

@@ -2,15 +2,23 @@
 
 namespace Amp\Artax;
 
-use Amp\Postponed;
-use Amp\Success;
-use Interop\Async\Promise;
+use Amp\{ Stream, Emitter, Success };
+use AsyncInterop\Promise;
 
 class IteratorWriter implements Writer {
+    /** @var \Amp\Artax\WriterFactory */
     private $writerFactory;
+
+    /** @var resource */
     private $socket;
+
+    /** @var \Iterator */
     private $iterator;
-    private $postponed;
+
+    /** @var \Amp\Emitter */
+    private $emitter;
+
+    /** @var \Amp\Artax\Writer */
     private $writer;
 
     /**
@@ -24,21 +32,25 @@ class IteratorWriter implements Writer {
      * Write iterator content to the socket.
      *
      * @param resource $socket
-     * @param mixed $iterator
-     * @throws \DomainException On invalid iterator element.
-     * @return \Amp\Observable
+     * @param \Iterator $iterator
+     * @throws \Error On invalid iterator element.
+     * @return \Amp\Stream
      */
-    public function write($socket, $iterator) {
+    public function write($socket, $iterator): Stream {
+        if (!$iterator instanceof \Iterator) {
+            throw new \TypeError("\$iterator must be an instance of \\Iterator");
+        }
+
         if (!$iterator->valid()) {
             return new Success;
         }
 
         $this->socket = $socket;
         $this->iterator = $iterator;
-        $this->postponed = new Postponed;
+        $this->emitter = new Emitter;
         $this->writeNextElement();
 
-        return $this->postponed->observe();
+        return $this->emitter->stream();
     }
 
     private function writeNextElement() {
@@ -51,7 +63,7 @@ class IteratorWriter implements Writer {
 
         $current->when(function($error, $result) {
             if ($error) {
-                $this->postponed->fail($error);
+                $this->emitter->fail($error);
             } else {
                 $this->finalizeEventualWriteElement($result);
             }
@@ -62,15 +74,15 @@ class IteratorWriter implements Writer {
         try {
             $this->writer = $this->writerFactory->make($current);
             $writePromise = $this->writer->write($this->socket, $current);
-            $writePromise->subscribe(function($update) {
-                $this->postponed->emit($update);
+            $writePromise->listen(function($update) {
+                $this->emitter->emit($update);
             });
             $writePromise->when(function($error, $result) {
                 $this->afterElementWrite($error, $result);
             });
         } catch (\Throwable $e) {
             // Protect against bad userland iterator return values from Iterator::current()
-            $this->postponed->fail($e);
+            $this->emitter->fail($e);
         }
     }
 
@@ -78,11 +90,11 @@ class IteratorWriter implements Writer {
         $this->iterator->next();
 
         if ($error) {
-            $this->postponed->fail($error);
+            $this->emitter->fail($error);
         } elseif ($this->iterator->valid()) {
             $this->writeNextElement();
         } else {
-            $this->postponed->resolve();
+            $this->emitter->resolve();
         }
     }
 }
