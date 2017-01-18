@@ -275,6 +275,9 @@ function myNotifyCallback(array $notifyData) {
         case Amp\Artax\Notify::REDIRECT:
             echo "REDIRECT\n";
             break;
+        case Amp\Artax\Notify::HANDSHAKE_COMPLETE:
+            echo "HANDSHAKE_COMPLETE\n";
+            break;
         case Amp\Artax\Notify::ERROR:
             echo "ERROR\n";
             break;
@@ -370,7 +373,7 @@ $response = Amp\wait($observable);
 
 The following keys are available in the `$update` array sent from the `Progress` object:
 
--  request_state
+- request_state
 - connected_at
 - bytes_rcvd
 - bytes_per_second

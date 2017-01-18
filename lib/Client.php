@@ -441,6 +441,9 @@ class Client implements HttpClient {
             });
         }
 
+        $streamMeta = stream_get_meta_data($cycle->socket);
+        $cycle->futureResponse->update([Notify::HANDSHAKE_COMPLETE, $streamMeta]);
+
         $this->writeRequest($cycle);
     }
 
