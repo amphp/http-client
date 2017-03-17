@@ -2,8 +2,7 @@
 
 namespace Amp\Artax;
 
-use Amp\{ Success, Deferred };
-use AsyncInterop\Promise;
+use Amp\{ Success, Deferred, Promise };
 
 class FormBody implements AggregateBody {
     private $fields = [];
@@ -89,7 +88,7 @@ class FormBody implements AggregateBody {
      * for future resolution of non-blocking operations (e.g. when the entity body comprises
      * filesystem resources).
      *
-     * @return \AsyncInterop\Promise
+     * @return \Amp\Promise
      */
     public function getBody(): Promise {
         if ($this->isMultipart) {
@@ -145,7 +144,7 @@ class FormBody implements AggregateBody {
         }
 
         $deferred = new Deferred;
-        \Amp\all($fields)->when(function($error, $result) use ($deferred) {
+        Promise\all($fields)->when(function($error, $result) use ($deferred) {
             if ($error) {
                 $deferred->fail($error);
             } else {
@@ -179,7 +178,7 @@ class FormBody implements AggregateBody {
      * for future resolution of non-blocking operations (e.g. when using filesystem stats to
      * generate content-length headers).
      *
-     * @return \AsyncInterop\Promise
+     * @return \Amp\Promise
      */
     public function getHeaders(): Promise {
         $deferred = new Deferred;
@@ -212,7 +211,7 @@ class FormBody implements AggregateBody {
      * for future resolution of non-blocking operations (e.g. when using filesystem stats to
      * determine entity body length).
      *
-     * @return \AsyncInterop\Promise
+     * @return \Amp\Promise
      */
     public function getLength(): Promise {
         if (isset($this->cachedLength)) {
@@ -243,7 +242,7 @@ class FormBody implements AggregateBody {
         }
 
         $deferred = new Deferred;
-        \Amp\all($lengths)->when(function($error, $result) use ($deferred) {
+        Promise\all($lengths)->when(function($error, $result) use ($deferred) {
             if ($error) {
                 $deferred->fail($error);
             } else {

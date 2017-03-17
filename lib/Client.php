@@ -2,9 +2,8 @@
 
 namespace Amp\Artax;
 
-use Amp\{ Emitter, Socket as socket, Stream };
+use Amp\{ Emitter, Loop, Socket as socket, Stream };
 use Amp\Artax\Cookie\{ Cookie, CookieJar, ArrayCookieJar, CookieParser };
-use AsyncInterop\Loop;
 
 class Client implements HttpClient {
     const USER_AGENT = 'Amp\Artax/1.0.0-dev (PHP)';

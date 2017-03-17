@@ -2,8 +2,7 @@
 
 namespace Amp\Artax;
 
-use Amp\{ Deferred, Success };
-use AsyncInterop\{ Loop, Promise };
+use Amp\{ Deferred, Loop, Promise, Success };
 
 class SocketPool {
     const OP_HOST_CONNECTION_LIMIT = 'op.host-conn-limit';
@@ -32,7 +31,7 @@ class SocketPool {
      *
      * @param string $uri A string of the form somedomain.com:80 or 192.168.1.1:443
      * @param array $options
-     * @return \AsyncInterop\Promise Returns a promise that resolves to a socket once a connection is available
+     * @return \Amp\Promise Returns a promise that resolves to a socket once a connection is available
      */
     public function checkout(string $uri, array $options = []): Promise {
         $uri = (stripos($uri, 'unix://') === 0) ? $uri : strtolower($uri);

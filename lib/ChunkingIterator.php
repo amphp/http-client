@@ -2,8 +2,7 @@
 
 namespace Amp\Artax;
 
-use Amp\Deferred;
-use AsyncInterop\Promise;
+use Amp\{ Deferred, Promise };
 
 /**
  * Wraps Iterators to add chunk encoding for each element

@@ -2,8 +2,7 @@
 
 namespace Amp\Artax;
 
-use Amp\{ Emitter, Stream };
-use AsyncInterop\Loop;
+use Amp\{ Emitter, Loop, Stream };
 
 class BufferWriter implements Writer {
     /** @var \Amp\Emitter */

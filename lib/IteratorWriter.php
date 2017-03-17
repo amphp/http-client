@@ -2,8 +2,7 @@
 
 namespace Amp\Artax;
 
-use Amp\{ Stream, Emitter, Success };
-use AsyncInterop\Promise;
+use Amp\{ Stream, Emitter, Promise, Success };
 
 class IteratorWriter implements Writer {
     /** @var \Amp\Artax\WriterFactory */

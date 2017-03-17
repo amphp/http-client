@@ -49,7 +49,7 @@ class HttpSocketPool {
      *
      * @param string $uri
      * @param array $options
-     * @return \AsyncInterop\Promise
+     * @return \Amp\Promise
      */
     public function checkout($uri, array $options = []) {
         // Normalize away any IPv6 brackets -- socket resolution will handle that

@@ -19,12 +19,10 @@
         }
     ],
     "require": {
-        "php": ">=7.0",
         "amphp/amp": "dev-master as 2.0",
         "amphp/socket": "dev-amp_v2"
     },
     "require-dev": {
-        "amphp/loop": "dev-master",
         "phpunit/phpunit": "^5",
         "friendsofphp/php-cs-fixer": "~1.9"
     },

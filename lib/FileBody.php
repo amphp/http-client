@@ -2,8 +2,7 @@
 
 namespace Amp\Artax;
 
-use Amp\{ Deferred, Failure, Success };
-use AsyncInterop\Promise;
+use Amp\{ Deferred, Failure, Promise, Success };
 
 class FileBody implements AggregateBody {
     /** @var string */
@@ -19,7 +18,7 @@ class FileBody implements AggregateBody {
     /**
      * Retrieve the sendable Amp\Artax entity body representation
      *
-     * @return \AsyncInterop\Promise
+     * @return \Amp\Promise
      */
     public function getBody(): Promise {
         // @TODO Implement non-blocking php-uv iterator.
@@ -37,7 +36,7 @@ class FileBody implements AggregateBody {
     /**
      * Return a key-value array of headers to add to the outbound request
      *
-     * @return \AsyncInterop\Promise
+     * @return \Amp\Promise
      * @TODO
      */
     public function getHeaders(): Promise {
@@ -59,7 +58,7 @@ class FileBody implements AggregateBody {
     /**
      * Retrieve the entity body's content length
      *
-     * @return \AsyncInterop\Promise
+     * @return \Amp\Promise
      */
     public function getLength(): Promise {
         // @TODO Implement non-blocking php-uv file size retrieval.

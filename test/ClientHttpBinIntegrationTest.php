@@ -13,7 +13,7 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
         $client = new Client;
 
         $promise = $client->request($uri);
-        $response = \Amp\wait($promise);
+        $response = \Amp\Promise\wait($promise);
         $this->assertInstanceOf('Amp\Artax\Response', $response);
         $body = $response->getBody();
         $result = json_decode($body);
@@ -27,7 +27,7 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
         $customUserAgent = 'test-user-agent';
         $request = (new Request)->setUri($uri)->setHeader('User-Agent', $customUserAgent);
         $promise = $client->request($request);
-        $response = \Amp\wait($promise);
+        $response = \Amp\Promise\wait($promise);
         $this->assertInstanceOf('Amp\Artax\Response', $response);
         $body = $response->getBody();
         $result = json_decode($body);
@@ -41,7 +41,7 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
         $body = 'zanzibar';
         $request = (new Request)->setUri($uri)->setMethod('POST')->setBody($body);
         $promise = $client->request($request);
-        $response = \Amp\wait($promise);
+        $response = \Amp\Promise\wait($promise);
         $this->assertInstanceOf('Amp\Artax\Response', $response);
         $result = json_decode($response->getBody());
         $this->assertEquals($body, $result->data);
@@ -54,7 +54,7 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
         $body = 'zanzibar';
         $request = (new Request)->setUri($uri)->setMethod('PUT')->setBody($body);
         $promise = $client->request($request);
-        $response = \Amp\wait($promise);
+        $response = \Amp\Promise\wait($promise);
         $this->assertInstanceOf('Amp\Artax\Response', $response);
         $result = json_decode($response->getBody());
         $this->assertEquals($body, $result->data);
@@ -68,7 +68,7 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
         $client = new Client;
 
         $promise = $client->request($uri);
-        $response = \Amp\wait($promise);
+        $response = \Amp\Promise\wait($promise);
         $this->assertInstanceOf('Amp\Artax\Response', $response);
         $this->assertEquals($statusCode, $response->getStatus());
     }
@@ -87,7 +87,7 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
         $client = new Client;
 
         $promise = $client->request($uri);
-        $response = \Amp\wait($promise);
+        $response = \Amp\Promise\wait($promise);
         $this->assertInstanceOf('Amp\Artax\Response', $response);
         $expectedReason = "I'M A TEAPOT";
         $actualReason = $response->getReason();
@@ -101,7 +101,7 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
         $client = new Client;
 
         $promise = $client->request($uri);
-        $response = \Amp\wait($promise);
+        $response = \Amp\Promise\wait($promise);
         $this->assertInstanceOf('Amp\Artax\Response', $response);
         $this->assertEquals($statusCode, $response->getStatus());
         $originalUri = $response->getOriginalRequest()->getUri();
@@ -114,7 +114,7 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
 
         $client->setOption(Client::OP_VERBOSITY, Client::VERBOSE_SEND);
         $promise = $client->request($uri);
-        $response = \Amp\wait($promise);
+        $response = \Amp\Promise\wait($promise);
 
         $expectedLines = [
             "GET / HTTP/1.1",
@@ -133,7 +133,7 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
 
         $request = (new Request)->setUri($uri)->setMethod('POST');
         $promise = $client->request($request);
-        $response = \Amp\wait($promise);
+        $response = \Amp\Promise\wait($promise);
         $this->assertInstanceOf('Amp\Artax\Response', $response);
         $body = $response->getBody();
         $result = json_decode($body);
@@ -153,7 +153,7 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
 
         $request = (new Request)->setBody($body)->setUri($uri)->setMethod('POST');
         $promise = $client->request($request);
-        $response = \Amp\wait($promise);
+        $response = \Amp\Promise\wait($promise);
         $this->assertInstanceOf('Amp\Artax\Response', $response);
         $result = json_decode($response->getBody(), true);
         $this->assertEquals($field1, $result['form']['field1']);
@@ -169,7 +169,7 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
         $body = new FileBody($bodyPath);
         $request = (new Request)->setBody($body)->setUri($uri)->setMethod('POST');
         $promise = $client->request($request);
-        $response = \Amp\wait($promise);
+        $response = \Amp\Promise\wait($promise);
         $this->assertInstanceOf('Amp\Artax\Response', $response);
         $result = json_decode($response->getBody(), true);
         $this->assertEquals(file_get_contents($bodyPath), $result['data']);
@@ -191,7 +191,7 @@ class ClientHttpBinIntegrationTest extends \PHPUnit_Framework_TestCase {
 
         $request = (new Request)->setBody($body)->setUri('http://httpbin.org/post')->setMethod('POST');
         $promise = $client->request($request);
-        $response = \Amp\wait($promise);
+        $response = \Amp\Promise\wait($promise);
         $this->assertEquals(200, $response->getStatus());
 
         $result = json_decode($response->getBody(), true);
