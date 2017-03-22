@@ -112,7 +112,7 @@ class SocketPool {
             ? $this->pendingSockets[$uri] + 1
             : 1;
         $futureSocket = \Amp\Socket\connect($uri, $options);
-        $futureSocket->when(function($error, $socket) use ($deferred, $uri, $options) {
+        $futureSocket->onResolve(function($error, $socket) use ($deferred, $uri, $options) {
             if ($error) {
                 $deferred->fail($error);
             } else {

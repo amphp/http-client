@@ -27,7 +27,7 @@ class ChunkingIterator implements \Iterator {
             return $this->applyChunkEncoding($current);
         } elseif ($current instanceof Promise) {
             $deferred = new Deferred;
-            $current->when(function($error, $result) use ($deferred) {
+            $current->onResolve(function($error, $result) use ($deferred) {
                 if ($error) {
                     $deferred->fail($error);
                 } elseif (is_string($result)) {

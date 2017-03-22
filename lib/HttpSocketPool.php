@@ -78,7 +78,7 @@ class HttpSocketPool {
         $uri = $proxy ? "tcp://{$proxy}#{$authority}" : "tcp://{$authority}";
         $deferred = new Deferred;
         $futureCheckout = $this->sockPool->checkout($uri, $options);
-        $futureCheckout->when(function($error, $socket) use ($deferred, $proxy, $authority) {
+        $futureCheckout->onResolve(function($error, $socket) use ($deferred, $proxy, $authority) {
             if ($error) {
                 $deferred->fail($error);
             } elseif ($proxy) {
@@ -94,7 +94,7 @@ class HttpSocketPool {
     private function tunnelThroughProxy(Deferred $deferred, $socket, $authority) {
         if (empty(stream_context_get_options($socket)['artax*']['is_tunneled'])) {
             $futureTunnel = $this->tunneler->tunnel($socket, $authority);
-            $futureTunnel->when(function($error) use ($deferred, $socket) {
+            $futureTunnel->onResolve(function($error) use ($deferred, $socket) {
                 if ($error) {
                     $deferred->fail($error);
                 } else {

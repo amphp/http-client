@@ -36,7 +36,7 @@ class ChunkingIteratorTest extends \PHPUnit_Framework_TestCase {
         $this->assertSame("3\r\naaa\r\n", $chunkingIter->current());
         $chunkingIter->next();
         $promise = $chunkingIter->current();
-        $promise->when(function($error, $result) use ($chunkingIter) {
+        $promise->onResolve(function($error, $result) use ($chunkingIter) {
             $this->assertNull($error);
             $this->assertSame("2\r\nbb\r\n", $result);
             $chunkingIter->next();

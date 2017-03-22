@@ -138,14 +138,14 @@ class Client implements HttpClient {
         $socketCheckoutUri = $cycle->uri->getScheme() . "://{$authority}";
         $cycle->socketCheckoutUri = $socketCheckoutUri;
         $futureSocket = $this->socketPool->checkout($socketCheckoutUri, $cycle->options);
-        $futureSocket->when(function($error, $result) use ($cycle) {
+        $futureSocket->onResolve(function($error, $result) use ($cycle) {
             $this->onSocketResolve($cycle, $error, $result);
         });
     }
 
     private function processAggregateBody(RequestCycle $cycle, AggregateBody $body) {
         $promise = $body->getBody();
-        $promise->when(function($error, $result) use ($cycle, $body) {
+        $promise->onResolve(function($error, $result) use ($cycle, $body) {
             if ($error) {
                 $this->fail($cycle, $error);
             } else {
@@ -157,7 +157,7 @@ class Client implements HttpClient {
 
     private function processAggregateBodyHeaders(RequestCycle $cycle, AggregateBody $body) {
         $promise = $body->getHeaders();
-        $promise->when(function($error, $result) use ($cycle, $body) {
+        $promise->onResolve(function($error, $result) use ($cycle, $body) {
             if ($error) {
                 $this->fail($cycle, $error);
             } else {
@@ -183,7 +183,7 @@ class Client implements HttpClient {
         $this->assignApplicableRequestCookies($request, $options);
 
         $this->queue[] = $cycle;
-        $emitter->stream()->when($this->dequeuer);
+        $emitter->stream()->onResolve($this->dequeuer);
 
         if (count($this->queue) < 512) {
             $this->dequeueNextRequest();
@@ -382,7 +382,7 @@ class Client implements HttpClient {
     private function enableCrypto(RequestCycle $cycle) {
         $cryptoOptions = $this->generateCryptoOptions($cycle);
         $cryptoPromise = socket\cryptoEnable($cycle->socket, $cryptoOptions);
-        $cryptoPromise->when(function($error) use ($cycle) {
+        $cryptoPromise->onResolve(function($error) use ($cycle) {
             if ($error) {
                 // If crypto failed we make sure the socket pool gets rid of its reference
                 // to this socket connection.
@@ -743,7 +743,7 @@ class Client implements HttpClient {
             $cycle->socket = null;
             $cycle->socketCheckoutUri = $socketCheckoutUri;
             $futureSocket = $this->socketPool->checkout($socketCheckoutUri, $cycle->options);
-            $futureSocket->when(function($error, $result) use ($cycle) {
+            $futureSocket->onResolve(function($error, $result) use ($cycle) {
                 $this->onSocketResolve($cycle, $error, $result);
             });
         } elseif ($cycle->socketCheckoutUri === $socketCheckoutUri) {
@@ -759,7 +759,7 @@ class Client implements HttpClient {
             $cycle->redirectedSockets[] = $cycle->socket;
             $cycle->socket = null;
             $futureSocket = $this->socketPool->checkout($socketCheckoutUri, $cycle->options);
-            $futureSocket->when(function($error, $result) use ($cycle) {
+            $futureSocket->onResolve(function($error, $result) use ($cycle) {
                 $this->onSocketResolve($cycle, $error, $result);
             });
         }
@@ -813,13 +813,13 @@ class Client implements HttpClient {
     private function writeRequest(RequestCycle $cycle) {
         $rawHeaders = $this->generateRawRequestHeaders($cycle->request);
         $stream = (new BufferWriter)->write($cycle->socket, $rawHeaders);
-        $stream->listen(function($update) use ($cycle) {
+        $stream->onEmit(function($update) use ($cycle) {
             $cycle->futureResponse->emit([Notify::SOCK_DATA_OUT, $update]);
             if ($cycle->options[self::OP_VERBOSITY] & self::VERBOSE_SEND) {
                 echo $update;
             }
         });
-        $stream->when(function($error, $response) use ($cycle) {
+        $stream->onResolve(function($error, $response) use ($cycle) {
             if ($error) {
                 $this->fail($cycle, $error);
             } else {
@@ -892,13 +892,13 @@ class Client implements HttpClient {
         try {
             $writer = $this->writerFactory->make($body);
             $stream = $writer->write($cycle->socket, $body);
-            $stream->listen(function($update) use ($cycle) {
+            $stream->onEmit(function($update) use ($cycle) {
                 $cycle->futureResponse->emit([Notify::SOCK_DATA_OUT, $update]);
                 if ($cycle->options[self::OP_VERBOSITY] & self::VERBOSE_SEND) {
                     echo $update;
                 }
             });
-            $stream->when(function($error, $result) use ($cycle) {
+            $stream->onResolve(function($error, $result) use ($cycle) {
                 if ($error) {
                     $this->fail($cycle, $error);
                 } else {

@@ -144,7 +144,7 @@ class FormBody implements AggregateBody {
         }
 
         $deferred = new Deferred;
-        Promise\all($fields)->when(function($error, $result) use ($deferred) {
+        Promise\all($fields)->onResolve(function($error, $result) use ($deferred) {
             if ($error) {
                 $deferred->fail($error);
             } else {
@@ -183,7 +183,7 @@ class FormBody implements AggregateBody {
     public function getHeaders(): Promise {
         $deferred = new Deferred;
         $length = $this->getLength();
-        $length->when(function($error, $result) use ($deferred) {
+        $length->onResolve(function($error, $result) use ($deferred) {
             if ($error) {
                 $deferred->fail($error);
             } else {
@@ -219,7 +219,7 @@ class FormBody implements AggregateBody {
         } elseif ($this->isMultipart) {
             $fields = $this->getMultipartFieldArray();
             $length = $this->sumMultipartFieldLengths($fields);
-            $length->when(function($error, $result) {
+            $length->onResolve(function($error, $result) {
                 if (empty($error)) {
                     $this->cachedLength = $result;
                 }
@@ -242,7 +242,7 @@ class FormBody implements AggregateBody {
         }
 
         $deferred = new Deferred;
-        Promise\all($lengths)->when(function($error, $result) use ($deferred) {
+        Promise\all($lengths)->onResolve(function($error, $result) use ($deferred) {
             if ($error) {
                 $deferred->fail($error);
             } else {

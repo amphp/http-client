@@ -60,7 +60,7 @@ class IteratorWriter implements Writer {
             return;
         }
 
-        $current->when(function($error, $result) {
+        $current->onResolve(function($error, $result) {
             if ($error) {
                 $this->emitter->fail($error);
             } else {
@@ -73,10 +73,10 @@ class IteratorWriter implements Writer {
         try {
             $this->writer = $this->writerFactory->make($current);
             $writePromise = $this->writer->write($this->socket, $current);
-            $writePromise->listen(function($update) {
+            $writePromise->onEmit(function($update) {
                 $this->emitter->emit($update);
             });
-            $writePromise->when(function($error, $result) {
+            $writePromise->onResolve(function($error, $result) {
                 $this->afterElementWrite($error, $result);
             });
         } catch (\Throwable $e) {

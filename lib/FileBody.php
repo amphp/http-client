@@ -44,7 +44,7 @@ class FileBody implements AggregateBody {
         // For now we'll just use the dumb blocking version.
         // v1.0.0 cannot be a thing until this is implemented.
         $deferred = new Deferred;
-        $this->getLength()->when(function($error, $result) use ($deferred) {
+        $this->getLength()->onResolve(function($error, $result) use ($deferred) {
             if ($error) {
                 $deferred->fail($error);
             } else {

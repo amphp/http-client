@@ -15,7 +15,7 @@ namespace Amp\Artax;
  *      <?php
  *      $client = new Amp\Artax\Client;
  *      $observable = $client->request('http://www.google.com');
- *      $observable->listen(new Progress(function($data) {
+ *      $observable->onEmit(new Progress(function($data) {
  *          // what to do with progress info when broadcast by the observable
  *          var_dump($data['fraction_complete'] * 100);
  *      });
