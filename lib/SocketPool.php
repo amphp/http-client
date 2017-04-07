@@ -58,13 +58,17 @@ class SocketPool {
                 && ($bindToIp == $options[self::OP_BINDTO])
             ) {
                 $poolStruct->isAvailable = false;
-                Loop::disable($poolStruct->idleWatcher);
+                if (isset($poolStruct->idleWatcher)) {
+                    Loop::disable($poolStruct->idleWatcher);
+                }
                 return $poolStruct->resource;
             } elseif ($bindToIp) {
                 $needsRebind = true;
             } else {
                 $poolStruct->isAvailable = false;
-                Loop::disable($poolStruct->idleWatcher);
+                if (isset($poolStruct->idleWatcher)) {
+                    Loop::disable($poolStruct->idleWatcher);
+                }
 
                 return $poolStruct->resource;
             }
