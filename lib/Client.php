@@ -381,7 +381,7 @@ class Client implements HttpClient {
 
     private function enableCrypto(RequestCycle $cycle) {
         $cryptoOptions = $this->generateCryptoOptions($cycle);
-        $cryptoPromise = socket\cryptoEnable($cycle->socket, $cryptoOptions);
+        $cryptoPromise = socket\enableCrypto($cycle->socket, $cryptoOptions);
         $cryptoPromise->onResolve(function($error) use ($cycle) {
             if ($error) {
                 // If crypto failed we make sure the socket pool gets rid of its reference
