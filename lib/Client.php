@@ -884,7 +884,9 @@ class Client implements HttpClient {
     private function proceedFrom100ContinueState(RequestCycle $cycle) {
         $continueWatcher = $cycle->continueWatcher;
         $cycle->continueWatcher = null;
-        Loop::cancel($continueWatcher);
+        if(isset($continueWatcher)) {
+            Loop::cancel($continueWatcher);
+        }
         $this->writeBody($cycle, "");
     }
 
