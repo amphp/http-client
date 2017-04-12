@@ -30,7 +30,9 @@ class HttpTunneler {
         $bytesWritten = @fwrite($socket, $struct->writeBuffer);
 
         if ($bytesToWrite === $bytesWritten) {
-            Loop::cancel($struct->writeWatcher);
+            if(isset($struct->writeWatcher)) {
+                Loop::cancel($struct->writeWatcher);
+            }
             $struct->parser = new Parser(Parser::MODE_RESPONSE);
             $struct->parser->enqueueResponseMethodMatch('CONNECT');
             $struct->readWatcher = Loop::onReadable($socket, function() use ($struct) {
@@ -40,7 +42,9 @@ class HttpTunneler {
             $struct->writeBuffer = substr($struct->writeBuffer, 0, $bytesWritten);
             $this->enableWriteWatcher($struct);
         } elseif ($this->isSocketDead($socket)) {
-            Loop::cancel($struct->writeWatcher);
+            if(isset($struct->writeWatcher)) {
+                Loop::cancel($struct->writeWatcher);
+            }
             $struct->deferred->fail(new SocketException(
                 'Proxy CONNECT failed: socket went away while writing tunneling request'
             ));
@@ -67,7 +71,9 @@ class HttpTunneler {
         if ($data != '') {
             $this->parseSocketData($struct, $data);
         } elseif ($this->isSocketDead($socket)) {
-            Loop::cancel($struct->readWatcher);
+            if(isset($struct->readWatcher)) {
+                Loop::cancel($struct->readWatcher);
+            }
             $struct->deferred->fail(new SocketException(
                 'Proxy CONNECT failed: socket went away while awaiting tunneling response'
             ));
@@ -86,15 +92,21 @@ class HttpTunneler {
                 // Tunnel connected! We're finished \o/ #WinningAtLife #DealWithIt
                 stream_context_set_option($struct->socket, 'artax*', 'is_tunneled', true);
                 $struct->deferred->resolve($struct->socket);
-                Loop::cancel($struct->readWatcher);
+                if(isset($struct->readWatcher)) {
+                    Loop::cancel($struct->readWatcher);
+                }
             } else {
                 $struct->deferred->fail(new ClientException(
                     sprintf('Unexpected response status received from proxy: %d', $status)
                 ));
-                Loop::cancel($struct->readWatcher);
+                if(isset($struct->readWatcher)) {
+                    Loop::cancel($struct->readWatcher);
+                }
             }
         } catch (ParseException $e) {
-            Loop::cancel($struct->readWatcher);
+            if(isset($struct->readWatcher)) {
+                Loop::cancel($struct->readWatcher);
+            }
             $struct->deferred->fail(new ClientException(
                 'Invalid HTTP response received from proxy while establishing tunnel',
                 0,
