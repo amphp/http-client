@@ -2,6 +2,7 @@ v1.0.6
 ------
 
 - Fix cookie leakage to wrong origins and cookie accept criteria
+- Add `Notify::HANDSHAKE_COMPLETE` to allow inspecting the TLS data
 
 v1.0.5
 ------
