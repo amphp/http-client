@@ -1,5 +1,11 @@
+v2.0.6
+------
+
+- Fix cookie leakage to wrong origins and cookie accept criteria
+- Add `Notify::HANDSHAKE_COMPLETE` to allow inspecting the TLS data
+
 v2.0.5
------
+------
 
 - Fix requests that use IPv6 addresses as host in the URL directly
 
