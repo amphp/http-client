@@ -1,5 +1,10 @@
+v1.0.6
+------
+
+- Fix cookie leakage to wrong origins and cookie accept criteria
+
 v1.0.5
------
+------
 
 - Fix requests that use IPv6 addresses as host in the URL directly
 

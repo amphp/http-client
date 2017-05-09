@@ -1,0 +1,86 @@
+// Any copyright is dedicated to the Public Domain.
+// https://creativecommons.org/publicdomain/zero/1.0/
+
+// Mixed case.
+COM 1
+example.COM 0
+WwW.example.COM 0
+// Unlisted TLD.
+example 0
+example.example 0
+b.example.example 0
+a.b.example.example 0
+// TLD with only 1 rule.
+biz 1
+domain.biz 0
+b.domain.biz 0
+a.b.domain.biz 0
+// TLD with some 2-level rules.
+com 1
+example.com 0
+b.example.com 0
+a.b.example.com 0
+uk.com 1
+example.uk.com 0
+b.example.uk.com 0
+a.b.example.uk.com 0
+test.ac 0
+// TLD with only 1 (wildcard) rule.
+mm 1
+c.mm 1
+b.c.mm 0
+a.b.c.mm 0
+// More complex TLD.
+jp 1
+test.jp 0
+www.test.jp 0
+ac.jp 1
+test.ac.jp 0
+www.test.ac.jp 0
+kyoto.jp 1
+test.kyoto.jp 0
+ide.kyoto.jp 1
+b.ide.kyoto.jp 0
+a.b.ide.kyoto.jp 0
+c.kobe.jp 1
+b.c.kobe.jp 0
+a.b.c.kobe.jp 0
+city.kobe.jp 0
+www.city.kobe.jp 0
+// TLD with a wildcard rule and exceptions.
+ck 1
+test.ck 1
+b.test.ck 0
+a.b.test.ck 0
+www.ck 0
+www.www.ck 0
+// US K12.
+us 1
+test.us 0
+www.test.us 0
+ak.us 1
+test.ak.us 0
+www.test.ak.us 0
+k12.ak.us 1
+test.k12.ak.us 0
+www.test.k12.ak.us 0
+// IDN labels.
+食狮.com.cn 0
+食狮.公司.cn 0
+www.食狮.公司.cn 0
+shishi.公司.cn 0
+公司.cn 1
+食狮.中国 0
+www.食狮.中国 0
+shishi.中国 0
+中国 1
+// Same as above, but punycoded.
+xn--85x722f.com.cn 0
+xn--85x722f.xn--55qx5d.cn 0
+www.xn--85x722f.xn--55qx5d.cn 0
+shishi.xn--55qx5d.cn 0
+xn--55qx5d.cn 1
+xn--85x722f.xn--fiqs8s 0
+www.xn--85x722f.xn--fiqs8s 0
+shishi.xn--fiqs8s 0
+xn--fiqs8s 1

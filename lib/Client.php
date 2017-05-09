@@ -2,6 +2,7 @@
 
 namespace Amp\Artax;
 
+use Amp\Artax\Cookie\PublicSuffixList;
 use Amp\Reactor,
     Amp\Future,
     Amp\Promise,
@@ -645,6 +646,7 @@ class Client implements HttpClient {
     private function storeResponseCookie($requestDomain, $rawCookieStr) {
         try {
             $cookie = CookieParser::parse($rawCookieStr);
+
             if (!$cookie->getDomain()) {
                 $cookie = new Cookie(
                     $cookie->getName(),
@@ -655,7 +657,36 @@ class Client implements HttpClient {
                     $cookie->getSecure(),
                     $cookie->getHttpOnly()
                 );
+            } else {
+                // https://tools.ietf.org/html/rfc6265#section-4.1.2.3
+                $cookieDomain = $cookie->getDomain();
+
+                // If a domain is set, left dots are ignored and it's always a wildcard
+                $cookieDomain = \ltrim($cookieDomain, ".");
+
+                if ($cookieDomain !== $requestDomain) {
+                    // ignore cookies on domains that are public suffixes
+                    if (PublicSuffixList::isPublicSuffix($cookieDomain)) {
+                        return;
+                    }
+
+                    // cookie origin would not be included when sending the cookie
+                    if (\substr($requestDomain, 0, -\strlen($cookieDomain) - 1) . "." . $cookieDomain !== $requestDomain) {
+                        return;
+                    }
+                }
+
+                $cookie = new Cookie(
+                    $cookie->getName(),
+                    $cookie->getValue(),
+                    $cookie->getExpirationTime(),
+                    $cookie->getPath(),
+                    "." . $cookieDomain, // always add the dot, it's used internally for wildcard matching
+                    $cookie->getSecure(),
+                    $cookie->getHttpOnly()
+                );
             }
+
             $this->cookieJar->store($cookie);
         } catch (\InvalidArgumentException $e) {
             // Ignore malformed Set-Cookie headers
