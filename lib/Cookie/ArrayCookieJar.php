@@ -101,25 +101,26 @@ class ArrayCookieJar implements CookieJar {
 
     /**
      * @link http://tools.ietf.org/html/rfc6265#section-5.1.3
+     * @link http://erik.io/blog/2014/03/04/definitive-guide-to-cookie-domains/
      */
     private function matchesDomain($requestDomain, $cookieDomain) {
-        if ($requestDomain === $cookieDomain) {
-            return $isMatch = true;
+        if ($requestDomain === \ltrim($cookieDomain, ".")) {
+            return true;
         }
 
-        if (!($isWildcardCookieDomain = ($cookieDomain[0] === '.'))) {
-            $isMatch = false;
-        } elseif (filter_var($requestDomain, FILTER_VALIDATE_IP)) {
-            $isMatch = false;
-        } elseif (substr($requestDomain, 0, -\strlen($cookieDomain)) . $cookieDomain === $requestDomain) {
-            $isMatch = true;
-        } elseif (strrpos($cookieDomain, $requestDomain) !== false) {
-            $isMatch = true;
-        } else {
-            $isMatch = false;
+        if (!isset($cookieDomain[0]) || $cookieDomain[0] !== '.') {
+            return false;
         }
 
-        return $isMatch;
+        if (\filter_var($requestDomain, FILTER_VALIDATE_IP)) {
+            return false;
+        }
+
+        if (\substr($requestDomain, 0, -\strlen($cookieDomain)) . $cookieDomain === $requestDomain) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
