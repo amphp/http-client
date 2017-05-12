@@ -22,7 +22,14 @@ class Request extends Message {
      * @return self
      */
     public function setMethod($method) {
-        $this->method = (string) $method;
+        if (!is_string($method)) {
+            throw new \DomainException(sprintf(
+                "Method must be of type string, %s given"
+                gettype($method)
+            ));
+        }
+        
+        $this->method = $method;
 
         return $this;
     }
@@ -43,7 +50,14 @@ class Request extends Message {
      * @return self
      */
     public function setUri($uri) {
-        $this->uri = (string) $uri;
+        if (!is_string($uri)) {
+            throw new \DomainException(sprintf(
+                "URI must be of type string, %s given"
+                gettype($uri)
+            ));
+        }
+        
+        $this->uri = $uri;
 
         return $this;
     }
