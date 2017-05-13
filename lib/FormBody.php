@@ -82,7 +82,7 @@ class FormBody implements AggregateBody {
         $this->cachedFields = null;
     }
 
-    public function getBody(): InputStream {
+    public function createBodyStream(): InputStream {
         if ($this->isMultipart) {
             $fields = $this->getMultipartFieldArray();
             return $this->generateMultipartStreamFromFields($fields);
@@ -132,7 +132,7 @@ class FormBody implements AggregateBody {
 
     private function generateMultipartStreamFromFields(array $fields): InputStream {
         foreach ($fields as $key => $field) {
-            $fields[$key] = $field instanceof FileBody ? $field->getBody() : new InMemoryStream($field);
+            $fields[$key] = $field instanceof FileBody ? $field->createBodyStream() : new InMemoryStream($field);
         }
 
         return new Message(new Producer(function (callable $emit) use ($fields) {

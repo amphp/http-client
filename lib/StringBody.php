@@ -14,7 +14,7 @@ class StringBody implements AggregateBody {
         $this->body = $body;
     }
 
-    public function getBody(): InputStream {
+    public function createBodyStream(): InputStream {
         return new InMemoryStream($this->body);
     }
 

@@ -20,7 +20,7 @@ class FileBody implements AggregateBody {
         $this->path = $path;
     }
 
-    public function getBody(): InputStream {
+    public function createBodyStream(): InputStream {
         $handlePromise = open($this->path, "r");
 
         // TODO: Move to amphp/byte-stream with more efficient implementation

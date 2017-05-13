@@ -336,7 +336,7 @@ class Client implements HttpClient {
 
         yield $socket->write($this->generateRawRequestHeaders($request));
 
-        $body = $request->getBody()->getBody();
+        $body = $request->getBody()->createBodyStream();
         $chunking = !$request->hasHeader("content-length");
 
         while (($chunk = yield $body->read()) !== null) {

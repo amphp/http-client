@@ -19,14 +19,16 @@ interface AggregateBody {
     public function getHeaders(): Promise;
 
     /**
-     * Retrieve the HTTP message body to be sent.
+     * Create the HTTP message body to be sent.
+     *
+     * Further calls MUST return a new stream to make it possible to resend bodies on redirects.
      *
      * @return InputStream
      */
-    public function getBody(): InputStream;
+    public function createBodyStream(): InputStream;
 
     /**
-     * Retrieve the HTTP message body length. If not available, it should return -1.
+     * Retrieve the HTTP message body length. If not available, return -1.
      *
      * @return Promise
      */
