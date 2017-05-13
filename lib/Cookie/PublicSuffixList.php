@@ -14,7 +14,7 @@ final class PublicSuffixList {
         }
 
         if (!self::isValidHostName($domain)) {
-            $domain = \idn_to_ascii($domain);
+            $domain = \idn_to_ascii($domain, \INTL_IDNA_VARIANT_UTS46);
 
             if (!self::isValidHostName($domain)) {
                 throw new \InvalidArgumentException("Invalid host name: " . $domain);
@@ -73,7 +73,7 @@ final class PublicSuffixList {
 
     private static function toRegex($rule, $exception) {
         if (!self::isValidHostName(\strtr($rule, "*", "x"))) {
-            $rule = \idn_to_ascii($rule);
+            $rule = \idn_to_ascii($rule, \INTL_IDNA_VARIANT_UTS46);
 
             if (!self::isValidHostName(\strtr($rule, "*", "x"))) {
                 \trigger_error("Invalid public suffix rule: " . $rule, \E_USER_DEPRECATED);
