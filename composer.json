@@ -23,6 +23,7 @@
     ],
     "require": {
         "php": ">=7.0",
+        "ext-intl": "*",
         "amphp/amp": "^2",
         "amphp/socket": "dev-amp_v2",
         "amphp/uri": "dev-master",
