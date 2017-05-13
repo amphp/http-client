@@ -202,7 +202,7 @@ final class Request {
     }
 
     /**
-     * Remove the specified header field from the message
+     * Remove the specified header field from the message.
      *
      * @param string $field Header name.
      *
@@ -242,9 +242,9 @@ final class Request {
 
         if ($body === null) {
             $clone->body = new StringBody("");
-        } else if (\is_scalar($body)) {
+        } elseif (\is_scalar($body)) {
             $clone->body = new StringBody((string) $body);
-        } else if ($body instanceof AggregateBody) {
+        } elseif ($body instanceof AggregateBody) {
             $clone->body = $body;
         }
 

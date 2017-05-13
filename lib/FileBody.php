@@ -24,7 +24,7 @@ class FileBody implements AggregateBody {
         $handlePromise = open($this->path, "r");
 
         // TODO: Move to amphp/byte-stream with more efficient implementation
-        return new class ($handlePromise) implements InputStream {
+        return new class($handlePromise) implements InputStream {
             private $promise;
 
             public function __construct(Promise $promise) {

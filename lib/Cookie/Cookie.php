@@ -11,7 +11,7 @@ final class Cookie {
     private $secure;
     private $httpOnly;
 
-    private static $dateFormats = array(
+    private static $dateFormats = [
         'D, d M Y H:i:s T',
         'D, d-M-y H:i:s T',
         'D, d-M-Y H:i:s T',
@@ -19,7 +19,7 @@ final class Cookie {
         'D, d-m-Y H:i:s T',
         'D M j G:i:s Y',
         'D M d H:i:s Y T'
-    );
+    ];
 
     public function __construct(
         string $name,
@@ -147,7 +147,7 @@ final class Cookie {
         return $cookieStr;
     }
 
-    static function fromString(string $rawCookieStr): self {
+    public static function fromString(string $rawCookieStr): self {
         if ($rawCookieStr === "") {
             throw new CookieFormatException(
                 $rawCookieStr,
@@ -167,14 +167,14 @@ final class Cookie {
 
         list($name, $value) = explode('=', $nvPair, 2);
 
-        $attrStruct = array(
+        $attrStruct = [
             'expires' => null,
             'path' => '',
             'domain' => "",
             'secure' => false,
             'httponly' => false,
             'max-age' => null
-        );
+        ];
 
         foreach ($parts as $part) {
             $part = trim($part);

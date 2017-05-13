@@ -270,7 +270,7 @@ class Client implements HttpClient {
 
         if ($parserState === Parser::AWAITING_HEADERS && empty($retryCount)) {
             $this->doWrite($request, $uri, $options, $previousResponse, $deferred);
-        } else if ($deferred) {
+        } elseif ($deferred) {
             $deferred->fail(new SocketException(
                 sprintf(
                     'Socket disconnected prior to response completion (Parser state: %s)',
@@ -433,7 +433,7 @@ class Client implements HttpClient {
         // if it's a standard 80 or 443
         if (strpos($host, ':80') === strlen($host) - 3) {
             return substr($host, 0, -3);
-        } else if (strpos($host, ':443') === strlen($host) - 4) {
+        } elseif (strpos($host, ':443') === strlen($host) - 4) {
             return substr($host, 0, -4);
         }
 

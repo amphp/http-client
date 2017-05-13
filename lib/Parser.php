@@ -108,7 +108,7 @@ class Parser {
     /**
      * @return string|null
      */
-    public function getBuffer() /* : ?string */ {
+    public function getBuffer() {
         return $this->buffer;
     }
 
@@ -147,9 +147,9 @@ class Parser {
         awaiting_headers: {
             if (!$startLineAndHeaders = $this->shiftHeadersFromMessageBuffer()) {
                 goto more_data_needed;
-            } else {
-                goto start_line;
             }
+
+            goto start_line;
         }
 
         start_line: {
@@ -160,9 +160,9 @@ class Parser {
 
             if ($this->mode === self::MODE_REQUEST) {
                 goto request_line_and_headers;
-            } else {
-                goto status_line_and_headers;
             }
+
+            goto status_line_and_headers;
         }
 
         request_line_and_headers: {
@@ -248,9 +248,9 @@ class Parser {
                 $this->remainingBodyBytes = $this->parseFlowHeaders['CONTENT-LENGTH'];
                 $this->state = self::BODY_IDENTITY;
                 goto before_body;
-            } else {
-                goto complete;
             }
+
+            goto complete;
         }
 
         transition_from_response_headers_to_body: {
@@ -273,9 +273,9 @@ class Parser {
                 $this->remainingBodyBytes = $this->parseFlowHeaders['CONTENT-LENGTH'];
                 $this->state = self::BODY_IDENTITY;
                 goto before_body;
-            } else {
-                goto complete;
             }
+
+            goto complete;
         }
 
         before_body: {
@@ -317,13 +317,13 @@ class Parser {
                 $this->buffer = null;
                 $this->remainingBodyBytes = 0;
                 goto complete;
-            } else {
-                $bodyData = substr($this->buffer, 0, $this->remainingBodyBytes);
-                $this->addToBody($bodyData);
-                $this->buffer = substr($this->buffer, $this->remainingBodyBytes);
-                $this->remainingBodyBytes = 0;
-                goto complete;
             }
+
+            $bodyData = substr($this->buffer, 0, $this->remainingBodyBytes);
+            $this->addToBody($bodyData);
+            $this->buffer = substr($this->buffer, $this->remainingBodyBytes);
+            $this->remainingBodyBytes = 0;
+            goto complete;
         }
 
         body_identity_eof: {
@@ -336,9 +336,9 @@ class Parser {
             if ($this->dechunk()) {
                 $this->state = self::TRAILERS_START;
                 goto trailers_start;
-            } else {
-                goto more_data_needed;
             }
+
+            goto more_data_needed;
         }
 
         trailers_start: {
@@ -349,20 +349,19 @@ class Parser {
             } elseif ($firstTwoBytes === "\r\n") {
                 $this->buffer = substr($this->buffer, 2);
                 goto complete;
-            } else {
-
-                $this->state = self::TRAILERS;
-                goto trailers;
             }
+
+            $this->state = self::TRAILERS;
+            goto trailers;
         }
 
         trailers: {
             if ($trailers = $this->shiftHeadersFromMessageBuffer()) {
                 $this->parseTrailers($trailers);
                 goto complete;
-            } else {
-                goto more_data_needed;
             }
+
+            goto more_data_needed;
         }
 
         complete: {
@@ -510,13 +509,9 @@ class Parser {
             // These first two (extreme) edge cases prevent errors where the packet boundary ends after
             // the \r and before the \n at the end of a chunk.
             if ($bufferLen === $this->chunkLenRemaining) {
-
                 goto more_data_needed;
-
             } elseif ($bufferLen === $this->chunkLenRemaining + 1) {
-
                 goto more_data_needed;
-
             } elseif ($bufferLen >= $this->chunkLenRemaining + 2) {
                 $chunk = substr($this->buffer, 0, $this->chunkLenRemaining);
                 $this->buffer = substr($this->buffer, $this->chunkLenRemaining + 2);
@@ -524,14 +519,13 @@ class Parser {
                 $this->addToBody($chunk);
 
                 goto determine_chunk_size;
-
-            } else {
+            }
                 $this->addToBody($this->buffer);
                 $this->buffer = '';
                 $this->chunkLenRemaining -= $bufferLen;
 
                 goto more_data_needed;
-            }
+
         }
 
         more_data_needed: {

@@ -5,8 +5,8 @@ namespace Amp\Artax;
 use Amp\Failure;
 use Amp\Promise;
 use Amp\Socket\SocketPool;
-use function Amp\call;
 use Amp\Success;
+use function Amp\call;
 
 class HttpSocketPool {
     const OP_PROXY_HTTP = 'amp.artax.httpsocketpool.proxy-http';

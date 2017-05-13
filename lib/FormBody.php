@@ -2,9 +2,12 @@
 
 namespace Amp\Artax;
 
-use Amp\{
-    ByteStream\InMemoryStream, ByteStream\InputStream, ByteStream\Message, Producer, Promise, Success
-};
+use Amp\ByteStream\InMemoryStream;
+use Amp\ByteStream\InputStream;
+use Amp\ByteStream\Message;
+use Amp\Producer;
+use Amp\Promise;
+use Amp\Success;
 use function Amp\call;
 
 class FormBody implements AggregateBody {
@@ -83,9 +86,9 @@ class FormBody implements AggregateBody {
         if ($this->isMultipart) {
             $fields = $this->getMultipartFieldArray();
             return $this->generateMultipartStreamFromFields($fields);
-        } else {
-            return new InMemoryStream($this->getFormEncodedBodyString());
         }
+
+        return new InMemoryStream($this->getFormEncodedBodyString());
     }
 
     private function getMultipartFieldArray(): array {

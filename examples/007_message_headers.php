@@ -25,6 +25,7 @@ assert($request->getHeader('Content-Type')[0] === 'text/plain'); // true
 
 /**
  * You can assign multiple header lines by passing an array of scalar values as the header value.
+ *
  * When sent by Amp\Artax the relevant portion of the raw request message for the below set of headers
  * will look like this:
  *
@@ -35,22 +36,23 @@ assert($request->getHeader('Content-Type')[0] === 'text/plain'); // true
 $request = $request->setHeader('Foo', ['test=val1', 'test=val2', 'test=val3']);
 
 /**
- * Append headers without overwriting using withAddedHeader():
+ * Append headers without overwriting using withAddedHeader().
  */
 assert(count($request->getHeaderArray('foo')) === 3); // true
 $request = $request->withAddedHeader('Cookie', 'cookie4=val4');
 assert(count($request->getHeaderArray('foo')) === 4); // true
 
 /**
- * You can remove a previously assigned header value using Message::removeHeader(). Once again,
- * the header field name is case-insensitive:
+ * You can remove a previously assigned header value using withoutHeader().
+ *
+ * Once again, the header field name is case-insensitive.
  */
 
 $request = $request->withoutHeader('cookie');
 assert(!$request->hasHeader('Cookie')); // true
 
 /**
- * If you attempt to retrieve a non-existent header Amp\Artax will return null:
+ * If you attempt to retrieve a non-existent header Amp\Artax will return null.
  */
 
 assert($request->getHeader('Some-Header-That-Isnt-Assigned') === null); // true

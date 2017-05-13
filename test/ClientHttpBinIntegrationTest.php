@@ -3,12 +3,12 @@
 namespace Amp\Artax\Test;
 
 use Amp\Artax\Client;
-use Amp\Artax\Request;
 use Amp\Artax\FileBody;
 use Amp\Artax\FormBody;
+use Amp\Artax\Request;
 use Amp\Artax\Response;
-use function Amp\Promise\wait;
 use PHPUnit\Framework\TestCase;
+use function Amp\Promise\wait;
 
 class ClientHttpBinIntegrationTest extends TestCase {
     public function testDefaultUserAgentSent() {

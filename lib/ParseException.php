@@ -6,7 +6,7 @@ class ParseException extends HttpException {
     private $parsedMsgArr;
 
     /**
-     * Adds an array of parsed message values to the standard exception
+     * Adds an array of parsed message values to the standard exception.
      */
     public function __construct(array $parsedMsgArr, $msg, $errno, \Throwable $previousException = null) {
         $this->parsedMsgArr = $parsedMsgArr;
@@ -15,7 +15,7 @@ class ParseException extends HttpException {
     }
 
     /**
-     * Retrieve message values parsed prior to the error
+     * Retrieve message values parsed prior to the error.
      *
      * @return array Message values parsed prior to the error
      */
@@ -23,4 +23,3 @@ class ParseException extends HttpException {
         return $this->parsedMsgArr;
     }
 }
-
