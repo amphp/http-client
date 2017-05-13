@@ -201,17 +201,14 @@ class Client implements HttpClient {
     private function doRead(Request $request, Uri $uri, Socket $socket, array $options, Response $previousResponse = null, Deferred &$deferred = null) {
         $bodyEmitter = new Emitter;
 
-        $parser = new Parser(Parser::MODE_RESPONSE);
+        $parser = new Parser(static function ($data) use ($bodyEmitter) {
+            $bodyEmitter->emit($data);
+        });
+
         $parser->enqueueResponseMethodMatch($request->getMethod());
         $parser->setAllOptions([
-            Parser::OP_DISCARD_BODY => $options[self::OP_DISCARD_BODY],
-            Parser::OP_BODY_SWAP_SIZE => $options[self::OP_BODY_SWAP_SIZE],
             Parser::OP_MAX_HEADER_BYTES => $options[self::OP_MAX_HEADER_BYTES],
             Parser::OP_MAX_BODY_BYTES => $options[self::OP_MAX_BODY_BYTES],
-            Parser::OP_RETURN_BEFORE_ENTITY => true,
-            Parser::OP_BODY_DATA_CALLBACK => static function ($data) use ($bodyEmitter) {
-                $bodyEmitter->emit($data);
-            },
         ]);
 
         while (($chunk = yield $socket->read()) !== null) {

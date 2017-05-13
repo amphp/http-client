@@ -12,12 +12,15 @@ class ParserTest extends TestCase {
     public function testParse($msg, $method, $uri, $protocol, $headers, $body) {
         $actualBody = "";
 
-        $msgParser = new Parser;
-        $msgParser->setOption(Parser::OP_BODY_DATA_CALLBACK, function ($chunk) use (&$actualBody) {
+        $msgParser = new Parser(static function ($chunk) use (&$actualBody) {
             $actualBody .= $chunk;
-        });
+        }, Parser::MODE_REQUEST);
 
         $parsedRequestArr = $msgParser->parse($msg);
+
+        if ($parsedRequestArr["headersOnly"]) {
+            $msgParser->parse();
+        }
 
         $this->assertEquals($method, $parsedRequestArr['method']);
         $this->assertEquals($uri, $parsedRequestArr['uri']);
@@ -28,7 +31,7 @@ class ParserTest extends TestCase {
 
     public function testKeepAliveHeadResponseParse() {
         $request = "HTTP/1.1 200 OK\n\n";
-        $msgParser = new Parser(Parser::MODE_RESPONSE);
+        $msgParser = new Parser(null, Parser::MODE_RESPONSE);
         $msgParser->enqueueResponseMethodMatch('HEAD');
         $parsedResponseArr = $msgParser->parse($request);
 
@@ -41,23 +44,34 @@ class ParserTest extends TestCase {
     public function testIncrementalParse($msg, $method, $uri, $protocol, $headers, $body) {
         $actualBody = "";
 
-        $msgParser = new Parser;
-        $msgParser->setOption(Parser::OP_BODY_DATA_CALLBACK, function ($chunk) use (&$actualBody) {
+        $msgParser = new Parser(static function ($chunk) use (&$actualBody) {
             $actualBody .= $chunk;
-        });
+        }, Parser::MODE_REQUEST);
 
         $byteIncrement = 1;
         $msgLen = strlen($msg);
+
+        $headers = null;
 
         for ($i = 0; $i < $msgLen; $i += $byteIncrement) {
             $msgPart = $msg[$i];
             $parsedRequestArr = $msgParser->parse($msgPart);
 
-            if (null !== $parsedRequestArr) {
-                break;
+            if (is_array($parsedRequestArr)) {
+                if ($headers === null) {
+                    $headers = $parsedRequestArr["headers"];
+                }
+
+                if (!$parsedRequestArr["headersOnly"]) {
+                    break;
+                }
             }
         }
 
+        $parsedRequestArr["headers"] = $headers;
+
+        /** @var array $parsedRequestArr */
+        $this->assertInternalType("array", $parsedRequestArr);
         $this->assertEquals($method, $parsedRequestArr['method']);
         $this->assertEquals($uri, $parsedRequestArr['uri']);
         $this->assertEquals($protocol, $parsedRequestArr['protocol']);
@@ -213,7 +227,7 @@ class ParserTest extends TestCase {
         $headers = [
             'Host' => ['localhost'],
             'Transfer-Encoding' => ['chunked'],
-            'My-Trailer' => ['testval'],
+            /* Trailers are ignored: 'My-Trailer' => ['testval'], */
         ];
         $body = 'woot!test';
 

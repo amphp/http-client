@@ -26,10 +26,6 @@ class Parser {
 
     const OP_MAX_HEADER_BYTES = 1;
     const OP_MAX_BODY_BYTES = 2;
-    const OP_BODY_SWAP_SIZE = 3;
-    const OP_DISCARD_BODY = 4;
-    const OP_BODY_DATA_CALLBACK = 5;
-    const OP_RETURN_BEFORE_ENTITY = 6;
 
     const DEFAULT_MAX_HEADER_BYTES = 8192;
     const DEFAULT_MAX_BODY_BYTES = 10485760;
@@ -51,17 +47,15 @@ class Parser {
     private $responseMethodMatch = [];
     private $parseFlowHeaders = [
         'TRANSFER-ENCODING' => null,
-        'CONTENT-LENGTH' => null
+        'CONTENT-LENGTH' => null,
     ];
 
     private $maxHeaderBytes = self::DEFAULT_MAX_HEADER_BYTES;
     private $maxBodyBytes = self::DEFAULT_MAX_BODY_BYTES;
-    private $bodySwapSize = self::DEFAULT_BODY_SWAP_SIZE;
-    private $discardBody = false;
     private $bodyDataCallback;
-    private $returnBeforeEntity = false;
 
-    public function __construct($mode = self::MODE_REQUEST) {
+    public function __construct(callable $bodyDataCallback = null, $mode = self::MODE_RESPONSE) {
+        $this->bodyDataCallback = $bodyDataCallback;
         $this->mode = $mode;
     }
 
@@ -78,18 +72,6 @@ class Parser {
                 break;
             case self::OP_MAX_BODY_BYTES:
                 $this->maxBodyBytes = (int) $value;
-                break;
-            case self::OP_BODY_SWAP_SIZE:
-                $this->bodySwapSize = (int) $value;
-                break;
-            case self::OP_DISCARD_BODY:
-                $this->discardBody = (bool) $value;
-                break;
-            case self::OP_BODY_DATA_CALLBACK:
-                $this->bodyDataCallback = $value;
-                break;
-            case self::OP_RETURN_BEFORE_ENTITY:
-                $this->returnBeforeEntity = (bool) $value;
                 break;
             default:
                 throw new \Error(
@@ -171,43 +153,23 @@ class Parser {
             if (isset($parts[0]) && ($method = trim($parts[0]))) {
                 $this->requestMethod = $method;
             } else {
-                throw new ParseException(
-                    $this->getParsedMessageArray(),
-                    $msg = 'Invalid request line',
-                    $code = 400,
-                    $previousException = null
-                );
+                throw new ParseException($this->getParsedMessageArray(), 'Invalid request line', 400);
             }
 
             if (isset($parts[1]) && ($uri = trim($parts[1]))) {
                 $this->requestUri = $uri;
             } else {
-                throw new ParseException(
-                    $this->getParsedMessageArray(),
-                    $msg = 'Invalid request line',
-                    $code = 400,
-                    $previousException = null
-                );
+                throw new ParseException($this->getParsedMessageArray(), 'Invalid request line', 400);
             }
 
             if (isset($parts[2]) && ($protocol = str_ireplace('HTTP/', '', trim($parts[2])))) {
                 $this->protocol = $protocol;
             } else {
-                throw new ParseException(
-                    $this->getParsedMessageArray(),
-                    $msg = 'Invalid request line',
-                    $code = 400,
-                    $previousException = null
-                );
+                throw new ParseException($this->getParsedMessageArray(), 'Invalid request line', 400);
             }
 
             if (!($protocol === '1.0' || '1.1' === $protocol)) {
-                throw new ParseException(
-                    $this->getParsedMessageArray(),
-                    $msg = 'Protocol not supported: {$protocol}',
-                    $code = 505,
-                    $previousException = null
-                );
+                throw new ParseException($this->getParsedMessageArray(), "Protocol not supported: {$protocol}", 505);
             }
 
             if ($rawHeaders) {
@@ -223,12 +185,7 @@ class Parser {
                 $this->responseCode = $m['status'];
                 $this->responseReason = trim($m['reason']);
             } else {
-                throw new ParseException(
-                    $this->getParsedMessageArray(),
-                    $msg = 'Invalid status line',
-                    $code = 400,
-                    $previousException = null
-                );
+                throw new ParseException($this->getParsedMessageArray(), 'Invalid status line', 400);
             }
 
             if ($rawHeaders) {
@@ -283,25 +240,10 @@ class Parser {
                 goto complete;
             }
 
-            if ($this->returnBeforeEntity) {
-                $parsedMsgArr = $this->getParsedMessageArray();
-                $parsedMsgArr['headersOnly'] = true;
+            $parsedMsgArr = $this->getParsedMessageArray();
+            $parsedMsgArr['headersOnly'] = true;
 
-                return $parsedMsgArr;
-            }
-
-            switch ($this->state) {
-                case self::BODY_IDENTITY:
-                    goto body_identity;
-                case self::BODY_IDENTITY_EOF:
-                    goto body_identity_eof;
-                case self::BODY_CHUNKS:
-                    goto body_chunks;
-                default:
-                    throw new \RuntimeException(
-                        'Unexpected parse state encountered'
-                    );
-            }
+            return $parsedMsgArr;
         }
 
         body_identity: {
@@ -381,7 +323,7 @@ class Parser {
             $this->responseReason = null;
             $this->parseFlowHeaders = [
                 'TRANSFER-ENCODING' => null,
-                'CONTENT-LENGTH' => null
+                'CONTENT-LENGTH' => null,
             ];
 
             return $parsedMsgArr;
@@ -407,12 +349,7 @@ class Parser {
         }
 
         if ($this->maxHeaderBytes > 0 && $headersSize > $this->maxHeaderBytes) {
-            throw new ParseException(
-                $this->getParsedMessageArray(),
-                $msg = "Maximum allowable header size exceeded: {$this->maxHeaderBytes}",
-                $code = 431,
-                $previousException = null
-            );
+            throw new ParseException($this->getParsedMessageArray(), "Maximum allowable header size exceeded: {$this->maxHeaderBytes}", 431);
         }
 
         return $headers;
@@ -436,7 +373,7 @@ class Parser {
 
         $aggregateMatchedHeaders = '';
 
-        for ($i=0, $c=count($matches[0]); $i < $c; $i++) {
+        for ($i = 0, $c = count($matches[0]); $i < $c; $i++) {
             $aggregateMatchedHeaders .= $matches[0][$i];
             $field = $matches['field'][$i];
             $headers[$field][] = $matches['value'][$i];
@@ -520,12 +457,12 @@ class Parser {
 
                 goto determine_chunk_size;
             }
-                $this->addToBody($this->buffer);
-                $this->buffer = '';
-                $this->chunkLenRemaining -= $bufferLen;
 
-                goto more_data_needed;
+            $this->addToBody($this->buffer);
+            $this->buffer = '';
+            $this->chunkLenRemaining -= $bufferLen;
 
+            goto more_data_needed;
         }
 
         more_data_needed: {
@@ -562,9 +499,9 @@ class Parser {
     public function getParsedMessageArray(): array {
         $result = [
             'protocol' => $this->protocol,
-            'headers'  => $this->headers,
-            'trace'    => $this->traceBuffer,
-            'buffer'   => $this->buffer,
+            'headers' => $this->headers,
+            'trace' => $this->traceBuffer,
+            'buffer' => $this->buffer,
             'headersOnly' => false,
         ];
 
@@ -583,16 +520,11 @@ class Parser {
         $this->bodyBytesConsumed += strlen($data);
 
         if ($this->maxBodyBytes > 0 && $this->bodyBytesConsumed > $this->maxBodyBytes) {
-            throw new ParseException(
-                $this->getParsedMessageArray(),
-                $msg = "Maximum allowable body size exceeded: {$this->maxBodyBytes}",
-                $code = 413,
-                $previousException = null
-            );
+            throw new ParseException($this->getParsedMessageArray(), "Maximum allowable body size exceeded: {$this->maxBodyBytes}", 413);
         }
 
-        if ($bodyDataCallback = $this->bodyDataCallback) {
-            $bodyDataCallback($data);
+        if ($this->bodyDataCallback) {
+            ($this->bodyDataCallback)($data);
         }
     }
 }

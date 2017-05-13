@@ -54,7 +54,7 @@ class HttpTunneler {
                 Loop::cancel($struct->writeWatcher);
             }
 
-            $struct->parser = new Parser(Parser::MODE_RESPONSE);
+            $struct->parser = new Parser(null);
             $struct->parser->enqueueResponseMethodMatch('CONNECT');
             $struct->readWatcher = Loop::onReadable($socket, function () use ($struct) {
                 $this->doRead($struct);
@@ -124,9 +124,7 @@ class HttpTunneler {
             }
         } catch (ParseException $e) {
             $struct->deferred->fail(new HttpException(
-                'Invalid HTTP response received from proxy while establishing tunnel',
-                0,
-                $e
+                'Invalid HTTP response received from proxy while establishing tunnel', 0, $e
             ));
         } finally {
             if (isset($struct->readWatcher)) {

@@ -7,11 +7,15 @@ class ParseException extends HttpException {
 
     /**
      * Adds an array of parsed message values to the standard exception.
+     *
+     * @param array           $parsedMsgArr
+     * @param string          $message
+     * @param int             $errno
+     * @param \Throwable|null $previousException
      */
-    public function __construct(array $parsedMsgArr, $msg, $errno, \Throwable $previousException = null) {
+    public function __construct(array $parsedMsgArr, string $message, int $errno, \Throwable $previousException = null) {
+        parent::__construct($message, $errno, $previousException);
         $this->parsedMsgArr = $parsedMsgArr;
-        /** @noinspection PhpParamsInspection */
-        parent::__construct($msg, $errno, $previousException);
     }
 
     /**
