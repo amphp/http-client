@@ -4,6 +4,7 @@ namespace Amp\Artax;
 
 use Amp\Artax\Cookie\ArrayCookieJar;
 use Amp\Artax\Cookie\Cookie;
+use Amp\Artax\Cookie\CookieFormatException;
 use Amp\Artax\Cookie\CookieJar;
 use Amp\Artax\Cookie\PublicSuffixList;
 use Amp\ByteStream\GzipInputStream;
@@ -172,7 +173,7 @@ class Client implements HttpClient {
                 yield from $this->doWrite($request, $uri, $options, $previousResponse, $deferred);
             } catch (HttpException $e) {
                 if ($deferred) {
-                    $deferred->resolve($e);
+                    $deferred->fail($e);
                 }
             }
         });
@@ -600,7 +601,7 @@ class Client implements HttpClient {
                 $cookie = $cookie->withDomain("." . $cookieDomain);
             }
             $this->cookieJar->store($cookie);
-        } catch (\InvalidArgumentException $e) {
+        } catch (CookieFormatException $e) {
             // Ignore malformed Set-Cookie headers
         }
     }
