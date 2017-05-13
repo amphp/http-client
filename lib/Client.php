@@ -220,6 +220,10 @@ class Client implements HttpClient {
 
                     $response = $this->finalizeResponse($request, $parseResult, new Message($bodyEmitter->iterate()), $previousResponse);
 
+                    if ($deferred) {
+                        $deferred->resolve($response);
+                    }
+
                     // Required, otherwise responses without body hang
                     if ($parseResult["headersOnly"]) {
                         // Directly parse again in case we already have the full body but aborted parsing to resolve promise.
@@ -246,10 +250,6 @@ class Client implements HttpClient {
                         $socket->close();
                     } else {
                         $this->socketPool->checkin($socket->getResource());
-                    }
-
-                    if ($deferred) {
-                        $deferred->resolve($response);
                     }
 
                     break;
