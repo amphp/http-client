@@ -2,4 +2,5 @@
 
 namespace Amp\Artax;
 
-class DnsException extends ClientException {}
+class DnsException extends HttpException {
+}

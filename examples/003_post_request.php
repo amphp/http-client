@@ -1,6 +1,7 @@
 <?php
 
 use Amp\Artax\Client;
+use function Amp\Promise\wait;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -10,11 +11,8 @@ try {
     $client->setOption(Client::OP_VERBOSITY, Client::VERBOSE_ALL);
 
     // Let's build up a custom Request object
-    $request = (new Amp\Artax\Request)
-        ->setMethod('POST')
-        ->setUri('http://httpbin.org/post')
-        ->setBody('zanzibar!')
-    ;
+    $request = (new Amp\Artax\Request('http://httpbin.org/post', "POST"))
+        ->withBody('zanzibar!');
 
     // Make an asynchronous HTTP request
     $promise = $client->request($request);
@@ -23,18 +21,18 @@ try {
     // returns a promise to resolve the response at some point in the future when
     // it's finished. Here we use the Amp concurrency framework to synchronously wait
     // for the eventual promise result.
-    $response = \Amp\wait($promise);
+    $response = wait($promise);
 
     // Output the results
     printf(
         "\nHTTP/%s %d %s\n\n------- RESPONSE BODY -------\n%s\n",
-        $response->getProtocol(),
+        $response->getProtocolVersion(),
         $response->getStatus(),
         $response->getReason(),
         $response->getBody()
     );
 
-} catch (Amp\Artax\ClientException $e) {
+} catch (Amp\Artax\HttpException $e) {
     // If something goes wrong the Promise::wait() call will throw the relevant
     // exception. The Client::request() method itself will never throw.
     echo $e;

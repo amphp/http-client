@@ -2,4 +2,5 @@
 
 namespace Amp\Artax;
 
-class SocketException extends ClientException {}
+class SocketException extends HttpException {
+}

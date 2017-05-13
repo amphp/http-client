@@ -2,56 +2,68 @@
 
 namespace Amp\Artax;
 
-use Amp\{ Emitter, Loop, Socket as socket, Stream };
-use Amp\Artax\Cookie\{ Cookie, CookieJar, ArrayCookieJar, CookieParser };
+use Amp\Artax\Cookie\ArrayCookieJar;
+use Amp\Artax\Cookie\Cookie;
+use Amp\Artax\Cookie\CookieJar;
+use Amp\Artax\Cookie\PublicSuffixList;
+use Amp\ByteStream\GzipInputStream;
+use Amp\ByteStream\InputStream;
+use Amp\ByteStream\Message;
+use Amp\Coroutine;
+use Amp\Deferred;
+use Amp\Emitter;
+use Amp\Loop;
+use Amp\Promise;
+use Amp\Socket\Socket;
+use Amp\Socket\SocketPool;
+use Amp\Uri\Uri;
+use function Amp\asyncCall;
+use function Amp\call;
 
 class Client implements HttpClient {
-    const USER_AGENT = 'Amp\Artax/1.0.0-dev (PHP)';
+    const USER_AGENT = 'Mozilla/5.0 (compatible; Artax)';
 
-    const OP_BINDTO = "bind_to";
-    const OP_MS_CONNECT_TIMEOUT = "timeout";
+    const OP_BINDTO = SocketPool::OP_BINDTO;
+    const OP_CONNECT_TIMEOUT = SocketPool::OP_CONNECT_TIMEOUT;
     const OP_HOST_CONNECTION_LIMIT = SocketPool::OP_HOST_CONNECTION_LIMIT;
-    const OP_MS_KEEP_ALIVE_TIMEOUT = SocketPool::OP_MS_IDLE_TIMEOUT;
+    const OP_KEEP_ALIVE_TIMEOUT = SocketPool::OP_IDLE_TIMEOUT;
     const OP_PROXY_HTTP = HttpSocketPool::OP_PROXY_HTTP;
     const OP_PROXY_HTTPS = HttpSocketPool::OP_PROXY_HTTPS;
-    const OP_AUTO_ENCODING = 'op.auto-encoding';
-    const OP_MS_TRANSFER_TIMEOUT = 'op.ms-transfer-timeout';
-    const OP_MS_100_CONTINUE_TIMEOUT = 'op.ms-100-continue-timeout';
-    const OP_EXPECT_CONTINUE = 'op.expect-continue';
-    const OP_FOLLOW_LOCATION = 'op.follow-location';
-    const OP_AUTO_REFERER = 'op.auto-referer';
-    const OP_BUFFER_BODY = 'op.buffer-body';
-    const OP_DISCARD_BODY = 'op.discard-body';
-    const OP_IO_GRANULARITY = 'op.io-granularity';
-    const OP_VERBOSITY = 'op.verbosity';
-    const OP_COMBINE_COOKIES = 'op.combine-cookies';
-    const OP_CRYPTO = 'op.crypto';
-    const OP_DEFAULT_USER_AGENT = 'op.default-user-agent';
-    const OP_BODY_SWAP_SIZE = 'op.body-swap-size';
-    const OP_MAX_HEADER_BYTES = 'op.max-header-bytes';
-    const OP_MAX_BODY_BYTES = 'op.max-body-bytes';
+    const OP_AUTO_ENCODING = 'amp.artax.client.auto-encoding';
+    const OP_TRANSFER_TIMEOUT = 'amp.artax.client.transfer-timeout';
+    const OP_100_CONTINUE_TIMEOUT = 'amp.artax.client.100-continue-timeout';
+    const OP_EXPECT_CONTINUE = 'amp.artax.client.expect-continue';
+    const OP_FOLLOW_LOCATION = 'amp.artax.client.follow-location';
+    const OP_AUTO_REFERER = 'amp.artax.client.auto-referer';
+    const OP_BUFFER_BODY = 'amp.artax.client.buffer-body';
+    const OP_DISCARD_BODY = 'amp.artax.client.discard-body';
+    const OP_IO_GRANULARITY = 'amp.artax.client.io-granularity';
+    const OP_VERBOSITY = 'amp.artax.client.verbosity';
+    const OP_COMBINE_COOKIES = 'amp.artax.client.combine-cookies';
+    const OP_CRYPTO = 'amp.artax.client.crypto';
+    const OP_DEFAULT_USER_AGENT = 'amp.artax.client.default-user-agent';
+    const OP_BODY_SWAP_SIZE = 'amp.artax.client.body-swap-size';
+    const OP_MAX_HEADER_BYTES = 'amp.artax.client.max-header-bytes';
+    const OP_MAX_BODY_BYTES = 'amp.artax.client.max-body-bytes';
 
     const VERBOSE_NONE = 0b00;
     const VERBOSE_SEND = 0b01;
     const VERBOSE_READ = 0b10;
-    const VERBOSE_ALL  = 0b11;
+    const VERBOSE_ALL = 0b11;
 
     private $cookieJar;
     private $socketPool;
-    private $writerFactory;
     private $hasZlib;
-    private $queue;
-    private $dequeuer;
     private $options = [
         self::OP_BINDTO => '',
-        self::OP_MS_CONNECT_TIMEOUT => 30000,
+        self::OP_CONNECT_TIMEOUT => 10000,
         self::OP_HOST_CONNECTION_LIMIT => 8,
-        self::OP_MS_KEEP_ALIVE_TIMEOUT => 10000,
+        self::OP_KEEP_ALIVE_TIMEOUT => 10000,
         self::OP_PROXY_HTTP => '',
         self::OP_PROXY_HTTPS => '',
-        self::OP_AUTO_ENCODING => true,
-        self::OP_MS_TRANSFER_TIMEOUT => 120000,
-        self::OP_MS_100_CONTINUE_TIMEOUT => 3000,
+        self::OP_AUTO_ENCODING => false /* FIXME */,
+        self::OP_TRANSFER_TIMEOUT => 120000,
+        self::OP_100_CONTINUE_TIMEOUT => 3000,
         self::OP_EXPECT_CONTINUE => false,
         self::OP_FOLLOW_LOCATION => true,
         self::OP_AUTO_REFERER => true,
@@ -64,590 +76,528 @@ class Client implements HttpClient {
         self::OP_DEFAULT_USER_AGENT => null,
         self::OP_BODY_SWAP_SIZE => Parser::DEFAULT_BODY_SWAP_SIZE,
         self::OP_MAX_HEADER_BYTES => Parser::DEFAULT_MAX_HEADER_BYTES,
-        self::OP_MAX_BODY_BYTES => Parser::DEFAULT_MAX_BODY_BYTES
+        self::OP_MAX_BODY_BYTES => Parser::DEFAULT_MAX_BODY_BYTES,
     ];
 
-    public function __construct(CookieJar $cookieJar = null, HttpSocketPool $socketPool = null, WriterFactory $writerFactory = null) {
-        $this->cookieJar = $cookieJar ?: new ArrayCookieJar;
-        $this->socketPool = $socketPool ?: new HttpSocketPool();
-        $this->writerFactory = $writerFactory ?: new WriterFactory;
+    public function __construct(CookieJar $cookieJar = null, HttpSocketPool $socketPool = null) {
+        $this->cookieJar = $cookieJar ?? new ArrayCookieJar;
+        $this->socketPool = $socketPool ?? new HttpSocketPool;
         $this->hasZlib = extension_loaded('zlib');
-        $this->dequeuer = function() {
-            if ($this->queue) {
-                $this->dequeueNextRequest();
-            }
-        };
-
-        /*
-        \Amp\repeat(1000, function() {
-            printf("outstanding requests: %s\n", self::$outstandingRequests);
-        });
-        */
     }
 
     /**
-     * Asynchronously request multiple HTTP resources
+     * Asynchronously request an HTTP resource.
      *
-     * Note that this method is simply a convenience as storing the results of multiple calls to
-     * Client::request() in an array will achieve the same effect as Client::requestMulti().
+     * @param Request|string An HTTP URI string or a Request instance
+     * @param array          $options An array specifying options applicable only for this request
      *
-     * @param array $urisAndRequests An array of URI strings and/or Request instances
-     * @param array $options An array specifying options applicable only for this request batch
-     * @return array[\Amp\Stream] An array of promises whose keys match the request array
+     * @return Promise A promise to resolve the request at some point in the future
      */
-    public function requestMulti(array $urisAndRequests, array $options = []): array {
-        $promises = [];
-        foreach ($urisAndRequests as $key => $request) {
-            $promises[$key] = $this->request($request, $options);
-        }
+    public function request($uriOrRequest, array $options = []): Promise {
+        return call(function () use ($uriOrRequest, $options) {
+            list($request, $uri) = $this->generateRequestFromUri($uriOrRequest);
+            $options = $options ? array_merge($this->options, $options) : $this->options;
 
-        return $promises;
-    }
-
-    /**
-     * Asynchronously request an HTTP resource
-     *
-     * @param mixed[string|\Amp\Artax\Request] An HTTP URI string or an \Amp\Artax\Request instance
-     * @param array $options An array specifying options applicable only for this request
-     * @return \Amp\Stream A promise to resolve the request at some point in the future
-     */
-    public function request($uriOrRequest, array $options = []): Stream {
-        $emitter = new Emitter;
-
-        try {
-            $cycle = new RequestCycle;
-            $cycle->futureResponse = $emitter;
-            list($cycle->request, $cycle->uri) = $this->generateRequestFromUri($uriOrRequest);
-            $cycle->options = $options ? array_merge($this->options, $options) : $this->options;
-            $body = $cycle->request->getBody();
-            if ($body instanceof AggregateBody) {
-                $this->processAggregateBody($cycle, $body);
-            } else {
-                $this->finalizeRequest($cycle);
+            $headers = yield $request->getBody()->getHeaders();
+            foreach ($headers as $name => $header) {
+                $request = $request->withHeader($name, $header);
             }
-        } catch (\Throwable $e) {
-            $emitter->fail($e);
-        }
 
-        return $emitter->stream();
-    }
+            $request = yield from $this->normalizeRequestBodyHeaders($request, $options);
+            $request = $this->normalizeRequestEncodingHeaderForZlib($request, $options);
+            $request = $this->normalizeRequestHostHeader($request, $uri);
+            $request = $this->normalizeRequestUserAgent($request, $options);
+            $request = $this->normalizeRequestAcceptHeader($request);
+            $request = $this->assignApplicableRequestCookies($request);
 
-    private function dequeueNextRequest() {
-        $cycle = array_shift($this->queue);
-        $authority = $this->generateAuthorityFromUri($cycle->uri);
-        $socketCheckoutUri = $cycle->uri->getScheme() . "://{$authority}";
-        $cycle->socketCheckoutUri = $socketCheckoutUri;
-        $futureSocket = $this->socketPool->checkout($socketCheckoutUri, $cycle->options);
-        $futureSocket->onResolve(function($error, $result) use ($cycle) {
-            $this->onSocketResolve($cycle, $error, $result);
+            $response = yield $this->doRequest($request, $uri, $options);
+
+            if ($options[self::OP_FOLLOW_LOCATION]) {
+                $retry = 0;
+
+                // TODO: Add max-redirects option
+                while (++$retry < 10 && $redirectUri = $this->getRedirectUri($response)) {
+                    $refererUri = $request->getUri();
+
+                    $request = $request->withUri($redirectUri);
+
+                    $authority = $this->generateAuthorityFromUri($redirectUri);
+                    $host = $this->normalizeHostHeader($authority);
+                    $request = $request->withHeader('Host', $host);
+
+                    // Don't leak any cookies to other origins
+                    $request = $request->withoutHeader("Cookie");
+                    $request = $this->assignApplicableRequestCookies($request);
+
+                    /**
+                     * If this is a 302/303 we need to follow the location with a GET if the
+                     * original request wasn't GET/HEAD. Otherwise we need to send the body again.
+                     *
+                     * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.3.3
+                     */
+                    $method = $request->getMethod();
+                    $status = $response->getStatus();
+
+                    if (($status === 302 || $status === 303) && !($method === 'GET' || $method === 'HEAD')) {
+                        $request = $request->withMethod('GET');
+                        $request = $request->withoutHeader('Transfer-Encoding');
+                        $request = $request->withoutHeader('Content-Length');
+                        $request = $request->withoutHeader('Content-Type');
+                        $request = $request->withBody(null);
+                    }
+
+                    if ($options[self::OP_AUTO_REFERER]) {
+                        $this->assignRedirectRefererHeader($request, $refererUri, $redirectUri);
+                    }
+
+                    $response = yield $this->doRequest($request, $redirectUri, $options, $response);
+                }
+
+                if ($retry === 10 && $redirectUri = $this->getRedirectUri($response)) {
+                    new InfiniteRedirectException(
+                        sprintf('Infinite redirect detected while following Location header: %s', $redirectUri)
+                    );
+                }
+            }
+
+            return $response;
         });
     }
 
-    private function processAggregateBody(RequestCycle $cycle, AggregateBody $body) {
-        $promise = $body->getBody();
-        $promise->onResolve(function($error, $result) use ($cycle, $body) {
-            if ($error) {
-                $this->fail($cycle, $error);
-            } else {
-                $cycle->request->setBody($result);
-                $this->processAggregateBodyHeaders($cycle, $body);
+    private function doRequest(Request $request, Uri $uri, array $options, Response $previousResponse = null): Promise {
+        $deferred = new Deferred;
+
+        asyncCall(function () use (&$deferred, $request, $uri, $options, $previousResponse) {
+            try {
+                yield from $this->doWrite($request, $uri, $options, $previousResponse, $deferred);
+            } catch (HttpException $e) {
+                if ($deferred) {
+                    $deferred->resolve($e);
+                }
             }
         });
-    }
 
-    private function processAggregateBodyHeaders(RequestCycle $cycle, AggregateBody $body) {
-        $promise = $body->getHeaders();
-        $promise->onResolve(function($error, $result) use ($cycle, $body) {
-            if ($error) {
-                $this->fail($cycle, $error);
-            } else {
-                $cycle->request->setAllHeaders($result);
-                $this->finalizeRequest($cycle);
-            }
-        });
-    }
-
-    private function finalizeRequest(RequestCycle $cycle) {
-        $uri = $cycle->uri;
-        $options = $cycle->options;
-        $emitter = $cycle->futureResponse;
-        $request = $cycle->request;
-
-        $this->normalizeRequestMethod($request);
-        $this->normalizeRequestProtocol($request);
-        $this->normalizeRequestBodyHeaders($request, $options);
-        $this->normalizeRequestEncodingHeaderForZlib($request, $options);
-        $this->normalizeRequestHostHeader($request, $uri);
-        $this->normalizeRequestUserAgent($request, $options);
-        $this->normalizeRequestAcceptHeader($request);
-        $this->assignApplicableRequestCookies($request, $options);
-
-        $this->queue[] = $cycle;
-        $emitter->stream()->onResolve($this->dequeuer);
-
-        if (count($this->queue) < 512) {
-            $this->dequeueNextRequest();
-        }
+        return $deferred->promise();
     }
 
     private function generateRequestFromUri($uriOrRequest) {
         if (is_string($uriOrRequest)) {
             $uri = $this->buildUriFromString($uriOrRequest);
-            $request = new Request;
+            $request = new Request($uri);
         } elseif ($uriOrRequest instanceof Request) {
-            $uri = $this->buildUriFromString((string) $uriOrRequest->getUri());
+            $uri = $this->buildUriFromString($uriOrRequest->getUri());
             $request = $uriOrRequest;
         } else {
-            throw new \InvalidArgumentException(
+            throw new HttpException(
                 'Request must be a valid HTTP URI or Amp\Artax\Request instance'
             );
         }
 
-        $request->setUri($uri);
-
         return [$request, $uri];
     }
 
-    private function buildUriFromString($str) {
+    private function doRead(Request $request, Uri $uri, Socket $socket, array $options, Response $previousResponse = null, Deferred &$deferred = null) {
+        $bodyEmitter = new Emitter;
+
+        $parser = new Parser(Parser::MODE_RESPONSE);
+        $parser->enqueueResponseMethodMatch($request->getMethod());
+        $parser->setAllOptions([
+            Parser::OP_DISCARD_BODY => $options[self::OP_DISCARD_BODY],
+            Parser::OP_BODY_SWAP_SIZE => $options[self::OP_BODY_SWAP_SIZE],
+            Parser::OP_MAX_HEADER_BYTES => $options[self::OP_MAX_HEADER_BYTES],
+            Parser::OP_MAX_BODY_BYTES => $options[self::OP_MAX_BODY_BYTES],
+            Parser::OP_RETURN_BEFORE_ENTITY => true,
+            Parser::OP_BODY_DATA_CALLBACK => static function ($data) use ($bodyEmitter) {
+                $bodyEmitter->emit($data);
+            },
+        ]);
+
+        while (($chunk = yield $socket->read()) !== null) {
+            try {
+                $parseResult = $parser->parse($chunk);
+
+                if ($parseResult) {
+                    $parseResult["headers"] = \array_change_key_case($parseResult["headers"], \CASE_LOWER);
+
+                    $response = $this->finalizeResponse($request, $parseResult, new Message($bodyEmitter->iterate()), $previousResponse);
+
+                    // Required, otherwise responses without body hang
+                    if ($parseResult["headersOnly"]) {
+                        // Directly parse again in case we already have the full body but aborted parsing to resolve promise.
+                        $chunk = null;
+
+                        do {
+                            try {
+                                $parseResult = $parser->parse($chunk);
+                            } catch (ParseException $e) {
+                                $bodyEmitter->fail($e);
+                                throw $e;
+                            }
+
+                            if ($parseResult) {
+                                break;
+                            }
+                        } while (($chunk = yield $socket->read()) !== null);
+                    }
+
+                    $bodyEmitter->complete();
+
+                    if ($this->shouldCloseSocketAfterResponse($response)) {
+                        $this->socketPool->clear($socket->getResource());
+                        $socket->close();
+                    } else {
+                        $this->socketPool->checkin($socket->getResource());
+                    }
+
+                    if ($deferred) {
+                        $deferred->resolve($response);
+                    }
+
+                    break;
+                }
+            } catch (ParseException $e) {
+                if ($deferred) {
+                    $this->socketPool->clear($socket->getResource());
+                    $socket->close();
+                    $deferred->fail($e);
+                }
+
+                break;
+            }
+        }
+
+        $parserState = $parser->getState();
+
+        if ($parserState === Parser::AWAITING_HEADERS && empty($retryCount)) {
+            $this->doWrite($request, $uri, $options, $previousResponse, $deferred);
+        } else if ($deferred) {
+            $deferred->fail(new SocketException(
+                sprintf(
+                    'Socket disconnected prior to response completion (Parser state: %s)',
+                    $parserState
+                )
+            ));
+
+            $deferred = null;
+
+            $this->socketPool->clear($socket->getResource());
+        }
+    }
+
+    private function doWrite(Request $request, Uri $uri, array $options, Response $previousResponse = null, Deferred &$deferred = null) {
+        $authority = $this->generateAuthorityFromUri($uri);
+        $socketCheckoutUri = $uri->getScheme() . "://{$authority}";
+
+        $rawSocket = yield $this->socketPool->checkout($socketCheckoutUri, $options);
+        $socket = new Socket($rawSocket);
+
+        if ($uri->getScheme() === 'https') {
+            $cryptoOptions = $this->generateCryptoOptions($uri, $options);
+
+            try {
+                yield $socket->enableCrypto($cryptoOptions);
+            } catch (\Throwable $exception) {
+                // If crypto failed we make sure the socket pool gets rid of its reference
+                // to this socket connection.
+                $this->socketPool->clear($rawSocket);
+                throw $exception;
+            }
+        }
+
+        $timeout = $options[self::OP_TRANSFER_TIMEOUT];
+
+        if ($timeout > 0) {
+            // TODO: Abort request
+            $transferTimeoutWatcher = Loop::delay($timeout, static function () use (&$deferred, $timeout) {
+                if ($deferred === null) {
+                    return;
+                }
+
+                $tmp = $deferred;
+                $deferred = null;
+                $tmp->fail(new TimeoutException(
+                    sprintf('Allowed transfer timeout exceeded: %d ms', $timeout)
+                ));
+            });
+
+            $deferred->promise()->onResolve(static function () use ($transferTimeoutWatcher) {
+                Loop::cancel($transferTimeoutWatcher);
+            });
+        }
+
+        Promise\rethrow(new Coroutine($this->doRead($request, $uri, $socket, $options, $previousResponse, $deferred)));
+
+        yield $socket->write($this->generateRawRequestHeaders($request));
+
+        $body = $request->getBody()->getBody();
+        $chunking = !$request->hasHeader("content-length");
+
+        while (($chunk = yield $body->read()) !== null) {
+            if ($chunk === "") {
+                continue;
+            }
+
+            if ($chunking) {
+                $chunk = \dechex(\strlen($chunk)) . "\r\n" . $chunk . "\r\n";
+            }
+
+            yield $socket->write($chunk);
+        }
+
+        if ($chunking) {
+            yield $socket->write("0\r\n\r\n");
+        }
+    }
+
+    private function buildUriFromString($str): Uri {
         try {
             $uri = new Uri($str);
             $scheme = $uri->getScheme();
 
-            if (($scheme === 'http' || $scheme === 'https') && $uri->getHost()) {
+            if (($scheme === "http" || $scheme === "https") && $uri->getHost()) {
                 return $uri;
-            } else {
-                throw new \InvalidArgumentException(
-                    'Request must specify a valid HTTP URI'
-                );
             }
+
+            throw new HttpException(
+                'Request must specify a valid HTTP URI'
+            );
         } catch (\Error $e) {
-            throw new \InvalidArgumentException(
+            throw new HttpException(
                 $msg = 'Request must specify a valid HTTP URI',
-                $code = 0,
-                $prev = $e
+                0,
+                $e
             );
         }
     }
 
-    private function normalizeRequestMethod(Request $request) {
-        if (!$method = $request->getMethod()) {
-            $request->setMethod('GET');
-        }
-    }
-
-    private function normalizeRequestProtocol(Request $request) {
-        if (!$protocol = $request->getProtocol()) {
-            $request->setProtocol('1.1');
-        } elseif (!($protocol == '1.0' || $protocol == '1.1')) {
-            throw new \InvalidArgumentException(
-                'Invalid request protocol: ' . $protocol
-            );
-        }
-    }
-
-    private function normalizeRequestBodyHeaders(Request $request, array $options) {
-        if ($request->hasHeader('Content-Length')) {
-            // If the user manually assigned a Content-Length we don't need to do anything here.
-            return;
-        }
-
-        $body = $request->getBody();
+    private function normalizeRequestBodyHeaders(Request $request, array $options): \Generator {
         $method = $request->getMethod();
 
-        if (empty($body) && $body !== '0' && in_array($method, ['POST', 'PUT', 'PATCH'])) {
-            $request->setHeader('Content-Length', '0');
-            $request->removeHeader('Transfer-Encoding');
-        } elseif (is_scalar($body) && $body !== '') {
-            $body = (string) $body;
-            $request->setBody($body);
-            $request->setHeader('Content-Length', strlen($body));
-            $request->removeHeader('Transfer-Encoding');
-        } elseif ($body instanceof \Iterator) {
-            $request->removeHeader('Content-Length');
-            $request->setHeader('Transfer-Encoding', 'chunked');
-            $chunkedBody = new ChunkingIterator($body);
-            $request->setBody($chunkedBody);
-        } elseif ($body !== null) {
-            throw new \InvalidArgumentException(
-                'Request entity body must be a scalar or Iterator'
-            );
-        }
-
-        if ($body && $options[self::OP_EXPECT_CONTINUE] && !$request->hasHeader('Expect')) {
-            $request->setHeader('Expect', '100-continue');
-        }
-
         if ($method === 'TRACE' || $method === 'HEAD' || $method === 'OPTIONS') {
-            $request->setBody(null);
+            $request = $request->withBody(null);
         }
+
+        /** @var AggregateBody $body */
+        $body = $request->getBody();
+        $bodyLength = yield $body->getBodyLength();
+
+        if ($bodyLength === 0) {
+            $request = $request->withHeader('Content-Length', '0');
+            $request = $request->withoutHeader('Transfer-Encoding');
+        } else {
+            if ($bodyLength > 0) {
+                $request = $request->withHeader("Content-Length", $bodyLength);
+                $request = $request->withoutHeader("Transfer-Encoding");
+            } else {
+                $request = $request->withHeader("Transfer-Encoding", "chunked");
+            }
+
+            if ($options[self::OP_EXPECT_CONTINUE] && !$request->hasHeader('Expect')) {
+                $request = $request->withHeader('Expect', '100-continue');
+            }
+        }
+
+        return $request;
     }
 
-    private function normalizeRequestEncodingHeaderForZlib(Request $request, array $options) {
+    private function normalizeRequestEncodingHeaderForZlib(Request $request, array $options): Request {
         $autoEncoding = $options[self::OP_AUTO_ENCODING];
-        if ($autoEncoding && $this->hasZlib) {
-            $request->setHeader('Accept-Encoding', 'gzip, identity');
-        } elseif ($autoEncoding) {
-            $request->removeHeader('Accept-Encoding');
+
+        if (!$autoEncoding) {
+            return $request;
         }
+
+        if ($this->hasZlib) {
+            $request = $request->withHeader('Accept-Encoding', 'gzip, identity');
+        } else {
+            $request = $request->withoutHeader('Accept-Encoding');
+        }
+
+        return $request;
     }
 
-    private function normalizeRequestHostHeader(Request $request, Uri $uri) {
+    private function normalizeRequestHostHeader(Request $request, Uri $uri): Request {
         if ($request->hasHeader('Host')) {
-            return;
+            return $request;
         }
 
         $authority = $this->generateAuthorityFromUri($uri);
-        $host = $this->removePortFromHost($authority);
-        $request->setHeader('Host', $host);
+        $request = $request->withHeader('Host', $this->normalizeHostHeader($authority));
+
+        return $request;
     }
 
-    private function removePortFromHost($host) {
+    private function normalizeHostHeader($host): string {
         // Though servers are supposed to be able to handle standard port names on the end of the
         // Host header some fail to do this correctly. As a result, we strip the port from the end
         // if it's a standard 80 or 443
         if (strpos($host, ':80') === strlen($host) - 3) {
-            $host = substr($host, 0, -3);
+            return substr($host, 0, -3);
         } else if (strpos($host, ':443') === strlen($host) - 4) {
-            $host = substr($host, 0, -4);
+            return substr($host, 0, -4);
         }
 
         return $host;
     }
 
-    private function normalizeRequestUserAgent(Request $request, array $options) {
+    private function normalizeRequestUserAgent(Request $request, array $options): Request {
         if (!$request->hasHeader('User-Agent')) {
-            $userAgent = $options[self::OP_DEFAULT_USER_AGENT] ?: self::USER_AGENT;
-            $request->setHeader('User-Agent', $userAgent);
+            $userAgent = $options[self::OP_DEFAULT_USER_AGENT] ?? self::USER_AGENT;
+            $request = $request->withHeader('User-Agent', $userAgent);
         }
+
+        return $request;
     }
 
-    private function normalizeRequestAcceptHeader(Request $request) {
+    private function normalizeRequestAcceptHeader(Request $request): Request {
         if (!$request->hasHeader('Accept')) {
-            $request->setHeader('Accept', '*/*');
+            $request = $request->withHeader('Accept', '*/*');
         }
+
+        return $request;
     }
 
-    private function assignApplicableRequestCookies($request, array $options) {
-        $urlParts = parse_url($request->getUri());
+    private function assignApplicableRequestCookies(Request $request): Request {
+        $urlParts = \parse_url($request->getUri());
+
         $domain = $urlParts['host'];
         $path = isset($urlParts['path']) ? $urlParts['path'] : '/';
 
         if (!$applicableCookies = $this->cookieJar->get($domain, $path)) {
             // No cookies matched our request; we're finished.
-            return;
+            return $request;
         }
 
         $isRequestSecure = strcasecmp($urlParts['scheme'], 'https') === 0;
         $cookiePairs = [];
+
+        /** @var Cookie $cookie */
         foreach ($applicableCookies as $cookie) {
-            if (!$cookie->getSecure() || $isRequestSecure) {
+            if (!$cookie->isSecure() || $isRequestSecure) {
                 $cookiePairs[] = $cookie->getName() . '=' . $cookie->getValue();
             }
         }
 
         if ($cookiePairs) {
-            $value = $options[self::OP_COMBINE_COOKIES] ? implode('; ', $cookiePairs) : $cookiePairs;
-            $request->setHeader('Cookie', $value);
+            $request = $request->withHeader('Cookie', \implode('; ', $cookiePairs));
         }
+
+        return $request;
     }
 
-    private function generateAuthorityFromUri(Uri $uri) {
+    private function generateAuthorityFromUri(Uri $uri): string {
         $scheme = $uri->getScheme();
         $host = $uri->getHost();
         $port = $uri->getPort();
+
         if (empty($port)) {
-            $port = ($scheme === 'https') ? 443 : 80;
+            $port = $scheme === 'https' ? 443 : 80;
         }
 
         return "{$host}:{$port}";
     }
 
-    private function onSocketResolve(RequestCycle $cycle, $error, $socket) {
-        if ($error) {
-            $this->fail($cycle, $error);
-            return;
-        }
-
-        $cycle->socket = $socket;
-        $cycle->socketProcuredAt = microtime(true);
-        $cycle->futureResponse->emit([Notify::SOCK_PROCURED, null]);
-
-        if ($cycle->uri->getScheme() === 'https') {
-            $this->enableCrypto($cycle);
-        } else {
-            $this->onCryptoCompletion($cycle);
-        }
-    }
-
-    private function enableCrypto(RequestCycle $cycle) {
-        $cryptoOptions = $this->generateCryptoOptions($cycle);
-        $cryptoPromise = socket\enableCrypto($cycle->socket, $cryptoOptions);
-        $cryptoPromise->onResolve(function($error) use ($cycle) {
-            if ($error) {
-                // If crypto failed we make sure the socket pool gets rid of its reference
-                // to this socket connection.
-                $this->socketPool->clear($cycle->socket);
-                $this->fail($cycle, $error);
-            } else {
-                $this->onCryptoCompletion($cycle);
-            }
-        });
-    }
-
-    private function generateCryptoOptions(RequestCycle $cycle) {
-        $options = ['peer_name' => $cycle->uri->getHost()];
+    private function generateCryptoOptions(Uri $uri, array $options): array {
+        $cryptoOptions = ['peer_name' => $uri->getHost()];
 
         // Allow client-wide TLS settings
         if ($this->options[self::OP_CRYPTO]) {
-            $options = array_merge($options, $this->options[self::OP_CRYPTO]);
+            $cryptoOptions = array_merge($cryptoOptions, $this->options[self::OP_CRYPTO]);
         }
 
         // Allow per-request TLS settings
-        if ($cycle->options[self::OP_CRYPTO]) {
-            $options = array_merge($options, $cycle->options[self::OP_CRYPTO]);
+        if ($options[self::OP_CRYPTO]) {
+            $cryptoOptions = array_merge($cryptoOptions, $options[self::OP_CRYPTO]);
         }
 
-        return $options;
+        return $cryptoOptions;
     }
 
-    private function onCryptoCompletion(RequestCycle $cycle) {
-        $parser = new Parser(Parser::MODE_RESPONSE);
-        $parser->enqueueResponseMethodMatch($cycle->request->getMethod());
-        $futureResponse = $cycle->futureResponse;
-        $parser->setAllOptions([
-            // @TODO Add support for non-blocking filesystem IO
-            Parser::OP_DISCARD_BODY => $cycle->options[self::OP_DISCARD_BODY],
-            Parser::OP_BODY_SWAP_SIZE => $cycle->options[self::OP_BODY_SWAP_SIZE],
-            Parser::OP_MAX_HEADER_BYTES => $cycle->options[self::OP_MAX_HEADER_BYTES],
-            Parser::OP_MAX_BODY_BYTES => $cycle->options[self::OP_MAX_BODY_BYTES],
-            Parser::OP_RETURN_BEFORE_ENTITY => true,
-            Parser::OP_BODY_DATA_CALLBACK => function($data) use ($futureResponse) {
-                $futureResponse->emit([Notify::RESPONSE_BODY_DATA, $data]);
-            }
-        ]);
-
-        $cycle->parser = $parser;
-        $cycle->readWatcher = Loop::onReadable($cycle->socket, function() use ($cycle) {
-            $this->onReadableSocket($cycle);
-        });
-
-        $timeout = $cycle->options[self::OP_MS_TRANSFER_TIMEOUT];
-        if ($timeout > 0) {
-            $cycle->transferTimeoutWatcher = Loop::delay($timeout, function() use ($cycle, $timeout) {
-                $this->fail($cycle, new TimeoutException(
-                    sprintf('Allowed transfer timeout exceeded: %d ms', $timeout)
-                ));
-            });
+    private function finalizeResponse(Request $request, array $parserResult, InputStream $responseBody, Response $previousResponse = null) {
+        if ($this->canDecompressResponseBody($parserResult["headers"])) {
+            $responseBody = new GzipInputStream($responseBody);
         }
 
-        $streamMeta = stream_get_meta_data($cycle->socket);
-        $cycle->futureResponse->emit([Notify::HANDSHAKE_COMPLETE, $streamMeta]);
-
-        $this->writeRequest($cycle);
-    }
-
-    private function onReadableSocket(RequestCycle $cycle) {
-        $socket = $cycle->socket;
-        $data = @fread($socket, $cycle->options[self::OP_IO_GRANULARITY]);
-
-        if ($data != '') {
-            $this->consumeSocketData($cycle, $data);
-        } elseif ($this->isSocketDead($socket)) {
-            // Some HTTP messages are terminated by the closing of the connection.
-            // Instead of blanket failing request cycles whose sockets disconnect
-            // we need to determine if this was one of those HTTP messages.
-            $this->processDeadSocket($cycle);
-        }
-    }
-
-    private function consumeSocketData(RequestCycle $cycle, $data) {
-        $cycle->lastDataRcvdAt = microtime(true);
-        $cycle->bytesRcvd += strlen($data);
-        if ($cycle->options[self::OP_VERBOSITY] & self::VERBOSE_READ) {
-            echo $data;
-        }
-        $cycle->futureResponse->emit([Notify::SOCK_DATA_IN, $data]);
-        $cycle->parser->buffer($data);
-        $this->parseSocketData($cycle);
-    }
-
-    private function parseSocketData(RequestCycle $cycle) {
-        try {
-            while ($parsedResponseArr = $cycle->parser->parse()) {
-                if ($parsedResponseArr['headersOnly']) {
-                    $data = [Notify::RESPONSE_HEADERS, $parsedResponseArr];
-                    $cycle->futureResponse->emit($data);
-                    continue;
-                } elseif (isset($cycle->continueWatcher) && ($parsedResponseArr['status'] == 100)) {
-                    $this->proceedFrom100ContinueState($cycle);
-                } else {
-                    $this->assignParsedResponse($cycle, $parsedResponseArr);
-                }
-
-                if ($cycle->parser->getBuffer()) {
-                    Loop::defer(function() use ($cycle) {
-                        $this->parseSocketData($cycle);
-                    });
-                }
-
-                break;
-            }
-        } catch (ParseException $e) {
-            $this->fail($cycle, $e);
-        }
-    }
-
-    private function assignParsedResponse(RequestCycle $cycle, array $parsedResponseArr) {
-        $this->collectRequestCycleWatchers($cycle);
-
-        if (($body = $parsedResponseArr['body']) && $cycle->options[self::OP_BUFFER_BODY]) {
-            $body = stream_get_contents($body);
-        }
-
-        /**
-         * @var $response \Amp\Artax\Response
-         */
-        $cycle->response = $response = (new Response)
-            ->setStatus($parsedResponseArr['status'])
-            ->setReason($parsedResponseArr['reason'])
-            ->setProtocol($parsedResponseArr['protocol'])
-            ->setBody($body)
-            ->setAllHeaders($parsedResponseArr['headers'])
-        ;
-
-        if ($this->canDecompressResponseBody($response)) {
-            $this->inflateGzipBody($response);
-        }
+        $response = new Response(
+            $parserResult["protocol"],
+            $parserResult["status"],
+            $parserResult["reason"],
+            $parserResult["headers"],
+            $responseBody,
+            $request,
+            $previousResponse
+        );
 
         if ($response->hasHeader('Set-Cookie')) {
-            $requestDomain = parse_url($cycle->request->getUri(), PHP_URL_HOST);
-            $cookies = $response->getHeader('Set-Cookie');
+            $requestDomain = parse_url($request->getUri(), PHP_URL_HOST);
+            $cookies = $response->getHeaderArray('Set-Cookie');
+
             foreach ($cookies as $rawCookieStr) {
                 $this->storeResponseCookie($requestDomain, $rawCookieStr);
             }
         }
 
-        $response->setRequest(clone $cycle->request);
-
-        if ($newUri = $this->getRedirectUri($cycle)) {
-            return $this->redirect($cycle, $newUri);
-        }
-
-        if ($cycle->previousResponse) {
-            $response->setPreviousResponse($cycle->previousResponse);
-        }
-
-        $socket = $cycle->socket;
-        $cycle->futureResponse->emit([Notify::RESPONSE, $cycle->response, "export_socket" => function () use (&$socket, $parsedResponseArr) {
-            if ($socket) {
-                $sock = $socket;
-                $socket = null;
-                $this->socketPool->clear($sock);
-                return [$sock, $parsedResponseArr['buffer']];
-            }
-            throw new \LogicException("Cannot export socket after notification callback invocation");
-        }]);
-
-        // Do socket check-in *after* redirects because we handle the socket
-        // differently if we need to redirect.
-        if ($socket) {
-            if ($this->shouldCloseSocketAfterResponse($cycle->request, $cycle->response)) {
-                @fclose($socket);
-                $this->socketPool->clear($socket);
-            } else {
-                $this->socketPool->checkin($socket);
-            }
-            $socket = null;
-        }
-
-        // If we've held any sockets over from previous redirected requests
-        // we need to check those back in now.
-        if ($cycle->redirectedSockets) {
-            foreach ($cycle->redirectedSockets as $socket) {
-                $this->socketPool->checkin($socket);
-            }
-        }
-
-        $cycle->futureResponse->resolve($response);
+        return $response;
     }
 
-    private function collectRequestCycleWatchers(RequestCycle $cycle) {
-        if (isset($cycle->readWatcher)) {
-            Loop::cancel($cycle->readWatcher);
-            $cycle->readWatcher = null;
-        }
-        if (isset($cycle->continueWatcher)) {
-            Loop::cancel($cycle->continueWatcher);
-            $cycle->continueWatcher = null;
-        }
-        if (isset($cycle->transferTimeoutWatcher)) {
-            Loop::cancel($cycle->transferTimeoutWatcher);
-            $cycle->transferTimeoutWatcher = null;
-        }
-    }
+    private function shouldCloseSocketAfterResponse(Response $response) {
+        $request = $response->getRequest();
 
-    private function shouldCloseSocketAfterResponse(Request $request, Response $response) {
-        $requestConnHeader = $request->hasHeader('Connection')
-            ? current($request->getHeader('Connection'))
-            : null;
-
-        $responseConnHeader = $response->hasHeader('Connection')
-            ? current($response->getHeader('Connection'))
-            : null;
+        $requestConnHeader = $request->getHeader('Connection');
+        $responseConnHeader = $response->getHeader('Connection');
 
         if ($requestConnHeader && !strcasecmp($requestConnHeader, 'close')) {
             return true;
         } elseif ($responseConnHeader && !strcasecmp($responseConnHeader, 'close')) {
             return true;
-        } elseif ($response->getProtocol() == '1.0' && !$responseConnHeader) {
+        } elseif ($response->getProtocolVersion() === '1.0' && !$responseConnHeader) {
             return true;
-        } else {
-            return false;
         }
+
+        return false;
     }
 
-    private function canDecompressResponseBody(Response $response) {
+    private function canDecompressResponseBody(array $responseHeaders): bool {
         if (!$this->hasZlib) {
             return false;
         }
-        if (!$response->hasHeader('Content-Encoding')) {
+
+        if (!isset($responseHeaders["content-encoding"])) {
             return false;
         }
 
-        $contentEncodingHeader = trim(current($response->getHeader('Content-Encoding')));
+        $contentEncodingHeader = trim(current($responseHeaders["content-encoding"]));
 
-        return (strcasecmp($contentEncodingHeader, 'gzip') === 0);
+        return strcasecmp($contentEncodingHeader, 'gzip') === 0;
     }
 
-    private function inflateGzipBody(Response $response) {
-        $src = $response->getBody();
-
-        if (is_resource($src)) {
-            $destination = fopen('php://memory', 'r+');
-            fseek($src, 10, SEEK_SET);
-            stream_filter_prepend($src, 'zlib.inflate', STREAM_FILTER_READ);
-            stream_copy_to_stream($src, $destination);
-            rewind($destination);
-            $response->setBody($destination);
-        } elseif (strlen($src)) {
-            $body = gzdecode($src);
-            $response->setBody($body);
-        }
-    }
-
-    private function storeResponseCookie($requestDomain, $rawCookieStr) {
+    private function storeResponseCookie(string $requestDomain, string $rawCookieStr) {
         try {
-            $cookie = CookieParser::parse($rawCookieStr);
+            $cookie = Cookie::fromString($rawCookieStr);
+
             if (!$cookie->getDomain()) {
-                $cookie = new Cookie(
-                    $cookie->getName(),
-                    $cookie->getValue(),
-                    $cookie->getExpirationTime(),
-                    $cookie->getPath(),
-                    $requestDomain,
-                    $cookie->getSecure(),
-                    $cookie->getHttpOnly()
-                );
+                $cookie = $cookie->withDomain($requestDomain);
+            } else {
+                // https://tools.ietf.org/html/rfc6265#section-4.1.2.3
+                $cookieDomain = $cookie->getDomain();
+
+                // If a domain is set, left dots are ignored and it's always a wildcard
+                $cookieDomain = \ltrim($cookieDomain, ".");
+
+                if ($cookieDomain !== $requestDomain) {
+                    // ignore cookies on domains that are public suffixes
+                    if (PublicSuffixList::isPublicSuffix($cookieDomain)) {
+                        return;
+                    }
+
+                    // cookie origin would not be included when sending the cookie
+                    if (\substr($requestDomain, 0, -\strlen($cookieDomain) - 1) . "." . $cookieDomain !== $requestDomain) {
+                        return;
+                    }
+                }
+
+                // always add the dot, it's used internally for wildcard matching when an explicit domain is sent
+                $cookie = $cookie->withDomain("." . $cookieDomain);
             }
             $this->cookieJar->store($cookie);
         } catch (\InvalidArgumentException $e) {
@@ -655,17 +605,12 @@ class Client implements HttpClient {
         }
     }
 
-    private function getRedirectUri(RequestCycle $cycle) {
-        $request = $cycle->request;
-        $response = $cycle->response;
-
-        if (!$cycle->options[self::OP_FOLLOW_LOCATION]) {
-            return null;
-        }
-
+    private function getRedirectUri(Response $response) {
         if (!$response->hasHeader('Location')) {
             return null;
         }
+
+        $request = $response->getRequest();
 
         $status = $response->getStatus();
         $method = $request->getMethod();
@@ -675,165 +620,47 @@ class Client implements HttpClient {
         }
 
         $requestUri = new Uri($request->getUri());
-        $redirectLocation = current($response->getHeader('Location'));
+        $redirectLocation = $response->getHeader('Location');
 
         if (!$requestUri->canResolve($redirectLocation)) {
             return null;
         }
 
-        $newUri = $requestUri->resolve($redirectLocation);
-        $cycle->redirectHistory[] = $request->getUri();
-
-        return $newUri;
-    }
-
-    private function redirect(RequestCycle $cycle, Uri $newUri) {
-        if (in_array($newUri->__toString(), $cycle->redirectHistory)) {
-            $this->fail($cycle, new InfiniteRedirectException(
-                sprintf('Infinite redirect detected while following Location header: %s', $newUri)
-            ));
-            return;
-        }
-
-        $request = $cycle->request;
-        $response = $cycle->response;
-        $cycle->previousResponse = clone $response;
-        $cycle->response = null;
-
-        $refererUri = $request->getUri();
-
-        $cycle->uri = $newUri;
-        $authority = $this->generateAuthorityFromUri($newUri);
-        $socketCheckoutUri = $newUri->getScheme() . "://{$authority}";
-        $request->setUri($newUri->__toString());
-        $host = $this->removePortFromHost($authority);
-        $request->setHeader('Host', $host);
-        $this->assignApplicableRequestCookies($request, $cycle->options);
-
-        /**
-         * If this is a 302/303 we need to follow the location with a GET if the
-         * original request wasn't GET/HEAD. Otherwise, be sure to rewind the body
-         * if it's an Iterator instance because we'll need to send it again.
-         *
-         * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.3.3
-         */
-        $method = $request->getMethod();
-        $status = $response->getStatus();
-        if (($status == 302 || $status == 303) && !($method == 'GET' || $method == 'HEAD')) {
-            $request->setMethod('GET');
-            $request->removeHeader('Transfer-Encoding');
-            $request->removeHeader('Content-Length');
-            $request->removeHeader('Content-Type');
-            $request->setBody(null);
-        } elseif (($body = $request->getBody()) && $body instanceof \Iterator) {
-            $body->rewind();
-        }
-
-        if ($cycle->options[self::OP_AUTO_REFERER]) {
-            $this->assignRedirectRefererHeader($refererUri, $newUri, $request);
-        }
-
-        $cycle->futureResponse->emit([Notify::REDIRECT, $refererUri, (string)$newUri]);
-
-        if ($this->shouldCloseSocketAfterResponse($request, $response)) {
-            // If the HTTP response dictated a connection close we need
-            // to inform the socket pool and checkout a new connection.
-            @fclose($cycle->socket);
-            $this->socketPool->clear($cycle->socket);
-            $cycle->socket = null;
-            $cycle->socketCheckoutUri = $socketCheckoutUri;
-            $futureSocket = $this->socketPool->checkout($socketCheckoutUri, $cycle->options);
-            $futureSocket->onResolve(function($error, $result) use ($cycle) {
-                $this->onSocketResolve($cycle, $error, $result);
-            });
-        } elseif ($cycle->socketCheckoutUri === $socketCheckoutUri) {
-            // Woot! We can reuse the socket we already have \o/
-            $this->onSocketResolve($cycle, $error = null, $cycle->socket);
-        } else {
-            // Store the original socket and don't check it back into the
-            // pool until we are finished with all redirects. This helps
-            // prevent redirect checkout requests from being queued and
-            // causing unwanted waiting to complete redirects than need to
-            // traverse multiple host names.
-            $cycle->socketCheckoutUri = $socketCheckoutUri;
-            $cycle->redirectedSockets[] = $cycle->socket;
-            $cycle->socket = null;
-            $futureSocket = $this->socketPool->checkout($socketCheckoutUri, $cycle->options);
-            $futureSocket->onResolve(function($error, $result) use ($cycle) {
-                $this->onSocketResolve($cycle, $error, $result);
-            });
-        }
+        return $requestUri->resolve($redirectLocation);
     }
 
     /**
      * Clients must not add a Referer header when leaving an unencrypted resource
      * and redirecting to an encrypted resource.
      *
+     * @param Request $request
+     * @param string  $refererUri
+     * @param string  $newUri
+     *
+     * @return Request
+     *
      * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec15.html#sec15.1.3
      */
-    private function assignRedirectRefererHeader($refererUri, $newUri, $request) {
-        if (!$refererIsEncrypted = (stripos($refererUri, 'https') === 0)) {
-            $request->setHeader('Referer', $refererUri);
-        } elseif ($destinationIsEncrypted = (stripos($newUri, 'https') === 0)) {
-            $request->setHeader('Referer', $refererUri);
-        } else {
-            $request->removeHeader('Referer');
+    private function assignRedirectRefererHeader(Request $request, string $refererUri, string $newUri): Request {
+        if (!$refererIsEncrypted = (\stripos($refererUri, 'https') === 0)) {
+            return $request->withHeader('Referer', $refererUri);
+        } elseif ($destinationIsEncrypted = (\stripos($newUri, 'https') === 0)) {
+            return $request->withHeader('Referer', $refererUri);
         }
-    }
 
-    private function isSocketDead($socketResource) {
-        return (!is_resource($socketResource) || @feof($socketResource));
-    }
-
-    private function processDeadSocket(RequestCycle $cycle) {
-        $parserState = $cycle->parser->getState();
-        if ($parserState == Parser::BODY_IDENTITY_EOF) {
-            $parsedResponseArr = $cycle->parser->getParsedMessageArray();
-            $this->assignParsedResponse($cycle, $parsedResponseArr);
-        } elseif ($parserState == Parser::AWAITING_HEADERS && empty($cycle->retryCount)) {
-            $this->retry($cycle);
-        } else {
-            $this->fail($cycle, new SocketException(
-                sprintf(
-                    'Socket disconnected prior to response completion (Parser state: %s)',
-                    $parserState
-                )
-            ));
-        }
-    }
-
-    private function retry(RequestCycle $cycle) {
-        $cycle->retryCount++;
-        $this->collectRequestCycleWatchers($cycle);
-        $this->socketPool->clear($cycle->socket);
-        array_unshift($this->queue, $cycle);
-        $this->dequeueNextRequest();
-    }
-
-    private function writeRequest(RequestCycle $cycle) {
-        $rawHeaders = $this->generateRawRequestHeaders($cycle->request);
-        $stream = (new BufferWriter)->write($cycle->socket, $rawHeaders);
-        $stream->onEmit(function($update) use ($cycle) {
-            $cycle->futureResponse->emit([Notify::SOCK_DATA_OUT, $update]);
-            if ($cycle->options[self::OP_VERBOSITY] & self::VERBOSE_SEND) {
-                echo $update;
-            }
-        });
-        $stream->onResolve(function($error, $response) use ($cycle) {
-            if ($error) {
-                $this->fail($cycle, $error);
-            } else {
-                $this->afterHeaderWrite($cycle);
-            }
-        });
+        return $request->withoutHeader('Referer');
     }
 
     /**
+     * @param Request $request
+     *
+     * @return string
+     *
      * @TODO Send absolute URIs in the request line when using a proxy server
      *       Right now this doesn't matter because all proxy requests use a CONNECT
      *       tunnel but this likely will not always be the case.
      */
-    private function generateRawRequestHeaders(Request $request) {
+    private function generateRawRequestHeaders(Request $request): string {
         $uri = $request->getUri();
         $uri = new Uri($uri);
 
@@ -843,110 +670,41 @@ class Client implements HttpClient {
             $requestUri .= '?' . $query;
         }
 
-        $str = $request->getMethod() . ' ' . $requestUri . ' HTTP/' . $request->getProtocol() . "\r\n";
+        $head = $request->getMethod() . ' ' . $requestUri . ' HTTP/' . $request->getProtocolVersion() . "\r\n";
 
-        foreach ($request->getAllHeaders() as $field => $valueArr) {
-            foreach ($valueArr as $value) {
-                $str .= "{$field}: {$value}\r\n";
+        foreach ($request->getAllHeaders() as $field => $values) {
+            foreach ($values as $value) {
+                $head .= "{$field}: {$value}\r\n";
             }
         }
 
-        $str .= "\r\n";
+        $head .= "\r\n";
 
-        return $str;
-    }
-
-    private function afterHeaderWrite(RequestCycle $cycle) {
-        $body = $cycle->request->getBody();
-
-        if ($body == '') {
-            // We're finished if there's no body in the request.
-            $cycle->futureResponse->emit([Notify::REQUEST_SENT, $cycle->request]);
-        } elseif ($this->requestExpects100Continue($cycle->request)) {
-            $cycle->continueWatcher = Loop::delay($cycle->options[self::OP_MS_100_CONTINUE_TIMEOUT], function() use ($cycle) {
-                $this->proceedFrom100ContinueState($cycle);
-            });
-        } else {
-            $this->writeBody($cycle, $body);
-        }
-    }
-
-    private function requestExpects100Continue(Request $request) {
-        if (!$request->hasHeader('Expect')) {
-            return false;
-        } elseif (stripos(implode(',', $request->getHeader('Expect')), '100-continue') !== false) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    private function proceedFrom100ContinueState(RequestCycle $cycle) {
-        $continueWatcher = $cycle->continueWatcher;
-        $cycle->continueWatcher = null;
-        if(isset($continueWatcher)) {
-            Loop::cancel($continueWatcher);
-        }
-        $this->writeBody($cycle, "");
-    }
-
-    private function writeBody(RequestCycle $cycle, $body) {
-        try {
-            $writer = $this->writerFactory->make($body);
-            $stream = $writer->write($cycle->socket, $body);
-            $stream->onEmit(function($update) use ($cycle) {
-                $cycle->futureResponse->emit([Notify::SOCK_DATA_OUT, $update]);
-                if ($cycle->options[self::OP_VERBOSITY] & self::VERBOSE_SEND) {
-                    echo $update;
-                }
-            });
-            $stream->onResolve(function($error, $result) use ($cycle) {
-                if ($error) {
-                    $this->fail($cycle, $error);
-                } else {
-                    $cycle->futureResponse->emit([Notify::REQUEST_SENT, $cycle->request]);
-                }
-            });
-        } catch (\Throwable $e) {
-            $this->fail($cycle, $e);
-        }
-    }
-
-    private function fail(RequestCycle $cycle, $error) {
-        $this->collectRequestCycleWatchers($cycle);
-
-        if ($cycle->socket) {
-            $this->socketPool->clear($cycle->socket);
-        }
-
-        $cycle->futureResponse->emit([Notify::ERROR, $error]);
-        $cycle->futureResponse->fail($error);
+        return $head;
     }
 
     /**
-     * Set multiple Client options at once
+     * Set multiple options at once.
      *
      * @param array $options An array of the form [OP_CONSTANT => $value]
+     *
      * @throws \Error on Unknown option key
-     * @return self
      */
-    public function setAllOptions(array $options): HttpClient {
+    public function setAllOptions(array $options) {
         foreach ($options as $option => $value) {
             $this->setOption($option, $value);
         }
-
-        return $this;
     }
 
     /**
-     * Set an individual Client option
+     * Set an individual option.
      *
-     * @param int $option A Client option constant
+     * @param int   $option A Client option constant
      * @param mixed $value The option value to assign
+     *
      * @throws \Error On unknown option key
-     * @return self
      */
-    public function setOption($option, $value): HttpClient {
+    public function setOption($option, $value) {
         switch ($option) {
             case self::OP_AUTO_ENCODING:
                 $this->options[self::OP_AUTO_ENCODING] = (bool) $value;
@@ -954,17 +712,17 @@ class Client implements HttpClient {
             case self::OP_HOST_CONNECTION_LIMIT:
                 $this->options[self::OP_HOST_CONNECTION_LIMIT] = $value;
                 break;
-            case self::OP_MS_CONNECT_TIMEOUT:
-                $this->options[self::OP_MS_CONNECT_TIMEOUT] = $value;
+            case self::OP_CONNECT_TIMEOUT:
+                $this->options[self::OP_CONNECT_TIMEOUT] = $value;
                 break;
-            case self::OP_MS_KEEP_ALIVE_TIMEOUT:
-                $this->options[self::OP_MS_KEEP_ALIVE_TIMEOUT] = $value;
+            case self::OP_KEEP_ALIVE_TIMEOUT:
+                $this->options[self::OP_KEEP_ALIVE_TIMEOUT] = $value;
                 break;
-            case self::OP_MS_TRANSFER_TIMEOUT:
-                $this->options[self::OP_MS_TRANSFER_TIMEOUT] = (int) $value;
+            case self::OP_TRANSFER_TIMEOUT:
+                $this->options[self::OP_TRANSFER_TIMEOUT] = (int) $value;
                 break;
-            case self::OP_MS_100_CONTINUE_TIMEOUT:
-                $this->options[self::OP_MS_100_CONTINUE_TIMEOUT] = (int) $value;
+            case self::OP_100_CONTINUE_TIMEOUT:
+                $this->options[self::OP_100_CONTINUE_TIMEOUT] = (int) $value;
                 break;
             case self::OP_EXPECT_CONTINUE:
                 $this->options[self::OP_EXPECT_CONTINUE] = (bool) $value;
@@ -1020,7 +778,5 @@ class Client implements HttpClient {
                     sprintf("Unknown option: %s", $option)
                 );
         }
-
-        return $this;
     }
 }

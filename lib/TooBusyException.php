@@ -2,4 +2,5 @@
 
 namespace Amp\Artax;
 
-class TooBusyException extends ClientException {}
+class TooBusyException extends HttpException {
+}

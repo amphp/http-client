@@ -2,14 +2,51 @@
 
 namespace Amp\Artax;
 
-class Response extends Message {
-    private $status = 200;
-    private $reason = '';
+use Amp\ByteStream\InputStream;
+
+final class Response {
+    /** @var string */
+    private $protocolVersion;
+
+    /** @var int */
+    private $status;
+
+    /** @var string */
+    private $reason;
+
+    /** @var Request */
     private $request;
+
+    /** @var Response|null */
     private $previousResponse;
 
+    /** @var array */
+    private $headers;
+
+    /** @var InputStream */
+    private $body;
+
+    public function __construct(string $protocolVersion, int $status, string $reason, array $headers, InputStream $body, Request $request, Response $previousResponse = null) {
+        $this->protocolVersion = $protocolVersion;
+        $this->status = $status;
+        $this->reason = $reason;
+        $this->headers = $headers;
+        $this->body = $body;
+        $this->request = $request;
+        $this->previousResponse = $previousResponse;
+    }
+
     /**
-     * Retrieve the response's three-digit HTTP status code
+     * Retrieve the requests's HTTP protocol version.
+     *
+     * @return string
+     */
+    public function getProtocolVersion(): string {
+        return $this->protocolVersion;
+    }
+
+    /**
+     * Retrieve the response's three-digit HTTP status code.
      *
      * @return int
      */
@@ -18,19 +55,7 @@ class Response extends Message {
     }
 
     /**
-     * Assign the response's three-digit HTTP status code
-     *
-     * @param int $status
-     * @return self
-     */
-    public function setStatus(int $status): self {
-        $this->status = $status;
-
-        return $this;
-    }
-
-    /**
-     * Retrieve the response's (possibly empty) reason phrase
+     * Retrieve the response's (possibly empty) reason phrase.
      *
      * @return string
      */
@@ -39,75 +64,89 @@ class Response extends Message {
     }
 
     /**
-     * Assign the response's reason phrase
+     * Retrieve the Request instance that resulted in this Response instance.
      *
-     * @param string $reason
-     * @return self
+     * @return Request
      */
-    public function setReason(string $reason): self {
-        $this->reason = $reason;
-
-        return $this;
-    }
-
-    /**
-     * Retrieve the Request instance that resulted in this Response
-     *
-     * @return \Amp\Artax\Request|null
-     */
-    public function getRequest() {
+    public function getRequest(): Request {
         return $this->request;
     }
 
     /**
-     * Associate a Request instance with this Response
-     *
-     * @param \Amp\Artax\Request $request
-     * @return self
-     */
-    public function setRequest(Request $request): self {
-        $this->request = $request;
-        return $this;
-    }
-
-    /**
-     * Retrieve the original Request associated with this Response
+     * Retrieve the original Request instance associated with this Response instance.
      *
      * A given Response may be the result of one or more redirects. This method is a shortcut to
      * access information from the original Request that led to this response.
      *
-     * @return \Amp\Artax\Request|null
+     * @return Request
      */
-    public function getOriginalRequest() {
+    public function getOriginalRequest(): Request {
         if (empty($this->previousResponse)) {
             return $this->request;
         }
 
-        $current = $this;
-        while ($current = $current->getPreviousResponse()) {
-            $originalRequest = $current->getRequest();
-        }
-
-        return $originalRequest;
+        return $this->previousResponse->getOriginalRequest();
     }
 
     /**
-     * If this Response is the result of a redirect traverse up the redirect history
+     * If this Response is the result of a redirect traverse up the redirect history.
      *
-     * @return null|\Amp\Artax\Response|null
+     * @return Response|null
      */
     public function getPreviousResponse() {
         return $this->previousResponse;
     }
 
     /**
-     * Associate this Response with a previous redirect Response
+     * Does the message contain the specified header field (case-insensitive)?
      *
-     * @param \Amp\Artax\Response $response
-     * @return self
+     * @param string $field Header name.
+     *
+     * @return bool
      */
-    public function setPreviousResponse(Response $response): self {
-        $this->previousResponse = $response;
-        return $this;
+    public function hasHeader(string $field): bool {
+        return isset($this->headers[\strtolower($field)]);
+    }
+
+    /**
+     * Retrieve the first occurrence of the specified header in the message.
+     *
+     * If multiple headers exist for the specified field only the value of the first header is returned. Applications
+     * may use `getHeaderArray()` to retrieve a list of all header values received for a given field.
+     *
+     * A `null` return indicates the requested header field was not present.
+     *
+     * @param string $field Header name.
+     *
+     * @return string|null Header value or `null` if no header with name `$field` exists.
+     */
+    public function getHeader(string $field) {
+        return $this->headers[\strtolower($field)][0] ?? null;
+    }
+
+    /**
+     * Retrieve all occurrences of the specified header in the message.
+     *
+     * Applications may use `getHeader()` to access only the first occurrence.
+     *
+     * @param string $field Header name.
+     *
+     * @return array Header values.
+     */
+    public function getHeaderArray(string $field): array {
+        return $this->headers[\strtolower($field)] ?? [];
+    }
+
+    /**
+     * Retrieve an associative array of headers matching field names to an array of field values.
+     *
+     * @return array
+     */
+    public function getAllHeaders(): array {
+        return $this->headers;
+    }
+
+    public function getBody(): InputStream {
+        return $this->body;
     }
 }

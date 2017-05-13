@@ -2,7 +2,7 @@
 
 namespace Amp\Artax\Cookie;
 
-class Cookie {
+final class Cookie {
     private $name;
     private $value;
     private $expires;
@@ -21,14 +21,22 @@ class Cookie {
         'D M d H:i:s Y T'
     );
 
-    public function __construct($name, $value, $expires = null, $path = null, $domain = '', $secure = false, $httpOnly = true) {
+    public function __construct(
+        string $name,
+        string $value,
+        int $expires = null,
+        string $path = null,
+        string $domain = '',
+        bool $secure = false,
+        bool $httpOnly = true
+    ) {
         $this->name = $name;
         $this->value = $value;
-        $this->expires = ($expires === null) ? null : (int) $expires;
+        $this->expires = $expires;
         $this->path = $path ?: '/';
-        $this->domain = strtolower($domain);
-        $this->secure = (bool) $secure;
-        $this->httpOnly = (bool) $httpOnly;
+        $this->domain = \strtolower($domain);
+        $this->secure = $secure;
+        $this->httpOnly = $httpOnly;
     }
 
     public function getName(): string {
@@ -39,7 +47,7 @@ class Cookie {
         return $this->value;
     }
 
-    public function getExpirationTime(): int {
+    public function getExpirationTime() {
         return $this->expires;
     }
 
@@ -55,12 +63,61 @@ class Cookie {
         return $this->domain;
     }
 
-    public function getSecure(): bool {
+    public function isSecure(): bool {
         return $this->secure;
     }
 
-    public function getHttpOnly(): bool {
+    public function isHttpOnly(): bool {
         return $this->httpOnly;
+    }
+
+    public function withName(string $name): self {
+        $clone = clone $this;
+        $clone->name = $name;
+
+        return $clone;
+    }
+
+    public function withValue(string $value): self {
+        $clone = clone $this;
+        $clone->value = $value;
+
+        return $clone;
+    }
+
+    public function withExpirationTime(int $value = null): self {
+        $clone = clone $this;
+        $clone->expires = $value;
+
+        return $clone;
+    }
+
+    public function withPath(string $path): self {
+        $clone = clone $this;
+        $clone->path = $path;
+
+        return $clone;
+    }
+
+    public function withDomain(string $domain): self {
+        $clone = clone $this;
+        $clone->domain = $domain;
+
+        return $clone;
+    }
+
+    public function withSecure(bool $secure): self {
+        $clone = clone $this;
+        $clone->secure = $secure;
+
+        return $clone;
+    }
+
+    public function withHttpOnly(bool $httpOnly): self {
+        $clone = clone $this;
+        $clone->httpOnly = $httpOnly;
+
+        return $clone;
     }
 
     public function __toString(): string {
@@ -91,28 +148,31 @@ class Cookie {
     }
 
     static function fromString(string $rawCookieStr): self {
-        if (!$rawCookieStr) {
-            throw new \InvalidArgumentException(
-                'Invalid cookie string'
+        if ($rawCookieStr === "") {
+            throw new CookieFormatException(
+                $rawCookieStr,
+                "Empty cookie string"
             );
         }
 
         $parts = explode(';', trim($rawCookieStr));
         $nvPair = array_shift($parts);
 
-
         if (strpos($nvPair, '=') === false) {
-            throw new \InvalidArgumentException;
+            throw new CookieFormatException(
+                $rawCookieStr,
+                "Missing '=' to separate name and value"
+            );
         }
 
         list($name, $value) = explode('=', $nvPair, 2);
 
         $attrStruct = array(
-            'expires' => '',
+            'expires' => null,
             'path' => '',
-            'domain' => '',
+            'domain' => "",
             'secure' => false,
-            'httponly' => true,
+            'httponly' => false,
             'max-age' => null
         );
 
@@ -125,8 +185,9 @@ class Cookie {
                 $attrStruct['httponly'] = true;
                 continue;
             } elseif (strpos($part, '=') === false) {
-                throw new \InvalidArgumentException(
-                    'Invalid cookie string: ' . $part
+                throw new CookieFormatException(
+                    $rawCookieStr,
+                    "Missing '=' in '{$part}'"
                 );
             }
 
@@ -138,8 +199,8 @@ class Cookie {
             }
         }
 
-        $attrStruct['httponly'] = $attrStruct['httponly'] ? true : false;
-        $attrStruct['secure'] = $attrStruct['secure'] ? true : false;
+        $attrStruct['httponly'] = (bool) $attrStruct['httponly'];
+        $attrStruct['secure'] = (bool) $attrStruct['secure'];
 
         if (isset($attrStruct['max-age']) && intval($attrStruct['max-age']) == $attrStruct['max-age']) {
             $attrStruct['expires'] = time() + $attrStruct['max-age'];
@@ -165,8 +226,9 @@ class Cookie {
             }
         }
 
-        throw new \InvalidArgumentException(
-            'Invalid expires attribute: ' . $dateStr
+        throw new CookieFormatException(
+            $dateStr,
+            'Invalid expires attribute'
         );
     }
 }

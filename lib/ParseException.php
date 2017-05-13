@@ -2,7 +2,7 @@
 
 namespace Amp\Artax;
 
-class ParseException extends ClientException {
+class ParseException extends HttpException {
     private $parsedMsgArr;
 
     /**

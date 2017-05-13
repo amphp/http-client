@@ -2,42 +2,49 @@
 
 namespace Amp\Artax;
 
-use Amp\{ Deferred, Failure };
+use Amp\Failure;
+use Amp\Promise;
+use Amp\Socket\SocketPool;
+use function Amp\call;
+use Amp\Success;
 
 class HttpSocketPool {
-    const OP_PROXY_HTTP = 'op.proxy-http';
-    const OP_PROXY_HTTPS = 'op.proxy-https';
+    const OP_PROXY_HTTP = 'amp.artax.httpsocketpool.proxy-http';
+    const OP_PROXY_HTTPS = 'amp.artax.httpsocketpool.proxy-https';
 
-    private $sockPool;
+    private $socketPool;
     private $tunneler;
+
     private $options = [
         self::OP_PROXY_HTTP => null,
         self::OP_PROXY_HTTPS => null,
     ];
 
     public function __construct(SocketPool $sockPool = null, HttpTunneler $tunneler = null) {
-        $this->sockPool = $sockPool ?: new SocketPool();
-        $this->tunneler = $tunneler ?: new HttpTunneler();
+        $this->socketPool = $sockPool ?? new SocketPool;
+        $this->tunneler = $tunneler ?? new HttpTunneler;
         $this->autoDetectProxySettings();
     }
 
     private function autoDetectProxySettings() {
-        // See CVE-2016-5385, due to (emulation of) header copying with PHP web SAPIs into HTTP_* variables, HTTP_PROXY can be set by an user to any value he wants by setting the Proxy header
-        // Mitigate the vulnerability by only allowing CLI SAPIs to use HTTP(S)_PROXY environment variable
-        if (PHP_SAPI != "cli" && PHP_SAPI != "phpdbg" && PHP_SAPI != "embed") {
+        // See CVE-2016-5385, due to (emulation of) header copying with PHP web SAPIs into HTTP_* variables,
+        // HTTP_PROXY can be set by an user to any value he wants by setting the Proxy header.
+        // Mitigate the vulnerability by only allowing CLI SAPIs to use HTTP(S)_PROXY environment variables.
+        if (PHP_SAPI !== "cli" && PHP_SAPI !== "phpdbg" && PHP_SAPI !== "embed") {
             return;
         }
-        
-        if (($httpProxy = getenv('http_proxy')) || ($httpProxy = getenv('HTTP_PROXY'))) {
+
+        if (($httpProxy = \getenv('http_proxy')) || ($httpProxy = \getenv('HTTP_PROXY'))) {
             $this->options[self::OP_PROXY_HTTP] = $this->getUriAuthority($httpProxy);
         }
-        if (($httpsProxy = getenv('https_proxy')) || ($httpsProxy = getenv('HTTPS_PROXY'))) {
+
+        if (($httpsProxy = \getenv('https_proxy')) || ($httpsProxy = \getenv('HTTPS_PROXY'))) {
             $this->options[self::OP_PROXY_HTTPS] = $this->getUriAuthority($httpsProxy);
         }
     }
 
-    private function getUriAuthority($uri) {
-        $uriParts = @parse_url(strtolower($uri));
+    private function getUriAuthority($uri): string {
+        $uriParts = @\parse_url(\strtolower($uri));
         $host = $uriParts['host'];
         $port = $uriParts['port'];
 
@@ -45,16 +52,18 @@ class HttpSocketPool {
     }
 
     /**
-     * I give you a URI, you promise me a socket at some point in the future
+     * I give you a URI, you promise me a socket at some point in the future.
      *
      * @param string $uri
-     * @param array $options
-     * @return \Amp\Promise
+     * @param array  $options
+     *
+     * @return Promise
      */
-    public function checkout($uri, array $options = []) {
+    public function checkout($uri, array $options = []): Promise {
         // Normalize away any IPv6 brackets -- socket resolution will handle that
-        $uri = str_replace(['[', ']'], '', $uri);
-        $uriParts = @parse_url($uri);
+        $uri = \str_replace(['[', ']'], '', $uri);
+        $uriParts = @\parse_url($uri);
+
         $scheme = isset($uriParts['scheme']) ? $uriParts['scheme'] : null;
         $host = $uriParts['host'];
         $port = $uriParts['port'];
@@ -76,69 +85,53 @@ class HttpSocketPool {
         // limits transparently even when connecting through a proxy.
         $authority = "{$host}:{$port}";
         $uri = $proxy ? "tcp://{$proxy}#{$authority}" : "tcp://{$authority}";
-        $deferred = new Deferred;
-        $futureCheckout = $this->sockPool->checkout($uri, $options);
-        $futureCheckout->onResolve(function($error, $socket) use ($deferred, $proxy, $authority) {
-            if ($error) {
-                $deferred->fail($error);
-            } elseif ($proxy) {
-                $this->tunnelThroughProxy($deferred, $socket, $authority);
-            } else {
-                $deferred->resolve($socket);
-            }
-        });
 
-        return $deferred->promise();
+        return call(function () use ($uri, $options, $proxy, $authority) {
+            $socket = yield $this->socketPool->checkout($uri, $options);
+
+            if ($proxy) {
+                yield $this->tunnelThroughProxy($socket, $authority);
+            }
+
+            return $socket;
+        });
     }
 
-    private function tunnelThroughProxy(Deferred $deferred, $socket, $authority) {
+    private function tunnelThroughProxy($socket, $authority): Promise {
         if (empty(stream_context_get_options($socket)['artax*']['is_tunneled'])) {
-            $futureTunnel = $this->tunneler->tunnel($socket, $authority);
-            $futureTunnel->onResolve(function($error) use ($deferred, $socket) {
-                if ($error) {
-                    $deferred->fail($error);
-                } else {
-                    $deferred->resolve($socket);
-                }
-            });
-        } else {
-            $deferred->resolve($socket);
+            return $this->tunneler->tunnel($socket, $authority);
         }
+
+        return new Success;
     }
 
     /**
-     * Checkin a previously checked-out socket
+     * Checkin a previously checked-out socket into the pool again.
      *
      * @param resource $socket
-     * @return self
      */
     public function checkin($socket) {
-        $this->sockPool->checkin($socket);
-
-        return $this;
+        $this->socketPool->checkin($socket);
     }
 
     /**
-     * Clear a previously checked-out socket from the pool
+     * Clear a previously checked-out socket from the pool.
      *
      * @param resource $socket
-     * @return self
      */
     public function clear($socket) {
-        $this->sockPool->clear($socket);
-
-        return $this;
+        $this->socketPool->clear($socket);
     }
 
     /**
-     * Set a socket pool option
+     * Set a pool option.
      *
-     * @param int|string $option
-     * @param mixed $value
+     * @param string $option
+     * @param mixed      $value
+     *
      * @throws \Error on unknown option
-     * @return self
      */
-    public function setOption($option, $value) {
+    public function setOption(string $option, $value) {
         switch ($option) {
             case self::OP_PROXY_HTTP:
                 $this->options[self::OP_PROXY_HTTP] = (string) $value;
@@ -147,9 +140,7 @@ class HttpSocketPool {
                 $this->options[self::OP_PROXY_HTTPS] = (string) $value;
                 break;
             default:
-                return $this->sockPool->setOption($option, $value);
+                $this->socketPool->setOption($option, $value);
         }
-
-        return $this;
     }
 }

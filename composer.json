@@ -14,18 +14,24 @@
     "authors": [
         {
             "name": "Daniel Lowrey",
-            "email": "rdlowrey@gmail.com",
-            "role": "Creator / Lead Developer"
+            "email": "rdlowrey@gmail.com"
+        },
+        {
+            "name": "Niklas Keller",
+            "email": "me@kelunik.com"
         }
     ],
     "require": {
         "php": ">=7.0",
-        "amphp/amp": "dev-master as 2.0",
-        "amphp/socket": "dev-amp_v2"
+        "amphp/amp": "^2",
+        "amphp/socket": "dev-amp_v2",
+        "amphp/uri": "dev-master",
+        "amphp/file": "dev-streams as dev-amp_v2"
     },
     "require-dev": {
-        "phpunit/phpunit": "^5",
-        "friendsofphp/php-cs-fixer": "~1.9"
+        "amphp/phpunit-util": "dev-master",
+        "phpunit/phpunit": "^6",
+        "friendsofphp/php-cs-fixer": "^2.3"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,

@@ -1,5 +1,7 @@
 <?php
 
+use function Amp\Promise\wait;
+
 require __DIR__ . '/../vendor/autoload.php';
 
 try {
@@ -13,17 +15,16 @@ try {
     // returns a promise to resolve the response at some point in the future when
     // it's finished. Here we use the Amp concurrency framework to synchronously wait
     // for the eventual promise result.
-    $response = \Amp\wait($promise);
+    $response = wait($promise);
 
     // Output the results
     printf(
         "\nHTTP/%s %d %s\n",
-        $response->getProtocol(),
+        $response->getProtocolVersion(),
         $response->getStatus(),
         $response->getReason()
     );
-
-} catch (Amp\Artax\ClientException $error) {
+} catch (Amp\Artax\HttpException $error) {
     // If something goes wrong the Promise::wait() call will throw the relevant
     // exception. The Client::request() method itself will never throw.
     echo $error;

@@ -45,7 +45,6 @@ class Parser {
     private $responseCode;
     private $responseReason;
     private $headers = [];
-    private $body;
     private $remainingBodyBytes;
     private $bodyBytesConsumed = 0;
     private $chunkLenRemaining = null;
@@ -284,9 +283,6 @@ class Parser {
                 goto complete;
             }
 
-            $uri = 'php://temp/maxmemory:' . $this->bodySwapSize;
-            $this->body = fopen($uri, 'r+');
-
             if ($this->returnBeforeEntity) {
                 $parsedMsgArr = $this->getParsedMessageArray();
                 $parsedMsgArr['headersOnly'] = true;
@@ -376,7 +372,6 @@ class Parser {
             $this->state = self::AWAITING_HEADERS;
             $this->traceBuffer = null;
             $this->headers = [];
-            $this->body = null;
             $this->bodyBytesConsumed = 0;
             $this->remainingBodyBytes = null;
             $this->chunkLenRemaining = null;
@@ -571,14 +566,9 @@ class Parser {
     }
 
     public function getParsedMessageArray(): array {
-        if ($this->body) {
-            rewind($this->body);
-        }
-
         $result = [
             'protocol' => $this->protocol,
             'headers'  => $this->headers,
-            'body'     => $this->body,
             'trace'    => $this->traceBuffer,
             'buffer'   => $this->buffer,
             'headersOnly' => false,
@@ -609,11 +599,6 @@ class Parser {
 
         if ($bodyDataCallback = $this->bodyDataCallback) {
             $bodyDataCallback($data);
-        }
-
-        if (!$this->discardBody) {
-            fseek($this->body, 0, SEEK_END);
-            fwrite($this->body, $data);
         }
     }
 }

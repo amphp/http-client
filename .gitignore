@@ -1,4 +1,4 @@
-test/coverage
+coverage
 vendor
 .idea
 composer.lock

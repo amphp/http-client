@@ -6,7 +6,6 @@ class FileCookieJar extends ArrayCookieJar {
     private $storagePath;
 
     public function __construct(string $storagePath) {
-
         if (!file_exists($storagePath)) {
             $cookieFileHandle = $this->createStorageFile($storagePath);
         } elseif (false === ($cookieFileHandle = @fopen($storagePath, 'r+'))) {

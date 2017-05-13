@@ -2,4 +2,5 @@
 
 namespace Amp\Artax;
 
-class InfiniteRedirectException extends ClientException {}
+class InfiniteRedirectException extends HttpException {
+}

@@ -2,104 +2,93 @@
 
 namespace Amp\Artax;
 
-use Amp\{ Success, Deferred, Promise };
+use Amp\{
+    ByteStream\InMemoryStream, ByteStream\InputStream, ByteStream\Message, Producer, Promise, Success
+};
+use function Amp\call;
 
 class FormBody implements AggregateBody {
     private $fields = [];
     private $boundary;
     private $isMultipart = false;
+
     private $cachedBody;
     private $cachedLength;
+    private $cachedFields;
 
     /**
      * @param string $boundary An optional multipart boundary string
      */
     public function __construct(string $boundary = null) {
-        $this->boundary = $boundary ?: md5(uniqid($prefix = '', $moreEntropy = true));
+        $this->boundary = $boundary ?? \hash("sha256", \random_bytes(16));
     }
 
     /**
-     * Add a data field to the form entity body
+     * Add a data field to the form entity body.
      *
      * @param string $name
      * @param string $value
      * @param string $contentType
-     * @return self
      */
-    public function addField(string $name, $value, string $contentType = 'text/plain'): self {
-        $this->fields[] = [(string) $name, (string) $value, (string) $contentType, $fileName = null];
-        $this->cachedBody = $this->cachedLength = $this->cachedFields = null;
-
-        return $this;
+    public function addField(string $name, string $value, string $contentType = 'text/plain') {
+        $this->fields[] = [$name, $value, $contentType, null];
+        $this->resetCache();
     }
 
     /**
-    * Add each element of a associative array as a data field to the form entity body
-    *
-    * @param array $data
-    * @param string $contentType
-    * @return self
-    */
-    public function addFields(array $data, string $contentType = 'text/plain'): self {
+     * Add each element of a associative array as a data field to the form entity body.
+     *
+     * @param array  $data
+     * @param string $contentType
+     */
+    public function addFields(array $data, string $contentType = 'text/plain') {
         foreach ($data as $key => $value) {
             $this->addField($key, $value, $contentType);
         }
-
-        return $this;
     }
 
     /**
-     * Add a file field to the form entity body
+     * Add a file field to the form entity body.
      *
      * @param string $name
      * @param string $filePath
      * @param string $contentType
-     * @return self
      */
-    public function addFile(string $name, string $filePath, string $contentType = 'application/octet-stream'): self {
-        $filePath = (string) $filePath;
-        $fileName = basename($filePath);
-        $this->fields[] = [(string) $name, new FileBody($filePath), $contentType, $fileName];
+    public function addFile(string $name, string $filePath, string $contentType = 'application/octet-stream') {
+        $fileName = \basename($filePath);
+        $this->fields[] = [$name, new FileBody($filePath), $contentType, $fileName];
         $this->isMultipart = true;
-        $this->cachedBody = $this->cachedLength = $this->cachedFields = null;
-
-        return $this;
+        $this->resetCache();
     }
 
     /**
-    * Add each element of a associative array as a file field to the form entity body
-    *
-    * @param array $data
-    * @param string $contentType
-    * @return self
-    */
-    public function addFiles(array $data, string $contentType = 'application/octet-stream'): self {
+     * Add each element of a associative array as a file field to the form entity body.
+     *
+     * @param array  $data
+     * @param string $contentType
+     */
+    public function addFiles(array $data, string $contentType = 'application/octet-stream') {
         foreach ($data as $key => $value) {
             $this->addFile($key, $value, $contentType);
         }
-
-        return $this;
     }
 
-    /**
-     * Retrieve the sendable Amp\Artax entity body representation
-     *
-     * AggregateBody::getBody() implementations always return a Promise instance to allow
-     * for future resolution of non-blocking operations (e.g. when the entity body comprises
-     * filesystem resources).
-     *
-     * @return \Amp\Promise
-     */
-    public function getBody(): Promise {
+    private function resetCache() {
+        $this->cachedBody = null;
+        $this->cachedLength = null;
+        $this->cachedFields = null;
+    }
+
+    public function getBody(): InputStream {
         if ($this->isMultipart) {
             $fields = $this->getMultipartFieldArray();
-            return $this->generateMultipartIteratorFromFields($fields);
+            return $this->generateMultipartStreamFromFields($fields);
         } else {
-            return new Success($this->getFormEncodedBodyString());
+            return new InMemoryStream($this->getFormEncodedBodyString());
         }
     }
 
-    private function getMultipartFieldArray() {
+    private function getMultipartFieldArray(): array {
         if (isset($this->cachedFields)) {
             return $this->cachedFields;
         }
@@ -123,40 +112,36 @@ class FormBody implements AggregateBody {
         return $this->cachedFields = $fields;
     }
 
-    private function generateMultipartFileHeader($name, $fileName, $contentType) {
+    private function generateMultipartFileHeader(string $name, string $fileName, string $contentType): string {
         $header = "Content-Disposition: form-data; name=\"{$name}\"; filename=\"{$fileName}\"\r\n";
-        $header.= "Content-Type: {$contentType}\r\n";
-        $header.= "Content-Transfer-Encoding: binary\r\n\r\n";
+        $header .= "Content-Type: {$contentType}\r\n";
+        $header .= "Content-Transfer-Encoding: binary\r\n\r\n";
 
         return $header;
     }
 
-    private function generateMultipartFieldHeader($name, $contentType) {
+    private function generateMultipartFieldHeader(string $name, string $contentType): string {
         $header = "Content-Disposition: form-data; name=\"{$name}\"\r\n";
-        $header.= "Content-Type: {$contentType}\r\n\r\n";
+        $header .= "Content-Type: {$contentType}\r\n\r\n";
 
         return $header;
     }
 
-    private function generateMultipartIteratorFromFields(array $fields) {
+    private function generateMultipartStreamFromFields(array $fields): InputStream {
         foreach ($fields as $key => $field) {
-            $fields[$key] = $field instanceof FileBody ? $field->getBody() : new Success($field);
+            $fields[$key] = $field instanceof FileBody ? $field->getBody() : new InMemoryStream($field);
         }
 
-        $deferred = new Deferred;
-        Promise\all($fields)->onResolve(function($error, $result) use ($deferred) {
-            if ($error) {
-                $deferred->fail($error);
-            } else {
-                $this->cachedBody = $result;
-                $deferred->resolve(new MultipartIterator($result));
+        return new Message(new Producer(function (callable $emit) use ($fields) {
+            foreach ($fields as $key => $stream) {
+                while (($chunk = yield $stream->read()) !== null) {
+                    yield $emit($chunk);
+                }
             }
-        });
-
-        return $deferred->promise();
+        }));
     }
 
-    private function getFormEncodedBodyString() {
+    private function getFormEncodedBodyString(): string {
         $fields = [];
 
         foreach ($this->fields as $fieldArr) {
@@ -168,34 +153,13 @@ class FormBody implements AggregateBody {
             $fields[$key] = isset($value[1]) ? $value : $value[0];
         }
 
-        return http_build_query($fields);
+        return \http_build_query($fields);
     }
 
-    /**
-     * Retrieve a key-value array of headers to add to the outbound request
-     *
-     * AggregateBody::getHeaders() implementations always return a Promise instance to allow
-     * for future resolution of non-blocking operations (e.g. when using filesystem stats to
-     * generate content-length headers).
-     *
-     * @return \Amp\Promise
-     */
     public function getHeaders(): Promise {
-        $deferred = new Deferred;
-        $length = $this->getLength();
-        $length->onResolve(function($error, $result) use ($deferred) {
-            if ($error) {
-                $deferred->fail($error);
-            } else {
-                $type = $this->determineContentType();
-                $deferred->resolve([
-                    'Content-Type' => $type,
-                    'Content-Length' => $result
-                ]);
-            }
-        });
-
-        return $deferred->promise();
+        return new Success([
+            'Content-Type' => $this->determineContentType(),
+        ]);
     }
 
     private function determineContentType() {
@@ -204,52 +168,24 @@ class FormBody implements AggregateBody {
             : 'application/x-www-form-urlencoded';
     }
 
-    /**
-     * Retrieve the content length of the form entity body
-     *
-     * AggregateBody::getLength() implementations always return a Promise instance to allow
-     * for future resolution of non-blocking operations (e.g. when using filesystem stats to
-     * determine entity body length).
-     *
-     * @return \Amp\Promise
-     */
-    public function getLength(): Promise {
-        if (isset($this->cachedLength)) {
-            return new Success($this->cachedLength);
-        } elseif ($this->isMultipart) {
+    public function getBodyLength(): Promise {
+        if (!$this->isMultipart) {
+            return new Success(\strlen($this->getFormEncodedBodyString()));
+        }
+
+        return call(function () {
             $fields = $this->getMultipartFieldArray();
-            $length = $this->sumMultipartFieldLengths($fields);
-            $length->onResolve(function($error, $result) {
-                if (empty($error)) {
-                    $this->cachedLength = $result;
+            $length = 0;
+
+            foreach ($fields as $field) {
+                if (is_string($field)) {
+                    $length += \strlen($field);
+                } else {
+                    $length += yield $field->getBodyLength();
                 }
-            });
+            }
+
             return $length;
-        } else {
-            $length = strlen($this->getFormEncodedBodyString());
-            return new Success($length);
-        }
-    }
-
-    private function sumMultipartFieldLengths(array $fields) {
-        $lengths = [];
-        foreach ($fields as $field) {
-            if (is_string($field)) {
-                $lengths[] = new Success(\strlen($field));
-            } else {
-                $lengths[] = $field->getLength();
-            }
-        }
-
-        $deferred = new Deferred;
-        Promise\all($lengths)->onResolve(function($error, $result) use ($deferred) {
-            if ($error) {
-                $deferred->fail($error);
-            } else {
-                $deferred->resolve(array_sum($result));
-            }
         });
-
-        return $deferred->promise();
     }
 }
