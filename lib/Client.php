@@ -12,6 +12,7 @@ use Amp\ByteStream\InputStream;
 use Amp\ByteStream\Message;
 use Amp\Coroutine;
 use Amp\Deferred;
+use Amp\Dns\ResolutionException;
 use Amp\Emitter;
 use Amp\Loop;
 use Amp\Promise;
@@ -289,7 +290,12 @@ class Client implements HttpClient {
         $authority = $this->generateAuthorityFromUri($uri);
         $socketCheckoutUri = $uri->getScheme() . "://{$authority}";
 
-        $rawSocket = yield $this->socketPool->checkout($socketCheckoutUri, $options);
+        try {
+            $rawSocket = yield $this->socketPool->checkout($socketCheckoutUri, $options);
+        } catch (ResolutionException $dnsException) {
+            throw new DnsException(\sprintf("Resolving the specified domain failed: '%s'", $authority), 0, $dnsException);
+        }
+
         $socket = new Socket($rawSocket);
 
         if ($uri->getScheme() === 'https') {
