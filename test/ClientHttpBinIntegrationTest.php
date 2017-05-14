@@ -205,4 +205,32 @@ class ClientHttpBinIntegrationTest extends TestCase {
         $this->assertEquals(file_get_contents($file2), $result['files']['file2']);
         $this->assertEquals('multipart/form-data; boundary=' . $boundary, $result['headers']['Content-Type']);
     }
+
+    public function testGzipResponse() {
+        $this->markTestSkipped("Expected failure, needs message accepting input stream.");
+
+        $client = new Client;
+
+        $response = wait($client->request('http://httpbin.org/gzip'));
+
+        $this->assertEquals(200, $response->getStatus());
+
+        $result = json_decode(wait($response->getBody()), true);
+
+        $this->assertTrue($result['gzipped']);
+    }
+
+    public function testDeflateResponse() {
+        $this->markTestSkipped("Expected failure, needs message accepting input stream.");
+
+        $client = new Client;
+
+        $response = wait($client->request('http://httpbin.org/deflate'));
+
+        $this->assertEquals(200, $response->getStatus());
+
+        $result = json_decode(wait($response->getBody()), true);
+
+        $this->assertTrue($result['deflated']);
+    }
 }

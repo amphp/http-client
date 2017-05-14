@@ -7,7 +7,6 @@ use Amp\Artax\Cookie\Cookie;
 use Amp\Artax\Cookie\CookieFormatException;
 use Amp\Artax\Cookie\CookieJar;
 use Amp\Artax\Cookie\PublicSuffixList;
-use Amp\ByteStream\GzipInputStream;
 use Amp\ByteStream\InputStream;
 use Amp\ByteStream\Message;
 use Amp\ByteStream\ZlibInputStream;
@@ -64,7 +63,7 @@ class Client implements HttpClient {
         self::OP_KEEP_ALIVE_TIMEOUT => 10000,
         self::OP_PROXY_HTTP => '',
         self::OP_PROXY_HTTPS => '',
-        self::OP_AUTO_ENCODING => false /* FIXME */,
+        self::OP_AUTO_ENCODING => true,
         self::OP_TRANSFER_TIMEOUT => 120000,
         self::OP_100_CONTINUE_TIMEOUT => 3000,
         self::OP_EXPECT_CONTINUE => false,
