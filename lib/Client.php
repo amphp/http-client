@@ -10,6 +10,7 @@ use Amp\Artax\Cookie\PublicSuffixList;
 use Amp\ByteStream\GzipInputStream;
 use Amp\ByteStream\InputStream;
 use Amp\ByteStream\Message;
+use Amp\ByteStream\ZlibInputStream;
 use Amp\Coroutine;
 use Amp\Deferred;
 use Amp\Dns\ResolutionException;
@@ -412,7 +413,7 @@ class Client implements HttpClient {
         }
 
         if ($this->hasZlib) {
-            $request = $request->withHeader('Accept-Encoding', 'gzip, identity');
+            $request = $request->withHeader('Accept-Encoding', 'gzip, deflate, identity');
         } else {
             $request = $request->withoutHeader('Accept-Encoding');
         }
@@ -518,8 +519,8 @@ class Client implements HttpClient {
     }
 
     private function finalizeResponse(Request $request, array $parserResult, InputStream $responseBody, Response $previousResponse = null) {
-        if ($this->canDecompressResponseBody($parserResult["headers"])) {
-            $responseBody = new GzipInputStream($responseBody);
+        if ($encoding = $this->determineCompressionEncoding($parserResult["headers"])) {
+            $responseBody = new ZlibInputStream($responseBody, $encoding);
         }
 
         $response = new Response(
@@ -561,18 +562,26 @@ class Client implements HttpClient {
         return false;
     }
 
-    private function canDecompressResponseBody(array $responseHeaders): bool {
+    private function determineCompressionEncoding(array $responseHeaders): int {
         if (!$this->hasZlib) {
-            return false;
+            return 0;
         }
 
         if (!isset($responseHeaders["content-encoding"])) {
-            return false;
+            return 0;
         }
 
         $contentEncodingHeader = trim(current($responseHeaders["content-encoding"]));
 
-        return strcasecmp($contentEncodingHeader, 'gzip') === 0;
+        if (strcasecmp($contentEncodingHeader, 'gzip') === 0) {
+            return \ZLIB_ENCODING_GZIP;
+        }
+
+        if (strcasecmp($contentEncodingHeader, 'deflate') === 0) {
+            return \ZLIB_ENCODING_DEFLATE;
+        }
+
+        return 0;
     }
 
     private function storeResponseCookie(string $requestDomain, string $rawCookieStr) {
