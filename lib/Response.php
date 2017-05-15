@@ -2,7 +2,7 @@
 
 namespace Amp\Artax;
 
-use Amp\ByteStream\InputStream;
+use Amp\ByteStream\Message;
 
 final class Response {
     /** @var string */
@@ -23,10 +23,10 @@ final class Response {
     /** @var array */
     private $headers;
 
-    /** @var InputStream */
+    /** @var Message */
     private $body;
 
-    public function __construct(string $protocolVersion, int $status, string $reason, array $headers, InputStream $body, Request $request, Response $previousResponse = null) {
+    public function __construct(string $protocolVersion, int $status, string $reason, array $headers, Message $body, Request $request, Response $previousResponse = null) {
         $this->protocolVersion = $protocolVersion;
         $this->status = $status;
         $this->reason = $reason;
@@ -146,7 +146,7 @@ final class Response {
         return $this->headers;
     }
 
-    public function getBody(): InputStream {
+    public function getBody(): Message {
         return $this->body;
     }
 }

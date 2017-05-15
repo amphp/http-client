@@ -8,6 +8,7 @@ use Amp\Artax\Cookie\CookieFormatException;
 use Amp\Artax\Cookie\CookieJar;
 use Amp\Artax\Cookie\PublicSuffixList;
 use Amp\ByteStream\InputStream;
+use Amp\ByteStream\IteratorStream;
 use Amp\ByteStream\Message;
 use Amp\ByteStream\ZlibInputStream;
 use Amp\Coroutine;
@@ -218,7 +219,7 @@ class Client implements HttpClient {
                 if ($parseResult) {
                     $parseResult["headers"] = \array_change_key_case($parseResult["headers"], \CASE_LOWER);
 
-                    $response = $this->finalizeResponse($request, $parseResult, new Message($bodyEmitter->iterate()), $previousResponse);
+                    $response = $this->finalizeResponse($request, $parseResult, new IteratorStream($bodyEmitter->iterate()), $previousResponse);
 
                     if ($deferred) {
                         $deferred->resolve($response);
@@ -527,7 +528,7 @@ class Client implements HttpClient {
             $parserResult["status"],
             $parserResult["reason"],
             $parserResult["headers"],
-            $responseBody,
+            new Message($responseBody),
             $request,
             $previousResponse
         );

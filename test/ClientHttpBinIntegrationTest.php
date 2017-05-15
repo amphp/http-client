@@ -207,8 +207,6 @@ class ClientHttpBinIntegrationTest extends TestCase {
     }
 
     public function testGzipResponse() {
-        $this->markTestSkipped("Expected failure, needs message accepting input stream.");
-
         $client = new Client;
 
         $response = wait($client->request('http://httpbin.org/gzip'));
@@ -221,8 +219,6 @@ class ClientHttpBinIntegrationTest extends TestCase {
     }
 
     public function testDeflateResponse() {
-        $this->markTestSkipped("Expected failure, needs message accepting input stream.");
-
         $client = new Client;
 
         $response = wait($client->request('http://httpbin.org/deflate'));

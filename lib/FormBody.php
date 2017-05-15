@@ -4,7 +4,7 @@ namespace Amp\Artax;
 
 use Amp\ByteStream\InMemoryStream;
 use Amp\ByteStream\InputStream;
-use Amp\ByteStream\Message;
+use Amp\ByteStream\IteratorStream;
 use Amp\Producer;
 use Amp\Promise;
 use Amp\Success;
@@ -135,7 +135,7 @@ class FormBody implements AggregateBody {
             $fields[$key] = $field instanceof FileBody ? $field->createBodyStream() : new InMemoryStream($field);
         }
 
-        return new Message(new Producer(function (callable $emit) use ($fields) {
+        return new IteratorStream(new Producer(function (callable $emit) use ($fields) {
             foreach ($fields as $key => $stream) {
                 while (($chunk = yield $stream->read()) !== null) {
                     yield $emit($chunk);
