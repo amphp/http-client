@@ -5,6 +5,7 @@ namespace Amp\Artax\Test;
 use Amp\Artax\Client;
 use Amp\Artax\FileBody;
 use Amp\Artax\FormBody;
+use Amp\Artax\InfiniteRedirectException;
 use Amp\Artax\Request;
 use Amp\Artax\Response;
 use PHPUnit\Framework\TestCase;
@@ -228,5 +229,11 @@ class ClientHttpBinIntegrationTest extends TestCase {
         $result = json_decode(wait($response->getBody()), true);
 
         $this->assertTrue($result['deflated']);
+    }
+
+    public function testInfiniteRedirect() {
+        $this->expectException(InfiniteRedirectException::class);
+
+        wait((new Client)->request("http://httpbin.org/redirect/10"));
     }
 }

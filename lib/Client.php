@@ -140,7 +140,7 @@ class Client implements HttpClient {
                 }
 
                 if ($retry === 10 && $redirectUri = $this->getRedirectUri($response)) {
-                    new InfiniteRedirectException(
+                    throw new InfiniteRedirectException(
                         sprintf('Infinite redirect detected while following Location header: %s', $redirectUri)
                     );
                 }
