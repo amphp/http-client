@@ -190,9 +190,8 @@ class ClientHttpBinIntegrationTest extends TestCase {
         $boundary = 'AaB03x';
 
         $body = new FormBody($boundary);
-        $body->addField('field1', $field1);
-        $body->addFile('file1', $file1);
-        $body->addFile('file2', $file2);
+        $body->addFields(['field1' => $field1]);
+        $body->addFiles(['file1' => $file1, 'file2' => $file2]);
 
         $request = (new Request('http://httpbin.org/post', "POST"))->withBody($body);
         $response = wait($client->request($request));
