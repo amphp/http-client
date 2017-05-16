@@ -147,6 +147,9 @@ final class Cookie {
         return $cookieStr;
     }
 
+    /**
+     * @link https://tools.ietf.org/html/rfc6265#section-5.2
+     */
     public static function fromString(string $rawCookieStr): self {
         if ($rawCookieStr === "") {
             throw new CookieFormatException(
@@ -167,6 +170,10 @@ final class Cookie {
 
         list($name, $value) = explode('=', $nvPair, 2);
 
+        if (\trim($name) === "") {
+            throw new CookieFormatException($rawCookieStr, "Empty name");
+        }
+
         $attrStruct = [
             'expires' => null,
             'path' => '',
@@ -177,21 +184,20 @@ final class Cookie {
         ];
 
         foreach ($parts as $part) {
-            $part = trim($part);
-            if (0 === stripos($part, 'secure')) {
+            $part = \trim($part);
+            if (0 === \stripos($part, 'secure')) {
                 $attrStruct['secure'] = true;
                 continue;
-            } elseif (0 === stripos($part, 'httponly')) {
+            } elseif (0 === \stripos($part, 'httponly')) {
                 $attrStruct['httponly'] = true;
                 continue;
-            } elseif (strpos($part, '=') === false) {
-                throw new CookieFormatException(
-                    $rawCookieStr,
-                    "Missing '=' in '{$part}'"
-                );
             }
 
-            list($attr, $attrValue) = explode('=', $part, 2);
+            if (\strpos($part, '=') === false) {
+                $attr = $part;
+            } else {
+                list($attr, $attrValue) = explode('=', $part, 2);
+            }
 
             $attr = strtolower($attr);
             if (array_key_exists($attr, $attrStruct)) {
@@ -209,8 +215,8 @@ final class Cookie {
         }
 
         return new self(
-            $name,
-            $value,
+            \trim($name),
+            \trim($value),
             $attrStruct['expires'],
             $attrStruct['path'],
             $attrStruct['domain'],
