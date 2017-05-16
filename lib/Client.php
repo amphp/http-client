@@ -34,18 +34,12 @@ class Client implements HttpClient {
     const OP_PROXY_HTTPS = HttpSocketPool::OP_PROXY_HTTPS;
     const OP_AUTO_ENCODING = 'amp.artax.client.auto-encoding';
     const OP_TRANSFER_TIMEOUT = 'amp.artax.client.transfer-timeout';
-    const OP_100_CONTINUE_TIMEOUT = 'amp.artax.client.100-continue-timeout';
-    const OP_EXPECT_CONTINUE = 'amp.artax.client.expect-continue';
     const OP_FOLLOW_LOCATION = 'amp.artax.client.follow-location';
     const OP_AUTO_REFERER = 'amp.artax.client.auto-referer';
-    const OP_BUFFER_BODY = 'amp.artax.client.buffer-body';
     const OP_DISCARD_BODY = 'amp.artax.client.discard-body';
     const OP_IO_GRANULARITY = 'amp.artax.client.io-granularity';
-    const OP_VERBOSITY = 'amp.artax.client.verbosity';
-    const OP_COMBINE_COOKIES = 'amp.artax.client.combine-cookies';
     const OP_CRYPTO = 'amp.artax.client.crypto';
     const OP_DEFAULT_USER_AGENT = 'amp.artax.client.default-user-agent';
-    const OP_BODY_SWAP_SIZE = 'amp.artax.client.body-swap-size';
     const OP_MAX_HEADER_BYTES = 'amp.artax.client.max-header-bytes';
     const OP_MAX_BODY_BYTES = 'amp.artax.client.max-body-bytes';
 
