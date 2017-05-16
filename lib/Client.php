@@ -49,11 +49,6 @@ class Client implements HttpClient {
     const OP_MAX_HEADER_BYTES = 'amp.artax.client.max-header-bytes';
     const OP_MAX_BODY_BYTES = 'amp.artax.client.max-body-bytes';
 
-    const VERBOSE_NONE = 0b00;
-    const VERBOSE_SEND = 0b01;
-    const VERBOSE_READ = 0b10;
-    const VERBOSE_ALL = 0b11;
-
     private $cookieJar;
     private $socketPool;
     private $hasZlib;
@@ -65,19 +60,13 @@ class Client implements HttpClient {
         self::OP_PROXY_HTTP => '',
         self::OP_PROXY_HTTPS => '',
         self::OP_AUTO_ENCODING => true,
-        self::OP_TRANSFER_TIMEOUT => 120000,
-        self::OP_100_CONTINUE_TIMEOUT => 3000,
-        self::OP_EXPECT_CONTINUE => false,
+        self::OP_TRANSFER_TIMEOUT => 15000,
         self::OP_FOLLOW_LOCATION => true,
         self::OP_AUTO_REFERER => true,
-        self::OP_BUFFER_BODY => true,
         self::OP_DISCARD_BODY => false,
         self::OP_IO_GRANULARITY => 32768,
-        self::OP_VERBOSITY => self::VERBOSE_NONE,
-        self::OP_COMBINE_COOKIES => true,
         self::OP_CRYPTO => [],
         self::OP_DEFAULT_USER_AGENT => null,
-        self::OP_BODY_SWAP_SIZE => Parser::DEFAULT_BODY_SWAP_SIZE,
         self::OP_MAX_HEADER_BYTES => Parser::DEFAULT_MAX_HEADER_BYTES,
         self::OP_MAX_BODY_BYTES => Parser::DEFAULT_MAX_BODY_BYTES,
     ];
@@ -202,9 +191,15 @@ class Client implements HttpClient {
     private function doRead(Request $request, Uri $uri, Socket $socket, array $options, Response $previousResponse = null, Deferred &$deferred = null) {
         $bodyEmitter = new Emitter;
 
-        $parser = new Parser(static function ($data) use ($bodyEmitter) {
+        $bodyCallback = static function ($data) use ($bodyEmitter) {
             $bodyEmitter->emit($data);
-        });
+        };
+
+        if ($options[self::OP_DISCARD_BODY]) {
+            $bodyCallback = null;
+        }
+
+        $parser = new Parser($bodyCallback);
 
         $parser->enqueueResponseMethodMatch($request->getMethod());
         $parser->setAllOptions([
@@ -734,26 +729,14 @@ class Client implements HttpClient {
             case self::OP_TRANSFER_TIMEOUT:
                 $this->options[self::OP_TRANSFER_TIMEOUT] = (int) $value;
                 break;
-            case self::OP_100_CONTINUE_TIMEOUT:
-                $this->options[self::OP_100_CONTINUE_TIMEOUT] = (int) $value;
-                break;
-            case self::OP_EXPECT_CONTINUE:
-                $this->options[self::OP_EXPECT_CONTINUE] = (bool) $value;
-                break;
             case self::OP_FOLLOW_LOCATION:
                 $this->options[self::OP_FOLLOW_LOCATION] = (bool) $value;
                 break;
             case self::OP_AUTO_REFERER:
                 $this->options[self::OP_AUTO_REFERER] = (bool) $value;
                 break;
-            case self::OP_BUFFER_BODY:
-                $this->options[self::OP_BUFFER_BODY] = (bool) $value;
-                break;
             case self::OP_DISCARD_BODY:
                 $this->options[self::OP_DISCARD_BODY] = (bool) $value;
-                break;
-            case self::OP_VERBOSITY:
-                $this->options[self::OP_VERBOSITY] = (int) $value;
                 break;
             case self::OP_IO_GRANULARITY:
                 $value = (int) $value;
@@ -761,9 +744,6 @@ class Client implements HttpClient {
                 break;
             case self::OP_BINDTO:
                 $this->options[self::OP_BINDTO] = $value;
-                break;
-            case self::OP_COMBINE_COOKIES:
-                $this->options[self::OP_COMBINE_COOKIES] = (bool) $value;
                 break;
             case self::OP_PROXY_HTTP:
                 $this->options[self::OP_PROXY_HTTP] = $value;
@@ -776,9 +756,6 @@ class Client implements HttpClient {
                 break;
             case self::OP_DEFAULT_USER_AGENT:
                 $this->options[self::OP_DEFAULT_USER_AGENT] = (string) $value;
-                break;
-            case self::OP_BODY_SWAP_SIZE:
-                $this->options[self::OP_BODY_SWAP_SIZE] = (int) $value;
                 break;
             case self::OP_MAX_HEADER_BYTES:
                 $this->options[self::OP_MAX_HEADER_BYTES] = (int) $value;
