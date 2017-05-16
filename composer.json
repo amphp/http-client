@@ -27,7 +27,7 @@
         "amphp/amp": "^2",
         "amphp/socket": "dev-amp_v2",
         "amphp/uri": "dev-master",
-        "amphp/file": "dev-streams as dev-amp_v2"
+        "amphp/file": "dev-amp_v2"
     },
     "require-dev": {
         "amphp/phpunit-util": "dev-master",

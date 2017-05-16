@@ -240,6 +240,7 @@ class Client implements HttpClient {
                     }
 
                     $bodyEmitter->complete();
+                    $bodyEmitter = null;
 
                     if ($this->shouldCloseSocketAfterResponse($response)) {
                         $this->socketPool->clear($socket->getResource());
@@ -248,7 +249,7 @@ class Client implements HttpClient {
                         $this->socketPool->checkin($socket->getResource());
                     }
 
-                    break;
+                    return;
                 }
             } catch (ParseException $e) {
                 if ($deferred) {
@@ -265,17 +266,28 @@ class Client implements HttpClient {
 
         if ($parserState === Parser::AWAITING_HEADERS && empty($retryCount)) {
             $this->doWrite($request, $uri, $options, $previousResponse, $deferred);
-        } elseif ($deferred) {
-            $deferred->fail(new SocketException(
+        } else {
+            $exception = new SocketException(
                 sprintf(
                     'Socket disconnected prior to response completion (Parser state: %s)',
                     $parserState
                 )
-            ));
+            );
+
+            if ($deferred) {
+                $deferred->fail($exception);
+            }
 
             $deferred = null;
 
+            if ($bodyEmitter) {
+                $bodyEmitter->fail($exception);
+            }
+
+            $bodyEmitter = null;
+
             $this->socketPool->clear($socket->getResource());
+            $socket->close();
         }
     }
 
@@ -390,10 +402,6 @@ class Client implements HttpClient {
                 $request = $request->withoutHeader("Transfer-Encoding");
             } else {
                 $request = $request->withHeader("Transfer-Encoding", "chunked");
-            }
-
-            if ($options[self::OP_EXPECT_CONTINUE] && !$request->hasHeader('Expect')) {
-                $request = $request->withHeader('Expect', '100-continue');
             }
         }
 
