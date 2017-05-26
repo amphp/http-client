@@ -4,11 +4,12 @@ namespace Amp\Artax;
 
 use Amp\Failure;
 use Amp\Promise;
+use Amp\Socket\RawSocketPool;
 use Amp\Socket\SocketPool;
 use Amp\Success;
 use function Amp\call;
 
-class HttpSocketPool {
+class HttpSocketPool implements SocketPool {
     const OP_PROXY_HTTP = 'amp.artax.httpsocketpool.proxy-http';
     const OP_PROXY_HTTPS = 'amp.artax.httpsocketpool.proxy-https';
 
@@ -21,7 +22,7 @@ class HttpSocketPool {
     ];
 
     public function __construct(SocketPool $sockPool = null, HttpTunneler $tunneler = null) {
-        $this->socketPool = $sockPool ?? new SocketPool;
+        $this->socketPool = $sockPool ?? new RawSocketPool;
         $this->tunneler = $tunneler ?? new HttpTunneler;
         $this->autoDetectProxySettings();
     }
@@ -43,7 +44,7 @@ class HttpSocketPool {
         }
     }
 
-    private function getUriAuthority($uri): string {
+    private function getUriAuthority(string $uri): string {
         $uriParts = @\parse_url(\strtolower($uri));
         $host = $uriParts['host'];
         $port = $uriParts['port'];
@@ -51,15 +52,8 @@ class HttpSocketPool {
         return "{$host}:{$port}";
     }
 
-    /**
-     * I give you a URI, you promise me a socket at some point in the future.
-     *
-     * @param string $uri
-     * @param array  $options
-     *
-     * @return Promise
-     */
-    public function checkout($uri, array $options = []): Promise {
+    /** @inheritdoc */
+    public function checkout(string $uri, array $options = []): Promise {
         // Normalize away any IPv6 brackets -- socket resolution will handle that
         $uri = \str_replace(['[', ']'], '', $uri);
         $uriParts = @\parse_url($uri);
@@ -105,32 +99,17 @@ class HttpSocketPool {
         return new Success;
     }
 
-    /**
-     * Checkin a previously checked-out socket into the pool again.
-     *
-     * @param resource $socket
-     */
+    /** @inheritdoc */
     public function checkin($socket) {
         $this->socketPool->checkin($socket);
     }
 
-    /**
-     * Clear a previously checked-out socket from the pool.
-     *
-     * @param resource $socket
-     */
+    /** @inheritdoc */
     public function clear($socket) {
         $this->socketPool->clear($socket);
     }
 
-    /**
-     * Set a pool option.
-     *
-     * @param string $option
-     * @param mixed      $value
-     *
-     * @throws \Error on unknown option
-     */
+    /** @inheritdoc */
     public function setOption(string $option, $value) {
         switch ($option) {
             case self::OP_PROXY_HTTP:
@@ -142,5 +121,15 @@ class HttpSocketPool {
             default:
                 $this->socketPool->setOption($option, $value);
         }
+    }
+
+    /** @inheritdoc */
+    public function getPendingCount(string $uri): int {
+        return $this->socketPool->getPendingCount($uri);
+    }
+
+    /** @inheritdoc */
+    public function getCheckoutCount(string $uri): int {
+        return $this->socketPool->getCheckoutCount($uri);
     }
 }

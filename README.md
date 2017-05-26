@@ -136,7 +136,6 @@ A brief summary of the available options follows.
 | --------------------- | --------------------------------------------------|
 | OP_BINDTO                   | Specify the source IP address to which TCP socket connections will be bound (useful when you have multiple IPs). |
 | OP_CONNECT_TIMEOUT          | How long in milliseconds before a connection attempt should timeout. |
-| OP_HOST_CONNECTION_LIMIT    | How many simultaneous connections will be open to any one unique host name (helpful to prevent your IP from being banned). |
 | OP_KEEP_ALIVE_TIMEOUT       | How long in milliseconds to keep persistent connections alive after a request. If not used within this time frame the socket will be closed. |
 | OP_PROXY_HTTP               | An optional IP:PORT through which to proxy unencrypted HTTP requests. Note that artax auto-detects system wide proxy settings. |
 | OP_PROXY_HTTPS              | An optional IP:PORT through which to proxy encrypted HTTPS requests. Note that artax auto-detects system wide proxy settings. |

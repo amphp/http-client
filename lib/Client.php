@@ -28,7 +28,6 @@ class Client implements HttpClient {
 
     const OP_BINDTO = SocketPool::OP_BINDTO;
     const OP_CONNECT_TIMEOUT = SocketPool::OP_CONNECT_TIMEOUT;
-    const OP_HOST_CONNECTION_LIMIT = SocketPool::OP_HOST_CONNECTION_LIMIT;
     const OP_KEEP_ALIVE_TIMEOUT = SocketPool::OP_IDLE_TIMEOUT;
     const OP_PROXY_HTTP = HttpSocketPool::OP_PROXY_HTTP;
     const OP_PROXY_HTTPS = HttpSocketPool::OP_PROXY_HTTPS;
@@ -49,7 +48,6 @@ class Client implements HttpClient {
     private $options = [
         self::OP_BINDTO => '',
         self::OP_CONNECT_TIMEOUT => 10000,
-        self::OP_HOST_CONNECTION_LIMIT => 8,
         self::OP_KEEP_ALIVE_TIMEOUT => 10000,
         self::OP_PROXY_HTTP => '',
         self::OP_PROXY_HTTPS => '',
@@ -718,9 +716,6 @@ class Client implements HttpClient {
         switch ($option) {
             case self::OP_AUTO_ENCODING:
                 $this->options[self::OP_AUTO_ENCODING] = (bool) $value;
-                break;
-            case self::OP_HOST_CONNECTION_LIMIT:
-                $this->options[self::OP_HOST_CONNECTION_LIMIT] = $value;
                 break;
             case self::OP_CONNECT_TIMEOUT:
                 $this->options[self::OP_CONNECT_TIMEOUT] = $value;
