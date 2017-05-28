@@ -192,6 +192,37 @@ final class Request {
         return $clone;
     }
 
+    public function withAllHeaders(array $headers): self {
+        $clone = clone $this;
+
+        foreach ($headers as $field => $values) {
+            if (!\is_string($field)) {
+                throw new \TypeError("All array keys for withAllHeaders must be strings");
+            }
+
+            $field = \trim($field);
+            $lower = \strtolower($field);
+
+            if (!\is_array($values)) {
+                $values = [$values];
+            }
+
+            $clone->headers[$lower] = [];
+
+            foreach ($values as $value) {
+                if (!\is_string($field)) {
+                    throw new \TypeError("All values for withAllHeaders must be string or an array of strings");
+                }
+
+                $clone->headers[$lower][] = \trim($value);
+            }
+
+            $clone->headerCaseMap[$lower] = $field;
+        }
+
+        return $clone;
+    }
+
     /**
      * Retrieve an associative array of headers matching field names to an array of field values.
      *
