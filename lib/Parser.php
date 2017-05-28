@@ -2,7 +2,8 @@
 
 namespace Amp\Artax;
 
-class Parser {
+/** @internal */
+final class Parser {
     const STATUS_LINE_PATTERN = "#^
         HTTP/(?P<protocol>\d+\.\d+)[\x20\x09]+
         (?P<status>[1-5]\d\d)[\x20\x09]*
