@@ -7,7 +7,7 @@ use Amp\ByteStream\InputStream;
 use Amp\Promise;
 use Amp\Success;
 
-class StringBody implements AggregateBody {
+final class StringBody implements AggregateBody {
     private $body;
 
     public function __construct(string $body) {

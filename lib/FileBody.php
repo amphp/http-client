@@ -9,7 +9,7 @@ use function Amp\call;
 use function Amp\File\open;
 use function Amp\File\size;
 
-class FileBody implements AggregateBody {
+final class FileBody implements AggregateBody {
     /** @var string */
     private $path;
 
