@@ -94,10 +94,14 @@ class Client implements HttpClient {
             $request = $this->normalizeRequestAcceptHeader($request);
             $request = $this->assignApplicableRequestCookies($request);
 
+            /** @var Response $response */
             $response = yield $this->doRequest($request, $uri, $options);
 
             if ($options[self::OP_FOLLOW_LOCATION]) {
                 $retry = 0;
+
+                $originalUri = $uri;
+                $originalHost = $this->normalizeHostHeader($this->generateAuthorityFromUri($originalUri));
 
                 // TODO: Add max-redirects option
                 while (++$retry < 10 && $redirectUri = $this->getRedirectUri($response)) {
@@ -113,16 +117,22 @@ class Client implements HttpClient {
                     $request = $request->withoutHeader("Cookie");
                     $request = $this->assignApplicableRequestCookies($request);
 
+                    if ($host !== $originalHost) {
+                        // Don't leak any authorization data to other origins
+                        // This does intentionally keep the authorization header for http ←→ https redirects
+                        $request = $request->withoutHeader("Authorization");
+                    }
+
                     /**
                      * If this is a 302/303 we need to follow the location with a GET if the
-                     * original request wasn't GET/HEAD. Otherwise we need to send the body again.
+                     * original request wasn't GET. Otherwise we need to send the body again.
                      *
                      * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.3.3
                      */
                     $method = $request->getMethod();
                     $status = $response->getStatus();
 
-                    if (($status === 302 || $status === 303) && !($method === 'GET' || $method === 'HEAD')) {
+                    if ($status >= 300 && $status <= 303 && $method !== 'GET') {
                         $request = $request->withMethod('GET');
                         $request = $request->withoutHeader('Transfer-Encoding');
                         $request = $request->withoutHeader('Content-Length');
@@ -131,7 +141,7 @@ class Client implements HttpClient {
                     }
 
                     if ($options[self::OP_AUTO_REFERER]) {
-                        $this->assignRedirectRefererHeader($request, $refererUri, $redirectUri);
+                        $request = $this->assignRedirectRefererHeader($request, $refererUri, $redirectUri);
                     }
 
                     $response = yield $this->doRequest($request, $redirectUri, $options, $response);
