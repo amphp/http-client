@@ -2,10 +2,10 @@
 
 namespace Amp\Artax;
 
-use Amp\Artax\Cookie\ArrayCookieJar;
 use Amp\Artax\Cookie\Cookie;
 use Amp\Artax\Cookie\CookieFormatException;
 use Amp\Artax\Cookie\CookieJar;
+use Amp\Artax\Cookie\NullCookieJar;
 use Amp\Artax\Cookie\PublicSuffixList;
 use Amp\ByteStream\InputStream;
 use Amp\ByteStream\IteratorStream;
@@ -64,7 +64,7 @@ class Client implements HttpClient {
     ];
 
     public function __construct(CookieJar $cookieJar = null, HttpSocketPool $socketPool = null) {
-        $this->cookieJar = $cookieJar ?? new ArrayCookieJar;
+        $this->cookieJar = $cookieJar ?? new NullCookieJar;
         $this->socketPool = $socketPool ?? new HttpSocketPool;
         $this->hasZlib = extension_loaded('zlib');
     }
