@@ -46,11 +46,8 @@ class Client implements HttpClient {
     private $socketPool;
     private $hasZlib;
     private $options = [
-        self::OP_BINDTO => '',
         self::OP_CONNECT_TIMEOUT => 10000,
         self::OP_KEEP_ALIVE_TIMEOUT => 10000,
-        self::OP_PROXY_HTTP => '',
-        self::OP_PROXY_HTTPS => '',
         self::OP_AUTO_ENCODING => true,
         self::OP_TRANSFER_TIMEOUT => 15000,
         self::OP_FOLLOW_LOCATION => true,
