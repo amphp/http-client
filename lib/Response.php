@@ -4,6 +4,9 @@ namespace Amp\Artax;
 
 use Amp\ByteStream\Message;
 
+/**
+ * An HTTP response.
+ */
 final class Response {
     /** @var string */
     private $protocolVersion;
@@ -26,7 +29,15 @@ final class Response {
     /** @var Message */
     private $body;
 
-    public function __construct(string $protocolVersion, int $status, string $reason, array $headers, Message $body, Request $request, Response $previousResponse = null) {
+    public function __construct(
+        string $protocolVersion,
+        int $status,
+        string $reason,
+        array $headers,
+        Message $body,
+        Request $request,
+        Response $previousResponse = null
+    ) {
         $this->protocolVersion = $protocolVersion;
         $this->status = $status;
         $this->reason = $reason;
@@ -146,6 +157,13 @@ final class Response {
         return $this->headers;
     }
 
+    /**
+     * Retrieve the response body.
+     *
+     * Note: If you stream a Message, you can't consume the payload twice.
+     *
+     * @return Message
+     */
     public function getBody(): Message {
         return $this->body;
     }

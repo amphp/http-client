@@ -3,19 +3,19 @@
 namespace Amp\Artax;
 
 class ParseException extends HttpException {
-    private $parsedMsgArr;
+    private $parserResult;
 
     /**
      * Adds an array of parsed message values to the standard exception.
      *
-     * @param array           $parsedMsgArr
+     * @param array           $parserResult
      * @param string          $message
-     * @param int             $errno
+     * @param int             $code
      * @param \Throwable|null $previousException
      */
-    public function __construct(array $parsedMsgArr, string $message, int $errno, \Throwable $previousException = null) {
-        parent::__construct($message, $errno, $previousException);
-        $this->parsedMsgArr = $parsedMsgArr;
+    public function __construct(array $parserResult, string $message, int $code, \Throwable $previousException = null) {
+        parent::__construct($message, $code, $previousException);
+        $this->parserResult = $parserResult;
     }
 
     /**
@@ -23,7 +23,7 @@ class ParseException extends HttpException {
      *
      * @return array Message values parsed prior to the error
      */
-    public function getParsedMsgArr() {
-        return $this->parsedMsgArr;
+    public function getParserResult(): array {
+        return $this->parserResult;
     }
 }

@@ -2,6 +2,9 @@
 
 namespace Amp\Artax;
 
+/**
+ * An HTTP request.
+ */
 final class Request {
     /** @var string */
     private $protocolVersion = "1.1";
@@ -18,6 +21,7 @@ final class Request {
     /** @var array lowercase header to actual case map */
     private $headerCaseMap = [];
 
+    /** @var AggregateBody */
     private $body;
 
     public function __construct(string $uri, string $method = "GET") {

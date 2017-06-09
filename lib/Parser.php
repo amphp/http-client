@@ -66,14 +66,16 @@ final class Parser {
         }
     }
 
-    public function setOption($option, $value) {
+    public function setOption(string $option, $value) {
         switch ($option) {
             case self::OP_MAX_HEADER_BYTES:
                 $this->maxHeaderBytes = (int) $value;
                 break;
+
             case self::OP_MAX_BODY_BYTES:
                 $this->maxBodyBytes = (int) $value;
                 break;
+
             default:
                 throw new \Error(
                     sprintf('Unknown parser option: %s', $option)
@@ -81,9 +83,6 @@ final class Parser {
         }
     }
 
-    /**
-     * @TODO Change this method name because it's terrible
-     */
     public function enqueueResponseMethodMatch(string $method) {
         $this->responseMethodMatch[] = $method;
     }
@@ -517,7 +516,7 @@ final class Parser {
         return $result;
     }
 
-    private function addToBody($data) {
+    private function addToBody(string $data) {
         $this->bodyBytesConsumed += strlen($data);
 
         if ($this->maxBodyBytes > 0 && $this->bodyBytesConsumed > $this->maxBodyBytes) {
