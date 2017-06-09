@@ -183,7 +183,7 @@ final class Parser {
         status_line_and_headers: {
             if (preg_match(self::STATUS_LINE_PATTERN, $startLine, $m)) {
                 $this->protocol = $m['protocol'];
-                $this->responseCode = $m['status'];
+                $this->responseCode = (int) $m['status'];
                 $this->responseReason = trim($m['reason']);
             } else {
                 throw new ParseException($this->getParsedMessageArray(), 'Invalid status line', 400);
