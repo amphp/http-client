@@ -14,7 +14,7 @@ interface AggregateBody {
      *
      * The resolved promise value must be a key-value array mapping header fields to values.
      *
-     * @return \Amp\Promise
+     * @return Promise
      */
     public function getHeaders(): Promise;
 

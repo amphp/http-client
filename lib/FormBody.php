@@ -23,7 +23,7 @@ final class FormBody implements AggregateBody {
      * @param string $boundary An optional multipart boundary string
      */
     public function __construct(string $boundary = null) {
-        $this->boundary = $boundary ?? \hash("sha256", \random_bytes(16));
+        $this->boundary = $boundary ?? \bin2hex(\random_bytes(16));
     }
 
     /**
@@ -84,8 +84,7 @@ final class FormBody implements AggregateBody {
 
     public function createBodyStream(): InputStream {
         if ($this->isMultipart) {
-            $fields = $this->getMultipartFieldArray();
-            return $this->generateMultipartStreamFromFields($fields);
+            return $this->generateMultipartStreamFromFields($this->getMultipartFieldArray());
         }
 
         return new InMemoryStream($this->getFormEncodedBodyString());

@@ -23,20 +23,34 @@ final class FileBody implements AggregateBody {
     public function createBodyStream(): InputStream {
         $handlePromise = open($this->path, "r");
 
-        // TODO: Move to amphp/byte-stream with more efficient implementation
         return new class($handlePromise) implements InputStream {
+            /** @var Promise */
             private $promise;
+
+            /** @var InputStream */
+            private $stream;
 
             public function __construct(Promise $promise) {
                 $this->promise = $promise;
+                $this->promise->onResolve(function ($error, $stream) {
+                    if ($error) {
+                        return;
+                    }
+
+                    $this->stream = $stream;
+                });
             }
 
             public function read(): Promise {
-                return call(function () {
-                    /** @var InputStream $stream */
-                    $stream = yield $this->promise;
-                    return $stream->read();
-                });
+                if (!$this->stream) {
+                    return call(function () {
+                        /** @var InputStream $stream */
+                        $stream = yield $this->promise;
+                        return $stream->read();
+                    });
+                }
+
+                return $this->stream->read();
             }
         };
     }
