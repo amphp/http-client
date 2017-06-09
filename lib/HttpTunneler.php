@@ -2,30 +2,12 @@
 
 namespace Amp\Artax;
 
-use Amp\Deferred;
-use Amp\Loop;
+use Amp\ByteStream\StreamException;
 use Amp\Promise;
-use Amp\Struct;
-
-class HttpTunnelStruct {
-    use Struct;
-
-    /** @var \Amp\Deferred */
-    public $deferred;
-
-    public $socket;
-    public $writeBuffer;
-    public $writeWatcher;
-    public $readWatcher;
-
-    /** @var \Amp\Artax\Parser */
-    public $parser;
-}
+use Amp\Socket\Socket;
+use function Amp\call;
 
 class HttpTunneler {
-    /** @internal */
-    const READ_GRANULARITY = 32768;
-
     /**
      * Establish an HTTP tunnel to the specified authority over this socket.
      *
@@ -35,101 +17,47 @@ class HttpTunneler {
      * @return Promise
      */
     public function tunnel($socket, string $authority): Promise {
-        $struct = new HttpTunnelStruct;
-        $struct->deferred = new Deferred;
-        $struct->socket = $socket;
-        $struct->writeBuffer = "CONNECT {$authority} HTTP/1.1\r\n\r\n";
-        $this->doWrite($struct);
+        return call(function () use ($socket, $authority) {
+            $socket = new Socket($socket);
+            $parser = new Parser(null);
+            $parser->enqueueResponseMethodMatch("CONNECT");
 
-        return $struct->deferred->promise();
-    }
-
-    private function doWrite(HttpTunnelStruct $struct) {
-        $socket = $struct->socket;
-        $bytesToWrite = \strlen($struct->writeBuffer);
-        $bytesWritten = @\fwrite($socket, $struct->writeBuffer);
-
-        if ($bytesToWrite === $bytesWritten) {
-            if (isset($struct->writeWatcher)) {
-                Loop::cancel($struct->writeWatcher);
+            try {
+                yield $socket->write("CONNECT {$authority} HTTP/1.1\r\n\r\n");
+            } catch (StreamException $e) {
+                new SocketException(
+                    'Proxy CONNECT failed: Socket went away while writing tunneling request', 0, $e
+                );
             }
 
-            $struct->parser = new Parser(null);
-            $struct->parser->enqueueResponseMethodMatch('CONNECT');
-            $struct->readWatcher = Loop::onReadable($socket, function () use ($struct) {
-                $this->doRead($struct);
-            });
-        } elseif ($bytesWritten > 0) {
-            $struct->writeBuffer = \substr($struct->writeBuffer, 0, $bytesWritten);
-            $this->enableWriteWatcher($struct);
-        } elseif ($this->isSocketDead($socket)) {
-            if (isset($struct->writeWatcher)) {
-                Loop::cancel($struct->writeWatcher);
+            try {
+                while (null !== $chunk = yield $socket->read()) {
+                    if (!$response = $parser->parse($chunk)) {
+                        continue;
+                    }
+
+                    if ($response["status"] === 200) {
+                        // Tunnel connected! We're finished \o/ #WinningAtLife #DealWithIt
+                        \stream_context_set_option($socket->getResource(), 'artax*', 'is_tunneled', true);
+                        return $socket->getResource();
+                    } else {
+                        throw new HttpException(\sprintf(
+                            'Proxy CONNECT failed: Unexpected response status received from proxy: %d',
+                            $response["status"]
+                        ));
+                    }
+                }
+            } catch (ParseException $e) {
+                throw new HttpException(
+                    'Proxy CONNECT failed: Malformed HTTP response received from proxy while establishing tunnel', 0, $e
+                );
+            } catch (StreamException $e) {
+                // fall through
             }
 
-            $struct->deferred->fail(new SocketException(
-                'Proxy CONNECT failed: socket went away while writing tunneling request'
-            ));
-        } else {
-            $this->enableWriteWatcher($struct);
-        }
-    }
-
-    private function isSocketDead($socketResource) {
-        return !\is_resource($socketResource) || @\feof($socketResource);
-    }
-
-    private function enableWriteWatcher(HttpTunnelStruct $struct) {
-        if ($struct->writeWatcher === null) {
-            $struct->writeWatcher = Loop::onWritable($struct->socket, function () use ($struct) {
-                $this->doWrite($struct);
-            });
-        }
-    }
-
-    private function doRead(HttpTunnelStruct $struct) {
-        $socket = $struct->socket;
-        $data = @\fread($socket, self::READ_GRANULARITY);
-        if ($data != '') {
-            $this->parseSocketData($struct, $data);
-        } elseif ($this->isSocketDead($socket)) {
-            if (isset($struct->readWatcher)) {
-                Loop::cancel($struct->readWatcher);
-            }
-
-            $struct->deferred->fail(new SocketException(
-                'Proxy CONNECT failed: socket went away while awaiting tunneling response'
-            ));
-        }
-    }
-
-    private function parseSocketData(HttpTunnelStruct $struct, $data) {
-        try {
-            $struct->parser->buffer($data);
-
-            if (!$parsedResponseArr = $struct->parser->parse()) {
-                return;
-            }
-
-            $status = $parsedResponseArr['status'];
-
-            if ($status == 200) {
-                // Tunnel connected! We're finished \o/ #WinningAtLife #DealWithIt
-                \stream_context_set_option($struct->socket, 'artax*', 'is_tunneled', true);
-                $struct->deferred->resolve($struct->socket);
-            } else {
-                $struct->deferred->fail(new HttpException(
-                    \sprintf('Unexpected response status received from proxy: %d', $status)
-                ));
-            }
-        } catch (ParseException $e) {
-            $struct->deferred->fail(new HttpException(
-                'Invalid HTTP response received from proxy while establishing tunnel', 0, $e
-            ));
-        } finally {
-            if (isset($struct->readWatcher)) {
-                Loop::cancel($struct->readWatcher);
-            }
-        }
+            throw new SocketException(
+                'Proxy CONNECT failed: Socket went away while awaiting tunneling response', 0, $e ?? null
+            );
+        });
     }
 }
