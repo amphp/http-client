@@ -45,7 +45,9 @@ class HttpSocketPool implements SocketPool {
     }
 
     private function getUriAuthority(string $uri): string {
-        $uriParts = @\parse_url(\strtolower($uri));
+        $uriParts = @\parse_url($uri);
+
+        // TODO: Normalize host once LibDNS 2.0 is out
         $host = $uriParts['host'];
         $port = $uriParts['port'];
 
@@ -64,13 +66,13 @@ class HttpSocketPool implements SocketPool {
 
         $options = $options ? array_merge($this->options, $options) : $this->options;
 
-        if ($scheme === 'http') {
+        if ($scheme === 'tcp' || $scheme === 'http') {
             $proxy = $options[self::OP_PROXY_HTTP];
-        } elseif ($scheme === 'https') {
+        } elseif ($scheme === 'tls' || $scheme === 'https') {
             $proxy = $options[self::OP_PROXY_HTTPS];
         } else {
             return new Failure(new \Error(
-                'Either http:// or https:// URI scheme required for HTTP socket checkout'
+                'Either tcp://, tls://, http:// or https:// URI scheme required for HTTP socket checkout'
             ));
         }
 
@@ -115,11 +117,14 @@ class HttpSocketPool implements SocketPool {
             case self::OP_PROXY_HTTP:
                 $this->options[self::OP_PROXY_HTTP] = (string) $value;
                 break;
+
             case self::OP_PROXY_HTTPS:
                 $this->options[self::OP_PROXY_HTTPS] = (string) $value;
                 break;
+
             default:
                 $this->socketPool->setOption($option, $value);
+                break;
         }
     }
 
