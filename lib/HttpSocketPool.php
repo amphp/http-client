@@ -56,8 +56,6 @@ class HttpSocketPool implements SocketPool {
 
     /** @inheritdoc */
     public function checkout(string $uri, array $options = []): Promise {
-        // Normalize away any IPv6 brackets -- socket resolution will handle that
-        $uri = \str_replace(['[', ']'], '', $uri);
         $uriParts = @\parse_url($uri);
 
         $scheme = isset($uriParts['scheme']) ? $uriParts['scheme'] : null;
