@@ -39,12 +39,12 @@ class HttpTunneler {
                         // Tunnel connected! We're finished \o/ #WinningAtLife #DealWithIt
                         \stream_context_set_option($socket->getResource(), 'artax*', 'is_tunneled', true);
                         return $socket->getResource();
-                    } else {
-                        throw new HttpException(\sprintf(
-                            'Proxy CONNECT failed: Unexpected response status received from proxy: %d',
-                            $response["status"]
-                        ));
                     }
+
+                    throw new HttpException(\sprintf(
+                        'Proxy CONNECT failed: Unexpected response status received from proxy: %d',
+                        $response["status"]
+                    ));
                 }
             } catch (ParseException $e) {
                 throw new HttpException(

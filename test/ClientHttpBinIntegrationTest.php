@@ -3,7 +3,6 @@
 namespace Amp\Artax\Test;
 
 use Amp\Artax\BasicClient;
-use Amp\Artax\Client;
 use Amp\Artax\FileBody;
 use Amp\Artax\FormBody;
 use Amp\Artax\InfiniteRedirectException;
