@@ -18,6 +18,7 @@ use Amp\Loop;
 use Amp\Promise;
 use Amp\Socket\ClientSocket;
 use Amp\Socket\ClientTlsContext;
+use Amp\Success;
 use Amp\Uri\InvalidUriException;
 use Amp\Uri\Uri;
 use function Amp\asyncCall;
@@ -183,9 +184,10 @@ final class BasicClient implements Client {
 
     private function doRead(Request $request, Uri $uri, ClientSocket $socket, array $options, Response $previousResponse = null, Deferred &$deferred = null): \Generator {
         $bodyEmitter = new Emitter;
+        $backpressure = new Success;
 
-        $bodyCallback = static function ($data) use ($bodyEmitter) {
-            $bodyEmitter->emit($data);
+        $bodyCallback = static function ($data) use ($bodyEmitter, &$backpressure) {
+            $backpressure = $bodyEmitter->emit($data);
         };
 
         if ($options[self::OP_DISCARD_BODY]) {
@@ -229,6 +231,8 @@ final class BasicClient implements Client {
                             if ($parseResult) {
                                 break;
                             }
+
+                            yield $backpressure;
                         } while (($chunk = yield $socket->read()) !== null);
                     }
 
