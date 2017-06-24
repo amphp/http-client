@@ -1,0 +1,28 @@
+kramdown:
+  input: GFM
+  toc_levels: 2..3
+
+baseurl: "/artax"
+layouts_dir: ".shared/layout"
+
+exclude: ["Gemfile", "Gemfile.lock", "README.md", "vendor"]
+include: [".shared"]
+
+repository: amphp/artax
+gems:
+ - "jekyll-github-metadata"
+ - "jekyll-relative-links"
+
+defaults:
+ - scope:
+     path: ""
+     type: "pages"
+   values:
+     layout: "docs"
+
+asset_path: "/artax/.shared/asset"
+
+navigation:
+ - custom-requests
+ - request-bodies
+ - streaming
