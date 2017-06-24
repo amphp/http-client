@@ -315,8 +315,7 @@ final class BasicClient implements Client {
         $timeout = $options[self::OP_TRANSFER_TIMEOUT];
 
         if ($timeout > 0) {
-            // TODO: Abort request
-            $transferTimeoutWatcher = Loop::delay($timeout, static function () use (&$deferred, $timeout) {
+            $transferTimeoutWatcher = Loop::delay($timeout, function () use (&$deferred, $timeout, $socket) {
                 if ($deferred === null) {
                     return;
                 }
@@ -326,6 +325,9 @@ final class BasicClient implements Client {
                 $tmp->fail(new TimeoutException(
                     sprintf('Allowed transfer timeout exceeded: %d ms', $timeout)
                 ));
+
+                $this->socketPool->clear($socket);
+                $socket->close();
             });
 
             $deferred->promise()->onResolve(static function () use ($transferTimeoutWatcher) {
