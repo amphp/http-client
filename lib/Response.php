@@ -30,6 +30,9 @@ final class Response {
     /** @var Message */
     private $body;
 
+    /** @var ConnectionInfo */
+    private $connectionInfo;
+
     public function __construct(
         string $protocolVersion,
         int $status,
@@ -37,7 +40,8 @@ final class Response {
         array $headers,
         InputStream $body,
         Request $request,
-        Response $previousResponse = null
+        Response $previousResponse = null,
+        ConnectionInfo $connectionInfo
     ) {
         $this->protocolVersion = $protocolVersion;
         $this->status = $status;
@@ -46,6 +50,7 @@ final class Response {
         $this->body = new Message($body);
         $this->request = $request;
         $this->previousResponse = $previousResponse;
+        $this->connectionInfo = $connectionInfo;
     }
 
     /**
@@ -167,5 +172,12 @@ final class Response {
      */
     public function getBody(): Message {
         return $this->body;
+    }
+
+    /**
+     * @return ConnectionInfo
+     */
+    public function getConnectionInfo(): ConnectionInfo {
+        return $this->connectionInfo;
     }
 }

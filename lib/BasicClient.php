@@ -202,6 +202,13 @@ final class BasicClient implements Client {
             Parser::OP_MAX_BODY_BYTES => $options[self::OP_MAX_BODY_BYTES],
         ]);
 
+        $crypto = \stream_get_meta_data($socket->getResource())["crypto"] ?? null;
+        $connectionInfo = new ConnectionInfo(
+            $socket->getLocalAddress(),
+            $socket->getRemoteAddress(),
+            $crypto ? TlsInfo::fromMetaData($crypto) : null
+        );
+
         while (($chunk = yield $socket->read()) !== null) {
             try {
                 $parseResult = $parser->parse($chunk);
@@ -209,7 +216,7 @@ final class BasicClient implements Client {
                 if ($parseResult) {
                     $parseResult["headers"] = \array_change_key_case($parseResult["headers"], \CASE_LOWER);
 
-                    $response = $this->finalizeResponse($request, $parseResult, new IteratorStream($bodyEmitter->iterate()), $previousResponse);
+                    $response = $this->finalizeResponse($request, $parseResult, new IteratorStream($bodyEmitter->iterate()), $previousResponse, $connectionInfo);
 
                     if ($deferred) {
                         $deferred->resolve($response);
@@ -491,7 +498,7 @@ final class BasicClient implements Client {
         return "{$host}:{$port}";
     }
 
-    private function finalizeResponse(Request $request, array $parserResult, InputStream $body, Response $previousResponse = null) {
+    private function finalizeResponse(Request $request, array $parserResult, InputStream $body, Response $previousResponse = null, ConnectionInfo $connectionInfo) {
         if ($encoding = $this->determineCompressionEncoding($parserResult["headers"])) {
             $body = new ZlibInputStream($body, $encoding);
         }
@@ -503,7 +510,8 @@ final class BasicClient implements Client {
             $parserResult["headers"],
             $body,
             $request,
-            $previousResponse
+            $previousResponse,
+            $connectionInfo
         );
 
         if ($response->hasHeader('Set-Cookie')) {

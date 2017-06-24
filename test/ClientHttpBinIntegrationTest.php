@@ -235,4 +235,13 @@ class ClientHttpBinIntegrationTest extends TestCase {
 
         wait((new BasicClient)->request("http://httpbin.org/redirect/11"));
     }
+
+    public function testConnectionInfo() {
+        /** @var Response $response */
+        $response = wait((new BasicClient)->request("https://httpbin.org/get"));
+        $this->assertContains(":", $response->getConnectionInfo()->getLocalAddress());
+        $this->assertContains(":", $response->getConnectionInfo()->getRemoteAddress());
+        $this->assertNotNull($response->getConnectionInfo()->getTlsInfo());
+        $this->assertSame("TLSv1.2", $response->getConnectionInfo()->getTlsInfo()->getProtocol());
+    }
 }
