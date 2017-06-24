@@ -6,7 +6,7 @@ require __DIR__ . '/../vendor/autoload.php';
 
 try {
     // Instantiate the HTTP client
-    $client = new Amp\Artax\Client;
+    $client = new Amp\Artax\BasicClient;
 
     // Make an asynchronous HTTP request
     $promise = $client->request('http://httpbin.org/user-agent');

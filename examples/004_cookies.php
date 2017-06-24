@@ -6,7 +6,7 @@ require __DIR__ . '/../vendor/autoload.php';
 
 try {
     // Instantiate the HTTP client
-    $client = new Amp\Artax\Client;
+    $client = new Amp\Artax\BasicClient;
 
     // This request will receive and store google's Set-Cookie headers.
     $promise = $client->request('http://www.google.com/');

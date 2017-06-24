@@ -5,7 +5,7 @@ use function Amp\Promise\wait;
 require __DIR__ . '/../vendor/autoload.php';
 
 // Instantiate the HTTP client
-$client = new Amp\Artax\Client;
+$client = new Amp\Artax\BasicClient;
 
 $body = new Amp\Artax\FormBody;
 $body->addField('field1', 'my value');

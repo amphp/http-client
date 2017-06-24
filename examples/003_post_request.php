@@ -1,14 +1,14 @@
 <?php
 
-use Amp\Artax\Client;
+use Amp\Artax\BasicClient;
 use function Amp\Promise\wait;
 
 require __DIR__ . '/../vendor/autoload.php';
 
 try {
     // Instantiate the HTTP client
-    $client = new Client;
-    $client->setOption(Client::OP_VERBOSITY, Client::VERBOSE_ALL);
+    $client = new BasicClient;
+    $client->setOption(BasicClient::OP_VERBOSITY, BasicClient::VERBOSE_ALL);
 
     // Let's build up a custom Request object
     $request = (new Amp\Artax\Request('http://httpbin.org/post', "POST"))

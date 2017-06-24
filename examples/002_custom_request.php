@@ -6,7 +6,7 @@ require __DIR__ . '/../vendor/autoload.php';
 
 try {
     // Instantiate the HTTP client
-    $client = new Amp\Artax\Client;
+    $client = new Amp\Artax\BasicClient;
 
     // Let's build up a custom Request object
     $request = (new Amp\Artax\Request('http://httpbin.org/user-agent'))

@@ -25,12 +25,11 @@ final class Parser {
     const TRAILERS_START = 4;
     const TRAILERS = 5;
 
-    const OP_MAX_HEADER_BYTES = 1;
-    const OP_MAX_BODY_BYTES = 2;
+    const OP_MAX_HEADER_BYTES = "amp.artax.parser.max-header-bytes";
+    const OP_MAX_BODY_BYTES = "amp.artax.parser.max-body-bytes";
 
     const DEFAULT_MAX_HEADER_BYTES = 8192;
     const DEFAULT_MAX_BODY_BYTES = 10485760;
-    const DEFAULT_BODY_SWAP_SIZE = 2097152;
 
     private $mode;
     private $state = self::AWAITING_HEADERS;
@@ -71,11 +70,9 @@ final class Parser {
             case self::OP_MAX_HEADER_BYTES:
                 $this->maxHeaderBytes = (int) $value;
                 break;
-
             case self::OP_MAX_BODY_BYTES:
                 $this->maxBodyBytes = (int) $value;
                 break;
-
             default:
                 throw new \Error(
                     sprintf('Unknown parser option: %s', $option)

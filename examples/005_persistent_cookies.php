@@ -10,7 +10,7 @@ try {
     // second constructor argument is the CookieJar implementation we wish to use.
     // If not specified, the client simply uses the default in-memory cookie jar.
     $cookieJar = new Amp\Artax\Cookie\FileCookieJar('/tmp/path/to/my_cookies.txt');
-    $client = new Amp\Artax\Client(null, $cookieJar);
+    $client = new Amp\Artax\BasicClient(null, $cookieJar);
 
     // This request will receive and store google's Set-Cookie headers.
     $promise = $client->request('http://www.google.com/');
