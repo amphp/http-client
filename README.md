@@ -35,7 +35,7 @@ composer require amphp/artax
 
 ## Documentation
 
-Documentation is bundled within this repository in the [`./docs`](./docs) directory.
+Documentation is bundled within this repository in the [`docs`](./docs) directory.
 
 ## Examples
 
