@@ -233,6 +233,6 @@ class ClientHttpBinIntegrationTest extends TestCase {
     public function testInfiniteRedirect() {
         $this->expectException(InfiniteRedirectException::class);
 
-        wait((new Client)->request("http://httpbin.org/redirect/10"));
+        wait((new Client)->request("http://httpbin.org/redirect/11"));
     }
 }

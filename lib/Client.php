@@ -9,7 +9,6 @@ use Amp\Artax\Cookie\NullCookieJar;
 use Amp\Artax\Cookie\PublicSuffixList;
 use Amp\ByteStream\InputStream;
 use Amp\ByteStream\IteratorStream;
-use Amp\ByteStream\Message;
 use Amp\ByteStream\ZlibInputStream;
 use Amp\Coroutine;
 use Amp\Deferred;
@@ -17,8 +16,9 @@ use Amp\Dns\ResolutionException;
 use Amp\Emitter;
 use Amp\Loop;
 use Amp\Promise;
-use Amp\Socket\Socket;
-use Amp\Socket\SocketPool;
+use Amp\Socket\ClientSocket;
+use Amp\Socket\ClientTlsContext;
+use Amp\Uri\InvalidUriException;
 use Amp\Uri\Uri;
 use function Amp\asyncCall;
 use function Amp\call;
@@ -26,42 +26,36 @@ use function Amp\call;
 class Client implements HttpClient {
     const USER_AGENT = 'Mozilla/5.0 (compatible; Artax)';
 
-    const OP_BINDTO = SocketPool::OP_BINDTO;
-    const OP_CONNECT_TIMEOUT = SocketPool::OP_CONNECT_TIMEOUT;
-    const OP_KEEP_ALIVE_TIMEOUT = SocketPool::OP_IDLE_TIMEOUT;
     const OP_PROXY_HTTP = HttpSocketPool::OP_PROXY_HTTP;
     const OP_PROXY_HTTPS = HttpSocketPool::OP_PROXY_HTTPS;
     const OP_AUTO_ENCODING = 'amp.artax.client.auto-encoding';
     const OP_TRANSFER_TIMEOUT = 'amp.artax.client.transfer-timeout';
-    const OP_FOLLOW_LOCATION = 'amp.artax.client.follow-location';
+    const OP_MAX_REDIRECTS = 'amp.artax.client.max-redirects';
     const OP_AUTO_REFERER = 'amp.artax.client.auto-referer';
     const OP_DISCARD_BODY = 'amp.artax.client.discard-body';
     const OP_IO_GRANULARITY = 'amp.artax.client.io-granularity';
-    const OP_CRYPTO = 'amp.artax.client.crypto';
     const OP_DEFAULT_USER_AGENT = 'amp.artax.client.default-user-agent';
     const OP_MAX_HEADER_BYTES = 'amp.artax.client.max-header-bytes';
     const OP_MAX_BODY_BYTES = 'amp.artax.client.max-body-bytes';
 
     private $cookieJar;
     private $socketPool;
+    private $tlsContext;
     private $hasZlib;
     private $options = [
-        self::OP_CONNECT_TIMEOUT => 10000,
-        self::OP_KEEP_ALIVE_TIMEOUT => 10000,
         self::OP_AUTO_ENCODING => true,
         self::OP_TRANSFER_TIMEOUT => 15000,
-        self::OP_FOLLOW_LOCATION => true,
+        self::OP_MAX_REDIRECTS => 10,
         self::OP_AUTO_REFERER => true,
         self::OP_DISCARD_BODY => false,
-        self::OP_IO_GRANULARITY => 32768,
-        self::OP_CRYPTO => [],
         self::OP_DEFAULT_USER_AGENT => null,
         self::OP_MAX_HEADER_BYTES => Parser::DEFAULT_MAX_HEADER_BYTES,
         self::OP_MAX_BODY_BYTES => Parser::DEFAULT_MAX_BODY_BYTES,
     ];
 
-    public function __construct(CookieJar $cookieJar = null, HttpSocketPool $socketPool = null) {
+    public function __construct(CookieJar $cookieJar = null, ClientTlsContext $tlsContext = null, HttpSocketPool $socketPool = null) {
         $this->cookieJar = $cookieJar ?? new NullCookieJar;
+        $this->tlsContext = $tlsContext ?? new ClientTlsContext;
         $this->socketPool = $socketPool ?? new HttpSocketPool;
         $this->hasZlib = extension_loaded('zlib');
     }
@@ -84,71 +78,72 @@ class Client implements HttpClient {
                 $request = $request->withHeader($name, $header);
             }
 
-            $request = yield from $this->normalizeRequestBodyHeaders($request, $options);
-            $request = $this->normalizeRequestEncodingHeaderForZlib($request, $options);
-            $request = $this->normalizeRequestHostHeader($request, $uri);
-            $request = $this->normalizeRequestUserAgent($request, $options);
-            $request = $this->normalizeRequestAcceptHeader($request);
-            $request = $this->assignApplicableRequestCookies($request);
+            $originalUri = $uri;
+            $previousResponse = null;
 
-            /** @var Response $response */
-            $response = yield $this->doRequest($request, $uri, $options);
+            $maxRedirects = $options[self::OP_MAX_REDIRECTS];
+            $requestNr = 1;
 
-            if ($options[self::OP_FOLLOW_LOCATION]) {
-                $retry = 0;
+            do {
+                /** @var Request $request */
+                $request = yield from $this->normalizeRequestBodyHeaders($request);
+                $request = $this->normalizeRequestEncodingHeaderForZlib($request, $options);
+                $request = $this->normalizeRequestHostHeader($request, $uri);
+                $request = $this->normalizeRequestUserAgent($request, $options);
+                $request = $this->normalizeRequestAcceptHeader($request);
+                $request = $this->assignApplicableRequestCookies($request);
 
-                $originalUri = $uri;
-                $originalHost = $this->normalizeHostHeader($this->generateAuthorityFromUri($originalUri));
+                /** @var Response $response */
+                $response = yield $this->doRequest($request, $uri, $options, $previousResponse);
 
-                // TODO: Add max-redirects option
-                while (++$retry < 10 && $redirectUri = $this->getRedirectUri($response)) {
-                    $refererUri = $request->getUri();
-
-                    $request = $request->withUri($redirectUri);
-
-                    $authority = $this->generateAuthorityFromUri($redirectUri);
-                    $host = $this->normalizeHostHeader($authority);
-                    $request = $request->withHeader('Host', $host);
-
-                    // Don't leak any cookies to other origins
-                    $request = $request->withoutHeader("Cookie");
-                    $request = $this->assignApplicableRequestCookies($request);
-
-                    if ($host !== $originalHost) {
-                        // Don't leak any authorization data to other origins
-                        // This does intentionally keep the authorization header for http ←→ https redirects
-                        $request = $request->withoutHeader("Authorization");
-                    }
+                if ($redirectUri = $this->getRedirectUri($response)) {
+                    // Discard response body of redirect responses
+                    $body = $response->getBody();
+                    while (null !== yield $body->read());
 
                     /**
-                     * If this is a 302/303 we need to follow the location with a GET if the
-                     * original request wasn't GET. Otherwise we need to send the body again.
+                     * If this is a 302/303 we need to follow the location with a GET if the original request wasn't
+                     * GET. Otherwise we need to send the body again.
+                     *
+                     * We won't resend the body nor any headers on redirects to other hosts for security reasons.
                      *
                      * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.3.3
                      */
                     $method = $request->getMethod();
                     $status = $response->getStatus();
+                    $isSameHost = $redirectUri->getAuthority(false) === $originalUri->getAuthority(false);
 
-                    if ($status >= 300 && $status <= 303 && $method !== 'GET') {
-                        $request = $request->withMethod('GET');
-                        $request = $request->withoutHeader('Transfer-Encoding');
-                        $request = $request->withoutHeader('Content-Length');
-                        $request = $request->withoutHeader('Content-Type');
-                        $request = $request->withBody(null);
+                    if ($isSameHost) {
+                        $request = $request->withUri($redirectUri);
+
+                        if ($status >= 300 && $status <= 303 && $method !== 'GET') {
+                            $request = $request->withMethod('GET');
+                            $request = $request->withoutHeader('Transfer-Encoding');
+                            $request = $request->withoutHeader('Content-Length');
+                            $request = $request->withoutHeader('Content-Type');
+                            $request = $request->withBody(null);
+                        }
+                    } else {
+                        // We ALWAYS follow with a GET and without any headers or the body for redirects to other hosts
+                        $request = new Request((string) $redirectUri);
                     }
 
                     if ($options[self::OP_AUTO_REFERER]) {
-                        $request = $this->assignRedirectRefererHeader($request, $refererUri, $redirectUri);
+                        $request = $this->assignRedirectRefererHeader($request, $originalUri, $redirectUri);
                     }
 
-                    $response = yield $this->doRequest($request, $redirectUri, $options, $response);
+                    $previousResponse = $response;
+                    $originalUri = $redirectUri;
+                    $uri = $redirectUri;
+                } else {
+                    break;
                 }
+            } while (++$requestNr <= $maxRedirects + 1);
 
-                if ($retry === 10 && $redirectUri = $this->getRedirectUri($response)) {
-                    throw new InfiniteRedirectException(
-                        sprintf('Infinite redirect detected while following Location header: %s', $redirectUri)
-                    );
-                }
+            if ($redirectUri = $this->getRedirectUri($response)) {
+                throw new InfiniteRedirectException(
+                    sprintf('Too many redirects detected while following Location header: %s', $redirectUri)
+                );
             }
 
             return $response;
@@ -158,7 +153,7 @@ class Client implements HttpClient {
     private function doRequest(Request $request, Uri $uri, array $options, Response $previousResponse = null): Promise {
         $deferred = new Deferred;
 
-        asyncCall(function () use (&$deferred, $request, $uri, $options, $previousResponse) {
+        asyncCall(function () use ($deferred, $request, $uri, $options, $previousResponse) {
             try {
                 yield from $this->doWrite($request, $uri, $options, $previousResponse, $deferred);
             } catch (HttpException $e) {
@@ -187,7 +182,14 @@ class Client implements HttpClient {
         return [$request, $uri];
     }
 
-    private function doRead(Request $request, Uri $uri, Socket $socket, array $options, Response $previousResponse = null, Deferred &$deferred = null) {
+    private function doRead(
+        Request $request,
+        Uri $uri,
+        ClientSocket $socket,
+        array $options,
+        Response $previousResponse = null,
+        Deferred &$deferred = null
+    ): \Generator {
         $bodyEmitter = new Emitter;
 
         $bodyCallback = static function ($data) use ($bodyEmitter) {
@@ -238,26 +240,28 @@ class Client implements HttpClient {
                         } while (($chunk = yield $socket->read()) !== null);
                     }
 
-                    $bodyEmitter->complete();
-                    $bodyEmitter = null;
-
                     if ($this->shouldCloseSocketAfterResponse($response)) {
-                        $this->socketPool->clear($socket->getResource());
+                        $this->socketPool->clear($socket);
                         $socket->close();
                     } else {
-                        $this->socketPool->checkin($socket->getResource());
+                        $this->socketPool->checkin($socket);
                     }
+
+                    // Complete body AFTER socket checkin, so the socket can be reused for a potential redirect
+                    $bodyEmitter->complete();
+                    $bodyEmitter = null;
 
                     return;
                 }
             } catch (ParseException $e) {
+                $this->socketPool->clear($socket);
+                $socket->close();
+
                 if ($deferred) {
-                    $this->socketPool->clear($socket->getResource());
-                    $socket->close();
                     $deferred->fail($e);
                 }
 
-                break;
+                return;
             }
         }
 
@@ -285,7 +289,7 @@ class Client implements HttpClient {
 
             $bodyEmitter = null;
 
-            $this->socketPool->clear($socket->getResource());
+            $this->socketPool->clear($socket);
             $socket->close();
         }
     }
@@ -295,22 +299,19 @@ class Client implements HttpClient {
         $socketCheckoutUri = $uri->getScheme() . "://{$authority}";
 
         try {
-            $rawSocket = yield $this->socketPool->checkout($socketCheckoutUri, $options);
+            /** @var ClientSocket $socket */
+            $socket = yield $this->socketPool->checkout($socketCheckoutUri);
         } catch (ResolutionException $dnsException) {
             throw new DnsException(\sprintf("Resolving the specified domain failed: '%s'", $authority), 0, $dnsException);
         }
 
-        $socket = new Socket($rawSocket);
-
         if ($uri->getScheme() === 'https') {
-            $cryptoOptions = $this->generateCryptoOptions($uri, $options);
-
             try {
-                yield $socket->enableCrypto($cryptoOptions);
+                yield $socket->enableCrypto($this->tlsContext->withPeerName($uri->getHost()));
             } catch (\Throwable $exception) {
                 // If crypto failed we make sure the socket pool gets rid of its reference
                 // to this socket connection.
-                $this->socketPool->clear($rawSocket);
+                $this->socketPool->clear($socket);
                 throw $exception;
             }
         }
@@ -369,22 +370,17 @@ class Client implements HttpClient {
                 return $uri;
             }
 
-            throw new HttpException(
-                'Request must specify a valid HTTP URI'
-            );
-        } catch (\Error $e) {
-            throw new HttpException(
-                $msg = 'Request must specify a valid HTTP URI',
-                0,
-                $e
-            );
+            throw new HttpException("Request must specify a valid HTTP URI");
+        } catch (InvalidUriException $e) {
+            throw new HttpException("Request must specify a valid HTTP URI", 0, $e);
         }
     }
 
-    private function normalizeRequestBodyHeaders(Request $request, array $options): \Generator {
+    private function normalizeRequestBodyHeaders(Request $request): \Generator {
         $method = $request->getMethod();
 
         if ($method === 'TRACE' || $method === 'HEAD' || $method === 'OPTIONS') {
+            /** @var Request $request */
             $request = $request->withBody(null);
         }
 
@@ -415,12 +411,10 @@ class Client implements HttpClient {
         }
 
         if ($this->hasZlib) {
-            $request = $request->withHeader('Accept-Encoding', 'gzip, deflate, identity');
-        } else {
-            $request = $request->withoutHeader('Accept-Encoding');
+            return $request->withHeader('Accept-Encoding', 'gzip, deflate, identity');
         }
 
-        return $request;
+        return $request->withoutHeader('Accept-Encoding');
     }
 
     private function normalizeRequestHostHeader(Request $request, Uri $uri): Request {
@@ -434,7 +428,7 @@ class Client implements HttpClient {
         return $request;
     }
 
-    private function normalizeHostHeader($host): string {
+    private function normalizeHostHeader(string $host): string {
         // Though servers are supposed to be able to handle standard port names on the end of the
         // Host header some fail to do this correctly. As a result, we strip the port from the end
         // if it's a standard 80 or 443
@@ -448,81 +442,60 @@ class Client implements HttpClient {
     }
 
     private function normalizeRequestUserAgent(Request $request, array $options): Request {
-        if (!$request->hasHeader('User-Agent')) {
-            $userAgent = $options[self::OP_DEFAULT_USER_AGENT] ?? self::USER_AGENT;
-            $request = $request->withHeader('User-Agent', $userAgent);
-        }
-
-        return $request;
-    }
-
-    private function normalizeRequestAcceptHeader(Request $request): Request {
-        if (!$request->hasHeader('Accept')) {
-            $request = $request->withHeader('Accept', '*/*');
-        }
-
-        return $request;
-    }
-
-    private function assignApplicableRequestCookies(Request $request): Request {
-        $urlParts = \parse_url($request->getUri());
-
-        $domain = $urlParts['host'];
-        $path = isset($urlParts['path']) ? $urlParts['path'] : '/';
-
-        if (!$applicableCookies = $this->cookieJar->get($domain, $path)) {
-            // No cookies matched our request; we're finished.
+        if ($request->hasHeader('User-Agent')) {
             return $request;
         }
 
-        $isRequestSecure = strcasecmp($urlParts['scheme'], 'https') === 0;
+        $userAgent = $options[self::OP_DEFAULT_USER_AGENT] ?? self::USER_AGENT;
+        return $request->withHeader('User-Agent', $userAgent);
+    }
+
+    private function normalizeRequestAcceptHeader(Request $request): Request {
+        if ($request->hasHeader('Accept')) {
+            return $request;
+        }
+
+        return $request->withHeader('Accept', '*/*');
+    }
+
+    private function assignApplicableRequestCookies(Request $request): Request {
+        $uri = new Uri($request->getUri());
+
+        $domain = $uri->getHost();
+        $path = $uri->getPath();
+
+        if (!$applicableCookies = $this->cookieJar->get($domain, $path)) {
+            // No cookies matched our request; we're finished.
+            return $request->withoutHeader("Cookie");
+        }
+
+        $isRequestSecure = strcasecmp($uri->getScheme(), "https") === 0;
         $cookiePairs = [];
 
         /** @var Cookie $cookie */
         foreach ($applicableCookies as $cookie) {
             if (!$cookie->isSecure() || $isRequestSecure) {
-                $cookiePairs[] = $cookie->getName() . '=' . $cookie->getValue();
+                $cookiePairs[] = $cookie->getName() . "=" . $cookie->getValue();
             }
         }
 
         if ($cookiePairs) {
-            $request = $request->withHeader('Cookie', \implode('; ', $cookiePairs));
+            return $request->withHeader("Cookie", \implode("; ", $cookiePairs));
         }
 
-        return $request;
+        return $request->withoutHeader("Cookie");
     }
 
     private function generateAuthorityFromUri(Uri $uri): string {
-        $scheme = $uri->getScheme();
         $host = $uri->getHost();
         $port = $uri->getPort();
-
-        if (empty($port)) {
-            $port = $scheme === 'https' ? 443 : 80;
-        }
 
         return "{$host}:{$port}";
     }
 
-    private function generateCryptoOptions(Uri $uri, array $options): array {
-        $cryptoOptions = ['peer_name' => $uri->getHost()];
-
-        // Allow client-wide TLS settings
-        if ($this->options[self::OP_CRYPTO]) {
-            $cryptoOptions = array_merge($cryptoOptions, $this->options[self::OP_CRYPTO]);
-        }
-
-        // Allow per-request TLS settings
-        if ($options[self::OP_CRYPTO]) {
-            $cryptoOptions = array_merge($cryptoOptions, $options[self::OP_CRYPTO]);
-        }
-
-        return $cryptoOptions;
-    }
-
-    private function finalizeResponse(Request $request, array $parserResult, InputStream $responseBody, Response $previousResponse = null) {
+    private function finalizeResponse(Request $request, array $parserResult, InputStream $body, Response $previousResponse = null) {
         if ($encoding = $this->determineCompressionEncoding($parserResult["headers"])) {
-            $responseBody = new ZlibInputStream($responseBody, $encoding);
+            $body = new ZlibInputStream($body, $encoding);
         }
 
         $response = new Response(
@@ -530,13 +503,13 @@ class Client implements HttpClient {
             $parserResult["status"],
             $parserResult["reason"],
             $parserResult["headers"],
-            new Message($responseBody),
+            $body,
             $request,
             $previousResponse
         );
 
         if ($response->hasHeader('Set-Cookie')) {
-            $requestDomain = parse_url($request->getUri(), PHP_URL_HOST);
+            $requestDomain = (new Uri($request->getUri()))->getHost();
             $cookies = $response->getHeaderArray('Set-Cookie');
 
             foreach ($cookies as $rawCookieStr) {
@@ -573,7 +546,7 @@ class Client implements HttpClient {
             return 0;
         }
 
-        $contentEncodingHeader = trim(current($responseHeaders["content-encoding"]));
+        $contentEncodingHeader = \trim(\current($responseHeaders["content-encoding"]));
 
         if (strcasecmp($contentEncodingHeader, 'gzip') === 0) {
             return \ZLIB_ENCODING_GZIP;
@@ -614,6 +587,7 @@ class Client implements HttpClient {
                 // always add the dot, it's used internally for wildcard matching when an explicit domain is sent
                 $cookie = $cookie->withDomain("." . $cookieDomain);
             }
+
             $this->cookieJar->store($cookie);
         } catch (CookieFormatException $e) {
             // Ignore malformed Set-Cookie headers
@@ -637,16 +611,16 @@ class Client implements HttpClient {
         $requestUri = new Uri($request->getUri());
         $redirectLocation = $response->getHeader('Location');
 
-        if (!$requestUri->canResolve($redirectLocation)) {
+        try {
+            return $requestUri->resolve($redirectLocation);
+        } catch (InvalidUriException $e) {
             return null;
         }
-
-        return $requestUri->resolve($redirectLocation);
     }
 
     /**
-     * Clients must not add a Referer header when leaving an unencrypted resource
-     * and redirecting to an encrypted resource.
+     * Clients must not add a Referer header when leaving an unencrypted resource and redirecting to an encrypted
+     * resource.
      *
      * @param Request $request
      * @param string  $refererUri
@@ -688,7 +662,15 @@ class Client implements HttpClient {
         $head = $request->getMethod() . ' ' . $requestUri . ' HTTP/' . $request->getProtocolVersion() . "\r\n";
 
         foreach ($request->getAllHeaders() as $field => $values) {
+            if (\strcspn($field, "\r\n") !== \strlen($field)) {
+                throw new HttpException("Blocked header injection attempt for header '{$field}'");
+            }
+
             foreach ($values as $value) {
+                if (\strcspn($value, "\r\n") !== \strlen($value)) {
+                    throw new HttpException("Blocked header injection attempt for header '{$field}' with value '{$value}'");
+                }
+
                 $head .= "{$field}: {$value}\r\n";
             }
         }
@@ -724,17 +706,11 @@ class Client implements HttpClient {
             case self::OP_AUTO_ENCODING:
                 $this->options[self::OP_AUTO_ENCODING] = (bool) $value;
                 break;
-            case self::OP_CONNECT_TIMEOUT:
-                $this->options[self::OP_CONNECT_TIMEOUT] = $value;
-                break;
-            case self::OP_KEEP_ALIVE_TIMEOUT:
-                $this->options[self::OP_KEEP_ALIVE_TIMEOUT] = $value;
-                break;
             case self::OP_TRANSFER_TIMEOUT:
                 $this->options[self::OP_TRANSFER_TIMEOUT] = (int) $value;
                 break;
-            case self::OP_FOLLOW_LOCATION:
-                $this->options[self::OP_FOLLOW_LOCATION] = (bool) $value;
+            case self::OP_MAX_REDIRECTS:
+                $this->options[self::OP_MAX_REDIRECTS] = (int) $value;
                 break;
             case self::OP_AUTO_REFERER:
                 $this->options[self::OP_AUTO_REFERER] = (bool) $value;
@@ -746,17 +722,11 @@ class Client implements HttpClient {
                 $value = (int) $value;
                 $this->options[self::OP_IO_GRANULARITY] = $value > 0 ? $value : 32768;
                 break;
-            case self::OP_BINDTO:
-                $this->options[self::OP_BINDTO] = $value;
-                break;
             case self::OP_PROXY_HTTP:
                 $this->options[self::OP_PROXY_HTTP] = $value;
                 break;
             case self::OP_PROXY_HTTPS:
                 $this->options[self::OP_PROXY_HTTPS] = $value;
-                break;
-            case self::OP_CRYPTO:
-                $this->options[self::OP_CRYPTO] = (array) $value;
                 break;
             case self::OP_DEFAULT_USER_AGENT:
                 $this->options[self::OP_DEFAULT_USER_AGENT] = (string) $value;

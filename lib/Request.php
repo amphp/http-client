@@ -281,6 +281,8 @@ final class Request {
             $clone->body = new StringBody((string) $body);
         } elseif ($body instanceof AggregateBody) {
             $clone->body = $body;
+        } else {
+            throw new \TypeError("Invalid body type: " . gettype($body));
         }
 
         return $clone;

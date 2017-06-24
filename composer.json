@@ -23,33 +23,24 @@
     ],
     "require": {
         "php": ">=7.0",
-        "ext-intl": "*",
         "amphp/amp": "^2",
-        "amphp/socket": "dev-amp_v2",
-        "amphp/uri": "dev-master",
-        "amphp/file": "dev-amp_v2"
+        "amphp/socket": "^0.10",
+        "amphp/uri": "^0.1",
+        "amphp/file": "^0.2"
     },
     "require-dev": {
-        "amphp/phpunit-util": "dev-master",
+        "amphp/phpunit-util": "^1",
         "phpunit/phpunit": "^6",
         "friendsofphp/php-cs-fixer": "^2.3"
     },
-    "minimum-stability": "dev",
-    "prefer-stable": true,
     "autoload": {
         "psr-4": {
-            "Amp\\Artax\\": "lib/"
+            "Amp\\Artax\\": "lib"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Amp\\Test\\Artax\\": "test/"
-        }
-    },
-    "extra": {
-        "branch-alias": {
-            "dev-master": "2.x-dev",
-            "dev-1.x": "1.x-dev"
+            "Amp\\Test\\Artax\\": "test"
         }
     }
 }

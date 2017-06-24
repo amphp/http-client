@@ -2,6 +2,7 @@
 
 namespace Amp\Artax;
 
+use Amp\ByteStream\InputStream;
 use Amp\ByteStream\Message;
 
 /**
@@ -34,7 +35,7 @@ final class Response {
         int $status,
         string $reason,
         array $headers,
-        Message $body,
+        InputStream $body,
         Request $request,
         Response $previousResponse = null
     ) {
@@ -42,7 +43,7 @@ final class Response {
         $this->status = $status;
         $this->reason = $reason;
         $this->headers = $headers;
-        $this->body = $body;
+        $this->body = new Message($body);
         $this->request = $request;
         $this->previousResponse = $previousResponse;
     }

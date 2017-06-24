@@ -4,21 +4,20 @@ namespace Amp\Artax;
 
 use Amp\ByteStream\StreamException;
 use Amp\Promise;
-use Amp\Socket\Socket;
+use Amp\Socket\ClientSocket;
 use function Amp\call;
 
 class HttpTunneler {
     /**
      * Establish an HTTP tunnel to the specified authority over this socket.
      *
-     * @param resource $socket
-     * @param string   $authority
+     * @param ClientSocket $socket
+     * @param string       $authority
      *
      * @return Promise
      */
-    public function tunnel($socket, string $authority): Promise {
+    public function tunnel(ClientSocket $socket, string $authority): Promise {
         return call(function () use ($socket, $authority) {
-            $socket = new Socket($socket);
             $parser = new Parser(null);
             $parser->enqueueResponseMethodMatch("CONNECT");
 
