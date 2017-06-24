@@ -19,7 +19,7 @@ Loop::run(function () {
         $body->addField("submit", "ok");
         $body->addFile("foo", __DIR__ . "/small-file.txt");
 
-        $request = (new Request('http://httpbin.org/post', 'POST'))
+        $request = (new Request('https://httpbin.org/post', 'POST'))
             ->withBody($body);
 
         // Make an asynchronous HTTP request

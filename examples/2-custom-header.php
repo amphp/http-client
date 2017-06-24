@@ -12,7 +12,7 @@ Loop::run(function () {
         $client = new Amp\Artax\BasicClient;
 
         // Here we create a custom request object instead of simply passing an URL to request().
-        $request = (new Request('http://httpbin.org/headers'))
+        $request = (new Request('https://httpbin.org/headers'))
             ->withHeader('X-Hello-World', 'Awesome \o/');
 
         // Make an asynchronous HTTP request

@@ -13,7 +13,7 @@ Loop::run(function () {
 
         // Here we create a custom request object instead of simply passing an URL to request().
         // We set the method to POST now and add a request body.
-        $request = (new Request('http://httpbin.org/post', 'POST'))
+        $request = (new Request('https://httpbin.org/post', 'POST'))
             ->withBody('woot \o/');
 
         // Make an asynchronous HTTP request
