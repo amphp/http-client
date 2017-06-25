@@ -45,6 +45,12 @@ More extensive code examples reside in the [`examples`](./examples) directory.
 
 `amphp/artax` follows the [semver](http://semver.org/) semantic versioning specification like all other `amphp` packages.
 
+| Version | Maintenaince Status     |
+| ------- | ----------------------- |
+| 3.x     | Soon to be relased.     |
+| 2.x     | Bug and security fixes. |
+| 1.x     | Unmaintained.           |
+
 ## Security
 
 If you discover any security related issues, please email [`me@kelunik.com`](mailto:me@kelunik.com) instead of using the issue tracker.
