@@ -2,92 +2,39 @@
 
 namespace Amp\Artax;
 
-use Amp\ByteStream\InputStream;
 use Amp\ByteStream\Message;
 
 /**
  * An HTTP response.
  */
-final class Response {
-    /** @var string */
-    private $protocolVersion;
-
-    /** @var int */
-    private $status;
-
-    /** @var string */
-    private $reason;
-
-    /** @var Request */
-    private $request;
-
-    /** @var Response|null */
-    private $previousResponse;
-
-    /** @var array */
-    private $headers;
-
-    /** @var Message */
-    private $body;
-
-    /** @var ConnectionInfo */
-    private $connectionInfo;
-
-    public function __construct(
-        string $protocolVersion,
-        int $status,
-        string $reason,
-        array $headers,
-        InputStream $body,
-        Request $request,
-        Response $previousResponse = null,
-        ConnectionInfo $connectionInfo
-    ) {
-        $this->protocolVersion = $protocolVersion;
-        $this->status = $status;
-        $this->reason = $reason;
-        $this->headers = $headers;
-        $this->body = new Message($body);
-        $this->request = $request;
-        $this->previousResponse = $previousResponse;
-        $this->connectionInfo = $connectionInfo;
-    }
-
+interface Response {
     /**
      * Retrieve the requests's HTTP protocol version.
      *
      * @return string
      */
-    public function getProtocolVersion(): string {
-        return $this->protocolVersion;
-    }
+    public function getProtocolVersion(): string;
 
     /**
      * Retrieve the response's three-digit HTTP status code.
      *
      * @return int
      */
-    public function getStatus(): int {
-        return $this->status;
-    }
+    public function getStatus(): int;
 
     /**
      * Retrieve the response's (possibly empty) reason phrase.
      *
      * @return string
      */
-    public function getReason(): string {
-        return $this->reason;
-    }
+    public function getReason(): string;
 
     /**
      * Retrieve the Request instance that resulted in this Response instance.
      *
      * @return Request
      */
-    public function getRequest(): Request {
-        return $this->request;
-    }
+    public function getRequest(): Request;
 
     /**
      * Retrieve the original Request instance associated with this Response instance.
@@ -97,22 +44,14 @@ final class Response {
      *
      * @return Request
      */
-    public function getOriginalRequest(): Request {
-        if (empty($this->previousResponse)) {
-            return $this->request;
-        }
-
-        return $this->previousResponse->getOriginalRequest();
-    }
+    public function getOriginalRequest(): Request;
 
     /**
      * If this Response is the result of a redirect traverse up the redirect history.
      *
      * @return Response|null
      */
-    public function getPreviousResponse() {
-        return $this->previousResponse;
-    }
+    public function getPreviousResponse();
 
     /**
      * Does the message contain the specified header field (case-insensitive)?
@@ -121,9 +60,7 @@ final class Response {
      *
      * @return bool
      */
-    public function hasHeader(string $field): bool {
-        return isset($this->headers[\strtolower($field)]);
-    }
+    public function hasHeader(string $field): bool;
 
     /**
      * Retrieve the first occurrence of the specified header in the message.
@@ -137,9 +74,7 @@ final class Response {
      *
      * @return string|null Header value or `null` if no header with name `$field` exists.
      */
-    public function getHeader(string $field) {
-        return $this->headers[\strtolower($field)][0] ?? null;
-    }
+    public function getHeader(string $field);
 
     /**
      * Retrieve all occurrences of the specified header in the message.
@@ -150,18 +85,28 @@ final class Response {
      *
      * @return array Header values.
      */
-    public function getHeaderArray(string $field): array {
-        return $this->headers[\strtolower($field)] ?? [];
-    }
+    public function getHeaderArray(string $field): array;
 
     /**
      * Retrieve an associative array of headers matching field names to an array of field values.
      *
+     * **Format**
+     *
+     * ```php
+     * [
+     *     "header-1" => [
+     *         "value-1",
+     *         "value-2",
+     *     ],
+     *     "header-2" => [
+     *         "value-1",
+     *     ],
+     * ]
+     * ```
+     *
      * @return array
      */
-    public function getAllHeaders(): array {
-        return $this->headers;
-    }
+    public function getAllHeaders(): array;
 
     /**
      * Retrieve the response body.
@@ -170,14 +115,10 @@ final class Response {
      *
      * @return Message
      */
-    public function getBody(): Message {
-        return $this->body;
-    }
+    public function getBody(): Message;
 
     /**
-     * @return ConnectionInfo
+     * @return MetaInfo
      */
-    public function getConnectionInfo(): ConnectionInfo {
-        return $this->connectionInfo;
-    }
+    public function getMetaInfo(): MetaInfo;
 }

@@ -9,6 +9,7 @@ use Amp\Artax\Cookie\NullCookieJar;
 use Amp\Artax\Cookie\PublicSuffixList;
 use Amp\ByteStream\InputStream;
 use Amp\ByteStream\IteratorStream;
+use Amp\ByteStream\Message;
 use Amp\ByteStream\ZlibInputStream;
 use Amp\Coroutine;
 use Amp\Deferred;
@@ -503,7 +504,7 @@ final class BasicClient implements Client {
             $body = new ZlibInputStream($body, $encoding);
         }
 
-        $response = new Response(
+        $response = new class(
             $parserResult["protocol"],
             $parserResult["status"],
             $parserResult["reason"],
@@ -511,8 +512,89 @@ final class BasicClient implements Client {
             $body,
             $request,
             $previousResponse,
-            $connectionInfo
-        );
+            new MetaInfo($connectionInfo)
+        ) implements Response {
+            private $protocolVersion;
+            private $status;
+            private $reason;
+            private $request;
+            private $previousResponse;
+            private $headers;
+            private $body;
+            private $metaInfo;
+
+            public function __construct(
+                string $protocolVersion,
+                int $status,
+                string $reason,
+                array $headers,
+                InputStream $body,
+                Request $request,
+                Response $previousResponse = null,
+                MetaInfo $metaInfo
+            ) {
+                $this->protocolVersion = $protocolVersion;
+                $this->status = $status;
+                $this->reason = $reason;
+                $this->headers = $headers;
+                $this->body = new Message($body);
+                $this->request = $request;
+                $this->previousResponse = $previousResponse;
+                $this->metaInfo = $metaInfo;
+            }
+
+            public function getProtocolVersion(): string {
+                return $this->protocolVersion;
+            }
+
+            public function getStatus(): int {
+                return $this->status;
+            }
+
+            public function getReason(): string {
+                return $this->reason;
+            }
+
+            public function getRequest(): Request {
+                return $this->request;
+            }
+
+            public function getOriginalRequest(): Request {
+                if (empty($this->previousResponse)) {
+                    return $this->request;
+                }
+
+                return $this->previousResponse->getOriginalRequest();
+            }
+
+            public function getPreviousResponse() {
+                return $this->previousResponse;
+            }
+
+            public function hasHeader(string $field): bool {
+                return isset($this->headers[\strtolower($field)]);
+            }
+
+            public function getHeader(string $field) {
+                return $this->headers[\strtolower($field)][0] ?? null;
+            }
+
+            public function getHeaderArray(string $field): array {
+                return $this->headers[\strtolower($field)] ?? [];
+            }
+
+            public function getAllHeaders(): array {
+                return $this->headers;
+            }
+
+            public function getBody(): Message {
+                return $this->body;
+            }
+
+            public function getMetaInfo(): MetaInfo {
+                return $this->metaInfo;
+            }
+        };
 
         if ($response->hasHeader('Set-Cookie')) {
             $requestDomain = (new Uri($request->getUri()))->getHost();
