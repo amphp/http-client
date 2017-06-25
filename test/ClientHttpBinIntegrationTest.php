@@ -239,9 +239,9 @@ class ClientHttpBinIntegrationTest extends TestCase {
     public function testConnectionInfo() {
         /** @var Response $response */
         $response = wait((new BasicClient)->request("https://httpbin.org/get"));
-        $this->assertContains(":", $response->getConnectionInfo()->getLocalAddress());
-        $this->assertContains(":", $response->getConnectionInfo()->getRemoteAddress());
-        $this->assertNotNull($response->getConnectionInfo()->getTlsInfo());
-        $this->assertSame("TLSv1.2", $response->getConnectionInfo()->getTlsInfo()->getProtocol());
+        $this->assertContains(":", $response->getMetaInfo()->getConnectionInfo()->getLocalAddress());
+        $this->assertContains(":", $response->getMetaInfo()->getConnectionInfo()->getRemoteAddress());
+        $this->assertNotNull($response->getMetaInfo()->getConnectionInfo()->getTlsInfo());
+        $this->assertSame("TLSv1.2", $response->getMetaInfo()->getConnectionInfo()->getTlsInfo()->getProtocol());
     }
 }
