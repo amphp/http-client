@@ -8,6 +8,8 @@ use Amp\Artax\FormBody;
 use Amp\Artax\InfiniteRedirectException;
 use Amp\Artax\Request;
 use Amp\Artax\Response;
+use Amp\CancellationTokenSource;
+use Amp\CancelledException;
 use PHPUnit\Framework\TestCase;
 use function Amp\Promise\wait;
 
@@ -243,5 +245,14 @@ class ClientHttpBinIntegrationTest extends TestCase {
         $this->assertContains(":", $response->getMetaInfo()->getConnectionInfo()->getRemoteAddress());
         $this->assertNotNull($response->getMetaInfo()->getConnectionInfo()->getTlsInfo());
         $this->assertSame("TLSv1.2", $response->getMetaInfo()->getConnectionInfo()->getTlsInfo()->getProtocol());
+    }
+
+    public function testRequestCancellation() {
+        $cancellationTokenSource = new CancellationTokenSource;
+        $response = wait((new BasicClient)->request("http://httpbin.org/drip?code=200&duration=5&numbytes=12000", [], $cancellationTokenSource->getToken()));
+        $this->assertInstanceOf(Response::class, $response);
+        $cancellationTokenSource->cancel();
+        $this->expectException(CancelledException::class);
+        wait($response->getBody());
     }
 }

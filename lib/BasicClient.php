@@ -12,11 +12,13 @@ use Amp\ByteStream\IteratorStream;
 use Amp\ByteStream\Message;
 use Amp\ByteStream\StreamException;
 use Amp\ByteStream\ZlibInputStream;
+use Amp\CancellationToken;
 use Amp\Coroutine;
 use Amp\Deferred;
 use Amp\Dns\ResolutionException;
 use Amp\Emitter;
 use Amp\Loop;
+use Amp\NullCancellationToken;
 use Amp\Promise;
 use Amp\Socket\ClientSocket;
 use Amp\Socket\ClientTlsContext;
@@ -62,16 +64,11 @@ final class BasicClient implements Client {
         $this->hasZlib = extension_loaded('zlib');
     }
 
-    /**
-     * Asynchronously request an HTTP resource.
-     *
-     * @param Request|string An HTTP URI string or a Request instance
-     * @param array          $options An array specifying options applicable only for this request
-     *
-     * @return Promise A promise to resolve the request at some point in the future
-     */
-    public function request($uriOrRequest, array $options = []): Promise {
-        return call(function () use ($uriOrRequest, $options) {
+    /** @inheritdoc */
+    public function request($uriOrRequest, array $options = [], CancellationToken $cancellation = null): Promise {
+        return call(function () use ($uriOrRequest, $options, $cancellation) {
+            $cancellation = $cancellation ?? new NullCancellationToken;
+
             list($request, $uri) = $this->generateRequestFromUri($uriOrRequest);
             $options = $options ? array_merge($this->options, $options) : $this->options;
 
@@ -96,7 +93,7 @@ final class BasicClient implements Client {
                 $request = $this->assignApplicableRequestCookies($request);
 
                 /** @var Response $response */
-                $response = yield $this->doRequest($request, $uri, $options, $previousResponse);
+                $response = yield $this->doRequest($request, $uri, $options, $previousResponse, $cancellation);
 
                 if ($redirectUri = $this->getRedirectUri($response)) {
                     // Discard response body of redirect responses
@@ -152,12 +149,12 @@ final class BasicClient implements Client {
         });
     }
 
-    private function doRequest(Request $request, Uri $uri, array $options, Response $previousResponse = null): Promise {
+    private function doRequest(Request $request, Uri $uri, array $options, Response $previousResponse = null, CancellationToken $cancellation): Promise {
         $deferred = new Deferred;
 
-        asyncCall(function () use ($deferred, $request, $uri, $options, $previousResponse) {
+        asyncCall(function () use ($deferred, $request, $uri, $options, $previousResponse, $cancellation) {
             try {
-                yield from $this->doWrite($request, $uri, $options, $previousResponse, $deferred);
+                yield from $this->doWrite($request, $uri, $options, $previousResponse, $deferred, $cancellation);
             } catch (HttpException $e) {
                 if ($deferred) {
                     $deferred->fail($e);
@@ -184,187 +181,218 @@ final class BasicClient implements Client {
         return [$request, $uri];
     }
 
-    private function doRead(Request $request, Uri $uri, ClientSocket $socket, array $options, Response $previousResponse = null, Deferred &$deferred = null): \Generator {
-        $bodyEmitter = new Emitter;
-        $backpressure = new Success;
+    private function doRead(Request $request, Uri $uri, ClientSocket $socket, array $options, Response $previousResponse = null, Deferred &$deferred = null, CancellationToken $cancellation): \Generator {
+        try {
+            $bodyEmitter = new Emitter;
+            $backpressure = new Success;
 
-        $bodyCallback = static function ($data) use ($bodyEmitter, &$backpressure) {
-            $backpressure = $bodyEmitter->emit($data);
-        };
+            $bodyCallback = static function ($data) use ($bodyEmitter, &$backpressure) {
+                $backpressure = $bodyEmitter->emit($data);
+            };
 
-        if ($options[self::OP_DISCARD_BODY]) {
-            $bodyCallback = null;
-        }
+            if ($options[self::OP_DISCARD_BODY]) {
+                $bodyCallback = null;
+            }
 
-        $parser = new Parser($bodyCallback);
+            $parser = new Parser($bodyCallback);
 
-        $parser->enqueueResponseMethodMatch($request->getMethod());
-        $parser->setAllOptions([
-            Parser::OP_MAX_HEADER_BYTES => $options[self::OP_MAX_HEADER_BYTES],
-            Parser::OP_MAX_BODY_BYTES => $options[self::OP_MAX_BODY_BYTES],
-        ]);
+            $parser->enqueueResponseMethodMatch($request->getMethod());
+            $parser->setAllOptions([
+                Parser::OP_MAX_HEADER_BYTES => $options[self::OP_MAX_HEADER_BYTES],
+                Parser::OP_MAX_BODY_BYTES => $options[self::OP_MAX_BODY_BYTES],
+            ]);
 
-        $crypto = \stream_get_meta_data($socket->getResource())["crypto"] ?? null;
-        $connectionInfo = new ConnectionInfo(
-            $socket->getLocalAddress(),
-            $socket->getRemoteAddress(),
-            $crypto ? TlsInfo::fromMetaData($crypto) : null
-        );
+            $crypto = \stream_get_meta_data($socket->getResource())["crypto"] ?? null;
+            $connectionInfo = new ConnectionInfo(
+                $socket->getLocalAddress(),
+                $socket->getRemoteAddress(),
+                $crypto ? TlsInfo::fromMetaData($crypto) : null
+            );
 
-        while (($chunk = yield $socket->read()) !== null) {
-            try {
-                $parseResult = $parser->parse($chunk);
+            $cancellation->throwIfRequested();
 
-                if ($parseResult) {
-                    $parseResult["headers"] = \array_change_key_case($parseResult["headers"], \CASE_LOWER);
+            while (($chunk = yield $socket->read()) !== null) {
+                $cancellation->throwIfRequested();
 
-                    $response = $this->finalizeResponse($request, $parseResult, new IteratorStream($bodyEmitter->iterate()), $previousResponse, $connectionInfo);
+                try {
+                    $parseResult = $parser->parse($chunk);
+
+                    if ($parseResult) {
+                        $parseResult["headers"] = \array_change_key_case($parseResult["headers"], \CASE_LOWER);
+
+                        $response = $this->finalizeResponse($request, $parseResult, new IteratorStream($bodyEmitter->iterate()), $previousResponse, $connectionInfo);
+
+                        if ($deferred) {
+                            $deferred->resolve($response);
+                        }
+
+                        // Required, otherwise responses without body hang
+                        if ($parseResult["headersOnly"]) {
+                            // Directly parse again in case we already have the full body but aborted parsing to resolve promise.
+                            $chunk = null;
+
+                            do {
+                                $cancellation->throwIfRequested();
+
+                                try {
+                                    $parseResult = $parser->parse($chunk);
+                                } catch (ParseException $e) {
+                                    $bodyEmitter->fail($e);
+                                    $bodyEmitter = null;
+                                    throw $e;
+                                }
+
+                                if ($parseResult) {
+                                    break;
+                                }
+
+                                yield $backpressure;
+                            } while (($chunk = yield $socket->read()) !== null);
+                        }
+
+                        if ($this->shouldCloseSocketAfterResponse($response)) {
+                            $this->socketPool->clear($socket);
+                            $socket->close();
+                        } else {
+                            $this->socketPool->checkin($socket);
+                        }
+
+                        // Complete body AFTER socket checkin, so the socket can be reused for a potential redirect
+                        $bodyEmitter->complete();
+                        $bodyEmitter = null;
+
+                        return;
+                    }
+                } catch (ParseException $e) {
+                    $this->socketPool->clear($socket);
+                    $socket->close();
 
                     if ($deferred) {
-                        $deferred->resolve($response);
+                        $deferred->fail($e);
                     }
-
-                    // Required, otherwise responses without body hang
-                    if ($parseResult["headersOnly"]) {
-                        // Directly parse again in case we already have the full body but aborted parsing to resolve promise.
-                        $chunk = null;
-
-                        do {
-                            try {
-                                $parseResult = $parser->parse($chunk);
-                            } catch (ParseException $e) {
-                                $bodyEmitter->fail($e);
-                                throw $e;
-                            }
-
-                            if ($parseResult) {
-                                break;
-                            }
-
-                            yield $backpressure;
-                        } while (($chunk = yield $socket->read()) !== null);
-                    }
-
-                    if ($this->shouldCloseSocketAfterResponse($response)) {
-                        $this->socketPool->clear($socket);
-                        $socket->close();
-                    } else {
-                        $this->socketPool->checkin($socket);
-                    }
-
-                    // Complete body AFTER socket checkin, so the socket can be reused for a potential redirect
-                    $bodyEmitter->complete();
-                    $bodyEmitter = null;
 
                     return;
                 }
-            } catch (ParseException $e) {
-                $this->socketPool->clear($socket);
-                $socket->close();
+            }
+
+            $parserState = $parser->getState();
+
+            if ($parserState === Parser::AWAITING_HEADERS && empty($retryCount)) {
+                $this->doWrite($request, $uri, $options, $previousResponse, $deferred, $cancellation);
+            } else {
+                $exception = new SocketException(
+                    sprintf(
+                        'Socket disconnected prior to response completion (Parser state: %s)',
+                        $parserState
+                    )
+                );
 
                 if ($deferred) {
-                    $deferred->fail($e);
+                    $deferred->fail($exception);
                 }
 
-                return;
+                $deferred = null;
+
+                if ($bodyEmitter) {
+                    $bodyEmitter->fail($exception);
+                }
+
+                $bodyEmitter = null;
+
+                $this->socketPool->clear($socket);
+                $socket->close();
             }
-        }
-
-        $parserState = $parser->getState();
-
-        if ($parserState === Parser::AWAITING_HEADERS && empty($retryCount)) {
-            $this->doWrite($request, $uri, $options, $previousResponse, $deferred);
-        } else {
-            $exception = new SocketException(
-                sprintf(
-                    'Socket disconnected prior to response completion (Parser state: %s)',
-                    $parserState
-                )
-            );
-
-            if ($deferred) {
-                $deferred->fail($exception);
-            }
-
-            $deferred = null;
-
+        } catch (\Throwable $e) {
             if ($bodyEmitter) {
-                $bodyEmitter->fail($exception);
+                $bodyEmitter->fail($e);
             }
-
-            $bodyEmitter = null;
 
             $this->socketPool->clear($socket);
             $socket->close();
+            throw $e;
         }
     }
 
-    private function doWrite(Request $request, Uri $uri, array $options, Response $previousResponse = null, Deferred &$deferred = null) {
+    private function doWrite(Request $request, Uri $uri, array $options, Response $previousResponse = null, Deferred &$deferred = null, CancellationToken $cancellation) {
         $authority = $this->generateAuthorityFromUri($uri);
         $socketCheckoutUri = $uri->getScheme() . "://{$authority}";
 
         try {
             /** @var ClientSocket $socket */
-            $socket = yield $this->socketPool->checkout($socketCheckoutUri);
+            $socket = yield $this->socketPool->checkout($socketCheckoutUri, $cancellation);
         } catch (ResolutionException $dnsException) {
             throw new DnsException(\sprintf("Resolving the specified domain failed: '%s'", $authority), 0, $dnsException);
         }
 
-        if ($uri->getScheme() === 'https') {
-            try {
-                yield $socket->enableCrypto($this->tlsContext->withPeerName($uri->getHost()));
-            } catch (\Throwable $exception) {
-                // If crypto failed we make sure the socket pool gets rid of its reference
-                // to this socket connection.
-                $this->socketPool->clear($socket);
-                throw $exception;
+        try {
+            if ($uri->getScheme() === 'https') {
+                try {
+                    yield $socket->enableCrypto($this->tlsContext->withPeerName($uri->getHost()));
+                } catch (\Throwable $exception) {
+                    // If crypto failed we make sure the socket pool gets rid of its reference
+                    // to this socket connection.
+                    $this->socketPool->clear($socket);
+                    throw $exception;
+                }
             }
-        }
 
-        $timeout = $options[self::OP_TRANSFER_TIMEOUT];
+            $timeout = $options[self::OP_TRANSFER_TIMEOUT];
 
-        if ($timeout > 0) {
-            $transferTimeoutWatcher = Loop::delay($timeout, function () use (&$deferred, $timeout, $socket) {
-                if ($deferred === null) {
-                    return;
+            if ($timeout > 0) {
+                $transferTimeoutWatcher = Loop::delay($timeout, function () use (&$deferred, $timeout, $socket) {
+                    if ($deferred === null) {
+                        return;
+                    }
+
+                    $tmp = $deferred;
+                    $deferred = null;
+                    $tmp->fail(new TimeoutException(
+                        sprintf('Allowed transfer timeout exceeded: %d ms', $timeout)
+                    ));
+
+                    $this->socketPool->clear($socket);
+                    $socket->close();
+                });
+
+                $deferred->promise()->onResolve(static function () use ($transferTimeoutWatcher) {
+                    Loop::cancel($transferTimeoutWatcher);
+                });
+            }
+
+            $readingPromise = new Coroutine($this->doRead($request, $uri, $socket, $options, $previousResponse, $deferred, $cancellation));
+            $readingPromise->onResolve(function ($error) use (&$deferred) {
+                if ($error && $deferred) {
+                    $deferred->fail($error);
+                    $deferred = null;
+                }
+            });
+
+            yield $socket->write($this->generateRawRequestHeaders($request));
+
+            $body = $request->getBody()->createBodyStream();
+            $chunking = !$request->hasHeader("content-length");
+
+            while (($chunk = yield $body->read()) !== null) {
+                $cancellation->throwIfRequested();
+
+                if ($chunk === "") {
+                    continue;
                 }
 
-                $tmp = $deferred;
-                $deferred = null;
-                $tmp->fail(new TimeoutException(
-                    sprintf('Allowed transfer timeout exceeded: %d ms', $timeout)
-                ));
+                if ($chunking) {
+                    $chunk = \dechex(\strlen($chunk)) . "\r\n" . $chunk . "\r\n";
+                }
 
-                $this->socketPool->clear($socket);
-                $socket->close();
-            });
-
-            $deferred->promise()->onResolve(static function () use ($transferTimeoutWatcher) {
-                Loop::cancel($transferTimeoutWatcher);
-            });
-        }
-
-        Promise\rethrow(new Coroutine($this->doRead($request, $uri, $socket, $options, $previousResponse, $deferred)));
-
-        yield $socket->write($this->generateRawRequestHeaders($request));
-
-        $body = $request->getBody()->createBodyStream();
-        $chunking = !$request->hasHeader("content-length");
-
-        while (($chunk = yield $body->read()) !== null) {
-            if ($chunk === "") {
-                continue;
+                yield $socket->write($chunk);
             }
 
             if ($chunking) {
-                $chunk = \dechex(\strlen($chunk)) . "\r\n" . $chunk . "\r\n";
+                yield $socket->write("0\r\n\r\n");
             }
-
-            yield $socket->write($chunk);
-        }
-
-        if ($chunking) {
-            yield $socket->write("0\r\n\r\n");
+        } catch (\Throwable $e) {
+            $this->socketPool->clear($socket);
+            $socket->close();
+            throw $e;
         }
     }
 
