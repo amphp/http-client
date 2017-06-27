@@ -10,6 +10,7 @@ use Amp\Artax\Cookie\PublicSuffixList;
 use Amp\ByteStream\InputStream;
 use Amp\ByteStream\IteratorStream;
 use Amp\ByteStream\Message;
+use Amp\ByteStream\StreamException;
 use Amp\ByteStream\ZlibInputStream;
 use Amp\Coroutine;
 use Amp\Deferred;
@@ -504,16 +505,32 @@ final class BasicClient implements Client {
             $body = new ZlibInputStream($body, $encoding);
         }
 
-        $response = new class(
-            $parserResult["protocol"],
-            $parserResult["status"],
-            $parserResult["reason"],
-            $parserResult["headers"],
-            $body,
-            $request,
-            $previousResponse,
-            new MetaInfo($connectionInfo)
-        ) implements Response {
+        // Wrap the input stream so we can discard the body in case it's destructed but hasn't been consumed.
+        // This allows reusing the connection for further requests. It's important to have __destruct in InputStream and
+        // not in Message, because an InputStream might be pulled out of Message and used separately.
+        $body = new class($body) implements InputStream {
+            private $body;
+
+            public function __construct(InputStream $body) {
+                $this->body = $body;
+            }
+
+            public function read(): Promise {
+                return $this->body->read();
+            }
+
+            public function __destruct() {
+                asyncCall(function () {
+                    try {
+                        while (null !== yield $this->body->read());
+                    } catch (StreamException $e) {
+                        // ignore any exceptions, we're just discarding
+                    }
+                });
+            }
+        };
+
+        $response = new class($parserResult["protocol"], $parserResult["status"], $parserResult["reason"], $parserResult["headers"], $body, $request, $previousResponse, new MetaInfo($connectionInfo)) implements Response {
             private $protocolVersion;
             private $status;
             private $reason;
