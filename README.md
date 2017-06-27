@@ -1,7 +1,7 @@
 # artax
 
-[![Build Status](https://img.shields.io/travis/amphp/dns/master.svg?style=flat-square)](https://travis-ci.org/amphp/dns)
-[![CoverageStatus](https://img.shields.io/coveralls/amphp/dns/master.svg?style=flat-square)](https://coveralls.io/github/amphp/dns?branch=master)
+[![Build Status](https://img.shields.io/travis/amphp/artax/master.svg?style=flat-square)](https://travis-ci.org/amphp/artax)
+[![CoverageStatus](https://img.shields.io/coveralls/amphp/artax/master.svg?style=flat-square)](https://coveralls.io/github/amphp/artax?branch=master)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)
 
 Artax is an asynchronous HTTP/1.1 client for [Amp](https://github.com/amphp/amp). Its API simplifies standards-compliant HTTP resource traversal and RESTful web service consumption without obscuring the underlying protocol. The library manually implements HTTP over TCP sockets; as such it has no dependency on `ext/curl`.
