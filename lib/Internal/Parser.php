@@ -2,6 +2,8 @@
 
 namespace Amp\Artax\Internal;
 
+use Amp\Artax\ParseException;
+
 /** @internal */
 final class Parser {
     const STATUS_LINE_PATTERN = "#^

@@ -305,6 +305,7 @@ final class BasicClient implements Client {
 
     private function withCancellation(Promise $promise, CancellationToken $cancellationToken): Promise {
         $deferred = new Deferred;
+        $newPromise = $deferred->promise();
 
         $promise->onResolve(function ($error, $value) use (&$deferred) {
             if ($deferred) {
@@ -325,11 +326,11 @@ final class BasicClient implements Client {
             }
         });
 
-        $deferred->promise()->onResolve(function () use ($cancellationToken, $cancellationSubscription) {
+        $newPromise->onResolve(function () use ($cancellationToken, $cancellationSubscription) {
             $cancellationToken->unsubscribe($cancellationSubscription);
         });
 
-        return $deferred->promise();
+        return $newPromise;
     }
 
     private function doWrite(RequestCycle $requestCycle) {
