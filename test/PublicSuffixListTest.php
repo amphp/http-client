@@ -2,7 +2,7 @@
 
 namespace Amp\Test\Artax\Cookie;
 
-use Amp\Artax\Cookie\PublicSuffixList;
+use Amp\Artax\Internal\PublicSuffixList;
 use PHPUnit\Framework\TestCase;
 
 class PublicSuffixListTest extends TestCase {
@@ -12,7 +12,7 @@ class PublicSuffixListTest extends TestCase {
     }
 
     public function provideTestData() {
-        $lines = \file(__DIR__ . "/../fixture/public_suffix_list_tests.txt", \FILE_IGNORE_NEW_LINES | \FILE_SKIP_EMPTY_LINES);
+        $lines = \file(__DIR__ . "/fixture/public_suffix_list_tests.txt", \FILE_IGNORE_NEW_LINES | \FILE_SKIP_EMPTY_LINES);
         $lines = \array_filter($lines, function ($line) {
             return \substr($line, 0, 2) !== "//";
         });

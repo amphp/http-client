@@ -2,25 +2,21 @@
 
 namespace Amp\Artax\Internal;
 
+use Amp\Dns\InvalidNameError;
+use function Amp\Uri\normalizeDnsName;
+
 /** @internal */
 final class PublicSuffixList {
     private static $initialized = false;
     private static $suffixPatterns;
     private static $exceptionPatterns;
 
-    public static function isPublicSuffix($domain) {
+    public static function isPublicSuffix(string $domain) {
         if (!self::$initialized) {
             self::readList();
         }
 
-        if (!self::isValidHostName($domain)) {
-            $domain = \idn_to_ascii($domain, 0, \INTL_IDNA_VARIANT_UTS46);
-
-            if (!self::isValidHostName($domain)) {
-                throw new \InvalidArgumentException("Invalid host name: " . $domain);
-            }
-        }
-
+        $domain = normalizeDnsName($domain);
         $domain = \implode(".", \array_reverse(\explode(".", \trim($domain, "."))));
 
         foreach (self::$exceptionPatterns as $pattern) {
@@ -55,10 +51,15 @@ final class PublicSuffixList {
 
             $rule = \strtok($line, " \t");
 
-            if ($rule[0] === "!") {
-                $exceptions[] = self::toRegex(\substr($rule, 1), true);
-            } else {
-                $rules[] = self::toRegex($rule, false);
+            try {
+                if ($rule[0] === "!") {
+                    $exceptions[] = self::toRegex(\substr($rule, 1), true);
+                } else {
+                    $rules[] = self::toRegex($rule, false);
+                }
+            } catch (InvalidNameError $e) {
+                // ignore IDN rules if no IDN support is available
+                // requests with IDNs will fail anyway then
             }
         }
 
@@ -72,15 +73,15 @@ final class PublicSuffixList {
     }
 
     private static function toRegex($rule, $exception) {
-        if (!self::isValidHostName(\strtr($rule, "*", "x"))) {
-            $rule = \idn_to_ascii($rule, 0, \INTL_IDNA_VARIANT_UTS46);
+        $labels = \explode(".", $rule);
 
-            if (!self::isValidHostName(\strtr($rule, "*", "x"))) {
-                \trigger_error("Invalid public suffix rule: " . $rule, \E_USER_DEPRECATED);
-
-                return "";
+        foreach ($labels as $key => $label) {
+            if ($label !== "*") {
+                $labels[$key] = normalizeDnsName($label);
             }
         }
+
+        $rule = \implode(".", $labels);
 
         $regexParts = [];
 
@@ -101,13 +102,5 @@ final class PublicSuffixList {
         }, "");
 
         return $regex;
-    }
-
-    private static function isValidHostName($name) {
-        $pattern = <<<'REGEX'
-/^(?<name>[a-z0-9]([a-z0-9-]*[a-z0-9])?)(\.(?&name))*$/i
-REGEX;
-
-        return !isset($name[253]) && \preg_match($pattern, $name);
     }
 }
