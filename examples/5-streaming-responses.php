@@ -3,7 +3,6 @@
 use Amp\Artax\Client;
 use Amp\Artax\Request;
 use Amp\Artax\Response;
-use Amp\ByteStream\InMemoryStream;
 use Amp\File\Handle;
 use Amp\File\StatCache;
 use Amp\Loop;
