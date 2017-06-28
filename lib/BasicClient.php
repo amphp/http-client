@@ -7,6 +7,7 @@ use Amp\Artax\Cookie\CookieFormatException;
 use Amp\Artax\Cookie\CookieJar;
 use Amp\Artax\Cookie\NullCookieJar;
 use Amp\Artax\Cookie\PublicSuffixList;
+use Amp\Artax\Internal\RequestCycle;
 use Amp\ByteStream\InputStream;
 use Amp\ByteStream\IteratorStream;
 use Amp\ByteStream\Message;
@@ -98,7 +99,7 @@ final class BasicClient implements Client {
                 if ($redirectUri = $this->getRedirectUri($response)) {
                     // Discard response body of redirect responses
                     $body = $response->getBody();
-                    while (null !== yield $body->read());
+                    while (null !== yield $body->read()) ;
 
                     /**
                      * If this is a 302/303 we need to follow the location with a GET if the original request wasn't
@@ -152,11 +153,22 @@ final class BasicClient implements Client {
     private function doRequest(Request $request, Uri $uri, array $options, Response $previousResponse = null, CancellationToken $cancellation): Promise {
         $deferred = new Deferred;
 
-        asyncCall(function () use ($deferred, $request, $uri, $options, $previousResponse, $cancellation) {
+        $requestCycle = new RequestCycle;
+        $requestCycle->request = $request;
+        $requestCycle->uri = $uri;
+        $requestCycle->options = $options;
+        $requestCycle->previousResponse = $previousResponse;
+        $requestCycle->deferred = $deferred;
+        $requestCycle->body = new Emitter;
+        $requestCycle->cancellation = $cancellation;
+
+        asyncCall(function () use ($requestCycle) {
             try {
-                yield from $this->doWrite($request, $uri, $options, $previousResponse, $deferred, $cancellation);
+                yield from $this->doWrite($requestCycle);
             } catch (HttpException $e) {
-                if ($deferred) {
+                if ($requestCycle->deferred) {
+                    $deferred = $requestCycle->deferred;
+                    $requestCycle->deferred = null;
                     $deferred->fail($e);
                 }
             }
@@ -181,25 +193,24 @@ final class BasicClient implements Client {
         return [$request, $uri];
     }
 
-    private function doRead(Request $request, Uri $uri, ClientSocket $socket, array $options, Response $previousResponse = null, Deferred &$deferred = null, CancellationToken $cancellation): \Generator {
+    private function doRead(RequestCycle $requestCycle, ClientSocket $socket): \Generator {
         try {
-            $bodyEmitter = new Emitter;
             $backpressure = new Success;
 
-            $bodyCallback = static function ($data) use ($bodyEmitter, &$backpressure) {
-                $backpressure = $bodyEmitter->emit($data);
-            };
-
-            if ($options[self::OP_DISCARD_BODY]) {
+            if ($requestCycle->options[self::OP_DISCARD_BODY]) {
                 $bodyCallback = null;
+            } else {
+                $bodyCallback = static function ($data) use ($requestCycle, &$backpressure) {
+                    $backpressure = $requestCycle->body->emit($data);
+                };
             }
 
             $parser = new Parser($bodyCallback);
 
-            $parser->enqueueResponseMethodMatch($request->getMethod());
+            $parser->enqueueResponseMethodMatch($requestCycle->request->getMethod());
             $parser->setAllOptions([
-                Parser::OP_MAX_HEADER_BYTES => $options[self::OP_MAX_HEADER_BYTES],
-                Parser::OP_MAX_BODY_BYTES => $options[self::OP_MAX_BODY_BYTES],
+                Parser::OP_MAX_HEADER_BYTES => $requestCycle->options[self::OP_MAX_HEADER_BYTES],
+                Parser::OP_MAX_BODY_BYTES => $requestCycle->options[self::OP_MAX_BODY_BYTES],
             ]);
 
             $crypto = \stream_get_meta_data($socket->getResource())["crypto"] ?? null;
@@ -209,10 +220,8 @@ final class BasicClient implements Client {
                 $crypto ? TlsInfo::fromMetaData($crypto) : null
             );
 
-            $cancellation->throwIfRequested();
-
-            while (($chunk = yield $socket->read()) !== null) {
-                $cancellation->throwIfRequested();
+            while (($chunk = yield $this->withCancellation($socket->read(), $requestCycle->cancellation)) !== null) {
+                $requestCycle->cancellation->throwIfRequested();
 
                 try {
                     $parseResult = $parser->parse($chunk);
@@ -220,9 +229,11 @@ final class BasicClient implements Client {
                     if ($parseResult) {
                         $parseResult["headers"] = \array_change_key_case($parseResult["headers"], \CASE_LOWER);
 
-                        $response = $this->finalizeResponse($request, $parseResult, new IteratorStream($bodyEmitter->iterate()), $previousResponse, $connectionInfo);
+                        $response = $this->finalizeResponse($requestCycle, $parseResult, $connectionInfo);
 
-                        if ($deferred) {
+                        if ($requestCycle->deferred) {
+                            $deferred = $requestCycle->deferred;
+                            $requestCycle->deferred = null;
                             $deferred->resolve($response);
                         }
 
@@ -232,13 +243,10 @@ final class BasicClient implements Client {
                             $chunk = null;
 
                             do {
-                                $cancellation->throwIfRequested();
-
                                 try {
                                     $parseResult = $parser->parse($chunk);
                                 } catch (ParseException $e) {
-                                    $bodyEmitter->fail($e);
-                                    $bodyEmitter = null;
+                                    $this->fail($requestCycle, $e);
                                     throw $e;
                                 }
 
@@ -246,8 +254,10 @@ final class BasicClient implements Client {
                                     break;
                                 }
 
-                                yield $backpressure;
-                            } while (($chunk = yield $socket->read()) !== null);
+                                if (!$backpressure instanceof Success) {
+                                    yield $this->withCancellation($backpressure, $requestCycle->cancellation);
+                                }
+                            } while (($chunk = yield $this->withCancellation($socket->read(), $requestCycle->cancellation)) !== null);
                         }
 
                         if ($this->shouldCloseSocketAfterResponse($response)) {
@@ -258,18 +268,16 @@ final class BasicClient implements Client {
                         }
 
                         // Complete body AFTER socket checkin, so the socket can be reused for a potential redirect
-                        $bodyEmitter->complete();
-                        $bodyEmitter = null;
+                        $requestCycle->body->complete();
+                        $requestCycle->body = null;
 
                         return;
                     }
                 } catch (ParseException $e) {
+                    $this->fail($requestCycle, $e);
+
                     $this->socketPool->clear($socket);
                     $socket->close();
-
-                    if ($deferred) {
-                        $deferred->fail($e);
-                    }
 
                     return;
                 }
@@ -277,57 +285,69 @@ final class BasicClient implements Client {
 
             $parserState = $parser->getState();
 
+            // TODO: Implement retry count
             if ($parserState === Parser::AWAITING_HEADERS && empty($retryCount)) {
-                $this->doWrite($request, $uri, $options, $previousResponse, $deferred, $cancellation);
+                $this->doWrite($requestCycle);
             } else {
-                $exception = new SocketException(
-                    sprintf(
-                        'Socket disconnected prior to response completion (Parser state: %s)',
-                        $parserState
-                    )
-                );
-
-                if ($deferred) {
-                    $deferred->fail($exception);
-                }
-
-                $deferred = null;
-
-                if ($bodyEmitter) {
-                    $bodyEmitter->fail($exception);
-                }
-
-                $bodyEmitter = null;
+                $this->fail($requestCycle, new SocketException(sprintf(
+                    'Socket disconnected prior to response completion (Parser state: %s)',
+                    $parserState
+                )));
 
                 $this->socketPool->clear($socket);
                 $socket->close();
             }
         } catch (\Throwable $e) {
-            if ($bodyEmitter) {
-                $bodyEmitter->fail($e);
-            }
-
+            $this->fail($requestCycle, $e);
             $this->socketPool->clear($socket);
             $socket->close();
-            throw $e;
         }
     }
 
-    private function doWrite(Request $request, Uri $uri, array $options, Response $previousResponse = null, Deferred &$deferred = null, CancellationToken $cancellation) {
-        $authority = $this->generateAuthorityFromUri($uri);
-        $socketCheckoutUri = $uri->getScheme() . "://{$authority}";
+    private function withCancellation(Promise $promise, CancellationToken $cancellationToken): Promise {
+        $deferred = new Deferred;
+
+        $promise->onResolve(function ($error, $value) use (&$deferred) {
+            if ($deferred) {
+                if ($error) {
+                    $deferred->fail($error);
+                    $deferred = null;
+                } else {
+                    $deferred->resolve($value);
+                    $deferred = null;
+                }
+            }
+        });
+
+        $cancellationSubscription = $cancellationToken->subscribe(function ($e) use (&$deferred) {
+            if ($deferred) {
+                $deferred->fail($e);
+                $deferred = null;
+            }
+        });
+
+        $deferred->promise()->onResolve(function () use ($cancellationToken, $cancellationSubscription) {
+            $cancellationToken->unsubscribe($cancellationSubscription);
+        });
+
+        return $deferred->promise();
+    }
+
+    private function doWrite(RequestCycle $requestCycle) {
+        $authority = $this->generateAuthorityFromUri($requestCycle->uri);
+        $socketCheckoutUri = $requestCycle->uri->getScheme() . "://{$authority}";
 
         try {
             /** @var ClientSocket $socket */
-            $socket = yield $this->socketPool->checkout($socketCheckoutUri, $cancellation);
+            $socket = yield $this->socketPool->checkout($socketCheckoutUri, $requestCycle->cancellation);
         } catch (ResolutionException $dnsException) {
             throw new DnsException(\sprintf("Resolving the specified domain failed: '%s'", $authority), 0, $dnsException);
         }
 
         try {
-            if ($uri->getScheme() === 'https') {
+            if ($requestCycle->uri->getScheme() === 'https') {
                 try {
-                    yield $socket->enableCrypto($this->tlsContext->withPeerName($uri->getHost()));
+                    yield $socket->enableCrypto($this->tlsContext->withPeerName($requestCycle->uri->getHost()));
                 } catch (\Throwable $exception) {
                     // If crypto failed we make sure the socket pool gets rid of its reference
                     // to this socket connection.
@@ -336,17 +356,15 @@ final class BasicClient implements Client {
                 }
             }
 
-            $timeout = $options[self::OP_TRANSFER_TIMEOUT];
+            $timeout = $requestCycle->options[self::OP_TRANSFER_TIMEOUT];
 
             if ($timeout > 0) {
-                $transferTimeoutWatcher = Loop::delay($timeout, function () use (&$deferred, $timeout, $socket) {
-                    if ($deferred === null) {
+                $transferTimeoutWatcher = Loop::delay($timeout, function () use ($requestCycle, $timeout, $socket) {
+                    if ($requestCycle->deferred === null) {
                         return;
                     }
 
-                    $tmp = $deferred;
-                    $deferred = null;
-                    $tmp->fail(new TimeoutException(
+                    $this->fail($requestCycle, new TimeoutException(
                         sprintf('Allowed transfer timeout exceeded: %d ms', $timeout)
                     ));
 
@@ -354,26 +372,25 @@ final class BasicClient implements Client {
                     $socket->close();
                 });
 
-                $deferred->promise()->onResolve(static function () use ($transferTimeoutWatcher) {
+                $requestCycle->deferred->promise()->onResolve(static function () use ($transferTimeoutWatcher) {
                     Loop::cancel($transferTimeoutWatcher);
                 });
             }
 
-            $readingPromise = new Coroutine($this->doRead($request, $uri, $socket, $options, $previousResponse, $deferred, $cancellation));
-            $readingPromise->onResolve(function ($error) use (&$deferred) {
-                if ($error && $deferred) {
-                    $deferred->fail($error);
-                    $deferred = null;
+            $readingPromise = new Coroutine($this->doRead($requestCycle, $socket));
+            $readingPromise->onResolve(function ($error) use ($requestCycle) {
+                if ($error) {
+                    $this->fail($requestCycle, $error);
                 }
             });
 
-            yield $socket->write($this->generateRawRequestHeaders($request));
+            yield $socket->write($this->generateRawRequestHeaders($requestCycle->request));
 
-            $body = $request->getBody()->createBodyStream();
-            $chunking = !$request->hasHeader("content-length");
+            $body = $requestCycle->request->getBody()->createBodyStream();
+            $chunking = !$requestCycle->request->hasHeader("content-length");
 
             while (($chunk = yield $body->read()) !== null) {
-                $cancellation->throwIfRequested();
+                $requestCycle->cancellation->throwIfRequested();
 
                 if ($chunk === "") {
                     continue;
@@ -393,6 +410,19 @@ final class BasicClient implements Client {
             $this->socketPool->clear($socket);
             $socket->close();
             throw $e;
+        }
+    }
+
+    private function fail(RequestCycle $requestCycle, \Throwable $error) {
+        if ($requestCycle->deferred) {
+            $deferred = $requestCycle->deferred;
+            $requestCycle->deferred = null;
+            $deferred->fail($error);
+        }
+
+        if ($requestCycle->body) {
+            $requestCycle->body->fail($error);
+            $requestCycle->body = null;
         }
     }
 
@@ -528,7 +558,9 @@ final class BasicClient implements Client {
         return "{$host}:{$port}";
     }
 
-    private function finalizeResponse(Request $request, array $parserResult, InputStream $body, Response $previousResponse = null, ConnectionInfo $connectionInfo) {
+    private function finalizeResponse(RequestCycle $requestCycle, array $parserResult, ConnectionInfo $connectionInfo) {
+        $body = new IteratorStream($requestCycle->body->iterate());
+
         if ($encoding = $this->determineCompressionEncoding($parserResult["headers"])) {
             $body = new ZlibInputStream($body, $encoding);
         }
@@ -550,7 +582,7 @@ final class BasicClient implements Client {
             public function __destruct() {
                 asyncCall(function () {
                     try {
-                        while (null !== yield $this->body->read());
+                        while (null !== yield $this->body->read()) ;
                     } catch (StreamException $e) {
                         // ignore any exceptions, we're just discarding
                     }
@@ -558,7 +590,7 @@ final class BasicClient implements Client {
             }
         };
 
-        $response = new class($parserResult["protocol"], $parserResult["status"], $parserResult["reason"], $parserResult["headers"], $body, $request, $previousResponse, new MetaInfo($connectionInfo)) implements Response {
+        $response = new class($parserResult["protocol"], $parserResult["status"], $parserResult["reason"], $parserResult["headers"], $body, $requestCycle->request, $requestCycle->previousResponse, new MetaInfo($connectionInfo)) implements Response {
             private $protocolVersion;
             private $status;
             private $reason;
@@ -642,7 +674,7 @@ final class BasicClient implements Client {
         };
 
         if ($response->hasHeader('Set-Cookie')) {
-            $requestDomain = (new Uri($request->getUri()))->getHost();
+            $requestDomain = $requestCycle->uri->getHost();
             $cookies = $response->getHeaderArray('Set-Cookie');
 
             foreach ($cookies as $rawCookieStr) {

@@ -249,7 +249,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
 
     public function testRequestCancellation() {
         $cancellationTokenSource = new CancellationTokenSource;
-        $response = wait((new BasicClient)->request("http://httpbin.org/drip?code=200&duration=5&numbytes=12000", [], $cancellationTokenSource->getToken()));
+        $response = wait((new BasicClient)->request("http://httpbin.org/drip?code=200&duration=5&numbytes=130000", [], $cancellationTokenSource->getToken()));
         $this->assertInstanceOf(Response::class, $response);
         $cancellationTokenSource->cancel();
         $this->expectException(CancelledException::class);
