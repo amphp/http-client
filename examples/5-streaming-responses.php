@@ -1,7 +1,6 @@
 <?php
 
 use Amp\Artax\Client;
-use Amp\Artax\Request;
 use Amp\Artax\Response;
 use Amp\File\Handle;
 use Amp\File\StatCache;
