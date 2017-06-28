@@ -2,6 +2,7 @@
 
 namespace Amp\Artax;
 
+use Amp\Artax\Internal\Parser;
 use Amp\ByteStream\StreamException;
 use Amp\Promise;
 use Amp\Socket\ClientSocket;

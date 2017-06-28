@@ -5,7 +5,7 @@ namespace Amp\Artax\Test;
 use Amp\Artax\BasicClient;
 use Amp\Artax\FileBody;
 use Amp\Artax\FormBody;
-use Amp\Artax\InfiniteRedirectException;
+use Amp\Artax\TooManyRedirectsException;
 use Amp\Artax\Request;
 use Amp\Artax\Response;
 use Amp\CancellationTokenSource;
@@ -233,7 +233,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
     }
 
     public function testInfiniteRedirect() {
-        $this->expectException(InfiniteRedirectException::class);
+        $this->expectException(TooManyRedirectsException::class);
 
         wait((new BasicClient)->request("http://httpbin.org/redirect/11"));
     }

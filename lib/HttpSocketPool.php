@@ -110,11 +110,9 @@ class HttpSocketPool implements SocketPool {
             case self::OP_PROXY_HTTP:
                 $this->options[self::OP_PROXY_HTTP] = (string) $value;
                 break;
-
             case self::OP_PROXY_HTTPS:
                 $this->options[self::OP_PROXY_HTTPS] = (string) $value;
                 break;
-
             default:
                 throw new \Error("Invalid option: $option");
         }

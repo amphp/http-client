@@ -2,7 +2,7 @@
 
 namespace Amp\Artax\Test;
 
-use Amp\Artax\Parser;
+use Amp\Artax\Internal\Parser;
 use PHPUnit\Framework\TestCase;
 
 class ParserTest extends TestCase {

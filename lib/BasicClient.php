@@ -7,6 +7,7 @@ use Amp\Artax\Cookie\CookieFormatException;
 use Amp\Artax\Cookie\CookieJar;
 use Amp\Artax\Cookie\NullCookieJar;
 use Amp\Artax\Cookie\PublicSuffixList;
+use Amp\Artax\Internal\Parser;
 use Amp\Artax\Internal\RequestCycle;
 use Amp\ByteStream\InputStream;
 use Amp\ByteStream\IteratorStream;
@@ -141,9 +142,7 @@ final class BasicClient implements Client {
             } while (++$requestNr <= $maxRedirects + 1);
 
             if ($redirectUri = $this->getRedirectUri($response)) {
-                throw new InfiniteRedirectException(
-                    sprintf('Too many redirects detected while following Location header: %s', $redirectUri)
-                );
+                throw new TooManyRedirectsException($response);
             }
 
             return $response;

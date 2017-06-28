@@ -1,6 +1,6 @@
 <?php
 
-namespace Amp\Artax;
+namespace Amp\Artax\Internal;
 
 /** @internal */
 final class Parser {
