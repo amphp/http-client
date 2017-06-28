@@ -148,6 +148,10 @@ final class Cookie {
     }
 
     /**
+     * @param string $rawCookieStr
+     *
+     * @return self
+     *
      * @link https://tools.ietf.org/html/rfc6265#section-5.2
      */
     public static function fromString(string $rawCookieStr): self {
@@ -195,6 +199,7 @@ final class Cookie {
 
             if (\strpos($part, '=') === false) {
                 $attr = $part;
+                $attrValue = "1";
             } else {
                 list($attr, $attrValue) = explode('=', $part, 2);
             }

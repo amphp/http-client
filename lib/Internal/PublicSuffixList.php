@@ -1,6 +1,6 @@
 <?php
 
-namespace Amp\Artax\Cookie;
+namespace Amp\Artax\Internal;
 
 /** @internal */
 final class PublicSuffixList {
