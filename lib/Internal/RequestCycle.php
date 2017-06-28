@@ -33,4 +33,7 @@ class RequestCycle {
 
     /** @var CancellationToken */
     public $cancellation;
+
+    /** @var int */
+    public $retryCount = 0;
 }

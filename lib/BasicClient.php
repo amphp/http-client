@@ -285,8 +285,8 @@ final class BasicClient implements Client {
 
             $parserState = $parser->getState();
 
-            // TODO: Implement retry count
-            if ($parserState === Parser::AWAITING_HEADERS && empty($retryCount)) {
+            if ($parserState === Parser::AWAITING_HEADERS && $requestCycle->retryCount < 1) {
+                $requestCycle->retryCount++;
                 $this->doWrite($requestCycle);
             } else {
                 $this->fail($requestCycle, new SocketException(sprintf(
