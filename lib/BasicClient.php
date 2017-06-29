@@ -341,7 +341,7 @@ final class BasicClient implements Client {
             /** @var ClientSocket $socket */
             $socket = yield $this->socketPool->checkout($socketCheckoutUri, $requestCycle->cancellation);
         } catch (ResolutionException $dnsException) {
-            throw new DnsException(\sprintf("Resolving the specified domain failed: '%s'", $authority), 0, $dnsException);
+            throw new DnsException(\sprintf("Resolving the specified domain failed: '%s'", $requestCycle->uri->getHost()), 0, $dnsException);
         }
 
         try {
