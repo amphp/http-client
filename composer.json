@@ -26,7 +26,8 @@
         "amphp/amp": "^2",
         "amphp/socket": "^0.10",
         "amphp/uri": "^0.1",
-        "amphp/file": "^0.2"
+        "amphp/file": "^0.2",
+        "kelunik/certificate": "^1.1"
     },
     "require-dev": {
         "amphp/phpunit-util": "^1",

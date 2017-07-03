@@ -216,7 +216,7 @@ final class BasicClient implements Client {
             $connectionInfo = new ConnectionInfo(
                 $socket->getLocalAddress(),
                 $socket->getRemoteAddress(),
-                $crypto ? TlsInfo::fromMetaData($crypto) : null
+                $crypto ? TlsInfo::fromMetaData($crypto, \stream_context_get_options($socket->getResource())["ssl"]) : null
             );
 
             while (($chunk = yield $this->withCancellation($socket->read(), $requestCycle->cancellation)) !== null) {
@@ -347,7 +347,11 @@ final class BasicClient implements Client {
         try {
             if ($requestCycle->uri->getScheme() === 'https') {
                 try {
-                    yield $socket->enableCrypto($this->tlsContext->withPeerName($requestCycle->uri->getHost()));
+                    $tlsContext = $this->tlsContext
+                        ->withPeerName($requestCycle->uri->getHost())
+                        ->withPeerCapturing();
+
+                    yield $socket->enableCrypto($tlsContext);
                 } catch (\Throwable $exception) {
                     // If crypto failed we make sure the socket pool gets rid of its reference
                     // to this socket connection.

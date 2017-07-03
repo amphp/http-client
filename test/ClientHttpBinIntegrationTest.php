@@ -241,10 +241,19 @@ class ClientHttpBinIntegrationTest extends TestCase {
     public function testConnectionInfo() {
         /** @var Response $response */
         $response = wait((new BasicClient)->request("https://httpbin.org/get"));
-        $this->assertContains(":", $response->getMetaInfo()->getConnectionInfo()->getLocalAddress());
-        $this->assertContains(":", $response->getMetaInfo()->getConnectionInfo()->getRemoteAddress());
-        $this->assertNotNull($response->getMetaInfo()->getConnectionInfo()->getTlsInfo());
-        $this->assertSame("TLSv1.2", $response->getMetaInfo()->getConnectionInfo()->getTlsInfo()->getProtocol());
+        $connectionInfo = $response->getMetaInfo()->getConnectionInfo();
+
+        $this->assertContains(":", $connectionInfo->getLocalAddress());
+        $this->assertContains(":", $connectionInfo->getRemoteAddress());
+        $this->assertNotNull($connectionInfo->getTlsInfo());
+        $this->assertSame("TLSv1.2", $connectionInfo->getTlsInfo()->getProtocol());
+        $this->assertNotEmpty($connectionInfo->getTlsInfo()->getPeerCertificates());
+        $this->assertContains("httpbin.org", $connectionInfo->getTlsInfo()->getPeerCertificates()[0]->getNames());
+
+        foreach ($connectionInfo->getTlsInfo()->getPeerCertificates() as $certificate) {
+            $this->assertGreaterThanOrEqual($certificate->getValidFrom(), time(), "Failed for " . $certificate->getSubject()->getCommonName());
+            $this->assertLessThanOrEqual($certificate->getValidTo(), time(), "Failed for " . $certificate->getSubject()->getCommonName());
+        }
     }
 
     public function testRequestCancellation() {
