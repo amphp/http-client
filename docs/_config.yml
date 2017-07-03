@@ -23,6 +23,5 @@ defaults:
 asset_path: "/artax/.shared/asset"
 
 navigation:
- - custom-requests
- - request-bodies
+ - requests
  - streaming

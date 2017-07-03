@@ -71,6 +71,7 @@ final class BasicClient implements Client {
         return call(function () use ($uriOrRequest, $options, $cancellation) {
             $cancellation = $cancellation ?? new NullCancellationToken;
 
+            /** @var Request $request */
             list($request, $uri) = $this->generateRequestFromUri($uriOrRequest);
             $options = $options ? array_merge($this->options, $options) : $this->options;
 
