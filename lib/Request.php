@@ -6,8 +6,8 @@ namespace Amp\Artax;
  * An HTTP request.
  */
 final class Request {
-    /** @var string */
-    private $protocolVersion = "1.1";
+    /** @var string[] */
+    private $protocolVersions = ["1.1", "2.0"];
 
     /** @var string */
     private $method;
@@ -31,34 +31,44 @@ final class Request {
     }
 
     /**
-     * Retrieve the requests's HTTP protocol version.
+     * Retrieve the requests's acceptable HTTP protocol versions.
      *
-     * @return string
+     * @return string[]
      */
-    public function getProtocolVersion(): string {
-        return $this->protocolVersion;
+    public function getProtocolVersions(): array {
+        return $this->protocolVersions;
     }
 
     /**
-     * Assign the requests's HTTP protocol version.
+     * Assign the requests's acceptable HTTP protocol versions.
      *
-     * @param string $version
+     * The HTTP client might choose any of these.
+     *
+     * @param string[] $versions
      *
      * @return Request
      */
-    public function withProtocolVersion(string $version): self {
-        if ($version !== "1.0" && $version !== "1.1") {
-            throw new HttpException(
-                "Invalid HTTP protocol version: " . $version
-            );
+    public function withProtocolVersions(array $versions): self {
+        $versions = \array_unique($versions);
+
+        if (empty($versions)) {
+            throw new \Error("Empty array of protocol versions provided, must not be empty.");
         }
 
-        if ($this->protocolVersion === $version) {
+        foreach ($versions as $version) {
+            if (!\in_array($version, ["1.0", "1.1", "2.0"], true)) {
+                throw new \Error(
+                    "Invalid HTTP protocol version: " . $version
+                );
+            }
+        }
+
+        if ($this->protocolVersions === $versions) {
             return $this;
         }
 
         $clone = clone $this;
-        $clone->protocolVersion = $version;
+        $clone->protocolVersions = $versions;
 
         return $clone;
     }
@@ -200,8 +210,12 @@ final class Request {
         $clone = clone $this;
 
         foreach ($headers as $field => $values) {
-            if (!\is_string($field)) {
+            if (!\is_string($field) && !\is_int($field)) {
+                // PHP converts integer strings automatically to integers.
+                // Later versions of PHP might allow other key types.
+                // @codeCoverageIgnoreStart
                 throw new \TypeError("All array keys for withAllHeaders must be strings");
+                // @codeCoverageIgnoreEnd
             }
 
             $field = \trim($field);
@@ -214,7 +228,7 @@ final class Request {
             $clone->headers[$lower] = [];
 
             foreach ($values as $value) {
-                if (!\is_string($field)) {
+                if (!\is_string($value) && !\is_int($value) && !\is_float($value)) {
                     throw new \TypeError("All values for withAllHeaders must be string or an array of strings");
                 }
 
@@ -222,6 +236,10 @@ final class Request {
             }
 
             $clone->headerCaseMap[$lower] = $field;
+
+            if (empty($clone->headers[$lower])) {
+                unset($clone->headers[$lower], $clone->headerCaseMap[$lower]);
+            }
         }
 
         return $clone;
@@ -230,10 +248,22 @@ final class Request {
     /**
      * Retrieve an associative array of headers matching field names to an array of field values.
      *
+     * @param bool $originalCase If true, headers are returned in the case of the last set header with that name.
+     *
      * @return array
      */
-    public function getAllHeaders(): array {
-        return $this->headers;
+    public function getAllHeaders(bool $originalCase = false): array {
+        if (!$originalCase) {
+            return $this->headers;
+        }
+
+        $headers = [];
+
+        foreach ($this->headers as $header => $values) {
+            $headers[$this->headerCaseMap[$header]] = $values;
+        }
+
+        return $headers;
     }
 
     /**

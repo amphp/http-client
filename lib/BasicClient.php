@@ -19,6 +19,7 @@ use Amp\Coroutine;
 use Amp\Deferred;
 use Amp\Dns\ResolutionException;
 use Amp\Emitter;
+use Amp\Failure;
 use Amp\Loop;
 use Amp\NullCancellationToken;
 use Amp\Promise;
@@ -162,6 +163,18 @@ final class BasicClient implements Client {
         $requestCycle->body = new Emitter;
         $requestCycle->cancellation = $cancellation;
 
+        $protocolVersions = $request->getProtocolVersions();
+
+        if (\in_array("1.1", $protocolVersions)) {
+            $requestCycle->protocolVersion = "1.1";
+        } elseif (\in_array("1.0", $protocolVersions)) {
+            $requestCycle->protocolVersion = "1.0";
+        } else {
+            return new Failure(new HttpException(
+                "None of the requested protocol versions are supported: " . \implode(", ", $protocolVersions)
+            ));
+        }
+
         asyncCall(function () use ($requestCycle) {
             try {
                 yield from $this->doWrite($requestCycle);
@@ -287,7 +300,7 @@ final class BasicClient implements Client {
 
             if ($parserState === Parser::AWAITING_HEADERS && $requestCycle->retryCount < 1) {
                 $requestCycle->retryCount++;
-                $this->doWrite($requestCycle);
+                yield from $this->doWrite($requestCycle);
             } else {
                 $this->fail($requestCycle, new SocketException(sprintf(
                     'Socket disconnected prior to response completion (Parser state: %s)',
@@ -389,7 +402,7 @@ final class BasicClient implements Client {
                 }
             });
 
-            yield $socket->write($this->generateRawRequestHeaders($requestCycle->request));
+            yield $socket->write($this->generateRawRequestHeaders($requestCycle->request, $requestCycle->protocolVersion));
 
             $body = $requestCycle->request->getBody()->createBodyStream();
             $chunking = !$requestCycle->request->hasHeader("content-length");
@@ -812,6 +825,7 @@ final class BasicClient implements Client {
 
     /**
      * @param Request $request
+     * @param string  $protocolVersion
      *
      * @return string
      *
@@ -819,7 +833,7 @@ final class BasicClient implements Client {
      *       Right now this doesn't matter because all proxy requests use a CONNECT
      *       tunnel but this likely will not always be the case.
      */
-    private function generateRawRequestHeaders(Request $request): string {
+    private function generateRawRequestHeaders(Request $request, string $protocolVersion): string {
         $uri = $request->getUri();
         $uri = new Uri($uri);
 
@@ -829,9 +843,9 @@ final class BasicClient implements Client {
             $requestUri .= '?' . $query;
         }
 
-        $head = $request->getMethod() . ' ' . $requestUri . ' HTTP/' . $request->getProtocolVersion() . "\r\n";
+        $head = $request->getMethod() . ' ' . $requestUri . ' HTTP/' . $protocolVersion . "\r\n";
 
-        foreach ($request->getAllHeaders() as $field => $values) {
+        foreach ($request->getAllHeaders(true) as $field => $values) {
             if (\strcspn($field, "\r\n") !== \strlen($field)) {
                 throw new HttpException("Blocked header injection attempt for header '{$field}'");
             }

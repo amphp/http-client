@@ -13,6 +13,9 @@ use Amp\Uri\Uri;
 class RequestCycle {
     use Struct;
 
+    /** @var string */
+    public $protocolVersion;
+
     /** @var Request */
     public $request;
 
