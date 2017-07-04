@@ -2,7 +2,6 @@
 
 namespace Amp\Artax\Test;
 
-use Amp\Artax\AggregateBody;
 use Amp\Artax\Request;
 use Amp\Artax\StringBody;
 use Amp\PHPUnit\TestCase;
