@@ -143,7 +143,7 @@ final class BasicClient implements Client {
                 }
             } while (++$requestNr <= $maxRedirects + 1);
 
-            if ($redirectUri = $this->getRedirectUri($response)) {
+            if ($maxRedirects !== 0 && $redirectUri = $this->getRedirectUri($response)) {
                 throw new TooManyRedirectsException($response);
             }
 
