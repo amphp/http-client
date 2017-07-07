@@ -895,41 +895,78 @@ final class DefaultClient implements Client {
     }
 
     /**
-     * Set an individual option.
+     * Set an option.
      *
      * @param string $option A Client option constant
      * @param mixed  $value The option value to assign
      *
-     * @throws \Error On unknown option key
+     * @throws \Error On unknown option key or invalid value.
      */
     public function setOption(string $option, $value) {
         switch ($option) {
             case self::OP_AUTO_ENCODING:
-                $this->options[self::OP_AUTO_ENCODING] = (bool) $value;
+                if (!\is_bool($value)) {
+                    throw new \TypeError("Invalid value for OP_AUTO_ENCODING, bool expected");
+                }
+
+                $this->options[self::OP_AUTO_ENCODING] = $value;
                 break;
+
             case self::OP_TRANSFER_TIMEOUT:
-                $this->options[self::OP_TRANSFER_TIMEOUT] = (int) $value;
+                if (!\is_int($value) || $value < 0) {
+                    throw new \Error("Invalid value for OP_TRANSFER_TIMEOUT, int >= 0 expected");
+                }
+
+                $this->options[self::OP_TRANSFER_TIMEOUT] = $value;
                 break;
+
             case self::OP_MAX_REDIRECTS:
-                $this->options[self::OP_MAX_REDIRECTS] = (int) $value;
+                if (!\is_int($value) || $value < 0) {
+                    throw new \Error("Invalid value for OP_MAX_REDIRECTS, int >= 0 expected");
+                }
+
+                $this->options[self::OP_MAX_REDIRECTS] = $value;
                 break;
+
             case self::OP_AUTO_REFERER:
-                $this->options[self::OP_AUTO_REFERER] = (bool) $value;
+                if (!\is_bool($value)) {
+                    throw new \TypeError("Invalid value for OP_AUTO_REFERER, bool expected");
+                }
+
+                $this->options[self::OP_AUTO_REFERER] = $value;
                 break;
+
             case self::OP_DISCARD_BODY:
-                $this->options[self::OP_DISCARD_BODY] = (bool) $value;
+                if (!\is_bool($value)) {
+                    throw new \TypeError("Invalid value for OP_DISCARD_BODY, bool expected");
+                }
+
+                $this->options[self::OP_DISCARD_BODY] = $value;
                 break;
+
             case self::OP_DEFAULT_HEADERS:
                 // We attempt to set the headers here, because they're automatically validated then.
                 (new Request("https://example.com/"))->withAllHeaders($value);
+
                 $this->options[self::OP_DEFAULT_HEADERS] = $value;
                 break;
+
             case self::OP_MAX_HEADER_BYTES:
-                $this->options[self::OP_MAX_HEADER_BYTES] = (int) $value;
+                if (!\is_int($value) || $value < 0) {
+                    throw new \Error("Invalid value for OP_MAX_HEADER_BYTES, int >= 0 expected");
+                }
+
+                $this->options[self::OP_MAX_HEADER_BYTES] = $value;
                 break;
+
             case self::OP_MAX_BODY_BYTES:
-                $this->options[self::OP_MAX_BODY_BYTES] = (int) $value;
+                if (!\is_int($value) || $value < 0) {
+                    throw new \Error("Invalid value for OP_MAX_BODY_BYTES, int >= 0 expected");
+                }
+
+                $this->options[self::OP_MAX_BODY_BYTES] = $value;
                 break;
+
             default:
                 throw new \Error(
                     sprintf("Unknown option: %s", $option)
