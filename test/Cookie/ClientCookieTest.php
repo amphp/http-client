@@ -2,14 +2,14 @@
 
 namespace Amp\Test\Artax\Cookie;
 
-use Amp\Artax\BasicClient;
 use Amp\Artax\Cookie\ArrayCookieJar;
 use Amp\Artax\Cookie\Cookie;
 use Amp\Artax\Cookie\CookieJar;
+use Amp\Artax\DefaultClient;
 use PHPUnit\Framework\TestCase;
 
 class ClientCookieTest extends TestCase {
-    /** @var BasicClient */
+    /** @var DefaultClient */
     private $client;
 
     /** @var CookieJar */
@@ -17,7 +17,7 @@ class ClientCookieTest extends TestCase {
 
     public function setUp() {
         $this->jar = new ArrayCookieJar;
-        $this->client = new BasicClient($this->jar);
+        $this->client = new DefaultClient($this->jar);
     }
 
     /** @dataProvider provideCookieDomainMatchData */

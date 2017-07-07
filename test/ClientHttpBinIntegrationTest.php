@@ -2,7 +2,7 @@
 
 namespace Amp\Artax\Test;
 
-use Amp\Artax\BasicClient;
+use Amp\Artax\DefaultClient;
 use Amp\Artax\FileBody;
 use Amp\Artax\FormBody;
 use Amp\Artax\Request;
@@ -16,7 +16,7 @@ use function Amp\Promise\wait;
 class ClientHttpBinIntegrationTest extends TestCase {
     public function testDefaultUserAgentSent() {
         $uri = 'http://httpbin.org/user-agent';
-        $client = new BasicClient;
+        $client = new DefaultClient;
 
         $promise = $client->request($uri);
         $response = wait($promise);
@@ -26,12 +26,12 @@ class ClientHttpBinIntegrationTest extends TestCase {
         $body = wait($response->getBody());
         $result = json_decode($body);
 
-        $this->assertSame(BasicClient::DEFAULT_USER_AGENT, $result->{'user-agent'});
+        $this->assertSame(DefaultClient::DEFAULT_USER_AGENT, $result->{'user-agent'});
     }
 
     public function testCustomUserAgentSentIfAssigned() {
         $uri = 'http://httpbin.org/user-agent';
-        $client = new BasicClient;
+        $client = new DefaultClient;
 
         $customUserAgent = 'test-user-agent';
         $request = (new Request($uri))->withHeader('User-Agent', $customUserAgent);
@@ -48,7 +48,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
     }
 
     public function testPostStringBody() {
-        $client = new BasicClient;
+        $client = new DefaultClient;
 
         $body = 'zanzibar';
         $request = (new Request('http://httpbin.org/post'))->withMethod('POST')->withBody($body);
@@ -63,7 +63,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
 
     public function testPutStringBody() {
         $uri = 'http://httpbin.org/put';
-        $client = new BasicClient;
+        $client = new DefaultClient;
 
         $body = 'zanzibar';
         $request = (new Request($uri, "PUT"))->withBody($body);
@@ -80,7 +80,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
      * @dataProvider provideStatusCodes
      */
     public function testStatusCodeResponses($statusCode) {
-        $client = new BasicClient;
+        $client = new DefaultClient;
 
         $response = wait($client->request("http://httpbin.org/status/{$statusCode}"));
 
@@ -98,7 +98,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
     }
 
     public function testReason() {
-        $client = new BasicClient;
+        $client = new DefaultClient;
 
         $response = wait($client->request("http://httpbin.org/status/418"));
 
@@ -115,7 +115,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
         $redirectTo = "/status/{$statusCode}";
         $uri = "http://httpbin.org/redirect-to?url=" . \rawurlencode($redirectTo);
 
-        $client = new BasicClient;
+        $client = new DefaultClient;
 
         $response = wait($client->request($uri));
 
@@ -129,7 +129,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
 
     public function testClientAddsZeroContentLengthHeaderForEmptyBodiesOnPost() {
         $uri = 'http://httpbin.org/post';
-        $client = new BasicClient;
+        $client = new DefaultClient;
 
         $request = (new Request($uri))->withMethod('POST');
 
@@ -145,7 +145,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
     }
 
     public function testFormEncodedBodyRequest() {
-        $client = new BasicClient;
+        $client = new DefaultClient;
 
         $body = new FormBody;
         $field1 = 'test val';
@@ -167,7 +167,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
 
     public function testFileBodyRequest() {
         $uri = 'http://httpbin.org/post';
-        $client = new BasicClient;
+        $client = new DefaultClient;
 
         $bodyPath = __DIR__ . '/fixture/answer.txt';
         $body = new FileBody($bodyPath);
@@ -183,7 +183,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
     }
 
     public function testMultipartBodyRequest() {
-        $client = new BasicClient;
+        $client = new DefaultClient;
 
         $field1 = 'test val';
         $file1 = __DIR__ . '/fixture/lorem.txt';
@@ -209,7 +209,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
     }
 
     public function testGzipResponse() {
-        $client = new BasicClient;
+        $client = new DefaultClient;
 
         $response = wait($client->request('http://httpbin.org/gzip'));
 
@@ -221,7 +221,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
     }
 
     public function testDeflateResponse() {
-        $client = new BasicClient;
+        $client = new DefaultClient;
 
         $response = wait($client->request('http://httpbin.org/deflate'));
 
@@ -235,12 +235,12 @@ class ClientHttpBinIntegrationTest extends TestCase {
     public function testInfiniteRedirect() {
         $this->expectException(TooManyRedirectsException::class);
 
-        wait((new BasicClient)->request("http://httpbin.org/redirect/11"));
+        wait((new DefaultClient)->request("http://httpbin.org/redirect/11"));
     }
 
     public function testConnectionInfo() {
         /** @var Response $response */
-        $response = wait((new BasicClient)->request("https://httpbin.org/get"));
+        $response = wait((new DefaultClient)->request("https://httpbin.org/get"));
         $connectionInfo = $response->getMetaInfo()->getConnectionInfo();
 
         $this->assertContains(":", $connectionInfo->getLocalAddress());
@@ -258,7 +258,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
 
     public function testRequestCancellation() {
         $cancellationTokenSource = new CancellationTokenSource;
-        $response = wait((new BasicClient)->request("http://httpbin.org/drip?code=200&duration=5&numbytes=130000", [], $cancellationTokenSource->getToken()));
+        $response = wait((new DefaultClient)->request("http://httpbin.org/drip?code=200&duration=5&numbytes=130000", [], $cancellationTokenSource->getToken()));
         $this->assertInstanceOf(Response::class, $response);
         $cancellationTokenSource->cancel();
         $this->expectException(CancelledException::class);

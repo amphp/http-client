@@ -8,7 +8,7 @@ require __DIR__ . '/../vendor/autoload.php';
 Loop::run(function () {
     try {
         // Instantiate the HTTP client
-        $client = new Amp\Artax\BasicClient;
+        $client = new Amp\Artax\DefaultClient;
 
         // Make an asynchronous HTTP request
         $promise = $client->request('https://httpbin.org/user-agent');

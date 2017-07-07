@@ -32,13 +32,13 @@ use function Amp\asyncCall;
 use function Amp\call;
 
 /**
- * Standard Client implementation.
+ * Standard client implementation.
  *
- * Use the Client interface for your type declarations so people can use composition to add layers like caching.
+ * Use the `Client` interface for your type declarations so people can use composition to add layers like caching.
  *
  * @see Client
  */
-final class BasicClient implements Client {
+final class DefaultClient implements Client {
     const DEFAULT_USER_AGENT = 'Mozilla/5.0 (compatible; Artax)';
 
     private $cookieJar;

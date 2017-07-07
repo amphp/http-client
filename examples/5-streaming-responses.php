@@ -13,7 +13,7 @@ Loop::run(function () {
         $start = microtime(1);
 
         // Instantiate the HTTP client
-        $client = new Amp\Artax\BasicClient;
+        $client = new Amp\Artax\DefaultClient;
 
         // Make an asynchronous HTTP request
         $promise = $client->request('http://speed.hetzner.de/100MB.bin', [

@@ -9,7 +9,7 @@ require __DIR__ . '/../vendor/autoload.php';
 Loop::run(function () {
     try {
         // Instantiate the HTTP client
-        $client = new Amp\Artax\BasicClient;
+        $client = new Amp\Artax\DefaultClient;
 
         // Here we create a custom request object instead of simply passing an URL to request().
         $request = (new Request('https://httpbin.org/headers'))
