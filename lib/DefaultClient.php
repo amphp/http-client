@@ -78,7 +78,9 @@ final class DefaultClient implements Client {
 
             $headers = yield $request->getBody()->getHeaders();
             foreach ($headers as $name => $header) {
-                $request = $request->withHeader($name, $header);
+                if (!$request->hasHeader($name)) {
+                    $request = $request->withHeader($name, $header);
+                }
             }
 
             $originalUri = $uri;
