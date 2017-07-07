@@ -98,11 +98,7 @@ final class DefaultClient implements Client {
             do {
                 /** @var Request $request */
                 $request = yield from $this->normalizeRequestBodyHeaders($request);
-                $request = $this->normalizeRequestEncodingHeaderForZlib($request, $options);
-                $request = $this->normalizeRequestHostHeader($request, $uri);
-                $request = $this->normalizeRequestUserAgent($request);
-                $request = $this->normalizeRequestAcceptHeader($request);
-                $request = $this->assignApplicableRequestCookies($request);
+                $request = $this->normalizeRequestHeaders($request, $uri, $options);
 
                 /** @var Response $response */
                 $response = yield $this->doRequest($request, $uri, $options, $previousResponse, $cancellation);
@@ -135,8 +131,12 @@ final class DefaultClient implements Client {
                             $request = $request->withBody(null);
                         }
                     } else {
-                        // We ALWAYS follow with a GET and without any headers or the body for redirects to other hosts
+                        // We ALWAYS follow with a GET and without any set headers or body for redirects to other hosts.
+                        $optionsWithoutHeaders = $options;
+                        unset($optionsWithoutHeaders[self::OP_DEFAULT_HEADERS]);
+
                         $request = new Request((string) $redirectUri);
+                        $request = $this->normalizeRequestHeaders($request, $redirectUri, $optionsWithoutHeaders);
                     }
 
                     if ($options[self::OP_AUTO_REFERER]) {
@@ -490,6 +490,16 @@ final class DefaultClient implements Client {
                 $request = $request->withHeader("Transfer-Encoding", "chunked");
             }
         }
+
+        return $request;
+    }
+
+    private function normalizeRequestHeaders($request, $uri, $options) {
+        $request = $this->normalizeRequestEncodingHeaderForZlib($request, $options);
+        $request = $this->normalizeRequestHostHeader($request, $uri);
+        $request = $this->normalizeRequestUserAgent($request);
+        $request = $this->normalizeRequestAcceptHeader($request);
+        $request = $this->assignApplicableRequestCookies($request);
 
         return $request;
     }
