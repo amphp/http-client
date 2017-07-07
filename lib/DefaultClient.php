@@ -467,7 +467,7 @@ final class DefaultClient implements Client {
             $request = $request->withBody(null);
         }
 
-        /** @var AggregateBody $body */
+        /** @var RequestBody $body */
         $body = $request->getBody();
         $bodyLength = yield $body->getBodyLength();
 

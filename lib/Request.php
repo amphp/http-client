@@ -21,7 +21,7 @@ final class Request {
     /** @var array lowercase header to actual case map */
     private $headerCaseMap = [];
 
-    /** @var AggregateBody */
+    /** @var RequestBody */
     private $body;
 
     public function __construct(string $uri, string $method = "GET") {
@@ -291,7 +291,7 @@ final class Request {
      *
      * @return mixed
      */
-    public function getBody(): AggregateBody {
+    public function getBody(): RequestBody {
         return $this->body;
     }
 
@@ -309,7 +309,7 @@ final class Request {
             $clone->body = new StringBody("");
         } elseif (\is_scalar($body)) {
             $clone->body = new StringBody((string) $body);
-        } elseif ($body instanceof AggregateBody) {
+        } elseif ($body instanceof RequestBody) {
             $clone->body = $body;
         } else {
             throw new \TypeError("Invalid body type: " . gettype($body));

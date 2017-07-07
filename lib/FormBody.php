@@ -10,7 +10,7 @@ use Amp\Promise;
 use Amp\Success;
 use function Amp\call;
 
-final class FormBody implements AggregateBody {
+final class FormBody implements RequestBody {
     private $fields = [];
     private $boundary;
     private $isMultipart = false;
