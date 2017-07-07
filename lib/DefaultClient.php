@@ -51,7 +51,7 @@ final class DefaultClient implements Client {
         self::OP_MAX_REDIRECTS => 5,
         self::OP_AUTO_REFERER => true,
         self::OP_DISCARD_BODY => false,
-        self::OP_USER_AGENT => null,
+        self::OP_DEFAULT_HEADERS => [],
         self::OP_MAX_HEADER_BYTES => Parser::DEFAULT_MAX_HEADER_BYTES,
         self::OP_MAX_BODY_BYTES => Parser::DEFAULT_MAX_BODY_BYTES,
     ];
@@ -76,10 +76,16 @@ final class DefaultClient implements Client {
             list($request, $uri) = $this->generateRequestFromUri($uriOrRequest);
             $options = $options ? array_merge($this->options, $options) : $this->options;
 
+            foreach ($this->options[self::OP_DEFAULT_HEADERS] as $name => $header) {
+                if (!$request->hasHeader($name)) {
+                    $request = $request->withAllHeaders([$name => $header]);
+                }
+            }
+
             $headers = yield $request->getBody()->getHeaders();
             foreach ($headers as $name => $header) {
                 if (!$request->hasHeader($name)) {
-                    $request = $request->withHeader($name, $header);
+                    $request = $request->withAllHeaders([$name => $header]);
                 }
             }
 
@@ -94,7 +100,7 @@ final class DefaultClient implements Client {
                 $request = yield from $this->normalizeRequestBodyHeaders($request);
                 $request = $this->normalizeRequestEncodingHeaderForZlib($request, $options);
                 $request = $this->normalizeRequestHostHeader($request, $uri);
-                $request = $this->normalizeRequestUserAgent($request, $options);
+                $request = $this->normalizeRequestUserAgent($request);
                 $request = $this->normalizeRequestAcceptHeader($request);
                 $request = $this->assignApplicableRequestCookies($request);
 
@@ -526,13 +532,12 @@ final class DefaultClient implements Client {
         return $host;
     }
 
-    private function normalizeRequestUserAgent(Request $request, array $options): Request {
+    private function normalizeRequestUserAgent(Request $request): Request {
         if ($request->hasHeader('User-Agent')) {
             return $request;
         }
 
-        $userAgent = $options[self::OP_USER_AGENT] ?? self::DEFAULT_USER_AGENT;
-        return $request->withHeader('User-Agent', $userAgent);
+        return $request->withHeader('User-Agent', self::DEFAULT_USER_AGENT);
     }
 
     private function normalizeRequestAcceptHeader(Request $request): Request {
@@ -882,12 +887,12 @@ final class DefaultClient implements Client {
     /**
      * Set an individual option.
      *
-     * @param int   $option A Client option constant
-     * @param mixed $value The option value to assign
+     * @param string $option A Client option constant
+     * @param mixed  $value The option value to assign
      *
      * @throws \Error On unknown option key
      */
-    public function setOption($option, $value) {
+    public function setOption(string $option, $value) {
         switch ($option) {
             case self::OP_AUTO_ENCODING:
                 $this->options[self::OP_AUTO_ENCODING] = (bool) $value;
@@ -904,8 +909,10 @@ final class DefaultClient implements Client {
             case self::OP_DISCARD_BODY:
                 $this->options[self::OP_DISCARD_BODY] = (bool) $value;
                 break;
-            case self::OP_USER_AGENT:
-                $this->options[self::OP_USER_AGENT] = (string) $value;
+            case self::OP_DEFAULT_HEADERS:
+                // We attempt to set the headers here, because they're automatically validated then.
+                (new Request("https://example.com/"))->withAllHeaders($value);
+                $this->options[self::OP_DEFAULT_HEADERS] = $value;
                 break;
             case self::OP_MAX_HEADER_BYTES:
                 $this->options[self::OP_MAX_HEADER_BYTES] = (int) $value;

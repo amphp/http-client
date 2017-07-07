@@ -25,8 +25,8 @@ interface Client {
     /** Whether to directly discard the HTTP response body or not. */
     const OP_DISCARD_BODY = 'amp.artax.client.discard-body';
 
-    /** User-Agent header value to use, will use internal default otherwise. */
-    const OP_USER_AGENT = 'amp.artax.client.user-agent';
+    /** Default headers to use. */
+    const OP_DEFAULT_HEADERS = 'amp.artax.client.default-headers';
 
     /** Maximum header size, usually doesn't have to be adjusted. */
     const OP_MAX_HEADER_BYTES = Parser::OP_MAX_HEADER_BYTES;
