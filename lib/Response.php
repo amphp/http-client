@@ -7,7 +7,9 @@ use Amp\ByteStream\Message;
 /**
  * An HTTP response.
  *
- * This interface allows mocking responses. `BasicClient` uses an anonymous class to implement this interface.
+ * This interface allows mocking responses and allows custom implementations.
+ *
+ * `DefaultClient` uses an anonymous class to implement this interface.
  */
 interface Response {
     /**
