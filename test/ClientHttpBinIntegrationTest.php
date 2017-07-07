@@ -2,6 +2,7 @@
 
 namespace Amp\Artax\Test;
 
+use Amp\Artax\Client;
 use Amp\Artax\DefaultClient;
 use Amp\Artax\FileBody;
 use Amp\Artax\FormBody;
@@ -37,6 +38,25 @@ class ClientHttpBinIntegrationTest extends TestCase {
         $request = (new Request($uri))->withHeader('User-Agent', $customUserAgent);
 
         $promise = $client->request($request);
+        $response = wait($promise);
+
+        $this->assertInstanceOf(Response::class, $response);
+
+        $body = wait($response->getBody());
+        $result = json_decode($body);
+
+        $this->assertSame($customUserAgent, $result->{'user-agent'});
+    }
+
+    public function testCustomUserAgentSentIfAssignedViaDefaultHeaders() {
+        $customUserAgent = 'test-user-agent';
+        $uri = 'http://httpbin.org/user-agent';
+        $client = new DefaultClient;
+        $client->setOption(Client::OP_DEFAULT_HEADERS, [
+            "user-agent" => $customUserAgent,
+        ]);
+
+        $promise = $client->request($uri);
         $response = wait($promise);
 
         $this->assertInstanceOf(Response::class, $response);
