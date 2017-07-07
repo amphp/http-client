@@ -72,6 +72,10 @@ final class DefaultClient implements Client {
         return call(function () use ($uriOrRequest, $options, $cancellation) {
             $cancellation = $cancellation ?? new NullCancellationToken;
 
+            foreach ($options as $option => $value) {
+                $this->validateOption($option, $value);
+            }
+
             /** @var Request $request */
             list($request, $uri) = $this->generateRequestFromUri($uriOrRequest);
             $options = $options ? array_merge($this->options, $options) : $this->options;
@@ -903,13 +907,17 @@ final class DefaultClient implements Client {
      * @throws \Error On unknown option key or invalid value.
      */
     public function setOption(string $option, $value) {
+        $this->validateOption($option, $value);
+        $this->options[$option] = $value;
+    }
+
+    private function validateOption(string $option, $value) {
         switch ($option) {
             case self::OP_AUTO_ENCODING:
                 if (!\is_bool($value)) {
                     throw new \TypeError("Invalid value for OP_AUTO_ENCODING, bool expected");
                 }
 
-                $this->options[self::OP_AUTO_ENCODING] = $value;
                 break;
 
             case self::OP_TRANSFER_TIMEOUT:
@@ -917,7 +925,6 @@ final class DefaultClient implements Client {
                     throw new \Error("Invalid value for OP_TRANSFER_TIMEOUT, int >= 0 expected");
                 }
 
-                $this->options[self::OP_TRANSFER_TIMEOUT] = $value;
                 break;
 
             case self::OP_MAX_REDIRECTS:
@@ -925,7 +932,6 @@ final class DefaultClient implements Client {
                     throw new \Error("Invalid value for OP_MAX_REDIRECTS, int >= 0 expected");
                 }
 
-                $this->options[self::OP_MAX_REDIRECTS] = $value;
                 break;
 
             case self::OP_AUTO_REFERER:
@@ -933,7 +939,6 @@ final class DefaultClient implements Client {
                     throw new \TypeError("Invalid value for OP_AUTO_REFERER, bool expected");
                 }
 
-                $this->options[self::OP_AUTO_REFERER] = $value;
                 break;
 
             case self::OP_DISCARD_BODY:
@@ -941,14 +946,12 @@ final class DefaultClient implements Client {
                     throw new \TypeError("Invalid value for OP_DISCARD_BODY, bool expected");
                 }
 
-                $this->options[self::OP_DISCARD_BODY] = $value;
                 break;
 
             case self::OP_DEFAULT_HEADERS:
                 // We attempt to set the headers here, because they're automatically validated then.
                 (new Request("https://example.com/"))->withAllHeaders($value);
 
-                $this->options[self::OP_DEFAULT_HEADERS] = $value;
                 break;
 
             case self::OP_MAX_HEADER_BYTES:
@@ -956,7 +959,6 @@ final class DefaultClient implements Client {
                     throw new \Error("Invalid value for OP_MAX_HEADER_BYTES, int >= 0 expected");
                 }
 
-                $this->options[self::OP_MAX_HEADER_BYTES] = $value;
                 break;
 
             case self::OP_MAX_BODY_BYTES:
@@ -964,7 +966,6 @@ final class DefaultClient implements Client {
                     throw new \Error("Invalid value for OP_MAX_BODY_BYTES, int >= 0 expected");
                 }
 
-                $this->options[self::OP_MAX_BODY_BYTES] = $value;
                 break;
 
             default:
