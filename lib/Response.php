@@ -110,7 +110,7 @@ interface Response {
      *
      * @return array
      */
-    public function getAllHeaders(): array;
+    public function getHeaders(): array;
 
     /**
      * Retrieve the response body.

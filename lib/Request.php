@@ -206,7 +206,7 @@ final class Request {
         return $clone;
     }
 
-    public function withAllHeaders(array $headers): self {
+    public function withHeaders(array $headers): self {
         $clone = clone $this;
 
         foreach ($headers as $field => $values) {
@@ -252,7 +252,7 @@ final class Request {
      *
      * @return array
      */
-    public function getAllHeaders(bool $originalCase = false): array {
+    public function getHeaders(bool $originalCase = false): array {
         if (!$originalCase) {
             return $this->headers;
         }

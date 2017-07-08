@@ -36,7 +36,7 @@ Loop::run(function () {
             $response->getRequest()->getUri()
         );
 
-        foreach ($response->getAllHeaders() as $field => $values) {
+        foreach ($response->getHeaders() as $field => $values) {
             foreach ($values as $value) {
                 print "$field: $value\n";
             }

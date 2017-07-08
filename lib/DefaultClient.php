@@ -82,14 +82,14 @@ final class DefaultClient implements Client {
 
             foreach ($this->options[self::OP_DEFAULT_HEADERS] as $name => $header) {
                 if (!$request->hasHeader($name)) {
-                    $request = $request->withAllHeaders([$name => $header]);
+                    $request = $request->withHeaders([$name => $header]);
                 }
             }
 
             $headers = yield $request->getBody()->getHeaders();
             foreach ($headers as $name => $header) {
                 if (!$request->hasHeader($name)) {
-                    $request = $request->withAllHeaders([$name => $header]);
+                    $request = $request->withHeaders([$name => $header]);
                 }
             }
 
@@ -699,7 +699,7 @@ final class DefaultClient implements Client {
                 return $this->headers[\strtolower($field)] ?? [];
             }
 
-            public function getAllHeaders(): array {
+            public function getHeaders(): array {
                 return $this->headers;
             }
 
@@ -866,7 +866,7 @@ final class DefaultClient implements Client {
 
         $head = $request->getMethod() . ' ' . $requestUri . ' HTTP/' . $protocolVersion . "\r\n";
 
-        foreach ($request->getAllHeaders(true) as $field => $values) {
+        foreach ($request->getHeaders(true) as $field => $values) {
             if (\strcspn($field, "\r\n") !== \strlen($field)) {
                 throw new HttpException("Blocked header injection attempt for header '{$field}'");
             }
@@ -950,7 +950,7 @@ final class DefaultClient implements Client {
 
             case self::OP_DEFAULT_HEADERS:
                 // We attempt to set the headers here, because they're automatically validated then.
-                (new Request("https://example.com/"))->withAllHeaders($value);
+                (new Request("https://example.com/"))->withHeaders($value);
 
                 break;
 

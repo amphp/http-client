@@ -70,9 +70,9 @@ class RequestTest extends TestCase {
 
         $this->assertSame([
             "x-foo" => ["bar"]
-        ], $request->getAllHeaders());
+        ], $request->getHeaders());
 
-        $request = $request->withAllHeaders([
+        $request = $request->withHeaders([
             "x-hello-world" => "xx",
             "x-goodbye" => ["yy", "zzz"],
         ]);
@@ -81,22 +81,22 @@ class RequestTest extends TestCase {
             "x-foo" => ["bar"],
             "x-hello-world" => ["xx"],
             "x-goodbye" => ["yy", "zzz"],
-        ], $request->getAllHeaders());
+        ], $request->getHeaders());
 
         // Empty array deletes
-        $request = $request->withAllHeaders([
+        $request = $request->withHeaders([
             "x-hello-world" => [],
         ]);
 
         $this->assertSame([
             "x-foo" => ["bar"],
             "x-goodbye" => ["yy", "zzz"],
-        ], $request->getAllHeaders());
+        ], $request->getHeaders());
 
         $this->assertSame([
             "x-FOO" => ["bar"],
             "x-goodbye" => ["yy", "zzz"],
-        ], $request->getAllHeaders(true));
+        ], $request->getHeaders(true));
     }
 
     public function provideBadAllHeaderInput() {
@@ -113,7 +113,7 @@ class RequestTest extends TestCase {
     /** @dataProvider provideBadAllHeaderInput */
     public function testAllHeaders($input) {
         $this->expectException(\TypeError::class);
-        (new Request("http://127.0.0.1/"))->withAllHeaders($input);
+        (new Request("http://127.0.0.1/"))->withHeaders($input);
     }
 
     public function testBody() {
