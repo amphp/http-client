@@ -426,6 +426,9 @@ final class DefaultClient implements Client {
                 throw new HttpException("Can't send chunked bodies over HTTP/1.0");
             }
 
+            // We always buffer the last chunk to make sure we don't write $contentLength bytes if the body is too long.
+            $buffer = "";
+
             while (($chunk = yield $body->read()) !== null) {
                 $requestCycle->cancellation->throwIfRequested();
 
@@ -435,27 +438,25 @@ final class DefaultClient implements Client {
 
                 if ($chunking) {
                     $chunk = \dechex(\strlen($chunk)) . "\r\n" . $chunk . "\r\n";
-                } else if ($remainingBytes !== null) {
-                    // If obey any set content-length header and discard the remaining body if it mismatches.
+                } elseif ($remainingBytes !== null) {
                     $remainingBytes -= \strlen($chunk);
 
                     if ($remainingBytes < 0) {
-                        $chunk = \substr($chunk, 0, $remainingBytes);
-                        yield $socket->write($chunk);
-                        break;
+                        throw new HttpException("Body contained more bytes than specified in Content-Length, aborting request");
                     }
                 }
 
-                yield $socket->write($chunk);
+                yield $socket->write($buffer);
+                $buffer = $chunk;
             }
 
-            if ($remainingBytes < 0) {
-                // Discard remaining body after everything has been written if it was too large.
-                while (null !== yield $body->read());
-            }
+            // Flush last buffered chunk.
+            yield $socket->write($buffer);
 
             if ($chunking) {
                 yield $socket->write("0\r\n\r\n");
+            } elseif ($remainingBytes !== null && $remainingBytes > 0) {
+                throw new HttpException("Body contained fewer bytes than specified in Content-Length, aborting request");
             }
         } catch (\Throwable $e) {
             $this->socketPool->clear($socket);

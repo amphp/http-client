@@ -6,11 +6,17 @@ use Amp\Artax\Client;
 use Amp\Artax\DefaultClient;
 use Amp\Artax\FileBody;
 use Amp\Artax\FormBody;
+use Amp\Artax\HttpException;
 use Amp\Artax\Request;
+use Amp\Artax\RequestBody;
 use Amp\Artax\Response;
 use Amp\Artax\TooManyRedirectsException;
+use Amp\ByteStream\InMemoryStream;
+use Amp\ByteStream\InputStream;
 use Amp\CancellationTokenSource;
 use Amp\CancelledException;
+use Amp\Promise;
+use Amp\Success;
 use PHPUnit\Framework\TestCase;
 use function Amp\Promise\wait;
 
@@ -283,5 +289,49 @@ class ClientHttpBinIntegrationTest extends TestCase {
         $cancellationTokenSource->cancel();
         $this->expectException(CancelledException::class);
         wait($response->getBody());
+    }
+
+    public function testContentLengthBodyMismatchWithTooManyBytes() {
+        $this->expectException(HttpException::class);
+        $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
+
+        $request = (new Request("http://httpbin.org/post", "POST"))
+            ->withBody(new class implements RequestBody {
+                public function getHeaders(): Promise {
+                    return new Success([]);
+                }
+
+                public function createBodyStream(): InputStream {
+                    return new InMemoryStream("foo");
+                }
+
+                public function getBodyLength(): Promise {
+                    return new Success(1);
+                }
+            });
+
+        wait((new DefaultClient)->request($request));
+    }
+
+    public function testContentLengthBodyMismatchWithTooFewBytes() {
+        $this->expectException(HttpException::class);
+        $this->expectExceptionMessage("Body contained fewer bytes than specified in Content-Length, aborting request");
+
+        $request = (new Request("http://httpbin.org/post", "POST"))
+            ->withBody(new class implements RequestBody {
+                public function getHeaders(): Promise {
+                    return new Success([]);
+                }
+
+                public function createBodyStream(): InputStream {
+                    return new InMemoryStream("foo");
+                }
+
+                public function getBodyLength(): Promise {
+                    return new Success(42);
+                }
+            });
+
+        wait((new DefaultClient)->request($request));
     }
 }
