@@ -420,6 +420,10 @@ final class DefaultClient implements Client {
             $body = $requestCycle->request->getBody()->createBodyStream();
             $chunking = !$requestCycle->request->hasHeader("content-length");
 
+            if ($chunking && $requestCycle->protocolVersion === "1.0") {
+                throw new HttpException("Can't send chunked bodies over HTTP/1.0");
+            }
+
             while (($chunk = yield $body->read()) !== null) {
                 $requestCycle->cancellation->throwIfRequested();
 
