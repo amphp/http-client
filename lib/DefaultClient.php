@@ -107,7 +107,8 @@ final class DefaultClient implements Client {
                 /** @var Response $response */
                 $response = yield $this->doRequest($request, $uri, $options, $previousResponse, $cancellation);
 
-                if ($redirectUri = $this->getRedirectUri($response)) {
+                // Explicit $maxRedirects !== 0 check to not consume redirect bodies if redirect following is disabled
+                if ($maxRedirects !== 0 && $redirectUri = $this->getRedirectUri($response)) {
                     // Discard response body of redirect responses
                     $body = $response->getBody();
                     while (null !== yield $body->read()) ;
