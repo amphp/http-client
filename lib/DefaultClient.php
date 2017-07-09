@@ -529,12 +529,12 @@ final class DefaultClient implements Client {
         $request = $this->assignApplicableRequestCookies($request);
 
         // Always normalize this as last item, because we need to strip sensitive headers
-        $request = $this->normalizeTraceHeaders($request);
+        $request = $this->normalizeTraceRequest($request);
 
         return $request;
     }
 
-    private function normalizeTraceHeaders(Request $request): Request {
+    private function normalizeTraceRequest(Request $request): Request {
         $method = $request->getMethod();
 
         if ($method !== 'TRACE') {
