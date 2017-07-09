@@ -104,6 +104,9 @@ final class DefaultClient implements Client {
                 $request = yield from $this->normalizeRequestBodyHeaders($request);
                 $request = $this->normalizeRequestHeaders($request, $uri, $options);
 
+                // Always normalize this as last item, because we need to strip sensitive headers
+                $request = $this->normalizeTraceRequest($request);
+
                 /** @var Response $response */
                 $response = yield $this->doRequest($request, $uri, $options, $previousResponse, $cancellation);
 
@@ -527,9 +530,6 @@ final class DefaultClient implements Client {
         $request = $this->normalizeRequestUserAgent($request);
         $request = $this->normalizeRequestAcceptHeader($request);
         $request = $this->assignApplicableRequestCookies($request);
-
-        // Always normalize this as last item, because we need to strip sensitive headers
-        $request = $this->normalizeTraceRequest($request);
 
         return $request;
     }
