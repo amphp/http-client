@@ -939,9 +939,9 @@ final class DefaultClient implements Client {
      *
      * @param array $options An array of the form [OP_CONSTANT => $value]
      *
-     * @throws \Error on Unknown option key
+     * @throws \Error On unknown option key or invalid value.
      */
-    public function setAllOptions(array $options) {
+    public function setOptions(array $options) {
         foreach ($options as $option => $value) {
             $this->setOption($option, $value);
         }
