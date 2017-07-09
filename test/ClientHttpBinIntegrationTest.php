@@ -13,8 +13,10 @@ use Amp\Artax\Response;
 use Amp\Artax\TooManyRedirectsException;
 use Amp\ByteStream\InMemoryStream;
 use Amp\ByteStream\InputStream;
+use Amp\ByteStream\IteratorStream;
 use Amp\CancellationTokenSource;
 use Amp\CancelledException;
+use function Amp\Iterator\fromIterable;
 use Amp\Promise;
 use Amp\Success;
 use PHPUnit\Framework\TestCase;
@@ -307,6 +309,28 @@ class ClientHttpBinIntegrationTest extends TestCase {
 
                 public function getBodyLength(): Promise {
                     return new Success(1);
+                }
+            });
+
+        wait((new DefaultClient)->request($request));
+    }
+
+    public function testContentLengthBodyMismatchWithTooManyBytesWith3ByteChunksAndLength2() {
+        $this->expectException(HttpException::class);
+        $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
+
+        $request = (new Request("http://httpbin.org/post", "POST"))
+            ->withBody(new class implements RequestBody {
+                public function getHeaders(): Promise {
+                    return new Success([]);
+                }
+
+                public function createBodyStream(): InputStream {
+                    return new IteratorStream(fromIterable(["a", "b", "c"], 500));
+                }
+
+                public function getBodyLength(): Promise {
+                    return new Success(2);
                 }
             });
 
