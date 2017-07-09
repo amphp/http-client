@@ -499,6 +499,14 @@ final class DefaultClient implements Client {
             $request = $request->withBody(null);
         }
 
+        if ($request->hasHeader("Transfer-Encoding")) {
+            return $request->withoutHeader("Content-Length");
+        }
+
+        if ($request->hasHeader("Content-Length")) {
+            return $request;
+        }
+
         /** @var RequestBody $body */
         $body = $request->getBody();
         $bodyLength = yield $body->getBodyLength();
