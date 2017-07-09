@@ -16,10 +16,10 @@ use Amp\ByteStream\InputStream;
 use Amp\ByteStream\IteratorStream;
 use Amp\CancellationTokenSource;
 use Amp\CancelledException;
-use function Amp\Iterator\fromIterable;
 use Amp\Promise;
 use Amp\Success;
 use PHPUnit\Framework\TestCase;
+use function Amp\Iterator\fromIterable;
 use function Amp\Promise\wait;
 
 class ClientHttpBinIntegrationTest extends TestCase {
