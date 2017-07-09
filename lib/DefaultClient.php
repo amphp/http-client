@@ -419,6 +419,7 @@ final class DefaultClient implements Client {
 
             $body = $requestCycle->request->getBody()->createBodyStream();
             $chunking = !$requestCycle->request->hasHeader("content-length");
+            $remainingBytes = $requestCycle->request->getHeader("content-length");
 
             if ($chunking && $requestCycle->protocolVersion === "1.0") {
                 throw new HttpException("Can't send chunked bodies over HTTP/1.0");
@@ -433,9 +434,22 @@ final class DefaultClient implements Client {
 
                 if ($chunking) {
                     $chunk = \dechex(\strlen($chunk)) . "\r\n" . $chunk . "\r\n";
+                } else {
+                    // If obey any set content-length header and discard the remaining body if it mismatches.
+                    $remainingBytes -= \strlen($chunk);
+
+                    if ($remainingBytes < 0) {
+                        $chunk = \substr($chunk, 0, $remainingBytes);
+                        break;
+                    }
                 }
 
                 yield $socket->write($chunk);
+            }
+
+            if ($remainingBytes < 0) {
+                // Discard remaining body after everything has been written if it was too large.
+                while (null !== yield $body->read());
             }
 
             if ($chunking) {
