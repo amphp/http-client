@@ -440,6 +440,7 @@ final class DefaultClient implements Client {
 
                     if ($remainingBytes < 0) {
                         $chunk = \substr($chunk, 0, $remainingBytes);
+                        yield $socket->write($chunk);
                         break;
                     }
                 }
