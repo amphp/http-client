@@ -415,10 +415,11 @@ final class DefaultClient implements Client {
                 }
             });
 
-            yield $socket->write($this->generateRawRequestHeaders($requestCycle->request, $requestCycle->protocolVersion));
+            $rawHeaders = $this->generateRawRequestHeaders($requestCycle->request, $requestCycle->protocolVersion);
+            yield $socket->write($rawHeaders);
 
             $body = $requestCycle->request->getBody()->createBodyStream();
-            $chunking = !$requestCycle->request->hasHeader("content-length");
+            $chunking = $requestCycle->request->getHeader("transfer-encoding") === "chunked";
             $remainingBytes = $requestCycle->request->getHeader("content-length");
 
             if ($chunking && $requestCycle->protocolVersion === "1.0") {
@@ -434,7 +435,7 @@ final class DefaultClient implements Client {
 
                 if ($chunking) {
                     $chunk = \dechex(\strlen($chunk)) . "\r\n" . $chunk . "\r\n";
-                } else {
+                } else if ($remainingBytes !== null) {
                     // If obey any set content-length header and discard the remaining body if it mismatches.
                     $remainingBytes -= \strlen($chunk);
 
@@ -492,13 +493,6 @@ final class DefaultClient implements Client {
     }
 
     private function normalizeRequestBodyHeaders(Request $request): \Generator {
-        $method = $request->getMethod();
-
-        if ($method === 'TRACE' || $method === 'HEAD' || $method === 'OPTIONS') {
-            /** @var Request $request */
-            $request = $request->withBody(null);
-        }
-
         if ($request->hasHeader("Transfer-Encoding")) {
             return $request->withoutHeader("Content-Length");
         }
@@ -532,6 +526,32 @@ final class DefaultClient implements Client {
         $request = $this->normalizeRequestUserAgent($request);
         $request = $this->normalizeRequestAcceptHeader($request);
         $request = $this->assignApplicableRequestCookies($request);
+
+        // Always normalize this as last item, because we need to strip sensitive headers
+        $request = $this->normalizeTraceHeaders($request);
+
+        return $request;
+    }
+
+    private function normalizeTraceHeaders(Request $request): Request {
+        $method = $request->getMethod();
+
+        if ($method !== 'TRACE') {
+            return $request;
+        }
+
+        // https://tools.ietf.org/html/rfc7231#section-4.3.8
+        /** @var Request $request */
+        $request = $request->withBody(null);
+
+        // Remove all body and sensitive headers
+        $request = $request->withHeaders([
+            "Transfer-Encoding" => [],
+            "Content-Length" => [],
+            "Authorization" => [],
+            "Proxy-Authorization" => [],
+            "Cookie" => [],
+        ]);
 
         return $request;
     }
