@@ -286,6 +286,10 @@ final class DefaultClient implements Client {
                                 if (!$backpressure instanceof Success) {
                                     yield $this->withCancellation($backpressure, $requestCycle->cancellation);
                                 }
+
+                                if ($requestCycle->bodyTooLarge) {
+                                    throw new HttpException("Response body exceeded the specified size limit");
+                                }
                             } while (($chunk = yield $this->withCancellation($socket->read(), $requestCycle->cancellation)) !== null);
                         }
 
@@ -656,15 +660,29 @@ final class DefaultClient implements Client {
         // Wrap the input stream so we can discard the body in case it's destructed but hasn't been consumed.
         // This allows reusing the connection for further requests. It's important to have __destruct in InputStream and
         // not in Message, because an InputStream might be pulled out of Message and used separately.
-        $body = new class($body) implements InputStream {
+        $body = new class($body, $requestCycle) implements InputStream {
             private $body;
+            private $bodySize = 0;
+            private $requestCycle;
 
-            public function __construct(InputStream $body) {
+            public function __construct(InputStream $body, RequestCycle $requestCycle) {
                 $this->body = $body;
+                $this->requestCycle = $requestCycle;
             }
 
             public function read(): Promise {
-                return $this->body->read();
+                $promise = $this->body->read();
+                $promise->onResolve(function ($error, $value) {
+                    if ($value !== null) {
+                        $this->bodySize += \strlen($value);
+                        $maxBytes = $this->requestCycle->options[Client::OP_MAX_BODY_BYTES];
+                        if ($maxBytes !== 0 && $this->bodySize >= $maxBytes) {
+                            $this->requestCycle->bodyTooLarge = true;
+                        }
+                    }
+                });
+
+                return $promise;
             }
 
             public function __destruct() {
