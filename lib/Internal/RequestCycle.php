@@ -39,4 +39,7 @@ class RequestCycle {
 
     /** @var int */
     public $retryCount = 0;
+
+    /** @var bool */
+    public $bodyTooLarge = false;
 }
