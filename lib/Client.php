@@ -13,7 +13,7 @@ interface Client {
     /** Whether to automatically apply compression to requests and responses. */
     const OP_AUTO_ENCODING = 'amp.artax.client.auto-encoding';
 
-    /** Transfer timeout until an HTTP request is automatically aborted, use 0 to disable. */
+    /** Transfer timeout in milliseconds until an HTTP request is automatically aborted, use 0 to disable. */
     const OP_TRANSFER_TIMEOUT = 'amp.artax.client.transfer-timeout';
 
     /** How many redirects to follow, might be 0 to not follow any redirects. */
