@@ -2,7 +2,7 @@
 
 namespace Amp\Artax\Internal;
 
-use Amp\Dns\InvalidNameError;
+use Amp\Uri\InvalidDnsNameException;
 use function Amp\Uri\normalizeDnsName;
 
 /** @internal */
@@ -57,7 +57,7 @@ final class PublicSuffixList {
                 } else {
                     $rules[] = self::toRegex($rule, false);
                 }
-            } catch (InvalidNameError $e) {
+            } catch (InvalidDnsNameException $e) {
                 // ignore IDN rules if no IDN support is available
                 // requests with IDNs will fail anyway then
             }
