@@ -11,6 +11,7 @@ final class PublicSuffixList {
     public static function isPublicSuffix($domain) {
         if (!self::$initialized) {
             self::readList();
+            self::$initialized = true;
         }
 
         if (!self::isValidHostName($domain)) {
