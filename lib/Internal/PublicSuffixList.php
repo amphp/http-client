@@ -14,6 +14,7 @@ final class PublicSuffixList {
     public static function isPublicSuffix(string $domain) {
         if (!self::$initialized) {
             self::readList();
+            self::$initialized = true;
         }
 
         $domain = normalizeDnsName($domain);
