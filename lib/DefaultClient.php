@@ -195,7 +195,7 @@ final class DefaultClient implements Client {
         asyncCall(function () use ($requestCycle) {
             try {
                 yield from $this->doWrite($requestCycle);
-            } catch (HttpException $e) {
+            } catch (\Throwable $e) {
                 if ($requestCycle->deferred) {
                     $deferred = $requestCycle->deferred;
                     $requestCycle->deferred = null;
@@ -226,14 +226,11 @@ final class DefaultClient implements Client {
     private function doRead(RequestCycle $requestCycle, ClientSocket $socket): \Generator {
         try {
             $backpressure = new Success;
-
-            if ($requestCycle->options[self::OP_DISCARD_BODY]) {
-                $bodyCallback = null;
-            } else {
-                $bodyCallback = static function ($data) use ($requestCycle, &$backpressure) {
+            $bodyCallback = $requestCycle->options[self::OP_DISCARD_BODY]
+                ? null
+                : static function ($data) use ($requestCycle, &$backpressure) {
                     $backpressure = $requestCycle->body->emit($data);
                 };
-            }
 
             $parser = new Parser($bodyCallback);
 
@@ -243,105 +240,101 @@ final class DefaultClient implements Client {
                 Parser::OP_MAX_BODY_BYTES => $requestCycle->options[self::OP_MAX_BODY_BYTES],
             ]);
 
-            $crypto = \stream_get_meta_data($socket->getResource())["crypto"] ?? null;
-            $connectionInfo = new ConnectionInfo(
-                $socket->getLocalAddress(),
-                $socket->getRemoteAddress(),
-                $crypto ? TlsInfo::fromMetaData($crypto, \stream_context_get_options($socket->getResource())["ssl"]) : null
-            );
+            $connectionInfo = $this->collectConnectionInfo($socket);
 
-            while (($chunk = yield $this->withCancellation($socket->read(), $requestCycle->cancellation)) !== null) {
+            while (null !== $chunk = yield $socket->read()) {
                 $requestCycle->cancellation->throwIfRequested();
 
-                try {
-                    $parseResult = $parser->parse($chunk);
+                $parseResult = $parser->parse($chunk);
 
-                    if ($parseResult) {
-                        $parseResult["headers"] = \array_change_key_case($parseResult["headers"], \CASE_LOWER);
+                if (!$parseResult) {
+                    continue;
+                }
 
-                        $response = $this->finalizeResponse($requestCycle, $parseResult, $connectionInfo);
+                $parseResult["headers"] = \array_change_key_case($parseResult["headers"], \CASE_LOWER);
 
-                        if ($requestCycle->deferred) {
-                            $deferred = $requestCycle->deferred;
-                            $requestCycle->deferred = null;
-                            $deferred->resolve($response);
+                $response = $this->finalizeResponse($requestCycle, $parseResult, $connectionInfo);
+
+                if ($requestCycle->deferred) {
+                    $deferred = $requestCycle->deferred;
+                    $requestCycle->deferred = null;
+                    $deferred->resolve($response);
+                }
+
+                // Required, otherwise responses without body hang
+                if ($parseResult["headersOnly"]) {
+                    // Directly parse again in case we already have the full body but aborted parsing
+                    // to resolve promise with headers.
+                    $chunk = null;
+
+                    do {
+                        try {
+                            $parseResult = $parser->parse($chunk);
+                        } catch (ParseException $e) {
+                            $this->fail($requestCycle, $e);
+                            throw $e;
                         }
 
-                        // Required, otherwise responses without body hang
-                        if ($parseResult["headersOnly"]) {
-                            // Directly parse again in case we already have the full body but aborted parsing to resolve promise.
-                            $chunk = null;
-
-                            do {
-                                try {
-                                    $parseResult = $parser->parse($chunk);
-                                } catch (ParseException $e) {
-                                    $this->fail($requestCycle, $e);
-                                    throw $e;
-                                }
-
-                                if ($parseResult) {
-                                    break;
-                                }
-
-                                if (!$backpressure instanceof Success) {
-                                    yield $this->withCancellation($backpressure, $requestCycle->cancellation);
-                                }
-
-                                if ($requestCycle->bodyTooLarge) {
-                                    throw new HttpException("Response body exceeded the specified size limit");
-                                }
-                            } while (($chunk = yield $this->withCancellation($socket->read(), $requestCycle->cancellation)) !== null);
+                        if ($parseResult) {
+                            break;
                         }
 
-                        if ($this->shouldCloseSocketAfterResponse($response)) {
-                            $this->socketPool->clear($socket);
-                            $socket->close();
-                        } else {
-                            $this->socketPool->checkin($socket);
+                        if (!$backpressure instanceof Success) {
+                            yield $this->withCancellation($backpressure, $requestCycle->cancellation);
                         }
 
-                        // Complete body AFTER socket checkin, so the socket can be reused for a potential redirect
-                        $requestCycle->body->complete();
-                        $requestCycle->body = null;
+                        if ($requestCycle->bodyTooLarge) {
+                            throw new HttpException("Response body exceeded the specified size limit");
+                        }
+                    } while (null !== $chunk = yield $socket->read());
+                }
 
-                        return;
-                    }
-                } catch (ParseException $e) {
-                    $this->fail($requestCycle, $e);
-
+                if ($this->shouldCloseSocketAfterResponse($response)) {
                     $this->socketPool->clear($socket);
                     $socket->close();
-
-                    return;
+                } else {
+                    $this->socketPool->checkin($socket);
                 }
-            }
 
-            // This is required to give the event loop a chance to run another tick
-            yield new Delayed(0);
+                // Complete body AFTER socket checkin, so the socket can be reused for a potential redirect
+                $requestCycle->body->complete();
+                $requestCycle->body = null;
 
-            if ($requestCycle->deferred === null) {
                 return;
-            }
-
-            $parserState = $parser->getState();
-
-            if ($parserState === Parser::AWAITING_HEADERS && $requestCycle->retryCount < 1) {
-                $requestCycle->retryCount++;
-                yield from $this->doWrite($requestCycle);
-            } else {
-                $this->fail($requestCycle, new SocketException(sprintf(
-                    'Socket disconnected prior to response completion (Parser state: %s)',
-                    $parserState
-                )));
-
-                $this->socketPool->clear($socket);
-                $socket->close();
             }
         } catch (\Throwable $e) {
             $this->fail($requestCycle, $e);
+
+            if ($socket->getResource() !== null) {
+                $this->socketPool->clear($socket);
+                $socket->close();
+            }
+
+            return;
+        }
+
+        if ($socket->getResource() !== null) {
             $this->socketPool->clear($socket);
             $socket->close();
+        }
+
+        // Required, because if the write fails, the read() call immediately resolves.
+        yield new Delayed(0);
+
+        if ($requestCycle->deferred === null) {
+            return;
+        }
+
+        $parserState = $parser->getState();
+
+        if ($parserState === Parser::AWAITING_HEADERS && $requestCycle->retryCount < 1) {
+            $requestCycle->retryCount++;
+            yield from $this->doWrite($requestCycle);
+        } else {
+            $this->fail($requestCycle, new SocketException(sprintf(
+                'Socket disconnected prior to response completion (Parser state: %s)',
+                $parserState
+            )));
         }
     }
 
@@ -386,20 +379,20 @@ final class DefaultClient implements Client {
             throw new DnsException(\sprintf("Resolving the specified domain failed: '%s'", $requestCycle->uri->getHost()), 0, $dnsException);
         }
 
+        $cancellation = $requestCycle->cancellation->subscribe(function () use ($socket) {
+            if ($socket->getResource() !== null) {
+                $this->socketPool->clear($socket);
+                $socket->close();
+            }
+        });
+
         try {
             if ($requestCycle->uri->getScheme() === 'https') {
-                try {
-                    $tlsContext = $this->tlsContext
-                        ->withPeerName($requestCycle->uri->getHost())
-                        ->withPeerCapturing();
+                $tlsContext = $this->tlsContext
+                    ->withPeerName($requestCycle->uri->getHost())
+                    ->withPeerCapturing();
 
-                    yield $socket->enableCrypto($tlsContext);
-                } catch (\Throwable $exception) {
-                    // If crypto failed we make sure the socket pool gets rid of its reference
-                    // to this socket connection.
-                    $this->socketPool->clear($socket);
-                    throw $exception;
-                }
+                yield $socket->enableCrypto($tlsContext);
             }
 
             $timeout = $requestCycle->options[self::OP_TRANSFER_TIMEOUT];
@@ -444,7 +437,7 @@ final class DefaultClient implements Client {
             // We always buffer the last chunk to make sure we don't write $contentLength bytes if the body is too long.
             $buffer = "";
 
-            while (($chunk = yield $body->read()) !== null) {
+            while (null !== $chunk = yield $body->read()) {
                 $requestCycle->cancellation->throwIfRequested();
 
                 if ($chunk === "") {
@@ -474,9 +467,14 @@ final class DefaultClient implements Client {
                 throw new HttpException("Body contained fewer bytes than specified in Content-Length, aborting request");
             }
         } catch (\Throwable $e) {
-            $this->socketPool->clear($socket);
-            $socket->close();
+            if ($socket->getResource() !== null) {
+                $this->socketPool->clear($socket);
+                $socket->close();
+            }
+
             throw $e;
+        } finally {
+            $requestCycle->cancellation->unsubscribe($cancellation);
         }
     }
 
@@ -1048,5 +1046,15 @@ final class DefaultClient implements Client {
                     sprintf("Unknown option: %s", $option)
                 );
         }
+    }
+
+    private function collectConnectionInfo(ClientSocket $socket): ConnectionInfo {
+        $crypto = \stream_get_meta_data($socket->getResource())["crypto"] ?? null;
+
+        return new ConnectionInfo(
+            $socket->getLocalAddress(),
+            $socket->getRemoteAddress(),
+            $crypto ? TlsInfo::fromMetaData($crypto, \stream_context_get_options($socket->getResource())["ssl"]) : null
+        );
     }
 }

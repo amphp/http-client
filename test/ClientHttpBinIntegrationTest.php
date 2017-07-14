@@ -293,7 +293,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
         wait($response->getBody());
     }
 
-    public function testContentLengthBodyMismatchWithTooManyBytes() {
+    public function testContentLengthBodyMismatchWithTooManyBytesSimple() {
         $this->expectException(HttpException::class);
         $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
 
