@@ -17,6 +17,7 @@ use Amp\ByteStream\ZlibInputStream;
 use Amp\CancellationToken;
 use Amp\Coroutine;
 use Amp\Deferred;
+use Amp\Delayed;
 use Amp\Dns\ResolutionException;
 use Amp\Emitter;
 use Amp\Failure;
@@ -314,6 +315,13 @@ final class DefaultClient implements Client {
 
                     return;
                 }
+            }
+
+            // This is required to give the event loop a chance to run another tick
+            yield new Delayed(0);
+
+            if ($requestCycle->deferred === null) {
+                return;
             }
 
             $parserState = $parser->getState();
