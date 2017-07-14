@@ -236,6 +236,9 @@ class ClientHttpBinIntegrationTest extends TestCase {
         $this->assertEquals('multipart/form-data; boundary=' . $boundary, $result['headers']['Content-Type']);
     }
 
+    /**
+     * @requires extension zlib
+     */
     public function testGzipResponse() {
         $client = new DefaultClient;
 
@@ -248,6 +251,9 @@ class ClientHttpBinIntegrationTest extends TestCase {
         $this->assertTrue($result['gzipped']);
     }
 
+    /**
+     * @requires extension zlib
+     */
     public function testDeflateResponse() {
         $client = new DefaultClient;
 
