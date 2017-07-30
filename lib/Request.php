@@ -214,7 +214,7 @@ final class Request {
                 // PHP converts integer strings automatically to integers.
                 // Later versions of PHP might allow other key types.
                 // @codeCoverageIgnoreStart
-                throw new \TypeError("All array keys for withAllHeaders must be strings");
+                throw new \TypeError("All array keys for withHeaders must be strings");
                 // @codeCoverageIgnoreEnd
             }
 
@@ -229,7 +229,7 @@ final class Request {
 
             foreach ($values as $value) {
                 if (!\is_string($value) && !\is_int($value) && !\is_float($value)) {
-                    throw new \TypeError("All values for withAllHeaders must be string or an array of strings");
+                    throw new \TypeError("All values for withHeaders must be string or an array of strings");
                 }
 
                 $clone->headers[$lower][] = \trim($value);

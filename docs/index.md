@@ -24,7 +24,7 @@ $client = new Amp\Artax\DefaultClient;
 $response = yield $client->request("https://httpbin.org/get");
 
 var_dump($response->getStatus());
-var_dump($response->getAllHeaders());
+var_dump($response->getHeaders());
 
 // Response::getBody() returns a Message
 // See http://amphp.org/byte-stream/message
