@@ -36,7 +36,7 @@ $request = $request->withMethod("PUT");
 
 `Request::withHeader(string $field, string $value)` allows changing the request headers. It will remove any previous values for that field. `Request::withAddedHeader(string $field, string $value)` allows adding an additional header line without removing existing lines.
  
-`Request::withAllHeaders(array $headers)` allows adding multiple headers at once with the array keys being the field names and the values being the header values. The header values can also be arrays of strings to set multiple header lines.
+`Request::withHeaders(array $headers)` allows adding multiple headers at once with the array keys being the field names and the values being the header values. The header values can also be arrays of strings to set multiple header lines.
 
 `Request::hasHeader(string $field)` checks whether at least one header line with the given name exists.
 
@@ -44,7 +44,7 @@ $request = $request->withMethod("PUT");
 
 `Request::getHeaderArray(string $field)` returns an array of header lines with the given name. An empty array is returned if no header with the given name exists.
 
-`Request::getAllHeaders()` returns an associative array with the keys being the header names and the values being arrays of header lines.
+`Request::getHeaders()` returns an associative array with the keys being the header names and the values being arrays of header lines.
 
 ```php
 $request = (new Request("https://httpbin.org/post", "POST"))
