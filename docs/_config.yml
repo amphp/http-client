@@ -24,4 +24,5 @@ asset_path: "/artax/.shared/asset"
 
 navigation:
  - requests
+ - configuration
  - streaming
