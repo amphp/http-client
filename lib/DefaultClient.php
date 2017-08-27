@@ -182,9 +182,9 @@ final class DefaultClient implements Client {
 
         $protocolVersions = $request->getProtocolVersions();
 
-        if (\in_array("1.1", $protocolVersions)) {
+        if (\in_array("1.1", $protocolVersions, true)) {
             $requestCycle->protocolVersion = "1.1";
-        } elseif (\in_array("1.0", $protocolVersions)) {
+        } elseif (\in_array("1.0", $protocolVersions, true)) {
             $requestCycle->protocolVersion = "1.0";
         } else {
             return new Failure(new HttpException(
@@ -908,9 +908,10 @@ final class DefaultClient implements Client {
      * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec15.html#sec15.1.3
      */
     private function assignRedirectRefererHeader(Request $request, string $refererUri, string $newUri): Request {
-        if (!$refererIsEncrypted = (\stripos($refererUri, 'https') === 0)) {
-            return $request->withHeader('Referer', $refererUri);
-        } elseif ($destinationIsEncrypted = (\stripos($newUri, 'https') === 0)) {
+        $refererIsEncrypted = (\stripos($refererUri, 'https') === 0);
+        $destinationIsEncrypted = (\stripos($newUri, 'https') === 0);
+
+        if (!$refererIsEncrypted || $destinationIsEncrypted) {
             return $request->withHeader('Referer', $refererUri);
         }
 
