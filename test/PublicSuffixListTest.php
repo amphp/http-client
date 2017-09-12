@@ -6,7 +6,10 @@ use Amp\Artax\Internal\PublicSuffixList;
 use PHPUnit\Framework\TestCase;
 
 class PublicSuffixListTest extends TestCase {
-    /** @dataProvider provideTestData */
+    /**
+     * @dataProvider provideTestData
+     * @requires extension intl
+     */
     public function testWithData($domain, $expectation) {
         $this->assertSame($expectation, PublicSuffixList::isPublicSuffix($domain));
     }
