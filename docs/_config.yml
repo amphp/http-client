@@ -4,9 +4,10 @@ kramdown:
 
 baseurl: "/artax"
 layouts_dir: ".shared/layout"
+includes_dir: ".shared/includes"
 
 exclude: ["Gemfile", "Gemfile.lock", "README.md", "vendor"]
-include: [".shared"]
+safe: true
 
 repository: amphp/artax
 gems:
@@ -19,8 +20,10 @@ defaults:
      type: "pages"
    values:
      layout: "docs"
+     description: "Artax is an asynchronous HTTP/1.1 client for Amp. Its API simplifies standards-compliant HTTP resource traversal and RESTful web service consumption without obscuring the underlying protocol."
+     keywords: ["artax", "amp", "amphp", "http client", "streaming", "rest", "http", "php", "https", "tls"]
 
-asset_path: "/artax/.shared/asset"
+shared_asset_path: "/artax/asset"
 
 navigation:
  - requests
