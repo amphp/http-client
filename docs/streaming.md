@@ -2,8 +2,6 @@
 title: Streaming
 permalink: /streaming
 ---
-### Streaming Responses
-
 Artax allows streaming the response body by using the [`Message`](http://amphp.org/byte-stream/message) API of [`amphp/byte-stream`](http://amphp.org/byte-stream).
 
 ```php
