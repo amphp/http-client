@@ -1,5 +1,5 @@
 ---
-title: Artax
+title: Introduction
 permalink: /
 ---
 Artax is an asynchronous HTTP/1.1 client for [Amp](https://github.com/amphp/amp). Its API simplifies standards-compliant HTTP resource traversal and RESTful web service consumption without obscuring the underlying protocol. The library manually implements HTTP over TCP sockets; as such it has no dependency on `ext/curl`.
