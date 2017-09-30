@@ -109,7 +109,7 @@ final class FormBody implements RequestBody {
             $fields[] = "\r\n";
         }
 
-        $fields[] = "--{$this->boundary}--";
+        $fields[] = "--{$this->boundary}--\r\n";
 
         return $this->cachedFields = $fields;
     }
