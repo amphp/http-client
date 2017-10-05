@@ -124,7 +124,7 @@ final class FormBody implements RequestBody {
 
     private function generateMultipartFieldHeader(string $name, string $contentType): string {
         $header = "Content-Disposition: form-data; name=\"{$name}\"\r\n";
-        if (!empty($contentType)) {
+        if ($contentType !== "") {
             $header .= "Content-Type: {$contentType}\r\n\r\n";
         } else {
             $header .= "\r\n";
