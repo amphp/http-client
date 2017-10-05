@@ -22,7 +22,7 @@ class FormBodyTest extends TestCase {
         $body->addFields([
             'f' => 'f'
         ]);
-        $content = wait($body->createBodyStream()->read());
+        $content = wait(new Message($body->createBodyStream()));
         $this->assertEquals("a=a&b=b&c=c&d=d&e=e&f=f", $content);
     }
 
