@@ -60,6 +60,7 @@ Content-Disposition: form-data; name=\"c\"\r
 c\r
 --ea4ba2aa9af22673bc01ae7a64c95440\r
 Content-Disposition: form-data; name=\"d\"\r
+Content-Type: text/plain\r
 \r
 d\r
 --ea4ba2aa9af22673bc01ae7a64c95440\r
@@ -68,6 +69,7 @@ Content-Disposition: form-data; name=\"e\"\r
 e\r
 --ea4ba2aa9af22673bc01ae7a64c95440\r
 Content-Disposition: form-data; name=\"f\"\r
+Content-Type: text/plain\r
 \r
 f\r
 --ea4ba2aa9af22673bc01ae7a64c95440\r

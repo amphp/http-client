@@ -33,7 +33,7 @@ final class FormBody implements RequestBody {
      * @param string $value
      * @param string $contentType
      */
-    public function addField(string $name, string $value, string $contentType = '') {
+    public function addField(string $name, string $value, string $contentType = 'text/plain') {
         $this->fields[] = [$name, $value, $contentType, null];
         $this->resetCache();
     }
@@ -44,7 +44,7 @@ final class FormBody implements RequestBody {
      * @param array  $data
      * @param string $contentType
      */
-    public function addFields(array $data, string $contentType = '') {
+    public function addFields(array $data, string $contentType = 'text/plain') {
         foreach ($data as $key => $value) {
             $this->addField($key, $value, $contentType);
         }
