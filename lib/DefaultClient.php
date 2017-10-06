@@ -12,10 +12,8 @@ use Amp\Artax\Internal\RequestCycle;
 use Amp\ByteStream\InputStream;
 use Amp\ByteStream\IteratorStream;
 use Amp\ByteStream\Message;
-use Amp\ByteStream\StreamException;
 use Amp\ByteStream\ZlibInputStream;
 use Amp\CancellationToken;
-use Amp\Coroutine;
 use Amp\Deferred;
 use Amp\Delayed;
 use Amp\Dns\ResolutionException;
@@ -177,6 +175,7 @@ final class DefaultClient implements Client {
         $requestCycle->options = $options;
         $requestCycle->previousResponse = $previousResponse;
         $requestCycle->deferred = $deferred;
+        $requestCycle->bodyDeferred = new Deferred;
         $requestCycle->body = new Emitter;
         $requestCycle->cancellation = $cancellation;
 
@@ -196,11 +195,7 @@ final class DefaultClient implements Client {
             try {
                 yield from $this->doWrite($requestCycle);
             } catch (\Throwable $e) {
-                if ($requestCycle->deferred) {
-                    $deferred = $requestCycle->deferred;
-                    $requestCycle->deferred = null;
-                    $deferred->fail($e);
-                }
+                $this->fail($requestCycle, $e);
             }
         });
 
@@ -259,6 +254,8 @@ final class DefaultClient implements Client {
                     $deferred = $requestCycle->deferred;
                     $requestCycle->deferred = null;
                     $deferred->resolve($response);
+                } else {
+                    return;
                 }
 
                 // Required, otherwise responses without body hang
@@ -287,6 +284,10 @@ final class DefaultClient implements Client {
                             throw new HttpException("Response body exceeded the specified size limit");
                         }
                     } while (null !== $chunk = yield $socket->read());
+
+                    if ($parser->getState() !== Parser::AWAITING_HEADERS) {
+                        throw new HttpException("Incomplete body received.");
+                    }
                 }
 
                 if ($this->shouldCloseSocketAfterResponse($response)) {
@@ -296,19 +297,20 @@ final class DefaultClient implements Client {
                     $this->socketPool->checkin($socket);
                 }
 
+                $requestCycle->socket = null;
+
                 // Complete body AFTER socket checkin, so the socket can be reused for a potential redirect
                 $requestCycle->body->complete();
                 $requestCycle->body = null;
+
+                $bodyDeferred = $requestCycle->bodyDeferred;
+                $requestCycle->bodyDeferred = null;
+                $bodyDeferred->resolve();
 
                 return;
             }
         } catch (\Throwable $e) {
             $this->fail($requestCycle, $e);
-
-            if ($socket->getResource() !== null) {
-                $this->socketPool->clear($socket);
-                $socket->close();
-            }
 
             return;
         }
@@ -375,12 +377,15 @@ final class DefaultClient implements Client {
         try {
             /** @var ClientSocket $socket */
             $socket = yield $this->socketPool->checkout($socketCheckoutUri, $requestCycle->cancellation);
+            $requestCycle->socket = $socket;
         } catch (ResolutionException $dnsException) {
             throw new DnsException(\sprintf("Resolving the specified domain failed: '%s'", $requestCycle->uri->getHost()), 0, $dnsException);
         }
 
-        $cancellation = $requestCycle->cancellation->subscribe(function () use ($socket) {
-            if ($socket->getResource() !== null) {
+        $cancellation = $requestCycle->cancellation->subscribe(function () use ($requestCycle) {
+            if ($requestCycle->socket) {
+                $socket = $requestCycle->socket;
+                $requestCycle->socket = null;
                 $this->socketPool->clear($socket);
                 $socket->close();
             }
@@ -398,30 +403,16 @@ final class DefaultClient implements Client {
             $timeout = $requestCycle->options[self::OP_TRANSFER_TIMEOUT];
 
             if ($timeout > 0) {
-                $transferTimeoutWatcher = Loop::delay($timeout, function () use ($requestCycle, $timeout, $socket) {
-                    if ($requestCycle->deferred === null) {
-                        return;
-                    }
-
+                $transferTimeoutWatcher = Loop::delay($timeout, function () use ($requestCycle, $timeout) {
                     $this->fail($requestCycle, new TimeoutException(
                         sprintf('Allowed transfer timeout exceeded: %d ms', $timeout)
                     ));
-
-                    $this->socketPool->clear($socket);
-                    $socket->close();
                 });
 
-                $requestCycle->deferred->promise()->onResolve(static function () use ($transferTimeoutWatcher) {
+                $requestCycle->bodyDeferred->promise()->onResolve(static function () use ($transferTimeoutWatcher) {
                     Loop::cancel($transferTimeoutWatcher);
                 });
             }
-
-            $readingPromise = new Coroutine($this->doRead($requestCycle, $socket));
-            $readingPromise->onResolve(function ($error) use ($requestCycle) {
-                if ($error) {
-                    $this->fail($requestCycle, $error);
-                }
-            });
 
             $rawHeaders = $this->generateRawRequestHeaders($requestCycle->request, $requestCycle->protocolVersion);
             yield $socket->write($rawHeaders);
@@ -466,28 +457,41 @@ final class DefaultClient implements Client {
             } elseif ($remainingBytes !== null && $remainingBytes > 0) {
                 throw new HttpException("Body contained fewer bytes than specified in Content-Length, aborting request");
             }
-        } catch (\Throwable $e) {
-            if ($socket->getResource() !== null) {
-                $this->socketPool->clear($socket);
-                $socket->close();
-            }
 
-            throw $e;
+            yield from $this->doRead($requestCycle, $socket);
         } finally {
             $requestCycle->cancellation->unsubscribe($cancellation);
         }
     }
 
     private function fail(RequestCycle $requestCycle, \Throwable $error) {
+        $toFails = [];
+        $socket = null;
+
         if ($requestCycle->deferred) {
-            $deferred = $requestCycle->deferred;
+            $toFails[] = $requestCycle->deferred;
             $requestCycle->deferred = null;
-            $deferred->fail($error);
         }
 
         if ($requestCycle->body) {
-            $requestCycle->body->fail($error);
+            $toFails[] = $requestCycle->body;
             $requestCycle->body = null;
+        }
+
+        if ($requestCycle->bodyDeferred) {
+            $toFails[] = $requestCycle->bodyDeferred;
+            $requestCycle->bodyDeferred = null;
+        }
+
+        if ($requestCycle->socket) {
+            $this->socketPool->clear($requestCycle->socket);
+            $socket = $requestCycle->socket;
+            $requestCycle->socket = null;
+            $socket->close();
+        }
+
+        foreach ($toFails as $toFail) {
+            $toFail->fail($error);
         }
     }
 
@@ -666,14 +670,17 @@ final class DefaultClient implements Client {
         // Wrap the input stream so we can discard the body in case it's destructed but hasn't been consumed.
         // This allows reusing the connection for further requests. It's important to have __destruct in InputStream and
         // not in Message, because an InputStream might be pulled out of Message and used separately.
-        $body = new class($body, $requestCycle) implements InputStream {
+        $body = new class($body, $requestCycle, $this->socketPool) implements InputStream {
             private $body;
             private $bodySize = 0;
             private $requestCycle;
+            private $socketPool;
+            private $successfulEnd = false;
 
-            public function __construct(InputStream $body, RequestCycle $requestCycle) {
+            public function __construct(InputStream $body, RequestCycle $requestCycle, HttpSocketPool $socketPool) {
                 $this->body = $body;
                 $this->requestCycle = $requestCycle;
+                $this->socketPool = $socketPool;
             }
 
             public function read(): Promise {
@@ -685,6 +692,8 @@ final class DefaultClient implements Client {
                         if ($maxBytes !== 0 && $this->bodySize >= $maxBytes) {
                             $this->requestCycle->bodyTooLarge = true;
                         }
+                    } elseif ($error === null) {
+                        $this->successfulEnd = true;
                     }
                 });
 
@@ -692,13 +701,12 @@ final class DefaultClient implements Client {
             }
 
             public function __destruct() {
-                asyncCall(function () {
-                    try {
-                        while (null !== yield $this->body->read()) ;
-                    } catch (StreamException $e) {
-                        // ignore any exceptions, we're just discarding
-                    }
-                });
+                if (!$this->successfulEnd && $this->requestCycle->socket) {
+                    $this->socketPool->clear($this->requestCycle->socket);
+                    $socket = $this->requestCycle->socket;
+                    $this->requestCycle->socket = null;
+                    $socket->close();
+                }
             }
         };
 
