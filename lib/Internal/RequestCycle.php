@@ -7,6 +7,7 @@ use Amp\Artax\Response;
 use Amp\CancellationToken;
 use Amp\Deferred;
 use Amp\Emitter;
+use Amp\Socket\ClientSocket;
 use Amp\Struct;
 use Amp\Uri\Uri;
 
@@ -31,8 +32,14 @@ class RequestCycle {
     /** @var Deferred */
     public $deferred;
 
+    /** @var Deferred */
+    public $bodyDeferred;
+
     /** @var Emitter */
     public $body;
+
+    /** @var ClientSocket */
+    public $socket;
 
     /** @var CancellationToken */
     public $cancellation;
