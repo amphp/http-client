@@ -382,13 +382,8 @@ final class DefaultClient implements Client {
             throw new DnsException(\sprintf("Resolving the specified domain failed: '%s'", $requestCycle->uri->getHost()), 0, $dnsException);
         }
 
-        $cancellation = $requestCycle->cancellation->subscribe(function () use ($requestCycle) {
-            if ($requestCycle->socket) {
-                $socket = $requestCycle->socket;
-                $requestCycle->socket = null;
-                $this->socketPool->clear($socket);
-                $socket->close();
-            }
+        $cancellation = $requestCycle->cancellation->subscribe(function ($error) use ($requestCycle) {
+            $this->fail($requestCycle, $error);
         });
 
         try {
