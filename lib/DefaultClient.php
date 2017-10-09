@@ -250,6 +250,7 @@ final class DefaultClient implements Client {
                 $parseResult["headers"] = \array_change_key_case($parseResult["headers"], \CASE_LOWER);
 
                 $response = $this->finalizeResponse($requestCycle, $parseResult, $connectionInfo);
+                $shouldCloseSocketAfterResponse = $this->shouldCloseSocketAfterResponse($response);
 
                 if ($requestCycle->deferred) {
                     $deferred = $requestCycle->deferred;
@@ -293,7 +294,7 @@ final class DefaultClient implements Client {
                     }
                 }
 
-                if ($this->shouldCloseSocketAfterResponse($response)) {
+                if ($shouldCloseSocketAfterResponse) {
                     $this->socketPool->clear($socket);
                     $socket->close();
                 } else {

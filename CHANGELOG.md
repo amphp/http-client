@@ -1,6 +1,10 @@
 # Changelog
 
-## 3.0.7
+## 3.0.8
+
+ - Fixed null pointer access in response handling completely breaking the client.
+
+## 3.0.7 [ borked ]
 
  - Clean references correctly, so unused bodies aren't consumed and the connection is closed.
 
