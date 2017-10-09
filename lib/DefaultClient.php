@@ -85,6 +85,7 @@ final class DefaultClient implements Client {
                 }
             }
 
+            /** @var array $headers */
             $headers = yield $request->getBody()->getHeaders();
             foreach ($headers as $name => $header) {
                 if (!$request->hasHeader($name)) {
@@ -254,6 +255,8 @@ final class DefaultClient implements Client {
                     $deferred = $requestCycle->deferred;
                     $requestCycle->deferred = null;
                     $deferred->resolve($response);
+                    $response = null; // clear references
+                    $deferred = null; // there's also a reference in the deferred
                 } else {
                     return;
                 }
@@ -300,11 +303,13 @@ final class DefaultClient implements Client {
                 $requestCycle->socket = null;
 
                 // Complete body AFTER socket checkin, so the socket can be reused for a potential redirect
-                $requestCycle->body->complete();
+                $body = $requestCycle->body;
                 $requestCycle->body = null;
 
                 $bodyDeferred = $requestCycle->bodyDeferred;
                 $requestCycle->bodyDeferred = null;
+
+                $body->complete();
                 $bodyDeferred->resolve();
 
                 return;
