@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.0.7
+
+ - Clean references correctly, so unused bodies aren't consumed and the connection is closed.
+
 ## 3.0.6
 
  - Allow empty content type for multipart form fields.
