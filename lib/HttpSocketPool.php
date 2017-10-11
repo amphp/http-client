@@ -48,16 +48,16 @@ class HttpSocketPool implements SocketPool {
     }
 
     private function getUriAuthority(string $uri): string {
-        $uri = new Uri($uri);
+        $parsedUri = new Uri($uri);
 
-        return $uri->getHost() . ":" . $uri->getPort();
+        return $parsedUri->getHost() . ":" . $parsedUri->getPort();
     }
 
     /** @inheritdoc */
     public function checkout(string $uri, CancellationToken $cancellationToken = null): Promise {
-        $uri = new Uri($uri);
+        $parsedUri = new Uri($uri);
 
-        $scheme = $uri->getScheme();
+        $scheme = $parsedUri->getScheme();
 
         if ($scheme === 'tcp' || $scheme === 'http') {
             $proxy = $this->options[self::OP_PROXY_HTTP];
@@ -72,15 +72,15 @@ class HttpSocketPool implements SocketPool {
         // The underlying TCP pool will ignore the URI fragment when connecting but retain it in the
         // name when tracking hostname connection counts. This allows us to expose host connection
         // limits transparently even when connecting through a proxy.
-        $authority = $uri->getHost() . ":" . $uri->getPort();
-        $uri = $proxy ? "tcp://{$proxy}#{$authority}" : "tcp://{$authority}";
+        $authority = $parsedUri->getHost() . ":" . $parsedUri->getPort();
 
-        return call(function () use ($uri, $proxy, $authority, $cancellationToken) {
-            $socket = yield $this->socketPool->checkout($uri, $cancellationToken);
+        if (!$proxy) {
+            return $this->socketPool->checkout("tcp://{$authority}", $cancellationToken);
+        }
 
-            if ($proxy) {
-                yield $this->tunnelThroughProxy($socket, $authority);
-            }
+        return call(function () use ($proxy, $authority, $cancellationToken) {
+            $socket = yield $this->socketPool->checkout("tcp://{$proxy}#{$authority}", $cancellationToken);
+            yield $this->tunnelThroughProxy($socket, $authority);
 
             return $socket;
         });
