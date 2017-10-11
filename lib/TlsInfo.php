@@ -13,6 +13,7 @@ final class TlsInfo {
     private $cipherBits;
     private $cipherVersion;
     private $certificates;
+    private $parsedCertificates;
 
     private function __construct(string $protocol, string $cipherName, int $cipherBits, string $cipherVersion, array $certificates) {
         $this->protocol = $protocol;
@@ -38,9 +39,7 @@ final class TlsInfo {
             $cryptoInfo["cipher_name"],
             $cryptoInfo["cipher_bits"],
             $cryptoInfo["cipher_version"],
-            array_map(function ($resource) {
-                return new Certificate($resource);
-            }, array_merge([$tlsContext["peer_certificate"]] ?: [], $tlsContext["peer_certificate_chain"] ?? []))
+            array_merge([$tlsContext["peer_certificate"]] ?: [], $tlsContext["peer_certificate_chain"] ?? [])
         );
     }
 
@@ -62,6 +61,12 @@ final class TlsInfo {
 
     /** @return Certificate[] */
     public function getPeerCertificates(): array {
-        return $this->certificates;
+        if ($this->parsedCertificates === null) {
+            $this->parsedCertificates = array_map(function ($resource) {
+                return new Certificate($resource);
+            }, $this->certificates);
+        }
+
+        return $this->parsedCertificates;
     }
 }
