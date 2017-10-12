@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.0.9
+
+ - Lazily parse captured TLS certificates. This improves performance and memory usage. Additionally, `openssl_x509_parse` currently leaks memory. This fix ensures it leaks only if explicitly requested (until the PHP bug is fixed). See https://bugs.php.net/bug.php?id=75363.
+ - Small performance improvements for connections not using a proxy.
+
 ## 3.0.8
 
  - Fixed null pointer access in response handling completely breaking the client.
