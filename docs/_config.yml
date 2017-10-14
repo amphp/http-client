@@ -27,5 +27,6 @@ shared_asset_path: "/artax/asset"
 
 navigation:
  - requests
+ - responses
  - configuration
  - streaming
