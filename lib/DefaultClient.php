@@ -704,7 +704,7 @@ final class DefaultClient implements Client {
             public function __destruct() {
                 if (!$this->successfulEnd && $this->requestCycle->socket) {
                     try {
-                        this->socketPool->clear($this->requestCycle->socket);
+                        $this->socketPool->clear($this->requestCycle->socket);
                     } catch (\Error $e) {
                         // This might happen due to the unpredictable __destruct call order
                     }
