@@ -291,9 +291,8 @@ final class DefaultClient implements Client {
 
                     $parserState = $parser->getState();
                     if ($parserState !== Parser::AWAITING_HEADERS) {
-                        // Ignore check for HTTP/1.0 response without content-length and chunked encoding
-                        $ignoreIncompleteBodyCheck = $responseProtocolVersion === "1.0" &&
-                            $parserState === Parser::BODY_IDENTITY_EOF &&
+                        // Ignore check if neither content-length nor chunked encoding are given.
+                        $ignoreIncompleteBodyCheck = $parserState === Parser::BODY_IDENTITY_EOF &&
                             !isset($responseHeaders["content-length"]) &&
                             strcasecmp('identity', $responseHeaders['transfer-encoding'][0] ?? "");
 
