@@ -219,7 +219,7 @@ final class DefaultClient implements Client {
         return [$request, $uri];
     }
 
-    private function doRead(RequestCycle $requestCycle, ClientSocket $socket): \Generator {
+    private function doRead(RequestCycle $requestCycle, ClientSocket $socket, ConnectionInfo $connectionInfo): \Generator {
         try {
             $backpressure = new Success;
             $bodyCallback = $requestCycle->options[self::OP_DISCARD_BODY]
@@ -236,8 +236,6 @@ final class DefaultClient implements Client {
                 Parser::OP_MAX_BODY_BYTES => $requestCycle->options[self::OP_MAX_BODY_BYTES],
             ]);
 
-            $connectionInfo = $this->collectConnectionInfo($socket);
-
             while (null !== $chunk = yield $socket->read()) {
                 $requestCycle->cancellation->throwIfRequested();
 
@@ -251,6 +249,8 @@ final class DefaultClient implements Client {
 
                 $response = $this->finalizeResponse($requestCycle, $parseResult, $connectionInfo);
                 $shouldCloseSocketAfterResponse = $this->shouldCloseSocketAfterResponse($response);
+                $responseProtocolVersion = $response->getProtocolVersion();
+                $responseHeaders = $response->getHeaders();
 
                 if ($requestCycle->deferred) {
                     $deferred = $requestCycle->deferred;
@@ -289,8 +289,20 @@ final class DefaultClient implements Client {
                         }
                     } while (null !== $chunk = yield $socket->read());
 
-                    if ($parser->getState() !== Parser::AWAITING_HEADERS) {
-                        throw new HttpException("Incomplete body received.");
+                    $parserState = $parser->getState();
+                    if ($parserState !== Parser::AWAITING_HEADERS) {
+                        // Ignore check for HTTP/1.0 response without content-length and chunked encoding
+                        $ignoreIncompleteBodyCheck = $responseProtocolVersion === "1.0" &&
+                            $parserState === Parser::BODY_IDENTITY_EOF &&
+                            !isset($responseHeaders["content-length"]) &&
+                            strcasecmp('identity', $responseHeaders['transfer-encoding'][0] ?? "");
+
+                        if (!$ignoreIncompleteBodyCheck) {
+                            throw new SocketException(sprintf(
+                                'Socket disconnected prior to response completion (Parser state: %s)',
+                                $parserState
+                            ));
+                        }
                     }
                 }
 
@@ -322,6 +334,7 @@ final class DefaultClient implements Client {
         }
 
         if ($socket->getResource() !== null) {
+            $requestCycle->socket = null;
             $this->socketPool->clear($socket);
             $socket->close();
         }
@@ -401,6 +414,9 @@ final class DefaultClient implements Client {
                 yield $socket->enableCrypto($tlsContext);
             }
 
+            // Collect this here, because it fails in case the remote closes the connection directly.
+            $connectionInfo = $this->collectConnectionInfo($socket);
+
             $timeout = $requestCycle->options[self::OP_TRANSFER_TIMEOUT];
 
             if ($timeout > 0) {
@@ -459,7 +475,7 @@ final class DefaultClient implements Client {
                 throw new HttpException("Body contained fewer bytes than specified in Content-Length, aborting request");
             }
 
-            yield from $this->doRead($requestCycle, $socket);
+            yield from $this->doRead($requestCycle, $socket, $connectionInfo);
         } finally {
             $requestCycle->cancellation->unsubscribe($cancellation);
         }

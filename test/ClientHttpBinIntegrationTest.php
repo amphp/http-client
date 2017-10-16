@@ -10,6 +10,7 @@ use Amp\Artax\HttpException;
 use Amp\Artax\Request;
 use Amp\Artax\RequestBody;
 use Amp\Artax\Response;
+use Amp\Artax\SocketException;
 use Amp\Artax\TooManyRedirectsException;
 use Amp\ByteStream\InMemoryStream;
 use Amp\ByteStream\InputStream;
@@ -17,12 +18,81 @@ use Amp\ByteStream\IteratorStream;
 use Amp\CancellationTokenSource;
 use Amp\CancelledException;
 use Amp\Promise;
+use Amp\Socket;
 use Amp\Success;
 use PHPUnit\Framework\TestCase;
+use function Amp\asyncCall;
 use function Amp\Iterator\fromIterable;
 use function Amp\Promise\wait;
 
 class ClientHttpBinIntegrationTest extends TestCase {
+    public function testHttp10Response() {
+        $client = new DefaultClient;
+        $server = Socket\listen("tcp://127.0.0.1:0/");
+
+        asyncCall(function () use ($server) {
+            $client = yield $server->accept();
+            yield $client->end("HTTP/1.0 200 OK\r\n\r\n");
+        });
+
+        $uri = "http://" . $server->getAddress();
+
+        $promise = $client->request((new Request($uri))->withProtocolVersions(["1.0"]));
+        $response = wait($promise);
+
+        $this->assertInstanceOf(Response::class, $response);
+        $this->assertSame("", wait($response->getBody()));
+    }
+
+    public function testCloseAfterConnect() {
+        $client = new DefaultClient;
+        $server = Socket\listen("tcp://127.0.0.1:0");
+
+        asyncCall(function () use ($server) {
+            while ($client = yield $server->accept()) {
+                $client->close();
+            }
+        });
+
+        try {
+            $uri = "http://" . $server->getAddress() . "/";
+
+            $promise = $client->request((new Request($uri))->withProtocolVersions(["1.0"]));
+
+            $this->expectException(SocketException::class);
+            $this->expectExceptionMessage("Socket disconnected prior to response completion (Parser state: 0)");
+
+            wait($promise);
+        } finally {
+            $server->close();
+        }
+    }
+
+    public function testIncompleteHttp10Response() {
+        $client = new DefaultClient;
+        $server = Socket\listen("tcp://127.0.0.1:0");
+
+        asyncCall(function () use ($server) {
+            while ($client = yield $server->accept()) {
+                yield $client->end("HTTP/1.0 200 OK\r\nContent-Length: 2\r\n\r\n.");
+            }
+        });
+
+        try {
+            $uri = "http://" . $server->getAddress() . "/";
+
+            $promise = $client->request((new Request($uri))->withProtocolVersions(["1.0"]));
+
+            $this->expectException(SocketException::class);
+            $this->expectExceptionMessage("Socket disconnected prior to response completion (Parser state: 1)");
+
+            $response = wait($promise);
+            wait($response->getBody());
+        } finally {
+            $server->close();
+        }
+    }
+
     public function testDefaultUserAgentSent() {
         $uri = 'http://httpbin.org/user-agent';
         $client = new DefaultClient;
