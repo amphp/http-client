@@ -289,7 +289,7 @@ final class DefaultClient implements Client {
                         }
                     } while (null !== $chunk = yield $socket->read());
 
-                    if ($parser->getState() !== Parser::AWAITING_HEADERS) {
+                    if ($parser->getState() !== Parser::BODY_IDENTITY_EOF) {
                         throw new HttpException("Incomplete body received.");
                     }
                 }
