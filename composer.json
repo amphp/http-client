@@ -24,6 +24,7 @@
     "require": {
         "php": ">=7.0",
         "amphp/amp": "^2",
+        "amphp/byte-stream": "^1.1.6",
         "amphp/socket": "^0.10",
         "amphp/uri": "^0.1",
         "amphp/file": "^0.2",
