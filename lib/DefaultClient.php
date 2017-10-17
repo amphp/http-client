@@ -24,6 +24,7 @@ use Amp\NullCancellationToken;
 use Amp\Promise;
 use Amp\Socket\ClientSocket;
 use Amp\Socket\ClientTlsContext;
+use Amp\Socket\ConnectException;
 use Amp\Success;
 use Amp\Uri\InvalidUriException;
 use Amp\Uri\Uri;
@@ -398,6 +399,8 @@ final class DefaultClient implements Client {
             $requestCycle->socket = $socket;
         } catch (ResolutionException $dnsException) {
             throw new DnsException(\sprintf("Resolving the specified domain failed: '%s'", $requestCycle->uri->getHost()), 0, $dnsException);
+        } catch (ConnectException $e) {
+            throw new SocketException(\sprintf("Connection to '%s' failed", $authority), 0, $e);
         }
 
         $cancellation = $requestCycle->cancellation->subscribe(function ($error) use ($requestCycle) {
