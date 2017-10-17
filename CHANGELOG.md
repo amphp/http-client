@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.0.11
+
+ - Fixed issues with responses without `content-length` and without `transfer-encoding: chunked`.
+ - Revert fix for v3.0.10, as this has been properly fixed in `amphp/byte-stream`.
+ - Catch `ConnectException` from `amphp/socket` and throw `SocketException` instead. The exception was previously leaked, but undocumented and unexpected. 
+
+## 3.0.10
+
+ - Fixed issue with unknown socket on shutdown due to unpredictable `__destruct()` call order.
+
 ## 3.0.9
 
  - Lazily parse captured TLS certificates. This improves performance and memory usage. Additionally, `openssl_x509_parse` currently leaks memory. This fix ensures it leaks only if explicitly requested (until the PHP bug is fixed). See https://bugs.php.net/bug.php?id=75363.
