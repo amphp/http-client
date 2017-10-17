@@ -249,7 +249,7 @@ final class DefaultClient implements Client {
 
                 $response = $this->finalizeResponse($requestCycle, $parseResult, $connectionInfo);
                 $shouldCloseSocketAfterResponse = $this->shouldCloseSocketAfterResponse($response);
-                $responseProtocolVersion = $response->getProtocolVersion();
+                $ignoreIncompleteBodyCheck = false;
                 $responseHeaders = $response->getHeaders();
 
                 if ($requestCycle->deferred) {
@@ -305,7 +305,7 @@ final class DefaultClient implements Client {
                     }
                 }
 
-                if ($shouldCloseSocketAfterResponse) {
+                if ($shouldCloseSocketAfterResponse || $ignoreIncompleteBodyCheck) {
                     $this->socketPool->clear($socket);
                     $socket->close();
                 } else {

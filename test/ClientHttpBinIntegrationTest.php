@@ -68,7 +68,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
         }
     }
 
-    public function testIncompleteHttp10Response() {
+    public function testIncompleteHttpResponseWithContentLength() {
         $client = new DefaultClient;
         $server = Socket\listen("tcp://127.0.0.1:0");
 
@@ -88,6 +88,53 @@ class ClientHttpBinIntegrationTest extends TestCase {
 
             $response = wait($promise);
             wait($response->getBody());
+        } finally {
+            $server->close();
+        }
+    }
+
+    public function testIncompleteHttpResponseWithChunkedEncoding() {
+        $client = new DefaultClient;
+        $server = Socket\listen("tcp://127.0.0.1:0");
+
+        asyncCall(function () use ($server) {
+            while ($client = yield $server->accept()) {
+                yield $client->end("HTTP/1.0 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n0\r"); // missing \n
+            }
+        });
+
+        try {
+            $uri = "http://" . $server->getAddress() . "/";
+
+            $promise = $client->request((new Request($uri))->withProtocolVersions(["1.0"]));
+
+            $this->expectException(SocketException::class);
+            $this->expectExceptionMessage("Socket disconnected prior to response completion (Parser state: 3)");
+
+            $response = wait($promise);
+            wait($response->getBody());
+        } finally {
+            $server->close();
+        }
+    }
+
+    public function testIncompleteHttpResponseWithoutChunkedEncodingAndWithoutContentLength() {
+        $client = new DefaultClient;
+        $server = Socket\listen("tcp://127.0.0.1:0");
+
+        asyncCall(function () use ($server) {
+            while ($client = yield $server->accept()) {
+                yield $client->end("HTTP/1.1 200 OK\r\n\r\n00000000000");
+            }
+        });
+
+        try {
+            $uri = "http://" . $server->getAddress() . "/";
+
+            $promise = $client->request((new Request($uri))->withProtocolVersions(["1.0"]));
+
+            $response = wait($promise);
+            $this->assertSame("00000000000", wait($response->getBody()));
         } finally {
             $server->close();
         }
