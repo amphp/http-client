@@ -18,7 +18,6 @@ use Amp\ByteStream\InputStream;
 use Amp\ByteStream\IteratorStream;
 use Amp\CancellationTokenSource;
 use Amp\CancelledException;
-use Amp\Delayed;
 use Amp\Loop;
 use Amp\Promise;
 use Amp\Socket;
@@ -154,7 +153,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
             while ($client = yield $server->accept()) {
                 yield $client->write("HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n.");
 
-                Loop::delay(3000, function() use ($client) {
+                Loop::delay(3000, function () use ($client) {
                     $client->close();
                 });
             }
