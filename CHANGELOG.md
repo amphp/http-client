@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.0.12
+
+ - Apply timeouts correctly during connection and TLS handshakes. Previously these could hang indefinitely. See #145.
+
 ## 3.0.11
 
  - Fixed issues with responses without `content-length` and without `transfer-encoding: chunked`.
