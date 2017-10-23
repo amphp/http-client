@@ -22,6 +22,7 @@ install:
   - chmod +x coverage/bin/phpcov
 
   - composer show
+  - cd test/tls && ./regenerate.sh && cd -
 
 script:
   - phpdbg -qrr vendor/bin/phpunit --verbose --coverage-php coverage/cov/main.cov

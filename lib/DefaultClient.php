@@ -6,6 +6,7 @@ use Amp\Artax\Cookie\Cookie;
 use Amp\Artax\Cookie\CookieFormatException;
 use Amp\Artax\Cookie\CookieJar;
 use Amp\Artax\Cookie\NullCookieJar;
+use Amp\Artax\Internal\CombinedCancellationToken;
 use Amp\Artax\Internal\Parser;
 use Amp\Artax\Internal\PublicSuffixList;
 use Amp\Artax\Internal\RequestCycle;
@@ -14,6 +15,7 @@ use Amp\ByteStream\IteratorStream;
 use Amp\ByteStream\Message;
 use Amp\ByteStream\ZlibInputStream;
 use Amp\CancellationToken;
+use Amp\CancelledException;
 use Amp\Deferred;
 use Amp\Delayed;
 use Amp\Dns\ResolutionException;
@@ -26,6 +28,7 @@ use Amp\Socket\ClientSocket;
 use Amp\Socket\ClientTlsContext;
 use Amp\Socket\ConnectException;
 use Amp\Success;
+use Amp\TimeoutCancellationToken;
 use Amp\Uri\InvalidUriException;
 use Amp\Uri\Uri;
 use function Amp\asyncCall;
@@ -390,17 +393,41 @@ final class DefaultClient implements Client {
     }
 
     private function doWrite(RequestCycle $requestCycle) {
+        $timeout = $requestCycle->options[self::OP_TRANSFER_TIMEOUT];
+        $timeoutToken = new NullCancellationToken;
+
+        if ($timeout > 0) {
+            $transferTimeoutWatcher = Loop::delay($timeout, function () use ($requestCycle, $timeout) {
+                $this->fail($requestCycle, new TimeoutException(
+                    sprintf('Allowed transfer timeout exceeded: %d ms', $timeout)
+                ));
+            });
+
+            $requestCycle->bodyDeferred->promise()->onResolve(static function () use ($transferTimeoutWatcher) {
+                Loop::cancel($transferTimeoutWatcher);
+            });
+
+            $timeoutToken = new TimeoutCancellationToken($timeout);
+        }
+
         $authority = $this->generateAuthorityFromUri($requestCycle->uri);
         $socketCheckoutUri = $requestCycle->uri->getScheme() . "://{$authority}";
+        $connectTimeoutToken = new CombinedCancellationToken($requestCycle->cancellation, $timeoutToken);
 
         try {
             /** @var ClientSocket $socket */
-            $socket = yield $this->socketPool->checkout($socketCheckoutUri, $requestCycle->cancellation);
+            $socket = yield $this->socketPool->checkout($socketCheckoutUri, $connectTimeoutToken);
             $requestCycle->socket = $socket;
         } catch (ResolutionException $dnsException) {
             throw new DnsException(\sprintf("Resolving the specified domain failed: '%s'", $requestCycle->uri->getHost()), 0, $dnsException);
         } catch (ConnectException $e) {
             throw new SocketException(\sprintf("Connection to '%s' failed", $authority), 0, $e);
+        } catch (CancelledException $e) {
+            // In case of a user cancellation request, throw the expected exception
+            $requestCycle->cancellation->throwIfRequested();
+
+            // Otherwise we ran into a timeout of our TimeoutCancellationToken
+            throw new SocketException(\sprintf("Connection to '%s' timed out", $authority), 0, $e);
         }
 
         $cancellation = $requestCycle->cancellation->subscribe(function ($error) use ($requestCycle) {
@@ -418,20 +445,6 @@ final class DefaultClient implements Client {
 
             // Collect this here, because it fails in case the remote closes the connection directly.
             $connectionInfo = $this->collectConnectionInfo($socket);
-
-            $timeout = $requestCycle->options[self::OP_TRANSFER_TIMEOUT];
-
-            if ($timeout > 0) {
-                $transferTimeoutWatcher = Loop::delay($timeout, function () use ($requestCycle, $timeout) {
-                    $this->fail($requestCycle, new TimeoutException(
-                        sprintf('Allowed transfer timeout exceeded: %d ms', $timeout)
-                    ));
-                });
-
-                $requestCycle->bodyDeferred->promise()->onResolve(static function () use ($transferTimeoutWatcher) {
-                    Loop::cancel($transferTimeoutWatcher);
-                });
-            }
 
             $rawHeaders = $this->generateRawRequestHeaders($requestCycle->request, $requestCycle->protocolVersion);
             yield $socket->write($rawHeaders);

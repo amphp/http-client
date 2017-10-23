@@ -11,14 +11,12 @@ use Amp\Artax\Request;
 use Amp\Artax\RequestBody;
 use Amp\Artax\Response;
 use Amp\Artax\SocketException;
-use Amp\Artax\TimeoutException;
 use Amp\Artax\TooManyRedirectsException;
 use Amp\ByteStream\InMemoryStream;
 use Amp\ByteStream\InputStream;
 use Amp\ByteStream\IteratorStream;
 use Amp\CancellationTokenSource;
 use Amp\CancelledException;
-use Amp\Loop;
 use Amp\Promise;
 use Amp\Socket;
 use Amp\Success;
@@ -138,40 +136,6 @@ class ClientHttpBinIntegrationTest extends TestCase {
             $response = wait($promise);
             $this->assertSame("00000000000", wait($response->getBody()));
         } finally {
-            $server->close();
-        }
-    }
-
-    public function testTimeout() {
-        $client = new DefaultClient;
-        $client->setOption(Client::OP_TRANSFER_TIMEOUT, 500);
-
-        $server = Socket\listen("tcp://127.0.0.1:0");
-
-        asyncCall(function () use ($server) {
-            /** @var Socket\ClientSocket $client */
-            while ($client = yield $server->accept()) {
-                yield $client->write("HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n.");
-
-                Loop::delay(3000, function () use ($client) {
-                    $client->close();
-                });
-            }
-        });
-
-        try {
-            $uri = "http://" . $server->getAddress() . "/";
-
-            $start = \microtime(true);
-            $promise = $client->request($uri);
-
-            /** @var Response $response */
-            $response = wait($promise);
-            $this->expectException(TimeoutException::class);
-            $this->expectExceptionMessage("Allowed transfer timeout exceeded: 500 ms");
-            wait($response->getBody());
-        } finally {
-            $this->assertLessThan(0.6, \microtime(true) - $start);
             $server->close();
         }
     }
