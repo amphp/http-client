@@ -29,4 +29,5 @@ navigation:
  - requests
  - responses
  - configuration
+ - parallel
  - streaming
