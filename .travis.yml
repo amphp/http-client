@@ -27,7 +27,7 @@ install:
   - cd test/tls && ./regenerate.sh && cd -
 
 script:
-  - phpdbg -qrr vendor/bin/phpunit --verbose --coverage-php coverage/cov/main.cov
+  - vendor/bin/phpunit --verbose --coverage-php coverage/cov/main.cov
   - PHP_CS_FIXER_IGNORE_ENV=1 php vendor/bin/php-cs-fixer --diff --dry-run -v fix
 
 after_script:
