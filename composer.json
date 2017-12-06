@@ -44,5 +44,10 @@
         "psr-4": {
             "Amp\\Test\\Artax\\": "test"
         }
+    },
+    "config": {
+        "platform": {
+            "php": "7.0.0"
+        }
     }
 }
