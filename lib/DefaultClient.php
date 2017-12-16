@@ -1093,7 +1093,7 @@ final class DefaultClient implements Client {
         $crypto = \stream_get_meta_data($socket->getResource())["crypto"] ?? null;
 
         return new ConnectionInfo(
-            $socket->getLocalAddress(),
+            $socket->getLocalAddress() ?? "", // unix sockets don't have a local address
             $socket->getRemoteAddress(),
             $crypto ? TlsInfo::fromMetaData($crypto, \stream_context_get_options($socket->getResource())["ssl"]) : null
         );
