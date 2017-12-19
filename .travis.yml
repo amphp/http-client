@@ -30,12 +30,19 @@ install:
   - cd test/tls && ./regenerate.sh && cd -
 
 script:
-  - vendor/bin/phpunit --verbose --coverage-php coverage/cov/main.cov
+  # PHPDBG segfaults on versions other than 7.0 currently
+  - if [ "$TRAVIS_PHP_VERSION" = "7.0" ]; then
+      phpdbg -qrr vendor/bin/phpunit --verbose --coverage-php coverage/cov/main.cov;
+    else
+      vendor/bin/phpunit --coverage-text --verbose --coverage-php coverage/cov/main.cov;
+    fi
   - PHP_CS_FIXER_IGNORE_ENV=1 php vendor/bin/php-cs-fixer --diff --dry-run -v fix
 
 after_script:
-  - coverage/bin/phpcov merge --clover build/logs/clover.xml coverage/cov
-  - ./coveralls.phar -v
+  - if [ "$TRAVIS_PHP_VERSION" = "7.0" ]; then
+      coverage/bin/phpcov merge --clover build/logs/clover.xml coverage/cov
+      ./coveralls.phar -v;
+    fi
 
 cache:
   directories:
