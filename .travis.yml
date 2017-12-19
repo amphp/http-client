@@ -13,6 +13,9 @@ matrix:
     - php: nightly
   fast_finish: true
 
+before_install:
+  - phpenv config-rm xdebug.ini || echo "No xdebug config."
+
 install:
   - composer update -n --prefer-dist
 
