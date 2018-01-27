@@ -3,12 +3,7 @@
 use Amp\Artax\HttpSocketPool;
 use Amp\Artax\Request;
 use Amp\Artax\Response;
-use Amp\CancellationToken;
 use Amp\Loop;
-use Amp\Promise;
-use Amp\Socket\BasicSocketPool;
-use Amp\Socket\ClientSocket;
-use Amp\Socket\SocketPool;
 use Amp\Socket\StaticSocketPool;
 
 require __DIR__ . '/../vendor/autoload.php';
