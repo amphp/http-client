@@ -12,7 +12,7 @@ use function Amp\coroutine;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-$count = (int) ($argv[1] ?? "100");
+$count = (int) ($argv[1] ?? "1000");
 
 Loop::run(function () use ($count) {
     $client = new Amp\Artax\DefaultClient;
@@ -26,7 +26,7 @@ Loop::run(function () use ($count) {
         }
     });
 
-    while ($count === 0) {
+    do {
         $promises = [];
         for ($i = 0; $i < 10; $i++) {
             $promises[] = $handler($count === 0 ? 100 : $count);
@@ -37,5 +37,5 @@ Loop::run(function () use ($count) {
         gc_mem_caches();
 
         print "Memory: " . (memory_get_usage(true) / 1000) . PHP_EOL;
-    }
+    } while ($count === 0);
 });
