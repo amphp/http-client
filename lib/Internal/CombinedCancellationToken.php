@@ -15,7 +15,7 @@ class CombinedCancellationToken implements CancellationToken {
         $this->token = $tokenSource->getToken();
 
         foreach ($tokens as $token) {
-            $id = $token->subscribe(function ($error) use ($tokenSource) {
+            $id = $token->subscribe(static function ($error) use ($tokenSource) {
                 $tokenSource->cancel($error);
             });
 
