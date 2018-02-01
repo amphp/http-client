@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.0.14
+
+ - Fixed timeout token leak (#157)
+
+## 3.0.13
+
+ - Bumped `amphp/file` to `^0.2 || ^0.3`. 
+
 ## 3.0.12
 
  - Apply timeouts correctly during connection and TLS handshakes. Previously these could hang indefinitely. See #145.
