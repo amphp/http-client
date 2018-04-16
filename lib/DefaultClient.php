@@ -665,7 +665,7 @@ final class DefaultClient implements Client {
 
         if (!$applicableCookies = $this->cookieJar->get($domain, $path)) {
             // No cookies matched our request; we're finished.
-            return $request->withoutHeader("Cookie");
+            return $request;
         }
 
         $isRequestSecure = strcasecmp($uri->getScheme(), "https") === 0;
@@ -682,7 +682,7 @@ final class DefaultClient implements Client {
             return $request->withHeader("Cookie", \implode("; ", $cookiePairs));
         }
 
-        return $request->withoutHeader("Cookie");
+        return $request;
     }
 
     private function generateAuthorityFromUri(Uri $uri): string {
