@@ -13,6 +13,7 @@ use Amp\Artax\Internal\RequestCycle;
 use Amp\ByteStream\InputStream;
 use Amp\ByteStream\IteratorStream;
 use Amp\ByteStream\Message;
+use Amp\ByteStream\StreamException;
 use Amp\ByteStream\ZlibInputStream;
 use Amp\CancellationToken;
 use Amp\CancelledException;
@@ -491,6 +492,8 @@ final class DefaultClient implements Client {
             }
 
             yield from $this->doRead($requestCycle, $socket, $connectionInfo);
+        } catch (StreamException $e) {
+            throw new SocketException("Failed to write to byte-stream", 0, $e);
         } finally {
             $requestCycle->cancellation->unsubscribe($cancellation);
         }

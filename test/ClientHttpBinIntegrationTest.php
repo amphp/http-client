@@ -60,7 +60,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
             $promise = $client->request((new Request($uri))->withProtocolVersions(["1.0"]));
 
             $this->expectException(SocketException::class);
-            $this->expectExceptionMessage("Socket disconnected prior to response completion (Parser state: 0)");
+            $this->expectExceptionMessage("Failed to write to byte-stream");
 
             wait($promise);
         } finally {
