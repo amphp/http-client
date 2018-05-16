@@ -5,13 +5,13 @@ use Amp\Loop;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-Loop::run(function () {
+Loop::run(function () use ($argv) {
     try {
         // Instantiate the HTTP client
         $client = new Amp\Artax\DefaultClient;
 
         // Make an asynchronous HTTP request
-        $promise = $client->request('https://httpbin.org/user-agent');
+        $promise = $client->request($argv[1] ?? 'https://httpbin.org/user-agent');
 
         // Client::request() is asynchronous! It doesn't return a response. Instead, it returns a promise to resolve the
         // response at some point in the future when we've received the headers of the response. Here we use yield which
