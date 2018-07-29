@@ -1090,12 +1090,18 @@ final class DefaultClient implements Client {
     }
 
     private function collectConnectionInfo(ClientSocket $socket): ConnectionInfo {
-        $crypto = \stream_get_meta_data($socket->getResource())["crypto"] ?? null;
+        $stream = $socket->getResource();
+
+        if ($stream === null) {
+            throw new SocketException("Socket closed before connection information could be collected");
+        }
+
+        $crypto = \stream_get_meta_data($stream)["crypto"] ?? null;
 
         return new ConnectionInfo(
             $socket->getLocalAddress(),
             $socket->getRemoteAddress(),
-            $crypto ? TlsInfo::fromMetaData($crypto, \stream_context_get_options($socket->getResource())["ssl"]) : null
+            $crypto ? TlsInfo::fromMetaData($crypto, \stream_context_get_options($stream)["ssl"]) : null
         );
     }
 }
