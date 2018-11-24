@@ -228,7 +228,11 @@ final class Request {
             $clone->headers[$lower] = [];
 
             foreach ($values as $value) {
-                if (!\is_string($value) && !\is_int($value) && !\is_float($value)) {
+                if (!\is_string($value)
+                    && !\is_int($value)
+                    && !\is_float($value)
+                    && !(is_object($value) && method_exists($value, '__toString'))
+                ) {
                     throw new \TypeError("All values for withHeaders must be string or an array of strings");
                 }
 
