@@ -76,6 +76,17 @@ final class FormBody implements RequestBody {
         }
     }
 
+    /**
+     * Returns an array of fields, each being an array of [name, value, content-type, file-name|null].
+     * Both fields and files are returned in the array. Files use a FileBody object as the value. The file-name is
+     * always null for fields.
+     *
+     * @return array
+     */
+    public function getFields(): array {
+        return $this->fields;
+    }
+
     private function resetCache() {
         $this->cachedBody = null;
         $this->cachedLength = null;
@@ -148,6 +159,10 @@ final class FormBody implements RequestBody {
     }
 
     private function getFormEncodedBodyString(): string {
+        if ($this->cachedBody) {
+            return $this->cachedBody;
+        }
+
         $fields = [];
 
         foreach ($this->fields as $fieldArr) {
@@ -159,7 +174,7 @@ final class FormBody implements RequestBody {
             $fields[$key] = isset($value[1]) ? $value : $value[0];
         }
 
-        return \http_build_query($fields);
+        return $this->cachedBody = \http_build_query($fields);
     }
 
     public function getHeaders(): Promise {
@@ -175,16 +190,20 @@ final class FormBody implements RequestBody {
     }
 
     public function getBodyLength(): Promise {
-        if (!$this->isMultipart) {
-            return new Success(\strlen($this->getFormEncodedBodyString()));
+        if ($this->cachedLength) {
+            return $this->cachedLength;
         }
 
-        return call(function () {
+        if (!$this->isMultipart) {
+            return $this->cachedLength = new Success(\strlen($this->getFormEncodedBodyString()));
+        }
+
+        return $this->cachedLength = call(function () {
             $fields = $this->getMultipartFieldArray();
             $length = 0;
 
             foreach ($fields as $field) {
-                if (is_string($field)) {
+                if (\is_string($field)) {
                     $length += \strlen($field);
                 } else {
                     $length += yield $field->getBodyLength();

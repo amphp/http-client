@@ -2,6 +2,7 @@
 
 namespace Amp\Artax\Test;
 
+use Amp\Artax\FileBody;
 use Amp\Artax\FormBody;
 use Amp\ByteStream\Message;
 use Amp\PHPUnit\TestCase;
@@ -22,6 +23,16 @@ class FormBodyTest extends TestCase {
         $body->addFields([
             'f' => 'f'
         ]);
+
+        $this->assertSame([
+            ['a', 'a', 'application/json', null],
+            ['b', 'b', 'application/json', null],
+            ['c', 'c', '', null],
+            ['d', 'd', 'text/plain', null],
+            ['e', 'e', '', null],
+            ['f', 'f', 'text/plain', null],
+        ], $body->getFields());
+
         $content = wait(new Message($body->createBodyStream()));
         $this->assertEquals("a=a&b=b&c=c&d=d&e=e&f=f", $content);
     }
@@ -40,8 +51,18 @@ class FormBodyTest extends TestCase {
         $body->addFields([
             'f' => 'f'
         ]);
+
         $file = __DIR__.'/fixture/lorem.txt';
         $body->addFile('file', $file);
+
+        $fields = $body->getFields();
+        list($fieldName, $fileBody, $contentType, $fileName) = \end($fields);
+
+        $this->assertSame('file', $fieldName);
+        $this->assertInstanceOf(FileBody::class, $fileBody);
+        $this->assertSame('application/octet-stream', $contentType);
+        $this->assertSame('lorem.txt', $fileName);
+
         $content = wait(new Message($body->createBodyStream()));
         $this->assertEquals("--ea4ba2aa9af22673bc01ae7a64c95440\r
 Content-Disposition: form-data; name=\"a\"\r
