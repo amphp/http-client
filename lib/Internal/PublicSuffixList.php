@@ -2,8 +2,8 @@
 
 namespace Amp\Artax\Internal;
 
-use Amp\Uri\InvalidDnsNameException;
-use function Amp\Uri\normalizeDnsName;
+use Amp\Dns\InvalidNameException;
+use function Amp\Dns\normalizeName;
 
 /** @internal */
 final class PublicSuffixList {
@@ -17,7 +17,7 @@ final class PublicSuffixList {
             self::$initialized = true;
         }
 
-        $domain = normalizeDnsName($domain);
+        $domain = normalizeName($domain);
         $domain = \implode(".", \array_reverse(\explode(".", \trim($domain, "."))));
 
         foreach (self::$exceptionPatterns as $pattern) {
@@ -58,7 +58,7 @@ final class PublicSuffixList {
                 } else {
                     $rules[] = self::toRegex($rule, false);
                 }
-            } catch (InvalidDnsNameException $e) {
+            } catch (InvalidNameException $e) {
                 // ignore IDN rules if no IDN support is available
                 // requests with IDNs will fail anyway then
             }
@@ -78,7 +78,7 @@ final class PublicSuffixList {
 
         foreach ($labels as $key => $label) {
             if ($label !== "*") {
-                $labels[$key] = normalizeDnsName($label);
+                $labels[$key] = normalizeName($label);
             }
         }
 

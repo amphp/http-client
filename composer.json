@@ -26,9 +26,9 @@
         "amphp/amp": "^2",
         "amphp/byte-stream": "^1.1.6",
         "amphp/socket": "^0.10.5",
-        "amphp/uri": "^0.1",
         "amphp/file": "^0.2 || ^0.3",
-        "kelunik/certificate": "^1.1"
+        "kelunik/certificate": "^1.1",
+        "league/uri-schemes": "^1.2"
     },
     "require-dev": {
         "amphp/phpunit-util": "^1",
@@ -47,7 +47,7 @@
     },
     "config": {
         "platform": {
-            "php": "7.0.0"
+            "php": "7.0.13"
         }
     }
 }

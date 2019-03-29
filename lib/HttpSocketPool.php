@@ -9,7 +9,7 @@ use Amp\Socket\BasicSocketPool;
 use Amp\Socket\ClientSocket;
 use Amp\Socket\SocketPool;
 use Amp\Success;
-use Amp\Uri\Uri;
+use League\Uri;
 use function Amp\call;
 
 class HttpSocketPool implements SocketPool {
@@ -48,14 +48,14 @@ class HttpSocketPool implements SocketPool {
     }
 
     private function getUriAuthority(string $uri): string {
-        $parsedUri = new Uri($uri);
+        $parsedUri = Uri\Http::createFromString($uri);
 
         return $parsedUri->getHost() . ":" . $parsedUri->getPort();
     }
 
     /** @inheritdoc */
     public function checkout(string $uri, CancellationToken $cancellationToken = null): Promise {
-        $parsedUri = new Uri($uri);
+        $parsedUri = Uri\Http::createFromString($uri);
 
         $scheme = $parsedUri->getScheme();
 
@@ -72,7 +72,11 @@ class HttpSocketPool implements SocketPool {
         // The underlying TCP pool will ignore the URI fragment when connecting but retain it in the
         // name when tracking hostname connection counts. This allows us to expose host connection
         // limits transparently even when connecting through a proxy.
-        $authority = $parsedUri->getHost() . ":" . $parsedUri->getPort();
+        $port = $parsedUri->getPort();
+        if ($port === null) {
+            $port = $parsedUri->getScheme() === 'https' ? 443 : 80;
+        }
+        $authority = $parsedUri->getHost() . ":" . $port;
 
         if (!$proxy) {
             return $this->socketPool->checkout("tcp://{$authority}", $cancellationToken);
