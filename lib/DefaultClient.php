@@ -30,8 +30,8 @@ use Amp\Socket\ClientTlsContext;
 use Amp\Socket\ConnectException;
 use Amp\Success;
 use Amp\TimeoutCancellationToken;
-use Amp\Uri\InvalidUriException;
-use Amp\Uri\Uri;
+use League\Uri;
+use League\Uri\UriException;
 use function Amp\asyncCall;
 use function Amp\call;
 
@@ -131,7 +131,7 @@ final class DefaultClient implements Client {
                      */
                     $method = $request->getMethod();
                     $status = $response->getStatus();
-                    $isSameHost = $redirectUri->getAuthority(false) === $originalUri->getAuthority(false);
+                    $isSameHost = $redirectUri->getAuthority() === $originalUri->getAuthority();
 
                     if ($isSameHost) {
                         $request = $request->withUri($redirectUri);
@@ -172,7 +172,7 @@ final class DefaultClient implements Client {
         });
     }
 
-    private function doRequest(Request $request, Uri $uri, array $options, Response $previousResponse = null, CancellationToken $cancellation): Promise {
+    private function doRequest(Request $request, Uri\Http $uri, array $options, Response $previousResponse = null, CancellationToken $cancellation): Promise {
         $deferred = new Deferred;
 
         $requestCycle = new RequestCycle;
@@ -530,9 +530,9 @@ final class DefaultClient implements Client {
         }
     }
 
-    private function buildUriFromString($str): Uri {
+    private function buildUriFromString($str): Uri\Http {
         try {
-            $uri = new Uri($str);
+            $uri = Uri\Http::createFromString($str);
             $scheme = $uri->getScheme();
 
             if (($scheme === "http" || $scheme === "https") && $uri->getHost()) {
@@ -540,7 +540,7 @@ final class DefaultClient implements Client {
             }
 
             throw new HttpException("Request must specify a valid HTTP URI");
-        } catch (InvalidUriException $e) {
+        } catch (UriException $e) {
             throw new HttpException("Request must specify a valid HTTP URI", 0, $e);
         }
     }
@@ -620,7 +620,7 @@ final class DefaultClient implements Client {
         return $request->withoutHeader('Accept-Encoding');
     }
 
-    private function normalizeRequestHostHeader(Request $request, Uri $uri): Request {
+    private function normalizeRequestHostHeader(Request $request, Uri\Http $uri): Request {
         if ($request->hasHeader('Host')) {
             return $request;
         }
@@ -661,7 +661,7 @@ final class DefaultClient implements Client {
     }
 
     private function assignApplicableRequestCookies(Request $request): Request {
-        $uri = new Uri($request->getUri());
+        $uri = Uri\Http::createFromString($request->getUri());
 
         $domain = $uri->getHost();
         $path = $uri->getPath();
@@ -688,7 +688,7 @@ final class DefaultClient implements Client {
         return $request->withoutHeader("Cookie");
     }
 
-    private function generateAuthorityFromUri(Uri $uri): string {
+    private function generateAuthorityFromUri(Uri\Http $uri): string {
         $host = $uri->getHost();
         $port = $uri->getPort();
 
@@ -928,14 +928,36 @@ final class DefaultClient implements Client {
             return null;
         }
 
-        $requestUri = new Uri($request->getUri());
-        $redirectLocation = $response->getHeader('Location');
-
         try {
-            return $requestUri->resolve($redirectLocation);
-        } catch (InvalidUriException $e) {
+            $requestUri = Uri\Http::createFromString($request->getUri());
+            $redirectLocation = $response->getHeader('Location');
+
+            $redirectUri = Uri\Http::createFromString($redirectLocation);
+
+            return $this->resolveRedirect($requestUri, $redirectUri);
+        } catch (UriException $e) {
             return null;
         }
+    }
+
+    private function resolveRedirect(Uri\Http $requestUri, Uri\Http $redirectUri): Uri\Http {
+        if ($redirectUri->getAuthority() === '') {
+            $redirectUri = $redirectUri->withHost($requestUri->getHost());
+
+            if ($redirectUri->getPort() === null && $requestUri->getPort() !== null) {
+                $redirectUri = $redirectUri->withPort($requestUri->getPort());
+            }
+        }
+
+        if ($redirectUri->getScheme() === '') {
+            $redirectUri = $redirectUri->withScheme($requestUri->getScheme());
+        }
+
+        if ($query = $requestUri->getQuery()) {
+            $redirectUri = $redirectUri->withQuery($query);
+        }
+
+        return $redirectUri;
     }
 
     /**
@@ -973,7 +995,7 @@ final class DefaultClient implements Client {
      */
     private function generateRawRequestHeaders(Request $request, string $protocolVersion): string {
         $uri = $request->getUri();
-        $uri = new Uri($uri);
+        $uri = Uri\Http::createFromString($uri);
 
         $requestUri = $uri->getPath() ?: '/';
 
