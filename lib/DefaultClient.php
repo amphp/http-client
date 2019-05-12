@@ -493,7 +493,7 @@ final class DefaultClient implements Client {
 
             yield from $this->doRead($requestCycle, $socket, $connectionInfo);
         } catch (StreamException $e) {
-            throw new SocketException("Failed to write to byte-stream", 0, $e);
+            throw new SocketException("Failed to read response from server", 0, $e);
         } finally {
             $requestCycle->cancellation->unsubscribe($cancellation);
         }
