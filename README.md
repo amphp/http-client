@@ -45,11 +45,11 @@ More extensive code examples reside in the [`examples`](./examples) directory.
 
 `amphp/artax` follows the [semver](http://semver.org/) semantic versioning specification like all other `amphp` packages.
 
-| Version | Bug Fixes Until | Security Fixes Until |
-| ------- | --------------- | -------------------- |
-| 3.x     | TBA             | TBA                  |
-| 2.x     | 2017-12-31      | 2018-12-31           |
-| 1.x     | Unmaintained.   | Unmaintained.        |
+| Version | Bug Fixes Until  | Security Fixes Until |
+| ------- | ---------------- | -------------------- |
+| 3.x     | To be announced. | To be announced.     |
+| 2.x     | Unmaintained.	 | Unmaintained.        |
+| 1.x     | Unmaintained.    | Unmaintained.        |
 
 ## Security
 
