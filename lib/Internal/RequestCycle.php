@@ -7,9 +7,9 @@ use Amp\Artax\Response;
 use Amp\CancellationToken;
 use Amp\Deferred;
 use Amp\Emitter;
-use Amp\Socket\ClientSocket;
+use Amp\Socket\ResourceSocket;
 use Amp\Struct;
-use Amp\Uri\Uri;
+use League\Uri;
 
 class RequestCycle {
     use Struct;
@@ -20,7 +20,7 @@ class RequestCycle {
     /** @var Request */
     public $request;
 
-    /** @var Uri */
+    /** @var Uri\Http */
     public $uri;
 
     /** @var array */
@@ -38,7 +38,7 @@ class RequestCycle {
     /** @var Emitter */
     public $body;
 
-    /** @var ClientSocket */
+    /** @var ResourceSocket */
     public $socket;
 
     /** @var CancellationToken */
