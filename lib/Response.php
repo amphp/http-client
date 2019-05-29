@@ -2,7 +2,7 @@
 
 namespace Amp\Artax;
 
-use Amp\ByteStream\Message;
+use Amp\ByteStream\Payload;
 
 /**
  * An HTTP response.
@@ -117,9 +117,9 @@ interface Response {
      *
      * Note: If you stream a Message, you can't consume the payload twice.
      *
-     * @return Message
+     * @return Payload
      */
-    public function getBody(): Message;
+    public function getBody(): Payload;
 
     /**
      * @return MetaInfo

@@ -51,7 +51,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
         $response = wait($promise);
 
         $this->assertInstanceOf(Response::class, $response);
-        $this->assertSame("", wait($response->getBody()));
+        $this->assertSame("", wait($response->getBody()->buffer()));
     }
 
     public function testCloseAfterConnect() {
@@ -70,7 +70,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
             $promise = $client->request((new Request($uri))->withProtocolVersions(["1.0"]));
 
             $this->expectException(SocketException::class);
-            $this->expectExceptionMessage("Failed to read response from server");
+            $this->expectExceptionMessage("Socket disconnected prior to response completion");
 
             wait($promise);
         } finally {
@@ -97,7 +97,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
             $this->expectExceptionMessage("Socket disconnected prior to response completion (Parser state: 1)");
 
             $response = wait($promise);
-            wait($response->getBody());
+            wait($response->getBody()->buffer());
         } finally {
             $server->close();
         }
@@ -122,7 +122,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
             $this->expectExceptionMessage("Socket disconnected prior to response completion (Parser state: 3)");
 
             $response = wait($promise);
-            wait($response->getBody());
+            wait($response->getBody()->buffer());
         } finally {
             $server->close();
         }
@@ -144,7 +144,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
             $promise = $client->request((new Request($uri))->withProtocolVersions(["1.0"]));
 
             $response = wait($promise);
-            $this->assertSame("00000000000", wait($response->getBody()));
+            $this->assertSame("00000000000", wait($response->getBody()->buffer()));
         } finally {
             $server->close();
         }
@@ -159,7 +159,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
 
         $this->assertInstanceOf(Response::class, $response);
 
-        $body = wait($response->getBody());
+        $body = wait($response->getBody()->buffer());
         $result = json_decode($body);
 
         $this->assertSame(DefaultClient::DEFAULT_USER_AGENT, $result->{'user-agent'});
@@ -177,7 +177,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
 
         $this->assertInstanceOf(Response::class, $response);
 
-        $body = wait($response->getBody());
+        $body = wait($response->getBody()->buffer());
         $result = json_decode($body);
 
         $this->assertSame($customUserAgent, $result->{'user-agent'});
@@ -196,7 +196,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
 
         $this->assertInstanceOf(Response::class, $response);
 
-        $body = wait($response->getBody());
+        $body = wait($response->getBody()->buffer());
         $result = json_decode($body);
 
         $this->assertSame($customUserAgent, $result->{'user-agent'});
@@ -211,7 +211,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
 
         $this->assertInstanceOf(Response::class, $response);
 
-        $result = json_decode(wait($response->getBody()));
+        $result = json_decode(wait($response->getBody()->buffer()));
 
         $this->assertEquals($body, $result->data);
     }
@@ -226,7 +226,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
 
         $this->assertInstanceOf(Response::class, $response);
 
-        $result = json_decode(wait($response->getBody()));
+        $result = json_decode(wait($response->getBody()->buffer()));
 
         $this->assertEquals($body, $result->data);
     }
@@ -293,7 +293,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
 
         $this->assertInstanceOf(Response::class, $response);
 
-        $body = wait($response->getBody());
+        $body = wait($response->getBody()->buffer());
         $result = json_decode($body);
 
         $this->assertEquals('0', $result->headers->{'Content-Length'});
@@ -313,7 +313,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
 
         $this->assertInstanceOf(Response::class, $response);
 
-        $result = json_decode(wait($response->getBody()), true);
+        $result = json_decode(wait($response->getBody()->buffer()), true);
 
         $this->assertEquals($field1, $result['form']['field1']);
         $this->assertEquals($field2, $result['form']['field2']);
@@ -332,7 +332,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
 
         $this->assertInstanceOf(Response::class, $response);
 
-        $result = json_decode(wait($response->getBody()), true);
+        $result = json_decode(wait($response->getBody()->buffer()), true);
 
         $this->assertEquals(file_get_contents($bodyPath), $result['data']);
     }
@@ -355,7 +355,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
 
         $this->assertEquals(200, $response->getStatus());
 
-        $result = json_decode(wait($response->getBody()), true);
+        $result = json_decode(wait($response->getBody()->buffer()), true);
 
         $this->assertEquals($field1, $result['form']['field1']);
         $this->assertEquals(file_get_contents($file1), $result['files']['file1']);
@@ -373,7 +373,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
 
         $this->assertEquals(200, $response->getStatus());
 
-        $result = json_decode(wait($response->getBody()), true);
+        $result = json_decode(wait($response->getBody()->buffer()), true);
 
         $this->assertTrue($result['gzipped']);
     }
@@ -388,7 +388,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
 
         $this->assertEquals(200, $response->getStatus());
 
-        $result = json_decode(wait($response->getBody()), true);
+        $result = json_decode(wait($response->getBody()->buffer()), true);
 
         $this->assertTrue($result['deflated']);
     }
@@ -423,7 +423,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
         $this->assertInstanceOf(Response::class, $response);
         $cancellationTokenSource->cancel();
         $this->expectException(CancelledException::class);
-        wait($response->getBody());
+        wait($response->getBody()->buffer());
     }
 
     public function testContentLengthBodyMismatchWithTooManyBytesSimple() {

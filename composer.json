@@ -22,15 +22,16 @@
         }
     ],
     "require": {
-        "php": ">=7.0",
+        "php": ">=7.1",
         "amphp/amp": "^2",
         "amphp/byte-stream": "^1.1.6",
-        "amphp/socket": "^0.10.5",
-        "amphp/uri": "^0.1",
+        "amphp/socket": "dev-master as 1.0",
         "amphp/file": "^0.2 || ^0.3",
-        "kelunik/certificate": "^1.1"
+        "kelunik/certificate": "^1.1",
+        "league/uri-schemes": "^1.2"
     },
     "require-dev": {
+        "ext-json": "*",
         "amphp/phpunit-util": "^1",
         "phpunit/phpunit": "^6",
         "friendsofphp/php-cs-fixer": "^2.3",
@@ -44,11 +45,6 @@
     "autoload-dev": {
         "psr-4": {
             "Amp\\Test\\Artax\\": "test"
-        }
-    },
-    "config": {
-        "platform": {
-            "php": "7.0.0"
         }
     }
 }

@@ -12,26 +12,28 @@ use Amp\Artax\Internal\PublicSuffixList;
 use Amp\Artax\Internal\RequestCycle;
 use Amp\ByteStream\InputStream;
 use Amp\ByteStream\IteratorStream;
-use Amp\ByteStream\Message;
+use Amp\ByteStream\Payload;
 use Amp\ByteStream\StreamException;
 use Amp\ByteStream\ZlibInputStream;
 use Amp\CancellationToken;
 use Amp\CancelledException;
 use Amp\Deferred;
 use Amp\Delayed;
-use Amp\Dns\ResolutionException;
+use Amp\Dns\DnsException as DnsResolverException;
 use Amp\Emitter;
 use Amp\Failure;
 use Amp\Loop;
 use Amp\NullCancellationToken;
 use Amp\Promise;
-use Amp\Socket\ClientSocket;
 use Amp\Socket\ClientTlsContext;
+use Amp\Socket\ConnectContext;
 use Amp\Socket\ConnectException;
+use Amp\Socket\EncryptableSocket;
+use Amp\Socket\ResourceSocket;
 use Amp\Success;
 use Amp\TimeoutCancellationToken;
-use Amp\Uri\InvalidUriException;
-use Amp\Uri\Uri;
+use League\Uri;
+use League\Uri\UriException;
 use function Amp\asyncCall;
 use function Amp\call;
 
@@ -47,7 +49,7 @@ final class DefaultClient implements Client {
 
     private $cookieJar;
     private $socketPool;
-    private $tlsContext;
+    private $connectContext;
     private $hasZlib;
     private $options = [
         self::OP_AUTO_ENCODING => true,
@@ -61,13 +63,13 @@ final class DefaultClient implements Client {
     ];
 
     public function __construct(
-        CookieJar $cookieJar = null,
-        HttpSocketPool $socketPool = null,
-        ClientTlsContext $tlsContext = null
+        ?CookieJar $cookieJar = null,
+        ?HttpSocketPool $socketPool = null,
+        ?ConnectContext $connectContext = null
     ) {
         $this->cookieJar = $cookieJar ?? new NullCookieJar;
-        $this->tlsContext = $tlsContext ?? new ClientTlsContext;
         $this->socketPool = $socketPool ?? new HttpSocketPool;
+        $this->connectContext = $connectContext ?? new ConnectContext;
         $this->hasZlib = extension_loaded('zlib');
     }
 
@@ -119,7 +121,7 @@ final class DefaultClient implements Client {
                 if ($maxRedirects !== 0 && $redirectUri = $this->getRedirectUri($response)) {
                     // Discard response body of redirect responses
                     $body = $response->getBody();
-                    while (null !== yield $body->read()) ;
+                    while (null !== yield $body->read());
 
                     /**
                      * If this is a 302/303 we need to follow the location with a GET if the original request wasn't
@@ -131,7 +133,7 @@ final class DefaultClient implements Client {
                      */
                     $method = $request->getMethod();
                     $status = $response->getStatus();
-                    $isSameHost = $redirectUri->getAuthority(false) === $originalUri->getAuthority(false);
+                    $isSameHost = $redirectUri->getAuthority() === $originalUri->getAuthority();
 
                     if ($isSameHost) {
                         $request = $request->withUri($redirectUri);
@@ -172,7 +174,13 @@ final class DefaultClient implements Client {
         });
     }
 
-    private function doRequest(Request $request, Uri $uri, array $options, Response $previousResponse = null, CancellationToken $cancellation): Promise {
+    private function doRequest(
+        Request $request,
+        Uri\Http $uri,
+        array $options,
+        ?Response $previousResponse = null,
+        ?CancellationToken $cancellation = null
+    ): Promise {
         $deferred = new Deferred;
 
         $requestCycle = new RequestCycle;
@@ -183,7 +191,7 @@ final class DefaultClient implements Client {
         $requestCycle->deferred = $deferred;
         $requestCycle->bodyDeferred = new Deferred;
         $requestCycle->body = new Emitter;
-        $requestCycle->cancellation = $cancellation;
+        $requestCycle->cancellation = $cancellation ?? new NullCancellationToken;
 
         $protocolVersions = $request->getProtocolVersions();
 
@@ -208,7 +216,7 @@ final class DefaultClient implements Client {
         return $deferred->promise();
     }
 
-    private function generateRequestFromUri($uriOrRequest) {
+    private function generateRequestFromUri($uriOrRequest): array {
         if (is_string($uriOrRequest)) {
             $uri = $this->buildUriFromString($uriOrRequest);
             $request = new Request($uri);
@@ -224,7 +232,11 @@ final class DefaultClient implements Client {
         return [$request, $uri];
     }
 
-    private function doRead(RequestCycle $requestCycle, ClientSocket $socket, ConnectionInfo $connectionInfo): \Generator {
+    private function doRead(
+        RequestCycle $requestCycle,
+        EncryptableSocket $socket,
+        ConnectionInfo $connectionInfo
+    ): \Generator {
         try {
             $backpressure = new Success;
             $bodyCallback = $requestCycle->options[self::OP_DISCARD_BODY]
@@ -337,7 +349,7 @@ final class DefaultClient implements Client {
             return;
         }
 
-        if ($socket->getResource() !== null) {
+        if (!$socket->isClosed()) {
             $requestCycle->socket = null;
             $this->socketPool->clear($socket);
             $socket->close();
@@ -415,11 +427,19 @@ final class DefaultClient implements Client {
         $socketCheckoutUri = $requestCycle->uri->getScheme() . "://{$authority}";
         $connectTimeoutToken = new CombinedCancellationToken($requestCycle->cancellation, $timeoutToken);
 
+        if ($requestCycle->uri->getScheme() === 'https') {
+            $tlsContext = $this->connectContext->getTlsContext() ?? new ClientTlsContext($requestCycle->uri->getHost());
+            $tlsContext = $tlsContext->withPeerCapturing();
+            $connectContext = $this->connectContext->withTlsContext($tlsContext);
+        } else {
+            $connectContext = $this->connectContext;
+        }
+
         try {
-            /** @var ClientSocket $socket */
-            $socket = yield $this->socketPool->checkout($socketCheckoutUri, $connectTimeoutToken);
+            /** @var EncryptableSocket $socket */
+            $socket = yield $this->socketPool->checkout($socketCheckoutUri, $connectContext, $connectTimeoutToken);
             $requestCycle->socket = $socket;
-        } catch (ResolutionException $dnsException) {
+        } catch (DnsResolverException $dnsException) {
             throw new DnsException(\sprintf("Resolving the specified domain failed: '%s'", $requestCycle->uri->getHost()), 0, $dnsException);
         } catch (ConnectException $e) {
             throw new SocketException(\sprintf("Connection to '%s' failed", $authority), 0, $e);
@@ -437,11 +457,10 @@ final class DefaultClient implements Client {
 
         try {
             if ($requestCycle->uri->getScheme() === 'https') {
-                $tlsContext = $this->tlsContext
-                    ->withPeerName($requestCycle->uri->getHost())
+                $tlsContext = (new ClientTlsContext($requestCycle->uri->getHost()))
                     ->withPeerCapturing();
 
-                yield $socket->enableCrypto($tlsContext);
+                yield $socket->setupTls();
             }
 
             // Collect this here, because it fails in case the remote closes the connection directly.
@@ -492,8 +511,8 @@ final class DefaultClient implements Client {
             }
 
             yield from $this->doRead($requestCycle, $socket, $connectionInfo);
-        } catch (StreamException $e) {
-            throw new SocketException("Failed to read response from server", 0, $e);
+        } catch (StreamException $exception) {
+            $this->fail($requestCycle, new SocketException('Socket disconnected prior to response completion'));
         } finally {
             $requestCycle->cancellation->unsubscribe($cancellation);
         }
@@ -530,9 +549,9 @@ final class DefaultClient implements Client {
         }
     }
 
-    private function buildUriFromString($str): Uri {
+    private function buildUriFromString($str): Uri\Http {
         try {
-            $uri = new Uri($str);
+            $uri = Uri\Http::createFromString($str);
             $scheme = $uri->getScheme();
 
             if (($scheme === "http" || $scheme === "https") && $uri->getHost()) {
@@ -540,7 +559,7 @@ final class DefaultClient implements Client {
             }
 
             throw new HttpException("Request must specify a valid HTTP URI");
-        } catch (InvalidUriException $e) {
+        } catch (UriException $e) {
             throw new HttpException("Request must specify a valid HTTP URI", 0, $e);
         }
     }
@@ -620,7 +639,7 @@ final class DefaultClient implements Client {
         return $request->withoutHeader('Accept-Encoding');
     }
 
-    private function normalizeRequestHostHeader(Request $request, Uri $uri): Request {
+    private function normalizeRequestHostHeader(Request $request, Uri\Http $uri): Request {
         if ($request->hasHeader('Host')) {
             return $request;
         }
@@ -661,7 +680,7 @@ final class DefaultClient implements Client {
     }
 
     private function assignApplicableRequestCookies(Request $request): Request {
-        $uri = new Uri($request->getUri());
+        $uri = Uri\Http::createFromString($request->getUri());
 
         $domain = $uri->getHost();
         $path = $uri->getPath();
@@ -688,14 +707,18 @@ final class DefaultClient implements Client {
         return $request->withoutHeader("Cookie");
     }
 
-    private function generateAuthorityFromUri(Uri $uri): string {
+    private function generateAuthorityFromUri(Uri\Http $uri): string {
         $host = $uri->getHost();
         $port = $uri->getPort();
 
         return "{$host}:{$port}";
     }
 
-    private function finalizeResponse(RequestCycle $requestCycle, array $parserResult, ConnectionInfo $connectionInfo) {
+    private function finalizeResponse(
+        RequestCycle $requestCycle,
+        array $parserResult,
+        ConnectionInfo $connectionInfo
+    ): Response {
         $body = new IteratorStream($requestCycle->body->iterate());
 
         if ($encoding = $this->determineCompressionEncoding($parserResult["headers"])) {
@@ -704,7 +727,7 @@ final class DefaultClient implements Client {
 
         // Wrap the input stream so we can discard the body in case it's destructed but hasn't been consumed.
         // This allows reusing the connection for further requests. It's important to have __destruct in InputStream and
-        // not in Message, because an InputStream might be pulled out of Message and used separately.
+        // not in Payload, because an InputStream might be pulled out of Payload and used separately.
         $body = new class($body, $requestCycle, $this->socketPool) implements InputStream {
             private $body;
             private $bodySize = 0;
@@ -745,7 +768,16 @@ final class DefaultClient implements Client {
             }
         };
 
-        $response = new class($parserResult["protocol"], $parserResult["status"], $parserResult["reason"], $parserResult["headers"], $body, $requestCycle->request, $requestCycle->previousResponse, new MetaInfo($connectionInfo)) implements Response {
+        $response = new class(
+            $parserResult["protocol"],
+            $parserResult["status"],
+            $parserResult["reason"],
+            $parserResult["headers"],
+            $body,
+            $requestCycle->request,
+            $requestCycle->previousResponse,
+            new MetaInfo($connectionInfo)
+        ) implements Response {
             private $protocolVersion;
             private $status;
             private $reason;
@@ -762,14 +794,14 @@ final class DefaultClient implements Client {
                 array $headers,
                 InputStream $body,
                 Request $request,
-                Response $previousResponse = null,
+                ?Response $previousResponse,
                 MetaInfo $metaInfo
             ) {
                 $this->protocolVersion = $protocolVersion;
                 $this->status = $status;
                 $this->reason = $reason;
                 $this->headers = $headers;
-                $this->body = new Message($body);
+                $this->body = new Payload($body);
                 $this->request = $request;
                 $this->previousResponse = $previousResponse;
                 $this->metaInfo = $metaInfo;
@@ -819,7 +851,7 @@ final class DefaultClient implements Client {
                 return $this->headers;
             }
 
-            public function getBody(): Message {
+            public function getBody(): Payload {
                 return $this->body;
             }
 
@@ -840,7 +872,7 @@ final class DefaultClient implements Client {
         return $response;
     }
 
-    private function shouldCloseSocketAfterResponse(Response $response) {
+    private function shouldCloseSocketAfterResponse(Response $response): bool {
         $request = $response->getRequest();
 
         $requestConnHeader = $request->getHeader('Connection');
@@ -879,7 +911,7 @@ final class DefaultClient implements Client {
         return 0;
     }
 
-    private function storeResponseCookie(string $requestDomain, string $rawCookieStr) {
+    private function storeResponseCookie(string $requestDomain, string $rawCookieStr): void {
         try {
             $cookie = Cookie::fromString($rawCookieStr);
 
@@ -914,7 +946,7 @@ final class DefaultClient implements Client {
         }
     }
 
-    private function getRedirectUri(Response $response) {
+    private function getRedirectUri(Response $response): ?Uri\Http {
         if (!$response->hasHeader('Location')) {
             return null;
         }
@@ -928,14 +960,36 @@ final class DefaultClient implements Client {
             return null;
         }
 
-        $requestUri = new Uri($request->getUri());
-        $redirectLocation = $response->getHeader('Location');
-
         try {
-            return $requestUri->resolve($redirectLocation);
-        } catch (InvalidUriException $e) {
+            $requestUri = Uri\Http::createFromString($request->getUri());
+            $redirectLocation = $response->getHeader('Location');
+
+            $redirectUri = Uri\Http::createFromString($redirectLocation);
+
+            return $this->resolveRedirect($requestUri, $redirectUri);
+        } catch (UriException $e) {
             return null;
         }
+    }
+
+    private function resolveRedirect(Uri\Http $requestUri, Uri\Http $redirectUri): Uri\Http {
+        if ($redirectUri->getAuthority() === '') {
+            $redirectUri = $redirectUri->withHost($requestUri->getHost());
+
+            if ($redirectUri->getPort() === null && $requestUri->getPort() !== null) {
+                $redirectUri = $redirectUri->withPort($requestUri->getPort());
+            }
+        }
+
+        if ($redirectUri->getScheme() === '') {
+            $redirectUri = $redirectUri->withScheme($requestUri->getScheme());
+        }
+
+        if ($query = $requestUri->getQuery()) {
+            $redirectUri = $redirectUri->withQuery($query);
+        }
+
+        return $redirectUri;
     }
 
     /**
@@ -973,7 +1027,7 @@ final class DefaultClient implements Client {
      */
     private function generateRawRequestHeaders(Request $request, string $protocolVersion): string {
         $uri = $request->getUri();
-        $uri = new Uri($uri);
+        $uri = Uri\Http::createFromString($uri);
 
         $requestUri = $uri->getPath() ?: '/';
 
@@ -1009,7 +1063,7 @@ final class DefaultClient implements Client {
      *
      * @throws \Error On unknown option key or invalid value.
      */
-    public function setOptions(array $options) {
+    public function setOptions(array $options): void {
         foreach ($options as $option => $value) {
             $this->setOption($option, $value);
         }
@@ -1023,12 +1077,12 @@ final class DefaultClient implements Client {
      *
      * @throws \Error On unknown option key or invalid value.
      */
-    public function setOption(string $option, $value) {
+    public function setOption(string $option, $value): void {
         $this->validateOption($option, $value);
         $this->options[$option] = $value;
     }
 
-    private function validateOption(string $option, $value) {
+    private function validateOption(string $option, $value): void {
         switch ($option) {
             case self::OP_AUTO_ENCODING:
                 if (!\is_bool($value)) {
@@ -1092,7 +1146,7 @@ final class DefaultClient implements Client {
         }
     }
 
-    private function collectConnectionInfo(ClientSocket $socket): ConnectionInfo {
+    private function collectConnectionInfo(ResourceSocket $socket): ConnectionInfo {
         $stream = $socket->getResource();
 
         if ($stream === null) {

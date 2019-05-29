@@ -13,7 +13,6 @@ use Amp\Loop;
 use Amp\PHPUnit\TestCase;
 use Amp\Promise;
 use Amp\Socket;
-use Amp\Socket\ClientSocket;
 use function Amp\asyncCall;
 use function Amp\Promise\wait;
 
@@ -29,7 +28,7 @@ class TimeoutTest extends TestCase {
         $server = Socket\listen("tcp://127.0.0.1:0");
 
         asyncCall(function () use ($server) {
-            /** @var Socket\ClientSocket $client */
+            /** @var Socket\EncryptableSocket $client */
             while ($client = yield $server->accept()) {
                 yield $client->write("HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n.");
 
@@ -49,7 +48,7 @@ class TimeoutTest extends TestCase {
             $response = wait($promise);
             $this->expectException(TimeoutException::class);
             $this->expectExceptionMessage("Allowed transfer timeout exceeded: 100 ms");
-            wait($response->getBody());
+            wait($response->getBody()->buffer());
         } finally {
             $this->assertLessThan(0.6, \microtime(true) - $start);
             $server->close();
@@ -60,7 +59,7 @@ class TimeoutTest extends TestCase {
         Loop::repeat(1000, function () { /* dummy watcher, because socket pool doesn't do anything */ });
 
         $this->client = new DefaultClient(null, new HttpSocketPool(new class implements Socket\SocketPool {
-            public function checkout(string $uri, CancellationToken $token = null): Promise {
+            public function checkout(string $uri, ?Socket\ConnectContext $connectContext = null, ?CancellationToken $token = null): Promise {
                 $deferred = new Deferred;
 
                 if ($token) {
@@ -72,11 +71,11 @@ class TimeoutTest extends TestCase {
                 return $deferred->promise(); // never resolve
             }
 
-            public function checkin(ClientSocket $socket) {
+            public function checkin(Socket\EncryptableSocket $socket): void {
                 // ignore
             }
 
-            public function clear(ClientSocket $socket) {
+            public function clear(Socket\EncryptableSocket $socket): void {
                 // ignore
             }
         }));
@@ -96,7 +95,7 @@ class TimeoutTest extends TestCase {
         $server = Socket\listen("tcp://127.0.0.1:0", null, $tlsContext);
 
         asyncCall(function () use ($server) {
-            /** @var Socket\ClientSocket $client */
+            /** @var Socket\ResourceSocket $client */
             while ($client = yield $server->accept()) {
                 Loop::delay(3000, function () use ($client) {
                     $client->close();

@@ -6,10 +6,12 @@ use Amp\CancellationToken;
 use Amp\Failure;
 use Amp\Promise;
 use Amp\Socket\BasicSocketPool;
-use Amp\Socket\ClientSocket;
+use Amp\Socket\ConnectContext;
+use Amp\Socket\EncryptableSocket;
+use Amp\Socket\ResourceSocket;
 use Amp\Socket\SocketPool;
 use Amp\Success;
-use Amp\Uri\Uri;
+use League\Uri;
 use function Amp\call;
 
 class HttpSocketPool implements SocketPool {
@@ -30,7 +32,7 @@ class HttpSocketPool implements SocketPool {
         $this->autoDetectProxySettings();
     }
 
-    private function autoDetectProxySettings() {
+    private function autoDetectProxySettings(): void {
         // See CVE-2016-5385, due to (emulation of) header copying with PHP web SAPIs into HTTP_* variables,
         // HTTP_PROXY can be set by an user to any value he wants by setting the Proxy header.
         // Mitigate the vulnerability by only allowing CLI SAPIs to use HTTP(S)_PROXY environment variables.
@@ -48,14 +50,18 @@ class HttpSocketPool implements SocketPool {
     }
 
     private function getUriAuthority(string $uri): string {
-        $parsedUri = new Uri($uri);
+        $parsedUri = Uri\Http::createFromString($uri);
 
         return $parsedUri->getHost() . ":" . $parsedUri->getPort();
     }
 
     /** @inheritdoc */
-    public function checkout(string $uri, CancellationToken $cancellationToken = null): Promise {
-        $parsedUri = new Uri($uri);
+    public function checkout(
+        string $uri,
+        ?ConnectContext $connectContext = null,
+        ?CancellationToken $cancellationToken = null
+    ): Promise {
+        $parsedUri = Uri\Http::createFromString($uri);
 
         $scheme = $parsedUri->getScheme();
 
@@ -72,21 +78,25 @@ class HttpSocketPool implements SocketPool {
         // The underlying TCP pool will ignore the URI fragment when connecting but retain it in the
         // name when tracking hostname connection counts. This allows us to expose host connection
         // limits transparently even when connecting through a proxy.
-        $authority = $parsedUri->getHost() . ":" . $parsedUri->getPort();
+        $port = $parsedUri->getPort();
+        if ($port === null) {
+            $port = $parsedUri->getScheme() === 'https' ? 443 : 80;
+        }
+        $authority = $parsedUri->getHost() . ":" . $port;
 
         if (!$proxy) {
-            return $this->socketPool->checkout("tcp://{$authority}", $cancellationToken);
+            return $this->socketPool->checkout("tcp://{$authority}", $connectContext, $cancellationToken);
         }
 
-        return call(function () use ($proxy, $authority, $cancellationToken) {
-            $socket = yield $this->socketPool->checkout("tcp://{$proxy}#{$authority}", $cancellationToken);
+        return call(function () use ($proxy, $authority, $connectContext, $cancellationToken) {
+            $socket = yield $this->socketPool->checkout("tcp://{$proxy}#{$authority}", $connectContext, $cancellationToken);
             yield $this->tunnelThroughProxy($socket, $authority);
 
             return $socket;
         });
     }
 
-    private function tunnelThroughProxy(ClientSocket $socket, $authority): Promise {
+    private function tunnelThroughProxy(ResourceSocket $socket, $authority): Promise {
         if (empty(stream_context_get_options($socket->getResource())['artax*']['is_tunneled'])) {
             return $this->tunneler->tunnel($socket, $authority);
         }
@@ -95,17 +105,17 @@ class HttpSocketPool implements SocketPool {
     }
 
     /** @inheritdoc */
-    public function checkin(ClientSocket $socket) {
+    public function checkin(EncryptableSocket $socket): void {
         $this->socketPool->checkin($socket);
     }
 
     /** @inheritdoc */
-    public function clear(ClientSocket $socket) {
+    public function clear(EncryptableSocket $socket): void {
         $this->socketPool->clear($socket);
     }
 
     /** @inheritdoc */
-    public function setOption(string $option, $value) {
+    public function setOption(string $option, $value): void {
         switch ($option) {
             case self::OP_PROXY_HTTP:
                 $this->options[self::OP_PROXY_HTTP] = (string) $value;
