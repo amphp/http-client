@@ -35,7 +35,7 @@
         "amphp/phpunit-util": "^1",
         "phpunit/phpunit": "^6",
         "friendsofphp/php-cs-fixer": "^2.3",
-        "amphp/http-server": "^1"
+        "amphp/http-server": "dev-socket-and-http-client-updates as 1.1.0"
     },
     "autoload": {
         "psr-4": {
