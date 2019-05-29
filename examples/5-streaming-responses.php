@@ -10,7 +10,7 @@ require __DIR__ . '/../vendor/autoload.php';
 
 Loop::run(function () {
     try {
-        $start = microtime(1);
+        $start = \microtime(1);
 
         // Instantiate the HTTP client
         $client = new Amp\Artax\DefaultClient;
@@ -28,7 +28,7 @@ Loop::run(function () {
         $response = yield $promise;
 
         // Output the results
-        printf(
+        \printf(
             "HTTP/%s %d %s\n%s\n\n",
             $response->getProtocolVersion(),
             $response->getStatus(),
@@ -44,7 +44,7 @@ Loop::run(function () {
 
         print "\n";
 
-        $path = tempnam(sys_get_temp_dir(), "artax-streaming-");
+        $path = \tempnam(\sys_get_temp_dir(), "artax-streaming-");
 
         /** @var Handle $file */
         $file = yield Amp\File\open($path, "w");
@@ -54,17 +54,17 @@ Loop::run(function () {
         yield Amp\ByteStream\pipe($response->getBody(), $file);
         yield $file->close();
 
-        print sprintf(
+        print \sprintf(
             "Done in %.2f with peak memory usage of %.2fMB.\n",
-            microtime(1) - $start,
-            (float) memory_get_peak_usage(true) / 1024 / 1024
+            \microtime(1) - $start,
+            (float) \memory_get_peak_usage(true) / 1024 / 1024
         );
 
         // We need to clear the stat cache, as we have just written to the file
         StatCache::clear($path);
         $size = yield Amp\File\size($path);
 
-        print sprintf("%s has a size of %.2fMB\n", $path, (float) $size / 1024 / 1024);
+        print \sprintf("%s has a size of %.2fMB\n", $path, (float) $size / 1024 / 1024);
     } catch (Amp\Artax\HttpException $error) {
         // If something goes wrong Amp will throw the exception where the promise was yielded.
         // The Client::request() method itself will never throw directly, but returns a promise.

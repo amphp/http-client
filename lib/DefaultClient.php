@@ -44,7 +44,8 @@ use function Amp\call;
  *
  * @see Client
  */
-final class DefaultClient implements Client {
+final class DefaultClient implements Client
+{
     const DEFAULT_USER_AGENT = 'Mozilla/5.0 (compatible; Artax)';
 
     private $cookieJar;
@@ -70,11 +71,12 @@ final class DefaultClient implements Client {
         $this->cookieJar = $cookieJar ?? new NullCookieJar;
         $this->socketPool = $socketPool ?? new HttpSocketPool;
         $this->connectContext = $connectContext ?? new ConnectContext;
-        $this->hasZlib = extension_loaded('zlib');
+        $this->hasZlib = \extension_loaded('zlib');
     }
 
     /** @inheritdoc */
-    public function request($uriOrRequest, array $options = [], CancellationToken $cancellation = null): Promise {
+    public function request($uriOrRequest, array $options = [], CancellationToken $cancellation = null): Promise
+    {
         return call(function () use ($uriOrRequest, $options, $cancellation) {
             $cancellation = $cancellation ?? new NullCancellationToken;
 
@@ -84,7 +86,7 @@ final class DefaultClient implements Client {
 
             /** @var Request $request */
             list($request, $uri) = $this->generateRequestFromUri($uriOrRequest);
-            $options = $options ? array_merge($this->options, $options) : $this->options;
+            $options = $options ? \array_merge($this->options, $options) : $this->options;
 
             foreach ($this->options[self::OP_DEFAULT_HEADERS] as $name => $header) {
                 if (!$request->hasHeader($name)) {
@@ -216,8 +218,9 @@ final class DefaultClient implements Client {
         return $deferred->promise();
     }
 
-    private function generateRequestFromUri($uriOrRequest): array {
-        if (is_string($uriOrRequest)) {
+    private function generateRequestFromUri($uriOrRequest): array
+    {
+        if (\is_string($uriOrRequest)) {
             $uri = $this->buildUriFromString($uriOrRequest);
             $request = new Request($uri);
         } elseif ($uriOrRequest instanceof Request) {
@@ -311,10 +314,10 @@ final class DefaultClient implements Client {
                         // Ignore check if neither content-length nor chunked encoding are given.
                         $ignoreIncompleteBodyCheck = $parserState === Parser::BODY_IDENTITY_EOF &&
                             !isset($responseHeaders["content-length"]) &&
-                            strcasecmp('identity', $responseHeaders['transfer-encoding'][0] ?? "");
+                            \strcasecmp('identity', $responseHeaders['transfer-encoding'][0] ?? "");
 
                         if (!$ignoreIncompleteBodyCheck) {
-                            throw new SocketException(sprintf(
+                            throw new SocketException(\sprintf(
                                 'Socket disconnected prior to response completion (Parser state: %s)',
                                 $parserState
                             ));
@@ -368,14 +371,15 @@ final class DefaultClient implements Client {
             $requestCycle->retryCount++;
             yield from $this->doWrite($requestCycle);
         } else {
-            $this->fail($requestCycle, new SocketException(sprintf(
+            $this->fail($requestCycle, new SocketException(\sprintf(
                 'Socket disconnected prior to response completion (Parser state: %s)',
                 $parserState
             )));
         }
     }
 
-    private function withCancellation(Promise $promise, CancellationToken $cancellationToken): Promise {
+    private function withCancellation(Promise $promise, CancellationToken $cancellationToken): Promise
+    {
         $deferred = new Deferred;
         $newPromise = $deferred->promise();
 
@@ -405,14 +409,15 @@ final class DefaultClient implements Client {
         return $newPromise;
     }
 
-    private function doWrite(RequestCycle $requestCycle) {
+    private function doWrite(RequestCycle $requestCycle)
+    {
         $timeout = $requestCycle->options[self::OP_TRANSFER_TIMEOUT];
         $timeoutToken = new NullCancellationToken;
 
         if ($timeout > 0) {
             $transferTimeoutWatcher = Loop::delay($timeout, function () use ($requestCycle, $timeout) {
                 $this->fail($requestCycle, new TimeoutException(
-                    sprintf('Allowed transfer timeout exceeded: %d ms', $timeout)
+                    \sprintf('Allowed transfer timeout exceeded: %d ms', $timeout)
                 ));
             });
 
@@ -518,7 +523,8 @@ final class DefaultClient implements Client {
         }
     }
 
-    private function fail(RequestCycle $requestCycle, \Throwable $error) {
+    private function fail(RequestCycle $requestCycle, \Throwable $error)
+    {
         $toFails = [];
         $socket = null;
 
@@ -549,7 +555,8 @@ final class DefaultClient implements Client {
         }
     }
 
-    private function buildUriFromString($str): Uri\Http {
+    private function buildUriFromString($str): Uri\Http
+    {
         try {
             $uri = Uri\Http::createFromString($str);
             $scheme = $uri->getScheme();
@@ -564,7 +571,8 @@ final class DefaultClient implements Client {
         }
     }
 
-    private function normalizeRequestBodyHeaders(Request $request): \Generator {
+    private function normalizeRequestBodyHeaders(Request $request): \Generator
+    {
         if ($request->hasHeader("Transfer-Encoding")) {
             return $request->withoutHeader("Content-Length");
         }
@@ -592,7 +600,8 @@ final class DefaultClient implements Client {
         return $request;
     }
 
-    private function normalizeRequestHeaders($request, $uri, $options) {
+    private function normalizeRequestHeaders($request, $uri, $options)
+    {
         $request = $this->normalizeRequestEncodingHeaderForZlib($request, $options);
         $request = $this->normalizeRequestHostHeader($request, $uri);
         $request = $this->normalizeRequestUserAgent($request);
@@ -602,7 +611,8 @@ final class DefaultClient implements Client {
         return $request;
     }
 
-    private function normalizeTraceRequest(Request $request): Request {
+    private function normalizeTraceRequest(Request $request): Request
+    {
         $method = $request->getMethod();
 
         if ($method !== 'TRACE') {
@@ -625,7 +635,8 @@ final class DefaultClient implements Client {
         return $request;
     }
 
-    private function normalizeRequestEncodingHeaderForZlib(Request $request, array $options): Request {
+    private function normalizeRequestEncodingHeaderForZlib(Request $request, array $options): Request
+    {
         $autoEncoding = $options[self::OP_AUTO_ENCODING];
 
         if (!$autoEncoding) {
@@ -639,7 +650,8 @@ final class DefaultClient implements Client {
         return $request->withoutHeader('Accept-Encoding');
     }
 
-    private function normalizeRequestHostHeader(Request $request, Uri\Http $uri): Request {
+    private function normalizeRequestHostHeader(Request $request, Uri\Http $uri): Request
+    {
         if ($request->hasHeader('Host')) {
             return $request;
         }
@@ -650,20 +662,22 @@ final class DefaultClient implements Client {
         return $request;
     }
 
-    private function normalizeHostHeader(string $host): string {
+    private function normalizeHostHeader(string $host): string
+    {
         // Though servers are supposed to be able to handle standard port names on the end of the
         // Host header some fail to do this correctly. As a result, we strip the port from the end
         // if it's a standard 80 or 443
-        if (strpos($host, ':80') === strlen($host) - 3) {
-            return substr($host, 0, -3);
-        } elseif (strpos($host, ':443') === strlen($host) - 4) {
-            return substr($host, 0, -4);
+        if (\strpos($host, ':80') === \strlen($host) - 3) {
+            return \substr($host, 0, -3);
+        } elseif (\strpos($host, ':443') === \strlen($host) - 4) {
+            return \substr($host, 0, -4);
         }
 
         return $host;
     }
 
-    private function normalizeRequestUserAgent(Request $request): Request {
+    private function normalizeRequestUserAgent(Request $request): Request
+    {
         if ($request->hasHeader('User-Agent')) {
             return $request;
         }
@@ -671,7 +685,8 @@ final class DefaultClient implements Client {
         return $request->withHeader('User-Agent', self::DEFAULT_USER_AGENT);
     }
 
-    private function normalizeRequestAcceptHeader(Request $request): Request {
+    private function normalizeRequestAcceptHeader(Request $request): Request
+    {
         if ($request->hasHeader('Accept')) {
             return $request;
         }
@@ -679,7 +694,8 @@ final class DefaultClient implements Client {
         return $request->withHeader('Accept', '*/*');
     }
 
-    private function assignApplicableRequestCookies(Request $request): Request {
+    private function assignApplicableRequestCookies(Request $request): Request
+    {
         $uri = Uri\Http::createFromString($request->getUri());
 
         $domain = $uri->getHost();
@@ -690,7 +706,7 @@ final class DefaultClient implements Client {
             return $request->withoutHeader("Cookie");
         }
 
-        $isRequestSecure = strcasecmp($uri->getScheme(), "https") === 0;
+        $isRequestSecure = \strcasecmp($uri->getScheme(), "https") === 0;
         $cookiePairs = [];
 
         /** @var Cookie $cookie */
@@ -707,7 +723,8 @@ final class DefaultClient implements Client {
         return $request->withoutHeader("Cookie");
     }
 
-    private function generateAuthorityFromUri(Uri\Http $uri): string {
+    private function generateAuthorityFromUri(Uri\Http $uri): string
+    {
         $host = $uri->getHost();
         $port = $uri->getPort();
 
@@ -735,13 +752,15 @@ final class DefaultClient implements Client {
             private $socketPool;
             private $successfulEnd = false;
 
-            public function __construct(InputStream $body, RequestCycle $requestCycle, HttpSocketPool $socketPool) {
+            public function __construct(InputStream $body, RequestCycle $requestCycle, HttpSocketPool $socketPool)
+            {
                 $this->body = $body;
                 $this->requestCycle = $requestCycle;
                 $this->socketPool = $socketPool;
             }
 
-            public function read(): Promise {
+            public function read(): Promise
+            {
                 $promise = $this->body->read();
                 $promise->onResolve(function ($error, $value) {
                     if ($value !== null) {
@@ -758,7 +777,8 @@ final class DefaultClient implements Client {
                 return $promise;
             }
 
-            public function __destruct() {
+            public function __destruct()
+            {
                 if (!$this->successfulEnd && $this->requestCycle->socket) {
                     $this->socketPool->clear($this->requestCycle->socket);
                     $socket = $this->requestCycle->socket;
@@ -768,16 +788,7 @@ final class DefaultClient implements Client {
             }
         };
 
-        $response = new class(
-            $parserResult["protocol"],
-            $parserResult["status"],
-            $parserResult["reason"],
-            $parserResult["headers"],
-            $body,
-            $requestCycle->request,
-            $requestCycle->previousResponse,
-            new MetaInfo($connectionInfo)
-        ) implements Response {
+        $response = new class($parserResult["protocol"], $parserResult["status"], $parserResult["reason"], $parserResult["headers"], $body, $requestCycle->request, $requestCycle->previousResponse, new MetaInfo($connectionInfo)) implements Response {
             private $protocolVersion;
             private $status;
             private $reason;
@@ -807,23 +818,28 @@ final class DefaultClient implements Client {
                 $this->metaInfo = $metaInfo;
             }
 
-            public function getProtocolVersion(): string {
+            public function getProtocolVersion(): string
+            {
                 return $this->protocolVersion;
             }
 
-            public function getStatus(): int {
+            public function getStatus(): int
+            {
                 return $this->status;
             }
 
-            public function getReason(): string {
+            public function getReason(): string
+            {
                 return $this->reason;
             }
 
-            public function getRequest(): Request {
+            public function getRequest(): Request
+            {
                 return $this->request;
             }
 
-            public function getOriginalRequest(): Request {
+            public function getOriginalRequest(): Request
+            {
                 if (empty($this->previousResponse)) {
                     return $this->request;
                 }
@@ -831,31 +847,38 @@ final class DefaultClient implements Client {
                 return $this->previousResponse->getOriginalRequest();
             }
 
-            public function getPreviousResponse() {
+            public function getPreviousResponse()
+            {
                 return $this->previousResponse;
             }
 
-            public function hasHeader(string $field): bool {
+            public function hasHeader(string $field): bool
+            {
                 return isset($this->headers[\strtolower($field)]);
             }
 
-            public function getHeader(string $field) {
+            public function getHeader(string $field)
+            {
                 return $this->headers[\strtolower($field)][0] ?? null;
             }
 
-            public function getHeaderArray(string $field): array {
+            public function getHeaderArray(string $field): array
+            {
                 return $this->headers[\strtolower($field)] ?? [];
             }
 
-            public function getHeaders(): array {
+            public function getHeaders(): array
+            {
                 return $this->headers;
             }
 
-            public function getBody(): Payload {
+            public function getBody(): Payload
+            {
                 return $this->body;
             }
 
-            public function getMetaInfo(): MetaInfo {
+            public function getMetaInfo(): MetaInfo
+            {
                 return $this->metaInfo;
             }
         };
@@ -872,15 +895,16 @@ final class DefaultClient implements Client {
         return $response;
     }
 
-    private function shouldCloseSocketAfterResponse(Response $response): bool {
+    private function shouldCloseSocketAfterResponse(Response $response): bool
+    {
         $request = $response->getRequest();
 
         $requestConnHeader = $request->getHeader('Connection');
         $responseConnHeader = $response->getHeader('Connection');
 
-        if ($requestConnHeader && !strcasecmp($requestConnHeader, 'close')) {
+        if ($requestConnHeader && !\strcasecmp($requestConnHeader, 'close')) {
             return true;
-        } elseif ($responseConnHeader && !strcasecmp($responseConnHeader, 'close')) {
+        } elseif ($responseConnHeader && !\strcasecmp($responseConnHeader, 'close')) {
             return true;
         } elseif ($response->getProtocolVersion() === '1.0' && !$responseConnHeader) {
             return true;
@@ -889,7 +913,8 @@ final class DefaultClient implements Client {
         return false;
     }
 
-    private function determineCompressionEncoding(array $responseHeaders): int {
+    private function determineCompressionEncoding(array $responseHeaders): int
+    {
         if (!$this->hasZlib) {
             return 0;
         }
@@ -900,18 +925,19 @@ final class DefaultClient implements Client {
 
         $contentEncodingHeader = \trim(\current($responseHeaders["content-encoding"]));
 
-        if (strcasecmp($contentEncodingHeader, 'gzip') === 0) {
+        if (\strcasecmp($contentEncodingHeader, 'gzip') === 0) {
             return \ZLIB_ENCODING_GZIP;
         }
 
-        if (strcasecmp($contentEncodingHeader, 'deflate') === 0) {
+        if (\strcasecmp($contentEncodingHeader, 'deflate') === 0) {
             return \ZLIB_ENCODING_DEFLATE;
         }
 
         return 0;
     }
 
-    private function storeResponseCookie(string $requestDomain, string $rawCookieStr): void {
+    private function storeResponseCookie(string $requestDomain, string $rawCookieStr): void
+    {
         try {
             $cookie = Cookie::fromString($rawCookieStr);
 
@@ -946,7 +972,8 @@ final class DefaultClient implements Client {
         }
     }
 
-    private function getRedirectUri(Response $response): ?Uri\Http {
+    private function getRedirectUri(Response $response): ?Uri\Http
+    {
         if (!$response->hasHeader('Location')) {
             return null;
         }
@@ -972,7 +999,8 @@ final class DefaultClient implements Client {
         }
     }
 
-    private function resolveRedirect(Uri\Http $requestUri, Uri\Http $redirectUri): Uri\Http {
+    private function resolveRedirect(Uri\Http $requestUri, Uri\Http $redirectUri): Uri\Http
+    {
         if ($redirectUri->getAuthority() === '') {
             $redirectUri = $redirectUri->withHost($requestUri->getHost());
 
@@ -1004,7 +1032,8 @@ final class DefaultClient implements Client {
      *
      * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec15.html#sec15.1.3
      */
-    private function assignRedirectRefererHeader(Request $request, string $refererUri, string $newUri): Request {
+    private function assignRedirectRefererHeader(Request $request, string $refererUri, string $newUri): Request
+    {
         $refererIsEncrypted = (\stripos($refererUri, 'https') === 0);
         $destinationIsEncrypted = (\stripos($newUri, 'https') === 0);
 
@@ -1025,7 +1054,8 @@ final class DefaultClient implements Client {
      *       Right now this doesn't matter because all proxy requests use a CONNECT
      *       tunnel but this likely will not always be the case.
      */
-    private function generateRawRequestHeaders(Request $request, string $protocolVersion): string {
+    private function generateRawRequestHeaders(Request $request, string $protocolVersion): string
+    {
         $uri = $request->getUri();
         $uri = Uri\Http::createFromString($uri);
 
@@ -1063,7 +1093,8 @@ final class DefaultClient implements Client {
      *
      * @throws \Error On unknown option key or invalid value.
      */
-    public function setOptions(array $options): void {
+    public function setOptions(array $options): void
+    {
         foreach ($options as $option => $value) {
             $this->setOption($option, $value);
         }
@@ -1077,12 +1108,14 @@ final class DefaultClient implements Client {
      *
      * @throws \Error On unknown option key or invalid value.
      */
-    public function setOption(string $option, $value): void {
+    public function setOption(string $option, $value): void
+    {
         $this->validateOption($option, $value);
         $this->options[$option] = $value;
     }
 
-    private function validateOption(string $option, $value): void {
+    private function validateOption(string $option, $value): void
+    {
         switch ($option) {
             case self::OP_AUTO_ENCODING:
                 if (!\is_bool($value)) {
@@ -1141,12 +1174,13 @@ final class DefaultClient implements Client {
 
             default:
                 throw new \Error(
-                    sprintf("Unknown option: %s", $option)
+                    \sprintf("Unknown option: %s", $option)
                 );
         }
     }
 
-    private function collectConnectionInfo(ResourceSocket $socket): ConnectionInfo {
+    private function collectConnectionInfo(ResourceSocket $socket): ConnectionInfo
+    {
         $stream = $socket->getResource();
 
         if ($stream === null) {

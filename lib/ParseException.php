@@ -2,7 +2,8 @@
 
 namespace Amp\Artax;
 
-class ParseException extends HttpException {
+class ParseException extends HttpException
+{
     private $parserResult;
 
     /**
@@ -13,7 +14,8 @@ class ParseException extends HttpException {
      * @param int             $code
      * @param \Throwable|null $previousException
      */
-    public function __construct(array $parserResult, string $message, int $code, \Throwable $previousException = null) {
+    public function __construct(array $parserResult, string $message, int $code, \Throwable $previousException = null)
+    {
         parent::__construct($message, $code, $previousException);
         $this->parserResult = $parserResult;
     }
@@ -23,7 +25,8 @@ class ParseException extends HttpException {
      *
      * @return array Message values parsed prior to the error
      */
-    public function getParserResult(): array {
+    public function getParserResult(): array
+    {
         return $this->parserResult;
     }
 }

@@ -14,7 +14,8 @@ use Amp\Success;
 use League\Uri;
 use function Amp\call;
 
-class HttpSocketPool implements SocketPool {
+class HttpSocketPool implements SocketPool
+{
     const OP_PROXY_HTTP = 'amp.artax.httpsocketpool.proxy-http';
     const OP_PROXY_HTTPS = 'amp.artax.httpsocketpool.proxy-https';
 
@@ -26,13 +27,15 @@ class HttpSocketPool implements SocketPool {
         self::OP_PROXY_HTTPS => null,
     ];
 
-    public function __construct(SocketPool $sockPool = null, HttpTunneler $tunneler = null) {
+    public function __construct(SocketPool $sockPool = null, HttpTunneler $tunneler = null)
+    {
         $this->socketPool = $sockPool ?? new BasicSocketPool;
         $this->tunneler = $tunneler ?? new HttpTunneler;
         $this->autoDetectProxySettings();
     }
 
-    private function autoDetectProxySettings(): void {
+    private function autoDetectProxySettings(): void
+    {
         // See CVE-2016-5385, due to (emulation of) header copying with PHP web SAPIs into HTTP_* variables,
         // HTTP_PROXY can be set by an user to any value he wants by setting the Proxy header.
         // Mitigate the vulnerability by only allowing CLI SAPIs to use HTTP(S)_PROXY environment variables.
@@ -49,7 +52,8 @@ class HttpSocketPool implements SocketPool {
         }
     }
 
-    private function getUriAuthority(string $uri): string {
+    private function getUriAuthority(string $uri): string
+    {
         $parsedUri = Uri\Http::createFromString($uri);
 
         return $parsedUri->getHost() . ":" . $parsedUri->getPort();
@@ -96,8 +100,9 @@ class HttpSocketPool implements SocketPool {
         });
     }
 
-    private function tunnelThroughProxy(ResourceSocket $socket, $authority): Promise {
-        if (empty(stream_context_get_options($socket->getResource())['artax*']['is_tunneled'])) {
+    private function tunnelThroughProxy(ResourceSocket $socket, $authority): Promise
+    {
+        if (empty(\stream_context_get_options($socket->getResource())['artax*']['is_tunneled'])) {
             return $this->tunneler->tunnel($socket, $authority);
         }
 
@@ -105,17 +110,20 @@ class HttpSocketPool implements SocketPool {
     }
 
     /** @inheritdoc */
-    public function checkin(EncryptableSocket $socket): void {
+    public function checkin(EncryptableSocket $socket): void
+    {
         $this->socketPool->checkin($socket);
     }
 
     /** @inheritdoc */
-    public function clear(EncryptableSocket $socket): void {
+    public function clear(EncryptableSocket $socket): void
+    {
         $this->socketPool->clear($socket);
     }
 
     /** @inheritdoc */
-    public function setOption(string $option, $value): void {
+    public function setOption(string $option, $value): void
+    {
         switch ($option) {
             case self::OP_PROXY_HTTP:
                 $this->options[self::OP_PROXY_HTTP] = (string) $value;

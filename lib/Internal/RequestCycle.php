@@ -11,7 +11,8 @@ use Amp\Socket\ResourceSocket;
 use Amp\Struct;
 use League\Uri;
 
-class RequestCycle {
+class RequestCycle
+{
     use Struct;
 
     /** @var string */

@@ -7,7 +7,8 @@ use Kelunik\Certificate\Certificate;
 /**
  * Exposes a connection's negotiated TLS parameters.
  */
-final class TlsInfo {
+final class TlsInfo
+{
     private $protocol;
     private $cipherName;
     private $cipherBits;
@@ -15,7 +16,8 @@ final class TlsInfo {
     private $certificates;
     private $parsedCertificates;
 
-    private function __construct(string $protocol, string $cipherName, int $cipherBits, string $cipherVersion, array $certificates) {
+    private function __construct(string $protocol, string $cipherName, int $cipherBits, string $cipherVersion, array $certificates)
+    {
         $this->protocol = $protocol;
         $this->cipherName = $cipherName;
         $this->cipherBits = $cipherBits;
@@ -33,36 +35,42 @@ final class TlsInfo {
      *
      * @return TlsInfo
      */
-    public static function fromMetaData(array $cryptoInfo, array $tlsContext): TlsInfo {
+    public static function fromMetaData(array $cryptoInfo, array $tlsContext): TlsInfo
+    {
         return new self(
             $cryptoInfo["protocol"],
             $cryptoInfo["cipher_name"],
             $cryptoInfo["cipher_bits"],
             $cryptoInfo["cipher_version"],
-            array_merge([$tlsContext["peer_certificate"]] ?: [], $tlsContext["peer_certificate_chain"] ?? [])
+            \array_merge([$tlsContext["peer_certificate"]] ?: [], $tlsContext["peer_certificate_chain"] ?? [])
         );
     }
 
-    public function getProtocol(): string {
+    public function getProtocol(): string
+    {
         return $this->protocol;
     }
 
-    public function getCipherName(): string {
+    public function getCipherName(): string
+    {
         return $this->cipherName;
     }
 
-    public function getCipherBits(): int {
+    public function getCipherBits(): int
+    {
         return $this->cipherBits;
     }
 
-    public function getCipherVersion(): string {
+    public function getCipherVersion(): string
+    {
         return $this->cipherVersion;
     }
 
     /** @return Certificate[] */
-    public function getPeerCertificates(): array {
+    public function getPeerCertificates(): array
+    {
         if ($this->parsedCertificates === null) {
-            $this->parsedCertificates = array_map(function ($resource) {
+            $this->parsedCertificates = \array_map(function ($resource) {
                 return new Certificate($resource);
             }, $this->certificates);
         }

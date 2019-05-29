@@ -8,7 +8,8 @@ use Amp\Promise;
 /**
  * An interface for generating HTTP message bodies + headers.
  */
-interface RequestBody {
+interface RequestBody
+{
     /**
      * Retrieve a key-value array of headers to add to the outbound request.
      *

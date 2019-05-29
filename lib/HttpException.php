@@ -2,5 +2,6 @@
 
 namespace Amp\Artax;
 
-class HttpException extends \Exception {
+class HttpException extends \Exception
+{
 }

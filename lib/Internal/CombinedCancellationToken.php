@@ -6,11 +6,13 @@ use Amp\CancellationToken;
 use Amp\CancellationTokenSource;
 
 /** @internal */
-class CombinedCancellationToken implements CancellationToken {
+class CombinedCancellationToken implements CancellationToken
+{
     private $token;
     private $tokens = [];
 
-    public function __construct(CancellationToken ...$tokens) {
+    public function __construct(CancellationToken ...$tokens)
+    {
         $tokenSource = new CancellationTokenSource;
         $this->token = $tokenSource->getToken();
 
@@ -23,7 +25,8 @@ class CombinedCancellationToken implements CancellationToken {
         }
     }
 
-    public function __destruct() {
+    public function __destruct()
+    {
         foreach ($this->tokens as list($token, $id)) {
             /** @var CancellationToken $token */
             $token->unsubscribe($id);
@@ -31,22 +34,26 @@ class CombinedCancellationToken implements CancellationToken {
     }
 
     /** @inheritdoc */
-    public function subscribe(callable $callback): string {
+    public function subscribe(callable $callback): string
+    {
         return $this->token->subscribe($callback);
     }
 
     /** @inheritdoc */
-    public function unsubscribe(string $id) {
+    public function unsubscribe(string $id)
+    {
         $this->token->unsubscribe($id);
     }
 
     /** @inheritdoc */
-    public function isRequested(): bool {
+    public function isRequested(): bool
+    {
         return $this->token->isRequested();
     }
 
     /** @inheritdoc */
-    public function throwIfRequested() {
+    public function throwIfRequested()
+    {
         $this->token->throwIfRequested();
     }
 }

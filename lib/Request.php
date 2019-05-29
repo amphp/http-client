@@ -5,7 +5,8 @@ namespace Amp\Artax;
 /**
  * An HTTP request.
  */
-final class Request {
+final class Request
+{
     /** @var string[] */
     private $protocolVersions = ["1.1", "2.0"];
 
@@ -24,7 +25,8 @@ final class Request {
     /** @var RequestBody */
     private $body;
 
-    public function __construct(string $uri, string $method = "GET") {
+    public function __construct(string $uri, string $method = "GET")
+    {
         $this->uri = $uri;
         $this->method = $method;
         $this->body = new StringBody("");
@@ -35,7 +37,8 @@ final class Request {
      *
      * @return string[]
      */
-    public function getProtocolVersions(): array {
+    public function getProtocolVersions(): array
+    {
         return $this->protocolVersions;
     }
 
@@ -48,7 +51,8 @@ final class Request {
      *
      * @return Request
      */
-    public function withProtocolVersions(array $versions): self {
+    public function withProtocolVersions(array $versions): self
+    {
         $versions = \array_unique($versions);
 
         if (empty($versions)) {
@@ -78,7 +82,8 @@ final class Request {
      *
      * @return string
      */
-    public function getMethod(): string {
+    public function getMethod(): string
+    {
         return $this->method;
     }
 
@@ -89,7 +94,8 @@ final class Request {
      *
      * @return Request
      */
-    public function withMethod(string $method): self {
+    public function withMethod(string $method): self
+    {
         if ($this->method === $method) {
             return $this;
         }
@@ -105,7 +111,8 @@ final class Request {
      *
      * @return string
      */
-    public function getUri(): string {
+    public function getUri(): string
+    {
         return $this->uri;
     }
 
@@ -116,7 +123,8 @@ final class Request {
      *
      * @return Request
      */
-    public function withUri(string $uri): self {
+    public function withUri(string $uri): self
+    {
         $clone = clone $this;
         $clone->uri = $uri;
 
@@ -130,7 +138,8 @@ final class Request {
      *
      * @return bool
      */
-    public function hasHeader(string $field): bool {
+    public function hasHeader(string $field): bool
+    {
         return isset($this->headers[\strtolower($field)]);
     }
 
@@ -146,7 +155,8 @@ final class Request {
      *
      * @return string|null Header value or `null` if no header with name `$field` exists.
      */
-    public function getHeader(string $field) {
+    public function getHeader(string $field)
+    {
         return $this->headers[\strtolower($field)][0] ?? null;
     }
 
@@ -159,7 +169,8 @@ final class Request {
      *
      * @return array Header values.
      */
-    public function getHeaderArray(string $field): array {
+    public function getHeaderArray(string $field): array
+    {
         return $this->headers[\strtolower($field)] ?? [];
     }
 
@@ -171,7 +182,8 @@ final class Request {
      *
      * @return Request
      */
-    public function withHeader(string $field, string $value): self {
+    public function withHeader(string $field, string $value): self
+    {
         $field = \trim($field);
         $lower = \strtolower($field);
 
@@ -191,7 +203,8 @@ final class Request {
      *
      * @return Request
      */
-    public function withAddedHeader(string $field, string $value): self {
+    public function withAddedHeader(string $field, string $value): self
+    {
         $field = \trim($field);
         $lower = \strtolower($field);
 
@@ -206,7 +219,8 @@ final class Request {
         return $clone;
     }
 
-    public function withHeaders(array $headers): self {
+    public function withHeaders(array $headers): self
+    {
         $clone = clone $this;
 
         foreach ($headers as $field => $values) {
@@ -231,7 +245,7 @@ final class Request {
                 if (!\is_string($value)
                     && !\is_int($value)
                     && !\is_float($value)
-                    && !(is_object($value) && method_exists($value, '__toString'))
+                    && !(\is_object($value) && \method_exists($value, '__toString'))
                 ) {
                     throw new \TypeError("All values for withHeaders must be string or an array of strings");
                 }
@@ -256,7 +270,8 @@ final class Request {
      *
      * @return array
      */
-    public function getHeaders(bool $originalCase = false): array {
+    public function getHeaders(bool $originalCase = false): array
+    {
         if (!$originalCase) {
             return $this->headers;
         }
@@ -277,7 +292,8 @@ final class Request {
      *
      * @return Request
      */
-    public function withoutHeader(string $field): self {
+    public function withoutHeader(string $field): self
+    {
         $lower = \strtolower($field);
 
         $clone = clone $this;
@@ -295,7 +311,8 @@ final class Request {
      *
      * @return mixed
      */
-    public function getBody(): RequestBody {
+    public function getBody(): RequestBody
+    {
         return $this->body;
     }
 
@@ -306,7 +323,8 @@ final class Request {
      *
      * @return Request
      */
-    public function withBody($body): self {
+    public function withBody($body): self
+    {
         $clone = clone $this;
 
         if ($body === null) {
@@ -316,7 +334,7 @@ final class Request {
         } elseif ($body instanceof RequestBody) {
             $clone->body = $body;
         } else {
-            throw new \TypeError("Invalid body type: " . gettype($body));
+            throw new \TypeError("Invalid body type: " . \gettype($body));
         }
 
         return $clone;

@@ -6,12 +6,17 @@ php:
   - 7.1
   - 7.2
   - 7.3
+  - 7.4snapshot
   - nightly
 
 matrix:
   allow_failures:
+    - php: 7.4snapshot
     - php: nightly
   fast_finish: true
+
+env:
+  - AMP_DEBUG=true
 
 before_install:
   - phpenv config-rm xdebug.ini || echo "No xdebug config."
@@ -46,4 +51,6 @@ after_script:
 
 cache:
   directories:
-    - $HOME/.composer/cache/files
+    - $HOME/.composer/cache
+    - $HOME/.php-cs-fixer
+    - $HOME/.local

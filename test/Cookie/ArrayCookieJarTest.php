@@ -7,16 +7,19 @@ use Amp\Artax\Cookie\Cookie;
 use Amp\Artax\Cookie\CookieJar;
 use PHPUnit\Framework\TestCase;
 
-class ArrayCookieJarTest extends TestCase {
+class ArrayCookieJarTest extends TestCase
+{
     /** @var CookieJar */
     private $jar;
 
-    public function setUp() {
+    public function setUp()
+    {
         $this->jar = new ArrayCookieJar;
     }
 
     /** @dataProvider provideCookieDomainMatchData */
-    public function testCookieDomainMatching(Cookie $cookie, $domain, $returned) {
+    public function testCookieDomainMatching(Cookie $cookie, $domain, $returned)
+    {
         $this->jar->store($cookie);
 
         if ($returned) {
@@ -26,7 +29,8 @@ class ArrayCookieJarTest extends TestCase {
         }
     }
 
-    public function provideCookieDomainMatchData() {
+    public function provideCookieDomainMatchData()
+    {
         // See http://stackoverflow.com/a/1063760/2373138 for cases
         return [
             [new Cookie("foo", "bar", null, "/", ".foo.bar.example.com"), "foo.bar", false], /* previous security issue */

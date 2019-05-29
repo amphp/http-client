@@ -2,7 +2,8 @@
 
 namespace Amp\Artax\Cookie;
 
-interface CookieJar {
+interface CookieJar
+{
     public function get(string $domain, string $path = '', string $name = null): array;
     public function getAll(): array;
     public function store(Cookie $cookie);

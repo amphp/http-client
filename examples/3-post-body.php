@@ -27,7 +27,7 @@ Loop::run(function () {
         $response = yield $promise;
 
         // Output the results
-        printf(
+        \printf(
             "HTTP/%s %d %s\n\n",
             $response->getProtocolVersion(),
             $response->getStatus(),

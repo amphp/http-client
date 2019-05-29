@@ -16,15 +16,18 @@ use Amp\Socket;
 use function Amp\asyncCall;
 use function Amp\Promise\wait;
 
-class TimeoutTest extends TestCase {
+class TimeoutTest extends TestCase
+{
     /** @var DefaultClient */
     private $client;
 
-    public function setUp() {
+    public function setUp()
+    {
         $this->client = new DefaultClient;
     }
 
-    public function testTimeoutDuringBody() {
+    public function testTimeoutDuringBody()
+    {
         $server = Socket\listen("tcp://127.0.0.1:0");
 
         asyncCall(function () use ($server) {
@@ -55,11 +58,13 @@ class TimeoutTest extends TestCase {
         }
     }
 
-    public function testTimeoutDuringConnect() {
+    public function testTimeoutDuringConnect()
+    {
         Loop::repeat(1000, function () { /* dummy watcher, because socket pool doesn't do anything */ });
 
         $this->client = new DefaultClient(null, new HttpSocketPool(new class implements Socket\SocketPool {
-            public function checkout(string $uri, ?Socket\ConnectContext $connectContext = null, ?CancellationToken $token = null): Promise {
+            public function checkout(string $uri, ?Socket\ConnectContext $connectContext = null, ?CancellationToken $token = null): Promise
+            {
                 $deferred = new Deferred;
 
                 if ($token) {
@@ -71,11 +76,13 @@ class TimeoutTest extends TestCase {
                 return $deferred->promise(); // never resolve
             }
 
-            public function checkin(Socket\EncryptableSocket $socket): void {
+            public function checkin(Socket\EncryptableSocket $socket): void
+            {
                 // ignore
             }
 
-            public function clear(Socket\EncryptableSocket $socket): void {
+            public function clear(Socket\EncryptableSocket $socket): void
+            {
                 // ignore
             }
         }));
@@ -88,7 +95,8 @@ class TimeoutTest extends TestCase {
         }, 600);
     }
 
-    public function testTimeoutDuringTlsEnable() {
+    public function testTimeoutDuringTlsEnable()
+    {
         $tlsContext = (new Socket\ServerTlsContext)
             ->withDefaultCertificate(new Socket\Certificate(__DIR__ . "/tls/amphp.org.pem"));
 

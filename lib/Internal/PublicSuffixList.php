@@ -6,12 +6,14 @@ use Amp\Dns\InvalidNameException;
 use function Amp\Dns\normalizeName;
 
 /** @internal */
-final class PublicSuffixList {
+final class PublicSuffixList
+{
     private static $initialized = false;
     private static $suffixPatterns;
     private static $exceptionPatterns;
 
-    public static function isPublicSuffix(string $domain) {
+    public static function isPublicSuffix(string $domain)
+    {
         if (!self::$initialized) {
             self::readList();
             self::$initialized = true;
@@ -35,7 +37,8 @@ final class PublicSuffixList {
         return false;
     }
 
-    private static function readList() {
+    private static function readList()
+    {
         $lines = \file(__DIR__ . "/../../res/public_suffix_list.dat", \FILE_IGNORE_NEW_LINES | \FILE_SKIP_EMPTY_LINES);
 
         $exceptions = [];
@@ -73,7 +76,8 @@ final class PublicSuffixList {
         }, \array_chunk($rules, 256));
     }
 
-    private static function toRegex($rule, $exception) {
+    private static function toRegex($rule, $exception)
+    {
         $labels = \explode(".", $rule);
 
         foreach ($labels as $key => $label) {

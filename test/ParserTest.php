@@ -5,11 +5,13 @@ namespace Amp\Artax\Test;
 use Amp\Artax\Internal\Parser;
 use PHPUnit\Framework\TestCase;
 
-class ParserTest extends TestCase {
+class ParserTest extends TestCase
+{
     /**
      * @dataProvider provideParseExpectations
      */
-    public function testParse($msg, $method, $uri, $protocol, $headers, $body) {
+    public function testParse($msg, $method, $uri, $protocol, $headers, $body)
+    {
         $actualBody = "";
 
         $msgParser = new Parser(static function ($chunk) use (&$actualBody) {
@@ -29,7 +31,8 @@ class ParserTest extends TestCase {
         $this->assertEquals($body, $actualBody);
     }
 
-    public function testKeepAliveHeadResponseParse() {
+    public function testKeepAliveHeadResponseParse()
+    {
         $request = "HTTP/1.1 200 OK\n\n";
         $msgParser = new Parser(null, Parser::MODE_RESPONSE);
         $msgParser->enqueueResponseMethodMatch('HEAD');
@@ -41,7 +44,8 @@ class ParserTest extends TestCase {
     /**
      * @dataProvider provideParseExpectations
      */
-    public function testIncrementalParse($msg, $method, $uri, $protocol, $headers, $body) {
+    public function testIncrementalParse($msg, $method, $uri, $protocol, $headers, $body)
+    {
         $actualBody = "";
 
         $msgParser = new Parser(static function ($chunk) use (&$actualBody) {
@@ -49,7 +53,7 @@ class ParserTest extends TestCase {
         }, Parser::MODE_REQUEST);
 
         $byteIncrement = 1;
-        $msgLen = strlen($msg);
+        $msgLen = \strlen($msg);
 
         $headers = null;
 
@@ -57,7 +61,7 @@ class ParserTest extends TestCase {
             $msgPart = $msg[$i];
             $parsedRequestArr = $msgParser->parse($msgPart);
 
-            if (is_array($parsedRequestArr)) {
+            if (\is_array($parsedRequestArr)) {
                 if ($headers === null) {
                     $headers = $parsedRequestArr["headers"];
                 }
@@ -79,7 +83,8 @@ class ParserTest extends TestCase {
         $this->assertEquals($body, $actualBody);
     }
 
-    public function provideParseExpectations() {
+    public function provideParseExpectations()
+    {
         $return = [];
 
         // 0 -------------------------------------------------------------------------------------->
@@ -154,7 +159,7 @@ class ParserTest extends TestCase {
         // 4 -------------------------------------------------------------------------------------->
 
         $len = 1992;
-        $body = str_repeat('x', $len);
+        $body = \str_repeat('x', $len);
 
         $msg = '' .
             "GET /test HTTP/1.1\r\n" .

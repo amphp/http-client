@@ -8,7 +8,8 @@ use Amp\Promise;
 use Amp\Socket\Socket;
 use function Amp\call;
 
-class HttpTunneler {
+class HttpTunneler
+{
     /**
      * Establish an HTTP tunnel to the specified authority over this socket.
      *
@@ -17,7 +18,8 @@ class HttpTunneler {
      *
      * @return Promise
      */
-    public function tunnel(Socket $socket, string $authority): Promise {
+    public function tunnel(Socket $socket, string $authority): Promise
+    {
         return call(function () use ($socket, $authority) {
             $parser = new Parser(null);
             $parser->enqueueResponseMethodMatch("CONNECT");

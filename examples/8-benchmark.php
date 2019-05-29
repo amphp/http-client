@@ -33,9 +33,9 @@ Loop::run(function () use ($count) {
         }
         yield $promises;
 
-        gc_collect_cycles();
-        gc_mem_caches();
+        \gc_collect_cycles();
+        \gc_mem_caches();
 
-        print "Memory: " . (memory_get_usage(true) / 1000) . PHP_EOL;
+        print "Memory: " . (\memory_get_usage(true) / 1000) . PHP_EOL;
     } while ($count === 0);
 });

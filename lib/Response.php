@@ -11,7 +11,8 @@ use Amp\ByteStream\Payload;
  *
  * `DefaultClient` uses an anonymous class to implement this interface.
  */
-interface Response {
+interface Response
+{
     /**
      * Retrieve the requests's HTTP protocol version.
      *

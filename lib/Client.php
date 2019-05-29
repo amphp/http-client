@@ -9,7 +9,8 @@ use Amp\Promise;
 /**
  * Interface definition for an HTTP client.
  */
-interface Client {
+interface Client
+{
     /** Whether to automatically apply compression to requests and responses. */
     const OP_AUTO_ENCODING = 'amp.artax.client.auto-encoding';
 

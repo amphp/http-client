@@ -10,7 +10,8 @@ use Amp\Promise;
 use Amp\Success;
 use function Amp\call;
 
-final class FormBody implements RequestBody {
+final class FormBody implements RequestBody
+{
     private $fields = [];
     private $boundary;
     private $isMultipart = false;
@@ -22,7 +23,8 @@ final class FormBody implements RequestBody {
     /**
      * @param string $boundary An optional multipart boundary string
      */
-    public function __construct(string $boundary = null) {
+    public function __construct(string $boundary = null)
+    {
         $this->boundary = $boundary ?? \bin2hex(\random_bytes(16));
     }
 
@@ -33,7 +35,8 @@ final class FormBody implements RequestBody {
      * @param string $value
      * @param string $contentType
      */
-    public function addField(string $name, string $value, string $contentType = 'text/plain') {
+    public function addField(string $name, string $value, string $contentType = 'text/plain')
+    {
         $this->fields[] = [$name, $value, $contentType, null];
         $this->resetCache();
     }
@@ -44,7 +47,8 @@ final class FormBody implements RequestBody {
      * @param array  $data
      * @param string $contentType
      */
-    public function addFields(array $data, string $contentType = 'text/plain') {
+    public function addFields(array $data, string $contentType = 'text/plain')
+    {
         foreach ($data as $key => $value) {
             $this->addField($key, $value, $contentType);
         }
@@ -57,7 +61,8 @@ final class FormBody implements RequestBody {
      * @param string $filePath
      * @param string $contentType
      */
-    public function addFile(string $name, string $filePath, string $contentType = 'application/octet-stream') {
+    public function addFile(string $name, string $filePath, string $contentType = 'application/octet-stream')
+    {
         $fileName = \basename($filePath);
         $this->fields[] = [$name, new FileBody($filePath), $contentType, $fileName];
         $this->isMultipart = true;
@@ -70,7 +75,8 @@ final class FormBody implements RequestBody {
      * @param array  $data
      * @param string $contentType
      */
-    public function addFiles(array $data, string $contentType = 'application/octet-stream') {
+    public function addFiles(array $data, string $contentType = 'application/octet-stream')
+    {
         foreach ($data as $key => $value) {
             $this->addFile($key, $value, $contentType);
         }
@@ -83,17 +89,20 @@ final class FormBody implements RequestBody {
      *
      * @return array
      */
-    public function getFields(): array {
+    public function getFields(): array
+    {
         return $this->fields;
     }
 
-    private function resetCache() {
+    private function resetCache()
+    {
         $this->cachedBody = null;
         $this->cachedLength = null;
         $this->cachedFields = null;
     }
 
-    public function createBodyStream(): InputStream {
+    public function createBodyStream(): InputStream
+    {
         if ($this->isMultipart) {
             return $this->generateMultipartStreamFromFields($this->getMultipartFieldArray());
         }
@@ -101,7 +110,8 @@ final class FormBody implements RequestBody {
         return new InMemoryStream($this->getFormEncodedBodyString());
     }
 
-    private function getMultipartFieldArray(): array {
+    private function getMultipartFieldArray(): array
+    {
         if (isset($this->cachedFields)) {
             return $this->cachedFields;
         }
@@ -125,7 +135,8 @@ final class FormBody implements RequestBody {
         return $this->cachedFields = $fields;
     }
 
-    private function generateMultipartFileHeader(string $name, string $fileName, string $contentType): string {
+    private function generateMultipartFileHeader(string $name, string $fileName, string $contentType): string
+    {
         $header = "Content-Disposition: form-data; name=\"{$name}\"; filename=\"{$fileName}\"\r\n";
         $header .= "Content-Type: {$contentType}\r\n";
         $header .= "Content-Transfer-Encoding: binary\r\n\r\n";
@@ -133,7 +144,8 @@ final class FormBody implements RequestBody {
         return $header;
     }
 
-    private function generateMultipartFieldHeader(string $name, string $contentType): string {
+    private function generateMultipartFieldHeader(string $name, string $contentType): string
+    {
         $header = "Content-Disposition: form-data; name=\"{$name}\"\r\n";
         if ($contentType !== "") {
             $header .= "Content-Type: {$contentType}\r\n\r\n";
@@ -144,7 +156,8 @@ final class FormBody implements RequestBody {
         return $header;
     }
 
-    private function generateMultipartStreamFromFields(array $fields): InputStream {
+    private function generateMultipartStreamFromFields(array $fields): InputStream
+    {
         foreach ($fields as $key => $field) {
             $fields[$key] = $field instanceof FileBody ? $field->createBodyStream() : new InMemoryStream($field);
         }
@@ -158,7 +171,8 @@ final class FormBody implements RequestBody {
         }));
     }
 
-    private function getFormEncodedBodyString(): string {
+    private function getFormEncodedBodyString(): string
+    {
         if ($this->cachedBody) {
             return $this->cachedBody;
         }
@@ -177,19 +191,22 @@ final class FormBody implements RequestBody {
         return $this->cachedBody = \http_build_query($fields);
     }
 
-    public function getHeaders(): Promise {
+    public function getHeaders(): Promise
+    {
         return new Success([
             'Content-Type' => $this->determineContentType(),
         ]);
     }
 
-    private function determineContentType() {
+    private function determineContentType()
+    {
         return $this->isMultipart
             ? "multipart/form-data; boundary={$this->boundary}"
             : 'application/x-www-form-urlencoded';
     }
 
-    public function getBodyLength(): Promise {
+    public function getBodyLength(): Promise
+    {
         if ($this->cachedLength) {
             return $this->cachedLength;
         }

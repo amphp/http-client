@@ -9,18 +9,21 @@ use function Amp\call;
 use function Amp\File\open;
 use function Amp\File\size;
 
-final class FileBody implements RequestBody {
+final class FileBody implements RequestBody
+{
     /** @var string */
     private $path;
 
     /**
      * @param string $path The filesystem path for the file we wish to send
      */
-    public function __construct(string $path) {
+    public function __construct(string $path)
+    {
         $this->path = $path;
     }
 
-    public function createBodyStream(): InputStream {
+    public function createBodyStream(): InputStream
+    {
         $handlePromise = open($this->path, "r");
 
         return new class($handlePromise) implements InputStream {
@@ -30,7 +33,8 @@ final class FileBody implements RequestBody {
             /** @var InputStream */
             private $stream;
 
-            public function __construct(Promise $promise) {
+            public function __construct(Promise $promise)
+            {
                 $this->promise = $promise;
                 $this->promise->onResolve(function ($error, $stream) {
                     if ($error) {
@@ -41,7 +45,8 @@ final class FileBody implements RequestBody {
                 });
             }
 
-            public function read(): Promise {
+            public function read(): Promise
+            {
                 if (!$this->stream) {
                     return call(function () {
                         /** @var InputStream $stream */
@@ -55,11 +60,13 @@ final class FileBody implements RequestBody {
         };
     }
 
-    public function getHeaders(): Promise {
+    public function getHeaders(): Promise
+    {
         return new Success([]);
     }
 
-    public function getBodyLength(): Promise {
+    public function getBodyLength(): Promise
+    {
         return size($this->path);
     }
 }

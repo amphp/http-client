@@ -2,5 +2,6 @@
 
 namespace Amp\Artax;
 
-class TimeoutException extends HttpException {
+class TimeoutException extends HttpException
+{
 }

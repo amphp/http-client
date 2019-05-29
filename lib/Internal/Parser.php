@@ -5,7 +5,8 @@ namespace Amp\Artax\Internal;
 use Amp\Artax\ParseException;
 
 /** @internal */
-final class Parser {
+final class Parser
+{
     const STATUS_LINE_PATTERN = "#^
         HTTP/(?P<protocol>\d+\.\d+)[\x20\x09]+
         (?P<status>[1-5]\d\d)[\x20\x09]*
@@ -56,18 +57,21 @@ final class Parser {
     private $maxBodyBytes = self::DEFAULT_MAX_BODY_BYTES;
     private $bodyDataCallback;
 
-    public function __construct(callable $bodyDataCallback = null, $mode = self::MODE_RESPONSE) {
+    public function __construct(callable $bodyDataCallback = null, $mode = self::MODE_RESPONSE)
+    {
         $this->bodyDataCallback = $bodyDataCallback;
         $this->mode = $mode;
     }
 
-    public function setAllOptions(array $options) {
+    public function setAllOptions(array $options)
+    {
         foreach ($options as $option => $value) {
             $this->setOption($option, $value);
         }
     }
 
-    public function setOption(string $option, $value) {
+    public function setOption(string $option, $value)
+    {
         switch ($option) {
             case self::OP_MAX_HEADER_BYTES:
                 $this->maxHeaderBytes = (int) $value;
@@ -77,31 +81,36 @@ final class Parser {
                 break;
             default:
                 throw new \Error(
-                    sprintf('Unknown parser option: %s', $option)
+                    \sprintf('Unknown parser option: %s', $option)
                 );
         }
     }
 
-    public function enqueueResponseMethodMatch(string $method) {
+    public function enqueueResponseMethodMatch(string $method)
+    {
         $this->responseMethodMatch[] = $method;
     }
 
     /**
      * @return string|null
      */
-    public function getBuffer() {
+    public function getBuffer()
+    {
         return $this->buffer;
     }
 
-    public function getState(): int {
+    public function getState(): int
+    {
         return $this->state;
     }
 
-    public function buffer(string $data) {
+    public function buffer(string $data)
+    {
         $this->buffer .= $data;
     }
 
-    public function parse(string $data = null) {
+    public function parse(string $data = null)
+    {
         if ($data !== null) {
             $this->buffer .= $data;
         }
@@ -134,9 +143,9 @@ final class Parser {
         }
 
         start_line: {
-            $startLineEndPos = strpos($startLineAndHeaders, "\n");
-            $startLine = substr($startLineAndHeaders, 0, $startLineEndPos);
-            $rawHeaders = substr($startLineAndHeaders, $startLineEndPos + 1);
+            $startLineEndPos = \strpos($startLineAndHeaders, "\n");
+            $startLine = \substr($startLineAndHeaders, 0, $startLineEndPos);
+            $rawHeaders = \substr($startLineAndHeaders, $startLineEndPos + 1);
             $this->traceBuffer = $startLineAndHeaders;
 
             if ($this->mode === self::MODE_REQUEST) {
@@ -147,21 +156,21 @@ final class Parser {
         }
 
         request_line_and_headers: {
-            $parts = explode(' ', trim($startLine));
+            $parts = \explode(' ', \trim($startLine));
 
-            if (isset($parts[0]) && ($method = trim($parts[0]))) {
+            if (isset($parts[0]) && ($method = \trim($parts[0]))) {
                 $this->requestMethod = $method;
             } else {
                 throw new ParseException($this->getParsedMessageArray(), 'Invalid request line', 400);
             }
 
-            if (isset($parts[1]) && ($uri = trim($parts[1]))) {
+            if (isset($parts[1]) && ($uri = \trim($parts[1]))) {
                 $this->requestUri = $uri;
             } else {
                 throw new ParseException($this->getParsedMessageArray(), 'Invalid request line', 400);
             }
 
-            if (isset($parts[2]) && ($protocol = str_ireplace('HTTP/', '', trim($parts[2])))) {
+            if (isset($parts[2]) && ($protocol = \str_ireplace('HTTP/', '', \trim($parts[2])))) {
                 $this->protocol = $protocol;
             } else {
                 throw new ParseException($this->getParsedMessageArray(), 'Invalid request line', 400);
@@ -179,10 +188,10 @@ final class Parser {
         }
 
         status_line_and_headers: {
-            if (preg_match(self::STATUS_LINE_PATTERN, $startLine, $matches)) {
+            if (\preg_match(self::STATUS_LINE_PATTERN, $startLine, $matches)) {
                 $this->protocol = $matches['protocol'];
                 $this->responseCode = (int) $matches['status'];
-                $this->responseReason = trim($matches['reason']);
+                $this->responseReason = \trim($matches['reason']);
             } else {
                 throw new ParseException($this->getParsedMessageArray(), 'Invalid status line', 400);
             }
@@ -210,7 +219,7 @@ final class Parser {
         }
 
         transition_from_response_headers_to_body: {
-            $requestMethod = array_shift($this->responseMethodMatch);
+            $requestMethod = \array_shift($this->responseMethodMatch);
 
             if ($this->responseCode == 204
                 || $this->responseCode == 304
@@ -246,7 +255,7 @@ final class Parser {
         }
 
         body_identity: {
-            $bufferDataSize = strlen($this->buffer);
+            $bufferDataSize = \strlen($this->buffer);
 
             if ($bufferDataSize < $this->remainingBodyBytes) {
                 $this->addToBody($this->buffer);
@@ -260,9 +269,9 @@ final class Parser {
                 goto complete;
             }
 
-            $bodyData = substr($this->buffer, 0, $this->remainingBodyBytes);
+            $bodyData = \substr($this->buffer, 0, $this->remainingBodyBytes);
             $this->addToBody($bodyData);
-            $this->buffer = substr($this->buffer, $this->remainingBodyBytes);
+            $this->buffer = \substr($this->buffer, $this->remainingBodyBytes);
             $this->remainingBodyBytes = 0;
             goto complete;
         }
@@ -283,12 +292,12 @@ final class Parser {
         }
 
         trailers_start: {
-            $firstTwoBytes = substr($this->buffer, 0, 2);
+            $firstTwoBytes = \substr($this->buffer, 0, 2);
 
             if ($firstTwoBytes == "" || $firstTwoBytes === "\r") {
                 goto more_data_needed;
             } elseif ($firstTwoBytes === "\r\n") {
-                $this->buffer = substr($this->buffer, 2);
+                $this->buffer = \substr($this->buffer, 2);
                 goto complete;
             }
 
@@ -333,17 +342,18 @@ final class Parser {
         }
     }
 
-    private function shiftHeadersFromMessageBuffer() {
-        $this->buffer = ltrim($this->buffer, "\r\n");
+    private function shiftHeadersFromMessageBuffer()
+    {
+        $this->buffer = \ltrim($this->buffer, "\r\n");
 
-        if ($headersSize = strpos($this->buffer, "\r\n\r\n")) {
-            $headers = substr($this->buffer, 0, $headersSize + 2);
-            $this->buffer = substr($this->buffer, $headersSize + 4);
-        } elseif ($headersSize = strpos($this->buffer, "\n\n")) {
-            $headers = substr($this->buffer, 0, $headersSize + 1);
-            $this->buffer = substr($this->buffer, $headersSize + 2);
+        if ($headersSize = \strpos($this->buffer, "\r\n\r\n")) {
+            $headers = \substr($this->buffer, 0, $headersSize + 2);
+            $this->buffer = \substr($this->buffer, $headersSize + 4);
+        } elseif ($headersSize = \strpos($this->buffer, "\n\n")) {
+            $headers = \substr($this->buffer, 0, $headersSize + 1);
+            $this->buffer = \substr($this->buffer, $headersSize + 2);
         } else {
-            $headersSize = strlen($this->buffer);
+            $headersSize = \strlen($this->buffer);
             $headers = null;
         }
 
@@ -354,12 +364,13 @@ final class Parser {
         return $headers;
     }
 
-    private function parseHeadersFromRaw($rawHeaders) {
-        if (strpos($rawHeaders, "\n\x20") || strpos($rawHeaders, "\n\t")) {
-            $rawHeaders = preg_replace("/(?:\r\n|\n)[\x20\t]+/", ' ', $rawHeaders);
+    private function parseHeadersFromRaw($rawHeaders)
+    {
+        if (\strpos($rawHeaders, "\n\x20") || \strpos($rawHeaders, "\n\t")) {
+            $rawHeaders = \preg_replace("/(?:\r\n|\n)[\x20\t]+/", ' ', $rawHeaders);
         }
 
-        if (!preg_match_all(self::HEADERS_PATTERN, $rawHeaders, $matches)) {
+        if (!\preg_match_all(self::HEADERS_PATTERN, $rawHeaders, $matches)) {
             throw new ParseException(
                 $this->getParsedMessageArray(),
                 $msg = 'Invalid headers',
@@ -372,13 +383,13 @@ final class Parser {
 
         $aggregateMatchedHeaders = '';
 
-        for ($i = 0, $c = count($matches[0]); $i < $c; $i++) {
+        for ($i = 0, $c = \count($matches[0]); $i < $c; $i++) {
             $aggregateMatchedHeaders .= $matches[0][$i];
             $field = $matches['field'][$i];
             $headers[$field][] = $matches['value'][$i];
         }
 
-        if (strlen($rawHeaders) !== strlen($aggregateMatchedHeaders)) {
+        if (\strlen($rawHeaders) !== \strlen($aggregateMatchedHeaders)) {
             throw new ParseException(
                 $this->getParsedMessageArray(),
                 $msg = 'Invalid headers',
@@ -387,10 +398,10 @@ final class Parser {
             );
         }
 
-        $ucKeyHeaders = array_change_key_case($headers, CASE_UPPER);
+        $ucKeyHeaders = \array_change_key_case($headers, CASE_UPPER);
 
         if (isset($ucKeyHeaders['TRANSFER-ENCODING'])
-            && strcasecmp('identity', $ucKeyHeaders['TRANSFER-ENCODING'][0])
+            && \strcasecmp('identity', $ucKeyHeaders['TRANSFER-ENCODING'][0])
         ) {
             $this->parseFlowHeaders['TRANSFER-ENCODING'] = true;
         } elseif (isset($ucKeyHeaders['CONTENT-LENGTH'])) {
@@ -400,13 +411,14 @@ final class Parser {
         return $headers;
     }
 
-    private function dechunk() {
+    private function dechunk()
+    {
         if ($this->chunkLenRemaining !== null) {
             goto dechunk;
         }
 
         determine_chunk_size: {
-            if (false === ($lineEndPos = strpos($this->buffer, "\r\n"))) {
+            if (false === ($lineEndPos = \strpos($this->buffer, "\r\n"))) {
                 goto more_data_needed;
             } elseif ($lineEndPos === 0) {
                 throw new ParseException(
@@ -417,11 +429,11 @@ final class Parser {
                 );
             }
 
-            $line = substr($this->buffer, 0, $lineEndPos);
-            $hex = strtolower(trim(ltrim($line, '0'))) ?: 0;
-            $dec = hexdec($hex);
+            $line = \substr($this->buffer, 0, $lineEndPos);
+            $hex = \strtolower(\trim(\ltrim($line, '0'))) ?: 0;
+            $dec = \hexdec($hex);
 
-            if ($hex == dechex($dec)) {
+            if ($hex == \dechex($dec)) {
                 $this->chunkLenRemaining = $dec;
             } else {
                 throw new ParseException(
@@ -432,7 +444,7 @@ final class Parser {
                 );
             }
 
-            $this->buffer = substr($this->buffer, $lineEndPos + 2);
+            $this->buffer = \substr($this->buffer, $lineEndPos + 2);
 
             if (!$dec) {
                 return true;
@@ -440,7 +452,7 @@ final class Parser {
         }
 
         dechunk: {
-            $bufferLen = strlen($this->buffer);
+            $bufferLen = \strlen($this->buffer);
 
             // These first two (extreme) edge cases prevent errors where the packet boundary ends after
             // the \r and before the \n at the end of a chunk.
@@ -449,8 +461,8 @@ final class Parser {
             } elseif ($bufferLen === $this->chunkLenRemaining + 1) {
                 goto more_data_needed;
             } elseif ($bufferLen >= $this->chunkLenRemaining + 2) {
-                $chunk = substr($this->buffer, 0, $this->chunkLenRemaining);
-                $this->buffer = substr($this->buffer, $this->chunkLenRemaining + 2);
+                $chunk = \substr($this->buffer, 0, $this->chunkLenRemaining);
+                $this->buffer = \substr($this->buffer, $this->chunkLenRemaining + 2);
                 $this->chunkLenRemaining = null;
                 $this->addToBody($chunk);
 
@@ -469,10 +481,11 @@ final class Parser {
         }
     }
 
-    private function parseTrailers($trailers) {
+    private function parseTrailers($trailers)
+    {
         $trailerHeaders = $this->parseHeadersFromRaw($trailers);
-        $ucKeyTrailerHeaders = array_change_key_case($trailerHeaders, CASE_UPPER);
-        $ucKeyHeaders = array_change_key_case($this->headers, CASE_UPPER);
+        $ucKeyTrailerHeaders = \array_change_key_case($trailerHeaders, CASE_UPPER);
+        $ucKeyHeaders = \array_change_key_case($this->headers, CASE_UPPER);
 
         unset(
             $ucKeyTrailerHeaders['TRANSFER-ENCODING'],
@@ -480,22 +493,23 @@ final class Parser {
             $ucKeyTrailerHeaders['TRAILER']
         );
 
-        foreach (array_keys($this->headers) as $key) {
-            $ucKey = strtoupper($key);
+        foreach (\array_keys($this->headers) as $key) {
+            $ucKey = \strtoupper($key);
             if (isset($ucKeyTrailerHeaders[$ucKey])) {
                 $this->headers[$key] = $ucKeyTrailerHeaders[$ucKey];
             }
         }
 
-        foreach (array_keys($trailerHeaders) as $key) {
-            $ucKey = strtoupper($key);
+        foreach (\array_keys($trailerHeaders) as $key) {
+            $ucKey = \strtoupper($key);
             if (!isset($ucKeyHeaders[$ucKey])) {
                 $this->headers[$key] = $trailerHeaders[$key];
             }
         }
     }
 
-    public function getParsedMessageArray(): array {
+    public function getParsedMessageArray(): array
+    {
         $result = [
             'protocol' => $this->protocol,
             'headers' => $this->headers,
@@ -515,8 +529,9 @@ final class Parser {
         return $result;
     }
 
-    private function addToBody(string $data) {
-        $this->bodyBytesConsumed += strlen($data);
+    private function addToBody(string $data)
+    {
+        $this->bodyBytesConsumed += \strlen($data);
 
         if ($this->maxBodyBytes > 0 && $this->bodyBytesConsumed > $this->maxBodyBytes) {
             throw new ParseException($this->getParsedMessageArray(), "Maximum allowable body size exceeded: {$this->maxBodyBytes}", 413);

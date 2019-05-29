@@ -6,8 +6,10 @@ use Amp\Artax\Cookie\Cookie;
 use Amp\Artax\Cookie\CookieFormatException;
 use PHPUnit\Framework\TestCase;
 
-class CookieTest extends TestCase {
-    public function testGetters() {
+class CookieTest extends TestCase
+{
+    public function testGetters()
+    {
         $cookie = new Cookie("name", "value", null, null, "example.com", true, false);
 
         $this->assertSame("name", $cookie->getName());
@@ -19,7 +21,8 @@ class CookieTest extends TestCase {
         $this->assertFalse($cookie->isHttpOnly());
     }
 
-    public function testSetters() {
+    public function testSetters()
+    {
         $cookie = new Cookie("name", "value", null, null, "example.com", true, false);
 
         $new = $cookie->withName("name2");
@@ -51,28 +54,32 @@ class CookieTest extends TestCase {
         $this->assertTrue($new->isHttpOnly());
     }
 
-    public function testEmptyCookieStringThrows() {
+    public function testEmptyCookieStringThrows()
+    {
         $this->expectException(CookieFormatException::class);
         $this->expectExceptionMessage("Empty cookie string");
 
         Cookie::fromString("");
     }
 
-    public function testMissingEqualsSignThrows() {
+    public function testMissingEqualsSignThrows()
+    {
         $this->expectException(CookieFormatException::class);
         $this->expectExceptionMessage("Missing '=' to separate name and value");
 
         Cookie::fromString("name");
     }
 
-    public function testEmptyNameThrows() {
+    public function testEmptyNameThrows()
+    {
         $this->expectException(CookieFormatException::class);
         $this->expectExceptionMessage("Empty name");
 
         Cookie::fromString("=value");
     }
 
-    public function testValidCookieParse() {
+    public function testValidCookieParse()
+    {
         $cookie = Cookie::fromString("cookie_name2=cookie_value2; expires=Sun, 16 Jul 3567 06:23:41 GMT");
 
         $this->assertSame("cookie_name2", $cookie->getName());
@@ -85,7 +92,8 @@ class CookieTest extends TestCase {
         $this->assertFalse($cookie->isExpired());
     }
 
-    public function testValidCookieParseAndStringify() {
+    public function testValidCookieParseAndStringify()
+    {
         $cookie1 = Cookie::fromString("cookie_name2=cookie_value2; expires=Sun, 16 Jul 3567 06:23:41 GMT; secure; hTTPonly; unknown; domain=example.com");
         $cookie2 = Cookie::fromString((string) $cookie1);
 
@@ -101,15 +109,17 @@ class CookieTest extends TestCase {
         }
     }
 
-    public function testMaxAge() {
+    public function testMaxAge()
+    {
         $cookie = Cookie::fromString("cookie_name2=cookie_value2; max-age=1");
         $this->assertFalse($cookie->isExpired());
         // TODO: Don't sleep here, test differently
-        sleep(2);
+        \sleep(2);
         $this->assertTrue($cookie->isExpired());
     }
 
-    public function testInvalidDate() {
+    public function testInvalidDate()
+    {
         $this->expectException(CookieFormatException::class);
 
         Cookie::fromString("cookie_name2=cookie_value2; expires=1");

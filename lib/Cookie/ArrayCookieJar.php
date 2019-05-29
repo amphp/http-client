@@ -2,7 +2,8 @@
 
 namespace Amp\Artax\Cookie;
 
-class ArrayCookieJar implements CookieJar {
+class ArrayCookieJar implements CookieJar
+{
     private $cookies = [];
 
     /**
@@ -12,7 +13,8 @@ class ArrayCookieJar implements CookieJar {
      *
      * @return void
      */
-    public function store(Cookie $cookie) {
+    public function store(Cookie $cookie)
+    {
         $this->cookies[$cookie->getDomain()][$cookie->getPath()][$cookie->getName()] = $cookie;
     }
 
@@ -21,14 +23,16 @@ class ArrayCookieJar implements CookieJar {
      *
      * @param Cookie $cookie
      */
-    public function remove(Cookie $cookie) {
+    public function remove(Cookie $cookie)
+    {
         unset($this->cookies[$cookie->getDomain()][$cookie->getPath()][$cookie->getName()]);
     }
 
     /**
      * Remove all stored cookies.
      */
-    public function removeAll() {
+    public function removeAll()
+    {
         $this->cookies = [];
     }
 
@@ -37,7 +41,8 @@ class ArrayCookieJar implements CookieJar {
      *
      * @return array Returns array in the format `$array[$domain][$path][$cookieName]`.
      */
-    public function getAll(): array {
+    public function getAll(): array
+    {
         return $this->cookies;
     }
 
@@ -50,7 +55,8 @@ class ArrayCookieJar implements CookieJar {
      *
      * @return array Returns an array (possibly empty) of all cookie matches.
      */
-    public function get(string $domain, string $path = '', string $name = null): array {
+    public function get(string $domain, string $path = '', string $name = null): array
+    {
         $this->clearExpiredCookies();
 
         $path = $path === "" ? "/" : $path;
@@ -79,7 +85,8 @@ class ArrayCookieJar implements CookieJar {
         return $matches;
     }
 
-    private function clearExpiredCookies() {
+    private function clearExpiredCookies()
+    {
         foreach ($this->cookies as $domain => $domainCookies) {
             foreach ($domainCookies as $path => $pathCookies) {
                 foreach ($pathCookies as $name => $cookie) {
@@ -100,7 +107,8 @@ class ArrayCookieJar implements CookieJar {
      *
      * @link http://tools.ietf.org/html/rfc6265#section-5.1.3
      */
-    private function matchesDomain(string $requestDomain, string $cookieDomain): bool {
+    private function matchesDomain(string $requestDomain, string $cookieDomain): bool
+    {
         if ($requestDomain === \ltrim($cookieDomain, ".")) {
             return true;
         }
@@ -109,11 +117,11 @@ class ArrayCookieJar implements CookieJar {
             return false;
         }
 
-        if (filter_var($requestDomain, FILTER_VALIDATE_IP)) {
+        if (\filter_var($requestDomain, FILTER_VALIDATE_IP)) {
             return false;
         }
 
-        if (substr($requestDomain, 0, -\strlen($cookieDomain)) . $cookieDomain === $requestDomain) {
+        if (\substr($requestDomain, 0, -\strlen($cookieDomain)) . $cookieDomain === $requestDomain) {
             return true;
         }
 
@@ -123,11 +131,12 @@ class ArrayCookieJar implements CookieJar {
     /**
      * @link http://tools.ietf.org/html/rfc6265#section-5.1.4
      */
-    private function matchesPath($requestPath, $cookiePath) {
+    private function matchesPath($requestPath, $cookiePath)
+    {
         if ($requestPath === $cookiePath) {
             $isMatch = true;
-        } elseif (strpos($requestPath, $cookiePath) === 0
-            && (substr($cookiePath, -1) === '/' || $requestPath[strlen($cookiePath)] === '/')
+        } elseif (\strpos($requestPath, $cookiePath) === 0
+            && (\substr($cookiePath, -1) === '/' || $requestPath[\strlen($cookiePath)] === '/')
         ) {
             $isMatch = true;
         } else {
