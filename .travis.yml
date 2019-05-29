@@ -22,7 +22,11 @@ before_install:
   - phpenv config-rm xdebug.ini || echo "No xdebug config."
 
 install:
-  - composer update -n --prefer-dist
+  - if [ "$TRAVIS_PHP_VERSION" = "nightly" ]; then
+      composer update -n --prefer-dist --ignore-platform-reqs
+    else
+      composer update -n --prefer-dist
+    fi
 
   - wget https://github.com/php-coveralls/php-coveralls/releases/download/v1.0.0/coveralls.phar
   - chmod +x coveralls.phar
