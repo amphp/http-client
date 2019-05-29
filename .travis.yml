@@ -3,9 +3,9 @@ sudo: false
 language: php
 
 php:
-  - 7.0
   - 7.1
   - 7.2
+  - 7.3
   - nightly
 
 matrix:
@@ -31,7 +31,7 @@ install:
 
 script:
   # PHPDBG segfaults on versions other than 7.0 currently
-  - if [ "$TRAVIS_PHP_VERSION" = "7.0" ]; then
+  - if [ "$TRAVIS_PHP_VERSION" = "7.1" ]; then
       phpdbg -qrr vendor/bin/phpunit --verbose --coverage-php coverage/cov/main.cov;
     else
       vendor/bin/phpunit --coverage-text --verbose --coverage-php coverage/cov/main.cov;
@@ -39,7 +39,7 @@ script:
   - PHP_CS_FIXER_IGNORE_ENV=1 php vendor/bin/php-cs-fixer --diff --dry-run -v fix
 
 after_script:
-  - if [ "$TRAVIS_PHP_VERSION" = "7.0" ]; then
+  - if [ "$TRAVIS_PHP_VERSION" = "7.1" ]; then
       coverage/bin/phpcov merge --clover build/logs/clover.xml coverage/cov
       ./coveralls.phar -v;
     fi
