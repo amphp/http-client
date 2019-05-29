@@ -17,15 +17,25 @@ use Amp\ByteStream\InputStream;
 use Amp\ByteStream\IteratorStream;
 use Amp\CancellationTokenSource;
 use Amp\CancelledException;
+use Amp\Delayed;
+use Amp\Http\Server\RequestHandler\CallableRequestHandler;
+use Amp\Http\Server\Server;
+use Amp\Http\Status;
+use Amp\Producer;
 use Amp\Promise;
 use Amp\Socket;
 use Amp\Success;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
 use function Amp\asyncCall;
 use function Amp\Iterator\fromIterable;
 use function Amp\Promise\wait;
 
 class ClientHttpBinIntegrationTest extends TestCase {
+    /** @var Socket\Server */
+    private $socket;
+    private $server;
+
     public function testHttp10Response() {
         $client = new DefaultClient;
         $server = Socket\listen("tcp://127.0.0.1:0/");
@@ -409,7 +419,7 @@ class ClientHttpBinIntegrationTest extends TestCase {
 
     public function testRequestCancellation() {
         $cancellationTokenSource = new CancellationTokenSource;
-        $response = wait((new DefaultClient)->request("http://httpbin.org/drip?code=200&duration=5&numbytes=130000", [], $cancellationTokenSource->getToken()));
+        $response = wait((new DefaultClient)->request("http://" . $this->socket->getAddress() . "/", [], $cancellationTokenSource->getToken()));
         $this->assertInstanceOf(Response::class, $response);
         $cancellationTokenSource->cancel();
         $this->expectException(CancelledException::class);
@@ -480,5 +490,24 @@ class ClientHttpBinIntegrationTest extends TestCase {
             });
 
         wait((new DefaultClient)->request($request));
+    }
+
+    protected function setUp() {
+        parent::setUp();
+
+        if ($this->socket) {
+            $this->socket->close();
+        }
+
+        $this->socket = Socket\listen('127.0.0.1:0');
+        $this->server = new Server([$this->socket], new CallableRequestHandler(static function () {
+            return new \Amp\Http\Server\Response(Status::OK, [], new IteratorStream(new Producer(static function ($emit) {
+                yield $emit(".");
+                yield new Delayed(5000);
+                yield $emit(".");
+            })));
+        }), new NullLogger);
+
+        wait($this->server->start());
     }
 }

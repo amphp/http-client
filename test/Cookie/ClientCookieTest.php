@@ -27,7 +27,7 @@ class ClientCookieTest extends TestCase {
         $method->invoke($this->client, $requestDomain, (string) $cookie);
 
         if ($accept) {
-            $this->assertSame(1, \count($this->jar->getAll()));
+            $this->assertCount(1, $this->jar->getAll());
         } else {
             $this->assertSame([], $this->jar->getAll());
         }
