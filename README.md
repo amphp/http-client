@@ -1,10 +1,10 @@
-# artax
+# http-client
 
-[![Build Status](https://img.shields.io/travis/amphp/artax/master.svg?style=flat-square)](https://travis-ci.org/amphp/artax)
-[![CoverageStatus](https://img.shields.io/coveralls/amphp/artax/master.svg?style=flat-square)](https://coveralls.io/github/amphp/artax?branch=master)
+[![Build Status](https://img.shields.io/travis/amphp/http-client/master.svg?style=flat-square)](https://travis-ci.org/amphp/http-client)
+[![CoverageStatus](https://img.shields.io/coveralls/amphp/http-client/master.svg?style=flat-square)](https://coveralls.io/github/amphp/http-client?branch=master)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)
 
-Artax is an asynchronous HTTP client for PHP based on [Amp](https://github.com/amphp/amp). Its API simplifies standards-compliant HTTP resource traversal and RESTful web service consumption without obscuring the underlying protocol. The library manually implements HTTP over TCP sockets; as such it has no dependency on `ext/curl`.
+`amphp/http-client` is an asynchronous HTTP client for PHP based on [Amp](https://github.com/amphp/amp). Its API simplifies standards-compliant HTTP resource traversal and RESTful web service consumption without obscuring the underlying protocol. The library manually implements HTTP over TCP sockets; as such it has no dependency on `ext/curl`.
 
 ## Features
 
@@ -23,14 +23,14 @@ Artax is an asynchronous HTTP client for PHP based on [Amp](https://github.com/a
 ## Project Goals
 
  - Model all code as closely as possible to the relevant HTTP protocol RFCs
- - Implement an HTTP/1.1 client built on raw socket streams with no `libcurl` dependency
+ - Implement an HTTP/1.1 client built on socket streams with no `libcurl` dependency
 
 ## Installation
 
 This package can be installed as a [Composer](https://getcomposer.org/) dependency.
 
 ```bash
-composer require amphp/artax
+composer require amphp/http-client
 ```
 
 ## Documentation
@@ -43,10 +43,13 @@ More extensive code examples reside in the [`examples`](./examples) directory.
 
 ## Versioning
 
-`amphp/artax` follows the [semver](http://semver.org/) semantic versioning specification like all other `amphp` packages.
+`amphp/http-client` follows the [semver](http://semver.org/) semantic versioning specification like all other `amphp` packages.
+
+Prior to version 4.0, this package was named [`amphp/artax`](https://gitub.com/amphp/artax). While older tags also exist in this repository, `amphp/artax` should be used as package name for versions prior to 4.0. 
 
 | Version | Bug Fixes Until              | Security Fixes Until         |
 | ------- | ---------------------------- | ---------------------------- |
+| 4.x     | Under development            | Under development            |
 | 3.x     | Supported, no end date, yet. | Supported, no end date, yet. |
 | 2.x     | Unmaintained.	             | Unmaintained.	            |
 | 1.x     | Unmaintained.                | Unmaintained.                |
