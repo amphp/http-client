@@ -29,8 +29,8 @@ install:
       composer update -n --prefer-dist;
     fi
 
-  - wget https://github.com/php-coveralls/php-coveralls/releases/download/v2.1.0/coveralls.phar
-  - chmod +x coveralls.phar
+  - wget https://github.com/php-coveralls/php-coveralls/releases/download/v2.1.0/php-coveralls.phar
+  - chmod +x php-coveralls.phar
 
   - composer show
   - cd test/tls && ./regenerate.sh && cd -
@@ -40,7 +40,7 @@ script:
   - PHP_CS_FIXER_IGNORE_ENV=1 php vendor/bin/php-cs-fixer --diff --dry-run -v fix
 
 after_script:
-  - ./coveralls.phar -v
+  - travis_retry ./php-coveralls.phar -v
 
 cache:
   directories:
