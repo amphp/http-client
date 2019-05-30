@@ -45,17 +45,17 @@ class TimeoutTest extends TestCase
             $uri = "http://" . $server->getAddress() . "/";
 
             $start = \microtime(true);
-            $promise = $this->client->request($uri, [Client::OP_TRANSFER_TIMEOUT => 100]);
+            $promise = $this->client->request($uri, [Client::OP_TRANSFER_TIMEOUT => 1000]);
 
             /** @var Response $response */
             $response = wait($promise);
 
             $this->expectException(TimeoutException::class);
-            $this->expectExceptionMessage("Allowed transfer timeout exceeded: 100 ms");
+            $this->expectExceptionMessage("Allowed transfer timeout exceeded: 1000 ms");
 
             wait($response->getBody()->buffer());
         } finally {
-            $this->assertLessThan(0.6, \microtime(true) - $start);
+            $this->assertLessThan(2, \microtime(true) - $start);
             $server->close();
         }
     }
