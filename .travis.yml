@@ -36,7 +36,11 @@ install:
   - cd test/tls && ./regenerate.sh && cd -
 
 script:
-  - vendor/bin/phpunit --coverage-text --verbose --coverage-clover build/logs/clover.xml
+  - if [ "$TRAVIS_PHP_VERSION" = "7.1" ]; then
+      vendor/bin/phpunit --verbose;
+    else
+      vendor/bin/phpunit --coverage-text --verbose --coverage-clover build/logs/clover.xml;
+    fi
   - PHP_CS_FIXER_IGNORE_ENV=1 php vendor/bin/php-cs-fixer --diff --dry-run -v fix
 
 after_script:
