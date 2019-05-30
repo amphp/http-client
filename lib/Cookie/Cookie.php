@@ -75,7 +75,7 @@ final class Cookie
         $attrStruct['httponly'] = (bool) $attrStruct['httponly'];
         $attrStruct['secure'] = (bool) $attrStruct['secure'];
 
-        if (isset($attrStruct['max-age']) && ((string)(int) $attrStruct['max-age']) === $attrStruct['max-age']) {
+        if (isset($attrStruct['max-age']) && ((string) (int) $attrStruct['max-age']) === $attrStruct['max-age']) {
             $attrStruct['expires'] = \time() + $attrStruct['max-age'];
         } elseif ($attrStruct['expires']) {
             $attrStruct['expires'] = self::parseDate($attrStruct['expires']);

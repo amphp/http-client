@@ -2,13 +2,13 @@
 
 namespace Amp\Test\Artax;
 
+use Amp\CancellationToken;
+use Amp\Deferred;
 use Amp\Http\Client\Client;
 use Amp\Http\Client\DefaultClient;
 use Amp\Http\Client\HttpSocketPool;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\TimeoutException;
-use Amp\CancellationToken;
-use Amp\Deferred;
 use Amp\Loop;
 use Amp\PHPUnit\TestCase;
 use Amp\Promise;

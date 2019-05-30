@@ -2,8 +2,8 @@
 
 namespace Amp\Http\Client;
 
-use Amp\Http\Client\Internal\Parser;
 use Amp\ByteStream\StreamException;
+use Amp\Http\Client\Internal\Parser;
 use Amp\Promise;
 use Amp\Socket\Socket;
 use function Amp\call;

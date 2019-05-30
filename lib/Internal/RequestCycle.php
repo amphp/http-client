@@ -2,11 +2,11 @@
 
 namespace Amp\Http\Client\Internal;
 
-use Amp\Http\Client\Request;
-use Amp\Http\Client\Response;
 use Amp\CancellationToken;
 use Amp\Deferred;
 use Amp\Emitter;
+use Amp\Http\Client\Request;
+use Amp\Http\Client\Response;
 use Amp\Socket\ResourceSocket;
 use Amp\Struct;
 use League\Uri;

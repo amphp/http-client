@@ -34,9 +34,9 @@ use Amp\Success;
 use Amp\TimeoutCancellationToken;
 use League\Uri;
 use League\Uri\UriException;
+use Psr\Http\Message\UriInterface;
 use function Amp\asyncCall;
 use function Amp\call;
-use Psr\Http\Message\UriInterface;
 
 /**
  * Standard client implementation.
@@ -656,7 +656,7 @@ final class DefaultClient implements Client
         if ($bodyLength === 0) {
             $request = $request->withHeader('Content-Length', '0');
             $request = $request->withoutHeader('Transfer-Encoding');
-        } else if ($bodyLength > 0) {
+        } elseif ($bodyLength > 0) {
             $request = $request->withHeader("Content-Length", $bodyLength);
             $request = $request->withoutHeader("Transfer-Encoding");
         } else {
@@ -814,8 +814,7 @@ final class DefaultClient implements Client
         // Wrap the input stream so we can discard the body in case it's destructed but hasn't been consumed.
         // This allows reusing the connection for further requests. It's important to have __destruct in InputStream and
         // not in Payload, because an InputStream might be pulled out of Payload and used separately.
-        $body = new class($body, $requestCycle, $this->socketPool) implements InputStream
-        {
+        $body = new class($body, $requestCycle, $this->socketPool) implements InputStream {
             private $body;
             private $bodySize = 0;
             private $requestCycle;
@@ -858,8 +857,7 @@ final class DefaultClient implements Client
             }
         };
 
-        $response = new class($parserResult["protocol"], $parserResult["status"], $parserResult["reason"], $parserResult["headers"], $body, $requestCycle->request, $requestCycle->previousResponse, new MetaInfo($connectionInfo)) implements Response
-        {
+        $response = new class($parserResult["protocol"], $parserResult["status"], $parserResult["reason"], $parserResult["headers"], $body, $requestCycle->request, $requestCycle->previousResponse, new MetaInfo($connectionInfo)) implements Response {
             private $protocolVersion;
             private $status;
             private $reason;

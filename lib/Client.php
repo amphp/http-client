@@ -2,8 +2,8 @@
 
 namespace Amp\Http\Client;
 
-use Amp\Http\Client\Internal\Parser;
 use Amp\CancellationToken;
+use Amp\Http\Client\Internal\Parser;
 use Amp\Promise;
 
 /**
