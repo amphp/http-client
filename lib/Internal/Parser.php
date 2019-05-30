@@ -1,38 +1,38 @@
 <?php
 
-namespace Amp\Artax\Internal;
+namespace Amp\Http\Client\Internal;
 
-use Amp\Artax\ParseException;
+use Amp\Http\Client\ParseException;
 
 /** @internal */
 final class Parser
 {
-    const STATUS_LINE_PATTERN = "#^
+    private const STATUS_LINE_PATTERN = "#^
         HTTP/(?P<protocol>\d+\.\d+)[\x20\x09]+
         (?P<status>[1-5]\d\d)[\x20\x09]*
         (?P<reason>[^\x01-\x08\x10-\x19]*)
     $#ix";
 
-    const HEADERS_PATTERN = "/
+    private const HEADERS_PATTERN = "/
         (?P<field>[^\(\)<>@,;:\\\"\/\[\]\?\={}\x20\x09\x01-\x1F\x7F]+):[\x20\x09]*
         (?P<value>[^\x01-\x08\x0A-\x1F\x7F]*)[\x0D]?[\x20\x09]*[\r]?[\n]
     /x";
 
-    const MODE_REQUEST = 1;
-    const MODE_RESPONSE = 2;
+    public const MODE_REQUEST = 1;
+    public const MODE_RESPONSE = 2;
 
-    const AWAITING_HEADERS = 0;
-    const BODY_IDENTITY = 1;
-    const BODY_IDENTITY_EOF = 2;
-    const BODY_CHUNKS = 3;
-    const TRAILERS_START = 4;
-    const TRAILERS = 5;
+    public const AWAITING_HEADERS = 0;
+    public const BODY_IDENTITY = 1;
+    public const BODY_IDENTITY_EOF = 2;
+    public const BODY_CHUNKS = 3;
+    public const TRAILERS_START = 4;
+    public const TRAILERS = 5;
 
-    const OP_MAX_HEADER_BYTES = "amp.artax.parser.max-header-bytes";
-    const OP_MAX_BODY_BYTES = "amp.artax.parser.max-body-bytes";
+    public const OP_MAX_HEADER_BYTES = "amp.artax.parser.max-header-bytes";
+    public const OP_MAX_BODY_BYTES = "amp.artax.parser.max-body-bytes";
 
-    const DEFAULT_MAX_HEADER_BYTES = 8192;
-    const DEFAULT_MAX_BODY_BYTES = 10485760;
+    public const DEFAULT_MAX_HEADER_BYTES = 8192;
+    public const DEFAULT_MAX_BODY_BYTES = 10485760;
 
     private $mode;
     private $state = self::AWAITING_HEADERS;
@@ -46,7 +46,7 @@ final class Parser
     private $headers = [];
     private $remainingBodyBytes;
     private $bodyBytesConsumed = 0;
-    private $chunkLenRemaining = null;
+    private $chunkLenRemaining;
     private $responseMethodMatch = [];
     private $parseFlowHeaders = [
         'TRANSFER-ENCODING' => null,
@@ -63,14 +63,14 @@ final class Parser
         $this->mode = $mode;
     }
 
-    public function setAllOptions(array $options)
+    public function setAllOptions(array $options): void
     {
         foreach ($options as $option => $value) {
             $this->setOption($option, $value);
         }
     }
 
-    public function setOption(string $option, $value)
+    public function setOption(string $option, $value): void
     {
         switch ($option) {
             case self::OP_MAX_HEADER_BYTES:
@@ -86,15 +86,12 @@ final class Parser
         }
     }
 
-    public function enqueueResponseMethodMatch(string $method)
+    public function enqueueResponseMethodMatch(string $method): void
     {
         $this->responseMethodMatch[] = $method;
     }
 
-    /**
-     * @return string|null
-     */
-    public function getBuffer()
+    public function getBuffer(): ?string
     {
         return $this->buffer;
     }
@@ -104,12 +101,19 @@ final class Parser
         return $this->state;
     }
 
-    public function buffer(string $data)
+    public function buffer(string $data): void
     {
         $this->buffer .= $data;
     }
 
-    public function parse(string $data = null)
+    /**
+     * @param string|null $data
+     *
+     * @return array|null
+     *
+     * @throws ParseException
+     */
+    public function parse(string $data = null): ?array
     {
         if ($data !== null) {
             $this->buffer .= $data;
@@ -204,7 +208,7 @@ final class Parser
         }
 
         transition_from_request_headers_to_body: {
-            if ($this->requestMethod == 'HEAD' || $this->requestMethod == 'TRACE' || $this->requestMethod == 'OPTIONS') {
+            if ($this->requestMethod === 'HEAD' || $this->requestMethod === 'TRACE' || $this->requestMethod === 'OPTIONS') {
                 goto complete;
             } elseif ($this->parseFlowHeaders['TRANSFER-ENCODING']) {
                 $this->state = self::BODY_CHUNKS;
@@ -342,7 +346,12 @@ final class Parser
         }
     }
 
-    private function shiftHeadersFromMessageBuffer()
+    /**
+     * @return string|null
+     *
+     * @throws ParseException
+     */
+    private function shiftHeadersFromMessageBuffer(): ?string
     {
         $this->buffer = \ltrim($this->buffer, "\r\n");
 
@@ -364,7 +373,14 @@ final class Parser
         return $headers;
     }
 
-    private function parseHeadersFromRaw($rawHeaders)
+    /**
+     * @param string $rawHeaders
+     *
+     * @return array
+     *
+     * @throws ParseException
+     */
+    private function parseHeadersFromRaw(string $rawHeaders): array
     {
         if (\strpos($rawHeaders, "\n\x20") || \strpos($rawHeaders, "\n\t")) {
             $rawHeaders = \preg_replace("/(?:\r\n|\n)[\x20\t]+/", ' ', $rawHeaders);
@@ -411,7 +427,12 @@ final class Parser
         return $headers;
     }
 
-    private function dechunk()
+    /**
+     * @return bool|null
+     *
+     * @throws ParseException
+     */
+    private function dechunk(): ?bool
     {
         if ($this->chunkLenRemaining !== null) {
             goto dechunk;
@@ -481,7 +502,12 @@ final class Parser
         }
     }
 
-    private function parseTrailers($trailers)
+    /**
+     * @param $trailers
+     *
+     * @throws ParseException
+     */
+    private function parseTrailers($trailers): void
     {
         $trailerHeaders = $this->parseHeadersFromRaw($trailers);
         $ucKeyTrailerHeaders = \array_change_key_case($trailerHeaders, CASE_UPPER);
@@ -529,7 +555,12 @@ final class Parser
         return $result;
     }
 
-    private function addToBody(string $data)
+    /**
+     * @param string $data
+     *
+     * @throws ParseException
+     */
+    private function addToBody(string $data): void
     {
         $this->bodyBytesConsumed += \strlen($data);
 

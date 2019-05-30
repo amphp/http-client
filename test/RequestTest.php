@@ -1,9 +1,7 @@
 <?php
 
-namespace Amp\Artax\Test;
+namespace Amp\Http\Client;
 
-use Amp\Artax\Request;
-use Amp\Artax\StringBody;
 use Amp\PHPUnit\TestCase;
 
 class RequestTest extends TestCase
@@ -77,7 +75,7 @@ class RequestTest extends TestCase
         $this->assertSame(["bar"], $request->getHeaderArray("X-Foo"));
 
         $this->assertSame([
-            "x-foo" => ["bar"]
+            "x-foo" => ["bar"],
         ], $request->getHeaders());
 
         $request = $request->withHeaders([
@@ -115,7 +113,7 @@ class RequestTest extends TestCase
             ]],
             [[
                 "text" => null,
-            ]]
+            ]],
         ];
     }
 

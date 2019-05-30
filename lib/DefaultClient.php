@@ -1,15 +1,7 @@
 <?php
 
-namespace Amp\Artax;
+namespace Amp\Http\Client;
 
-use Amp\Artax\Cookie\Cookie;
-use Amp\Artax\Cookie\CookieFormatException;
-use Amp\Artax\Cookie\CookieJar;
-use Amp\Artax\Cookie\NullCookieJar;
-use Amp\Artax\Internal\CombinedCancellationToken;
-use Amp\Artax\Internal\Parser;
-use Amp\Artax\Internal\PublicSuffixList;
-use Amp\Artax\Internal\RequestCycle;
 use Amp\ByteStream\InputStream;
 use Amp\ByteStream\IteratorStream;
 use Amp\ByteStream\Payload;
@@ -19,15 +11,23 @@ use Amp\CancellationToken;
 use Amp\CancelledException;
 use Amp\Deferred;
 use Amp\Delayed;
-use Amp\Dns\DnsException as DnsResolverException;
+use Amp\Dns\InvalidNameException;
 use Amp\Emitter;
 use Amp\Failure;
+use Amp\Http\Client\Cookie\Cookie;
+use Amp\Http\Client\Cookie\CookieFormatException;
+use Amp\Http\Client\Cookie\CookieJar;
+use Amp\Http\Client\Cookie\NullCookieJar;
+use Amp\Http\Client\Internal\CombinedCancellationToken;
+use Amp\Http\Client\Internal\Parser;
+use Amp\Http\Client\Internal\PublicSuffixList;
+use Amp\Http\Client\Internal\RequestCycle;
 use Amp\Loop;
 use Amp\NullCancellationToken;
 use Amp\Promise;
+use Amp\Socket;
 use Amp\Socket\ClientTlsContext;
 use Amp\Socket\ConnectContext;
-use Amp\Socket\ConnectException;
 use Amp\Socket\EncryptableSocket;
 use Amp\Socket\ResourceSocket;
 use Amp\Success;
@@ -36,6 +36,7 @@ use League\Uri;
 use League\Uri\UriException;
 use function Amp\asyncCall;
 use function Amp\call;
+use Psr\Http\Message\UriInterface;
 
 /**
  * Standard client implementation.
@@ -46,7 +47,7 @@ use function Amp\call;
  */
 final class DefaultClient implements Client
 {
-    const DEFAULT_USER_AGENT = 'Mozilla/5.0 (compatible; Artax)';
+    public const DEFAULT_USER_AGENT = 'Mozilla/5.0 (compatible; amphp/http-client)';
 
     private $cookieJar;
     private $socketPool;
@@ -85,7 +86,7 @@ final class DefaultClient implements Client
             }
 
             /** @var Request $request */
-            list($request, $uri) = $this->generateRequestFromUri($uriOrRequest);
+            [$request, $uri] = $this->generateRequestFromUri($uriOrRequest);
             $options = $options ? \array_merge($this->options, $options) : $this->options;
 
             foreach ($this->options[self::OP_DEFAULT_HEADERS] as $name => $header) {
@@ -123,7 +124,13 @@ final class DefaultClient implements Client
                 if ($maxRedirects !== 0 && $redirectUri = $this->getRedirectUri($response)) {
                     // Discard response body of redirect responses
                     $body = $response->getBody();
-                    while (null !== yield $body->read());
+
+                    /** @noinspection PhpStatementHasEmptyBodyInspection */
+                    /** @noinspection LoopWhichDoesNotLoopInspection */
+                    /** @noinspection MissingOrEmptyGroupStatementInspection */
+                    while (null !== yield $body->read()) {
+                        // discard
+                    }
 
                     /**
                      * If this is a 302/303 we need to follow the location with a GET if the original request wasn't
@@ -176,6 +183,34 @@ final class DefaultClient implements Client
         });
     }
 
+    /**
+     * Set multiple options at once.
+     *
+     * @param array $options An array of the form [OP_CONSTANT => $value]
+     *
+     * @throws \Error On unknown option key or invalid value.
+     */
+    public function setOptions(array $options): void
+    {
+        foreach ($options as $option => $value) {
+            $this->setOption($option, $value);
+        }
+    }
+
+    /**
+     * Set an option.
+     *
+     * @param string $option A Client option constant
+     * @param mixed  $value The option value to assign
+     *
+     * @throws \Error On unknown option key or invalid value.
+     */
+    public function setOption(string $option, $value): void
+    {
+        $this->validateOption($option, $value);
+        $this->options[$option] = $value;
+    }
+
     private function doRequest(
         Request $request,
         Uri\Http $uri,
@@ -218,6 +253,13 @@ final class DefaultClient implements Client
         return $deferred->promise();
     }
 
+    /**
+     * @param $uriOrRequest
+     *
+     * @return array
+     *
+     * @throws HttpException
+     */
     private function generateRequestFromUri($uriOrRequest): array
     {
         if (\is_string($uriOrRequest)) {
@@ -235,6 +277,16 @@ final class DefaultClient implements Client
         return [$request, $uri];
     }
 
+    /**
+     * @param RequestCycle      $requestCycle
+     * @param EncryptableSocket $socket
+     * @param ConnectionInfo    $connectionInfo
+     *
+     * @return \Generator
+     * @throws DnsException
+     * @throws HttpException
+     * @throws SocketException
+     */
     private function doRead(
         RequestCycle $requestCycle,
         EncryptableSocket $socket,
@@ -383,7 +435,7 @@ final class DefaultClient implements Client
         $deferred = new Deferred;
         $newPromise = $deferred->promise();
 
-        $promise->onResolve(function ($error, $value) use (&$deferred) {
+        $promise->onResolve(static function ($error, $value) use (&$deferred) {
             if ($deferred) {
                 if ($error) {
                     $deferred->fail($error);
@@ -395,21 +447,30 @@ final class DefaultClient implements Client
             }
         });
 
-        $cancellationSubscription = $cancellationToken->subscribe(function ($e) use (&$deferred) {
+        $cancellationSubscription = $cancellationToken->subscribe(static function ($e) use (&$deferred) {
             if ($deferred) {
                 $deferred->fail($e);
                 $deferred = null;
             }
         });
 
-        $newPromise->onResolve(function () use ($cancellationToken, $cancellationSubscription) {
+        $newPromise->onResolve(static function () use ($cancellationToken, $cancellationSubscription) {
             $cancellationToken->unsubscribe($cancellationSubscription);
         });
 
         return $newPromise;
     }
 
-    private function doWrite(RequestCycle $requestCycle)
+    /**
+     * @param RequestCycle $requestCycle
+     *
+     * @return \Generator
+     *
+     * @throws DnsException
+     * @throws HttpException
+     * @throws SocketException
+     */
+    private function doWrite(RequestCycle $requestCycle): \Generator
     {
         $timeout = $requestCycle->options[self::OP_TRANSFER_TIMEOUT];
         $timeoutToken = new NullCancellationToken;
@@ -434,6 +495,7 @@ final class DefaultClient implements Client
 
         if ($requestCycle->uri->getScheme() === 'https') {
             $tlsContext = $this->connectContext->getTlsContext() ?? new ClientTlsContext($requestCycle->uri->getHost());
+            $tlsContext = $tlsContext->withPeerName($requestCycle->uri->getHost());
             $tlsContext = $tlsContext->withPeerCapturing();
             $connectContext = $this->connectContext->withTlsContext($tlsContext);
         } else {
@@ -444,9 +506,7 @@ final class DefaultClient implements Client
             /** @var EncryptableSocket $socket */
             $socket = yield $this->socketPool->checkout($socketCheckoutUri, $connectContext, $connectTimeoutToken);
             $requestCycle->socket = $socket;
-        } catch (DnsResolverException $dnsException) {
-            throw new DnsException(\sprintf("Resolving the specified domain failed: '%s'", $requestCycle->uri->getHost()), 0, $dnsException);
-        } catch (ConnectException $e) {
+        } catch (Socket\SocketException $e) {
             throw new SocketException(\sprintf("Connection to '%s' failed", $authority), 0, $e);
         } catch (CancelledException $e) {
             // In case of a user cancellation request, throw the expected exception
@@ -462,10 +522,12 @@ final class DefaultClient implements Client
 
         try {
             if ($requestCycle->uri->getScheme() === 'https') {
-                $tlsContext = (new ClientTlsContext($requestCycle->uri->getHost()))
-                    ->withPeerCapturing();
-
-                yield $socket->setupTls();
+                $tlsState = $socket->getTlsState();
+                if ($tlsState === EncryptableSocket::TLS_STATE_DISABLED) {
+                    yield $socket->setupTls();
+                } else {
+                    throw new HttpException('Failed to setup TLS connection, connection was in TLS state "' . $tlsState . '"');
+                }
             }
 
             // Collect this here, because it fails in case the remote closes the connection directly.
@@ -523,7 +585,7 @@ final class DefaultClient implements Client
         }
     }
 
-    private function fail(RequestCycle $requestCycle, \Throwable $error)
+    private function fail(RequestCycle $requestCycle, \Throwable $error): void
     {
         $toFails = [];
         $socket = null;
@@ -555,6 +617,12 @@ final class DefaultClient implements Client
         }
     }
 
+    /**
+     * @param $str
+     *
+     * @return Uri\Http
+     * @throws HttpException
+     */
     private function buildUriFromString($str): Uri\Http
     {
         try {
@@ -565,9 +633,9 @@ final class DefaultClient implements Client
                 return $uri;
             }
 
-            throw new HttpException("Request must specify a valid HTTP URI");
+            throw new HttpException("Request must specify 'http' or 'https' as scheme, got '" . $scheme . "'");
         } catch (UriException $e) {
-            throw new HttpException("Request must specify a valid HTTP URI", 0, $e);
+            throw new HttpException("Request must specify a valid HTTP URI, got '" . $str . "'", 0, $e);
         }
     }
 
@@ -588,13 +656,11 @@ final class DefaultClient implements Client
         if ($bodyLength === 0) {
             $request = $request->withHeader('Content-Length', '0');
             $request = $request->withoutHeader('Transfer-Encoding');
+        } else if ($bodyLength > 0) {
+            $request = $request->withHeader("Content-Length", $bodyLength);
+            $request = $request->withoutHeader("Transfer-Encoding");
         } else {
-            if ($bodyLength > 0) {
-                $request = $request->withHeader("Content-Length", $bodyLength);
-                $request = $request->withoutHeader("Transfer-Encoding");
-            } else {
-                $request = $request->withHeader("Transfer-Encoding", "chunked");
-            }
+            $request = $request->withHeader("Transfer-Encoding", "chunked");
         }
 
         return $request;
@@ -669,7 +735,9 @@ final class DefaultClient implements Client
         // if it's a standard 80 or 443
         if (\strpos($host, ':80') === \strlen($host) - 3) {
             return \substr($host, 0, -3);
-        } elseif (\strpos($host, ':443') === \strlen($host) - 4) {
+        }
+
+        if (\strpos($host, ':443') === \strlen($host) - 4) {
             return \substr($host, 0, -4);
         }
 
@@ -711,7 +779,7 @@ final class DefaultClient implements Client
 
         /** @var Cookie $cookie */
         foreach ($applicableCookies as $cookie) {
-            if (!$cookie->isSecure() || $isRequestSecure) {
+            if ($isRequestSecure || !$cookie->isSecure()) {
                 $cookiePairs[] = $cookie->getName() . "=" . $cookie->getValue();
             }
         }
@@ -739,13 +807,15 @@ final class DefaultClient implements Client
         $body = new IteratorStream($requestCycle->body->iterate());
 
         if ($encoding = $this->determineCompressionEncoding($parserResult["headers"])) {
+            /** @noinspection PhpUnhandledExceptionInspection */
             $body = new ZlibInputStream($body, $encoding);
         }
 
         // Wrap the input stream so we can discard the body in case it's destructed but hasn't been consumed.
         // This allows reusing the connection for further requests. It's important to have __destruct in InputStream and
         // not in Payload, because an InputStream might be pulled out of Payload and used separately.
-        $body = new class($body, $requestCycle, $this->socketPool) implements InputStream {
+        $body = new class($body, $requestCycle, $this->socketPool) implements InputStream
+        {
             private $body;
             private $bodySize = 0;
             private $requestCycle;
@@ -788,7 +858,8 @@ final class DefaultClient implements Client
             }
         };
 
-        $response = new class($parserResult["protocol"], $parserResult["status"], $parserResult["reason"], $parserResult["headers"], $body, $requestCycle->request, $requestCycle->previousResponse, new MetaInfo($connectionInfo)) implements Response {
+        $response = new class($parserResult["protocol"], $parserResult["status"], $parserResult["reason"], $parserResult["headers"], $body, $requestCycle->request, $requestCycle->previousResponse, new MetaInfo($connectionInfo)) implements Response
+        {
             private $protocolVersion;
             private $status;
             private $reason;
@@ -847,7 +918,7 @@ final class DefaultClient implements Client
                 return $this->previousResponse->getOriginalRequest();
             }
 
-            public function getPreviousResponse()
+            public function getPreviousResponse(): ?Response
             {
                 return $this->previousResponse;
             }
@@ -857,7 +928,7 @@ final class DefaultClient implements Client
                 return isset($this->headers[\strtolower($field)]);
             }
 
-            public function getHeader(string $field)
+            public function getHeader(string $field): ?string
             {
                 return $this->headers[\strtolower($field)][0] ?? null;
             }
@@ -904,9 +975,13 @@ final class DefaultClient implements Client
 
         if ($requestConnHeader && !\strcasecmp($requestConnHeader, 'close')) {
             return true;
-        } elseif ($responseConnHeader && !\strcasecmp($responseConnHeader, 'close')) {
+        }
+
+        if ($responseConnHeader && !\strcasecmp($responseConnHeader, 'close')) {
             return true;
-        } elseif ($response->getProtocolVersion() === '1.0' && !$responseConnHeader) {
+        }
+
+        if (!$responseConnHeader && $response->getProtocolVersion() === '1.0') {
             return true;
         }
 
@@ -967,12 +1042,12 @@ final class DefaultClient implements Client
             }
 
             $this->cookieJar->store($cookie);
-        } catch (CookieFormatException $e) {
+        } catch (CookieFormatException | InvalidNameException $e) {
             // Ignore malformed Set-Cookie headers
         }
     }
 
-    private function getRedirectUri(Response $response): ?Uri\Http
+    private function getRedirectUri(Response $response): ?UriInterface
     {
         if (!$response->hasHeader('Location')) {
             return null;
@@ -999,7 +1074,7 @@ final class DefaultClient implements Client
         }
     }
 
-    private function resolveRedirect(Uri\Http $requestUri, Uri\Http $redirectUri): Uri\Http
+    private function resolveRedirect(UriInterface $requestUri, UriInterface $redirectUri): UriInterface
     {
         if ($redirectUri->getAuthority() === '') {
             $redirectUri = $redirectUri->withHost($requestUri->getHost());
@@ -1050,6 +1125,8 @@ final class DefaultClient implements Client
      *
      * @return string
      *
+     * @throws HttpException
+     *
      * @TODO Send absolute URIs in the request line when using a proxy server
      *       Right now this doesn't matter because all proxy requests use a CONNECT
      *       tunnel but this likely will not always be the case.
@@ -1086,39 +1163,12 @@ final class DefaultClient implements Client
         return $head;
     }
 
-    /**
-     * Set multiple options at once.
-     *
-     * @param array $options An array of the form [OP_CONSTANT => $value]
-     *
-     * @throws \Error On unknown option key or invalid value.
-     */
-    public function setOptions(array $options): void
-    {
-        foreach ($options as $option => $value) {
-            $this->setOption($option, $value);
-        }
-    }
-
-    /**
-     * Set an option.
-     *
-     * @param string $option A Client option constant
-     * @param mixed  $value The option value to assign
-     *
-     * @throws \Error On unknown option key or invalid value.
-     */
-    public function setOption(string $option, $value): void
-    {
-        $this->validateOption($option, $value);
-        $this->options[$option] = $value;
-    }
-
     private function validateOption(string $option, $value): void
     {
         switch ($option) {
             case self::OP_AUTO_ENCODING:
                 if (!\is_bool($value)) {
+                    /** @noinspection PhpUndefinedClassInspection */
                     throw new \TypeError("Invalid value for OP_AUTO_ENCODING, bool expected");
                 }
 
@@ -1126,6 +1176,7 @@ final class DefaultClient implements Client
 
             case self::OP_TRANSFER_TIMEOUT:
                 if (!\is_int($value) || $value < 0) {
+                    /** @noinspection PhpUndefinedClassInspection */
                     throw new \Error("Invalid value for OP_TRANSFER_TIMEOUT, int >= 0 expected");
                 }
 
@@ -1133,6 +1184,7 @@ final class DefaultClient implements Client
 
             case self::OP_MAX_REDIRECTS:
                 if (!\is_int($value) || $value < 0) {
+                    /** @noinspection PhpUndefinedClassInspection */
                     throw new \Error("Invalid value for OP_MAX_REDIRECTS, int >= 0 expected");
                 }
 
@@ -1140,6 +1192,7 @@ final class DefaultClient implements Client
 
             case self::OP_AUTO_REFERER:
                 if (!\is_bool($value)) {
+                    /** @noinspection PhpUndefinedClassInspection */
                     throw new \TypeError("Invalid value for OP_AUTO_REFERER, bool expected");
                 }
 
@@ -1147,6 +1200,7 @@ final class DefaultClient implements Client
 
             case self::OP_DISCARD_BODY:
                 if (!\is_bool($value)) {
+                    /** @noinspection PhpUndefinedClassInspection */
                     throw new \TypeError("Invalid value for OP_DISCARD_BODY, bool expected");
                 }
 
@@ -1160,6 +1214,7 @@ final class DefaultClient implements Client
 
             case self::OP_MAX_HEADER_BYTES:
                 if (!\is_int($value) || $value < 0) {
+                    /** @noinspection PhpUndefinedClassInspection */
                     throw new \Error("Invalid value for OP_MAX_HEADER_BYTES, int >= 0 expected");
                 }
 
@@ -1167,20 +1222,32 @@ final class DefaultClient implements Client
 
             case self::OP_MAX_BODY_BYTES:
                 if (!\is_int($value) || $value < 0) {
+                    /** @noinspection PhpUndefinedClassInspection */
                     throw new \Error("Invalid value for OP_MAX_BODY_BYTES, int >= 0 expected");
                 }
 
                 break;
 
             default:
+                /** @noinspection PhpUndefinedClassInspection */
                 throw new \Error(
                     \sprintf("Unknown option: %s", $option)
                 );
         }
     }
 
-    private function collectConnectionInfo(ResourceSocket $socket): ConnectionInfo
+    /**
+     * @param EncryptableSocket $socket
+     *
+     * @return ConnectionInfo
+     * @throws SocketException
+     */
+    private function collectConnectionInfo(EncryptableSocket $socket): ConnectionInfo
     {
+        if (!$socket instanceof ResourceSocket) {
+            return new ConnectionInfo($socket->getLocalAddress(), $socket->getRemoteAddress());
+        }
+
         $stream = $socket->getResource();
 
         if ($stream === null) {

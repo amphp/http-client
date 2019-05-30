@@ -1,6 +1,6 @@
 <?php
 
-namespace Amp\Artax;
+namespace Amp\Http\Client;
 
 use Amp\CancellationToken;
 use Amp\Failure;
@@ -16,8 +16,8 @@ use function Amp\call;
 
 class HttpSocketPool implements SocketPool
 {
-    const OP_PROXY_HTTP = 'amp.artax.httpsocketpool.proxy-http';
-    const OP_PROXY_HTTPS = 'amp.artax.httpsocketpool.proxy-https';
+    public const OP_PROXY_HTTP = 'amp.artax.httpsocketpool.proxy-http';
+    public const OP_PROXY_HTTPS = 'amp.artax.httpsocketpool.proxy-https';
 
     private $socketPool;
     private $tunneler;

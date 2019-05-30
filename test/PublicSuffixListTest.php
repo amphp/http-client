@@ -2,7 +2,7 @@
 
 namespace Amp\Test\Artax\Cookie;
 
-use Amp\Artax\Internal\PublicSuffixList;
+use Amp\Http\Client\Internal\PublicSuffixList;
 use PHPUnit\Framework\TestCase;
 
 class PublicSuffixListTest extends TestCase

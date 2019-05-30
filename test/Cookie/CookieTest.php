@@ -2,8 +2,8 @@
 
 namespace Amp\Test\Artax\Cookie;
 
-use Amp\Artax\Cookie\Cookie;
-use Amp\Artax\Cookie\CookieFormatException;
+use Amp\Http\Client\Cookie\Cookie;
+use Amp\Http\Client\Cookie\CookieFormatException;
 use PHPUnit\Framework\TestCase;
 
 class CookieTest extends TestCase

@@ -1,6 +1,6 @@
 <?php
 
-namespace Amp\Artax;
+namespace Amp\Http\Client;
 
 use Kelunik\Certificate\Certificate;
 
@@ -70,7 +70,7 @@ final class TlsInfo
     public function getPeerCertificates(): array
     {
         if ($this->parsedCertificates === null) {
-            $this->parsedCertificates = \array_map(function ($resource) {
+            $this->parsedCertificates = \array_map(static function ($resource) {
                 return new Certificate($resource);
             }, $this->certificates);
         }

@@ -1,8 +1,8 @@
 <?php
 
-namespace Amp\Artax;
+namespace Amp\Http\Client;
 
-use Amp\Artax\Internal\Parser;
+use Amp\Http\Client\Internal\Parser;
 use Amp\ByteStream\StreamException;
 use Amp\Promise;
 use Amp\Socket\Socket;
@@ -20,7 +20,7 @@ class HttpTunneler
      */
     public function tunnel(Socket $socket, string $authority): Promise
     {
-        return call(function () use ($socket, $authority) {
+        return call(static function () use ($socket, $authority) {
             $parser = new Parser(null);
             $parser->enqueueResponseMethodMatch("CONNECT");
 

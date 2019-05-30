@@ -1,9 +1,9 @@
 <?php
 
-namespace Amp\Artax\Internal;
+namespace Amp\Http\Client\Internal;
 
-use Amp\Artax\Request;
-use Amp\Artax\Response;
+use Amp\Http\Client\Request;
+use Amp\Http\Client\Response;
 use Amp\CancellationToken;
 use Amp\Deferred;
 use Amp\Emitter;

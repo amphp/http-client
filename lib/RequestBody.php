@@ -1,6 +1,6 @@
 <?php
 
-namespace Amp\Artax;
+namespace Amp\Http\Client;
 
 use Amp\ByteStream\InputStream;
 use Amp\Promise;

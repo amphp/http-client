@@ -2,11 +2,11 @@
 
 namespace Amp\Test\Artax;
 
-use Amp\Artax\Client;
-use Amp\Artax\DefaultClient;
-use Amp\Artax\HttpSocketPool;
-use Amp\Artax\Response;
-use Amp\Artax\TimeoutException;
+use Amp\Http\Client\Client;
+use Amp\Http\Client\DefaultClient;
+use Amp\Http\Client\HttpSocketPool;
+use Amp\Http\Client\Response;
+use Amp\Http\Client\TimeoutException;
 use Amp\CancellationToken;
 use Amp\Deferred;
 use Amp\Loop;

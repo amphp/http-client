@@ -1,6 +1,6 @@
 <?php
 
-namespace Amp\Artax;
+namespace Amp\Http\Client;
 
 class TooManyRedirectsException extends HttpException
 {

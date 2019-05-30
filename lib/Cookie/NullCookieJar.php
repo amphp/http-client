@@ -1,6 +1,6 @@
 <?php
 
-namespace Amp\Artax\Cookie;
+namespace Amp\Http\Client\Cookie;
 
 class NullCookieJar implements CookieJar
 {
@@ -8,18 +8,22 @@ class NullCookieJar implements CookieJar
     {
         return [];
     }
+
     public function getAll(): array
     {
         return [];
     }
+
     public function store(Cookie $cookie)
     {
         return null;
     }
+
     public function remove(Cookie $cookie)
     {
         return null;
     }
+
     public function removeAll()
     {
         return null;

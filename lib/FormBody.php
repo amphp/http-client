@@ -1,6 +1,6 @@
 <?php
 
-namespace Amp\Artax;
+namespace Amp\Http\Client;
 
 use Amp\ByteStream\InMemoryStream;
 use Amp\ByteStream\InputStream;
@@ -25,6 +25,7 @@ final class FormBody implements RequestBody
      */
     public function __construct(string $boundary = null)
     {
+        /** @noinspection PhpUnhandledExceptionInspection */
         $this->boundary = $boundary ?? \bin2hex(\random_bytes(16));
     }
 
@@ -35,7 +36,7 @@ final class FormBody implements RequestBody
      * @param string $value
      * @param string $contentType
      */
-    public function addField(string $name, string $value, string $contentType = 'text/plain')
+    public function addField(string $name, string $value, string $contentType = 'text/plain'): void
     {
         $this->fields[] = [$name, $value, $contentType, null];
         $this->resetCache();
@@ -47,7 +48,7 @@ final class FormBody implements RequestBody
      * @param array  $data
      * @param string $contentType
      */
-    public function addFields(array $data, string $contentType = 'text/plain')
+    public function addFields(array $data, string $contentType = 'text/plain'): void
     {
         foreach ($data as $key => $value) {
             $this->addField($key, $value, $contentType);
@@ -61,7 +62,7 @@ final class FormBody implements RequestBody
      * @param string $filePath
      * @param string $contentType
      */
-    public function addFile(string $name, string $filePath, string $contentType = 'application/octet-stream')
+    public function addFile(string $name, string $filePath, string $contentType = 'application/octet-stream'): void
     {
         $fileName = \basename($filePath);
         $this->fields[] = [$name, new FileBody($filePath), $contentType, $fileName];
@@ -75,7 +76,7 @@ final class FormBody implements RequestBody
      * @param array  $data
      * @param string $contentType
      */
-    public function addFiles(array $data, string $contentType = 'application/octet-stream')
+    public function addFiles(array $data, string $contentType = 'application/octet-stream'): void
     {
         foreach ($data as $key => $value) {
             $this->addFile($key, $value, $contentType);
@@ -94,7 +95,7 @@ final class FormBody implements RequestBody
         return $this->fields;
     }
 
-    private function resetCache()
+    private function resetCache(): void
     {
         $this->cachedBody = null;
         $this->cachedLength = null;
@@ -119,7 +120,7 @@ final class FormBody implements RequestBody
         $fields = [];
 
         foreach ($this->fields as $fieldArr) {
-            list($name, $field, $contentType, $fileName) = $fieldArr;
+            [$name, $field, $contentType, $fileName] = $fieldArr;
 
             $fields[] = "--{$this->boundary}\r\n";
             $fields[] = $field instanceof FileBody
@@ -162,7 +163,7 @@ final class FormBody implements RequestBody
             $fields[$key] = $field instanceof FileBody ? $field->createBodyStream() : new InMemoryStream($field);
         }
 
-        return new IteratorStream(new Producer(function (callable $emit) use ($fields) {
+        return new IteratorStream(new Producer(static function (callable $emit) use ($fields) {
             foreach ($fields as $key => $stream) {
                 while (($chunk = yield $stream->read()) !== null) {
                     yield $emit($chunk);
@@ -180,7 +181,7 @@ final class FormBody implements RequestBody
         $fields = [];
 
         foreach ($this->fields as $fieldArr) {
-            list($name, $value) = $fieldArr;
+            [$name, $value] = $fieldArr;
             $fields[$name][] = $value;
         }
 
@@ -198,7 +199,7 @@ final class FormBody implements RequestBody
         ]);
     }
 
-    private function determineContentType()
+    private function determineContentType(): string
     {
         return $this->isMultipart
             ? "multipart/form-data; boundary={$this->boundary}"

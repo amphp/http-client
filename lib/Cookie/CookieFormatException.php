@@ -1,13 +1,13 @@
 <?php
 
-namespace Amp\Artax\Cookie;
+namespace Amp\Http\Client\Cookie;
 
-use Amp\Artax\HttpException;
+use Amp\Http\Client\HttpException;
 
 class CookieFormatException extends HttpException
 {
     public function __construct(string $cookieString, string $reason = "")
     {
-        parent::__construct("Invalid cookie string: '{$cookieString}', reason: '{$reason}'", 0, null);
+        parent::__construct("Invalid cookie string: '{$cookieString}', reason: '{$reason}'");
     }
 }

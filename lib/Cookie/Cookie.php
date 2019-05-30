@@ -1,17 +1,117 @@
 <?php
 
-namespace Amp\Artax\Cookie;
+namespace Amp\Http\Client\Cookie;
 
 final class Cookie
 {
-    private $name;
-    private $value;
-    private $expires;
-    private $path;
-    private $domain;
-    private $secure;
-    private $httpOnly;
+    /**
+     * @param string $rawCookieStr
+     *
+     * @return self
+     *
+     * @throws CookieFormatException
+     *
+     * @link https://tools.ietf.org/html/rfc6265#section-5.2
+     */
+    public static function fromString(string $rawCookieStr): self
+    {
+        if ($rawCookieStr === "") {
+            throw new CookieFormatException(
+                $rawCookieStr,
+                "Empty cookie string"
+            );
+        }
 
+        $parts = \explode(';', \trim($rawCookieStr));
+        $nvPair = \array_shift($parts);
+
+        if (\strpos($nvPair, '=') === false) {
+            throw new CookieFormatException(
+                $rawCookieStr,
+                "Missing '=' to separate name and value"
+            );
+        }
+
+        [$name, $value] = \explode('=', $nvPair, 2);
+
+        if (\trim($name) === "") {
+            throw new CookieFormatException($rawCookieStr, "Empty name");
+        }
+
+        $attrStruct = [
+            'expires' => null,
+            'path' => '',
+            'domain' => "",
+            'secure' => false,
+            'httponly' => false,
+            'max-age' => null,
+        ];
+
+        foreach ($parts as $part) {
+            $part = \trim($part);
+            if (0 === \stripos($part, 'secure')) {
+                $attrStruct['secure'] = true;
+                continue;
+            }
+
+            if (0 === \stripos($part, 'httponly')) {
+                $attrStruct['httponly'] = true;
+                continue;
+            }
+
+            if (\strpos($part, '=') === false) {
+                $attr = $part;
+                $attrValue = "1";
+            } else {
+                [$attr, $attrValue] = \explode('=', $part, 2);
+            }
+
+            $attr = \strtolower($attr);
+            if (\array_key_exists($attr, $attrStruct)) {
+                $attrStruct[$attr] = \trim($attrValue, "\"\t\n\r\0\x0B\x20");
+            }
+        }
+
+        $attrStruct['httponly'] = (bool) $attrStruct['httponly'];
+        $attrStruct['secure'] = (bool) $attrStruct['secure'];
+
+        if (isset($attrStruct['max-age']) && ((string)(int) $attrStruct['max-age']) === $attrStruct['max-age']) {
+            $attrStruct['expires'] = \time() + $attrStruct['max-age'];
+        } elseif ($attrStruct['expires']) {
+            $attrStruct['expires'] = self::parseDate($attrStruct['expires']);
+        }
+
+        return new self(
+            \trim($name),
+            \trim($value),
+            $attrStruct['expires'],
+            $attrStruct['path'],
+            $attrStruct['domain'],
+            $attrStruct['secure'],
+            $attrStruct['httponly']
+        );
+    }
+
+    /**
+     * @param string $dateStr Formatted cookie date
+     *
+     * @return int Unix timestamp
+     *
+     * @throws CookieFormatException
+     */
+    private static function parseDate(string $dateStr): int
+    {
+        foreach (self::$dateFormats as $dateFormat) {
+            if ($date = \DateTime::createFromFormat($dateFormat, $dateStr, new \DateTimeZone('GMT'))) {
+                return $date->getTimestamp();
+            }
+        }
+
+        throw new CookieFormatException(
+            $dateStr,
+            'Invalid expires attribute'
+        );
+    }
     private static $dateFormats = [
         'D, d M Y H:i:s T',
         'D, d-M-y H:i:s T',
@@ -19,8 +119,16 @@ final class Cookie
         'D, d-m-y H:i:s T',
         'D, d-m-Y H:i:s T',
         'D M j G:i:s Y',
-        'D M d H:i:s Y T'
+        'D M d H:i:s Y T',
     ];
+
+    private $name;
+    private $value;
+    private $expires;
+    private $path;
+    private $domain;
+    private $secure;
+    private $httpOnly;
 
     public function __construct(
         string $name,
@@ -50,7 +158,7 @@ final class Cookie
         return $this->value;
     }
 
-    public function getExpirationTime()
+    public function getExpirationTime(): ?int
     {
         return $this->expires;
     }
@@ -162,103 +270,5 @@ final class Cookie
         }
 
         return $cookieStr;
-    }
-
-    /**
-     * @param string $rawCookieStr
-     *
-     * @return self
-     *
-     * @link https://tools.ietf.org/html/rfc6265#section-5.2
-     */
-    public static function fromString(string $rawCookieStr): self
-    {
-        if ($rawCookieStr === "") {
-            throw new CookieFormatException(
-                $rawCookieStr,
-                "Empty cookie string"
-            );
-        }
-
-        $parts = \explode(';', \trim($rawCookieStr));
-        $nvPair = \array_shift($parts);
-
-        if (\strpos($nvPair, '=') === false) {
-            throw new CookieFormatException(
-                $rawCookieStr,
-                "Missing '=' to separate name and value"
-            );
-        }
-
-        list($name, $value) = \explode('=', $nvPair, 2);
-
-        if (\trim($name) === "") {
-            throw new CookieFormatException($rawCookieStr, "Empty name");
-        }
-
-        $attrStruct = [
-            'expires' => null,
-            'path' => '',
-            'domain' => "",
-            'secure' => false,
-            'httponly' => false,
-            'max-age' => null
-        ];
-
-        foreach ($parts as $part) {
-            $part = \trim($part);
-            if (0 === \stripos($part, 'secure')) {
-                $attrStruct['secure'] = true;
-                continue;
-            } elseif (0 === \stripos($part, 'httponly')) {
-                $attrStruct['httponly'] = true;
-                continue;
-            }
-
-            if (\strpos($part, '=') === false) {
-                $attr = $part;
-                $attrValue = "1";
-            } else {
-                list($attr, $attrValue) = \explode('=', $part, 2);
-            }
-
-            $attr = \strtolower($attr);
-            if (\array_key_exists($attr, $attrStruct)) {
-                $attrStruct[$attr] = \trim($attrValue, "\"\t\n\r\0\x0B\x20");
-            }
-        }
-
-        $attrStruct['httponly'] = (bool) $attrStruct['httponly'];
-        $attrStruct['secure'] = (bool) $attrStruct['secure'];
-
-        if (isset($attrStruct['max-age']) && \intval($attrStruct['max-age']) == $attrStruct['max-age']) {
-            $attrStruct['expires'] = \time() + $attrStruct['max-age'];
-        } elseif ($attrStruct['expires']) {
-            $attrStruct['expires'] = self::parseDate($attrStruct['expires']);
-        }
-
-        return new self(
-            \trim($name),
-            \trim($value),
-            $attrStruct['expires'],
-            $attrStruct['path'],
-            $attrStruct['domain'],
-            $attrStruct['secure'],
-            $attrStruct['httponly']
-        );
-    }
-
-    private static function parseDate($dateStr)
-    {
-        foreach (self::$dateFormats as $dateFormat) {
-            if ($date = \DateTime::createFromFormat($dateFormat, $dateStr, new \DateTimeZone('GMT'))) {
-                return $date->getTimestamp();
-            }
-        }
-
-        throw new CookieFormatException(
-            $dateStr,
-            'Invalid expires attribute'
-        );
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-namespace Amp\Artax;
+namespace Amp\Http\Client;
 
 /**
  * An HTTP request.
@@ -56,11 +56,13 @@ final class Request
         $versions = \array_unique($versions);
 
         if (empty($versions)) {
+            /** @noinspection PhpUndefinedClassInspection */
             throw new \Error("Empty array of protocol versions provided, must not be empty.");
         }
 
         foreach ($versions as $version) {
             if (!\in_array($version, ["1.0", "1.1", "2.0"], true)) {
+                /** @noinspection PhpUndefinedClassInspection */
                 throw new \Error(
                     "Invalid HTTP protocol version: " . $version
                 );
@@ -155,7 +157,7 @@ final class Request
      *
      * @return string|null Header value or `null` if no header with name `$field` exists.
      */
-    public function getHeader(string $field)
+    public function getHeader(string $field): ?string
     {
         return $this->headers[\strtolower($field)][0] ?? null;
     }
@@ -228,6 +230,7 @@ final class Request
                 // PHP converts integer strings automatically to integers.
                 // Later versions of PHP might allow other key types.
                 // @codeCoverageIgnoreStart
+                /** @noinspection PhpUndefinedClassInspection */
                 throw new \TypeError("All array keys for withHeaders must be strings");
                 // @codeCoverageIgnoreEnd
             }
@@ -247,6 +250,7 @@ final class Request
                     && !\is_float($value)
                     && !(\is_object($value) && \method_exists($value, '__toString'))
                 ) {
+                    /** @noinspection PhpUndefinedClassInspection */
                     throw new \TypeError("All values for withHeaders must be string or an array of strings");
                 }
 
@@ -334,6 +338,7 @@ final class Request
         } elseif ($body instanceof RequestBody) {
             $clone->body = $body;
         } else {
+            /** @noinspection PhpUndefinedClassInspection */
             throw new \TypeError("Invalid body type: " . \gettype($body));
         }
 

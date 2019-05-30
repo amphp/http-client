@@ -1,17 +1,7 @@
 <?php
 
-namespace Amp\Artax\Test;
+namespace Amp\Http\Client;
 
-use Amp\Artax\Client;
-use Amp\Artax\DefaultClient;
-use Amp\Artax\FileBody;
-use Amp\Artax\FormBody;
-use Amp\Artax\HttpException;
-use Amp\Artax\Request;
-use Amp\Artax\RequestBody;
-use Amp\Artax\Response;
-use Amp\Artax\SocketException;
-use Amp\Artax\TooManyRedirectsException;
 use Amp\ByteStream\InMemoryStream;
 use Amp\ByteStream\InputStream;
 use Amp\ByteStream\IteratorStream;
@@ -456,7 +446,8 @@ class ClientHttpBinIntegrationTest extends TestCase
         $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
 
         $request = (new Request("http://httpbin.org/post", "POST"))
-            ->withBody(new class implements RequestBody {
+            ->withBody(new class implements RequestBody
+            {
                 public function getHeaders(): Promise
                 {
                     return new Success([]);
@@ -482,7 +473,8 @@ class ClientHttpBinIntegrationTest extends TestCase
         $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
 
         $request = (new Request("http://httpbin.org/post", "POST"))
-            ->withBody(new class implements RequestBody {
+            ->withBody(new class implements RequestBody
+            {
                 public function getHeaders(): Promise
                 {
                     return new Success([]);
@@ -508,7 +500,8 @@ class ClientHttpBinIntegrationTest extends TestCase
         $this->expectExceptionMessage("Body contained fewer bytes than specified in Content-Length, aborting request");
 
         $request = (new Request("http://httpbin.org/post", "POST"))
-            ->withBody(new class implements RequestBody {
+            ->withBody(new class implements RequestBody
+            {
                 public function getHeaders(): Promise
                 {
                     return new Success([]);
@@ -538,7 +531,8 @@ class ClientHttpBinIntegrationTest extends TestCase
 
         $this->socket = Socket\listen('127.0.0.1:0');
         $this->server = new Server([$this->socket], new CallableRequestHandler(static function () {
-            return new \Amp\Http\Server\Response(Status::OK, [], new IteratorStream(new Producer(static function ($emit) {
+            return new \Amp\Http\Server\Response(Status::OK, [], new IteratorStream(new Producer(static function ($emit
+            ) {
                 yield $emit(".");
                 yield new Delayed(5000);
                 yield $emit(".");

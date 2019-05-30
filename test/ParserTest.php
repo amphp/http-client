@@ -1,8 +1,8 @@
 <?php
 
-namespace Amp\Artax\Test;
+namespace Amp\Http\Client;
 
-use Amp\Artax\Internal\Parser;
+use Amp\Http\Client\Internal\Parser;
 use PHPUnit\Framework\TestCase;
 
 class ParserTest extends TestCase

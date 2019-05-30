@@ -1,6 +1,6 @@
 <?php
 
-namespace Amp\Artax\Internal;
+namespace Amp\Http\Client\Internal;
 
 use Amp\Dns\InvalidNameException;
 use function Amp\Dns\normalizeName;
@@ -8,11 +8,14 @@ use function Amp\Dns\normalizeName;
 /** @internal */
 final class PublicSuffixList
 {
-    private static $initialized = false;
-    private static $suffixPatterns;
-    private static $exceptionPatterns;
-
-    public static function isPublicSuffix(string $domain)
+    /**
+     * @param string $domain
+     *
+     * @return bool
+     *
+     * @throws InvalidNameException
+     */
+    public static function isPublicSuffix(string $domain): bool
     {
         if (!self::$initialized) {
             self::readList();
@@ -37,7 +40,7 @@ final class PublicSuffixList
         return false;
     }
 
-    private static function readList()
+    private static function readList(): void
     {
         $lines = \file(__DIR__ . "/../../res/public_suffix_list.dat", \FILE_IGNORE_NEW_LINES | \FILE_SKIP_EMPTY_LINES);
 
@@ -67,16 +70,24 @@ final class PublicSuffixList
             }
         }
 
-        self::$exceptionPatterns = \array_map(function ($list) {
+        self::$exceptionPatterns = \array_map(static function ($list) {
             return "(^(?:" . \implode("|", $list) . ")$)i";
         }, \array_chunk($exceptions, 256));
 
-        self::$suffixPatterns = \array_map(function ($list) {
+        self::$suffixPatterns = \array_map(static function ($list) {
             return "(^(?:" . \implode("|", $list) . ")$)i";
         }, \array_chunk($rules, 256));
     }
 
-    private static function toRegex($rule, $exception)
+    /**
+     * @param string $rule
+     * @param bool   $exception
+     *
+     * @return string
+     *
+     * @throws InvalidNameException
+     */
+    private static function toRegex(string $rule, bool $exception): string
     {
         $labels = \explode(".", $rule);
 
@@ -94,11 +105,12 @@ final class PublicSuffixList
             if ($part === "*") {
                 $regexParts[] = "[^.]+";
             } else {
+                /** @noinspection PregQuoteUsageInspection */ // We use (), so we don't have that problem
                 $regexParts[] = \preg_quote($part);
             }
         }
 
-        $regex = \array_reduce($regexParts, function ($carry, $item) use ($exception) {
+        $regex = \array_reduce($regexParts, static function ($carry, $item) use ($exception) {
             if ($carry === "") {
                 return $item;
             }
@@ -108,4 +120,8 @@ final class PublicSuffixList
 
         return $regex;
     }
+
+    private static $initialized = false;
+    private static $suffixPatterns;
+    private static $exceptionPatterns;
 }

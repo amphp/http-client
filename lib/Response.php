@@ -1,6 +1,6 @@
 <?php
 
-namespace Amp\Artax;
+namespace Amp\Http\Client;
 
 use Amp\ByteStream\Payload;
 
@@ -56,7 +56,7 @@ interface Response
      *
      * @return Response|null
      */
-    public function getPreviousResponse();
+    public function getPreviousResponse(): ?Response;
 
     /**
      * Does the message contain the specified header field (case-insensitive)?
@@ -79,7 +79,7 @@ interface Response
      *
      * @return string|null Header value or `null` if no header with name `$field` exists.
      */
-    public function getHeader(string $field);
+    public function getHeader(string $field): ?string;
 
     /**
      * Retrieve all occurrences of the specified header in the message.

@@ -1,6 +1,6 @@
 <?php
 
-namespace Amp\Artax;
+namespace Amp\Http\Client;
 
 /**
  * Contains generic meta information about a response, currently only ConnectionInfo, but might be extended later.

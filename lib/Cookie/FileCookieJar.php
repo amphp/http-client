@@ -1,6 +1,6 @@
 <?php
 
-namespace Amp\Artax\Cookie;
+namespace Amp\Http\Client\Cookie;
 
 class FileCookieJar extends ArrayCookieJar
 {
@@ -10,7 +10,7 @@ class FileCookieJar extends ArrayCookieJar
     {
         if (!\file_exists($storagePath)) {
             $cookieFileHandle = $this->createStorageFile($storagePath);
-        } elseif (false === ($cookieFileHandle = @\fopen($storagePath, 'r+'))) {
+        } elseif (false === ($cookieFileHandle = @\fopen($storagePath, 'rb+'))) {
             throw new \RuntimeException(
                 'Failed opening cookie storage file for reading: ' . $storagePath
             );
@@ -33,7 +33,7 @@ class FileCookieJar extends ArrayCookieJar
             $this->createStorageDirectory($dir);
         }
 
-        if (!$cookieFileHandle = @\fopen($storagePath, 'w+')) {
+        if (!$cookieFileHandle = @\fopen($storagePath, 'wb+')) {
             throw new \RuntimeException(
                 'Failed reading cookie storage file: ' . $storagePath
             );
@@ -42,9 +42,9 @@ class FileCookieJar extends ArrayCookieJar
         return $cookieFileHandle;
     }
 
-    private function createStorageDirectory($dir)
+    private function createStorageDirectory($dir): void
     {
-        if (!@\mkdir($dir, 0777, true)) {
+        if (!@\mkdir($dir, 0777, true) && !\is_dir($dir)) {
             throw new \RuntimeException(
                 'Failed creating cookie storage directory: ' . $dir
             );
@@ -58,7 +58,7 @@ class FileCookieJar extends ArrayCookieJar
         foreach ($this->getAll() as $pathArr) {
             foreach ($pathArr as $cookieArr) {
                 /**
-                 * @var $cookie \Amp\Artax\Cookie\Cookie
+                 * @var $cookie Cookie
                  */
                 foreach ($cookieArr as $cookie) {
                     if (!$cookie->isExpired()) {

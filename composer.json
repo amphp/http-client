@@ -40,12 +40,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Amp\\Artax\\": "lib"
+            "Amp\\Http\\Client\\": "lib"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Amp\\Test\\Artax\\": "test"
+            "Amp\\Http\\Client\\": "test"
         }
     }
 }

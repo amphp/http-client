@@ -1,6 +1,6 @@
 <?php
 
-namespace Amp\Artax\Internal;
+namespace Amp\Http\Client\Internal;
 
 use Amp\CancellationToken;
 use Amp\CancellationTokenSource;
@@ -27,7 +27,7 @@ class CombinedCancellationToken implements CancellationToken
 
     public function __destruct()
     {
-        foreach ($this->tokens as list($token, $id)) {
+        foreach ($this->tokens as [$token, $id]) {
             /** @var CancellationToken $token */
             $token->unsubscribe($id);
         }
@@ -40,7 +40,7 @@ class CombinedCancellationToken implements CancellationToken
     }
 
     /** @inheritdoc */
-    public function unsubscribe(string $id)
+    public function unsubscribe(string $id): void
     {
         $this->token->unsubscribe($id);
     }
@@ -52,7 +52,7 @@ class CombinedCancellationToken implements CancellationToken
     }
 
     /** @inheritdoc */
-    public function throwIfRequested()
+    public function throwIfRequested(): void
     {
         $this->token->throwIfRequested();
     }

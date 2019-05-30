@@ -2,9 +2,9 @@
 
 namespace Amp\Test\Artax\Cookie;
 
-use Amp\Artax\Cookie\ArrayCookieJar;
-use Amp\Artax\Cookie\Cookie;
-use Amp\Artax\Cookie\CookieJar;
+use Amp\Http\Client\Cookie\ArrayCookieJar;
+use Amp\Http\Client\Cookie\Cookie;
+use Amp\Http\Client\Cookie\CookieJar;
 use PHPUnit\Framework\TestCase;
 
 class ArrayCookieJarTest extends TestCase

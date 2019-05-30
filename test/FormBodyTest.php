@@ -1,9 +1,7 @@
 <?php
 
-namespace Amp\Artax\Test;
+namespace Amp\Http\Client;
 
-use Amp\Artax\FileBody;
-use Amp\Artax\FormBody;
 use Amp\ByteStream\Message;
 use Amp\PHPUnit\TestCase;
 use function Amp\Promise\wait;

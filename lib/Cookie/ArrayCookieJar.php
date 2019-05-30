@@ -1,6 +1,6 @@
 <?php
 
-namespace Amp\Artax\Cookie;
+namespace Amp\Http\Client\Cookie;
 
 class ArrayCookieJar implements CookieJar
 {
@@ -13,7 +13,7 @@ class ArrayCookieJar implements CookieJar
      *
      * @return void
      */
-    public function store(Cookie $cookie)
+    public function store(Cookie $cookie): void
     {
         $this->cookies[$cookie->getDomain()][$cookie->getPath()][$cookie->getName()] = $cookie;
     }
@@ -23,7 +23,7 @@ class ArrayCookieJar implements CookieJar
      *
      * @param Cookie $cookie
      */
-    public function remove(Cookie $cookie)
+    public function remove(Cookie $cookie): void
     {
         unset($this->cookies[$cookie->getDomain()][$cookie->getPath()][$cookie->getName()]);
     }
@@ -31,7 +31,7 @@ class ArrayCookieJar implements CookieJar
     /**
      * Remove all stored cookies.
      */
-    public function removeAll()
+    public function removeAll(): void
     {
         $this->cookies = [];
     }
@@ -85,7 +85,7 @@ class ArrayCookieJar implements CookieJar
         return $matches;
     }
 
-    private function clearExpiredCookies()
+    private function clearExpiredCookies(): void
     {
         foreach ($this->cookies as $domain => $domainCookies) {
             foreach ($domainCookies as $path => $pathCookies) {
@@ -113,7 +113,9 @@ class ArrayCookieJar implements CookieJar
             return true;
         }
 
-        if (!($isWildcardCookieDomain = ($cookieDomain[0] === '.'))) {
+        /** @noinspection SubStrUsedAsStrPosInspection */
+        $isWildcardCookieDomain = $cookieDomain[0] === '.';
+        if (!$isWildcardCookieDomain) {
             return false;
         }
 
@@ -130,8 +132,13 @@ class ArrayCookieJar implements CookieJar
 
     /**
      * @link http://tools.ietf.org/html/rfc6265#section-5.1.4
+     *
+     * @param $requestPath
+     * @param $cookiePath
+     *
+     * @return bool
      */
-    private function matchesPath($requestPath, $cookiePath)
+    private function matchesPath($requestPath, $cookiePath): bool
     {
         if ($requestPath === $cookiePath) {
             $isMatch = true;
