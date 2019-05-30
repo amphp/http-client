@@ -20,6 +20,7 @@ env:
 
 before_install:
   - phpenv config-rm xdebug.ini || echo "No xdebug config."
+  - travis/install-pcov.sh
 
 install:
   - if [ "$TRAVIS_PHP_VERSION" = "nightly" ]; then
@@ -28,30 +29,18 @@ install:
       composer update -n --prefer-dist;
     fi
 
-  - wget https://github.com/php-coveralls/php-coveralls/releases/download/v1.0.0/coveralls.phar
+  - wget https://github.com/php-coveralls/php-coveralls/releases/download/v2.1.0/coveralls.phar
   - chmod +x coveralls.phar
-
-  - mkdir -p coverage/cov coverage/bin
-  - wget https://phar.phpunit.de/phpcov.phar -O coverage/bin/phpcov
-  - chmod +x coverage/bin/phpcov
 
   - composer show
   - cd test/tls && ./regenerate.sh && cd -
 
 script:
-  # PHPDBG segfaults on versions other than 7.0 currently
-  - if [ "$TRAVIS_PHP_VERSION" = "7.1" ]; then
-      phpdbg -qrr vendor/bin/phpunit --verbose --coverage-php coverage/cov/main.cov;
-    else
-      vendor/bin/phpunit --coverage-text --verbose --coverage-php coverage/cov/main.cov;
-    fi
+  - vendor/bin/phpunit --coverage-text --verbose --coverage-clover build/logs/clover.xml
   - PHP_CS_FIXER_IGNORE_ENV=1 php vendor/bin/php-cs-fixer --diff --dry-run -v fix
 
 after_script:
-  - if [ "$TRAVIS_PHP_VERSION" = "7.1" ]; then
-      coverage/bin/phpcov merge --clover build/logs/clover.xml coverage/cov
-      ./coveralls.phar -v;
-    fi
+  - ./coveralls.phar -v
 
 cache:
   directories:
