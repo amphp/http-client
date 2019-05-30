@@ -16,7 +16,7 @@ class ClientCookieTest extends TestCase
     /** @var CookieJar */
     private $jar;
 
-    public function setUp()
+    public function setUp(): void
     {
         $this->jar = new ArrayCookieJar;
         $this->client = new DefaultClient($this->jar);

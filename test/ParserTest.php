@@ -75,7 +75,7 @@ class ParserTest extends TestCase
         $parsedRequestArr["headers"] = $headers;
 
         /** @var array $parsedRequestArr */
-        $this->assertInternalType("array", $parsedRequestArr);
+        $this->assertIsArray($parsedRequestArr);
         $this->assertEquals($method, $parsedRequestArr['method']);
         $this->assertEquals($uri, $parsedRequestArr['uri']);
         $this->assertEquals($protocol, $parsedRequestArr['protocol']);

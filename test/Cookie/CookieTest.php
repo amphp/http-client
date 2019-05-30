@@ -14,7 +14,7 @@ class CookieTest extends TestCase
 
         $this->assertSame("name", $cookie->getName());
         $this->assertSame("value", $cookie->getValue());
-        $this->assertNull(null, $cookie->getExpirationTime());
+        $this->assertNull($cookie->getExpirationTime());
         $this->assertSame("/", $cookie->getPath());
         $this->assertSame("example.com", $cookie->getDomain());
         $this->assertTrue($cookie->isSecure());

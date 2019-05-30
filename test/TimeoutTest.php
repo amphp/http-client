@@ -21,7 +21,7 @@ class TimeoutTest extends TestCase
     /** @var DefaultClient */
     private $client;
 
-    public function setUp()
+    public function setUp(): void
     {
         $this->client = new DefaultClient;
     }
@@ -49,8 +49,10 @@ class TimeoutTest extends TestCase
 
             /** @var Response $response */
             $response = wait($promise);
+
             $this->expectException(TimeoutException::class);
             $this->expectExceptionMessage("Allowed transfer timeout exceeded: 100 ms");
+
             wait($response->getBody()->buffer());
         } finally {
             $this->assertLessThan(0.6, \microtime(true) - $start);

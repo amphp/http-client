@@ -427,8 +427,8 @@ class ClientHttpBinIntegrationTest extends TestCase
         $response = wait((new DefaultClient)->request("https://httpbin.org/get"));
         $connectionInfo = $response->getMetaInfo()->getConnectionInfo();
 
-        $this->assertContains(":", $connectionInfo->getLocalAddress());
-        $this->assertContains(":", $connectionInfo->getRemoteAddress());
+        $this->assertStringContainsString(":", $connectionInfo->getLocalAddress());
+        $this->assertStringContainsString(":", $connectionInfo->getRemoteAddress());
         $this->assertNotNull($connectionInfo->getTlsInfo());
         $this->assertSame("TLSv1.2", $connectionInfo->getTlsInfo()->getProtocol());
         $this->assertNotEmpty($connectionInfo->getTlsInfo()->getPeerCertificates());
@@ -528,7 +528,7 @@ class ClientHttpBinIntegrationTest extends TestCase
         wait((new DefaultClient)->request($request));
     }
 
-    protected function setUp()
+    protected function setUp(): void
     {
         parent::setUp();
 

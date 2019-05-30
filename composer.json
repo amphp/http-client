@@ -32,9 +32,9 @@
     },
     "require-dev": {
         "ext-json": "*",
-        "amphp/phpunit-util": "^1",
+        "amphp/phpunit-util": "dev-master as 2.0.0",
         "amphp/php-cs-fixer-config": "dev-master",
-        "phpunit/phpunit": "^6",
+        "phpunit/phpunit": "^8",
         "friendsofphp/php-cs-fixer": "^2.3",
         "amphp/http-server": "dev-socket-and-http-client-updates as 1.1.0"
     },
