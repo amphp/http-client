@@ -38,11 +38,13 @@ interface Client
     /**
      * Asynchronously request an HTTP resource.
      *
-     * @param Request|string    $uriOrRequest An HTTP URI string or a Request instance.
-     * @param array             $options An array specifying options applicable only for this request.
+     * @param Request           $request A Request instance.
      * @param CancellationToken $cancellation A cancellation token to optionally cancel requests.
      *
      * @return Promise A promise to resolve to a response object as soon as its headers are received.
      */
-    public function request($uriOrRequest, array $options = [], CancellationToken $cancellation = null): Promise;
+    public function request(
+        Request $request,
+        CancellationToken $cancellation = null
+    ): Promise;
 }

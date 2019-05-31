@@ -2,6 +2,9 @@
 
 namespace Amp\Http\Client;
 
+use League\Uri;
+use Psr\Http\Message\UriInterface;
+
 /**
  * An HTTP request.
  */
@@ -13,7 +16,7 @@ final class Request
     /** @var string */
     private $method;
 
-    /** @var string */
+    /** @var UriInterface */
     private $uri;
 
     /** @var array headers with lowercase keys */
@@ -27,7 +30,7 @@ final class Request
 
     public function __construct(string $uri, string $method = "GET")
     {
-        $this->uri = $uri;
+        $this->uri = Uri\Http::createFromString($uri);
         $this->method = $method;
         $this->body = new StringBody("");
     }
@@ -111,9 +114,9 @@ final class Request
     /**
      * Retrieve the request's URI.
      *
-     * @return string
+     * @return UriInterface
      */
-    public function getUri(): string
+    public function getUri(): UriInterface
     {
         return $this->uri;
     }
@@ -128,7 +131,7 @@ final class Request
     public function withUri(string $uri): self
     {
         $clone = clone $this;
-        $clone->uri = $uri;
+        $clone->uri = Uri\Http::createFromString($uri);
 
         return $clone;
     }

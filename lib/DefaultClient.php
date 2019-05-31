@@ -4,23 +4,16 @@ namespace Amp\Http\Client;
 
 use Amp\ByteStream\InputStream;
 use Amp\ByteStream\IteratorStream;
-use Amp\ByteStream\Payload;
 use Amp\ByteStream\StreamException;
 use Amp\ByteStream\ZlibInputStream;
 use Amp\CancellationToken;
 use Amp\CancelledException;
 use Amp\Deferred;
 use Amp\Delayed;
-use Amp\Dns\InvalidNameException;
 use Amp\Emitter;
 use Amp\Failure;
-use Amp\Http\Client\Cookie\Cookie;
-use Amp\Http\Client\Cookie\CookieFormatException;
-use Amp\Http\Client\Cookie\CookieJar;
-use Amp\Http\Client\Cookie\NullCookieJar;
 use Amp\Http\Client\Internal\CombinedCancellationToken;
 use Amp\Http\Client\Internal\Parser;
-use Amp\Http\Client\Internal\PublicSuffixList;
 use Amp\Http\Client\Internal\RequestCycle;
 use Amp\Loop;
 use Amp\NullCancellationToken;
@@ -49,7 +42,6 @@ final class DefaultClient implements Client
 {
     public const DEFAULT_USER_AGENT = 'Mozilla/5.0 (compatible; amphp/http-client)';
 
-    private $cookieJar;
     private $socketPool;
     private $connectContext;
     private $hasZlib;
@@ -65,35 +57,19 @@ final class DefaultClient implements Client
     ];
 
     public function __construct(
-        ?CookieJar $cookieJar = null,
         ?HttpSocketPool $socketPool = null,
         ?ConnectContext $connectContext = null
     ) {
-        $this->cookieJar = $cookieJar ?? new NullCookieJar;
         $this->socketPool = $socketPool ?? new HttpSocketPool;
         $this->connectContext = $connectContext ?? new ConnectContext;
         $this->hasZlib = \extension_loaded('zlib');
     }
 
     /** @inheritdoc */
-    public function request($uriOrRequest, array $options = [], CancellationToken $cancellation = null): Promise
+    public function request(Request $request, CancellationToken $cancellation = null): Promise
     {
-        return call(function () use ($uriOrRequest, $options, $cancellation) {
+        return call(function () use ($request, $cancellation) {
             $cancellation = $cancellation ?? new NullCancellationToken;
-
-            foreach ($options as $option => $value) {
-                $this->validateOption($option, $value);
-            }
-
-            /** @var Request $request */
-            [$request, $uri] = $this->generateRequestFromUri($uriOrRequest);
-            $options = $options ? \array_merge($this->options, $options) : $this->options;
-
-            foreach ($this->options[self::OP_DEFAULT_HEADERS] as $name => $header) {
-                if (!$request->hasHeader($name)) {
-                    $request = $request->withHeaders([$name => $header]);
-                }
-            }
 
             /** @var array $headers */
             $headers = yield $request->getBody()->getHeaders();
@@ -103,22 +79,22 @@ final class DefaultClient implements Client
                 }
             }
 
-            $originalUri = $uri;
+            $originalUri = $request->getUri();
             $previousResponse = null;
 
-            $maxRedirects = $options[self::OP_MAX_REDIRECTS];
+            $maxRedirects = 10;
             $requestNr = 1;
 
             do {
                 /** @var Request $request */
                 $request = yield from $this->normalizeRequestBodyHeaders($request);
-                $request = $this->normalizeRequestHeaders($request, $uri, $options);
+                $request = $this->normalizeRequestHeaders($request);
 
                 // Always normalize this as last item, because we need to strip sensitive headers
                 $request = $this->normalizeTraceRequest($request);
 
                 /** @var Response $response */
-                $response = yield $this->doRequest($request, $uri, $options, $previousResponse, $cancellation);
+                $response = yield $this->doRequest($request, $previousResponse, $cancellation);
 
                 // Explicit $maxRedirects !== 0 check to not consume redirect bodies if redirect following is disabled
                 if ($maxRedirects !== 0 && $redirectUri = $this->getRedirectUri($response)) {
@@ -156,20 +132,16 @@ final class DefaultClient implements Client
                         }
                     } else {
                         // We ALWAYS follow with a GET and without any set headers or body for redirects to other hosts.
-                        $optionsWithoutHeaders = $options;
-                        unset($optionsWithoutHeaders[self::OP_DEFAULT_HEADERS]);
-
-                        $request = new Request((string) $redirectUri);
-                        $request = $this->normalizeRequestHeaders($request, $redirectUri, $optionsWithoutHeaders);
+                        $request = new Request($redirectUri);
+                        $request = $this->normalizeRequestHeaders($request);
                     }
 
-                    if ($options[self::OP_AUTO_REFERER]) {
+                    if ($autoReferer = true) { // TODO Support option
                         $request = $this->assignRedirectRefererHeader($request, $originalUri, $redirectUri);
                     }
 
                     $previousResponse = $response;
                     $originalUri = $redirectUri;
-                    $uri = $redirectUri;
                 } else {
                     break;
                 }
@@ -183,38 +155,8 @@ final class DefaultClient implements Client
         });
     }
 
-    /**
-     * Set multiple options at once.
-     *
-     * @param array $options An array of the form [OP_CONSTANT => $value]
-     *
-     * @throws \Error On unknown option key or invalid value.
-     */
-    public function setOptions(array $options): void
-    {
-        foreach ($options as $option => $value) {
-            $this->setOption($option, $value);
-        }
-    }
-
-    /**
-     * Set an option.
-     *
-     * @param string $option A Client option constant
-     * @param mixed  $value The option value to assign
-     *
-     * @throws \Error On unknown option key or invalid value.
-     */
-    public function setOption(string $option, $value): void
-    {
-        $this->validateOption($option, $value);
-        $this->options[$option] = $value;
-    }
-
     private function doRequest(
         Request $request,
-        Uri\Http $uri,
-        array $options,
         ?Response $previousResponse = null,
         ?CancellationToken $cancellation = null
     ): Promise {
@@ -222,8 +164,6 @@ final class DefaultClient implements Client
 
         $requestCycle = new RequestCycle;
         $requestCycle->request = $request;
-        $requestCycle->uri = $uri;
-        $requestCycle->options = $options;
         $requestCycle->previousResponse = $previousResponse;
         $requestCycle->deferred = $deferred;
         $requestCycle->bodyDeferred = new Deferred;
@@ -251,30 +191,6 @@ final class DefaultClient implements Client
         });
 
         return $deferred->promise();
-    }
-
-    /**
-     * @param $uriOrRequest
-     *
-     * @return array
-     *
-     * @throws HttpException
-     */
-    private function generateRequestFromUri($uriOrRequest): array
-    {
-        if (\is_string($uriOrRequest)) {
-            $uri = $this->buildUriFromString($uriOrRequest);
-            $request = new Request($uri);
-        } elseif ($uriOrRequest instanceof Request) {
-            $uri = $this->buildUriFromString($uriOrRequest->getUri());
-            $request = $uriOrRequest;
-        } else {
-            throw new HttpException(
-                'Request must be a valid HTTP URI or Amp\Artax\Request instance'
-            );
-        }
-
-        return [$request, $uri];
     }
 
     /**
@@ -617,28 +533,6 @@ final class DefaultClient implements Client
         }
     }
 
-    /**
-     * @param $str
-     *
-     * @return Uri\Http
-     * @throws HttpException
-     */
-    private function buildUriFromString($str): Uri\Http
-    {
-        try {
-            $uri = Uri\Http::createFromString($str);
-            $scheme = $uri->getScheme();
-
-            if (($scheme === "http" || $scheme === "https") && $uri->getHost()) {
-                return $uri;
-            }
-
-            throw new HttpException("Request must specify 'http' or 'https' as scheme, got '" . $scheme . "'");
-        } catch (UriException $e) {
-            throw new HttpException("Request must specify a valid HTTP URI, got '" . $str . "'", 0, $e);
-        }
-    }
-
     private function normalizeRequestBodyHeaders(Request $request): \Generator
     {
         if ($request->hasHeader("Transfer-Encoding")) {
@@ -666,13 +560,12 @@ final class DefaultClient implements Client
         return $request;
     }
 
-    private function normalizeRequestHeaders($request, $uri, $options)
+    private function normalizeRequestHeaders(Request $request): Request
     {
-        $request = $this->normalizeRequestEncodingHeaderForZlib($request, $options);
-        $request = $this->normalizeRequestHostHeader($request, $uri);
+        $request = $this->normalizeRequestEncodingHeaderForZlib($request);
+        $request = $this->normalizeRequestHostHeader($request);
         $request = $this->normalizeRequestUserAgent($request);
         $request = $this->normalizeRequestAcceptHeader($request);
-        $request = $this->assignApplicableRequestCookies($request);
 
         return $request;
     }
@@ -701,14 +594,8 @@ final class DefaultClient implements Client
         return $request;
     }
 
-    private function normalizeRequestEncodingHeaderForZlib(Request $request, array $options): Request
+    private function normalizeRequestEncodingHeaderForZlib(Request $request): Request
     {
-        $autoEncoding = $options[self::OP_AUTO_ENCODING];
-
-        if (!$autoEncoding) {
-            return $request;
-        }
-
         if ($this->hasZlib) {
             return $request->withHeader('Accept-Encoding', 'gzip, deflate, identity');
         }
@@ -716,16 +603,13 @@ final class DefaultClient implements Client
         return $request->withoutHeader('Accept-Encoding');
     }
 
-    private function normalizeRequestHostHeader(Request $request, Uri\Http $uri): Request
+    private function normalizeRequestHostHeader(Request $request): Request
     {
-        if ($request->hasHeader('Host')) {
-            return $request;
+        if (!$request->hasHeader('host')) {
+            $request = $request->withHeader('host', $this->generateAuthorityFromUri($request->getUri()));
         }
 
-        $authority = $this->generateAuthorityFromUri($uri);
-        $request = $request->withHeader('Host', $this->normalizeHostHeader($authority));
-
-        return $request;
+        return $request->withHeader('host', $this->normalizeHostHeader($request->getHeader('host')));
     }
 
     private function normalizeHostHeader(string $host): string
@@ -762,36 +646,7 @@ final class DefaultClient implements Client
         return $request->withHeader('Accept', '*/*');
     }
 
-    private function assignApplicableRequestCookies(Request $request): Request
-    {
-        $uri = Uri\Http::createFromString($request->getUri());
-
-        $domain = $uri->getHost();
-        $path = $uri->getPath();
-
-        if (!$applicableCookies = $this->cookieJar->get($domain, $path)) {
-            // No cookies matched our request; we're finished.
-            return $request->withoutHeader("Cookie");
-        }
-
-        $isRequestSecure = \strcasecmp($uri->getScheme(), "https") === 0;
-        $cookiePairs = [];
-
-        /** @var Cookie $cookie */
-        foreach ($applicableCookies as $cookie) {
-            if ($isRequestSecure || !$cookie->isSecure()) {
-                $cookiePairs[] = $cookie->getName() . "=" . $cookie->getValue();
-            }
-        }
-
-        if ($cookiePairs) {
-            return $request->withHeader("Cookie", \implode("; ", $cookiePairs));
-        }
-
-        return $request->withoutHeader("Cookie");
-    }
-
-    private function generateAuthorityFromUri(Uri\Http $uri): string
+    private function generateAuthorityFromUri(UriInterface $uri): string
     {
         $host = $uri->getHost();
         $port = $uri->getPort();
@@ -857,111 +712,16 @@ final class DefaultClient implements Client
             }
         };
 
-        $response = new class($parserResult["protocol"], $parserResult["status"], $parserResult["reason"], $parserResult["headers"], $body, $requestCycle->request, $requestCycle->previousResponse, new MetaInfo($connectionInfo)) implements Response {
-            private $protocolVersion;
-            private $status;
-            private $reason;
-            private $request;
-            private $previousResponse;
-            private $headers;
-            private $body;
-            private $metaInfo;
-
-            public function __construct(
-                string $protocolVersion,
-                int $status,
-                string $reason,
-                array $headers,
-                InputStream $body,
-                Request $request,
-                ?Response $previousResponse,
-                MetaInfo $metaInfo
-            ) {
-                $this->protocolVersion = $protocolVersion;
-                $this->status = $status;
-                $this->reason = $reason;
-                $this->headers = $headers;
-                $this->body = new Payload($body);
-                $this->request = $request;
-                $this->previousResponse = $previousResponse;
-                $this->metaInfo = $metaInfo;
-            }
-
-            public function getProtocolVersion(): string
-            {
-                return $this->protocolVersion;
-            }
-
-            public function getStatus(): int
-            {
-                return $this->status;
-            }
-
-            public function getReason(): string
-            {
-                return $this->reason;
-            }
-
-            public function getRequest(): Request
-            {
-                return $this->request;
-            }
-
-            public function getOriginalRequest(): Request
-            {
-                if (empty($this->previousResponse)) {
-                    return $this->request;
-                }
-
-                return $this->previousResponse->getOriginalRequest();
-            }
-
-            public function getPreviousResponse(): ?Response
-            {
-                return $this->previousResponse;
-            }
-
-            public function hasHeader(string $field): bool
-            {
-                return isset($this->headers[\strtolower($field)]);
-            }
-
-            public function getHeader(string $field): ?string
-            {
-                return $this->headers[\strtolower($field)][0] ?? null;
-            }
-
-            public function getHeaderArray(string $field): array
-            {
-                return $this->headers[\strtolower($field)] ?? [];
-            }
-
-            public function getHeaders(): array
-            {
-                return $this->headers;
-            }
-
-            public function getBody(): Payload
-            {
-                return $this->body;
-            }
-
-            public function getMetaInfo(): MetaInfo
-            {
-                return $this->metaInfo;
-            }
-        };
-
-        if ($response->hasHeader('Set-Cookie')) {
-            $requestDomain = $requestCycle->uri->getHost();
-            $cookies = $response->getHeaderArray('Set-Cookie');
-
-            foreach ($cookies as $rawCookieStr) {
-                $this->storeResponseCookie($requestDomain, $rawCookieStr);
-            }
-        }
-
-        return $response;
+        return new Response(
+            $parserResult["protocol"],
+            $parserResult["status"],
+            $parserResult["reason"],
+            $parserResult["headers"],
+            $body,
+            $requestCycle->request,
+            $requestCycle->previousResponse,
+            new MetaInfo($connectionInfo)
+        );
     }
 
     private function shouldCloseSocketAfterResponse(Response $response): bool
@@ -1009,41 +769,6 @@ final class DefaultClient implements Client
         return 0;
     }
 
-    private function storeResponseCookie(string $requestDomain, string $rawCookieStr): void
-    {
-        try {
-            $cookie = Cookie::fromString($rawCookieStr);
-
-            if (!$cookie->getDomain()) {
-                $cookie = $cookie->withDomain($requestDomain);
-            } else {
-                // https://tools.ietf.org/html/rfc6265#section-4.1.2.3
-                $cookieDomain = $cookie->getDomain();
-
-                // If a domain is set, left dots are ignored and it's always a wildcard
-                $cookieDomain = \ltrim($cookieDomain, ".");
-
-                if ($cookieDomain !== $requestDomain) {
-                    // ignore cookies on domains that are public suffixes
-                    if (PublicSuffixList::isPublicSuffix($cookieDomain)) {
-                        return;
-                    }
-
-                    // cookie origin would not be included when sending the cookie
-                    if (\substr($requestDomain, 0, -\strlen($cookieDomain) - 1) . "." . $cookieDomain !== $requestDomain) {
-                        return;
-                    }
-                }
-
-                // always add the dot, it's used internally for wildcard matching when an explicit domain is sent
-                $cookie = $cookie->withDomain("." . $cookieDomain);
-            }
-
-            $this->cookieJar->store($cookie);
-        } catch (CookieFormatException | InvalidNameException $e) {
-            // Ignore malformed Set-Cookie headers
-        }
-    }
 
     private function getRedirectUri(Response $response): ?UriInterface
     {
@@ -1052,9 +777,9 @@ final class DefaultClient implements Client
         }
 
         $request = $response->getRequest();
+        $method = $request->getMethod();
 
         $status = $response->getStatus();
-        $method = $request->getMethod();
 
         if ($status < 300 || $status > 399 || $method === 'HEAD') {
             return null;
@@ -1086,7 +811,7 @@ final class DefaultClient implements Client
             $redirectUri = $redirectUri->withScheme($requestUri->getScheme());
         }
 
-        if ($query = $requestUri->getQuery()) {
+        if ('' !== $query = $requestUri->getQuery()) {
             $redirectUri = $redirectUri->withQuery($query);
         }
 
@@ -1159,79 +884,6 @@ final class DefaultClient implements Client
         $head .= "\r\n";
 
         return $head;
-    }
-
-    private function validateOption(string $option, $value): void
-    {
-        switch ($option) {
-            case self::OP_AUTO_ENCODING:
-                if (!\is_bool($value)) {
-                    /** @noinspection PhpUndefinedClassInspection */
-                    throw new \TypeError("Invalid value for OP_AUTO_ENCODING, bool expected");
-                }
-
-                break;
-
-            case self::OP_TRANSFER_TIMEOUT:
-                if (!\is_int($value) || $value < 0) {
-                    /** @noinspection PhpUndefinedClassInspection */
-                    throw new \Error("Invalid value for OP_TRANSFER_TIMEOUT, int >= 0 expected");
-                }
-
-                break;
-
-            case self::OP_MAX_REDIRECTS:
-                if (!\is_int($value) || $value < 0) {
-                    /** @noinspection PhpUndefinedClassInspection */
-                    throw new \Error("Invalid value for OP_MAX_REDIRECTS, int >= 0 expected");
-                }
-
-                break;
-
-            case self::OP_AUTO_REFERER:
-                if (!\is_bool($value)) {
-                    /** @noinspection PhpUndefinedClassInspection */
-                    throw new \TypeError("Invalid value for OP_AUTO_REFERER, bool expected");
-                }
-
-                break;
-
-            case self::OP_DISCARD_BODY:
-                if (!\is_bool($value)) {
-                    /** @noinspection PhpUndefinedClassInspection */
-                    throw new \TypeError("Invalid value for OP_DISCARD_BODY, bool expected");
-                }
-
-                break;
-
-            case self::OP_DEFAULT_HEADERS:
-                // We attempt to set the headers here, because they're automatically validated then.
-                (new Request("https://example.com/"))->withHeaders($value);
-
-                break;
-
-            case self::OP_MAX_HEADER_BYTES:
-                if (!\is_int($value) || $value < 0) {
-                    /** @noinspection PhpUndefinedClassInspection */
-                    throw new \Error("Invalid value for OP_MAX_HEADER_BYTES, int >= 0 expected");
-                }
-
-                break;
-
-            case self::OP_MAX_BODY_BYTES:
-                if (!\is_int($value) || $value < 0) {
-                    /** @noinspection PhpUndefinedClassInspection */
-                    throw new \Error("Invalid value for OP_MAX_BODY_BYTES, int >= 0 expected");
-                }
-
-                break;
-
-            default:
-                /** @noinspection PhpUndefinedClassInspection */
-                throw new \Error(
-                    \sprintf("Unknown option: %s", $option)
-                );
-        }
     }
 
     /**

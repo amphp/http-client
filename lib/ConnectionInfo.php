@@ -2,25 +2,27 @@
 
 namespace Amp\Http\Client;
 
+use Amp\Socket\SocketAddress;
+
 final class ConnectionInfo
 {
     private $localAddress;
     private $remoteAddress;
     private $tlsInfo;
 
-    public function __construct(string $localAddress, string $remoteAddress, ?TlsInfo $tlsInfo = null)
+    public function __construct(SocketAddress $localAddress, SocketAddress $remoteAddress, ?TlsInfo $tlsInfo = null)
     {
         $this->localAddress = $localAddress;
         $this->remoteAddress = $remoteAddress;
         $this->tlsInfo = $tlsInfo;
     }
 
-    public function getLocalAddress(): string
+    public function getLocalAddress(): SocketAddress
     {
         return $this->localAddress;
     }
 
-    public function getRemoteAddress(): string
+    public function getRemoteAddress(): SocketAddress
     {
         return $this->remoteAddress;
     }
