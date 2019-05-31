@@ -25,6 +25,7 @@
         "php": ">=7.1",
         "amphp/amp": "^2",
         "amphp/byte-stream": "^1.1.6",
+        "amphp/http": "^1.1",
         "amphp/socket": "dev-master as 1.0",
         "amphp/file": "^0.2 || ^0.3",
         "kelunik/certificate": "^1.1",

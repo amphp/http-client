@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpUnhandledExceptionInspection */
 
 namespace Amp\Http\Client;
 
@@ -9,8 +9,17 @@ class ParserTest extends TestCase
 {
     /**
      * @dataProvider provideParseExpectations
+     *
+     * @param $msg
+     * @param $method
+     * @param $uri
+     * @param $protocol
+     * @param $headers
+     * @param $body
+     *
+     * @throws ParseException
      */
-    public function testParse($msg, $method, $uri, $protocol, $headers, $body)
+    public function testParse($msg, $method, $uri, $protocol, $headers, $body): void
     {
         $actualBody = "";
 
@@ -31,7 +40,7 @@ class ParserTest extends TestCase
         $this->assertEquals($body, $actualBody);
     }
 
-    public function testKeepAliveHeadResponseParse()
+    public function testKeepAliveHeadResponseParse(): void
     {
         $request = "HTTP/1.1 200 OK\n\n";
         $msgParser = new Parser(null, Parser::MODE_RESPONSE);
@@ -43,8 +52,17 @@ class ParserTest extends TestCase
 
     /**
      * @dataProvider provideParseExpectations
+     *
+     * @param $msg
+     * @param $method
+     * @param $uri
+     * @param $protocol
+     * @param $headers
+     * @param $body
+     *
+     * @throws ParseException
      */
-    public function testIncrementalParse($msg, $method, $uri, $protocol, $headers, $body)
+    public function testIncrementalParse($msg, $method, $uri, $protocol, $headers, $body): void
     {
         $actualBody = "";
 
@@ -83,7 +101,7 @@ class ParserTest extends TestCase
         $this->assertEquals($body, $actualBody);
     }
 
-    public function provideParseExpectations()
+    public function provideParseExpectations(): array
     {
         $return = [];
 
@@ -172,7 +190,7 @@ class ParserTest extends TestCase
             "Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.3\r\n" .
             "Content-Length: {$len}\r\n" .
             "\r\n" .
-            "{$body}";
+            $body;
 
         $method = 'GET';
         $uri = '/test';

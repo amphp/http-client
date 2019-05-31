@@ -1,12 +1,12 @@
-<?php
+<?php /** @noinspection PhpUndefinedClassInspection */
 
 namespace Amp\Http\Client;
 
-use Amp\PHPUnit\TestCase;
+use PHPUnit\Framework\TestCase;
 
 class RequestTest extends TestCase
 {
-    public function provideInvalidProtocolVersions()
+    public function provideInvalidProtocolVersions(): array
     {
         return [
             ["HTTP/1.0"],
@@ -17,22 +17,26 @@ class RequestTest extends TestCase
         ];
     }
 
-    /** @dataProvider provideInvalidProtocolVersions */
-    public function testProtocolVersionsAcceptsNoInvalidValues($invalidVersion)
+    /**
+     * @dataProvider provideInvalidProtocolVersions
+     *
+     * @param $invalidVersion
+     */
+    public function testProtocolVersionsAcceptsNoInvalidValues($invalidVersion): void
     {
         $this->expectException(\Error::class);
         $this->expectExceptionMessage("Invalid HTTP protocol version");
         (new Request("http://127.0.0.1/"))->withProtocolVersions([$invalidVersion]);
     }
 
-    public function testProtocolVersionsAcceptsNoEmptyArray()
+    public function testProtocolVersionsAcceptsNoEmptyArray(): void
     {
         $this->expectException(\Error::class);
         $this->expectExceptionMessage("Empty array of protocol versions provided, must not be empty.");
         (new Request("http://127.0.0.1/"))->withProtocolVersions([]);
     }
 
-    public function testProtocolVersionsAcceptsValidInput()
+    public function testProtocolVersionsAcceptsValidInput(): void
     {
         $request = (new Request("http://127.0.0.1/"))->withProtocolVersions(["1.0"]);
         $this->assertSame(["1.0"], $request->getProtocolVersions());
@@ -41,21 +45,21 @@ class RequestTest extends TestCase
         $this->assertSame(["1.0", "2.0"], $request->getProtocolVersions());
     }
 
-    public function testProtocolVersionsReturnsSameInstanceWithoutChange()
+    public function testProtocolVersionsReturnsSameInstanceWithoutChange(): void
     {
         $request1 = (new Request("http://127.0.0.1/"))->withProtocolVersions(["1.0"]);
         $request2 = $request1->withProtocolVersions(["1.0"]);
         $this->assertSame($request1, $request2);
     }
 
-    public function testMethodReturnsSameInstanceWithoutChange()
+    public function testMethodReturnsSameInstanceWithoutChange(): void
     {
         $request1 = new Request("http://127.0.0.1/");
         $request2 = $request1->withMethod("GET");
         $this->assertSame($request1, $request2);
     }
 
-    public function testHeader()
+    public function testHeader(): void
     {
         /** @var Request $request */
         $request = new Request("http://127.0.0.1/");
@@ -105,7 +109,7 @@ class RequestTest extends TestCase
         ], $request->getHeaders(true));
     }
 
-    public function provideBadAllHeaderInput()
+    public function provideBadAllHeaderInput(): array
     {
         return [
             [[
@@ -117,14 +121,18 @@ class RequestTest extends TestCase
         ];
     }
 
-    /** @dataProvider provideBadAllHeaderInput */
-    public function testAllHeaders($input)
+    /**
+     * @dataProvider provideBadAllHeaderInput
+     *
+     * @param $input
+     */
+    public function testAllHeaders($input): void
     {
         $this->expectException(\TypeError::class);
         (new Request("http://127.0.0.1/"))->withHeaders($input);
     }
 
-    public function testBody()
+    public function testBody(): void
     {
         /** @var Request $request */
         $request = new Request("http://127.0.0.1/");

@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpUnhandledExceptionInspection */
 
 namespace Amp\Http\Client;
 
@@ -27,12 +27,13 @@ class ClientHttpBinIntegrationTest extends TestCase
     private $socket;
     private $server;
 
-    public function testHttp10Response()
+    public function testHttp10Response(): void
     {
         $client = new DefaultClient;
         $server = Socket\listen("tcp://127.0.0.1:0/");
 
-        asyncCall(function () use ($server) {
+        asyncCall(static function () use ($server) {
+            /** @var Socket\EncryptableSocket $client */
             $client = yield $server->accept();
             yield $client->end("HTTP/1.0 200 OK\r\n\r\n");
         });
@@ -46,12 +47,13 @@ class ClientHttpBinIntegrationTest extends TestCase
         $this->assertSame("", wait($response->getBody()->buffer()));
     }
 
-    public function testCloseAfterConnect()
+    public function testCloseAfterConnect(): void
     {
         $client = new DefaultClient;
         $server = Socket\listen("tcp://127.0.0.1:0");
 
-        asyncCall(function () use ($server) {
+        asyncCall(static function () use ($server) {
+            /** @var Socket\EncryptableSocket $client */
             while ($client = yield $server->accept()) {
                 $client->close();
             }
@@ -71,12 +73,13 @@ class ClientHttpBinIntegrationTest extends TestCase
         }
     }
 
-    public function testIncompleteHttpResponseWithContentLength()
+    public function testIncompleteHttpResponseWithContentLength(): void
     {
         $client = new DefaultClient;
         $server = Socket\listen("tcp://127.0.0.1:0");
 
-        asyncCall(function () use ($server) {
+        asyncCall(static function () use ($server) {
+            /** @var Socket\EncryptableSocket $client */
             while ($client = yield $server->accept()) {
                 yield $client->end("HTTP/1.0 200 OK\r\nContent-Length: 2\r\n\r\n.");
             }
@@ -97,12 +100,13 @@ class ClientHttpBinIntegrationTest extends TestCase
         }
     }
 
-    public function testIncompleteHttpResponseWithChunkedEncoding()
+    public function testIncompleteHttpResponseWithChunkedEncoding(): void
     {
         $client = new DefaultClient;
         $server = Socket\listen("tcp://127.0.0.1:0");
 
-        asyncCall(function () use ($server) {
+        asyncCall(static function () use ($server) {
+            /** @var Socket\EncryptableSocket $client */
             while ($client = yield $server->accept()) {
                 yield $client->end("HTTP/1.0 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n0\r"); // missing \n
             }
@@ -123,13 +127,14 @@ class ClientHttpBinIntegrationTest extends TestCase
         }
     }
 
-    public function testIncompleteHttpResponseWithoutChunkedEncodingAndWithoutContentLength()
+    public function testIncompleteHttpResponseWithoutChunkedEncodingAndWithoutContentLength(): void
     {
         $client = new DefaultClient;
         $server = Socket\listen("tcp://127.0.0.1:0");
 
-        asyncCall(function () use ($server) {
+        asyncCall(static function () use ($server) {
             while ($client = yield $server->accept()) {
+                /** @var Socket\EncryptableSocket $client */
                 yield $client->end("HTTP/1.1 200 OK\r\n\r\n00000000000");
             }
         });
@@ -146,23 +151,23 @@ class ClientHttpBinIntegrationTest extends TestCase
         }
     }
 
-    public function testDefaultUserAgentSent()
+    public function testDefaultUserAgentSent(): void
     {
         $uri = 'http://httpbin.org/user-agent';
         $client = new DefaultClient;
 
-        $promise = $client->request($uri);
+        $promise = $client->request(new Request($uri));
         $response = wait($promise);
 
         $this->assertInstanceOf(Response::class, $response);
 
         $body = wait($response->getBody()->buffer());
-        $result = \json_decode($body);
+        $result = \json_decode($body, true);
 
-        $this->assertSame(DefaultClient::DEFAULT_USER_AGENT, $result->{'user-agent'});
+        $this->assertSame(DefaultClient::DEFAULT_USER_AGENT, $result['user-agent']);
     }
 
-    public function testCustomUserAgentSentIfAssigned()
+    public function testCustomUserAgentSentIfAssigned(): void
     {
         $uri = 'http://httpbin.org/user-agent';
         $client = new DefaultClient;
@@ -176,32 +181,12 @@ class ClientHttpBinIntegrationTest extends TestCase
         $this->assertInstanceOf(Response::class, $response);
 
         $body = wait($response->getBody()->buffer());
-        $result = \json_decode($body);
+        $result = \json_decode($body, true);
 
-        $this->assertSame($customUserAgent, $result->{'user-agent'});
+        $this->assertSame($customUserAgent, $result['user-agent']);
     }
 
-    public function testCustomUserAgentSentIfAssignedViaDefaultHeaders()
-    {
-        $customUserAgent = 'test-user-agent';
-        $uri = 'http://httpbin.org/user-agent';
-        $client = new DefaultClient;
-        $client->setOption(Client::OP_DEFAULT_HEADERS, [
-            "user-agent" => $customUserAgent,
-        ]);
-
-        $promise = $client->request($uri);
-        $response = wait($promise);
-
-        $this->assertInstanceOf(Response::class, $response);
-
-        $body = wait($response->getBody()->buffer());
-        $result = \json_decode($body);
-
-        $this->assertSame($customUserAgent, $result->{'user-agent'});
-    }
-
-    public function testPostStringBody()
+    public function testPostStringBody(): void
     {
         $client = new DefaultClient;
 
@@ -211,12 +196,12 @@ class ClientHttpBinIntegrationTest extends TestCase
 
         $this->assertInstanceOf(Response::class, $response);
 
-        $result = \json_decode(wait($response->getBody()->buffer()));
+        $result = \json_decode(wait($response->getBody()->buffer()), true);
 
-        $this->assertEquals($body, $result->data);
+        $this->assertEquals($body, $result['data']);
     }
 
-    public function testPutStringBody()
+    public function testPutStringBody(): void
     {
         $uri = 'http://httpbin.org/put';
         $client = new DefaultClient;
@@ -227,19 +212,23 @@ class ClientHttpBinIntegrationTest extends TestCase
 
         $this->assertInstanceOf(Response::class, $response);
 
-        $result = \json_decode(wait($response->getBody()->buffer()));
+        $result = \json_decode(wait($response->getBody()->buffer()), true);
 
-        $this->assertEquals($body, $result->data);
+        $this->assertEquals($body, $result['data']);
     }
 
     /**
      * @dataProvider provideStatusCodes
+     *
+     * @param $statusCode
+     *
+     * @throws \Throwable
      */
-    public function testStatusCodeResponses($statusCode)
+    public function testStatusCodeResponses($statusCode): void
     {
         $client = new DefaultClient;
 
-        $response = wait($client->request("http://httpbin.org/status/{$statusCode}"));
+        $response = wait($client->request(new Request("http://httpbin.org/status/{$statusCode}")));
 
         $this->assertInstanceOf(Response::class, $response);
         $this->assertEquals($statusCode, $response->getStatus());
@@ -255,11 +244,11 @@ class ClientHttpBinIntegrationTest extends TestCase
         ];
     }
 
-    public function testReason()
+    public function testReason(): void
     {
         $client = new DefaultClient;
 
-        $response = wait($client->request("http://httpbin.org/status/418"));
+        $response = wait($client->request(new Request("http://httpbin.org/status/418")));
 
         $this->assertInstanceOf(Response::class, $response);
 
@@ -269,7 +258,7 @@ class ClientHttpBinIntegrationTest extends TestCase
         $this->assertSame($expectedReason, $actualReason);
     }
 
-    public function testRedirect()
+    public function testRedirect(): void
     {
         $statusCode = 299;
         $redirectTo = "/status/{$statusCode}";
@@ -277,7 +266,7 @@ class ClientHttpBinIntegrationTest extends TestCase
 
         $client = new DefaultClient;
 
-        $response = wait($client->request($uri));
+        $response = wait($client->request(new Request($uri)));
 
         $this->assertInstanceOf(Response::class, $response);
         $this->assertEquals($statusCode, $response->getStatus());
@@ -287,7 +276,7 @@ class ClientHttpBinIntegrationTest extends TestCase
         $this->assertSame($uri, $originalUri);
     }
 
-    public function testClientAddsZeroContentLengthHeaderForEmptyBodiesOnPost()
+    public function testClientAddsZeroContentLengthHeaderForEmptyBodiesOnPost(): void
     {
         $uri = 'http://httpbin.org/post';
         $client = new DefaultClient;
@@ -300,12 +289,12 @@ class ClientHttpBinIntegrationTest extends TestCase
         $this->assertInstanceOf(Response::class, $response);
 
         $body = wait($response->getBody()->buffer());
-        $result = \json_decode($body);
+        $result = \json_decode($body, true);
 
-        $this->assertEquals('0', $result->headers->{'Content-Length'});
+        $this->assertEquals('0', $result->headers['Content-Length']);
     }
 
-    public function testFormEncodedBodyRequest()
+    public function testFormEncodedBodyRequest(): void
     {
         $client = new DefaultClient;
 
@@ -327,7 +316,7 @@ class ClientHttpBinIntegrationTest extends TestCase
         $this->assertEquals('application/x-www-form-urlencoded', $result['headers']['Content-Type']);
     }
 
-    public function testFileBodyRequest()
+    public function testFileBodyRequest(): void
     {
         $uri = 'http://httpbin.org/post';
         $client = new DefaultClient;
@@ -342,10 +331,10 @@ class ClientHttpBinIntegrationTest extends TestCase
 
         $result = \json_decode(wait($response->getBody()->buffer()), true);
 
-        $this->assertEquals(\file_get_contents($bodyPath), $result['data']);
+        $this->assertStringEqualsFile($bodyPath, $result['data']);
     }
 
-    public function testMultipartBodyRequest()
+    public function testMultipartBodyRequest(): void
     {
         $client = new DefaultClient;
 
@@ -367,19 +356,19 @@ class ClientHttpBinIntegrationTest extends TestCase
         $result = \json_decode(wait($response->getBody()->buffer()), true);
 
         $this->assertEquals($field1, $result['form']['field1']);
-        $this->assertEquals(\file_get_contents($file1), $result['files']['file1']);
-        $this->assertEquals(\file_get_contents($file2), $result['files']['file2']);
+        $this->assertStringEqualsFile($file1, $result['files']['file1']);
+        $this->assertStringEqualsFile($file2, $result['files']['file2']);
         $this->assertEquals('multipart/form-data; boundary=' . $boundary, $result['headers']['Content-Type']);
     }
 
     /**
      * @requires extension zlib
      */
-    public function testGzipResponse()
+    public function testGzipResponse(): void
     {
         $client = new DefaultClient;
 
-        $response = wait($client->request('http://httpbin.org/gzip'));
+        $response = wait($client->request(new Request('http://httpbin.org/gzip')));
 
         $this->assertEquals(200, $response->getStatus());
 
@@ -391,11 +380,11 @@ class ClientHttpBinIntegrationTest extends TestCase
     /**
      * @requires extension zlib
      */
-    public function testDeflateResponse()
+    public function testDeflateResponse(): void
     {
         $client = new DefaultClient;
 
-        $response = wait($client->request('http://httpbin.org/deflate'));
+        $response = wait($client->request(new Request('http://httpbin.org/deflate')));
 
         $this->assertEquals(200, $response->getStatus());
 
@@ -404,18 +393,18 @@ class ClientHttpBinIntegrationTest extends TestCase
         $this->assertTrue($result['deflated']);
     }
 
-    public function testInfiniteRedirect()
+    public function testInfiniteRedirect(): void
     {
         $this->expectException(TooManyRedirectsException::class);
 
-        wait((new DefaultClient)->request("http://httpbin.org/redirect/11"));
+        wait((new DefaultClient)->request(new Request("http://httpbin.org/redirect/11")));
     }
 
-    public function testConnectionInfo()
+    public function testConnectionInfo(): void
     {
         /** @var Response $response */
-        $response = wait((new DefaultClient)->request("https://httpbin.org/get"));
-        $connectionInfo = $response->getMetaInfo()->getConnectionInfo();
+        $response = wait((new DefaultClient)->request(new Request("https://httpbin.org/get")));
+        $connectionInfo = $response->getConnectionInfo();
 
         $this->assertStringContainsString(":", $connectionInfo->getLocalAddress());
         $this->assertStringContainsString(":", $connectionInfo->getRemoteAddress());
@@ -430,23 +419,24 @@ class ClientHttpBinIntegrationTest extends TestCase
         }
     }
 
-    public function testRequestCancellation()
+    public function testRequestCancellation(): void
     {
         $cancellationTokenSource = new CancellationTokenSource;
-        $response = wait((new DefaultClient)->request("http://" . $this->socket->getAddress() . "/", [], $cancellationTokenSource->getToken()));
+        $response = wait((new DefaultClient)->request(new Request("http://" . $this->socket->getAddress() . "/"), $cancellationTokenSource->getToken()));
         $this->assertInstanceOf(Response::class, $response);
         $cancellationTokenSource->cancel();
         $this->expectException(CancelledException::class);
         wait($response->getBody()->buffer());
     }
 
-    public function testContentLengthBodyMismatchWithTooManyBytesSimple()
+    public function testContentLengthBodyMismatchWithTooManyBytesSimple(): void
     {
         $this->expectException(HttpException::class);
         $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
 
         $request = (new Request("http://httpbin.org/post", "POST"))
-            ->withBody(new class implements RequestBody {
+            ->withBody(new class implements RequestBody
+            {
                 public function getHeaders(): Promise
                 {
                     return new Success([]);
@@ -466,13 +456,14 @@ class ClientHttpBinIntegrationTest extends TestCase
         wait((new DefaultClient)->request($request));
     }
 
-    public function testContentLengthBodyMismatchWithTooManyBytesWith3ByteChunksAndLength2()
+    public function testContentLengthBodyMismatchWithTooManyBytesWith3ByteChunksAndLength2(): void
     {
         $this->expectException(HttpException::class);
         $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
 
         $request = (new Request("http://httpbin.org/post", "POST"))
-            ->withBody(new class implements RequestBody {
+            ->withBody(new class implements RequestBody
+            {
                 public function getHeaders(): Promise
                 {
                     return new Success([]);
@@ -492,13 +483,14 @@ class ClientHttpBinIntegrationTest extends TestCase
         wait((new DefaultClient)->request($request));
     }
 
-    public function testContentLengthBodyMismatchWithTooFewBytes()
+    public function testContentLengthBodyMismatchWithTooFewBytes(): void
     {
         $this->expectException(HttpException::class);
         $this->expectExceptionMessage("Body contained fewer bytes than specified in Content-Length, aborting request");
 
         $request = (new Request("http://httpbin.org/post", "POST"))
-            ->withBody(new class implements RequestBody {
+            ->withBody(new class implements RequestBody
+            {
                 public function getHeaders(): Promise
                 {
                     return new Success([]);

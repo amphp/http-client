@@ -471,12 +471,10 @@ final class Parser
             }
 
             $line = \substr($this->buffer, 0, $lineEndPos);
-            $hex = \strtolower(\trim(\ltrim($line, '0'))) ?: 0;
+            $hex = \strtolower(\trim(\ltrim($line, '0'))) ?: '0';
             $dec = \hexdec($hex);
 
-            if ($hex === \dechex($dec)) {
-                $this->chunkLenRemaining = $dec;
-            } else {
+            if ($hex !== \dechex($dec)) {
                 throw new ParseException(
                     $this->getParsedMessageArray(),
                     $msg = 'Invalid hexadecimal chunk size',
@@ -485,6 +483,7 @@ final class Parser
                 );
             }
 
+            $this->chunkLenRemaining = $dec;
             $this->buffer = \substr($this->buffer, $lineEndPos + 2);
 
             if (!$dec) {

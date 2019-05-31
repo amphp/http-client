@@ -10,6 +10,7 @@ use Amp\Socket\ConnectContext;
 use Amp\Socket\EncryptableSocket;
 use Amp\Socket\ResourceSocket;
 use Amp\Socket\SocketPool;
+use Amp\Socket\UnlimitedSocketPool;
 use Amp\Success;
 use League\Uri;
 use function Amp\call;
@@ -29,7 +30,7 @@ class HttpSocketPool implements SocketPool
 
     public function __construct(SocketPool $sockPool = null, HttpTunneler $tunneler = null)
     {
-        $this->socketPool = $sockPool ?? new BasicSocketPool;
+        $this->socketPool = $sockPool ?? new UnlimitedSocketPool;
         $this->tunneler = $tunneler ?? new HttpTunneler;
         $this->autoDetectProxySettings();
     }

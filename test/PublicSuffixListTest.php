@@ -10,20 +10,25 @@ class PublicSuffixListTest extends TestCase
     /**
      * @dataProvider provideTestData
      * @requires extension intl
+     *
+     * @param $domain
+     * @param $expectation
+     *
+     * @throws \Amp\Dns\InvalidNameException
      */
-    public function testWithData($domain, $expectation)
+    public function testWithData($domain, $expectation): void
     {
         $this->assertSame($expectation, PublicSuffixList::isPublicSuffix($domain));
     }
 
-    public function provideTestData()
+    public function provideTestData(): array
     {
         $lines = \file(__DIR__ . "/fixture/public_suffix_list_tests.txt", \FILE_IGNORE_NEW_LINES | \FILE_SKIP_EMPTY_LINES);
-        $lines = \array_filter($lines, function ($line) {
+        $lines = \array_filter($lines, static function ($line) {
             return \substr($line, 0, 2) !== "//";
         });
 
-        return \array_map(function ($line) {
+        return \array_map(static function ($line) {
             $parts = \explode(" ", $line);
 
             return [

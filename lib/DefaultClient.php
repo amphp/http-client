@@ -5,7 +5,6 @@ namespace Amp\Http\Client;
 use Amp\ByteStream\InputStream;
 use Amp\ByteStream\IteratorStream;
 use Amp\ByteStream\StreamException;
-use Amp\ByteStream\ZlibInputStream;
 use Amp\CancellationToken;
 use Amp\CancelledException;
 use Amp\Deferred;
@@ -15,6 +14,8 @@ use Amp\Failure;
 use Amp\Http\Client\Internal\CombinedCancellationToken;
 use Amp\Http\Client\Internal\Parser;
 use Amp\Http\Client\Internal\RequestCycle;
+use Amp\Http\InvalidHeaderException;
+use Amp\Http\Rfc7230;
 use Amp\Loop;
 use Amp\NullCancellationToken;
 use Amp\Promise;
@@ -25,8 +26,6 @@ use Amp\Socket\EncryptableSocket;
 use Amp\Socket\ResourceSocket;
 use Amp\Success;
 use Amp\TimeoutCancellationToken;
-use League\Uri;
-use Psr\Http\Message\UriInterface;
 use function Amp\asyncCall;
 use function Amp\call;
 
@@ -43,15 +42,13 @@ final class DefaultClient implements Client
 
     private $socketPool;
     private $connectContext;
-    private $hasZlib;
 
     public function __construct(
         ?HttpSocketPool $socketPool = null,
         ?ConnectContext $connectContext = null
     ) {
-        $this->socketPool = $socketPool ?? new HttpSocketPool;
+        $this->socketPool = $socketPool ?? new Socket\UnlimitedSocketPool;
         $this->connectContext = $connectContext ?? new ConnectContext;
-        $this->hasZlib = \extension_loaded('zlib');
     }
 
     /** @inheritdoc */
@@ -75,47 +72,40 @@ final class DefaultClient implements Client
             // Always normalize this as last item, because we need to strip sensitive headers
             $request = $this->normalizeTraceRequest($request);
 
+            $deferred = new Deferred;
+
+            $requestCycle = new RequestCycle;
+            $requestCycle->request = $request;
+            $requestCycle->deferred = $deferred;
+            $requestCycle->bodyDeferred = new Deferred;
+            $requestCycle->body = new Emitter;
+            $requestCycle->cancellation = $cancellation ?? new NullCancellationToken;
+
+            $protocolVersions = $request->getProtocolVersions();
+
+            if (\in_array("1.1", $protocolVersions, true)) {
+                $requestCycle->protocolVersion = "1.1";
+            } elseif (\in_array("1.0", $protocolVersions, true)) {
+                $requestCycle->protocolVersion = "1.0";
+            } else {
+                return new Failure(new HttpException(
+                    "None of the requested protocol versions are supported: " . \implode(", ", $protocolVersions)
+                ));
+            }
+
+            asyncCall(function () use ($requestCycle) {
+                try {
+                    yield from $this->doWrite($requestCycle);
+                } catch (\Throwable $e) {
+                    $this->fail($requestCycle, $e);
+                }
+            });
+
             /** @var Response $response */
-            $response = yield $this->doRequest($request, $cancellation);
+            $response = yield $deferred->promise();
 
             return $response;
         });
-    }
-
-    private function doRequest(
-        Request $request,
-        ?CancellationToken $cancellation = null
-    ): Promise {
-        $deferred = new Deferred;
-
-        $requestCycle = new RequestCycle;
-        $requestCycle->request = $request;
-        $requestCycle->deferred = $deferred;
-        $requestCycle->bodyDeferred = new Deferred;
-        $requestCycle->body = new Emitter;
-        $requestCycle->cancellation = $cancellation ?? new NullCancellationToken;
-
-        $protocolVersions = $request->getProtocolVersions();
-
-        if (\in_array("1.1", $protocolVersions, true)) {
-            $requestCycle->protocolVersion = "1.1";
-        } elseif (\in_array("1.0", $protocolVersions, true)) {
-            $requestCycle->protocolVersion = "1.0";
-        } else {
-            return new Failure(new HttpException(
-                "None of the requested protocol versions are supported: " . \implode(", ", $protocolVersions)
-            ));
-        }
-
-        asyncCall(function () use ($requestCycle) {
-            try {
-                yield from $this->doWrite($requestCycle);
-            } catch (\Throwable $e) {
-                $this->fail($requestCycle, $e);
-            }
-        });
-
-        return $deferred->promise();
     }
 
     /**
@@ -328,8 +318,10 @@ final class DefaultClient implements Client
             $timeoutToken = new TimeoutCancellationToken($timeout);
         }
 
-        $authority = $this->generateAuthorityFromUri($requestCycle->request->getUri());
-        $socketCheckoutUri = $requestCycle->request->getUri()->getScheme() . "://{$authority}";
+        $defaultPort = $requestCycle->request->getUri()->getScheme() === 'http' ? 80 : 443;
+        $authority = $requestCycle->request->getUri()->getHost() . ':' . ($requestCycle->request->getUri()->getPort() ?: $defaultPort);
+
+        $socketCheckoutUri = "tcp://{$authority}";
         $connectTimeoutToken = new CombinedCancellationToken($requestCycle->cancellation, $timeoutToken);
 
         if ($requestCycle->request->getUri()->getScheme() === 'https') {
@@ -372,7 +364,7 @@ final class DefaultClient implements Client
             // Collect this here, because it fails in case the remote closes the connection directly.
             $connectionInfo = $this->collectConnectionInfo($socket);
 
-            $rawHeaders = $this->generateRawRequestHeaders($requestCycle->request, $requestCycle->protocolVersion);
+            $rawHeaders = $this->generateRawRequestHeader($requestCycle->request, $requestCycle->protocolVersion);
             yield $socket->write($rawHeaders);
 
             $body = $requestCycle->request->getBody()->createBodyStream();
@@ -458,11 +450,11 @@ final class DefaultClient implements Client
 
     private function normalizeRequestBodyHeaders(Request $request): \Generator
     {
-        if ($request->hasHeader("Transfer-Encoding")) {
-            return $request->withoutHeader("Content-Length");
+        if ($request->hasHeader("transfer-encoding")) {
+            return $request->withoutHeader("content-length");
         }
 
-        if ($request->hasHeader("Content-Length")) {
+        if ($request->hasHeader("content-length")) {
             return $request;
         }
 
@@ -471,13 +463,13 @@ final class DefaultClient implements Client
         $bodyLength = yield $body->getBodyLength();
 
         if ($bodyLength === 0) {
-            $request = $request->withHeader('Content-Length', '0');
-            $request = $request->withoutHeader('Transfer-Encoding');
+            $request = $request->withHeader('content-length', '0');
+            $request = $request->withoutHeader('transfer-encoding');
         } elseif ($bodyLength > 0) {
-            $request = $request->withHeader("Content-Length", $bodyLength);
-            $request = $request->withoutHeader("Transfer-Encoding");
+            $request = $request->withHeader("content-length", $bodyLength);
+            $request = $request->withoutHeader("transfer-encoding");
         } else {
-            $request = $request->withHeader("Transfer-Encoding", "chunked");
+            $request = $request->withHeader("transfer-encoding", "chunked");
         }
 
         return $request;
@@ -485,7 +477,6 @@ final class DefaultClient implements Client
 
     private function normalizeRequestHeaders(Request $request): Request
     {
-        $request = $this->normalizeRequestEncodingHeaderForZlib($request);
         $request = $this->normalizeRequestHostHeader($request);
         $request = $this->normalizeRequestUserAgent($request);
         $request = $this->normalizeRequestAcceptHeader($request);
@@ -517,38 +508,26 @@ final class DefaultClient implements Client
         return $request;
     }
 
-    private function normalizeRequestEncodingHeaderForZlib(Request $request): Request
-    {
-        if ($this->hasZlib) {
-            return $request->withHeader('Accept-Encoding', 'gzip, deflate, identity');
-        }
-
-        return $request->withoutHeader('Accept-Encoding');
-    }
-
     private function normalizeRequestHostHeader(Request $request): Request
     {
-        if (!$request->hasHeader('host')) {
-            $request = $request->withHeader('host', $this->generateAuthorityFromUri($request->getUri()));
+        if ($request->hasHeader('host')) {
+            $host = $request->getHeader('host');
+        } else {
+            $host = $request->getUri()->withUserInfo('')->getAuthority();
         }
 
-        return $request->withHeader('host', $this->normalizeHostHeader($request->getHeader('host')));
-    }
-
-    private function normalizeHostHeader(string $host): string
-    {
         // Though servers are supposed to be able to handle standard port names on the end of the
         // Host header some fail to do this correctly. As a result, we strip the port from the end
         // if it's a standard 80 or 443
-        if (\strpos($host, ':80') === \strlen($host) - 3) {
-            return \substr($host, 0, -3);
+        if ($request->getUri()->getScheme() === 'http' && \strpos($host, ':80') === \strlen($host) - 3) {
+            $request = $request->withHeader('host', \substr($host, 0, -3));
+        } else if ($request->getUri()->getScheme() === 'https' && \strpos($host, ':443') === \strlen($host) - 4) {
+            $request = $request->withHeader('host', \substr($host, 0, -4));
+        } else {
+            $request = $request->withHeader('host', $host);
         }
 
-        if (\strpos($host, ':443') === \strlen($host) - 4) {
-            return \substr($host, 0, -4);
-        }
-
-        return $host;
+        return $request;
     }
 
     private function normalizeRequestUserAgent(Request $request): Request
@@ -569,25 +548,12 @@ final class DefaultClient implements Client
         return $request->withHeader('Accept', '*/*');
     }
 
-    private function generateAuthorityFromUri(UriInterface $uri): string
-    {
-        $host = $uri->getHost();
-        $port = $uri->getPort();
-
-        return "{$host}:{$port}";
-    }
-
     private function finalizeResponse(
         RequestCycle $requestCycle,
         array $parserResult,
         ConnectionInfo $connectionInfo
     ): Response {
         $body = new IteratorStream($requestCycle->body->iterate());
-
-        if ($encoding = $this->determineCompressionEncoding($parserResult["headers"])) {
-            /** @noinspection PhpUnhandledExceptionInspection */
-            $body = new ZlibInputStream($body, $encoding);
-        }
 
         // Wrap the input stream so we can discard the body in case it's destructed but hasn't been consumed.
         // This allows reusing the connection for further requests. It's important to have __destruct in InputStream and
@@ -600,7 +566,7 @@ final class DefaultClient implements Client
             private $socketPool;
             private $successfulEnd = false;
 
-            public function __construct(InputStream $body, RequestCycle $requestCycle, HttpSocketPool $socketPool)
+            public function __construct(InputStream $body, RequestCycle $requestCycle, Socket\SocketPool $socketPool)
             {
                 $this->body = $body;
                 $this->requestCycle = $requestCycle;
@@ -612,6 +578,7 @@ final class DefaultClient implements Client
                 $promise = $this->body->read();
                 $promise->onResolve(function ($error, $value) {
                     if ($value !== null) {
+                        // TODO This has been a protection against gzip bombs, but no longer works, as the decompression does no longer happen in here
                         $this->bodySize += \strlen($value);
                         $maxBytes = $this->requestCycle->request->getOptions()->getBodySizeLimit();
                         if ($maxBytes !== 0 && $this->bodySize >= $maxBytes) {
@@ -643,8 +610,7 @@ final class DefaultClient implements Client
             $parserResult["headers"],
             $body,
             $requestCycle->request,
-            null,
-            new MetaInfo($connectionInfo)
+            $connectionInfo
         );
     }
 
@@ -652,8 +618,8 @@ final class DefaultClient implements Client
     {
         $request = $response->getRequest();
 
-        $requestConnHeader = $request->getHeader('Connection');
-        $responseConnHeader = $response->getHeader('Connection');
+        $requestConnHeader = $request->getHeader('connection');
+        $responseConnHeader = $response->getHeader('connection');
 
         if ($requestConnHeader && !\strcasecmp($requestConnHeader, 'close')) {
             return true;
@@ -670,29 +636,6 @@ final class DefaultClient implements Client
         return false;
     }
 
-    private function determineCompressionEncoding(array $responseHeaders): int
-    {
-        if (!$this->hasZlib) {
-            return 0;
-        }
-
-        if (!isset($responseHeaders["content-encoding"])) {
-            return 0;
-        }
-
-        $contentEncodingHeader = \trim(\current($responseHeaders["content-encoding"]));
-
-        if (\strcasecmp($contentEncodingHeader, 'gzip') === 0) {
-            return \ZLIB_ENCODING_GZIP;
-        }
-
-        if (\strcasecmp($contentEncodingHeader, 'deflate') === 0) {
-            return \ZLIB_ENCODING_DEFLATE;
-        }
-
-        return 0;
-    }
-
     /**
      * @param Request $request
      * @param string  $protocolVersion
@@ -705,36 +648,24 @@ final class DefaultClient implements Client
      *       Right now this doesn't matter because all proxy requests use a CONNECT
      *       tunnel but this likely will not always be the case.
      */
-    private function generateRawRequestHeaders(Request $request, string $protocolVersion): string
+    private function generateRawRequestHeader(Request $request, string $protocolVersion): string
     {
         $uri = $request->getUri();
-        $uri = Uri\Http::createFromString($uri);
-
         $requestUri = $uri->getPath() ?: '/';
 
-        if ($query = $uri->getQuery()) {
+        if ('' !== $query = $uri->getQuery()) {
             $requestUri .= '?' . $query;
         }
 
-        $head = $request->getMethod() . ' ' . $requestUri . ' HTTP/' . $protocolVersion . "\r\n";
+        $header = $request->getMethod() . ' ' . $requestUri . ' HTTP/' . $protocolVersion . "\r\n";
 
-        foreach ($request->getHeaders(true) as $field => $values) {
-            if (\strcspn($field, "\r\n") !== \strlen($field)) {
-                throw new HttpException("Blocked header injection attempt for header '{$field}'");
-            }
-
-            foreach ($values as $value) {
-                if (\strcspn($value, "\r\n") !== \strlen($value)) {
-                    throw new HttpException("Blocked header injection attempt for header '{$field}' with value '{$value}'");
-                }
-
-                $head .= "{$field}: {$value}\r\n";
-            }
+        try {
+            $header .= Rfc7230::formatHeaders($request->getHeaders());
+        } catch (InvalidHeaderException $e) {
+            throw new HttpException($e->getMessage());
         }
 
-        $head .= "\r\n";
-
-        return $head;
+        return $header . "\r\n";
     }
 
     /**

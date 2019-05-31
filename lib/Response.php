@@ -21,7 +21,7 @@ final class Response
     private $previousResponse;
     private $headers;
     private $body;
-    private $metaInfo;
+    private $connectionInfo;
 
     public function __construct(
         string $protocolVersion,
@@ -30,8 +30,8 @@ final class Response
         array $headers,
         InputStream $body,
         Request $request,
-        ?Response $previousResponse,
-        MetaInfo $metaInfo
+        ConnectionInfo $connectionInfo,
+        ?Response $previousResponse = null
     ) {
         $this->protocolVersion = $protocolVersion;
         $this->status = $status;
@@ -39,8 +39,8 @@ final class Response
         $this->headers = $headers;
         $this->body = new Payload($body);
         $this->request = $request;
+        $this->connectionInfo = $connectionInfo;
         $this->previousResponse = $previousResponse;
-        $this->metaInfo = $metaInfo;
     }
 
     /**
@@ -189,18 +189,23 @@ final class Response
         return $this->body;
     }
 
-    /**
-     * @return MetaInfo
-     */
-    public function getMetaInfo(): MetaInfo
+    public function getConnectionInfo(): ConnectionInfo
     {
-        return $this->metaInfo;
+        return $this->connectionInfo;
     }
 
     public function withPreviousResponse(?Response $previousResponse): self
     {
         $clone = clone $this;
         $clone->previousResponse = $previousResponse;
+
+        return $clone;
+    }
+
+    public function withBody(InputStream $body): self
+    {
+        $clone = clone $this;
+        $clone->body = $body;
 
         return $clone;
     }
