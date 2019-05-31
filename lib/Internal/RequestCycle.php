@@ -21,15 +21,6 @@ class RequestCycle
     /** @var Request */
     public $request;
 
-    /** @var Uri\Http */
-    public $uri;
-
-    /** @var array */
-    public $options;
-
-    /** @var Response|null */
-    public $previousResponse;
-
     /** @var Deferred */
     public $deferred;
 

@@ -28,11 +28,15 @@ final class Request
     /** @var RequestBody */
     private $body;
 
+    /** @var RequestOptions */
+    private $options;
+
     public function __construct(string $uri, string $method = "GET")
     {
         $this->uri = Uri\Http::createFromString($uri);
         $this->method = $method;
         $this->body = new StringBody("");
+        $this->options = new RequestOptions;
     }
 
     /**
@@ -124,14 +128,14 @@ final class Request
     /**
      * Specify the request's HTTP URI.
      *
-     * @param string
+     * @param UriInterface $uri
      *
      * @return Request
      */
-    public function withUri(string $uri): self
+    public function withUri(UriInterface $uri): self
     {
         $clone = clone $this;
-        $clone->uri = Uri\Http::createFromString($uri);
+        $clone->uri = $uri;
 
         return $clone;
     }
@@ -344,6 +348,19 @@ final class Request
             /** @noinspection PhpUndefinedClassInspection */
             throw new \TypeError("Invalid body type: " . \gettype($body));
         }
+
+        return $clone;
+    }
+
+    public function getOptions(): RequestOptions
+    {
+        return $this->options;
+    }
+
+    public function withOptions(RequestOptions $options): self
+    {
+        $clone = clone $this;
+        $clone->options = $options;
 
         return $clone;
     }

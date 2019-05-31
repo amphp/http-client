@@ -26,7 +26,6 @@ use Amp\Socket\ResourceSocket;
 use Amp\Success;
 use Amp\TimeoutCancellationToken;
 use League\Uri;
-use League\Uri\UriException;
 use Psr\Http\Message\UriInterface;
 use function Amp\asyncCall;
 use function Amp\call;
@@ -45,16 +44,6 @@ final class DefaultClient implements Client
     private $socketPool;
     private $connectContext;
     private $hasZlib;
-    private $options = [
-        self::OP_AUTO_ENCODING => true,
-        self::OP_TRANSFER_TIMEOUT => 15000,
-        self::OP_MAX_REDIRECTS => 5,
-        self::OP_AUTO_REFERER => true,
-        self::OP_DISCARD_BODY => false,
-        self::OP_DEFAULT_HEADERS => [],
-        self::OP_MAX_HEADER_BYTES => Parser::DEFAULT_MAX_HEADER_BYTES,
-        self::OP_MAX_BODY_BYTES => Parser::DEFAULT_MAX_BODY_BYTES,
-    ];
 
     public function __construct(
         ?HttpSocketPool $socketPool = null,
@@ -79,77 +68,15 @@ final class DefaultClient implements Client
                 }
             }
 
-            $originalUri = $request->getUri();
-            $previousResponse = null;
+            /** @var Request $request */
+            $request = yield from $this->normalizeRequestBodyHeaders($request);
+            $request = $this->normalizeRequestHeaders($request);
 
-            $maxRedirects = 10;
-            $requestNr = 1;
+            // Always normalize this as last item, because we need to strip sensitive headers
+            $request = $this->normalizeTraceRequest($request);
 
-            do {
-                /** @var Request $request */
-                $request = yield from $this->normalizeRequestBodyHeaders($request);
-                $request = $this->normalizeRequestHeaders($request);
-
-                // Always normalize this as last item, because we need to strip sensitive headers
-                $request = $this->normalizeTraceRequest($request);
-
-                /** @var Response $response */
-                $response = yield $this->doRequest($request, $previousResponse, $cancellation);
-
-                // Explicit $maxRedirects !== 0 check to not consume redirect bodies if redirect following is disabled
-                if ($maxRedirects !== 0 && $redirectUri = $this->getRedirectUri($response)) {
-                    // Discard response body of redirect responses
-                    $body = $response->getBody();
-
-                    /** @noinspection PhpStatementHasEmptyBodyInspection */
-                    /** @noinspection LoopWhichDoesNotLoopInspection */
-                    /** @noinspection MissingOrEmptyGroupStatementInspection */
-                    while (null !== yield $body->read()) {
-                        // discard
-                    }
-
-                    /**
-                     * If this is a 302/303 we need to follow the location with a GET if the original request wasn't
-                     * GET. Otherwise we need to send the body again.
-                     *
-                     * We won't resend the body nor any headers on redirects to other hosts for security reasons.
-                     *
-                     * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.3.3
-                     */
-                    $method = $request->getMethod();
-                    $status = $response->getStatus();
-                    $isSameHost = $redirectUri->getAuthority() === $originalUri->getAuthority();
-
-                    if ($isSameHost) {
-                        $request = $request->withUri($redirectUri);
-
-                        if ($status >= 300 && $status <= 303 && $method !== 'GET') {
-                            $request = $request->withMethod('GET');
-                            $request = $request->withoutHeader('Transfer-Encoding');
-                            $request = $request->withoutHeader('Content-Length');
-                            $request = $request->withoutHeader('Content-Type');
-                            $request = $request->withBody(null);
-                        }
-                    } else {
-                        // We ALWAYS follow with a GET and without any set headers or body for redirects to other hosts.
-                        $request = new Request($redirectUri);
-                        $request = $this->normalizeRequestHeaders($request);
-                    }
-
-                    if ($autoReferer = true) { // TODO Support option
-                        $request = $this->assignRedirectRefererHeader($request, $originalUri, $redirectUri);
-                    }
-
-                    $previousResponse = $response;
-                    $originalUri = $redirectUri;
-                } else {
-                    break;
-                }
-            } while (++$requestNr <= $maxRedirects + 1);
-
-            if ($maxRedirects !== 0 && $redirectUri = $this->getRedirectUri($response)) {
-                throw new TooManyRedirectsException($response);
-            }
+            /** @var Response $response */
+            $response = yield $this->doRequest($request, $cancellation);
 
             return $response;
         });
@@ -157,14 +84,12 @@ final class DefaultClient implements Client
 
     private function doRequest(
         Request $request,
-        ?Response $previousResponse = null,
         ?CancellationToken $cancellation = null
     ): Promise {
         $deferred = new Deferred;
 
         $requestCycle = new RequestCycle;
         $requestCycle->request = $request;
-        $requestCycle->previousResponse = $previousResponse;
         $requestCycle->deferred = $deferred;
         $requestCycle->bodyDeferred = new Deferred;
         $requestCycle->body = new Emitter;
@@ -210,7 +135,7 @@ final class DefaultClient implements Client
     ): \Generator {
         try {
             $backpressure = new Success;
-            $bodyCallback = $requestCycle->options[self::OP_DISCARD_BODY]
+            $bodyCallback = $requestCycle->request->getOptions()->isDiscardBody()
                 ? null
                 : static function ($data) use ($requestCycle, &$backpressure) {
                     $backpressure = $requestCycle->body->emit($data);
@@ -219,10 +144,8 @@ final class DefaultClient implements Client
             $parser = new Parser($bodyCallback);
 
             $parser->enqueueResponseMethodMatch($requestCycle->request->getMethod());
-            $parser->setAllOptions([
-                Parser::OP_MAX_HEADER_BYTES => $requestCycle->options[self::OP_MAX_HEADER_BYTES],
-                Parser::OP_MAX_BODY_BYTES => $requestCycle->options[self::OP_MAX_BODY_BYTES],
-            ]);
+            $parser->setHeaderSizeLimit($requestCycle->request->getOptions()->getHeaderSizeLimit());
+            $parser->setBodySizeLimit($requestCycle->request->getOptions()->getBodySizeLimit());
 
             while (null !== $chunk = yield $socket->read()) {
                 $requestCycle->cancellation->throwIfRequested();
@@ -388,7 +311,7 @@ final class DefaultClient implements Client
      */
     private function doWrite(RequestCycle $requestCycle): \Generator
     {
-        $timeout = $requestCycle->options[self::OP_TRANSFER_TIMEOUT];
+        $timeout = $requestCycle->request->getOptions()->getTransferTimeout();
         $timeoutToken = new NullCancellationToken;
 
         if ($timeout > 0) {
@@ -405,13 +328,13 @@ final class DefaultClient implements Client
             $timeoutToken = new TimeoutCancellationToken($timeout);
         }
 
-        $authority = $this->generateAuthorityFromUri($requestCycle->uri);
-        $socketCheckoutUri = $requestCycle->uri->getScheme() . "://{$authority}";
+        $authority = $this->generateAuthorityFromUri($requestCycle->request->getUri());
+        $socketCheckoutUri = $requestCycle->request->getUri()->getScheme() . "://{$authority}";
         $connectTimeoutToken = new CombinedCancellationToken($requestCycle->cancellation, $timeoutToken);
 
-        if ($requestCycle->uri->getScheme() === 'https') {
-            $tlsContext = $this->connectContext->getTlsContext() ?? new ClientTlsContext($requestCycle->uri->getHost());
-            $tlsContext = $tlsContext->withPeerName($requestCycle->uri->getHost());
+        if ($requestCycle->request->getUri()->getScheme() === 'https') {
+            $tlsContext = $this->connectContext->getTlsContext() ?? new ClientTlsContext($requestCycle->request->getUri()->getHost());
+            $tlsContext = $tlsContext->withPeerName($requestCycle->request->getUri()->getHost());
             $tlsContext = $tlsContext->withPeerCapturing();
             $connectContext = $this->connectContext->withTlsContext($tlsContext);
         } else {
@@ -437,7 +360,7 @@ final class DefaultClient implements Client
         });
 
         try {
-            if ($requestCycle->uri->getScheme() === 'https') {
+            if ($requestCycle->request->getUri()->getScheme() === 'https') {
                 $tlsState = $socket->getTlsState();
                 if ($tlsState === EncryptableSocket::TLS_STATE_DISABLED) {
                     yield $socket->setupTls();
@@ -669,7 +592,8 @@ final class DefaultClient implements Client
         // Wrap the input stream so we can discard the body in case it's destructed but hasn't been consumed.
         // This allows reusing the connection for further requests. It's important to have __destruct in InputStream and
         // not in Payload, because an InputStream might be pulled out of Payload and used separately.
-        $body = new class($body, $requestCycle, $this->socketPool) implements InputStream {
+        $body = new class($body, $requestCycle, $this->socketPool) implements InputStream
+        {
             private $body;
             private $bodySize = 0;
             private $requestCycle;
@@ -689,7 +613,7 @@ final class DefaultClient implements Client
                 $promise->onResolve(function ($error, $value) {
                     if ($value !== null) {
                         $this->bodySize += \strlen($value);
-                        $maxBytes = $this->requestCycle->options[Client::OP_MAX_BODY_BYTES];
+                        $maxBytes = $this->requestCycle->request->getOptions()->getBodySizeLimit();
                         if ($maxBytes !== 0 && $this->bodySize >= $maxBytes) {
                             $this->requestCycle->bodyTooLarge = true;
                         }
@@ -719,7 +643,7 @@ final class DefaultClient implements Client
             $parserResult["headers"],
             $body,
             $requestCycle->request,
-            $requestCycle->previousResponse,
+            null,
             new MetaInfo($connectionInfo)
         );
     }
@@ -767,79 +691,6 @@ final class DefaultClient implements Client
         }
 
         return 0;
-    }
-
-
-    private function getRedirectUri(Response $response): ?UriInterface
-    {
-        if (!$response->hasHeader('Location')) {
-            return null;
-        }
-
-        $request = $response->getRequest();
-        $method = $request->getMethod();
-
-        $status = $response->getStatus();
-
-        if ($status < 300 || $status > 399 || $method === 'HEAD') {
-            return null;
-        }
-
-        try {
-            $requestUri = Uri\Http::createFromString($request->getUri());
-            $redirectLocation = $response->getHeader('Location');
-
-            $redirectUri = Uri\Http::createFromString($redirectLocation);
-
-            return $this->resolveRedirect($requestUri, $redirectUri);
-        } catch (UriException $e) {
-            return null;
-        }
-    }
-
-    private function resolveRedirect(UriInterface $requestUri, UriInterface $redirectUri): UriInterface
-    {
-        if ($redirectUri->getAuthority() === '') {
-            $redirectUri = $redirectUri->withHost($requestUri->getHost());
-
-            if ($redirectUri->getPort() === null && $requestUri->getPort() !== null) {
-                $redirectUri = $redirectUri->withPort($requestUri->getPort());
-            }
-        }
-
-        if ($redirectUri->getScheme() === '') {
-            $redirectUri = $redirectUri->withScheme($requestUri->getScheme());
-        }
-
-        if ('' !== $query = $requestUri->getQuery()) {
-            $redirectUri = $redirectUri->withQuery($query);
-        }
-
-        return $redirectUri;
-    }
-
-    /**
-     * Clients must not add a Referer header when leaving an unencrypted resource and redirecting to an encrypted
-     * resource.
-     *
-     * @param Request $request
-     * @param string  $refererUri
-     * @param string  $newUri
-     *
-     * @return Request
-     *
-     * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec15.html#sec15.1.3
-     */
-    private function assignRedirectRefererHeader(Request $request, string $refererUri, string $newUri): Request
-    {
-        $refererIsEncrypted = (\stripos($refererUri, 'https') === 0);
-        $destinationIsEncrypted = (\stripos($newUri, 'https') === 0);
-
-        if (!$refererIsEncrypted || $destinationIsEncrypted) {
-            return $request->withHeader('Referer', $refererUri);
-        }
-
-        return $request->withoutHeader('Referer');
     }
 
     /**

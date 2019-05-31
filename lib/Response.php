@@ -196,4 +196,12 @@ final class Response
     {
         return $this->metaInfo;
     }
+
+    public function withPreviousResponse(?Response $previousResponse): self
+    {
+        $clone = clone $this;
+        $clone->previousResponse = $previousResponse;
+
+        return $clone;
+    }
 }

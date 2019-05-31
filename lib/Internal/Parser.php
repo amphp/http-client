@@ -28,9 +28,6 @@ final class Parser
     public const TRAILERS_START = 4;
     public const TRAILERS = 5;
 
-    public const OP_MAX_HEADER_BYTES = "amp.artax.parser.max-header-bytes";
-    public const OP_MAX_BODY_BYTES = "amp.artax.parser.max-body-bytes";
-
     public const DEFAULT_MAX_HEADER_BYTES = 8192;
     public const DEFAULT_MAX_BODY_BYTES = 10485760;
 
@@ -63,27 +60,14 @@ final class Parser
         $this->mode = $mode;
     }
 
-    public function setAllOptions(array $options): void
+    public function setHeaderSizeLimit(int $maxHeaderBytes): void
     {
-        foreach ($options as $option => $value) {
-            $this->setOption($option, $value);
-        }
+        $this->maxBodyBytes = $maxHeaderBytes;
     }
 
-    public function setOption(string $option, $value): void
+    public function setBodySizeLimit(int $maxBodyBytes): void
     {
-        switch ($option) {
-            case self::OP_MAX_HEADER_BYTES:
-                $this->maxHeaderBytes = (int) $value;
-                break;
-            case self::OP_MAX_BODY_BYTES:
-                $this->maxBodyBytes = (int) $value;
-                break;
-            default:
-                throw new \Error(
-                    \sprintf('Unknown parser option: %s', $option)
-                );
-        }
+        $this->maxBodyBytes = $maxBodyBytes;
     }
 
     public function enqueueResponseMethodMatch(string $method): void
@@ -119,7 +103,7 @@ final class Parser
             $this->buffer .= $data;
         }
 
-        if ($this->buffer == '') {
+        if ($this->buffer === '') {
             goto more_data_needed;
         }
 
@@ -138,7 +122,8 @@ final class Parser
                 goto trailers;
         }
 
-        awaiting_headers: {
+        awaiting_headers:
+        {
             if (!$startLineAndHeaders = $this->shiftHeadersFromMessageBuffer()) {
                 goto more_data_needed;
             }
@@ -146,7 +131,8 @@ final class Parser
             goto start_line;
         }
 
-        start_line: {
+        start_line:
+        {
             $startLineEndPos = \strpos($startLineAndHeaders, "\n");
             $startLine = \substr($startLineAndHeaders, 0, $startLineEndPos);
             $rawHeaders = \substr($startLineAndHeaders, $startLineEndPos + 1);
@@ -159,7 +145,8 @@ final class Parser
             goto status_line_and_headers;
         }
 
-        request_line_and_headers: {
+        request_line_and_headers:
+        {
             $parts = \explode(' ', \trim($startLine));
 
             if (isset($parts[0]) && ($method = \trim($parts[0]))) {
@@ -191,7 +178,8 @@ final class Parser
             goto transition_from_request_headers_to_body;
         }
 
-        status_line_and_headers: {
+        status_line_and_headers:
+        {
             if (\preg_match(self::STATUS_LINE_PATTERN, $startLine, $matches)) {
                 $this->protocol = $matches['protocol'];
                 $this->responseCode = (int) $matches['status'];
@@ -207,7 +195,8 @@ final class Parser
             goto transition_from_response_headers_to_body;
         }
 
-        transition_from_request_headers_to_body: {
+        transition_from_request_headers_to_body:
+        {
             if ($this->requestMethod === 'HEAD' || $this->requestMethod === 'TRACE' || $this->requestMethod === 'OPTIONS') {
                 goto complete;
             } elseif ($this->parseFlowHeaders['TRANSFER-ENCODING']) {
@@ -222,11 +211,12 @@ final class Parser
             goto complete;
         }
 
-        transition_from_response_headers_to_body: {
+        transition_from_response_headers_to_body:
+        {
             $requestMethod = \array_shift($this->responseMethodMatch);
 
-            if ($this->responseCode == 204
-                || $this->responseCode == 304
+            if ($this->responseCode === 204
+                || $this->responseCode === 304
                 || $this->responseCode < 200
                 || $requestMethod === 'HEAD'
                 || $requestMethod === 'CONNECT'
@@ -247,7 +237,8 @@ final class Parser
             goto complete;
         }
 
-        before_body: {
+        before_body:
+        {
             if ($this->remainingBodyBytes === 0) {
                 goto complete;
             }
@@ -258,7 +249,8 @@ final class Parser
             return $parsedMsgArr;
         }
 
-        body_identity: {
+        body_identity:
+        {
             $bufferDataSize = \strlen($this->buffer);
 
             if ($bufferDataSize < $this->remainingBodyBytes) {
@@ -266,7 +258,7 @@ final class Parser
                 $this->buffer = null;
                 $this->remainingBodyBytes -= $bufferDataSize;
                 goto more_data_needed;
-            } elseif ($bufferDataSize == $this->remainingBodyBytes) {
+            } elseif ($bufferDataSize === $this->remainingBodyBytes) {
                 $this->addToBody($this->buffer);
                 $this->buffer = null;
                 $this->remainingBodyBytes = 0;
@@ -280,13 +272,15 @@ final class Parser
             goto complete;
         }
 
-        body_identity_eof: {
+        body_identity_eof:
+        {
             $this->addToBody($this->buffer);
             $this->buffer = '';
             goto more_data_needed;
         }
 
-        body_chunks: {
+        body_chunks:
+        {
             if ($this->dechunk()) {
                 $this->state = self::TRAILERS_START;
                 goto trailers_start;
@@ -295,10 +289,11 @@ final class Parser
             goto more_data_needed;
         }
 
-        trailers_start: {
+        trailers_start:
+        {
             $firstTwoBytes = \substr($this->buffer, 0, 2);
 
-            if ($firstTwoBytes == "" || $firstTwoBytes === "\r") {
+            if ($firstTwoBytes === "" || $firstTwoBytes === "\r") {
                 goto more_data_needed;
             } elseif ($firstTwoBytes === "\r\n") {
                 $this->buffer = \substr($this->buffer, 2);
@@ -309,7 +304,8 @@ final class Parser
             goto trailers;
         }
 
-        trailers: {
+        trailers:
+        {
             if ($trailers = $this->shiftHeadersFromMessageBuffer()) {
                 $this->parseTrailers($trailers);
                 goto complete;
@@ -318,7 +314,8 @@ final class Parser
             goto more_data_needed;
         }
 
-        complete: {
+        complete:
+        {
             $parsedMsgArr = $this->getParsedMessageArray();
             $parsedMsgArr['headersOnly'] = false;
 
@@ -341,9 +338,31 @@ final class Parser
             return $parsedMsgArr;
         }
 
-        more_data_needed: {
+        more_data_needed:
+        {
             return null;
         }
+    }
+
+    public function getParsedMessageArray(): array
+    {
+        $result = [
+            'protocol' => $this->protocol,
+            'headers' => $this->headers,
+            'trace' => $this->traceBuffer,
+            'buffer' => $this->buffer,
+            'headersOnly' => false,
+        ];
+
+        if ($this->mode === self::MODE_REQUEST) {
+            $result['method'] = $this->requestMethod;
+            $result['uri'] = $this->requestUri;
+        } else {
+            $result['status'] = $this->responseCode;
+            $result['reason'] = $this->responseReason;
+        }
+
+        return $result;
     }
 
     /**
@@ -438,7 +457,8 @@ final class Parser
             goto dechunk;
         }
 
-        determine_chunk_size: {
+        determine_chunk_size:
+        {
             if (false === ($lineEndPos = \strpos($this->buffer, "\r\n"))) {
                 goto more_data_needed;
             } elseif ($lineEndPos === 0) {
@@ -454,7 +474,7 @@ final class Parser
             $hex = \strtolower(\trim(\ltrim($line, '0'))) ?: 0;
             $dec = \hexdec($hex);
 
-            if ($hex == \dechex($dec)) {
+            if ($hex === \dechex($dec)) {
                 $this->chunkLenRemaining = $dec;
             } else {
                 throw new ParseException(
@@ -472,7 +492,8 @@ final class Parser
             }
         }
 
-        dechunk: {
+        dechunk:
+        {
             $bufferLen = \strlen($this->buffer);
 
             // These first two (extreme) edge cases prevent errors where the packet boundary ends after
@@ -497,7 +518,8 @@ final class Parser
             goto more_data_needed;
         }
 
-        more_data_needed: {
+        more_data_needed:
+        {
             return false;
         }
     }
@@ -532,27 +554,6 @@ final class Parser
                 $this->headers[$key] = $trailerHeaders[$key];
             }
         }
-    }
-
-    public function getParsedMessageArray(): array
-    {
-        $result = [
-            'protocol' => $this->protocol,
-            'headers' => $this->headers,
-            'trace' => $this->traceBuffer,
-            'buffer' => $this->buffer,
-            'headersOnly' => false,
-        ];
-
-        if ($this->mode === self::MODE_REQUEST) {
-            $result['method'] = $this->requestMethod;
-            $result['uri'] = $this->requestUri;
-        } else {
-            $result['status'] = $this->responseCode;
-            $result['reason'] = $this->responseReason;
-        }
-
-        return $result;
     }
 
     /**
