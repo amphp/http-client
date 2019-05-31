@@ -22,9 +22,6 @@ final class Request
     /** @var array headers with lowercase keys */
     private $headers = [];
 
-    /** @var array lowercase header to actual case map */
-    private $headerCaseMap = [];
-
     /** @var RequestBody */
     private $body;
 
@@ -199,7 +196,6 @@ final class Request
         $clone = clone $this;
 
         $clone->headers[$lower] = [\trim($value)];
-        $clone->headerCaseMap[$lower] = $field;
 
         return $clone;
     }
@@ -223,7 +219,6 @@ final class Request
         $headers[] = \trim($value);
 
         $clone->headers[$lower] = $headers;
-        $clone->headerCaseMap[$lower] = $field;
 
         return $clone;
     }
@@ -264,10 +259,8 @@ final class Request
                 $clone->headers[$lower][] = \trim($value);
             }
 
-            $clone->headerCaseMap[$lower] = $field;
-
             if (empty($clone->headers[$lower])) {
-                unset($clone->headers[$lower], $clone->headerCaseMap[$lower]);
+                unset($clone->headers[$lower]);
             }
         }
 
@@ -277,23 +270,11 @@ final class Request
     /**
      * Retrieve an associative array of headers matching field names to an array of field values.
      *
-     * @param bool $originalCase If true, headers are returned in the case of the last set header with that name.
-     *
      * @return array
      */
-    public function getHeaders(bool $originalCase = false): array
+    public function getHeaders(): array
     {
-        if (!$originalCase) {
-            return $this->headers;
-        }
-
-        $headers = [];
-
-        foreach ($this->headers as $header => $values) {
-            $headers[$this->headerCaseMap[$header]] = $values;
-        }
-
-        return $headers;
+        return $this->headers;
     }
 
     /**
@@ -305,14 +286,8 @@ final class Request
      */
     public function withoutHeader(string $field): self
     {
-        $lower = \strtolower($field);
-
         $clone = clone $this;
-
-        unset(
-            $clone->headerCaseMap[$lower],
-            $clone->headers[$lower]
-        );
+        unset($clone->headers[\strtolower($field)]);
 
         return $clone;
     }

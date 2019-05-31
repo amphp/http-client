@@ -53,6 +53,14 @@ final class Response
         return $this->protocolVersion;
     }
 
+    public function withProtocolVersion(string $protocolVersion): self
+    {
+        $clone = clone $this;
+        $clone->protocolVersion = $protocolVersion;
+
+        return $clone;
+    }
+
     /**
      * Retrieve the response's three-digit HTTP status code.
      *
@@ -61,6 +69,14 @@ final class Response
     public function getStatus(): int
     {
         return $this->status;
+    }
+
+    public function withStatus(string $status): self
+    {
+        $clone = clone $this;
+        $clone->status = $status;
+
+        return $clone;
     }
 
     /**
@@ -73,6 +89,14 @@ final class Response
         return $this->reason;
     }
 
+    public function withReason(string $reason): self
+    {
+        $clone = clone $this;
+        $clone->reason = $reason;
+
+        return $clone;
+    }
+
     /**
      * Retrieve the Request instance that resulted in this Response instance.
      *
@@ -81,6 +105,14 @@ final class Response
     public function getRequest(): Request
     {
         return $this->request;
+    }
+
+    public function withRequest(Request $request): self
+    {
+        $clone = clone $this;
+        $clone->request = $request;
+
+        return $clone;
     }
 
     /**
@@ -154,27 +186,115 @@ final class Response
     }
 
     /**
+     * Assign a value for the specified header field by replacing any existing values for that field.
+     *
+     * @param string $field Header name.
+     * @param string $value Header value.
+     *
+     * @return Response
+     */
+    public function withHeader(string $field, string $value): self
+    {
+        $field = \trim($field);
+        $lower = \strtolower($field);
+
+        $clone = clone $this;
+
+        $clone->headers[$lower] = [\trim($value)];
+
+        return $clone;
+    }
+
+    /**
+     * Assign a value for the specified header field by adding an additional header line.
+     *
+     * @param string $field Header name.
+     * @param string $value Header value.
+     *
+     * @return Response
+     */
+    public function withAddedHeader(string $field, string $value): self
+    {
+        $field = \trim($field);
+        $lower = \strtolower($field);
+
+        $clone = clone $this;
+
+        $headers = $clone->headers[$lower] ?? [];
+        $headers[] = \trim($value);
+
+        $clone->headers[$lower] = $headers;
+
+        return $clone;
+    }
+
+    public function withHeaders(array $headers): self
+    {
+        $clone = clone $this;
+
+        foreach ($headers as $field => $values) {
+            if (!\is_string($field) && !\is_int($field)) {
+                // PHP converts integer strings automatically to integers.
+                // Later versions of PHP might allow other key types.
+                // @codeCoverageIgnoreStart
+                /** @noinspection PhpUndefinedClassInspection */
+                throw new \TypeError("All array keys for withHeaders must be strings");
+                // @codeCoverageIgnoreEnd
+            }
+
+            $field = \trim($field);
+            $lower = \strtolower($field);
+
+            if (!\is_array($values)) {
+                $values = [$values];
+            }
+
+            $clone->headers[$lower] = [];
+
+            foreach ($values as $value) {
+                if (!\is_string($value)
+                    && !\is_int($value)
+                    && !\is_float($value)
+                    && !(\is_object($value) && \method_exists($value, '__toString'))
+                ) {
+                    /** @noinspection PhpUndefinedClassInspection */
+                    throw new \TypeError("All values for withHeaders must be string or an array of strings");
+                }
+
+                $clone->headers[$lower][] = \trim($value);
+            }
+
+            if (empty($clone->headers[$lower])) {
+                unset($clone->headers[$lower]);
+            }
+        }
+
+        return $clone;
+    }
+
+    /**
      * Retrieve an associative array of headers matching field names to an array of field values.
-     *
-     * **Format**
-     *
-     * ```php
-     * [
-     *     "header-1" => [
-     *         "value-1",
-     *         "value-2",
-     *     ],
-     *     "header-2" => [
-     *         "value-1",
-     *     ],
-     * ]
-     * ```
      *
      * @return array
      */
     public function getHeaders(): array
     {
         return $this->headers;
+    }
+
+    /**
+     * Remove the specified header field from the message.
+     *
+     * @param string $field Header name.
+     *
+     * @return Response
+     */
+    public function withoutHeader(string $field): self
+    {
+        $clone = clone $this;
+        unset($clone->headers[\strtolower($field)]);
+
+        return $clone;
     }
 
     /**
@@ -192,6 +312,14 @@ final class Response
     public function getConnectionInfo(): ConnectionInfo
     {
         return $this->connectionInfo;
+    }
+
+    public function withConnectionInfo(ConnectionInfo $connectionInfo): self
+    {
+        $clone = clone $this;
+        $clone->connectionInfo = $connectionInfo;
+
+        return $clone;
     }
 
     public function withPreviousResponse(?Response $previousResponse): self
