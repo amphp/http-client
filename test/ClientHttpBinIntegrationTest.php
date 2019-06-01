@@ -291,7 +291,7 @@ class ClientHttpBinIntegrationTest extends TestCase
         $body = wait($response->getBody()->buffer());
         $result = \json_decode($body, true);
 
-        $this->assertEquals('0', $result->headers['Content-Length']);
+        $this->assertEquals('0', $result['headers']['Content-Length']);
     }
 
     public function testFormEncodedBodyRequest(): void
