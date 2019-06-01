@@ -4,31 +4,30 @@ namespace Amp\Test\Artax;
 
 use Amp\CancellationToken;
 use Amp\Deferred;
-use Amp\Http\Client\Client;
-use Amp\Http\Client\DefaultClient;
-use Amp\Http\Client\HttpSocketPool;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\RequestOptions;
 use Amp\Http\Client\Response;
+use Amp\Http\Client\SocketClient;
 use Amp\Http\Client\TimeoutException;
 use Amp\Loop;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Promise;
 use Amp\Socket;
 use function Amp\asyncCall;
-use function Amp\Promise\wait;
 
 class TimeoutTest extends AsyncTestCase
 {
-    /** @var DefaultClient */
+    /** @var SocketClient */
     private $client;
 
     public function setUp(): void
     {
-        $this->client = new DefaultClient;
+        parent::setUp();
+
+        $this->client = new SocketClient;
     }
 
-    public function testTimeoutDuringBody(): void
+    public function testTimeoutDuringBody(): \Generator
     {
         $server = Socket\listen("tcp://127.0.0.1:0");
 
@@ -50,26 +49,28 @@ class TimeoutTest extends AsyncTestCase
             $promise = $this->client->request((new Request($uri))->withOptions((new RequestOptions)->withTransferTimeout(1000)));
 
             /** @var Response $response */
-            $response = wait($promise);
+            $response = yield $promise;
 
             $this->expectException(TimeoutException::class);
             $this->expectExceptionMessage("Allowed transfer timeout exceeded: 1000 ms");
 
-            wait($response->getBody()->buffer());
+            yield $response->getBody()->buffer();
         } finally {
             $this->assertLessThan(2, \microtime(true) - $start);
             $server->close();
         }
     }
 
-    public function testTimeoutDuringConnect(): void
+    public function testTimeoutDuringConnect(): \Generator
     {
-        Loop::repeat(1000, function () { /* dummy watcher, because socket pool doesn't do anything */
+        $start = \microtime(true);
+
+        Loop::repeat(1000, function () {
+            // dummy watcher, because socket pool doesn't do anything
         });
 
-        $this->client = new DefaultClient(null, new HttpSocketPool(new class implements Socket\SocketPool
-        {
-            public function checkout(
+        $this->client = new SocketClient(new Socket\UnlimitedSocketPool(10000, new class implements Socket\Connector {
+            public function connect(
                 string $uri,
                 ?Socket\ConnectContext $connectContext = null,
                 ?CancellationToken $token = null
@@ -84,27 +85,17 @@ class TimeoutTest extends AsyncTestCase
 
                 return $deferred->promise(); // never resolve
             }
-
-            public function checkin(Socket\EncryptableSocket $socket): void
-            {
-                // ignore
-            }
-
-            public function clear(Socket\EncryptableSocket $socket): void
-            {
-                // ignore
-            }
         }));
 
         $this->expectException(TimeoutException::class);
         $this->expectExceptionMessage("Allowed transfer timeout exceeded: 100 ms");
 
-        $this->assertRunTimeLessThan(function () {
-            wait($this->client->request("http://localhost:1337/", [Client::OP_TRANSFER_TIMEOUT => 100]));
-        }, 600);
+        yield $this->client->request((new Request('http://localhost:1337/'))->withOptions((new RequestOptions)->withTransferTimeout(100)));
+
+        $this->assertLessThan(\microtime(true) - $start, 0.6);
     }
 
-    public function testTimeoutDuringTlsEnable(): void
+    public function testTimeoutDuringTlsEnable(): \Generator
     {
         $tlsContext = (new Socket\ServerTlsContext)
             ->withDefaultCertificate(new Socket\Certificate(__DIR__ . "/tls/amphp.org.pem"));
@@ -128,7 +119,7 @@ class TimeoutTest extends AsyncTestCase
 
             $this->expectException(TimeoutException::class);
             $this->expectExceptionMessage("Allowed transfer timeout exceeded: 100 ms");
-            wait($promise);
+            yield $promise;
         } finally {
             $this->assertLessThan(0.6, \microtime(true) - $start);
             $server->close();

@@ -30,13 +30,11 @@ use function Amp\asyncCall;
 use function Amp\call;
 
 /**
- * Standard client implementation.
- *
- * Use the `Client` interface for your type declarations so people can use composition to add layers like caching.
+ * Socket client implementation.
  *
  * @see Client
  */
-final class DefaultClient implements Client
+final class SocketClient implements Client
 {
     public const DEFAULT_USER_AGENT = 'Mozilla/5.0 (compatible; amphp/http-client)';
 
@@ -44,7 +42,7 @@ final class DefaultClient implements Client
     private $connectContext;
 
     public function __construct(
-        ?HttpSocketPool $socketPool = null,
+        ?Socket\SocketPool $socketPool = null,
         ?ConnectContext $connectContext = null
     ) {
         $this->socketPool = $socketPool ?? new Socket\UnlimitedSocketPool;

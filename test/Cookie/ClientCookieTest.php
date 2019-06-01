@@ -5,12 +5,12 @@ namespace Amp\Test\Artax\Cookie;
 use Amp\Http\Client\Cookie\ArrayCookieJar;
 use Amp\Http\Client\Cookie\Cookie;
 use Amp\Http\Client\Cookie\CookieJar;
-use Amp\Http\Client\DefaultClient;
+use Amp\Http\Client\SocketClient;
 use PHPUnit\Framework\TestCase;
 
 class ClientCookieTest extends TestCase
 {
-    /** @var DefaultClient */
+    /** @var SocketClient */
     private $client;
 
     /** @var CookieJar */
@@ -19,7 +19,7 @@ class ClientCookieTest extends TestCase
     public function setUp(): void
     {
         $this->jar = new ArrayCookieJar;
-        $this->client = new DefaultClient($this->jar);
+        $this->client = new SocketClient($this->jar);
     }
 
     /** @dataProvider provideCookieDomainMatchData */

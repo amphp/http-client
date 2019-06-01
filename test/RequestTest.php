@@ -102,11 +102,6 @@ class RequestTest extends TestCase
             "x-foo" => ["bar"],
             "x-goodbye" => ["yy", "zzz"],
         ], $request->getHeaders());
-
-        $this->assertSame([
-            "x-FOO" => ["bar"],
-            "x-goodbye" => ["yy", "zzz"],
-        ], $request->getHeaders(true));
     }
 
     public function provideBadAllHeaderInput(): array
