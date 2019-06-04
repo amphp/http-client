@@ -1,6 +1,5 @@
 <?php
 
-
 namespace Amp\Http\Client;
 
 use Amp\CancellationToken;

@@ -5,7 +5,6 @@ namespace Amp\Http\Client;
 use Amp\CancellationToken;
 use Amp\Failure;
 use Amp\Promise;
-use Amp\Socket\BasicSocketPool;
 use Amp\Socket\ConnectContext;
 use Amp\Socket\EncryptableSocket;
 use Amp\Socket\ResourceSocket;

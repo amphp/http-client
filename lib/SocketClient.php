@@ -427,7 +427,7 @@ final class SocketClient implements Client
         // if it's a standard 80 or 443
         if ($request->getUri()->getScheme() === 'http' && \strpos($host, ':80') === \strlen($host) - 3) {
             $request = $request->withHeader('host', \substr($host, 0, -3));
-        } else if ($request->getUri()->getScheme() === 'https' && \strpos($host, ':443') === \strlen($host) - 4) {
+        } elseif ($request->getUri()->getScheme() === 'https' && \strpos($host, ':443') === \strlen($host) - 4) {
             $request = $request->withHeader('host', \substr($host, 0, -4));
         } else {
             $request = $request->withHeader('host', $host);
@@ -463,8 +463,7 @@ final class SocketClient implements Client
         Promise $completionPromise
     ): Response {
         $body = new IteratorStream($bodyEmitter->iterate());
-        $body = new class($body, $bodyCancellation) implements InputStream
-        {
+        $body = new class($body, $bodyCancellation) implements InputStream {
             private $body;
             private $bodyCancellation;
             private $successfulEnd = false;

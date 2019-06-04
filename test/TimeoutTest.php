@@ -6,7 +6,6 @@ use Amp\CancellationToken;
 use Amp\Deferred;
 use Amp\Http\Client\ClientBuilder;
 use Amp\Http\Client\Request;
-use Amp\Http\Client\RequestOptions;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\SocketClient;
 use Amp\Http\Client\TimeoutException;
