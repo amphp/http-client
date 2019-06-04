@@ -6,27 +6,19 @@ use Amp\ByteStream\InputStream;
 use Amp\ByteStream\IteratorStream;
 use Amp\ByteStream\StreamException;
 use Amp\CancellationToken;
-use Amp\CancelledException;
+use Amp\CancellationTokenSource;
+use Amp\Coroutine;
 use Amp\Deferred;
-use Amp\Delayed;
 use Amp\Emitter;
-use Amp\Failure;
 use Amp\Http\Client\Internal\CombinedCancellationToken;
 use Amp\Http\Client\Internal\Parser;
-use Amp\Http\Client\Internal\RequestCycle;
 use Amp\Http\InvalidHeaderException;
 use Amp\Http\Rfc7230;
-use Amp\Loop;
 use Amp\NullCancellationToken;
 use Amp\Promise;
-use Amp\Socket;
-use Amp\Socket\ClientTlsContext;
-use Amp\Socket\ConnectContext;
 use Amp\Socket\EncryptableSocket;
-use Amp\Socket\ResourceSocket;
 use Amp\Success;
 use Amp\TimeoutCancellationToken;
-use function Amp\asyncCall;
 use function Amp\call;
 
 /**
@@ -38,20 +30,28 @@ final class SocketClient implements Client
 {
     public const DEFAULT_USER_AGENT = 'Mozilla/5.0 (compatible; amphp/http-client)';
 
-    private $socketPool;
-    private $connectContext;
+    private $socket;
+    private $connectionInfo;
+    private $backpressure;
+    private $pending;
 
     public function __construct(
-        ?Socket\SocketPool $socketPool = null,
-        ?ConnectContext $connectContext = null
+        EncryptableSocket $socket,
+        ConnectionInfo $connectionInfo
     ) {
-        $this->socketPool = $socketPool ?? new Socket\UnlimitedSocketPool;
-        $this->connectContext = $connectContext ?? new ConnectContext;
+        $this->socket = $socket;
+        $this->connectionInfo = $connectionInfo;
     }
 
     /** @inheritdoc */
     public function request(Request $request, CancellationToken $cancellation = null): Promise
     {
+        if ($this->pending) {
+            throw new HttpException(self::class . ' does not support concurrent requests');
+        }
+
+        $this->pending = true;
+
         return call(function () use ($request, $cancellation) {
             $cancellation = $cancellation ?? new NullCancellationToken;
 
@@ -70,73 +70,80 @@ final class SocketClient implements Client
             // Always normalize this as last item, because we need to strip sensitive headers
             $request = $this->normalizeTraceRequest($request);
 
-            $deferred = new Deferred;
-
-            $requestCycle = new RequestCycle;
-            $requestCycle->request = $request;
-            $requestCycle->deferred = $deferred;
-            $requestCycle->bodyDeferred = new Deferred;
-            $requestCycle->body = new Emitter;
-            $requestCycle->cancellation = $cancellation ?? new NullCancellationToken;
-
             $protocolVersions = $request->getProtocolVersions();
 
             if (\in_array("1.1", $protocolVersions, true)) {
-                $requestCycle->protocolVersion = "1.1";
+                $protocolVersion = "1.1";
             } elseif (\in_array("1.0", $protocolVersions, true)) {
-                $requestCycle->protocolVersion = "1.0";
+                $protocolVersion = "1.0";
             } else {
-                return new Failure(new HttpException(
-                    "None of the requested protocol versions are supported: " . \implode(", ", $protocolVersions)
-                ));
+                throw new HttpException(
+                    "None of the requested protocol versions is supported: " . \implode(", ", $protocolVersions)
+                );
             }
 
-            asyncCall(function () use ($requestCycle) {
-                try {
-                    yield from $this->doWrite($requestCycle);
-                } catch (\Throwable $e) {
-                    $this->fail($requestCycle, $e);
-                }
+            $completionDeferred = new Deferred;
+
+            $timeout = $request->getOptions()->getTransferTimeout();
+            if ($timeout > 0) {
+                // TODO: Exception message \sprintf('Allowed transfer timeout exceeded: %d ms', $timeout)
+                $timeoutToken = new TimeoutCancellationToken($timeout);
+                $subCancellation = new CombinedCancellationToken($cancellation, $timeoutToken);
+            } else {
+                $subCancellation = $cancellation;
+            }
+
+            $cancellationId = $subCancellation->subscribe(function () {
+                $this->socket->close();
             });
 
-            /** @var Response $response */
-            $response = yield $deferred->promise();
+            $completionDeferred->promise()->onResolve(static function () use ($subCancellation, $cancellationId) {
+                $subCancellation->unsubscribe($cancellationId);
+            });
 
-            return $response;
+            try {
+                yield from $this->doWrite($request, $protocolVersion);
+
+                return yield from $this->doRead($request, $subCancellation, $completionDeferred);
+            } catch (HttpException $e) {
+                $cancellation->throwIfRequested();
+
+                throw $e;
+            }
         });
     }
 
     /**
-     * @param RequestCycle      $requestCycle
-     * @param EncryptableSocket $socket
-     * @param ConnectionInfo    $connectionInfo
+     * @param Request           $request
+     * @param CancellationToken $cancellationToken
+     * @param Deferred          $completionDeferred
      *
      * @return \Generator
-     * @throws DnsException
      * @throws HttpException
      * @throws SocketException
      */
     private function doRead(
-        RequestCycle $requestCycle,
-        EncryptableSocket $socket,
-        ConnectionInfo $connectionInfo
+        Request $request,
+        CancellationToken $cancellationToken,
+        Deferred $completionDeferred
     ): \Generator {
+        $bodyEmitter = new Emitter;
+
+        $this->backpressure = new Success;
+        $bodyCallback = $request->getOptions()->isDiscardBody()
+            ? null
+            : function ($data) use ($bodyEmitter) {
+                $this->backpressure = $bodyEmitter->emit($data);
+            };
+
+        $parser = new Parser($bodyCallback);
+        $parser->enqueueResponseMethodMatch($request->getMethod());
+        $parser->setHeaderSizeLimit($request->getOptions()->getHeaderSizeLimit());
+        $parser->setBodySizeLimit($request->getOptions()->getBodySizeLimit());
+
         try {
-            $backpressure = new Success;
-            $bodyCallback = $requestCycle->request->getOptions()->isDiscardBody()
-                ? null
-                : static function ($data) use ($requestCycle, &$backpressure) {
-                    $backpressure = $requestCycle->body->emit($data);
-                };
-
-            $parser = new Parser($bodyCallback);
-
-            $parser->enqueueResponseMethodMatch($requestCycle->request->getMethod());
-            $parser->setHeaderSizeLimit($requestCycle->request->getOptions()->getHeaderSizeLimit());
-            $parser->setBodySizeLimit($requestCycle->request->getOptions()->getBodySizeLimit());
-
-            while (null !== $chunk = yield $socket->read()) {
-                $requestCycle->cancellation->throwIfRequested();
+            while (null !== $chunk = yield $this->socket->read()) {
+                $cancellationToken->throwIfRequested();
 
                 $parseResult = $parser->parse($chunk);
 
@@ -144,116 +151,102 @@ final class SocketClient implements Client
                     continue;
                 }
 
-                $parseResult["headers"] = \array_change_key_case($parseResult["headers"], \CASE_LOWER);
+                $bodyCancellationSource = new CancellationTokenSource;
+                $bodyCancellationToken = new CombinedCancellationToken($cancellationToken, $bodyCancellationSource->getToken());
+                $bodyCancellationToken->subscribe(function () {
+                    $this->socket->close();
+                });
 
-                $response = $this->finalizeResponse($requestCycle, $parseResult, $connectionInfo);
-                $shouldCloseSocketAfterResponse = $this->shouldCloseSocketAfterResponse($response);
-                $ignoreIncompleteBodyCheck = false;
-                $responseHeaders = $response->getHeaders();
+                $response = $this->finalizeResponse($request, $bodyEmitter, $parseResult, $this->connectionInfo, $bodyCancellationSource, $completionDeferred->promise());
 
-                if ($requestCycle->deferred) {
-                    $deferred = $requestCycle->deferred;
-                    $requestCycle->deferred = null;
-                    $deferred->resolve($response);
-                    $response = null; // clear references
-                    $deferred = null; // there's also a reference in the deferred
-                } else {
-                    return;
-                }
+                Promise\rethrow(new Coroutine($this->doReadBody($parser, $parseResult, $response, $bodyEmitter, $completionDeferred, $bodyCancellationToken)));
 
-                // Required, otherwise responses without body hang
-                if ($parseResult["headersOnly"]) {
-                    // Directly parse again in case we already have the full body but aborted parsing
-                    // to resolve promise with headers.
-                    $chunk = null;
+                return $response;
+            }
 
-                    do {
-                        try {
-                            $parseResult = $parser->parse($chunk);
-                        } catch (ParseException $e) {
-                            $this->fail($requestCycle, $e);
-                            throw $e;
-                        }
+            throw new SocketException('Reading the response failed, socket closed before a complete response was received');
+        } catch (StreamException $e) {
+            throw new SocketException('Reading the response failed: ' . $e->getMessage());
+        }
+    }
 
-                        if ($parseResult) {
-                            break;
-                        }
+    /**
+     * @param Parser            $parser
+     * @param array             $parseResult
+     * @param Response          $response
+     * @param Emitter           $bodyEmitter
+     * @param Deferred          $completionDeferred
+     * @param CancellationToken $bodyCancellationToken
+     *
+     * @return \Generator
+     */
+    private function doReadBody(
+        Parser $parser,
+        array $parseResult,
+        Response $response,
+        Emitter $bodyEmitter,
+        Deferred $completionDeferred,
+        CancellationToken $bodyCancellationToken
+    ): \Generator {
+        try {
+            $shouldCloseSocketAfterResponse = $this->shouldCloseSocketAfterResponse($response);
+            $ignoreIncompleteBodyCheck = false;
+            $responseHeaders = $response->getHeaders();
 
-                        if (!$backpressure instanceof Success) {
-                            yield $this->withCancellation($backpressure, $requestCycle->cancellation);
-                        }
+            // Required, otherwise responses without body hang
+            if ($parseResult["headersOnly"]) {
+                // Directly parse again in case we already have the full body but aborted parsing
+                // to resolve promise with headers.
+                $chunk = null;
 
-                        if ($requestCycle->bodyTooLarge) {
-                            throw new HttpException("Response body exceeded the specified size limit");
-                        }
-                    } while (null !== $chunk = yield $socket->read());
+                do {
+                    /** @noinspection CallableParameterUseCaseInTypeContextInspection */
+                    $parseResult = $parser->parse($chunk);
 
-                    $parserState = $parser->getState();
-                    if ($parserState !== Parser::AWAITING_HEADERS) {
-                        // Ignore check if neither content-length nor chunked encoding are given.
-                        $ignoreIncompleteBodyCheck = $parserState === Parser::BODY_IDENTITY_EOF &&
-                            !isset($responseHeaders["content-length"]) &&
-                            \strcasecmp('identity', $responseHeaders['transfer-encoding'][0] ?? "");
+                    if ($parseResult) {
+                        break;
+                    }
 
-                        if (!$ignoreIncompleteBodyCheck) {
-                            throw new SocketException(\sprintf(
-                                'Socket disconnected prior to response completion (Parser state: %s)',
-                                $parserState
-                            ));
-                        }
+                    if (!$this->backpressure instanceof Success) {
+                        yield $this->withCancellation($this->backpressure, $bodyCancellationToken);
+                    }
+
+                    /* if ($bodyTooLarge) {
+                        throw new HttpException("Response body exceeded the specified size limit");
+                    } */
+                } while (null !== $chunk = yield $this->socket->read());
+
+                $bodyCancellationToken->throwIfRequested();
+
+                $parserState = $parser->getState();
+                if ($parserState !== Parser::AWAITING_HEADERS) {
+                    // Ignore check if neither content-length nor chunked encoding are given.
+                    $ignoreIncompleteBodyCheck = $parserState === Parser::BODY_IDENTITY_EOF &&
+                        !isset($responseHeaders["content-length"]) &&
+                        \strcasecmp('identity', $responseHeaders['transfer-encoding'][0] ?? "");
+
+                    if (!$ignoreIncompleteBodyCheck) {
+                        throw new SocketException(\sprintf(
+                            'Socket disconnected prior to response completion (parser state: %s)',
+                            $parserState
+                        ));
                     }
                 }
-
-                if ($shouldCloseSocketAfterResponse || $ignoreIncompleteBodyCheck) {
-                    $this->socketPool->clear($socket);
-                    $socket->close();
-                } else {
-                    $this->socketPool->checkin($socket);
-                }
-
-                $requestCycle->socket = null;
-
-                // Complete body AFTER socket checkin, so the socket can be reused for a potential redirect
-                $body = $requestCycle->body;
-                $requestCycle->body = null;
-
-                $bodyDeferred = $requestCycle->bodyDeferred;
-                $requestCycle->bodyDeferred = null;
-
-                $body->complete();
-                $bodyDeferred->resolve();
-
-                return;
             }
+
+            if ($shouldCloseSocketAfterResponse || $ignoreIncompleteBodyCheck) {
+                $this->socket->close();
+            }
+
+            $bodyEmitter->complete();
+            $completionDeferred->resolve();
         } catch (\Throwable $e) {
-            $this->fail($requestCycle, $e);
+            $this->socket->close();
 
-            return;
-        }
-
-        if (!$socket->isClosed()) {
-            $requestCycle->socket = null;
-            $this->socketPool->clear($socket);
-            $socket->close();
-        }
-
-        // Required, because if the write fails, the read() call immediately resolves.
-        yield new Delayed(0);
-
-        if ($requestCycle->deferred === null) {
-            return;
-        }
-
-        $parserState = $parser->getState();
-
-        if ($parserState === Parser::AWAITING_HEADERS && $requestCycle->retryCount < 1) {
-            $requestCycle->retryCount++;
-            yield from $this->doWrite($requestCycle);
-        } else {
-            $this->fail($requestCycle, new SocketException(\sprintf(
-                'Socket disconnected prior to response completion (Parser state: %s)',
-                $parserState
-            )));
+            $bodyEmitter->fail($e);
+            $completionDeferred->fail($e);
+        } finally {
+            $this->pending = false;
         }
     }
 
@@ -289,87 +282,25 @@ final class SocketClient implements Client
     }
 
     /**
-     * @param RequestCycle $requestCycle
+     * @param Request $request
+     * @param string  $protocolVersion
      *
      * @return \Generator
      *
-     * @throws DnsException
      * @throws HttpException
      * @throws SocketException
      */
-    private function doWrite(RequestCycle $requestCycle): \Generator
+    private function doWrite(Request $request, string $protocolVersion): \Generator
     {
-        $timeout = $requestCycle->request->getOptions()->getTransferTimeout();
-        $timeoutToken = new NullCancellationToken;
-
-        if ($timeout > 0) {
-            $transferTimeoutWatcher = Loop::delay($timeout, function () use ($requestCycle, $timeout) {
-                $this->fail($requestCycle, new TimeoutException(
-                    \sprintf('Allowed transfer timeout exceeded: %d ms', $timeout)
-                ));
-            });
-
-            $requestCycle->bodyDeferred->promise()->onResolve(static function () use ($transferTimeoutWatcher) {
-                Loop::cancel($transferTimeoutWatcher);
-            });
-
-            $timeoutToken = new TimeoutCancellationToken($timeout);
-        }
-
-        $defaultPort = $requestCycle->request->getUri()->getScheme() === 'http' ? 80 : 443;
-        $authority = $requestCycle->request->getUri()->getHost() . ':' . ($requestCycle->request->getUri()->getPort() ?: $defaultPort);
-
-        $socketCheckoutUri = "tcp://{$authority}";
-        $connectTimeoutToken = new CombinedCancellationToken($requestCycle->cancellation, $timeoutToken);
-
-        if ($requestCycle->request->getUri()->getScheme() === 'https') {
-            $tlsContext = $this->connectContext->getTlsContext() ?? new ClientTlsContext($requestCycle->request->getUri()->getHost());
-            $tlsContext = $tlsContext->withPeerName($requestCycle->request->getUri()->getHost());
-            $tlsContext = $tlsContext->withPeerCapturing();
-            $connectContext = $this->connectContext->withTlsContext($tlsContext);
-        } else {
-            $connectContext = $this->connectContext;
-        }
-
         try {
-            /** @var EncryptableSocket $socket */
-            $socket = yield $this->socketPool->checkout($socketCheckoutUri, $connectContext, $connectTimeoutToken);
-            $requestCycle->socket = $socket;
-        } catch (Socket\SocketException $e) {
-            throw new SocketException(\sprintf("Connection to '%s' failed", $authority), 0, $e);
-        } catch (CancelledException $e) {
-            // In case of a user cancellation request, throw the expected exception
-            $requestCycle->cancellation->throwIfRequested();
+            $rawHeaders = $this->generateRawRequestHeader($request, $protocolVersion);
+            yield $this->socket->write($rawHeaders);
 
-            // Otherwise we ran into a timeout of our TimeoutCancellationToken
-            throw new SocketException(\sprintf("Connection to '%s' timed out", $authority), 0, $e);
-        }
+            $body = $request->getBody()->createBodyStream();
+            $chunking = $request->getHeader("transfer-encoding") === "chunked";
+            $remainingBytes = $request->getHeader("content-length");
 
-        $cancellation = $requestCycle->cancellation->subscribe(function ($error) use ($requestCycle) {
-            $this->fail($requestCycle, $error);
-        });
-
-        try {
-            if ($requestCycle->request->getUri()->getScheme() === 'https') {
-                $tlsState = $socket->getTlsState();
-                if ($tlsState === EncryptableSocket::TLS_STATE_DISABLED) {
-                    yield $socket->setupTls();
-                } else {
-                    throw new HttpException('Failed to setup TLS connection, connection was in TLS state "' . $tlsState . '"');
-                }
-            }
-
-            // Collect this here, because it fails in case the remote closes the connection directly.
-            $connectionInfo = $this->collectConnectionInfo($socket);
-
-            $rawHeaders = $this->generateRawRequestHeader($requestCycle->request, $requestCycle->protocolVersion);
-            yield $socket->write($rawHeaders);
-
-            $body = $requestCycle->request->getBody()->createBodyStream();
-            $chunking = $requestCycle->request->getHeader("transfer-encoding") === "chunked";
-            $remainingBytes = $requestCycle->request->getHeader("content-length");
-
-            if ($chunking && $requestCycle->protocolVersion === "1.0") {
+            if ($chunking && $protocolVersion === "1.0") {
                 throw new HttpException("Can't send chunked bodies over HTTP/1.0");
             }
 
@@ -377,8 +308,6 @@ final class SocketClient implements Client
             $buffer = "";
 
             while (null !== $chunk = yield $body->read()) {
-                $requestCycle->cancellation->throwIfRequested();
-
                 if ($chunk === "") {
                     continue;
                 }
@@ -393,56 +322,20 @@ final class SocketClient implements Client
                     }
                 }
 
-                yield $socket->write($buffer);
+                yield $this->socket->write($buffer);
                 $buffer = $chunk;
             }
 
             // Flush last buffered chunk.
-            yield $socket->write($buffer);
+            yield $this->socket->write($buffer);
 
             if ($chunking) {
-                yield $socket->write("0\r\n\r\n");
+                yield $this->socket->write("0\r\n\r\n");
             } elseif ($remainingBytes !== null && $remainingBytes > 0) {
                 throw new HttpException("Body contained fewer bytes than specified in Content-Length, aborting request");
             }
-
-            yield from $this->doRead($requestCycle, $socket, $connectionInfo);
         } catch (StreamException $exception) {
-            $this->fail($requestCycle, new SocketException('Socket disconnected prior to response completion'));
-        } finally {
-            $requestCycle->cancellation->unsubscribe($cancellation);
-        }
-    }
-
-    private function fail(RequestCycle $requestCycle, \Throwable $error): void
-    {
-        $toFails = [];
-        $socket = null;
-
-        if ($requestCycle->deferred) {
-            $toFails[] = $requestCycle->deferred;
-            $requestCycle->deferred = null;
-        }
-
-        if ($requestCycle->body) {
-            $toFails[] = $requestCycle->body;
-            $requestCycle->body = null;
-        }
-
-        if ($requestCycle->bodyDeferred) {
-            $toFails[] = $requestCycle->bodyDeferred;
-            $requestCycle->bodyDeferred = null;
-        }
-
-        if ($requestCycle->socket) {
-            $this->socketPool->clear($requestCycle->socket);
-            $socket = $requestCycle->socket;
-            $requestCycle->socket = null;
-            $socket->close();
-        }
-
-        foreach ($toFails as $toFail) {
-            $toFail->fail($error);
+            throw new SocketException('Socket disconnected prior to response completion');
         }
     }
 
@@ -547,42 +440,31 @@ final class SocketClient implements Client
     }
 
     private function finalizeResponse(
-        RequestCycle $requestCycle,
+        Request $request,
+        Emitter $bodyEmitter,
         array $parserResult,
-        ConnectionInfo $connectionInfo
+        ConnectionInfo $connectionInfo,
+        CancellationTokenSource $bodyCancellation,
+        Promise $completionPromise
     ): Response {
-        $body = new IteratorStream($requestCycle->body->iterate());
-
-        // Wrap the input stream so we can discard the body in case it's destructed but hasn't been consumed.
-        // This allows reusing the connection for further requests. It's important to have __destruct in InputStream and
-        // not in Payload, because an InputStream might be pulled out of Payload and used separately.
-        $body = new class($body, $requestCycle, $this->socketPool) implements InputStream
+        $body = new IteratorStream($bodyEmitter->iterate());
+        $body = new class($body, $bodyCancellation) implements InputStream
         {
             private $body;
-            private $bodySize = 0;
-            private $requestCycle;
-            private $socketPool;
+            private $bodyCancellation;
             private $successfulEnd = false;
 
-            public function __construct(InputStream $body, RequestCycle $requestCycle, Socket\SocketPool $socketPool)
+            public function __construct(InputStream $body, CancellationTokenSource $bodyCancellation)
             {
                 $this->body = $body;
-                $this->requestCycle = $requestCycle;
-                $this->socketPool = $socketPool;
+                $this->bodyCancellation = $bodyCancellation;
             }
 
             public function read(): Promise
             {
                 $promise = $this->body->read();
                 $promise->onResolve(function ($error, $value) {
-                    if ($value !== null) {
-                        // TODO This has been a protection against gzip bombs, but no longer works, as the decompression does no longer happen in here
-                        $this->bodySize += \strlen($value);
-                        $maxBytes = $this->requestCycle->request->getOptions()->getBodySizeLimit();
-                        if ($maxBytes !== 0 && $this->bodySize >= $maxBytes) {
-                            $this->requestCycle->bodyTooLarge = true;
-                        }
-                    } elseif ($error === null) {
+                    if ($value === null && $error === null) {
                         $this->successfulEnd = true;
                     }
                 });
@@ -592,11 +474,8 @@ final class SocketClient implements Client
 
             public function __destruct()
             {
-                if (!$this->successfulEnd && $this->requestCycle->socket) {
-                    $this->socketPool->clear($this->requestCycle->socket);
-                    $socket = $this->requestCycle->socket;
-                    $this->requestCycle->socket = null;
-                    $socket->close();
+                if (!$this->successfulEnd) {
+                    $this->bodyCancellation->cancel();
                 }
             }
         };
@@ -607,8 +486,9 @@ final class SocketClient implements Client
             $parserResult["reason"],
             $parserResult["headers"],
             $body,
-            $requestCycle->request,
-            $connectionInfo
+            $request,
+            $connectionInfo,
+            $completionPromise
         );
     }
 
@@ -664,32 +544,5 @@ final class SocketClient implements Client
         }
 
         return $header . "\r\n";
-    }
-
-    /**
-     * @param EncryptableSocket $socket
-     *
-     * @return ConnectionInfo
-     * @throws SocketException
-     */
-    private function collectConnectionInfo(EncryptableSocket $socket): ConnectionInfo
-    {
-        if (!$socket instanceof ResourceSocket) {
-            return new ConnectionInfo($socket->getLocalAddress(), $socket->getRemoteAddress());
-        }
-
-        $stream = $socket->getResource();
-
-        if ($stream === null) {
-            throw new SocketException("Socket closed before connection information could be collected");
-        }
-
-        $crypto = \stream_get_meta_data($stream)["crypto"] ?? null;
-
-        return new ConnectionInfo(
-            $socket->getLocalAddress(),
-            $socket->getRemoteAddress(),
-            $crypto ? TlsInfo::fromMetaData($crypto, \stream_context_get_options($stream)["ssl"]) : null
-        );
     }
 }

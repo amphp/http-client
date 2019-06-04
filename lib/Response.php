@@ -4,6 +4,8 @@ namespace Amp\Http\Client;
 
 use Amp\ByteStream\InputStream;
 use Amp\ByteStream\Payload;
+use Amp\Promise;
+use Amp\Success;
 
 /**
  * An HTTP response.
@@ -18,10 +20,11 @@ final class Response
     private $status;
     private $reason;
     private $request;
-    private $previousResponse;
     private $headers;
     private $body;
     private $connectionInfo;
+    private $completionPromise;
+    private $previousResponse;
 
     public function __construct(
         string $protocolVersion,
@@ -31,6 +34,7 @@ final class Response
         InputStream $body,
         Request $request,
         ConnectionInfo $connectionInfo,
+        ?Promise $completionPromise = null,
         ?Response $previousResponse = null
     ) {
         $this->protocolVersion = $protocolVersion;
@@ -40,6 +44,7 @@ final class Response
         $this->body = new Payload($body);
         $this->request = $request;
         $this->connectionInfo = $connectionInfo;
+        $this->completionPromise = $completionPromise ?? new Success;
         $this->previousResponse = $previousResponse;
     }
 
@@ -312,6 +317,16 @@ final class Response
     public function getConnectionInfo(): ConnectionInfo
     {
         return $this->connectionInfo;
+    }
+
+    public function getCompletionPromise(): Promise
+    {
+        return $this->completionPromise;
+    }
+
+    public function awaitCompletion(): Promise
+    {
+        return $this->completionPromise;
     }
 
     public function withConnectionInfo(ConnectionInfo $connectionInfo): self
