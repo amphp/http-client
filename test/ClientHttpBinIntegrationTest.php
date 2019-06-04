@@ -50,7 +50,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->givenRawServerResponse("");
 
         $this->expectException(SocketException::class);
-        $this->expectExceptionMessage("Socket disconnected prior to response completion");
+        $this->expectExceptionMessage("Reading the response failed, socket closed before a complete response was received");
 
         /** @var Response $response */
         yield $this->executeRequest($this->createRequest()->withProtocolVersions(["1.0"]));

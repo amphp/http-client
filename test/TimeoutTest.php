@@ -4,6 +4,7 @@ namespace Amp\Test\Artax;
 
 use Amp\CancellationToken;
 use Amp\Deferred;
+use Amp\Http\Client\ClientBuilder;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\RequestOptions;
 use Amp\Http\Client\Response;
@@ -24,7 +25,7 @@ class TimeoutTest extends AsyncTestCase
     {
         parent::setUp();
 
-        $this->client = new SocketClient;
+        $this->client = (new ClientBuilder)->build();
     }
 
     public function testTimeoutDuringBody(): \Generator
@@ -46,10 +47,9 @@ class TimeoutTest extends AsyncTestCase
             $uri = "http://" . $server->getAddress() . "/";
 
             $start = \microtime(true);
-            $promise = $this->client->request((new Request($uri))->withOptions((new RequestOptions)->withTransferTimeout(1000)));
 
             /** @var Response $response */
-            $response = yield $promise;
+            $response = yield $this->client->request((new Request($uri))->withTransferTimeout(1000));
 
             $this->expectException(TimeoutException::class);
             $this->expectExceptionMessage("Allowed transfer timeout exceeded: 1000 ms");
@@ -69,7 +69,7 @@ class TimeoutTest extends AsyncTestCase
             // dummy watcher, because socket pool doesn't do anything
         });
 
-        $this->client = new SocketClient(new Socket\UnlimitedSocketPool(10000, new class implements Socket\Connector {
+        $this->client = (new ClientBuilder(new Socket\UnlimitedSocketPool(10000, new class implements Socket\Connector {
             public function connect(
                 string $uri,
                 ?Socket\ConnectContext $connectContext = null,
@@ -85,12 +85,12 @@ class TimeoutTest extends AsyncTestCase
 
                 return $deferred->promise(); // never resolve
             }
-        }));
+        })))->build();
 
         $this->expectException(TimeoutException::class);
-        $this->expectExceptionMessage("Allowed transfer timeout exceeded: 100 ms");
+        $this->expectExceptionMessage("Connection to 'localhost:1337' timed out, took longer than 100 ms");
 
-        yield $this->client->request((new Request('http://localhost:1337/'))->withOptions((new RequestOptions)->withTransferTimeout(100)));
+        yield $this->client->request((new Request('http://localhost:1337/'))->withTcpConnectTimeout(100));
 
         $this->assertLessThan(\microtime(true) - $start, 0.6);
     }
@@ -112,14 +112,14 @@ class TimeoutTest extends AsyncTestCase
         });
 
         try {
-            $uri = "http://" . $server->getAddress() . "/";
+            $uri = "https://" . $server->getAddress() . "/";
 
             $start = \microtime(true);
-            $promise = $this->client->request((new Request($uri))->withOptions((new RequestOptions)->withTransferTimeout(100)));
 
             $this->expectException(TimeoutException::class);
-            $this->expectExceptionMessage("Allowed transfer timeout exceeded: 100 ms");
-            yield $promise;
+            $this->expectExceptionMessageRegExp("(TLS handshake with '127.0.0.1:\d+' @ '127.0.0.1:\d+' timed out, took longer than 100 ms)");
+
+            yield $this->client->request((new Request($uri))->withTlsHandshakeTimeout(100));
         } finally {
             $this->assertLessThan(0.6, \microtime(true) - $start);
             $server->close();

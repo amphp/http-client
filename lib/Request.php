@@ -2,6 +2,7 @@
 
 namespace Amp\Http\Client;
 
+use Amp\Http\Client\Internal\Parser;
 use League\Uri;
 use Psr\Http\Message\UriInterface;
 
@@ -25,15 +26,29 @@ final class Request
     /** @var RequestBody */
     private $body;
 
-    /** @var RequestOptions */
-    private $options;
+    /** @var int */
+    private $tcpConnectTimeout = 10000;
+
+    /** @var int */
+    private $tlsHandshakeTimeout = 10000;
+
+    /** @var int */
+    private $transferTimeout = 10000;
+
+    /** @var bool */
+    private $discardBody = false;
+
+    /** @var int */
+    private $maxBodyBytes = Parser::DEFAULT_MAX_BODY_BYTES;
+
+    /** @var int */
+    private $maxHeaderBytes = Parser::DEFAULT_MAX_HEADER_BYTES;
 
     public function __construct(string $uri, string $method = "GET")
     {
         $this->uri = Uri\Http::createFromString($uri);
         $this->method = $method;
         $this->body = new StringBody("");
-        $this->options = new RequestOptions;
     }
 
     /**
@@ -327,15 +342,97 @@ final class Request
         return $clone;
     }
 
-    public function getOptions(): RequestOptions
+    /**
+     * @return int Timeout in milliseconds for the TCP connection.
+     */
+    public function getTcpConnectTimeout(): int
     {
-        return $this->options;
+        return $this->tcpConnectTimeout;
     }
 
-    public function withOptions(RequestOptions $options): self
+    public function withTcpConnectTimeout(int $tcpConnectTimeout): self
     {
         $clone = clone $this;
-        $clone->options = $options;
+        $clone->tcpConnectTimeout = $tcpConnectTimeout;
+
+        return $clone;
+    }
+
+    /**
+     * @return int Timeout in milliseconds for the TLS handshake.
+     */
+    public function getTlsHandshakeTimeout(): int
+    {
+        return $this->tlsHandshakeTimeout;
+    }
+
+    public function withTlsHandshakeTimeout(int $tlsHandshakeTimeout): self
+    {
+        $clone = clone $this;
+        $clone->tlsHandshakeTimeout = $tlsHandshakeTimeout;
+
+        return $clone;
+    }
+
+    /**
+     * @return int Timeout in milliseconds for the HTTP transfer (not counting TCP connect and TLS handshake)
+     */
+    public function getTransferTimeout(): int
+    {
+        return $this->transferTimeout;
+    }
+
+    public function withTransferTimeout(int $transferTimeout): self
+    {
+        $clone = clone $this;
+        $clone->transferTimeout = $transferTimeout;
+
+        return $clone;
+    }
+
+    public function getHeaderSizeLimit(): int
+    {
+        return $this->maxHeaderBytes;
+    }
+
+    public function withHeaderSizeLimit(int $maxHeaderBytes): self
+    {
+        $clone = clone $this;
+        $clone->maxHeaderBytes = $maxHeaderBytes;
+
+        return $clone;
+    }
+
+    public function getBodySizeLimit(): int
+    {
+        return $this->maxBodyBytes;
+    }
+
+    public function withBodySizeLimit(int $maxBodyBytes): self
+    {
+        $clone = clone $this;
+        $clone->maxBodyBytes = $maxBodyBytes;
+
+        return $clone;
+    }
+
+    public function isDiscardBody(): bool
+    {
+        return $this->discardBody;
+    }
+
+    public function withBodyDiscarding(): self
+    {
+        $clone = clone $this;
+        $clone->discardBody = true;
+
+        return $clone;
+    }
+
+    public function withoutBodyDiscarding(): self
+    {
+        $clone = clone $this;
+        $clone->discardBody = false;
 
         return $clone;
     }

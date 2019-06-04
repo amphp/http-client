@@ -12,6 +12,7 @@ use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\SocketClient;
 use Amp\Http\Client\SocketException;
+use Amp\Http\Client\TimeoutException;
 use Amp\Http\Client\TlsInfo;
 use Amp\NullCancellationToken;
 use Amp\Promise;
@@ -58,7 +59,7 @@ class PoolClient implements Client
             }
 
             try {
-                $checkoutCancellationToken = new CombinedCancellationToken($cancellation, new TimeoutCancellationToken(10000));
+                $checkoutCancellationToken = new CombinedCancellationToken($cancellation, new TimeoutCancellationToken($request->getTcpConnectTimeout()));
 
                 /** @var EncryptableSocket $socket */
                 $socket = yield $this->socketPool->checkout($socketUri, $connectContext, $checkoutCancellationToken);
@@ -69,7 +70,7 @@ class PoolClient implements Client
                 $cancellation->throwIfRequested();
 
                 // Otherwise we ran into a timeout of our TimeoutCancellationToken
-                throw new SocketException(\sprintf("Connection to '%s' timed out", $authority)); // don't pass $e
+                throw new TimeoutException(\sprintf("Connection to '%s' timed out, took longer than " . $request->getTcpConnectTimeout() . ' ms', $authority)); // don't pass $e
             }
 
             try {
@@ -78,7 +79,8 @@ class PoolClient implements Client
                 if ($isHttps) {
                     $tlsState = $socket->getTlsState();
                     if ($tlsState === EncryptableSocket::TLS_STATE_DISABLED) {
-                        yield $socket->setupTls();
+                        $tlsCancellationToken = new CombinedCancellationToken($cancellation, new TimeoutCancellationToken($request->getTlsHandshakeTimeout()));
+                        yield $socket->setupTls($tlsCancellationToken);
                     } elseif ($tlsState !== EncryptableSocket::TLS_STATE_ENABLED) {
                         throw new SocketException('Failed to setup TLS connection, connection was in an unexpected TLS state (' . $tlsState . ')');
                     }
@@ -88,6 +90,12 @@ class PoolClient implements Client
                 $socket->close();
 
                 throw new SocketException(\sprintf("Connection to '%s' closed during TLS handshake", $authority), 0, $exception);
+            } catch (CancelledException $e) {
+                // In case of a user cancellation request, throw the expected exception
+                $cancellation->throwIfRequested();
+
+                // Otherwise we ran into a timeout of our TimeoutCancellationToken
+                throw new TimeoutException(\sprintf("TLS handshake with '%s' @ '%s' timed out, took longer than " . $request->getTlsHandshakeTimeout() . ' ms', $authority, $socket->getRemoteAddress()->toString())); // don't pass $e
             }
 
             try {

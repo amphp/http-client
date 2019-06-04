@@ -84,12 +84,13 @@ final class SocketClient implements Client
 
             $completionDeferred = new Deferred;
 
-            $timeout = $request->getOptions()->getTransferTimeout();
+            $timeout = $request->getTransferTimeout();
             if ($timeout > 0) {
                 // TODO: Exception message \sprintf('Allowed transfer timeout exceeded: %d ms', $timeout)
                 $timeoutToken = new TimeoutCancellationToken($timeout);
                 $subCancellation = new CombinedCancellationToken($cancellation, $timeoutToken);
             } else {
+                $timeoutToken = new NullCancellationToken;
                 $subCancellation = $cancellation;
             }
 
@@ -104,7 +105,7 @@ final class SocketClient implements Client
             try {
                 yield from $this->doWrite($request, $protocolVersion);
 
-                return yield from $this->doRead($request, $subCancellation, $completionDeferred);
+                return yield from $this->doRead($request, $cancellation, $subCancellation, $timeoutToken, $completionDeferred);
             } catch (HttpException $e) {
                 $cancellation->throwIfRequested();
 
@@ -115,22 +116,26 @@ final class SocketClient implements Client
 
     /**
      * @param Request           $request
+     * @param CancellationToken $originalCancellation
      * @param CancellationToken $cancellationToken
+     * @param CancellationToken $timeoutToken
      * @param Deferred          $completionDeferred
      *
      * @return \Generator
-     * @throws HttpException
+     * @throws ParseException
      * @throws SocketException
      */
     private function doRead(
         Request $request,
+        CancellationToken $originalCancellation,
         CancellationToken $cancellationToken,
+        CancellationToken $timeoutToken,
         Deferred $completionDeferred
     ): \Generator {
         $bodyEmitter = new Emitter;
 
         $this->backpressure = new Success;
-        $bodyCallback = $request->getOptions()->isDiscardBody()
+        $bodyCallback = $request->isDiscardBody()
             ? null
             : function ($data) use ($bodyEmitter) {
                 $this->backpressure = $bodyEmitter->emit($data);
@@ -138,8 +143,8 @@ final class SocketClient implements Client
 
         $parser = new Parser($bodyCallback);
         $parser->enqueueResponseMethodMatch($request->getMethod());
-        $parser->setHeaderSizeLimit($request->getOptions()->getHeaderSizeLimit());
-        $parser->setBodySizeLimit($request->getOptions()->getBodySizeLimit());
+        $parser->setHeaderSizeLimit($request->getHeaderSizeLimit());
+        $parser->setBodySizeLimit($request->getBodySizeLimit());
 
         try {
             while (null !== $chunk = yield $this->socket->read()) {
@@ -159,7 +164,7 @@ final class SocketClient implements Client
 
                 $response = $this->finalizeResponse($request, $bodyEmitter, $parseResult, $this->connectionInfo, $bodyCancellationSource, $completionDeferred->promise());
 
-                Promise\rethrow(new Coroutine($this->doReadBody($parser, $parseResult, $response, $bodyEmitter, $completionDeferred, $bodyCancellationToken)));
+                Promise\rethrow(new Coroutine($this->doReadBody($parser, $parseResult, $request, $response, $bodyEmitter, $completionDeferred, $originalCancellation, $timeoutToken, $bodyCancellationToken)));
 
                 return $response;
             }
@@ -173,9 +178,12 @@ final class SocketClient implements Client
     /**
      * @param Parser            $parser
      * @param array             $parseResult
+     * @param Request           $request
      * @param Response          $response
      * @param Emitter           $bodyEmitter
      * @param Deferred          $completionDeferred
+     * @param CancellationToken $originalCancellation
+     * @param CancellationToken $timeoutToken
      * @param CancellationToken $bodyCancellationToken
      *
      * @return \Generator
@@ -183,9 +191,12 @@ final class SocketClient implements Client
     private function doReadBody(
         Parser $parser,
         array $parseResult,
+        Request $request,
         Response $response,
         Emitter $bodyEmitter,
         Deferred $completionDeferred,
+        CancellationToken $originalCancellation,
+        CancellationToken $timeoutToken,
         CancellationToken $bodyCancellationToken
     ): \Generator {
         try {
@@ -216,7 +227,11 @@ final class SocketClient implements Client
                     } */
                 } while (null !== $chunk = yield $this->socket->read());
 
-                $bodyCancellationToken->throwIfRequested();
+                $originalCancellation->throwIfRequested();
+
+                if ($timeoutToken->isRequested()) {
+                    throw new TimeoutException('Allowed transfer timeout exceeded: ' . $request->getTransferTimeout() . ' ms');
+                }
 
                 $parserState = $parser->getState();
                 if ($parserState !== Parser::AWAITING_HEADERS) {

@@ -21,7 +21,7 @@ class CombinedCancellationToken implements CancellationToken
     public function __construct(CancellationToken ...$tokens)
     {
         foreach ($tokens as $token) {
-            $id = $token->subscribe(static function ($exception) {
+            $id = $token->subscribe(function ($exception) {
                 $this->exception = $exception;
 
                 $callbacks = $this->callbacks;
