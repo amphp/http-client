@@ -40,12 +40,19 @@ final class Response
         $this->protocolVersion = $protocolVersion;
         $this->status = $status;
         $this->reason = $reason;
-        $this->headers = $headers;
         $this->body = new Payload($body);
         $this->request = $request;
         $this->connectionInfo = $connectionInfo;
         $this->completionPromise = $completionPromise ?? new Success;
         $this->previousResponse = $previousResponse;
+
+        $this->headers = [];
+        foreach ($headers as $field => $values) {
+            $key = \strtolower($field);
+            foreach ($values as $value) {
+                $this->headers[$key][] = $value;
+            }
+        }
     }
 
     /**
@@ -348,7 +355,7 @@ final class Response
     public function withBody(InputStream $body): self
     {
         $clone = clone $this;
-        $clone->body = $body;
+        $clone->body = new Payload($body);
 
         return $clone;
     }

@@ -31,6 +31,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     private $server;
     /** @var Client */
     private $client;
+    /** @var ClientBuilder */
+    private $clientBuilder;
     /** @var callable */
     private $responseCallback;
 
@@ -198,11 +200,28 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testRedirect(): \Generator
     {
-        $this->markTestSkipped();
-
         $statusCode = 299;
         $redirectTo = "/status/{$statusCode}";
         $uri = "http://httpbin.org/redirect-to?url=" . \rawurlencode($redirectTo);
+
+        /** @var Response $response */
+        $response = yield $this->executeRequest(new Request($uri));
+
+        $this->assertInstanceOf(Response::class, $response);
+        $this->assertEquals(302, $response->getStatus());
+
+        $originalUri = $response->getOriginalRequest()->getUri();
+
+        $this->assertSame($uri, (string) $originalUri);
+    }
+
+    public function testRedirectWithFollow(): \Generator
+    {
+        $statusCode = 299;
+        $redirectTo = "/status/{$statusCode}";
+        $uri = "http://httpbin.org/redirect-to?url=" . \rawurlencode($redirectTo);
+
+        $this->givenApplicationInterceptor(new RedirectHandler);
 
         /** @var Response $response */
         $response = yield $this->executeRequest(new Request($uri));
@@ -212,7 +231,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $originalUri = $response->getOriginalRequest()->getUri();
 
-        $this->assertSame($uri, $originalUri);
+        $this->assertSame($uri, (string) $originalUri);
     }
 
     public function testClientAddsZeroContentLengthHeaderForEmptyBodiesOnPost(): \Generator
@@ -305,7 +324,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
      */
     public function testGzipResponse(): \Generator
     {
-        $this->markTestSkipped();
+        $this->givenNetworkInterceptor(new ResponseCompressionHandler);
 
         /** @var Response $response */
         $response = yield $this->executeRequest(new Request('http://httpbin.org/gzip'));
@@ -322,7 +341,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
      */
     public function testDeflateResponse(): \Generator
     {
-        $this->markTestSkipped();
+        $this->givenNetworkInterceptor(new ResponseCompressionHandler);
 
         /** @var Response $response */
         $response = yield $this->executeRequest(new Request('http://httpbin.org/deflate'));
@@ -336,7 +355,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testInfiniteRedirect(): \Generator
     {
-        $this->markTestSkipped();
+        $this->givenApplicationInterceptor(new RedirectHandler);
 
         $this->expectException(TooManyRedirectsException::class);
 
@@ -384,7 +403,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
 
         $request = (new Request("http://httpbin.org/post", "POST"))
-            ->withBody(new class implements RequestBody {
+            ->withBody(new class implements RequestBody
+            {
                 public function getHeaders(): Promise
                 {
                     return new Success([]);
@@ -410,7 +430,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
 
         $request = (new Request("http://httpbin.org/post", "POST"))
-            ->withBody(new class implements RequestBody {
+            ->withBody(new class implements RequestBody
+            {
                 public function getHeaders(): Promise
                 {
                     return new Success([]);
@@ -436,7 +457,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectExceptionMessage("Body contained fewer bytes than specified in Content-Length, aborting request");
 
         $request = (new Request("http://httpbin.org/post", "POST"))
-            ->withBody(new class implements RequestBody {
+            ->withBody(new class implements RequestBody
+            {
                 public function getHeaders(): Promise
                 {
                     return new Success([]);
@@ -460,7 +482,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     {
         parent::setUp();
 
-        $this->client = (new ClientBuilder)->build();
+        $this->clientBuilder = new ClientBuilder;
 
         if ($this->socket) {
             $this->socket->close();
@@ -508,11 +530,22 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     private function executeRequest(Request $request, ?CancellationToken $cancellationToken = null): Promise
     {
+        $this->client = $this->clientBuilder->build();
         return $this->client->request($request, $cancellationToken);
     }
 
     private function createRequest(): Request
     {
         return new Request('http://' . $this->socket->getAddress());
+    }
+
+    private function givenApplicationInterceptor(ApplicationInterceptor $interceptor): void
+    {
+        $this->clientBuilder->addApplicationInterceptor($interceptor);
+    }
+
+    private function givenNetworkInterceptor(NetworkInterceptor $interceptor): void
+    {
+        $this->clientBuilder->addNetworkInterceptor($interceptor);
     }
 }
