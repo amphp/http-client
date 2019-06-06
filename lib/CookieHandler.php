@@ -41,6 +41,8 @@ final class CookieHandler implements NetworkInterceptor
                     $this->storeResponseCookie($requestDomain, $rawCookieStr);
                 }
             }
+
+            return $response;
         });
     }
 

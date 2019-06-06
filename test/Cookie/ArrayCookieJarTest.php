@@ -18,7 +18,7 @@ class ArrayCookieJarTest extends TestCase
     }
 
     /** @dataProvider provideCookieDomainMatchData */
-    public function testCookieDomainMatching(Cookie $cookie, $domain, $returned)
+    public function testCookieDomainMatching(Cookie $cookie, $domain, $returned): void
     {
         $this->jar->store($cookie);
 
@@ -29,7 +29,7 @@ class ArrayCookieJarTest extends TestCase
         }
     }
 
-    public function provideCookieDomainMatchData()
+    public function provideCookieDomainMatchData(): array
     {
         // See http://stackoverflow.com/a/1063760/2373138 for cases
         return [

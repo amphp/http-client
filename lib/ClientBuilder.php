@@ -18,14 +18,18 @@ final class ClientBuilder
         $this->socketPool = $socketPool ?? new UnlimitedSocketPool;
     }
 
-    public function addNetworkInterceptor(NetworkInterceptor $networkInterceptor): void
+    public function addNetworkInterceptor(NetworkInterceptor $networkInterceptor): self
     {
         $this->networkInterceptors[] = $networkInterceptor;
+
+        return $this;
     }
 
-    public function addApplicationInterceptor(ApplicationInterceptor $applicationInterceptor): void
+    public function addApplicationInterceptor(ApplicationInterceptor $applicationInterceptor): self
     {
         $this->applicationInterceptors[] = $applicationInterceptor;
+
+        return $this;
     }
 
     public function build(): Client
