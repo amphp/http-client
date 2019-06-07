@@ -4,6 +4,7 @@ namespace Amp\Http\Client;
 
 use Amp\ByteStream\InputStream;
 use Amp\ByteStream\Payload;
+use Amp\Http\Message;
 use Amp\Promise;
 use Amp\Success;
 
@@ -14,13 +15,12 @@ use Amp\Success;
  *
  * `DefaultClient` uses an anonymous class to implement this interface.
  */
-final class Response
+final class Response extends Message
 {
     private $protocolVersion;
     private $status;
     private $reason;
     private $request;
-    private $headers;
     private $body;
     private $connectionInfo;
     private $completionPromise;
@@ -46,13 +46,7 @@ final class Response
         $this->completionPromise = $completionPromise ?? new Success;
         $this->previousResponse = $previousResponse;
 
-        $this->headers = [];
-        foreach ($headers as $field => $values) {
-            $key = \strtolower($field);
-            foreach ($values as $value) {
-                $this->headers[$key][] = $value;
-            }
-        }
+        $this->setHeaders($headers);
     }
 
     /**
@@ -155,49 +149,6 @@ final class Response
     }
 
     /**
-     * Does the message contain the specified header field (case-insensitive)?
-     *
-     * @param string $field Header name.
-     *
-     * @return bool
-     */
-    public function hasHeader(string $field): bool
-    {
-        return isset($this->headers[\strtolower($field)]);
-    }
-
-    /**
-     * Retrieve the first occurrence of the specified header in the message.
-     *
-     * If multiple headers exist for the specified field only the value of the first header is returned. Applications
-     * may use `getHeaderArray()` to retrieve a list of all header values received for a given field.
-     *
-     * A `null` return indicates the requested header field was not present.
-     *
-     * @param string $field Header name.
-     *
-     * @return string|null Header value or `null` if no header with name `$field` exists.
-     */
-    public function getHeader(string $field): ?string
-    {
-        return $this->headers[\strtolower($field)][0] ?? null;
-    }
-
-    /**
-     * Retrieve all occurrences of the specified header in the message.
-     *
-     * Applications may use `getHeader()` to access only the first occurrence.
-     *
-     * @param string $field Header name.
-     *
-     * @return array Header values.
-     */
-    public function getHeaderArray(string $field): array
-    {
-        return $this->headers[\strtolower($field)] ?? [];
-    }
-
-    /**
      * Assign a value for the specified header field by replacing any existing values for that field.
      *
      * @param string $field Header name.
@@ -207,12 +158,8 @@ final class Response
      */
     public function withHeader(string $field, string $value): self
     {
-        $field = \trim($field);
-        $lower = \strtolower($field);
-
         $clone = clone $this;
-
-        $clone->headers[$lower] = [\trim($value)];
+        $clone->setHeader($field, $value);
 
         return $clone;
     }
@@ -227,15 +174,8 @@ final class Response
      */
     public function withAddedHeader(string $field, string $value): self
     {
-        $field = \trim($field);
-        $lower = \strtolower($field);
-
         $clone = clone $this;
-
-        $headers = $clone->headers[$lower] ?? [];
-        $headers[] = \trim($value);
-
-        $clone->headers[$lower] = $headers;
+        $clone->addHeader($field, $value);
 
         return $clone;
     }
@@ -243,55 +183,9 @@ final class Response
     public function withHeaders(array $headers): self
     {
         $clone = clone $this;
-
-        foreach ($headers as $field => $values) {
-            if (!\is_string($field) && !\is_int($field)) {
-                // PHP converts integer strings automatically to integers.
-                // Later versions of PHP might allow other key types.
-                // @codeCoverageIgnoreStart
-                /** @noinspection PhpUndefinedClassInspection */
-                throw new \TypeError("All array keys for withHeaders must be strings");
-                // @codeCoverageIgnoreEnd
-            }
-
-            $field = \trim($field);
-            $lower = \strtolower($field);
-
-            if (!\is_array($values)) {
-                $values = [$values];
-            }
-
-            $clone->headers[$lower] = [];
-
-            foreach ($values as $value) {
-                if (!\is_string($value)
-                    && !\is_int($value)
-                    && !\is_float($value)
-                    && !(\is_object($value) && \method_exists($value, '__toString'))
-                ) {
-                    /** @noinspection PhpUndefinedClassInspection */
-                    throw new \TypeError("All values for withHeaders must be string or an array of strings");
-                }
-
-                $clone->headers[$lower][] = \trim($value);
-            }
-
-            if (empty($clone->headers[$lower])) {
-                unset($clone->headers[$lower]);
-            }
-        }
+        $clone->setHeaders($headers);
 
         return $clone;
-    }
-
-    /**
-     * Retrieve an associative array of headers matching field names to an array of field values.
-     *
-     * @return array
-     */
-    public function getHeaders(): array
-    {
-        return $this->headers;
     }
 
     /**
@@ -304,7 +198,7 @@ final class Response
     public function withoutHeader(string $field): self
     {
         $clone = clone $this;
-        unset($clone->headers[\strtolower($field)]);
+        $clone->removeHeader($field);
 
         return $clone;
     }

@@ -104,29 +104,6 @@ class RequestTest extends TestCase
         ], $request->getHeaders());
     }
 
-    public function provideBadAllHeaderInput(): array
-    {
-        return [
-            [[
-                "text" => [null],
-            ]],
-            [[
-                "text" => null,
-            ]],
-        ];
-    }
-
-    /**
-     * @dataProvider provideBadAllHeaderInput
-     *
-     * @param $input
-     */
-    public function testAllHeaders($input): void
-    {
-        $this->expectException(\TypeError::class);
-        (new Request("http://127.0.0.1/"))->withHeaders($input);
-    }
-
     public function testBody(): void
     {
         /** @var Request $request */
