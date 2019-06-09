@@ -18,9 +18,6 @@ final class Parser
         (?P<value>[^\x01-\x08\x0A-\x1F\x7F]*)[\x0D]?[\x20\x09]*[\r]?[\n]
     /x";
 
-    public const MODE_REQUEST = 1;
-    public const MODE_RESPONSE = 2;
-
     public const AWAITING_HEADERS = 0;
     public const BODY_IDENTITY = 1;
     public const BODY_IDENTITY_EOF = 2;
@@ -31,7 +28,6 @@ final class Parser
     public const DEFAULT_MAX_HEADER_BYTES = 8192;
     public const DEFAULT_MAX_BODY_BYTES = 10485760;
 
-    private $mode;
     private $state = self::AWAITING_HEADERS;
     private $buffer = '';
     private $traceBuffer;
@@ -54,10 +50,9 @@ final class Parser
     private $maxBodyBytes = self::DEFAULT_MAX_BODY_BYTES;
     private $bodyDataCallback;
 
-    public function __construct(callable $bodyDataCallback = null, $mode = self::MODE_RESPONSE)
+    public function __construct(callable $bodyDataCallback = null)
     {
         $this->bodyDataCallback = $bodyDataCallback;
-        $this->mode = $mode;
     }
 
     public function setHeaderSizeLimit(int $maxHeaderBytes): void
@@ -138,44 +133,7 @@ final class Parser
             $rawHeaders = \substr($startLineAndHeaders, $startLineEndPos + 1);
             $this->traceBuffer = $startLineAndHeaders;
 
-            if ($this->mode === self::MODE_REQUEST) {
-                goto request_line_and_headers;
-            }
-
             goto status_line_and_headers;
-        }
-
-        request_line_and_headers:
-        {
-            $parts = \explode(' ', \trim($startLine));
-
-            if (isset($parts[0]) && ($method = \trim($parts[0]))) {
-                $this->requestMethod = $method;
-            } else {
-                throw new ParseException($this->getParsedMessageArray(), 'Invalid request line', 400);
-            }
-
-            if (isset($parts[1]) && ($uri = \trim($parts[1]))) {
-                $this->requestUri = $uri;
-            } else {
-                throw new ParseException($this->getParsedMessageArray(), 'Invalid request line', 400);
-            }
-
-            if (isset($parts[2]) && ($protocol = \str_ireplace('HTTP/', '', \trim($parts[2])))) {
-                $this->protocol = $protocol;
-            } else {
-                throw new ParseException($this->getParsedMessageArray(), 'Invalid request line', 400);
-            }
-
-            if (!($protocol === '1.0' || '1.1' === $protocol)) {
-                throw new ParseException($this->getParsedMessageArray(), "Protocol not supported: {$protocol}", 505);
-            }
-
-            if ($rawHeaders) {
-                $this->headers = $this->parseHeadersFromRaw($rawHeaders);
-            }
-
-            goto transition_from_request_headers_to_body;
         }
 
         status_line_and_headers:
@@ -193,22 +151,6 @@ final class Parser
             }
 
             goto transition_from_response_headers_to_body;
-        }
-
-        transition_from_request_headers_to_body:
-        {
-            if ($this->requestMethod === 'HEAD' || $this->requestMethod === 'TRACE' || $this->requestMethod === 'OPTIONS') {
-                goto complete;
-            } elseif ($this->parseFlowHeaders['TRANSFER-ENCODING']) {
-                $this->state = self::BODY_CHUNKS;
-                goto before_body;
-            } elseif ($this->parseFlowHeaders['CONTENT-LENGTH']) {
-                $this->remainingBodyBytes = $this->parseFlowHeaders['CONTENT-LENGTH'];
-                $this->state = self::BODY_IDENTITY;
-                goto before_body;
-            }
-
-            goto complete;
         }
 
         transition_from_response_headers_to_body:
@@ -346,23 +288,15 @@ final class Parser
 
     public function getParsedMessageArray(): array
     {
-        $result = [
+        return [
             'protocol' => $this->protocol,
             'headers' => $this->headers,
             'trace' => $this->traceBuffer,
             'buffer' => $this->buffer,
             'headersOnly' => false,
+            'status' => $this->responseCode,
+            'reason' => $this->responseReason,
         ];
-
-        if ($this->mode === self::MODE_REQUEST) {
-            $result['method'] = $this->requestMethod;
-            $result['uri'] = $this->requestUri;
-        } else {
-            $result['status'] = $this->responseCode;
-            $result['reason'] = $this->responseReason;
-        }
-
-        return $result;
     }
 
     /**
