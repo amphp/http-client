@@ -331,11 +331,6 @@ final class Response
         return $this->completionPromise;
     }
 
-    public function awaitCompletion(): Promise
-    {
-        return $this->completionPromise;
-    }
-
     public function withConnectionInfo(ConnectionInfo $connectionInfo): self
     {
         $clone = clone $this;
@@ -356,6 +351,14 @@ final class Response
     {
         $clone = clone $this;
         $clone->body = new Payload($body);
+
+        return $clone;
+    }
+
+    public function withCompletionPromise(Promise $promise): self
+    {
+        $clone = clone $this;
+        $clone->completionPromise = $promise;
 
         return $clone;
     }

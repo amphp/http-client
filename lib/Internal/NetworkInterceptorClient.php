@@ -43,4 +43,9 @@ final class NetworkInterceptorClient implements Client
 
         return $interceptor->interceptNetworkRequest($request, $cancellation, $this->connectionInfo, $next);
     }
+
+    public function addNetworkInterceptor(NetworkInterceptor $networkInterceptor): void
+    {
+        throw new \RuntimeException('Operation not supported');
+    }
 }

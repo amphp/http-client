@@ -3,7 +3,6 @@
 namespace Amp\Http\Client;
 
 use Amp\Http\Client\Internal\ApplicationInterceptorClient;
-use Amp\Http\Client\Internal\PoolClient;
 use Amp\Socket\SocketPool;
 use Amp\Socket\UnlimitedSocketPool;
 
@@ -34,7 +33,10 @@ final class ClientBuilder
 
     public function build(): Client
     {
-        $client = new PoolClient($this->socketPool, ...$this->networkInterceptors);
+        $client = new SocketClient($this->socketPool);
+        foreach ($this->networkInterceptors as $networkInterceptor) {
+            $client->addNetworkInterceptor($networkInterceptor);
+        }
 
         $applicationInterceptors = $this->applicationInterceptors;
         while ($applicationInterceptor = \array_pop($applicationInterceptors)) {

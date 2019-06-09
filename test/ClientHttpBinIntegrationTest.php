@@ -52,7 +52,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->givenRawServerResponse("");
 
         $this->expectException(SocketException::class);
-        $this->expectExceptionMessage("Reading the response failed, socket closed before a complete response was received");
+        $this->expectExceptionMessage("Receiving the response headers failed, because the socket closed early");
 
         /** @var Response $response */
         yield $this->executeRequest($this->createRequest()->withProtocolVersions(["1.0"]));
@@ -63,7 +63,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->givenRawServerResponse("HTTP/1.0 200 OK\r\nContent-Length: 2\r\n\r\n.");
 
         $this->expectException(SocketException::class);
-        $this->expectExceptionMessage("Socket disconnected prior to response completion (parser state: 1)");
+        $this->expectExceptionMessage("Socket disconnected prior to response completion");
 
         /** @var Response $response */
         $response = yield $this->executeRequest($this->createRequest()->withProtocolVersions(["1.0"]));
@@ -75,7 +75,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->givenRawServerResponse("HTTP/1.0 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n0\r"); // missing \n
 
         $this->expectException(SocketException::class);
-        $this->expectExceptionMessage("Socket disconnected prior to response completion (parser state: 3)");
+        $this->expectExceptionMessage("Socket disconnected prior to response completion");
 
         /** @var Response $response */
         $response = yield $this->executeRequest($this->createRequest()->withProtocolVersions(["1.0"]));
@@ -403,8 +403,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
 
         $request = (new Request("http://httpbin.org/post", "POST"))
-            ->withBody(new class implements RequestBody
-            {
+            ->withBody(new class implements RequestBody {
                 public function getHeaders(): Promise
                 {
                     return new Success([]);
@@ -430,8 +429,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
 
         $request = (new Request("http://httpbin.org/post", "POST"))
-            ->withBody(new class implements RequestBody
-            {
+            ->withBody(new class implements RequestBody {
                 public function getHeaders(): Promise
                 {
                     return new Success([]);
@@ -457,8 +455,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectExceptionMessage("Body contained fewer bytes than specified in Content-Length, aborting request");
 
         $request = (new Request("http://httpbin.org/post", "POST"))
-            ->withBody(new class implements RequestBody
-            {
+            ->withBody(new class implements RequestBody {
                 public function getHeaders(): Promise
                 {
                     return new Success([]);

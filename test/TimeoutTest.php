@@ -51,7 +51,7 @@ class TimeoutTest extends AsyncTestCase
             $response = yield $this->client->request((new Request($uri))->withTransferTimeout(1000));
 
             $this->expectException(TimeoutException::class);
-            $this->expectExceptionMessage("Allowed transfer timeout exceeded: 1000 ms");
+            $this->expectExceptionMessage("Allowed transfer timeout exceeded, took longer than 1000 ms");
 
             yield $response->getBody()->buffer();
         } finally {

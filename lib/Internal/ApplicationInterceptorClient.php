@@ -5,6 +5,7 @@ namespace Amp\Http\Client\Internal;
 use Amp\CancellationToken;
 use Amp\Http\Client\ApplicationInterceptor;
 use Amp\Http\Client\Client;
+use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request;
 use Amp\NullCancellationToken;
 use Amp\Promise;
@@ -30,5 +31,10 @@ final class ApplicationInterceptorClient implements Client
         $cancellation = $cancellation ?? new NullCancellationToken;
 
         return $this->interceptor->interceptApplicationRequest($request, $cancellation, $this->client);
+    }
+
+    public function addNetworkInterceptor(NetworkInterceptor $networkInterceptor): void
+    {
+        throw new \RuntimeException('Operation not supported');
     }
 }
