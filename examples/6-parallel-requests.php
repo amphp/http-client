@@ -1,6 +1,9 @@
 <?php
 
-use Amp\Artax\Response;
+use Amp\Http\Client\HttpException;
+use Amp\Http\Client\Request;
+use Amp\Http\Client\Response;
+use Amp\Http\Client\SocketClient;
 use Amp\Loop;
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -13,13 +16,13 @@ Loop::run(function () {
     ];
 
     // Instantiate the HTTP client
-    $client = new Amp\Artax\DefaultClient;
+    $client = new SocketClient;
 
     $requestHandler = function (string $uri) use ($client) {
         /** @var Response $response */
-        $response = yield $client->request($uri);
+        $response = yield $client->request(new Request($uri));
 
-        return $response->getBody();
+        return yield $response->getBody()->buffer();
     };
 
     try {
@@ -34,7 +37,7 @@ Loop::run(function () {
         foreach ($bodies as $uri => $body) {
             print $uri . " - " . \strlen($body) . " bytes" . PHP_EOL;
         }
-    } catch (Amp\Artax\HttpException $error) {
+    } catch (HttpException $error) {
         // If something goes wrong Amp will throw the exception where the promise was yielded.
         // The Client::request() method itself will never throw directly, but returns a promise.
         echo $error;

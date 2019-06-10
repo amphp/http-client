@@ -1,8 +1,9 @@
 <?php
 
-use Amp\Artax\HttpSocketPool;
-use Amp\Artax\Request;
-use Amp\Artax\Response;
+use Amp\Http\Client\HttpException;
+use Amp\Http\Client\Request;
+use Amp\Http\Client\Response;
+use Amp\Http\Client\SocketClient;
 use Amp\Loop;
 use Amp\Socket\StaticSocketPool;
 
@@ -12,7 +13,7 @@ Loop::run(function () {
     try {
         // Unix sockets require a socket pool that changes all URLs to a fixed one.
         $socketPool = new StaticSocketPool("unix:///var/run/docker.sock");
-        $client = new Amp\Artax\DefaultClient(null, new HttpSocketPool($socketPool));
+        $client = new SocketClient($socketPool);
 
         // Artax currently requires a host, so just use a dummy one.
         $request = new Request('http://docker/info');
@@ -30,7 +31,7 @@ Loop::run(function () {
 
         $body = yield $response->getBody();
         print $body . "\n";
-    } catch (Amp\Artax\HttpException $error) {
+    } catch (HttpException $error) {
         echo $error;
     }
 });
