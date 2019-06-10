@@ -9,11 +9,7 @@ use Amp\CancellationToken;
 use Amp\CancellationTokenSource;
 use Amp\CancelledException;
 use Amp\Delayed;
-use Amp\Http\Client\Body\FileBody;
-use Amp\Http\Client\Body\FormBody;
-use Amp\Http\Client\Interceptor\RedirectHandler;
-use Amp\Http\Client\Interceptor\ResponseCompressionHandler;
-use Amp\Http\Client\Interceptor\TooManyRedirectsException;
+use Amp\Http\Client\Driver\Http1Driver;
 use Amp\Http\Server\RequestHandler\CallableRequestHandler;
 use Amp\Http\Server\Server;
 use Amp\Http\Status;
@@ -110,7 +106,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $body = yield $response->getBody()->buffer();
         $result = \json_decode($body, true);
 
-        $this->assertSame(SocketClient::DEFAULT_USER_AGENT, $result['user-agent']);
+        $this->assertSame(Http1Driver::DEFAULT_USER_AGENT, $result['user-agent']);
     }
 
     public function testCustomUserAgentSentIfAssigned(): \Generator

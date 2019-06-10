@@ -1,6 +1,6 @@
 <?php
 
-namespace Amp\Http\Client\Internal;
+namespace Amp\Http\Client\Driver;
 
 use Amp\ByteStream\InMemoryStream;
 use Amp\Http\Client\ConnectionInfo;
@@ -10,8 +10,7 @@ use Amp\Http\Client\Response;
 use Amp\Http\InvalidHeaderException;
 use Amp\Http\Rfc7230;
 
-/** @internal */
-final class Parser
+final class Http1Parser
 {
     private const STATUS_LINE_PATTERN = "#^
         HTTP/(?P<protocol>\d+\.\d+)[\x20\x09]+
