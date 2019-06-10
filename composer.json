@@ -24,8 +24,8 @@
     "require": {
         "php": ">=7.1",
         "amphp/amp": "^2",
-        "amphp/byte-stream": "^1.1.6",
-        "amphp/http": "^1.1",
+        "amphp/byte-stream": "^1.6",
+        "amphp/http": "dev-master as 1.2",
         "amphp/socket": "dev-master as 1.0",
         "amphp/file": "^0.2 || ^0.3",
         "kelunik/certificate": "^1.1",
@@ -37,7 +37,7 @@
         "amphp/php-cs-fixer-config": "dev-master",
         "phpunit/phpunit": "^7 || ^8",
         "friendsofphp/php-cs-fixer": "^2.3",
-        "amphp/http-server": "dev-socket-and-http-client-updates as 1.1.0"
+        "amphp/http-server": "v2.x-dev"
     },
     "autoload": {
         "psr-4": {
