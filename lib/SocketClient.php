@@ -84,7 +84,7 @@ final class SocketClient implements Client
             if ($request->getUri()->getScheme() === 'https') {
                 $tlsContext = ($connectContext->getTlsContext() ?? new ClientTlsContext($request->getUri()->getHost()))
                     ->withPeerName($request->getUri()->getHost())
-                    ->withAlpnProtocols($this->driverFactory->getApplicationLayerProtocols())
+                    ->withApplicationLayerProtocols($this->driverFactory->getApplicationLayerProtocols())
                     ->withPeerCapturing();
 
                 $connectContext = $connectContext->withTlsContext($tlsContext);

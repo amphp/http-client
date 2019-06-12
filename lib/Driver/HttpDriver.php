@@ -13,6 +13,7 @@ interface HttpDriver
 {
     /**
      * @param Socket                 $socket
+     * @param ConnectionInfo         $connectionInfo
      * @param Request                $request
      * @param CancellationToken|null $token
      *
