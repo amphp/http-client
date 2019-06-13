@@ -37,33 +37,6 @@ final class SocketClient implements Client
 {
     public const DEFAULT_USER_AGENT = 'Mozilla/5.0 (compatible; amphp/http-client)';
 
-    /**
-     * @param EncryptableSocket $socket
-     *
-     * @return ConnectionInfo
-     * @throws SocketException
-     */
-    private static function collectConnectionInfo(EncryptableSocket $socket): ConnectionInfo
-    {
-        if (!$socket instanceof ResourceSocket) {
-            return new ConnectionInfo($socket->getLocalAddress(), $socket->getRemoteAddress());
-        }
-
-        $stream = $socket->getResource();
-
-        if ($stream === null) {
-            throw new SocketException("Socket closed before connection information could be collected");
-        }
-
-        $crypto = \stream_get_meta_data($stream)["crypto"] ?? null;
-
-        return new ConnectionInfo(
-            $socket->getLocalAddress(),
-            $socket->getRemoteAddress(),
-            $crypto ? TlsInfo::fromMetaData($crypto, \stream_context_get_options($stream)["ssl"]) : null
-        );
-    }
-
     private $socketPool;
     private $networkInterceptors;
 
@@ -137,7 +110,7 @@ final class SocketClient implements Client
                     throw new TimeoutException(\sprintf("TLS handshake with '%s' @ '%s' timed out, took longer than " . $request->getTlsHandshakeTimeout() . ' ms', $authority, $socket->getRemoteAddress()->toString())); // don't pass $e
                 }
 
-                $connectionInfo = self::collectConnectionInfo($socket);
+                $connectionInfo = new ConnectionInfo($socket->getLocalAddress(), $socket->getRemoteAddress(), $socket->getTlsInfo());
                 $client = new CallableNetworkClient(function () use (
                     $request,
                     $socket,

@@ -3,6 +3,7 @@
 namespace Amp\Http\Client;
 
 use Amp\Socket\SocketAddress;
+use Amp\Socket\TlsInfo;
 
 final class ConnectionInfo
 {
