@@ -9,7 +9,6 @@ use Amp\CancellationToken;
 use Amp\CancellationTokenSource;
 use Amp\CancelledException;
 use Amp\Delayed;
-use Amp\Http\Client\Driver\Http1Driver;
 use Amp\Http\Server\RequestHandler\CallableRequestHandler;
 use Amp\Http\Server\Server;
 use Amp\Http\Status;
@@ -106,7 +105,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $body = yield $response->getBody()->buffer();
         $result = \json_decode($body, true);
 
-        $this->assertSame(Http1Driver::DEFAULT_USER_AGENT, $result['user-agent']);
+        $this->assertSame(SocketClient::DEFAULT_USER_AGENT, $result['user-agent']);
     }
 
     public function testCustomUserAgentSentIfAssigned(): \Generator
