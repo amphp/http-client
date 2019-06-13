@@ -26,9 +26,6 @@ final class Parser
     public const TRAILERS_START = 4;
     public const TRAILERS = 5;
 
-    public const DEFAULT_MAX_HEADER_BYTES = 8192;
-    public const DEFAULT_MAX_BODY_BYTES = 10485760;
-
     /** @var int */
     private $state = self::AWAITING_HEADERS;
 
@@ -382,6 +379,7 @@ final class Parser
                 goto determine_chunk_size;
             }
 
+            /** @noinspection SuspiciousAssignmentsInspection */
             $chunk = $this->buffer;
             $this->buffer = '';
             $this->chunkLengthRemaining -= $bufferLength;

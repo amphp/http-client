@@ -72,9 +72,9 @@ final class RedirectHandler implements ApplicationInterceptor
 
                         if ($status >= 300 && $status <= 303 && $method !== 'GET') {
                             $request = $request->withMethod('GET');
-                            $request = $request->withoutHeader('Transfer-Encoding');
-                            $request = $request->withoutHeader('Content-Length');
-                            $request = $request->withoutHeader('Content-Type');
+                            $request = $request->withoutHeader('transfer-encoding');
+                            $request = $request->withoutHeader('content-length');
+                            $request = $request->withoutHeader('content-type');
                             $request = $request->withBody(null);
                         }
                     } else {

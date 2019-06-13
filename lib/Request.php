@@ -2,7 +2,6 @@
 
 namespace Amp\Http\Client;
 
-use Amp\Http\Client\Internal\Parser;
 use Amp\Http\Message;
 use League\Uri;
 use Psr\Http\Message\UriInterface;
@@ -12,6 +11,9 @@ use Psr\Http\Message\UriInterface;
  */
 final class Request extends Message
 {
+    public const DEFAULT_MAX_HEADER_BYTES = 8192;
+    public const DEFAULT_MAX_BODY_BYTES = 10485760;
+
     /** @var string[] */
     private $protocolVersions = ["1.1", "2.0"];
 
@@ -37,10 +39,10 @@ final class Request extends Message
     private $discardBody = false;
 
     /** @var int */
-    private $maxBodyBytes = Parser::DEFAULT_MAX_BODY_BYTES;
+    private $maxBodyBytes = self::DEFAULT_MAX_BODY_BYTES;
 
     /** @var int */
-    private $maxHeaderBytes = Parser::DEFAULT_MAX_HEADER_BYTES;
+    private $maxHeaderBytes = self::DEFAULT_MAX_HEADER_BYTES;
 
     public function __construct(string $uri, string $method = "GET")
     {

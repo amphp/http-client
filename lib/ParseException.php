@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client;
 
-class ParseException extends HttpException
+final class ParseException extends HttpException
 {
     /**
      * @param string          $message
