@@ -1,7 +1,9 @@
 <?php
 
-use Amp\Artax\Client;
-use Amp\Artax\Response;
+use Amp\Http\Client\HttpException;
+use Amp\Http\Client\Request;
+use Amp\Http\Client\Response;
+use Amp\Http\Client\SocketClient;
 use Amp\File\Handle;
 use Amp\File\StatCache;
 use Amp\Loop;
@@ -13,12 +15,12 @@ Loop::run(function () {
         $start = \microtime(1);
 
         // Instantiate the HTTP client
-        $client = new Amp\Artax\DefaultClient;
+        $client = new SocketClient;
+
+        $request = new Request('http://speed.hetzner.de/100MB.bin');
 
         // Make an asynchronous HTTP request
-        $promise = $client->request('http://speed.hetzner.de/100MB.bin', [
-            Client::OP_MAX_BODY_BYTES => 120 * 1024 * 1024
-        ]);
+        $promise = $client->request($request);
 
         // Client::request() is asynchronous! It doesn't return a response. Instead, it returns a promise to resolve the
         // response at some point in the future when we've received the headers of the response. Here we use yield which
@@ -65,7 +67,7 @@ Loop::run(function () {
         $size = yield Amp\File\size($path);
 
         print \sprintf("%s has a size of %.2fMB\n", $path, (float) $size / 1024 / 1024);
-    } catch (Amp\Artax\HttpException $error) {
+    } catch (HttpException $error) {
         // If something goes wrong Amp will throw the exception where the promise was yielded.
         // The Client::request() method itself will never throw directly, but returns a promise.
         echo $error;

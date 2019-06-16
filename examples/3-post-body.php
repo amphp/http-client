@@ -1,7 +1,9 @@
 <?php
 
-use Amp\Artax\Request;
-use Amp\Artax\Response;
+use Amp\Http\Client\HttpException;
+use Amp\Http\Client\Request;
+use Amp\Http\Client\Response;
+use Amp\Http\Client\SocketClient;
 use Amp\Loop;
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -9,7 +11,7 @@ require __DIR__ . '/../vendor/autoload.php';
 Loop::run(function () {
     try {
         // Instantiate the HTTP client
-        $client = new Amp\Artax\DefaultClient;
+        $client = new SocketClient;
 
         // Here we create a custom request object instead of simply passing an URL to request().
         // We set the method to POST now and add a request body.
@@ -36,9 +38,9 @@ Loop::run(function () {
 
         // The response body is an instance of Message, which allows buffering or streaming by the consumers choice.
         // Simply yielding a Message buffers the complete response body.
-        $body = yield $response->getBody();
+        $body = yield $response->getBody()->buffer();
         print $body . "\n";
-    } catch (Amp\Artax\HttpException $error) {
+    } catch (HttpException $error) {
         // If something goes wrong Amp will throw the exception where the promise was yielded.
         // The Client::request() method itself will never throw directly, but returns a promise.
         echo $error;

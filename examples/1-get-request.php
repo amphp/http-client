@@ -1,6 +1,9 @@
 <?php
 
-use Amp\Artax\Response;
+use Amp\Http\Client\HttpException;
+use Amp\Http\Client\Request;
+use Amp\Http\Client\Response;
+use Amp\Http\Client\SocketClient;
 use Amp\Loop;
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -8,10 +11,10 @@ require __DIR__ . '/../vendor/autoload.php';
 Loop::run(function () use ($argv) {
     try {
         // Instantiate the HTTP client
-        $client = new Amp\Artax\DefaultClient;
+        $client = new SocketClient;
 
         // Make an asynchronous HTTP request
-        $promise = $client->request($argv[1] ?? 'https://httpbin.org/user-agent');
+        $promise = $client->request(new Request($argv[1] ?? 'https://httpbin.org/user-agent'));
 
         // Client::request() is asynchronous! It doesn't return a response. Instead, it returns a promise to resolve the
         // response at some point in the future when we've received the headers of the response. Here we use yield which
@@ -30,9 +33,9 @@ Loop::run(function () use ($argv) {
 
         // The response body is an instance of Message, which allows buffering or streaming by the consumers choice.
         // Simply yielding a Message buffers the complete response body.
-        $body = yield $response->getBody();
+        $body = yield $response->getBody()->buffer();
         print $body . "\n";
-    } catch (Amp\Artax\HttpException $error) {
+    } catch (HttpException $error) {
         // If something goes wrong Amp will throw the exception where the promise was yielded.
         // The Client::request() method itself will never throw directly, but returns a promise.
         echo $error;
