@@ -21,7 +21,6 @@ use Amp\Socket;
 use Amp\Socket\ClientTlsContext;
 use Amp\Socket\ConnectContext;
 use Amp\Socket\EncryptableSocket;
-use Amp\Socket\ResourceSocket;
 use Amp\Socket\SocketPool;
 use Amp\Success;
 use Amp\TimeoutCancellationToken;
