@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client;
 
-use Amp\Http\Client\Driver\Http1Parser;
+use Amp\Http\Client\Connection\Http1Parser;
 use Amp\Socket\SocketAddress;
 use PHPUnit\Framework\TestCase;
 

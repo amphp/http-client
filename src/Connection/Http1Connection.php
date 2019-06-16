@@ -1,6 +1,6 @@
 <?php
 
-namespace Amp\Http\Client\Driver;
+namespace Amp\Http\Client\Connection;
 
 use Amp\ByteStream\IteratorStream;
 use Amp\ByteStream\StreamException;
@@ -33,16 +33,36 @@ use function Amp\call;
  *
  * @see Client
  */
-final class Http1Driver implements HttpDriver
+final class Http1Connection implements Connection
 {
+    private $socket;
+    private $connectionInfo;
+
+    public function __construct(Socket $socket)
+    {
+        $this->socket = $socket;
+        $this->connectionInfo = ConnectionInfo::fromSocket($socket);
+    }
+
+    public function getConnectionInfo(): ConnectionInfo
+    {
+        return $this->connectionInfo;
+    }
+
+    public function isClosed(): bool
+    {
+        return $this->socket->isClosed();
+    }
+
+    public function close(): Promise
+    {
+        $this->socket->close();
+        return new Success;
+    }
+
     /** @inheritdoc */
-    public function request(
-        Socket $socket,
-        ConnectionInfo $connectionInfo,
-        Request $request,
-        ?CancellationToken $cancellation = null
-    ): Promise {
-        return call(function () use ($request, $socket, $connectionInfo, $cancellation) {
+    public function request(Request $request, ?CancellationToken $cancellation = null): Promise {
+        return call(function () use ($request, $cancellation) {
             $cancellation = $cancellation ?? new NullCancellationToken;
 
             /** @var Request $request */
@@ -58,18 +78,16 @@ final class Http1Driver implements HttpDriver
                 $readingCancellation = $cancellation;
             }
 
-            $cancellationId = $readingCancellation->subscribe(static function () use ($socket) {
-                $socket->close();
-            });
+            $cancellationId = $readingCancellation->subscribe([$this->socket, 'close']);
 
             $completionDeferred->promise()->onResolve(static function () use ($readingCancellation, $cancellationId) {
                 $readingCancellation->unsubscribe($cancellationId);
             });
 
             try {
-                yield RequestWriter::writeRequest($socket, $request, $protocolVersion);
+                yield RequestWriter::writeRequest($this->socket, $request, $protocolVersion);
 
-                return yield from $this->doRead($socket, $request, $connectionInfo, $cancellation, $readingCancellation, $completionDeferred);
+                return yield from $this->doRead($request, $cancellation, $readingCancellation, $completionDeferred);
             } catch (HttpException $e) {
                 $cancellation->throwIfRequested();
 
@@ -98,9 +116,7 @@ final class Http1Driver implements HttpDriver
     }
 
     /**
-     * @param Socket $socket
      * @param Request           $request
-     * @param ConnectionInfo    $connectionInfo
      * @param CancellationToken $originalCancellation
      * @param CancellationToken $readingCancellation
      * @param Deferred          $completionDeferred
@@ -111,9 +127,7 @@ final class Http1Driver implements HttpDriver
      * @throws CancelledException
      */
     private function doRead(
-        Socket $socket,
         Request $request,
-        ConnectionInfo $connectionInfo,
         CancellationToken $originalCancellation,
         CancellationToken $readingCancellation,
         Deferred $completionDeferred
@@ -127,10 +141,10 @@ final class Http1Driver implements HttpDriver
                 $backpressure = $bodyEmitter->emit($data);
             };
 
-        $parser = new Http1Parser($request, $connectionInfo, $bodyCallback);
+        $parser = new Http1Parser($request, $this->connectionInfo, $bodyCallback);
 
         try {
-            while (null !== $chunk = yield $socket->read()) {
+            while (null !== $chunk = yield $this->socket->read()) {
                 $response = $parser->parse($chunk);
                 if ($response === null) {
                     continue;
@@ -138,9 +152,7 @@ final class Http1Driver implements HttpDriver
 
                 $bodyCancellationSource = new CancellationTokenSource;
                 $bodyCancellationToken = new CombinedCancellationToken($readingCancellation, $bodyCancellationSource->getToken());
-                $bodyCancellationToken->subscribe(static function () use ($socket) {
-                    $socket->close();
-                });
+                $bodyCancellationToken->subscribe([$this->socket, 'close']);
 
                 $response = $response
                     ->withBody(new ResponseBodyStream(new IteratorStream($bodyEmitter->iterate()), $bodyCancellationSource))
@@ -156,7 +168,6 @@ final class Http1Driver implements HttpDriver
                     $originalCancellation,
                     $readingCancellation,
                     $bodyCancellationToken,
-                    $socket,
                     &$backpressure
                 ) {
                     try {
@@ -177,7 +188,7 @@ final class Http1Driver implements HttpDriver
                                 if (!$backpressure instanceof Success) {
                                     yield $this->withCancellation($backpressure, $bodyCancellationToken);
                                 }
-                            } while (null !== $chunk = yield $socket->read());
+                            } while (null !== $chunk = yield $this->socket->read());
 
                             $originalCancellation->throwIfRequested();
 
@@ -194,13 +205,13 @@ final class Http1Driver implements HttpDriver
                         }
 
                         if ($this->shouldCloseSocketAfterResponse($response) || $parser->getState() === Http1Parser::BODY_IDENTITY_EOF) {
-                            $socket->close();
+                            $this->socket->close();
                         }
 
                         $bodyEmitter->complete();
                         $completionDeferred->resolve();
                     } catch (\Throwable $e) {
-                        $socket->close();
+                        $this->socket->close();
 
                         $bodyEmitter->fail($e);
                         $completionDeferred->fail($e);
@@ -299,7 +310,6 @@ final class Http1Driver implements HttpDriver
 
         return $request;
     }
-
 
     private function shouldCloseSocketAfterResponse(Response $response): bool
     {

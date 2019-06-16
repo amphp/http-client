@@ -3,18 +3,18 @@
 namespace Amp\Http\Client;
 
 use Amp\Http\Client\Internal\ApplicationInterceptorClient;
-use Amp\Socket\SocketPool;
-use Amp\Socket\UnlimitedSocketPool;
+use Amp\Socket\Connector;
+use Amp\Socket\DnsConnector;
 
 final class ClientBuilder
 {
-    private $socketPool;
+    private $connector;
     private $networkInterceptors = [];
     private $applicationInterceptors = [];
 
-    public function __construct(?SocketPool $socketPool = null)
+    public function __construct(?Connector $connector = null)
     {
-        $this->socketPool = $socketPool ?? new UnlimitedSocketPool;
+        $this->connector = $connector ?? new DnsConnector;
     }
 
     public function addNetworkInterceptor(NetworkInterceptor $networkInterceptor): self
@@ -33,7 +33,7 @@ final class ClientBuilder
 
     public function build(): Client
     {
-        $client = new SocketClient($this->socketPool);
+        $client = new SocketClient($this->connector);
         foreach ($this->networkInterceptors as $networkInterceptor) {
             $client->addNetworkInterceptor($networkInterceptor);
         }

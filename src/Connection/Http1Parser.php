@@ -1,6 +1,6 @@
 <?php
 
-namespace Amp\Http\Client\Driver;
+namespace Amp\Http\Client\Connection;
 
 use Amp\ByteStream\InMemoryStream;
 use Amp\Http\Client\ConnectionInfo;

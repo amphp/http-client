@@ -68,8 +68,9 @@ class TimeoutTest extends AsyncTestCase
             // dummy watcher, because socket pool doesn't do anything
         });
 
-        $this->client = (new ClientBuilder(new Socket\UnlimitedSocketPool(10000, new class implements Socket\Connector {
-            public function connect(
+        $connector = $this->createMock(Socket\Connector::class);
+        $connector->method('connect')
+            ->willReturnCallback(function (
                 string $uri,
                 ?Socket\ConnectContext $connectContext = null,
                 ?CancellationToken $token = null
@@ -83,8 +84,9 @@ class TimeoutTest extends AsyncTestCase
                 }
 
                 return $deferred->promise(); // never resolve
-            }
-        })))->build();
+            });
+
+        $this->client = (new ClientBuilder($connector))->build();
 
         $this->expectException(TimeoutException::class);
         $this->expectExceptionMessage("Connection to 'localhost:1337' timed out, took longer than 100 ms");
