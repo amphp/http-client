@@ -41,7 +41,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Amp\\Http\\Client\\": "lib"
+            "Amp\\Http\\Client\\": "src"
         }
     },
     "autoload-dev": {

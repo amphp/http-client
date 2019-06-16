@@ -12,7 +12,7 @@
     </testsuites>
     <filter>
         <whitelist>
-            <directory suffix=".php">lib</directory>
+            <directory suffix=".php">src</directory>
         </whitelist>
     </filter>
 </phpunit>
