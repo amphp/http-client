@@ -1,8 +1,12 @@
 <?php
 
-namespace Amp\Http\Client;
+namespace Amp\Http\Client\Interceptor;
 
 use Amp\CancellationToken;
+use Amp\Http\Client\ApplicationInterceptor;
+use Amp\Http\Client\Client;
+use Amp\Http\Client\Request;
+use Amp\Http\Client\Response;
 use Amp\Promise;
 use League\Uri;
 use League\Uri\UriException;

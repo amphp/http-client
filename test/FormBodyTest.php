@@ -2,13 +2,14 @@
 
 namespace Amp\Http\Client;
 
-use Amp\ByteStream\Message;
-use Amp\PHPUnit\TestCase;
-use function Amp\Promise\wait;
+use Amp\Http\Client\Body\FileBody;
+use Amp\Http\Client\Body\FormBody;
+use Amp\PHPUnit\AsyncTestCase;
+use function Amp\ByteStream\buffer;
 
-class FormBodyTest extends TestCase
+class FormBodyTest extends AsyncTestCase
 {
-    public function testUrlEncoded()
+    public function testUrlEncoded(): \Generator
     {
         $body = new FormBody();
         $body->addFields([
@@ -21,7 +22,7 @@ class FormBodyTest extends TestCase
             'e' => 'e',
         ], '');
         $body->addFields([
-            'f' => 'f'
+            'f' => 'f',
         ]);
 
         $this->assertSame([
@@ -33,11 +34,11 @@ class FormBodyTest extends TestCase
             ['f', 'f', 'text/plain', null],
         ], $body->getFields());
 
-        $content = wait(new Message($body->createBodyStream()));
+        $content = yield buffer($body->createBodyStream());
         $this->assertEquals("a=a&b=b&c=c&d=d&e=e&f=f", $content);
     }
 
-    public function testMultiPartFields()
+    public function testMultiPartFields(): \Generator
     {
         $body = new FormBody('ea4ba2aa9af22673bc01ae7a64c95440');
         $body->addFields([
@@ -50,21 +51,21 @@ class FormBodyTest extends TestCase
             'e' => 'e',
         ], '');
         $body->addFields([
-            'f' => 'f'
+            'f' => 'f',
         ]);
 
-        $file = __DIR__.'/fixture/lorem.txt';
+        $file = __DIR__ . '/fixture/lorem.txt';
         $body->addFile('file', $file);
 
         $fields = $body->getFields();
-        list($fieldName, $fileBody, $contentType, $fileName) = \end($fields);
+        [$fieldName, $fileBody, $contentType, $fileName] = \end($fields);
 
         $this->assertSame('file', $fieldName);
         $this->assertInstanceOf(FileBody::class, $fileBody);
         $this->assertSame('application/octet-stream', $contentType);
         $this->assertSame('lorem.txt', $fileName);
 
-        $content = wait(new Message($body->createBodyStream()));
+        $content = yield buffer($body->createBodyStream());
         $this->assertEquals("--ea4ba2aa9af22673bc01ae7a64c95440\r
 Content-Disposition: form-data; name=\"a\"\r
 Content-Type: application/json\r

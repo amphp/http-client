@@ -1,10 +1,11 @@
 <?php
 
-namespace Amp\Http\Client;
+namespace Amp\Http\Client\Body;
 
 use Amp\ByteStream\InMemoryStream;
 use Amp\ByteStream\InputStream;
 use Amp\ByteStream\IteratorStream;
+use Amp\Http\Client\RequestBody;
 use Amp\Producer;
 use Amp\Promise;
 use Amp\Success;

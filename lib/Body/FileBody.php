@@ -1,8 +1,9 @@
 <?php
 
-namespace Amp\Http\Client;
+namespace Amp\Http\Client\Body;
 
 use Amp\ByteStream\InputStream;
+use Amp\Http\Client\RequestBody;
 use Amp\Promise;
 use Amp\Success;
 use function Amp\call;

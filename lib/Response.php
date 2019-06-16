@@ -46,6 +46,7 @@ final class Response extends Message
         $this->completionPromise = $completionPromise ?? new Success;
         $this->previousResponse = $previousResponse;
 
+        /** @noinspection PhpUnhandledExceptionInspection */
         $this->setHeaders($headers);
     }
 
@@ -183,6 +184,7 @@ final class Response extends Message
     public function withHeaders(array $headers): self
     {
         $clone = clone $this;
+        /** @noinspection PhpUnhandledExceptionInspection */
         $clone->setHeaders($headers);
 
         return $clone;

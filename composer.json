@@ -36,7 +36,7 @@
         "amphp/phpunit-util": "dev-master as 2.0.0",
         "amphp/php-cs-fixer-config": "dev-master",
         "phpunit/phpunit": "^7 || ^8",
-        "friendsofphp/php-cs-fixer": "^2.3",
+        "friendsofphp/php-cs-fixer": "^2.15",
         "amphp/http-server": "v2.x-dev"
     },
     "autoload": {
@@ -48,5 +48,10 @@
         "psr-4": {
             "Amp\\Http\\Client\\": "test"
         }
+    },
+    "scripts": {
+        "cs-fix": [
+            "php-cs-fixer fix --config=./.php_cs.dist"
+        ]
     }
 }

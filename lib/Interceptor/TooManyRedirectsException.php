@@ -1,6 +1,9 @@
 <?php
 
-namespace Amp\Http\Client;
+namespace Amp\Http\Client\Interceptor;
+
+use Amp\Http\Client\HttpException;
+use Amp\Http\Client\Response;
 
 class TooManyRedirectsException extends HttpException
 {

@@ -2,6 +2,7 @@
 
 namespace Amp\Http\Client;
 
+use Amp\Http\Client\Body\StringBody;
 use PHPUnit\Framework\TestCase;
 
 class RequestTest extends TestCase

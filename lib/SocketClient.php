@@ -479,6 +479,12 @@ final class SocketClient implements Client
         return false;
     }
 
+    /**
+     * @param Request $request
+     *
+     * @return string
+     * @throws HttpException
+     */
     private function determineProtocolVersion(Request $request): string
     {
         $protocolVersions = $request->getProtocolVersions();

@@ -2,6 +2,7 @@
 
 namespace Amp\Http\Client;
 
+use Amp\Http\Client\Body\StringBody;
 use Amp\Http\Message;
 use League\Uri;
 use Psr\Http\Message\UriInterface;
@@ -187,6 +188,7 @@ final class Request extends Message
     public function withHeaders(array $headers): self
     {
         $clone = clone $this;
+        /** @noinspection PhpUnhandledExceptionInspection */
         $clone->setHeaders($headers);
 
         return $clone;
