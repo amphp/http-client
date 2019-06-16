@@ -371,7 +371,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->assertStringContainsString(":", $connectionInfo->getLocalAddress());
         $this->assertStringContainsString(":", $connectionInfo->getRemoteAddress());
         $this->assertNotNull($connectionInfo->getTlsInfo());
-        $this->assertSame("TLSv1.2", $connectionInfo->getTlsInfo()->getProtocol());
+        $this->assertSame("TLSv1.2", $connectionInfo->getTlsInfo()->getVersion());
         $this->assertNotEmpty($connectionInfo->getTlsInfo()->getPeerCertificates());
         $this->assertContains("httpbin.org", $connectionInfo->getTlsInfo()->getPeerCertificates()[0]->getNames());
 
