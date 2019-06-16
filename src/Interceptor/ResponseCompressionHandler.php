@@ -7,8 +7,8 @@ use Amp\CancellationToken;
 use Amp\Http\Client\Client;
 use Amp\Http\Client\ConnectionInfo;
 use Amp\Http\Client\NetworkInterceptor;
-use Amp\Http\Client\Response;
 use Amp\Http\Client\Request;
+use Amp\Http\Client\Response;
 use Amp\Promise;
 use function Amp\call;
 

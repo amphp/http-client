@@ -1,11 +1,11 @@
 <?php
 
+use Amp\File\Handle;
+use Amp\File\StatCache;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\SocketClient;
-use Amp\File\Handle;
-use Amp\File\StatCache;
 use Amp\Loop;
 
 require __DIR__ . '/../vendor/autoload.php';
