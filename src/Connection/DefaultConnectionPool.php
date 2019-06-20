@@ -2,40 +2,107 @@
 
 namespace Amp\Http\Client\Connection;
 
+use Amp\ByteStream\StreamException;
+use Amp\CancellationToken;
+use Amp\CancelledException;
+use Amp\Http\Client\Internal\CombinedCancellationToken;
 use Amp\Http\Client\Request;
-use Amp\Socket\Socket;
+use Amp\Http\Client\SocketException;
+use Amp\Http\Client\TimeoutException;
+use Amp\Promise;
+use Amp\Socket\ClientTlsContext;
+use Amp\Socket\ConnectContext;
+use Amp\Socket\Connector;
+use Amp\Socket;
+use Amp\Socket\EncryptableSocket;
+use Amp\TimeoutCancellationToken;
+use function Amp\call;
 
 final class DefaultConnectionPool implements ConnectionPool
 {
+    private const APPLICATION_LAYER_PROTOCOLS = ['http/1.1'];
+
+    /** @var Connector */
+    private $connector;
+
+    /** @var Connection[][] */
     private $connections = [];
 
-    public function createConnection(Socket $socket): Connection
+    public function __construct(?Connector $connector = null)
     {
-        $connection = new Http1Connection($socket);
-        $this->connections[$socket->getRemoteAddress()->toString()] = $connection;
-        return $connection;
+        $this->connector = $connector ?? Socket\connector();
     }
 
-    public function getConnection(Request $request): ?Connection
+    public function getConnection(Request $request, CancellationToken $cancellation): Promise
     {
-        $uri = $request->getUri();
+        return call(function () use ($request, $cancellation) {
+            $isHttps = $request->getUri()->getScheme() === 'https';
+            $defaultPort = $isHttps ? 443 : 80;
 
-        $address = $uri->getHost();
-        $port = $uri->getPort();
+            $authority = $request->getUri()->getHost() . ':' . ($request->getUri()->getPort() ?: $defaultPort);
 
-        if ($port !== null) {
-            $address .= ':' . $port;
-        }
+            if (isset($this->connections[$authority])) {
+                foreach ($this->connections[$authority] as $connection) {
+                    \assert($connection instanceof Connection);
+                    if (!$connection->isBusy()) {
+                        return $connection;
+                    }
+                }
+            }
 
-        if (isset($this->connections[$address])) {
-            return $this->connections[$address];
-        }
+            $connectContext = new ConnectContext;
 
-        return null;
-    }
+            if ($isHttps) {
+                $tlsContext = ($connectContext->getTlsContext() ?? new ClientTlsContext($request->getUri()->getHost()))
+                    ->withApplicationLayerProtocols(self::APPLICATION_LAYER_PROTOCOLS)
+                    ->withPeerCapturing();
 
-    public function getApplicationLayerProtocols(): array
-    {
-        return ['http/1.1'];
+                $connectContext = $connectContext->withTlsContext($tlsContext);
+            }
+
+            try {
+                $checkoutCancellationToken = new CombinedCancellationToken($cancellation, new TimeoutCancellationToken($request->getTcpConnectTimeout()));
+
+                /** @var EncryptableSocket $socket */
+                $socket = yield $this->connector->connect('tcp://' . $authority, $connectContext, $checkoutCancellationToken);
+            } catch (Socket\ConnectException $e) {
+                throw new SocketException(\sprintf("Connection to '%s' failed", $authority), 0, $e);
+            } catch (CancelledException $e) {
+                // In case of a user cancellation request, throw the expected exception
+                $cancellation->throwIfRequested();
+
+                // Otherwise we ran into a timeout of our TimeoutCancellationToken
+                throw new TimeoutException(\sprintf("Connection to '%s' timed out, took longer than " . $request->getTcpConnectTimeout() . ' ms', $authority)); // don't pass $e
+            }
+
+            if ($isHttps) {
+                try {
+                    $tlsState = $socket->getTlsState();
+                    if ($tlsState === EncryptableSocket::TLS_STATE_DISABLED) {
+                        $tlsCancellationToken = new CombinedCancellationToken($cancellation, new TimeoutCancellationToken($request->getTlsHandshakeTimeout()));
+                        yield $socket->setupTls($tlsCancellationToken);
+                    } elseif ($tlsState !== EncryptableSocket::TLS_STATE_ENABLED) {
+                        throw new SocketException('Failed to setup TLS connection, connection was in an unexpected TLS state (' . $tlsState . ')');
+                    }
+                } catch (StreamException $exception) {
+                    throw new SocketException(\sprintf("Connection to '%s' closed during TLS handshake", $authority), 0, $exception);
+                } catch (CancelledException $e) {
+                    // In case of a user cancellation request, throw the expected exception
+                    $cancellation->throwIfRequested();
+
+                    // Otherwise we ran into a timeout of our TimeoutCancellationToken
+                    throw new TimeoutException(\sprintf("TLS handshake with '%s' @ '%s' timed out, took longer than " . $request->getTlsHandshakeTimeout() . ' ms', $authority, $socket->getRemoteAddress()->toString())); // don't pass $e
+                }
+            }
+
+            if (!isset($this->connections[$authority])) {
+                $this->connections[$authority] = [];
+            }
+
+            $connection = new Http1Connection($socket);
+            $this->connections[$authority][] = $connection;
+
+            return $connection;
+        });
     }
 }

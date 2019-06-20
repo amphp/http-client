@@ -37,6 +37,7 @@ final class Http1Connection implements Connection
 {
     private $socket;
     private $connectionInfo;
+    private $busy = false;
 
     public function __construct(Socket $socket)
     {
@@ -47,6 +48,11 @@ final class Http1Connection implements Connection
     public function getConnectionInfo(): ConnectionInfo
     {
         return $this->connectionInfo;
+    }
+
+    public function isBusy(): bool
+    {
+        return $this->busy;
     }
 
     public function isClosed(): bool
@@ -64,6 +70,8 @@ final class Http1Connection implements Connection
     public function request(Request $request, ?CancellationToken $cancellation = null): Promise {
         return call(function () use ($request, $cancellation) {
             $cancellation = $cancellation ?? new NullCancellationToken;
+
+            $this->busy = true;
 
             /** @var Request $request */
             $request = yield from $this->buildRequest($request);
@@ -87,7 +95,11 @@ final class Http1Connection implements Connection
             try {
                 yield RequestWriter::writeRequest($this->socket, $request, $protocolVersion);
 
-                return yield from $this->doRead($request, $cancellation, $readingCancellation, $completionDeferred);
+                $response = yield from $this->doRead($request, $cancellation, $readingCancellation, $completionDeferred);
+
+                $this->busy = false;
+
+                return $response;
             } catch (HttpException $e) {
                 $cancellation->throwIfRequested();
 

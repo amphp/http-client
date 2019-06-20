@@ -23,6 +23,8 @@ interface Connection
      */
     public function getConnectionInfo(): ConnectionInfo;
 
+    public function isBusy(): bool;
+
     public function isClosed(): bool;
 
     public function close(): Promise;
