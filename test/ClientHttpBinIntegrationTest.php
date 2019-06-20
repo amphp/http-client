@@ -371,16 +371,15 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     {
         /** @var Response $response */
         $response = yield $this->executeRequest(new Request("https://httpbin.org/get"));
-        $connectionInfo = $response->getConnectionInfo();
 
-        $this->assertStringContainsString(":", $connectionInfo->getLocalAddress());
-        $this->assertStringContainsString(":", $connectionInfo->getRemoteAddress());
-        $this->assertNotNull($connectionInfo->getTlsInfo());
-        $this->assertSame("TLSv1.2", $connectionInfo->getTlsInfo()->getVersion());
-        $this->assertNotEmpty($connectionInfo->getTlsInfo()->getPeerCertificates());
-        $this->assertContains("httpbin.org", $connectionInfo->getTlsInfo()->getPeerCertificates()[0]->getNames());
+        $this->assertStringContainsString(":", $response->getLocalAddress());
+        $this->assertStringContainsString(":", $response->getRemoteAddress());
+        $this->assertNotNull($response->getTlsInfo());
+        $this->assertSame("TLSv1.2", $response->getTlsInfo()->getVersion());
+        $this->assertNotEmpty($response->getTlsInfo()->getPeerCertificates());
+        $this->assertContains("httpbin.org", $response->getTlsInfo()->getPeerCertificates()[0]->getNames());
 
-        foreach ($connectionInfo->getTlsInfo()->getPeerCertificates() as $certificate) {
+        foreach ($response->getTlsInfo()->getPeerCertificates() as $certificate) {
             $this->assertGreaterThanOrEqual($certificate->getValidFrom(), \time(), "Failed for " . $certificate->getSubject()->getCommonName());
             $this->assertLessThanOrEqual($certificate->getValidTo(), \time(), "Failed for " . $certificate->getSubject()->getCommonName());
         }

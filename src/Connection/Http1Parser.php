@@ -3,7 +3,6 @@
 namespace Amp\Http\Client\Connection;
 
 use Amp\ByteStream\InMemoryStream;
-use Amp\Http\Client\ConnectionInfo;
 use Amp\Http\Client\ParseException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
@@ -61,8 +60,8 @@ final class Http1Parser
     /** @var string */
     private $request;
 
-    /** @var ConnectionInfo */
-    private $connectionInfo;
+    /** @var Connection */
+    private $connection;
 
     /** @var int */
     private $maxHeaderBytes;
@@ -73,10 +72,10 @@ final class Http1Parser
     /** @var callable */
     private $bodyDataCallback;
 
-    public function __construct(Request $request, ConnectionInfo $connectionInfo, callable $bodyDataCallback = null)
+    public function __construct(Request $request, Connection $connection, callable $bodyDataCallback = null)
     {
         $this->request = $request;
-        $this->connectionInfo = $connectionInfo;
+        $this->connection = $connection;
         $this->bodyDataCallback = $bodyDataCallback;
         $this->maxHeaderBytes = $request->getHeaderSizeLimit();
         $this->maxBodyBytes = $request->getBodySizeLimit();
@@ -174,7 +173,7 @@ final class Http1Parser
                 $this->complete = true;
             }
 
-            return new Response($this->protocol, $this->statusCode, $this->statusReason, $this->headers, new InMemoryStream, $this->request, $this->connectionInfo);
+            return new Response($this->protocol, $this->statusCode, $this->statusReason, $this->headers, new InMemoryStream, $this->request, $this->connection);
         }
 
         body_identity:

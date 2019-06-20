@@ -3,10 +3,11 @@
 namespace Amp\Http\Client\Connection;
 
 use Amp\CancellationToken;
-use Amp\Http\Client\ConnectionInfo;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Promise;
+use Amp\Socket\SocketAddress;
+use Amp\Socket\TlsInfo;
 
 interface Connection
 {
@@ -18,14 +19,15 @@ interface Connection
      */
     public function request(Request $request, ?CancellationToken $token = null): Promise;
 
-    /**
-     * @return ConnectionInfo
-     */
-    public function getConnectionInfo(): ConnectionInfo;
-
     public function isBusy(): bool;
 
     public function isClosed(): bool;
 
     public function close(): Promise;
+
+    public function getLocalAddress(): SocketAddress;
+
+    public function getRemoteAddress(): SocketAddress;
+
+    public function getTlsInfo(): ?TlsInfo;
 }

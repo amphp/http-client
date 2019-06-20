@@ -4,6 +4,7 @@ namespace Amp\Http\Client\Internal;
 
 use Amp\CancellationToken;
 use Amp\Http\Client\Client;
+use Amp\Http\Client\Connection\Connection;
 use Amp\Http\Client\ConnectionInfo;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request;
@@ -15,18 +16,18 @@ final class NetworkInterceptorClient implements Client
 {
     /** @var Client */
     private $client;
-    /** @var ConnectionInfo */
-    private $connectionInfo;
+    /** @var Connection */
+    private $connection;
     /** @var NetworkInterceptor[] */
     private $interceptors;
 
     public function __construct(
         Client $client,
-        ConnectionInfo $connectionInfo,
+        Connection $connection,
         NetworkInterceptor ...$networkInterceptors
     ) {
         $this->client = $client;
-        $this->connectionInfo = $connectionInfo;
+        $this->connection = $connection;
         $this->interceptors = $networkInterceptors;
     }
 
@@ -39,9 +40,9 @@ final class NetworkInterceptorClient implements Client
         $cancellation = $cancellation ?? new NullCancellationToken;
         $interceptor = $this->interceptors[0];
         $remainingInterceptors = \array_slice($this->interceptors, 1);
-        $next = new self($this->client, $this->connectionInfo, ...$remainingInterceptors);
+        $next = new self($this->client, $this->connection, ...$remainingInterceptors);
 
-        return $interceptor->interceptNetworkRequest($request, $cancellation, $this->connectionInfo, $next);
+        return $interceptor->interceptNetworkRequest($request, $cancellation, $this->connection, $next);
     }
 
     public function addNetworkInterceptor(NetworkInterceptor $networkInterceptor): void

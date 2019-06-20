@@ -5,7 +5,7 @@ namespace Amp\Http\Client\Interceptor;
 use Amp\ByteStream\ZlibInputStream;
 use Amp\CancellationToken;
 use Amp\Http\Client\Client;
-use Amp\Http\Client\ConnectionInfo;
+use Amp\Http\Client\Connection\Connection;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
@@ -24,7 +24,7 @@ final class ResponseCompressionHandler implements NetworkInterceptor
     public function interceptNetworkRequest(
         Request $request,
         CancellationToken $cancellationToken,
-        ConnectionInfo $connectionInfo,
+        Connection $connection,
         Client $next
     ): Promise {
         return call(function () use ($request, $cancellationToken, $next) {

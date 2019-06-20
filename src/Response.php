@@ -4,8 +4,11 @@ namespace Amp\Http\Client;
 
 use Amp\ByteStream\InputStream;
 use Amp\ByteStream\Payload;
+use Amp\Http\Client\Connection\Connection;
 use Amp\Http\Message;
 use Amp\Promise;
+use Amp\Socket\SocketAddress;
+use Amp\Socket\TlsInfo;
 use Amp\Success;
 
 /**
@@ -22,7 +25,7 @@ final class Response extends Message
     private $reason;
     private $request;
     private $body;
-    private $connectionInfo;
+    private $connection;
     private $completionPromise;
     private $previousResponse;
 
@@ -33,7 +36,7 @@ final class Response extends Message
         array $headers,
         InputStream $body,
         Request $request,
-        ConnectionInfo $connectionInfo,
+        Connection $connection,
         ?Promise $completionPromise = null,
         ?Response $previousResponse = null
     ) {
@@ -42,7 +45,7 @@ final class Response extends Message
         $this->reason = $reason;
         $this->body = new Payload($body);
         $this->request = $request;
-        $this->connectionInfo = $connectionInfo;
+        $this->connection = $connection;
         $this->completionPromise = $completionPromise ?? new Success;
         $this->previousResponse = $previousResponse;
 
@@ -225,23 +228,41 @@ final class Response extends Message
         return $this->body;
     }
 
-    public function withBody(InputStream $body): self
+    public function getLocalAddress(): SocketAddress
     {
-        $clone = clone $this;
-        $clone->body = new Payload($body);
-
-        return $clone;
+        return $this->connection->getLocalAddress();
     }
 
-    public function getConnectionInfo(): ConnectionInfo
+    public function getRemoteAddress(): SocketAddress
     {
-        return $this->connectionInfo;
+        return $this->connection->getRemoteAddress();
+    }
+
+    public function getTlsInfo(): ?TlsInfo
+    {
+        return $this->connection->getTlsInfo();
     }
 
     public function withConnectionInfo(ConnectionInfo $connectionInfo): self
     {
         $clone = clone $this;
-        $clone->connectionInfo = $connectionInfo;
+        $clone->connection = $connectionInfo;
+
+        return $clone;
+    }
+
+    public function withPreviousResponse(?Response $previousResponse): self
+    {
+        $clone = clone $this;
+        $clone->previousResponse = $previousResponse;
+
+        return $clone;
+    }
+
+    public function withBody(InputStream $body): self
+    {
+        $clone = clone $this;
+        $clone->body = new Payload($body);
 
         return $clone;
     }

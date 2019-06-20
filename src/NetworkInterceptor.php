@@ -3,6 +3,7 @@
 namespace Amp\Http\Client;
 
 use Amp\CancellationToken;
+use Amp\Http\Client\Connection\Connection;
 use Amp\Promise;
 
 interface NetworkInterceptor
@@ -10,7 +11,7 @@ interface NetworkInterceptor
     public function interceptNetworkRequest(
         Request $request,
         CancellationToken $cancellationToken,
-        ConnectionInfo $connectionInfo,
+        Connection $connection,
         Client $next
     ): Promise;
 }

@@ -50,7 +50,7 @@ final class SocketClient implements Client
                 return $connection->request($request, $cancellation);
             });
 
-            $client = new NetworkInterceptorClient($client, $connection->getConnectionInfo(), ...$this->networkInterceptors);
+            $client = new NetworkInterceptorClient($client, $connection, ...$this->networkInterceptors);
 
             return yield $client->request($request, $cancellation);
         });

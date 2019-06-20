@@ -9,7 +9,6 @@ use Amp\CancellationTokenSource;
 use Amp\CancelledException;
 use Amp\Deferred;
 use Amp\Emitter;
-use Amp\Http\Client\ConnectionInfo;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Internal\CombinedCancellationToken;
 use Amp\Http\Client\Internal\RequestWriter;
@@ -22,7 +21,10 @@ use Amp\Http\Client\SocketException;
 use Amp\Http\Client\TimeoutException;
 use Amp\NullCancellationToken;
 use Amp\Promise;
+use Amp\Socket\EncryptableSocket;
 use Amp\Socket\Socket;
+use Amp\Socket\SocketAddress;
+use Amp\Socket\TlsInfo;
 use Amp\Success;
 use Amp\TimeoutCancellationToken;
 use function Amp\asyncCall;
@@ -36,18 +38,11 @@ use function Amp\call;
 final class Http1Connection implements Connection
 {
     private $socket;
-    private $connectionInfo;
     private $busy = false;
 
     public function __construct(Socket $socket)
     {
         $this->socket = $socket;
-        $this->connectionInfo = ConnectionInfo::fromSocket($socket);
-    }
-
-    public function getConnectionInfo(): ConnectionInfo
-    {
-        return $this->connectionInfo;
     }
 
     public function isBusy(): bool
@@ -64,6 +59,21 @@ final class Http1Connection implements Connection
     {
         $this->socket->close();
         return new Success;
+    }
+
+    public function getLocalAddress(): SocketAddress
+    {
+        return $this->socket->getLocalAddress();
+    }
+
+    public function getRemoteAddress(): SocketAddress
+    {
+        return $this->socket->getRemoteAddress();
+    }
+
+    public function getTlsInfo(): ?TlsInfo
+    {
+        return $this->socket instanceof EncryptableSocket ? $this->socket->getTlsInfo() : null;
     }
 
     /** @inheritdoc */
@@ -151,7 +161,7 @@ final class Http1Connection implements Connection
                 $backpressure = $bodyEmitter->emit($data);
             };
 
-        $parser = new Http1Parser($request, $this->connectionInfo, $bodyCallback);
+        $parser = new Http1Parser($request, $this, $bodyCallback);
 
         try {
             while (null !== $chunk = yield $this->socket->read()) {
