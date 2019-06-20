@@ -88,18 +88,16 @@ final class Http1Connection implements Connection
 
             $cancellationId = $readingCancellation->subscribe([$this->socket, 'close']);
 
-            $completionDeferred->promise()->onResolve(static function () use ($readingCancellation, $cancellationId) {
+            $busy = &$this->busy;
+            $completionDeferred->promise()->onResolve(static function () use (&$busy, $readingCancellation, $cancellationId) {
                 $readingCancellation->unsubscribe($cancellationId);
+                $busy = false;
             });
 
             try {
                 yield RequestWriter::writeRequest($this->socket, $request, $protocolVersion);
 
-                $response = yield from $this->doRead($request, $cancellation, $readingCancellation, $completionDeferred);
-
-                $this->busy = false;
-
-                return $response;
+                return yield from $this->doRead($request, $cancellation, $readingCancellation, $completionDeferred);
             } catch (HttpException $e) {
                 $cancellation->throwIfRequested();
 
