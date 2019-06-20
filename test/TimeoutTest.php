@@ -89,9 +89,9 @@ class TimeoutTest extends AsyncTestCase
         $this->client = (new ClientBuilder($connector))->build();
 
         $this->expectException(TimeoutException::class);
-        $this->expectExceptionMessage("Connection to 'localhost:1337' timed out, took longer than 100 ms");
+        $this->expectExceptionMessage("Connection to 'localhost:1337' timed out, took longer than 1 ms");
 
-        yield $this->client->request((new Request('http://localhost:1337/'))->withTcpConnectTimeout(100));
+        yield $this->client->request((new Request('http://localhost:1337/'))->withTcpConnectTimeout(1));
 
         $this->assertLessThan(\microtime(true) - $start, 0.6);
     }
