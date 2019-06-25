@@ -5,7 +5,6 @@ namespace Amp\Http\Client\Internal;
 use Amp\CancellationToken;
 use Amp\Http\Client\Client;
 use Amp\Http\Client\Connection\Connection;
-use Amp\Http\Client\ConnectionInfo;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request;
 use Amp\NullCancellationToken;

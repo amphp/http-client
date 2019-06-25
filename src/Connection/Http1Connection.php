@@ -77,7 +77,8 @@ final class Http1Connection implements Connection
     }
 
     /** @inheritdoc */
-    public function request(Request $request, ?CancellationToken $cancellation = null): Promise {
+    public function request(Request $request, ?CancellationToken $cancellation = null): Promise
+    {
         return call(function () use ($request, $cancellation) {
             $cancellation = $cancellation ?? new NullCancellationToken;
 
@@ -161,7 +162,7 @@ final class Http1Connection implements Connection
                 $backpressure = $bodyEmitter->emit($data);
             };
 
-        $parser = new Http1Parser($request, $this, $bodyCallback);
+        $parser = new Http1Parser($request, $bodyCallback);
 
         try {
             while (null !== $chunk = yield $this->socket->read()) {

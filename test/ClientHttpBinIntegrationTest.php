@@ -367,24 +367,6 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         yield $this->executeRequest(new Request("http://httpbin.org/redirect/11"));
     }
 
-    public function testConnectionInfo(): \Generator
-    {
-        /** @var Response $response */
-        $response = yield $this->executeRequest(new Request("https://httpbin.org/get"));
-
-        $this->assertStringContainsString(":", $response->getLocalAddress());
-        $this->assertStringContainsString(":", $response->getRemoteAddress());
-        $this->assertNotNull($response->getTlsInfo());
-        $this->assertSame("TLSv1.2", $response->getTlsInfo()->getVersion());
-        $this->assertNotEmpty($response->getTlsInfo()->getPeerCertificates());
-        $this->assertContains("httpbin.org", $response->getTlsInfo()->getPeerCertificates()[0]->getNames());
-
-        foreach ($response->getTlsInfo()->getPeerCertificates() as $certificate) {
-            $this->assertGreaterThanOrEqual($certificate->getValidFrom(), \time(), "Failed for " . $certificate->getSubject()->getCommonName());
-            $this->assertLessThanOrEqual($certificate->getValidTo(), \time(), "Failed for " . $certificate->getSubject()->getCommonName());
-        }
-    }
-
     public function testRequestCancellation(): \Generator
     {
         $this->givenSlowRawServerResponse(

@@ -60,9 +60,6 @@ final class Http1Parser
     /** @var string */
     private $request;
 
-    /** @var Connection */
-    private $connection;
-
     /** @var int */
     private $maxHeaderBytes;
 
@@ -72,10 +69,9 @@ final class Http1Parser
     /** @var callable */
     private $bodyDataCallback;
 
-    public function __construct(Request $request, Connection $connection, callable $bodyDataCallback = null)
+    public function __construct(Request $request, callable $bodyDataCallback = null)
     {
         $this->request = $request;
-        $this->connection = $connection;
         $this->bodyDataCallback = $bodyDataCallback;
         $this->maxHeaderBytes = $request->getHeaderSizeLimit();
         $this->maxBodyBytes = $request->getBodySizeLimit();
@@ -173,7 +169,7 @@ final class Http1Parser
                 $this->complete = true;
             }
 
-            return new Response($this->protocol, $this->statusCode, $this->statusReason, $this->headers, new InMemoryStream, $this->request, $this->connection);
+            return new Response($this->protocol, $this->statusCode, $this->statusReason, $this->headers, new InMemoryStream, $this->request);
         }
 
         body_identity:
