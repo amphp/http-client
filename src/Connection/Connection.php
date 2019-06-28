@@ -11,6 +11,8 @@ use Amp\Socket\TlsInfo;
 
 interface Connection
 {
+    public const MAX_KEEP_ALIVE_TIMEOUT = 60;
+
     /**
      * @param Request                $request
      * @param CancellationToken|null $token
@@ -21,9 +23,9 @@ interface Connection
 
     public function isBusy(): bool;
 
-    public function isClosed(): bool;
-
     public function close(): Promise;
+
+    public function onClose(callable $onClose): void;
 
     public function getLocalAddress(): SocketAddress;
 

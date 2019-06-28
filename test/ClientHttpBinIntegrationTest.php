@@ -118,7 +118,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $uri = 'http://httpbin.org/user-agent';
         $customUserAgent = 'test-user-agent';
 
-        $request = (new Request($uri))->withHeader('User-Agent', $customUserAgent);
+        $request = (new Request($uri))->withHeader('User-Agent', $customUserAgent)->withHeader('Connection', 'keep-alive');
 
         /** @var Response $response */
         $response = yield $this->executeRequest($request);
