@@ -46,6 +46,7 @@ final class DefaultConnectionPool implements ConnectionPool
             if (!empty($this->connections[$key])) {
                 foreach ($this->connections[$key] as $index => $connection) {
                     if ($connection instanceof Promise) {
+                        // Wait for concurrent connection request before creating a new connection.
                         $connection = yield $connection;
                     }
 
@@ -132,6 +133,7 @@ final class DefaultConnectionPool implements ConnectionPool
                     return;
                 }
 
+                // Replace Promise with Connection object.
                 $this->connections[$key][$index] = $connection;
             });
 

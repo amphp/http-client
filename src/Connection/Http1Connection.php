@@ -50,12 +50,19 @@ final class Http1Connection implements Connection
     /** @var string|null Keep alive timeout watcher ID. */
     private $timeoutWatcher;
 
+    /** @var int Keep-Alive timeout from last response. */
+    private $priorTimeout = self::MAX_KEEP_ALIVE_TIMEOUT;
+
     /** @var callable[]|null */
     private $onClose = [];
 
     public function __construct(Socket $socket)
     {
         $this->socket = $socket;
+
+        if ($this->socket->isClosed()) {
+            $this->onClose = null;
+        }
     }
 
     public function isBusy(): bool
@@ -258,7 +265,7 @@ final class Http1Connection implements Connection
                             }
                         }
 
-                        if ($timeout = $this->determineKeepAliveTimeout($response)) {
+                        if ($parser->getState() !== Http1Parser::BODY_IDENTITY_EOF && $timeout = $this->determineKeepAliveTimeout($response)) {
                             $this->timeoutWatcher = Loop::delay($timeout * 1000, [$this, 'close']);
                             Loop::unreference($this->timeoutWatcher);
                         } else {
@@ -390,7 +397,7 @@ final class Http1Connection implements Connection
         $responseKeepAliveHeader = $response->getHeader('keep-alive');
 
         if ($responseKeepAliveHeader === null) {
-            return self::MAX_KEEP_ALIVE_TIMEOUT;
+            return $this->priorTimeout;
         }
 
         $parts = \array_map('trim', \explode(',', $responseKeepAliveHeader));
@@ -401,11 +408,7 @@ final class Http1Connection implements Connection
             $params[$key] = (int) $value;
         }
 
-        if ($this->requestCounter >= $params['max'] ?? \PHP_INT_MAX) {
-            return 0;
-        }
-
-        return \min(\max(0, $params['timeout'] ?? 0), self::MAX_KEEP_ALIVE_TIMEOUT);
+        return $this->priorTimeout = \min(\max(0, $params['timeout'] ?? 0), self::MAX_KEEP_ALIVE_TIMEOUT);
     }
 
     private function determineProtocolVersion(Request $request): string
