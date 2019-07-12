@@ -9,6 +9,7 @@ use Amp\CancellationTokenSource;
 use Amp\CancelledException;
 use Amp\Deferred;
 use Amp\Emitter;
+use Amp\Http;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Internal\CombinedCancellationToken;
 use Amp\Http\Client\Internal\RequestWriter;
@@ -394,21 +395,12 @@ final class Http1Connection implements Connection
             return 0;
         }
 
-        $responseKeepAliveHeader = $response->getHeader('keep-alive');
+        $params = Http\createFieldValueComponentMap(Http\parseFieldValueComponents($response, 'keep-alive'));
 
-        if ($responseKeepAliveHeader === null) {
-            return $this->priorTimeout;
-        }
-
-        $parts = \array_map('trim', \explode(',', $responseKeepAliveHeader));
-
-        $params = [];
-        foreach ($parts as $part) {
-            [$key, $value] = \array_map('trim', \explode('=', $part)) + [null, null];
-            $params[$key] = (int) $value;
-        }
-
-        return $this->priorTimeout = \min(\max(0, $params['timeout'] ?? 0), self::MAX_KEEP_ALIVE_TIMEOUT);
+        return $this->priorTimeout = \min(
+            \max(0, $params['timeout'] ?? $this->priorTimeout),
+            self::MAX_KEEP_ALIVE_TIMEOUT
+        );
     }
 
     private function determineProtocolVersion(Request $request): string
