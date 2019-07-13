@@ -45,11 +45,7 @@ final class DefaultConnectionPool implements ConnectionPool
 
             if (!empty($this->connections[$key])) {
                 foreach ($this->connections[$key] as $index => $connection) {
-                    if ($connection instanceof Promise) {
-                        // Wait for concurrent connection request before creating a new connection.
-                        $connection = yield $connection;
-                    }
-
+                    $connection = yield $connection;
                     \assert($connection instanceof Connection);
 
                     if (!$connection->isBusy()) {
@@ -123,18 +119,17 @@ final class DefaultConnectionPool implements ConnectionPool
                 return $connection;
             });
 
-            $promise->onResolve(function (?\Throwable $exception, ?Connection $connection) use ($key, $index): void {
-                if ($exception) {
-                    unset($this->connections[$key][$index]);
-
-                    if (empty($this->connections[$key])) {
-                        unset($this->connections[$key]);
-                    }
+            $promise->onResolve(function (?\Throwable $exception) use ($key, $index): void {
+                if (!$exception) {
                     return;
                 }
 
-                // Replace Promise with Connection object.
-                $this->connections[$key][$index] = $connection;
+                // Connection failed, remove from list of connections.
+                unset($this->connections[$key][$index]);
+
+                if (empty($this->connections[$key])) {
+                    unset($this->connections[$key]);
+                }
             });
 
             return $promise;
