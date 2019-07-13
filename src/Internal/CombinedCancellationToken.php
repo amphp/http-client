@@ -3,11 +3,7 @@
 namespace Amp\Http\Client\Internal;
 
 use Amp\CancellationToken;
-use Amp\Coroutine;
-use Amp\Loop;
-use Amp\Promise;
-use React\Promise\PromiseInterface as ReactPromise;
-use function Amp\Promise\rethrow;
+use function Amp\asyncCall;
 
 /** @internal */
 class CombinedCancellationToken implements CancellationToken
@@ -28,7 +24,7 @@ class CombinedCancellationToken implements CancellationToken
                 $this->callbacks = [];
 
                 foreach ($callbacks as $callback) {
-                    $this->invokeCallback($callback);
+                    asyncCall($callback, $this->exception);
                 }
             });
 
@@ -50,7 +46,7 @@ class CombinedCancellationToken implements CancellationToken
         $id = $this->nextId++;
 
         if ($this->exception) {
-            $this->invokeCallback($callback);
+            asyncCall($callback, $this->exception);
         } else {
             $this->callbacks[$id] = $callback;
         }
@@ -81,26 +77,6 @@ class CombinedCancellationToken implements CancellationToken
     {
         foreach ($this->tokens as [$token]) {
             $token->throwIfRequested();
-        }
-    }
-
-    private function invokeCallback($callback): void
-    {
-        // No type declaration to prevent exception outside the try!
-        try {
-            $result = $callback($this->exception);
-
-            if ($result instanceof \Generator) {
-                $result = new Coroutine($result);
-            }
-
-            if ($result instanceof Promise || $result instanceof ReactPromise) {
-                rethrow($result);
-            }
-        } catch (\Throwable $exception) {
-            Loop::defer(static function () use ($exception) {
-                throw $exception;
-            });
         }
     }
 }
