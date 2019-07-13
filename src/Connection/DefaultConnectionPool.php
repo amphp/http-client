@@ -20,7 +20,7 @@ use function Amp\call;
 
 final class DefaultConnectionPool implements ConnectionPool
 {
-    private const APPLICATION_LAYER_PROTOCOLS = ['http/1.1'];
+    private const APPLICATION_LAYER_PROTOCOLS = ['h2', 'http/1.1'];
 
     /** @var Connector */
     private $connector;
@@ -105,7 +105,11 @@ final class DefaultConnectionPool implements ConnectionPool
                     }
                 }
 
-                $connection = new Http1Connection($socket);
+                if ($isHttps && $socket->getTlsInfo()->getApplicationLayerProtocol() === 'h2') {
+                    $connection = new Http2Connection($socket);
+                } else {
+                    $connection = new Http1Connection($socket);
+                }
 
                 $connections = &$this->connections;
                 $connection->onClose(static function () use (&$connections, $key, $index) {
