@@ -20,8 +20,6 @@ use function Amp\call;
 
 final class DefaultConnectionPool implements ConnectionPool
 {
-    private const APPLICATION_LAYER_PROTOCOLS = ['h2', 'http/1.1'];
-
     /** @var Connector */
     private $connector;
 
@@ -64,8 +62,12 @@ final class DefaultConnectionPool implements ConnectionPool
 
                 if ($isHttps) {
                     $tlsContext = ($connectContext->getTlsContext() ?? new ClientTlsContext($request->getUri()->getHost()))
-                        ->withApplicationLayerProtocols(self::APPLICATION_LAYER_PROTOCOLS)
+                        ->withApplicationLayerProtocols(['http/1.1'])
                         ->withPeerCapturing();
+
+                    if (\in_array('2.0', $request->getProtocolVersions(), true)) {
+                        $tlsContext = $tlsContext->withApplicationLayerProtocols(['h2', 'http/1.1']);
+                    }
 
                     $connectContext = $connectContext->withTlsContext($tlsContext);
                 }

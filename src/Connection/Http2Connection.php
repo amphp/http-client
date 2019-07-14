@@ -75,6 +75,9 @@ final class Http2Connection implements Connection
     public const INADEQUATE_SECURITY = 0xc;
     public const HTTP_1_1_REQUIRED = 0xd;
 
+    public const DEFAULT_MAX_HEADER_SIZE = 1 << 20;
+    public const DEFAULT_MAX_BODY_SIZE = 1 << 30;
+
     /** @var Socket */
     private $socket;
 
@@ -133,8 +136,13 @@ final class Http2Connection implements Connection
         return call(function () use ($request, $token) {
             \assert($this->remainingStreams > 0);
 
-            $id = $this->streamId += 2;
-            $this->streams[$id] = new Http2Stream(2**30, $this->initialWindowSize);
+            $id = $this->streamId += 2; // Client streams should be odd-numbered, starting at 1.
+            $this->streams[$id] = new Http2Stream(
+                self::DEFAULT_WINDOW_SIZE,
+                $this->initialWindowSize,
+                self::DEFAULT_MAX_HEADER_SIZE, // $request->getMaxHeaderSize()
+                self::DEFAULT_MAX_BODY_SIZE // $request->getMaxBodySize()
+            );
             --$this->remainingStreams;
 
             try {
@@ -176,7 +184,7 @@ final class Http2Connection implements Connection
 
                 // yield $this->writeData("", $id, true);
 
-                // Write body if needed.
+                // Write body if needed. Will need to remove END_STREAM from header frame if there's a body.
 
                 return yield $deferred->promise();
             } catch (StreamException $exception) {
@@ -241,7 +249,19 @@ final class Http2Connection implements Connection
 
             // Settings frame disabling push promises
             yield $this->writeFrame(
-                \pack("nN", self::ENABLE_PUSH, 0),
+                \pack(
+                    "nNnNnNnNnN",
+                    self::ENABLE_PUSH,
+                    0,
+                    self::MAX_CONCURRENT_STREAMS,
+                    256,
+                    self::INITIAL_WINDOW_SIZE,
+                    self::DEFAULT_WINDOW_SIZE,
+                    self::MAX_HEADER_LIST_SIZE,
+                    self::DEFAULT_MAX_HEADER_SIZE,
+                    self::MAX_FRAME_SIZE,
+                    self::DEFAULT_MAX_FRAME_SIZE
+                ),
                 self::SETTINGS,
                 self::NOFLAG
             );
@@ -320,7 +340,6 @@ final class Http2Connection implements Connection
             $stream->clientWindow -= $delta;
             $this->clientWindow -= $delta;
 
-
             for ($off = 0; $off < $end; $off += $this->maxFrameSize) {
                 $this->writeFrame(\substr($data, $off, $this->maxFrameSize), self::DATA, self::NOFLAG, $id);
             }
@@ -362,9 +381,7 @@ final class Http2Connection implements Connection
      */
     private function parser(): \Generator
     {
-        // Temporary placeholder values.
-        $maxHeaderSize = 2**10;
-        $maxBodySize = 2**30;
+        $maxHeaderSize = self::DEFAULT_MAX_FRAME_SIZE; // Should be configurable?
 
         $frameCount = 0;
         $bytesReceived = 0;
@@ -378,6 +395,7 @@ final class Http2Connection implements Connection
                 }
 
                 $length = \unpack("N", "\0" . \substr($buffer, 0, 3))[1];
+                $frameCount++;
                 $bytesReceived += $length;
 
                 if ($length > self::DEFAULT_MAX_FRAME_SIZE) { // Do we want to allow increasing max frame size?
@@ -456,7 +474,7 @@ final class Http2Connection implements Connection
                         }
 
                         if ($this->serverWindow <= 0) {
-                            $increment = \max($stream->serverWindow, $maxBodySize);
+                            $increment = \max($stream->serverWindow, $stream->maxBodySize);
                             $this->serverWindow += $increment;
 
                             $this->writeFrame(\pack("N", $increment), self::WINDOW_UPDATE, self::NOFLAG);
@@ -490,7 +508,7 @@ final class Http2Connection implements Connection
                         continue 2;
 
                     case self::HEADERS:
-                        if (!isset($this->streams[$id])) {
+                        if (!isset($this->streams[$id], $this->requests[$id])) {
                             $error = self::PROTOCOL_ERROR;
                             goto connection_error;
                         }
@@ -779,12 +797,9 @@ final class Http2Connection implements Connection
                         continue 2;
 
                     case self::CONTINUATION:
-                        if (!isset($this->streams[$id])) {
-                            // technically it is a protocol error to send data to a never opened stream
-                            // but we do not want to store what streams WE have closed via RST_STREAM,
-                            // thus we're just reporting them as closed
-                            $error = self::STREAM_CLOSED;
-                            goto stream_error;
+                        if (!isset($this->streams[$id], $this->requests[$id])) {
+                            $error = self::PROTOCOL_ERROR;
+                            goto connection_error;
                         }
 
                         $stream = $this->streams[$id];
@@ -874,9 +889,9 @@ final class Http2Connection implements Connection
 
                     $this->bodyEmitters[$id] = new Emitter;
 
-                    if ($this->serverWindow <= $maxBodySize >> 1) {
-                        $increment = $maxBodySize - $this->serverWindow;
-                        $this->serverWindow = $maxBodySize;
+                    if ($this->serverWindow <= $stream->maxBodySize >> 1) {
+                        $increment = $stream->maxBodySize - $this->serverWindow;
+                        $this->serverWindow = $stream->maxBodySize;
                         $this->writeFrame(\pack("N", $increment), self::WINDOW_UPDATE, self::NOFLAG);
                     }
 
@@ -1006,9 +1021,16 @@ final class Http2Connection implements Connection
                 $this->maxFrameSize = $unpacked["value"];
                 return 0;
 
+            case self::MAX_CONCURRENT_STREAMS:
+                if ($unpacked["value"] >= 1 << 31) {
+                    return self::FLOW_CONTROL_ERROR;
+                }
+
+                $this->remainingStreams = $unpacked["value"] - \count($this->streams);
+                return 0;
+
             case self::HEADER_TABLE_SIZE:
             case self::MAX_HEADER_LIST_SIZE:
-            case self::MAX_CONCURRENT_STREAMS:
                 return 0; // @TODO Respect these settings from the server.
 
             default:

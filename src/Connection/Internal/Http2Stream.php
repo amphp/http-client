@@ -22,7 +22,10 @@ final class Http2Stream
     /** @var string|null Packed header string. */
     public $headers;
 
-    /** @var int Current max body length. */
+    /** @var int Max header length. */
+    public $maxHeaderSize;
+
+    /** @var int Max body length. */
     public $maxBodySize;
 
     /** @var int Bytes received on the stream. */
@@ -49,10 +52,11 @@ final class Http2Stream
     /** @var \Amp\Deferred|null */
     public $deferred;
 
-    public function __construct(int $serverSize, int $clientSize, int $state = self::OPEN)
+    public function __construct(int $serverSize, int $clientSize, int $maxHeaderSize, int $maxBodySize, int $state = self::OPEN)
     {
         $this->serverWindow = $serverSize;
-        $this->maxBodySize = $serverSize;
+        $this->maxHeaderSize = $maxHeaderSize;
+        $this->maxBodySize = $maxBodySize;
         $this->clientWindow = $clientSize;
         $this->state = $state;
     }
