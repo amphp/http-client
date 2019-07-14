@@ -117,6 +117,9 @@ final class Http2Connection implements Connection
     /** @var HPack */
     private $table;
 
+    /** @var Deferred|null */
+    private $settingsDeferred;
+
     public function __construct(Socket $socket)
     {
         $this->table = new HPack;
@@ -128,6 +131,8 @@ final class Http2Connection implements Connection
             return;
         }
 
+        $this->settingsDeferred = new Deferred;
+
         Promise\rethrow(new Coroutine($this->run()));
     }
 
@@ -135,6 +140,10 @@ final class Http2Connection implements Connection
     {
         return call(function () use ($request, $token) {
             \assert($this->remainingStreams > 0);
+
+            if ($this->settingsDeferred) {
+                yield $this->settingsDeferred->promise();
+            }
 
             $id = $this->streamId += 2; // Client streams should be odd-numbered, starting at 1.
             $this->streams[$id] = new Http2Stream(
@@ -165,7 +174,7 @@ final class Http2Connection implements Connection
                     ':path' => [$path],
                 ];
 
-                $headers = \array_merge($request->getHeaders(), $headers);
+                $headers = \array_merge($headers, $request->getHeaders());
                 $headers = $this->table->encode($headers);
 
                 if (\strlen($headers) > $this->maxFrameSize) {
@@ -689,6 +698,13 @@ final class Http2Connection implements Connection
                         }
 
                         $this->writeFrame("", self::SETTINGS, self::ACK);
+
+                        if ($this->settingsDeferred) {
+                            $deferred = $this->settingsDeferred;
+                            $this->settingsDeferred = null;
+                            $deferred->resolve();
+                        }
+
                         continue 2;
 
                     // PUSH_PROMISE sent by client is a PROTOCOL_ERROR (just like undefined frame types)
