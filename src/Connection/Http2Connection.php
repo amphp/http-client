@@ -377,7 +377,7 @@ final class Http2Connection implements Connection
                     $buffer .= yield;
                 }
 
-                $length = \unpack("N", "\0$buffer")[1];
+                $length = \unpack("N", "\0" . \substr($buffer, 0, 3))[1];
                 $bytesReceived += $length;
 
                 if ($length > self::DEFAULT_MAX_FRAME_SIZE) { // Do we want to allow increasing max frame size?
@@ -469,11 +469,8 @@ final class Http2Connection implements Connection
 
                         $body = \substr($buffer, 0, $length - $padding);
                         $buffer = \substr($buffer, $length);
-
-                        if ($body === "") {
-                            $promise = new Success;
-                        } else {
-                            $promise = $this->bodyEmitters[$id]->emit($body);
+                        if ($body !== "") {
+                            $this->bodyEmitters[$id]->emit($body);
                         }
 
                         if (($flags & self::END_STREAM) !== "\0") {
@@ -489,8 +486,6 @@ final class Http2Connection implements Connection
 
                             $this->releaseStream($id);
                         }
-
-                        $buffer .= yield $promise;
 
                         continue 2;
 
