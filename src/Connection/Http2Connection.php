@@ -168,10 +168,10 @@ final class Http2Connection implements Connection
                 }
 
                 $headers = [
-                    ':method' => [$request->getMethod()],
-                    ':authority' => [$uri->getAuthority()],
-                    ':scheme' => [$uri->getScheme()],
-                    ':path' => [$path],
+                    ":authority" => [$uri->getAuthority()],
+                    ":path" => [$path],
+                    ":scheme" => [$uri->getScheme()],
+                    ":method" => [$request->getMethod()],
                 ];
 
                 $headers = \array_merge($headers, $request->getHeaders());
@@ -279,8 +279,13 @@ final class Http2Connection implements Connection
 
             while (null !== $chunk = yield $this->socket->read()) {
                 $promise = $parser->send($chunk);
-                if ($promise instanceof Promise) {
-                    yield $promise;
+
+                \assert($promise === null || $promise instanceof Promise);
+
+                while ($promise instanceof Promise) {
+                    yield $promise; // Wait for promise to resolve before resuming parser and reading more data.
+                    $promise = $parser->send(null);
+                    \assert($promise === null || $promise instanceof Promise);
                 }
             }
         } catch (\Throwable $exception) {
@@ -497,7 +502,7 @@ final class Http2Connection implements Connection
                         $body = \substr($buffer, 0, $length - $padding);
                         $buffer = \substr($buffer, $length);
                         if ($body !== "") {
-                            $this->bodyEmitters[$id]->emit($body);
+                            yield $this->bodyEmitters[$id]->emit($body);
                         }
 
                         if (($flags & self::END_STREAM) !== "\0") {
