@@ -149,6 +149,14 @@ final class Response extends Message
         return $this->previousResponse;
     }
 
+    public function withPreviousResponse(?Response $previousResponse): self
+    {
+        $clone = clone $this;
+        $clone->previousResponse = $previousResponse;
+
+        return $clone;
+    }
+
     /**
      * Assign a value for the specified header field by replacing any existing values for that field.
      *
@@ -217,14 +225,17 @@ final class Response extends Message
         return $this->body;
     }
 
+    public function withBody(InputStream $body): self
+    {
+        $clone = clone $this;
+        $clone->body = new Payload($body);
+
+        return $clone;
+    }
+
     public function getConnectionInfo(): ConnectionInfo
     {
         return $this->connectionInfo;
-    }
-
-    public function getCompletionPromise(): Promise
-    {
-        return $this->completionPromise;
     }
 
     public function withConnectionInfo(ConnectionInfo $connectionInfo): self
@@ -235,20 +246,9 @@ final class Response extends Message
         return $clone;
     }
 
-    public function withPreviousResponse(?Response $previousResponse): self
+    public function getCompletionPromise(): Promise
     {
-        $clone = clone $this;
-        $clone->previousResponse = $previousResponse;
-
-        return $clone;
-    }
-
-    public function withBody(InputStream $body): self
-    {
-        $clone = clone $this;
-        $clone->body = new Payload($body);
-
-        return $clone;
+        return $this->completionPromise;
     }
 
     public function withCompletionPromise(Promise $promise): self
