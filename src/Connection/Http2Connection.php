@@ -15,6 +15,7 @@ use Amp\Http\Client\Response;
 use Amp\Http\Client\SocketException;
 use Amp\Http\HPack;
 use Amp\Http\Status;
+use Amp\Loop;
 use Amp\Promise;
 use Amp\Socket\EncryptableSocket;
 use Amp\Socket\Socket;
@@ -74,6 +75,10 @@ final class Http2Connection implements Connection
     public const ENHANCE_YOUR_CALM = 0xb;
     public const INADEQUATE_SECURITY = 0xc;
     public const HTTP_1_1_REQUIRED = 0xd;
+
+    private const KNOWN_PSEUDO_HEADERS = [
+        ":status" => 1,
+    ];
 
     public const DEFAULT_MAX_HEADER_SIZE = 1 << 20;
     public const DEFAULT_MAX_BODY_SIZE = 1 << 30;
@@ -203,7 +208,7 @@ final class Http2Connection implements Connection
             } catch (StreamException $exception) {
                 throw new SocketException('Socket disconnected prior to response completion');
             } finally {
-                unset($this->requests[$id], $this->pendingRequests[$id]);
+                unset($this->requests[$id]);
             }
         });
     }
@@ -376,20 +381,29 @@ final class Http2Connection implements Connection
         return $stream->deferred->promise();
     }
 
-    private function releaseStream(int $id)
+    private function releaseStream(int $id, \Throwable $exception = null): void
     {
         \assert(isset($this->streams[$id]), "Tried to release a non-existent stream");
 
         if (isset($this->bodyEmitters[$id])) {
-            $this->bodyEmitters[$id]->complete();
+            $emitter = $this->bodyEmitters[$id];
+            unset($this->bodyEmitters[$id]);
+            $emitter->fail($exception ?? new SocketException("Server disconnected", self::CANCEL));
         }
 
-        unset($this->streams[$id], $this->bodyEmitters[$id]);
+        if (isset($this->pendingRequests[$id])) {
+            $deferred = $this->pendingRequests[$id];
+            unset($this->pendingRequests[$id]);
+            $deferred->fail($exception ?? new SocketException("Server disconnected", self::CANCEL));
+        }
+
+        unset($this->streams[$id]);
+
         if ($id & 1) { // Client-initiated stream.
             $this->remainingStreams++;
         }
 
-        if (empty($this->pendingRequests)) {
+        if (empty($this->pendingRequests) && empty($this->bodyEmitters)) {
             $this->socket->unreference();
         }
     }
@@ -403,6 +417,7 @@ final class Http2Connection implements Connection
 
         $frameCount = 0;
         $bytesReceived = 0;
+        $continuation = false;
 
         $buffer = yield;
 
@@ -425,15 +440,37 @@ final class Http2Connection implements Connection
                 $flags = $buffer[4];
                 $id = \unpack("N", \substr($buffer, 5, 4))[1];
 
-                // the highest bit must be zero... but RFC does not specify what should happen when it is set to 1?
-                /*if ($id < 0) {
-                    $id = ~$id;
-                }*/
+                // If the highest bit is 1, ignore it.
+                if ($id & 0x80000000) {
+                    $id &= 0x7fffffff;
+                }
 
                 $buffer = \substr($buffer, 9);
 
+                // Fail if expecting a continuation frame and anything else is received.
+                if ($continuation && $type !== self::CONTINUATION) {
+                    $error = self::PROTOCOL_ERROR;
+                    goto connection_error;
+                }
+
                 switch ($type) {
                     case self::DATA:
+                        $padding = 0;
+
+                        if (($flags & self::PADDED) !== "\0") {
+                            if ($buffer === "") {
+                                $buffer = yield;
+                            }
+                            $padding = \ord($buffer);
+                            $buffer = \substr($buffer, 1);
+                            $length--;
+
+                            if ($padding > $length) {
+                                $error = self::PROTOCOL_ERROR;
+                                goto connection_error;
+                            }
+                        }
+
                         if ($id === 0) {
                             $error = self::PROTOCOL_ERROR;
                             goto connection_error;
@@ -456,21 +493,6 @@ final class Http2Connection implements Connection
                             goto stream_error;
                         }
 
-                        if (($flags & self::PADDED) !== "\0") {
-                            if ($buffer === "") {
-                                $buffer = yield;
-                            }
-                            $padding = \ord($buffer);
-                            $buffer = \substr($buffer, 1);
-                            $length--;
-
-                            if ($padding > $length) {
-                                $error = self::PROTOCOL_ERROR;
-                                goto connection_error;
-                            }
-                        } else {
-                            $padding = 0;
-                        }
 
                         $this->serverWindow -= $length;
                         $stream->serverWindow -= $length;
@@ -506,11 +528,22 @@ final class Http2Connection implements Connection
                         $body = \substr($buffer, 0, $length - $padding);
                         $buffer = \substr($buffer, $length);
                         if ($body !== "") {
-                            yield $this->bodyEmitters[$id]->emit($body);
+                            if (\is_int($stream->expectedLength)) {
+                                $stream->expectedLength -= \strlen($body);
+                            }
+
+                            if (isset($this->bodyEmitters[$id])) { // Stream may close while reading body chunk.
+                                yield $this->bodyEmitters[$id]->emit($body);
+                            }
                         }
 
                         if (($flags & self::END_STREAM) !== "\0") {
                             $stream->state |= Http2Stream::REMOTE_CLOSED;
+
+                            if ($stream->expectedLength) {
+                                $error = self::PROTOCOL_ERROR;
+                                goto stream_error;
+                            }
 
                             if (!isset($this->bodyEmitters[$id])) {
                                 continue 2; // Stream closed after emitting body fragment.
@@ -554,17 +587,19 @@ final class Http2Connection implements Connection
                                 $buffer .= yield;
                             }
 
-                            /* Not needed until priority is handled.
-                            $dependency = unpack("N", $buffer)[1];
-                            if ($dependency < 0) {
-                                $dependency = ~$dependency;
-                                $exclusive = true;
-                            } else {
-                                $exclusive = false;
+                            $dependency = \unpack("N", $buffer)[1];
+
+                            if ($exclusive = $dependency & 0x80000000) {
+                                $dependency &= 0x7fffffff;
                             }
 
-                            $weight = $buffer[4];
-                            */
+                            if ($id === 0 || $dependency === $id) {
+                                $error = self::PROTOCOL_ERROR;
+                                goto connection_error;
+                            }
+
+                            $stream->dependency = $dependency;
+                            $stream->priority = \ord($buffer[4]);
 
                             $buffer = \substr($buffer, 5);
                             $length -= 5;
@@ -595,16 +630,13 @@ final class Http2Connection implements Connection
                             goto parse_headers;
                         }
 
+                        $continuation = true;
+
                         continue 2;
 
                     case self::PRIORITY:
-                        if ($length != 5) {
+                        if ($length !== 5) {
                             $error = self::FRAME_SIZE_ERROR;
-                            goto connection_error;
-                        }
-
-                        if ($id === 0) {
-                            $error = self::PROTOCOL_ERROR;
                             goto connection_error;
                         }
 
@@ -612,26 +644,34 @@ final class Http2Connection implements Connection
                             $buffer .= yield;
                         }
 
-                        /* @TODO PRIORITY frames values not used.
-                         *
-                         * $dependency = unpack("N", $buffer);
-                         *
-                         * if ($dependency < 0) {
-                         *     $dependency = ~$dependency;
-                         *     $exclusive = true;
-                         * } else {
-                         *     $exclusive = false;
-                         * }
-                         *
-                         * if ($dependency == 0) {
-                         *     $error = self::PROTOCOL_ERROR;
-                         *     goto connection_error;
-                         * }
-                         *
-                         * $weight = $buffer[4];
-                         */
+                        $dependency = \unpack("N", $buffer)[1];
+                        if ($exclusive = $dependency & 0x80000000) {
+                            $dependency &= 0x7fffffff;
+                        }
 
+                        $priority = \ord($buffer[4]);
                         $buffer = \substr($buffer, 5);
+
+                        if ($id === 0 || $dependency === $id) {
+                            $error = self::PROTOCOL_ERROR;
+                            goto connection_error;
+                        }
+
+                        if (!isset($this->streams[$id])) {
+                            $error = self::PROTOCOL_ERROR;
+                            goto connection_error;
+                        }
+
+                        $stream = $this->streams[$id];
+
+                        if ($stream->headers !== null) {
+                            $error = self::PROTOCOL_ERROR;
+                            goto connection_error;
+                        }
+
+                        $stream->dependency = $dependency;
+                        $stream->priority = $priority;
+
                         continue 2;
 
                     case self::RST_STREAM:
@@ -651,15 +691,8 @@ final class Http2Connection implements Connection
 
                         $error = \unpack("N", $buffer)[1];
 
-                        if (isset($this->bodyEmitters[$id])) {
-                            $exception = new SocketException("Server ended stream", self::STREAM_CLOSED);
-                            $emitter = $this->bodyEmitters[$id];
-                            unset($this->bodyEmitters[$id]);
-                            $emitter->fail($exception);
-                        }
-
                         if (isset($this->streams[$id])) {
-                            $this->releaseStream($id);
+                            $this->releaseStream($id, new SocketException("Server ended stream", $error));
                         }
 
                         $buffer = \substr($buffer, 4);
@@ -693,11 +726,11 @@ final class Http2Connection implements Connection
                             goto connection_error;
                         }
 
-                        while ($length > 0) {
-                            while (\strlen($buffer) < 6) {
-                                $buffer .= yield;
-                            }
+                        while (\strlen($buffer) < $length) {
+                            $buffer .= yield;
+                        }
 
+                        while ($length > 0) {
                             if ($error = $this->updateSetting($buffer)) {
                                 goto connection_error;
                             }
@@ -716,7 +749,9 @@ final class Http2Connection implements Connection
 
                         continue 2;
 
-                    // PUSH_PROMISE sent by client is a PROTOCOL_ERROR (just like undefined frame types)
+                    case self::PUSH_PROMISE:  // PUSH_PROMISE is disabled, so it is a protocol error
+                        $error = self::PROTOCOL_ERROR;
+                        goto connection_error;
 
                     case self::PING:
                         if ($length !== 8) {
@@ -793,31 +828,28 @@ final class Http2Connection implements Connection
                         $buffer = \substr($buffer, 4);
 
                         if ($id) {
-                            // May receive a WINDOW_UPDATE frame for a closed stream.
-                            if (isset($this->streams[$id])) {
-                                $this->streams[$id]->clientWindow += $windowSize;
-
-                                if ($this->streams[$id]->buffer !== "") {
-                                    $this->writeBufferedData($id);
-                                }
+                            if (!isset($this->streams[$id])) {
+                                continue 2;
                             }
 
-                            continue 2;
+                            $stream = $this->streams[$id];
+
+                            if ($stream->clientWindow + $windowSize > (2 << 30) - 1) {
+                                $error = self::FLOW_CONTROL_ERROR;
+                                goto stream_error;
+                            }
+
+                            $stream->clientWindow += $windowSize;
+                        } else {
+                            if ($this->clientWindow + $windowSize > (2 << 30) - 1) {
+                                $error = self::FLOW_CONTROL_ERROR;
+                                goto connection_error;
+                            }
+
+                            $this->clientWindow += $windowSize;
                         }
 
-                        $this->clientWindow += $windowSize;
-
-                        foreach ($this->streams as $id => $stream) {
-                            if ($stream->buffer === "") {
-                                continue;
-                            }
-
-                            $this->writeBufferedData($id);
-
-                            if ($this->clientWindow === 0) {
-                                break;
-                            }
-                        }
+                        Loop::defer(\Closure::fromCallable([$this, 'sendBufferedData']));
 
                         continue 2;
 
@@ -827,20 +859,24 @@ final class Http2Connection implements Connection
                             goto connection_error;
                         }
 
+                        $continuation = true;
+
                         $stream = $this->streams[$id];
 
                         if ($stream->headers === null) {
                             $error = self::PROTOCOL_ERROR;
-                            goto stream_error;
+                            goto connection_error;
                         }
 
                         if ($stream->state & Http2Stream::REMOTE_CLOSED) {
                             $error = self::STREAM_CLOSED;
+                            $continuation = false;
                             goto stream_error;
                         }
 
                         if ($length > $maxHeaderSize - \strlen($stream->headers)) {
                             $error = self::ENHANCE_YOUR_CALM;
+                            $continuation = false;
                             goto stream_error;
                         }
 
@@ -856,14 +892,20 @@ final class Http2Connection implements Connection
                         }
 
                         if (($flags & self::END_HEADERS) !== "\0") {
+                            $continuation = false;
                             goto parse_headers;
                         }
 
                         continue 2;
 
-                    default:
-                        $error = self::PROTOCOL_ERROR;
-                        goto connection_error;
+                    default: // Ignore and discard unknown frame per spec.
+                        while (\strlen($buffer) < $length) {
+                            $buffer .= yield;
+                        }
+
+                        $buffer = \substr($buffer, $length);
+
+                        continue 2;
                 }
 
                 parse_headers: {
@@ -876,14 +918,31 @@ final class Http2Connection implements Connection
                     }
 
                     $headers = [];
+                    $pseudoFinished = false;
                     foreach ($decoded as list($name, $value)) {
                         if (!\preg_match(self::HEADER_NAME_REGEX, $name)) {
                             $error = self::PROTOCOL_ERROR;
                             goto stream_error;
                         }
 
+                        if ($name[0] === ':') {
+                            if ($pseudoFinished || !isset(self::KNOWN_PSEUDO_HEADERS[$name]) || isset($headers[$name])) {
+                                $error = self::PROTOCOL_ERROR;
+                                goto connection_error;
+                            }
+                        } else {
+                            $pseudoFinished = true;
+                        }
+
                         $headers[$name][] = $value;
                     }
+
+                    if (!isset($headers[":status"][0]) || isset($headers[":status"][1])) {
+                        $error = self::PROTOCOL_ERROR;
+                        goto connection_error;
+                    }
+
+                    $status = $headers[":status"][0];
 
                     if ($stream->state & Http2Stream::RESERVED) {
                         $error = self::PROTOCOL_ERROR;
@@ -892,15 +951,11 @@ final class Http2Connection implements Connection
 
                     $stream->state |= Http2Stream::RESERVED;
 
-                    if (!isset($headers[":status"][0])) {
-                        $error = self::PROTOCOL_ERROR;
-                        goto stream_error;
-                    }
-
-                    $status = $headers[":status"][0];
+                    $deferred = $this->pendingRequests[$id];
 
                     if ($stream->state & Http2Stream::REMOTE_CLOSED) {
-                        $this->pendingRequests[$id]->resolve(new Response(
+                        unset($this->pendingRequests[$id]);
+                        $deferred->resolve(new Response(
                             "2.0",
                             $status,
                             Status::getReason($status),
@@ -908,6 +963,8 @@ final class Http2Connection implements Connection
                             new InMemoryStream,
                             $this->requests[$id]
                         ));
+
+                        $this->releaseStream($id); // Response has no body, release stream immediately.
 
                         continue;
                     }
@@ -920,7 +977,18 @@ final class Http2Connection implements Connection
                         $this->writeFrame(\pack("N", $increment), self::WINDOW_UPDATE, self::NOFLAG);
                     }
 
-                    $this->pendingRequests[$id]->resolve(new Response(
+                    if (isset($headers["content-length"])) {
+                        $length = \implode($headers["content-length"]);
+                        if (!\preg_match('/^0|[1-9][0-9]*$/', $length)) {
+                            $error = self::PROTOCOL_ERROR;
+                            goto stream_error;
+                        }
+
+                        $stream->expectedLength = (int) $length;
+                    }
+
+                    unset($this->pendingRequests[$id]);
+                    $deferred->resolve(new Response(
                         "2.0",
                         $status,
                         Status::getReason($status),
@@ -935,13 +1003,8 @@ final class Http2Connection implements Connection
                 stream_error: {
                     $this->writeFrame(\pack("N", $error), self::RST_STREAM, self::NOFLAG, $id);
 
-                    if (isset($this->bodyEmitters[$id])) {
-                        $exception = new SocketException("Stream error", self::CANCEL);
-                        $this->bodyEmitters[$id]->fail($exception);
-                    }
-
                     if (isset($this->streams[$id])) {
-                        $this->releaseStream($id);
+                        $this->releaseStream($id, new SocketException("Stream error", self::CANCEL));
                     }
 
                     // consume whole frame to be able to continue this connection
@@ -956,12 +1019,10 @@ final class Http2Connection implements Connection
                 }
             }
         } finally {
-            if (!empty($this->bodyEmitters)) {
+            if (!empty($this->streams)) {
                 $exception = new SocketException("Server disconnected", self::CANCEL);
-
-                foreach ($this->bodyEmitters as $id => $emitter) {
-                    unset($this->bodyEmitters[$id]);
-                    $emitter->fail($exception);
+                foreach ($this->streams as $id => $stream) {
+                    $this->releaseStream($id, $exception);
                 }
             }
         }
@@ -1032,7 +1093,17 @@ final class Http2Connection implements Connection
                     return self::FLOW_CONTROL_ERROR;
                 }
 
+                $priorWindowSize = $this->initialWindowSize;
                 $this->initialWindowSize = $unpacked["value"];
+                $difference = $this->initialWindowSize - $priorWindowSize;
+
+                foreach ($this->streams as $stream) {
+                    $stream->clientWindow += $difference;
+                }
+
+                // Settings ACK should be sent before HEADER or DATA frames.
+                Loop::defer(\Closure::fromCallable([$this, 'sendBufferedData']));
+
                 return 0;
 
             case self::ENABLE_PUSH:
@@ -1060,6 +1131,21 @@ final class Http2Connection implements Connection
 
             default:
                 return 0; // Unknown setting, ignore (6.5.2).
+        }
+    }
+
+    private function sendBufferedData()
+    {
+        foreach ($this->streams as $id => $stream) {
+            if ($this->clientWindow <= 0) {
+                return;
+            }
+
+            if (!\strlen($stream->buffer) || $stream->clientWindow <= 0) {
+                continue;
+            }
+
+            $this->writeBufferedData($id);
         }
     }
 }
