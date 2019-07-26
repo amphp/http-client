@@ -145,6 +145,10 @@ final class Http2Connection implements Connection
                 yield $this->settingsDeferred->promise();
             }
 
+            // Remove defunct HTTP/1.x headers.
+            $request = $request->withoutHeader('host')
+                ->withoutHeader('connection');
+
             $id = $this->streamId += 2; // Client streams should be odd-numbered, starting at 1.
             $this->streams[$id] = new Http2Stream(
                 self::DEFAULT_WINDOW_SIZE,

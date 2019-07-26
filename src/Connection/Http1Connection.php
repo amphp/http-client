@@ -325,6 +325,23 @@ final class Http1Connection implements Connection
 
     private function normalizeRequestBodyHeaders(Request $request): \Generator
     {
+        if ($request->hasHeader('host')) {
+            $host = $request->getHeader('host');
+        } else {
+            $host = $request->getUri()->withUserInfo('')->getAuthority();
+        }
+
+        // Though servers are supposed to be able to handle standard port names on the end of the
+        // Host header some fail to do this correctly. As a result, we strip the port from the end
+        // if it's a standard 80 or 443
+        if ($request->getUri()->getScheme() === 'http' && \strpos($host, ':80') === \strlen($host) - 3) {
+            $request = $request->withHeader('host', \substr($host, 0, -3));
+        } elseif ($request->getUri()->getScheme() === 'https' && \strpos($host, ':443') === \strlen($host) - 4) {
+            $request = $request->withHeader('host', \substr($host, 0, -4));
+        } else {
+            $request = $request->withHeader('host', $host);
+        }
+
         if ($request->hasHeader("transfer-encoding")) {
             return $request->withoutHeader("content-length");
         }
