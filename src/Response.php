@@ -222,14 +222,6 @@ final class Response extends Message
         return $this->body;
     }
 
-    public function withPreviousResponse(?Response $previousResponse): self
-    {
-        $clone = clone $this;
-        $clone->previousResponse = $previousResponse;
-
-        return $clone;
-    }
-
     public function withBody(InputStream $body): self
     {
         $clone = clone $this;
