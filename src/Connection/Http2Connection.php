@@ -937,7 +937,7 @@ final class Http2Connection implements Connection
                         $headers[$name][] = $value;
                     }
 
-                    if (!isset($headers[":status"][0]) || isset($headers[":status"][1])) {
+                    if (!isset($headers[":status"][0])) {
                         $error = self::PROTOCOL_ERROR;
                         goto connection_error;
                     }
