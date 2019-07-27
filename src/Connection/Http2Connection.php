@@ -6,6 +6,7 @@ use Amp\ByteStream\InMemoryStream;
 use Amp\ByteStream\IteratorStream;
 use Amp\ByteStream\StreamException;
 use Amp\CancellationToken;
+use Amp\CancelledException;
 use Amp\Coroutine;
 use Amp\Deferred;
 use Amp\Emitter;
@@ -141,7 +142,7 @@ final class Http2Connection implements Connection
         Promise\rethrow(new Coroutine($this->run()));
     }
 
-    public function request(Request $request, ?CancellationToken $token = null): Promise
+    public function request(Request $request, CancellationToken $token): Promise
     {
         return call(function () use ($request, $token) {
             \assert($this->remainingStreams > 0);
@@ -163,10 +164,19 @@ final class Http2Connection implements Connection
             );
             --$this->remainingStreams;
 
-            try {
-                $this->requests[$id] = $request;
-                $this->pendingRequests[$id] = $deferred = new Deferred;
+            $this->requests[$id] = $request;
+            $this->pendingRequests[$id] = $deferred = new Deferred;
 
+            $cancellationId = $token->subscribe(function (CancelledException $exception) use ($id): void {
+                if (!isset($this->streams[$id])) {
+                    return;
+                }
+
+                $this->writeFrame(\pack("N", self::CANCEL), self::RST_STREAM, self::NOFLAG, $id);
+                $this->releaseStream($id, $exception);
+            });
+
+            try {
                 $this->socket->reference();
 
                 $uri = $request->getUri();
@@ -208,7 +218,8 @@ final class Http2Connection implements Connection
             } catch (StreamException $exception) {
                 throw new SocketException('Socket disconnected prior to response completion');
             } finally {
-                unset($this->requests[$id]);
+                unset($this->requests[$id], $this->pendingRequests[$id]);
+                $token->unsubscribe($cancellationId);
             }
         });
     }

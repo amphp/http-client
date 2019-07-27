@@ -14,12 +14,12 @@ interface Connection
     public const MAX_KEEP_ALIVE_TIMEOUT = 60;
 
     /**
-     * @param Request                $request
-     * @param CancellationToken|null $token
+     * @param Request           $request
+     * @param CancellationToken $token
      *
      * @return Promise<Response>
      */
-    public function request(Request $request, ?CancellationToken $token = null): Promise;
+    public function request(Request $request, CancellationToken $token): Promise;
 
     public function isBusy(): bool;
 

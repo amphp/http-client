@@ -36,7 +36,7 @@ final class SocketClient implements Client
         $this->networkInterceptors[] = $networkInterceptor;
     }
 
-    public function request(Request $request, CancellationToken $cancellation = null): Promise
+    public function request(Request $request, ?CancellationToken $cancellation = null): Promise
     {
         return call(function () use ($request, $cancellation) {
             $cancellation = $cancellation ?? new NullCancellationToken;

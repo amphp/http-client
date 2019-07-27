@@ -20,7 +20,7 @@ interface Client
      */
     public function request(
         Request $request,
-        CancellationToken $cancellation = null
+        ?CancellationToken $cancellation = null
     ): Promise;
 
     /**

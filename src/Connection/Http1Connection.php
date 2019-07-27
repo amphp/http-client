@@ -114,11 +114,9 @@ final class Http1Connection implements Connection
     }
 
     /** @inheritdoc */
-    public function request(Request $request, ?CancellationToken $cancellation = null): Promise
+    public function request(Request $request, CancellationToken $cancellation): Promise
     {
         return call(function () use ($request, $cancellation) {
-            $cancellation = $cancellation ?? new NullCancellationToken;
-
             $this->busy = true;
             ++$this->requestCounter;
 
