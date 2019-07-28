@@ -226,12 +226,12 @@ final class Http2Connection implements Connection
 
     public function isBusy(): bool
     {
-        return $this->remainingStreams > 0 || $this->socket->isClosed();
+        return $this->remainingStreams <= 0 || $this->socket->isClosed();
     }
 
     public function onClose(callable $onClose): void
     {
-        if ($this->socket->isClosed()) {
+        if ($this->onClose === null) {
             Promise\rethrow(call($onClose, $this));
             return;
         }
@@ -242,6 +242,12 @@ final class Http2Connection implements Connection
     public function close(): Promise
     {
         $this->socket->close();
+
+        if (!empty($this->streams)) {
+            foreach ($this->streams as $id => $stream) {
+                $this->releaseStream($id);
+            }
+        }
 
         if ($this->onClose !== null) {
             $onClose = $this->onClose;
@@ -308,8 +314,12 @@ final class Http2Connection implements Connection
                     \assert($promise === null || $promise instanceof Promise);
                 }
             }
+
+            var_dump($chunk);
         } catch (\Throwable $exception) {
-           // ?
+           foreach ($this->streams as $id => $stream) {
+               $this->releaseStream($id, $exception);
+           }
         } finally {
             $this->close();
         }
@@ -954,6 +964,7 @@ final class Http2Connection implements Connection
                     }
 
                     $status = $headers[":status"][0];
+                    unset($headers[":status"]);
 
                     if ($stream->state & Http2Stream::RESERVED) {
                         $error = self::PROTOCOL_ERROR;

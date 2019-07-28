@@ -23,7 +23,7 @@ final class DefaultConnectionPool implements ConnectionPool
     /** @var Connector */
     private $connector;
 
-    /** @var Promise[][] */
+    /** @var \SplObjectStorage[] */
     private $connections = [];
 
     public function __construct(?Connector $connector = null)
@@ -41,8 +41,8 @@ final class DefaultConnectionPool implements ConnectionPool
             $authority = $uri->getHost() . ':' . ($uri->getPort() ?: $defaultPort);
             $key = $uri->getScheme() . '://' . $authority;
 
-            if (!empty($this->connections[$key])) {
-                foreach ($this->connections[$key] as $index => $connection) {
+            if (isset($this->connections[$key])) {
+                foreach ($this->connections[$key] as $connection) {
                     $connection = yield $connection;
                     \assert($connection instanceof Connection);
 
@@ -50,14 +50,13 @@ final class DefaultConnectionPool implements ConnectionPool
                         return $connection;
                     }
                 }
-
-                ++$index;
             } else {
-                $this->connections[$key] = [];
-                $index = 0;
+                $this->connections[$key] = new \SplObjectStorage;
             }
 
-            $promise = $this->connections[$key][$index] = call(function () use ($request, $isHttps, $authority, $cancellation, $key, $index) {
+            \assert($this->connections[$key] instanceof \SplObjectStorage);
+
+            $promise = call(function () use (&$promise, $request, $isHttps, $authority, $cancellation, $key) {
                 $connectContext = new ConnectContext;
 
                 if ($isHttps) {
@@ -113,11 +112,13 @@ final class DefaultConnectionPool implements ConnectionPool
                     $connection = new Http1Connection($socket);
                 }
 
-                $connections = &$this->connections;
-                $connection->onClose(static function () use (&$connections, $key, $index) {
-                    unset($connections[$key][$index]);
+                \assert($promise instanceof Promise);
 
-                    if (empty($connections[$key])) {
+                $connections = &$this->connections;
+                $connection->onClose(static function () use (&$connections, $key, $promise) {
+                    $connections[$key]->detach($promise);
+
+                    if (!$connections[$key]->count()) {
                         unset($connections[$key]);
                     }
                 });
@@ -125,15 +126,17 @@ final class DefaultConnectionPool implements ConnectionPool
                 return $connection;
             });
 
-            $promise->onResolve(function (?\Throwable $exception) use ($key, $index): void {
+            $this->connections[$key]->attach($promise);
+
+            $promise->onResolve(function (?\Throwable $exception) use ($key, $promise): void {
                 if (!$exception) {
                     return;
                 }
 
                 // Connection failed, remove from list of connections.
-                unset($this->connections[$key][$index]);
+                $this->connections[$key]->detach($promise);
 
-                if (empty($this->connections[$key])) {
+                if (!$this->connections[$key]->count()) {
                     unset($this->connections[$key]);
                 }
             });
