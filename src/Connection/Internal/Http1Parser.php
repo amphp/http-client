@@ -1,6 +1,6 @@
 <?php
 
-namespace Amp\Http\Client\Connection;
+namespace Amp\Http\Client\Connection\Internal;
 
 use Amp\ByteStream\InMemoryStream;
 use Amp\Http\Client\ParseException;

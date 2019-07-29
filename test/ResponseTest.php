@@ -90,8 +90,7 @@ class ResponseTest extends TestCase
             'OK',
             [],
             new InMemoryStream,
-            new Request('https://example.com/'),
-            new ConnectionInfo(new SocketAddress(''), new SocketAddress(''))
+            new Request('https://example.com/')
         );
     }
 }

@@ -38,9 +38,6 @@ final class Http2Stream
     public $clientWindow;
 
     /** @var \Amp\Promise|null */
-    public $pendingResponse;
-
-    /** @var \Amp\Promise|null */
     public $pendingWrite;
 
     /** @var string */

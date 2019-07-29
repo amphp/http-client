@@ -5,6 +5,7 @@ namespace Amp\Test\Artax;
 use Amp\CancellationToken;
 use Amp\Deferred;
 use Amp\Http\Client\ClientBuilder;
+use Amp\Http\Client\Connection\DefaultConnectionPool;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\SocketClient;
@@ -78,15 +79,13 @@ class TimeoutTest extends AsyncTestCase
                 $deferred = new Deferred;
 
                 if ($token) {
-                    $token->subscribe(static function ($error) use ($deferred) {
-                        $deferred->fail($error);
-                    });
+                    $token->subscribe([$deferred, 'fail']);
                 }
 
                 return $deferred->promise(); // never resolve
             });
 
-        $this->client = (new ClientBuilder($connector))->build();
+        $this->client = (new ClientBuilder(new DefaultConnectionPool($connector)))->build();
 
         $this->expectException(TimeoutException::class);
         $this->expectExceptionMessage("Connection to 'localhost:1337' timed out, took longer than 1 ms");

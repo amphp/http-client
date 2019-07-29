@@ -2,19 +2,15 @@
 
 namespace Amp\Http\Client;
 
-use Amp\Http\Client\Internal\ApplicationInterceptorClient;
-use Amp\Socket\Connector;
-use Amp\Socket\DnsConnector;
-
 final class ClientBuilder
 {
-    private $connector;
+    private $connectionPool;
     private $networkInterceptors = [];
     private $applicationInterceptors = [];
 
-    public function __construct(?Connector $connector = null)
+    public function __construct(?Connection\ConnectionPool $connectionPool = null)
     {
-        $this->connector = $connector ?? new DnsConnector;
+        $this->connectionPool = $connectionPool ?? new Connection\DefaultConnectionPool;
     }
 
     public function addNetworkInterceptor(NetworkInterceptor $networkInterceptor): self
@@ -33,14 +29,14 @@ final class ClientBuilder
 
     public function build(): Client
     {
-        $client = new SocketClient($this->connector);
+        $client = new SocketClient($this->connectionPool);
         foreach ($this->networkInterceptors as $networkInterceptor) {
             $client->addNetworkInterceptor($networkInterceptor);
         }
 
         $applicationInterceptors = $this->applicationInterceptors;
         while ($applicationInterceptor = \array_pop($applicationInterceptors)) {
-            $client = new ApplicationInterceptorClient($client, $applicationInterceptor);
+            $client = new Internal\ApplicationInterceptorClient($client, $applicationInterceptor);
         }
 
         return $client;

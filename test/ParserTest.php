@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client;
 
-use Amp\Http\Client\Connection\Http1Parser;
+use Amp\Http\Client\Connection\Internal\Http1Parser;
 use PHPUnit\Framework\TestCase;
 
 class ParserTest extends TestCase

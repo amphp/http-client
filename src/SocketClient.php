@@ -7,8 +7,6 @@ use Amp\Http\Client\Internal\CallableNetworkClient;
 use Amp\Http\Client\Internal\NetworkInterceptorClient;
 use Amp\NullCancellationToken;
 use Amp\Promise;
-use Amp\Socket\Connector;
-use Amp\Socket\DnsConnector;
 use function Amp\call;
 
 /**
@@ -20,14 +18,12 @@ final class SocketClient implements Client
 {
     public const DEFAULT_USER_AGENT = 'Mozilla/5.0 (compatible; amphp/http-client)';
 
-    private $connector;
     private $connectionPool;
     private $networkInterceptors;
 
-    public function __construct(?Connector $connector = null, ?Connection\ConnectionPool $driverFactory = null)
+    public function __construct(?Connection\ConnectionPool $connectionPool = null)
     {
-        $this->connector = $connector ?? new DnsConnector;
-        $this->connectionPool = $driverFactory ?? new Connection\DefaultConnectionPool;
+        $this->connectionPool = $connectionPool ?? new Connection\DefaultConnectionPool;
         $this->networkInterceptors = [];
     }
 

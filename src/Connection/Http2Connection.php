@@ -249,6 +249,8 @@ final class Http2Connection implements Connection
             }
         }
 
+        $promise = $this->shutdown();
+
         if ($this->onClose !== null) {
             $onClose = $this->onClose;
             $this->onClose = null;
@@ -258,7 +260,7 @@ final class Http2Connection implements Connection
             }
         }
 
-        return new Success;
+        return $promise;
     }
 
     public function getLocalAddress(): SocketAddress
@@ -314,8 +316,6 @@ final class Http2Connection implements Connection
                     \assert($promise === null || $promise instanceof Promise);
                 }
             }
-
-            var_dump($chunk);
         } catch (\Throwable $exception) {
            foreach ($this->streams as $id => $stream) {
                $this->releaseStream($id, $exception);
@@ -1057,28 +1057,22 @@ final class Http2Connection implements Connection
     /**
      * @param int|null $lastId ID of last processed frame. Null to use the last opened frame ID or 0 if no frames have
      *                         been opened.
+     * @param int      $reason Error code.
      *
      * @return Promise
      */
-    public function shutdown(int $lastId = null, int $reason = self::GRACEFUL_SHUTDOWN): Promise
+    private function shutdown(int $lastId = null, int $reason = self::GRACEFUL_SHUTDOWN): Promise
     {
         return call(function () use ($lastId, $reason) {
-            $promises = [];
             foreach ($this->streams as $id => $stream) {
                 if ($lastId && $id > $lastId) {
                     break;
-                }
-
-                if ($stream->pendingResponse) {
-                    $promises[] = $stream->pendingResponse;
                 }
             }
 
             $lastId = $lastId ?? ($id ?? 0);
 
             yield $this->writeFrame(\pack("NN", $lastId, $reason), self::GOAWAY, self::NOFLAG);
-
-            yield $promises;
 
             $promises = [];
             foreach ($this->streams as $id => $stream) {
@@ -1156,7 +1150,7 @@ final class Http2Connection implements Connection
         }
     }
 
-    private function sendBufferedData()
+    private function sendBufferedData(): void
     {
         foreach ($this->streams as $id => $stream) {
             if ($this->clientWindow <= 0) {
