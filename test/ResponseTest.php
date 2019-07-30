@@ -3,7 +3,6 @@
 namespace Amp\Http\Client;
 
 use Amp\ByteStream\InMemoryStream;
-use Amp\Socket\SocketAddress;
 use PHPUnit\Framework\TestCase;
 
 class ResponseTest extends TestCase

@@ -22,8 +22,8 @@ use Amp\Socket\EncryptableSocket;
 use Amp\Socket\Socket;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
-use function Amp\call;
 use function Amp\asyncCall;
+use function Amp\call;
 
 final class Http2Connection implements Connection
 {
@@ -346,9 +346,9 @@ final class Http2Connection implements Connection
                 }
             }
         } catch (\Throwable $exception) {
-           foreach ($this->streams as $id => $stream) {
-               $this->releaseStream($id, $exception);
-           }
+            foreach ($this->streams as $id => $stream) {
+                $this->releaseStream($id, $exception);
+            }
         } finally {
             $this->close();
         }
