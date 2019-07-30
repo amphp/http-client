@@ -35,11 +35,19 @@ final class DefaultConnectionPool implements ConnectionPool
     {
         return call(function () use ($request, $cancellation) {
             $uri = $request->getUri();
-            $isHttps = $uri->getScheme() === 'https';
+            $scheme = \strtolower($uri->getScheme());
+            $isHttps = $scheme === 'https';
             $defaultPort = $isHttps ? 443 : 80;
 
-            $authority = $uri->getHost() . ':' . ($uri->getPort() ?: $defaultPort);
-            $key = $uri->getScheme() . '://' . $authority;
+            $host = \strtolower($uri->getHost());
+            $port = $uri->getPort() ?? $defaultPort;
+
+            if ($host === '') {
+                throw new \Error('A host must be provided in the URI');
+            }
+
+            $authority = $host . ':' . $port;
+            $key = $scheme . '://' . $authority;
 
             if (isset($this->connections[$key])) {
                 foreach ($this->connections[$key] as $connection) {
@@ -50,11 +58,10 @@ final class DefaultConnectionPool implements ConnectionPool
                         return $connection;
                     }
                 }
-            } else {
-                $this->connections[$key] = new \SplObjectStorage;
             }
 
-            \assert($this->connections[$key] instanceof \SplObjectStorage);
+            // $this->connections[$key] may be unset while waiting on a prior connection attempt.
+            $this->connections[$key] = $this->connections[$key] ?? new \SplObjectStorage;
 
             $promise = call(function () use (&$promise, $request, $isHttps, $authority, $cancellation, $key) {
                 $connectContext = new ConnectContext;
