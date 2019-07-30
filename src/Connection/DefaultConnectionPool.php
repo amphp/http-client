@@ -49,19 +49,16 @@ final class DefaultConnectionPool implements ConnectionPool
             $authority = $host . ':' . $port;
             $key = $scheme . '://' . $authority;
 
-            if (isset($this->connections[$key])) {
-                foreach ($this->connections[$key] as $connection) {
-                    $connection = yield $connection;
-                    \assert($connection instanceof Connection);
+            $this->connections[$key] = $this->connections[$key] ?? new \SplObjectStorage;
 
-                    if (!$connection->isBusy()) {
-                        return $connection;
-                    }
+            foreach ($this->connections[$key] as $connection) {
+                $connection = yield $connection;
+                \assert($connection instanceof Connection);
+
+                if (!$connection->isBusy()) {
+                    return $connection;
                 }
             }
-
-            // $this->connections[$key] may be unset while waiting on a prior connection attempt.
-            $this->connections[$key] = $this->connections[$key] ?? new \SplObjectStorage;
 
             $promise = call(function () use (&$promise, $request, $isHttps, $authority, $cancellation, $key) {
                 $connectContext = new ConnectContext;
@@ -121,12 +118,11 @@ final class DefaultConnectionPool implements ConnectionPool
 
                 \assert($promise instanceof Promise);
 
-                $connections = &$this->connections;
-                $connection->onClose(static function () use (&$connections, $key, $promise) {
-                    $connections[$key]->detach($promise);
+                $connection->onClose(function () use ($key, $promise) {
+                    $this->connections[$key]->detach($promise);
 
-                    if (!$connections[$key]->count()) {
-                        unset($connections[$key]);
+                    if (!$this->connections[$key]->count()) {
+                        unset($this->connections[$key]);
                     }
                 });
 
