@@ -8,6 +8,7 @@ use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\InvalidHeaderException;
 use Amp\Http\Rfc7230;
+use Amp\Http\Status;
 
 final class Http1Parser
 {
@@ -110,7 +111,7 @@ final class Http1Parser
         }
 
         if ($this->complete) {
-            throw new ParseException('Can\'t continue parsing, response is already complete', 400);
+            throw new ParseException('Can\'t continue parsing, response is already complete', Status::BAD_REQUEST);
         }
 
         switch ($this->state) {
@@ -144,7 +145,7 @@ final class Http1Parser
                 $this->statusCode = (int) $match['status'];
                 $this->statusReason = \trim($match['reason']);
             } else {
-                throw new ParseException('Invalid status line: ' . $startLine, 400);
+                throw new ParseException('Invalid status line: ' . $startLine, Status::BAD_REQUEST);
             }
 
             if ($rawHeaders !== '') {
@@ -154,7 +155,7 @@ final class Http1Parser
             }
 
             $requestMethod = $this->request->getMethod();
-            $skipBody = $this->statusCode < 200 || $this->statusCode === 304 || $this->statusCode === 204
+            $skipBody = $this->statusCode < Status::OK || $this->statusCode === Status::NOT_MODIFIED || $this->statusCode === Status::NO_CONTENT
                 || $requestMethod === 'HEAD' || $requestMethod === 'CONNECT';
 
             if ($skipBody) {
@@ -273,7 +274,7 @@ final class Http1Parser
         }
 
         if ($this->maxHeaderBytes > 0 && $headersSize > $this->maxHeaderBytes) {
-            throw new ParseException("Configured header size exceeded: {$headersSize} bytes received, while the configured limit is {$this->maxHeaderBytes} bytes", 431);
+            throw new ParseException("Configured header size exceeded: {$headersSize} bytes received, while the configured limit is {$this->maxHeaderBytes} bytes", Status::REQUEST_HEADER_FIELDS_TOO_LARGE);
         }
 
         return $headers;
@@ -296,22 +297,25 @@ final class Http1Parser
         try {
             $headers = Rfc7230::parseHeaders($rawHeaders);
         } catch (InvalidHeaderException $e) {
-            throw new ParseException('Invalid headers', 400, $e);
+            throw new ParseException('Invalid headers', Status::BAD_REQUEST, $e);
         }
 
         if (isset($headers['transfer-encoding'])) {
-            $transferEncodings = \explode(',', \implode(', ', $headers['transfer-encoding']));
-            $transferEncoding = \array_pop($transferEncodings);
-            if (\strtolower(\trim($transferEncoding)) === 'chunked') {
-                $headers['transfer-encoding'][0] = \implode(', ', $transferEncodings);
-                $this->chunkedEncoding = true;
-            }
+            $transferEncodings = \explode(',', \strtolower(\implode(',', $headers['transfer-encoding'])));
+            $transferEncodings = \array_map('trim', $transferEncodings);
+            $this->chunkedEncoding = \in_array('chunked', $transferEncodings, true);
         } elseif (isset($headers['content-length'])) {
             if (\count($headers['content-length']) > 1) {
-                throw new ParseException('Can\'t determine body length, because multiple content-length headers present in the response', 400);
+                throw new ParseException('Can\'t determine body length, because multiple content-length headers present in the response', Status::BAD_REQUEST);
             }
 
-            $this->remainingBodyBytes = (int) $headers['content-length'][0];
+            $contentLength = $headers['content-length'][0];
+
+            if (!\preg_match('/^(0|[1-9][0-9]*)$/', $contentLength)) {
+                throw new ParseException('Can\'t determine body length, because the content-length header value is invalid', Status::BAD_REQUEST);
+            }
+
+            $this->remainingBodyBytes = (int) $contentLength;
         }
 
         return $headers;
@@ -337,7 +341,7 @@ final class Http1Parser
             }
 
             if ($lineEndPos === 0) {
-                throw new ParseException('Invalid line; hexadecimal chunk size expected', 400);
+                throw new ParseException('Invalid line; hexadecimal chunk size expected', Status::BAD_REQUEST);
             }
 
             $line = \substr($this->buffer, 0, $lineEndPos);
@@ -345,7 +349,7 @@ final class Http1Parser
             $dec = \hexdec($hex);
 
             if ($hex !== \dechex($dec)) {
-                throw new ParseException('Invalid hexadecimal chunk size', 400);
+                throw new ParseException('Invalid hexadecimal chunk size', Status::BAD_REQUEST);
             }
 
             $this->chunkLengthRemaining = $dec;
@@ -411,7 +415,7 @@ final class Http1Parser
         $this->bodyBytesConsumed += \strlen($data);
 
         if ($this->maxBodyBytes > 0 && $this->bodyBytesConsumed > $this->maxBodyBytes) {
-            throw new ParseException("Configured body size exceeded: {$this->bodyBytesConsumed} bytes received, while the configured limit is {$this->maxBodyBytes} bytes", 413);
+            throw new ParseException("Configured body size exceeded: {$this->bodyBytesConsumed} bytes received, while the configured limit is {$this->maxBodyBytes} bytes", Status::PAYLOAD_TOO_LARGE);
         }
 
         if ($this->bodyDataCallback) {

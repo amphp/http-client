@@ -1032,7 +1032,7 @@ final class Http2Connection implements Connection
 
                     if (isset($headers["content-length"])) {
                         $length = \implode($headers["content-length"]);
-                        if (!\preg_match('/^0|[1-9][0-9]*$/', $length)) {
+                        if (!\preg_match('/^(0|[1-9][0-9]*)$/', $length)) {
                             $error = self::PROTOCOL_ERROR;
                             goto stream_error;
                         }
