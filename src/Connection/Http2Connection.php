@@ -1094,30 +1094,8 @@ final class Http2Connection implements Connection
      */
     private function shutdown(int $lastId = null, int $reason = self::GRACEFUL_SHUTDOWN): Promise
     {
-        return call(function () use ($lastId, $reason) {
-            foreach ($this->streams as $id => $stream) {
-                if ($lastId && $id > $lastId) {
-                    break;
-                }
-            }
-
-            $lastId = $lastId ?? ($id ?? 0);
-
-            yield $this->writeFrame(\pack("NN", $lastId, $reason), self::GOAWAY, self::NOFLAG);
-
-            $promises = [];
-            foreach ($this->streams as $id => $stream) {
-                if ($lastId && $id > $lastId) {
-                    break;
-                }
-
-                if ($stream->pendingWrite) {
-                    $promises[] = $stream->pendingWrite;
-                }
-            }
-
-            yield $promises;
-        });
+        $lastId = $lastId ?? ($id ?? 0);
+        return $this->writeFrame(\pack("NN", $lastId, $reason), self::GOAWAY, self::NOFLAG);
     }
 
 
