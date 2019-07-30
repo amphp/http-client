@@ -22,8 +22,8 @@ use Amp\Socket\EncryptableSocket;
 use Amp\Socket\Socket;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
-use Amp\Success;
 use function Amp\call;
+use function Amp\asyncCall;
 
 final class Http2Connection implements Connection
 {
@@ -186,15 +186,29 @@ final class Http2Connection implements Connection
                     $path = '/';
                 }
 
-                $headers = [
+                $body = $request->getBody();
+
+                $headers = yield $request->getBody()->getHeaders();
+                foreach ($headers as $name => $header) {
+                    if (!$request->hasHeader($name)) {
+                        $request = $request->withHeaders([$name => $header]);
+                    }
+                }
+
+                $headers = \array_merge([
                     ":authority" => [$uri->getAuthority()],
                     ":path" => [$path],
                     ":scheme" => [$uri->getScheme()],
                     ":method" => [$request->getMethod()],
-                ];
+                ], $request->getHeaders());
 
-                $headers = \array_merge($headers, $request->getHeaders());
                 $headers = $this->table->encode($headers);
+
+                $stream = $body->createBodyStream();
+
+                $chunk = yield $stream->read();
+
+                $flag = self::END_HEADERS | ($chunk === null ? self::END_STREAM : "\0");
 
                 if (\strlen($headers) > $this->maxFrameSize) {
                     $split = \str_split($headers, $this->maxFrameSize);
@@ -205,14 +219,29 @@ final class Http2Connection implements Connection
                     foreach ($split as $msgPart) {
                         yield $this->writeFrame($msgPart, self::CONTINUATION, self::NOFLAG, $id);
                     }
-                    yield $this->writeFrame($headers, self::CONTINUATION, self::END_HEADERS | self::END_STREAM, $id);
+                    yield $this->writeFrame($headers, self::CONTINUATION, $flag, $id);
                 } else {
-                    yield $this->writeFrame($headers, self::HEADERS, self::END_HEADERS | self::END_STREAM, $id);
+                    yield $this->writeFrame($headers, self::HEADERS, $flag, $id);
                 }
 
-                // yield $this->writeData("", $id, true);
+                if ($chunk === null) {
+                    return yield $deferred->promise();
+                }
 
-                // Write body if needed. Will need to remove END_STREAM from header frame if there's a body.
+                if ($chunk !== null) {
+                    asyncCall(function () use ($chunk, $token, $stream, $id) {
+                        $buffer = $chunk;
+                        while (null !== $chunk = yield $stream->read()) {
+                            if ($token->isRequested()) {
+                                return;
+                            }
+
+                            yield $this->writeData($buffer, $id, false);
+                            $buffer = $chunk;
+                        }
+                        yield $this->writeData($buffer, $id, true);
+                    });
+                }
 
                 return yield $deferred->promise();
             } catch (StreamException $exception) {
@@ -939,6 +968,7 @@ final class Http2Connection implements Connection
                     }
 
                     $headers = [];
+                    $pseudo = [];
                     $pseudoFinished = false;
                     foreach ($decoded as list($name, $value)) {
                         if (!\preg_match(self::HEADER_NAME_REGEX, $name)) {
@@ -947,24 +977,25 @@ final class Http2Connection implements Connection
                         }
 
                         if ($name[0] === ':') {
-                            if ($pseudoFinished || !isset(self::KNOWN_PSEUDO_HEADERS[$name]) || isset($headers[$name])) {
+                            if ($pseudoFinished || !isset(self::KNOWN_PSEUDO_HEADERS[$name]) || isset($pseudo[$name])) {
                                 $error = self::PROTOCOL_ERROR;
                                 goto connection_error;
                             }
-                        } else {
-                            $pseudoFinished = true;
+
+                            $pseudo[$name] = $value;
+                            continue;
                         }
 
+                        $pseudoFinished = true;
                         $headers[$name][] = $value;
                     }
 
-                    if (!isset($headers[":status"][0])) {
+                    if (!isset($pseudo[":status"])) {
                         $error = self::PROTOCOL_ERROR;
                         goto connection_error;
                     }
 
-                    $status = $headers[":status"][0];
-                    unset($headers[":status"]);
+                    $status = $pseudo[":status"];
 
                     if ($stream->state & Http2Stream::RESERVED) {
                         $error = self::PROTOCOL_ERROR;

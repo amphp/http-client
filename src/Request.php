@@ -212,7 +212,7 @@ final class Request extends Message
     /**
      * Retrieve the message entity body.
      *
-     * @return mixed
+     * @return RequestBody
      */
     public function getBody(): RequestBody
     {
