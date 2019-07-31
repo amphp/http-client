@@ -11,6 +11,7 @@ use Amp\CancelledException;
 use Amp\Delayed;
 use Amp\Http\Client\Body\FileBody;
 use Amp\Http\Client\Body\FormBody;
+use Amp\Http\Client\Interceptor\DefaultHeader;
 use Amp\Http\Client\Interceptor\RedirectHandler;
 use Amp\Http\Client\Interceptor\ResponseCompressionHandler;
 use Amp\Http\Client\Interceptor\TooManyRedirectsException;
@@ -36,8 +37,6 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     private $server;
     /** @var Client */
     private $client;
-    /** @var ClientBuilder */
-    private $clientBuilder;
     /** @var callable */
     private $responseCallback;
 
@@ -102,6 +101,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     {
         $uri = 'http://httpbin.org/user-agent';
 
+        $this->givenNetworkInterceptor(new DefaultHeader('user-agent', 'amphp/http-client'));
+
         /** @var Response $response */
         $response = yield $this->executeRequest(new Request($uri));
 
@@ -110,7 +111,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $body = yield $response->getBody()->buffer();
         $result = \json_decode($body, true);
 
-        $this->assertSame(SocketClient::DEFAULT_USER_AGENT, $result['user-agent']);
+        $this->assertSame('amphp/http-client', $result['user-agent']);
     }
 
     public function testCustomUserAgentSentIfAssigned(): \Generator
@@ -118,7 +119,10 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $uri = 'http://httpbin.org/user-agent';
         $customUserAgent = 'test-user-agent';
 
-        $request = (new Request($uri))->withHeader('User-Agent', $customUserAgent)->withHeader('Connection', 'keep-alive');
+        $request = (new Request($uri))->withHeader('User-Agent', $customUserAgent)->withHeader(
+            'Connection',
+            'keep-alive'
+        );
 
         /** @var Response $response */
         $response = yield $this->executeRequest($request);
@@ -465,13 +469,13 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     {
         parent::setUp();
 
-        $this->clientBuilder = new ClientBuilder;
+        $this->client = new Client;
 
         if ($this->socket) {
             $this->socket->close();
         }
 
-        $this->socket = Socket\listen('127.0.0.1:0');
+        $this->socket = Socket\Server::listen('127.0.0.1:0');
         $this->socket->unreference();
         $this->server = new Server([$this->socket], new CallableRequestHandler(static function () {
             return new \Amp\Http\Server\Response(Status::OK, [], new IteratorStream(new Producer(static function (
@@ -513,7 +517,6 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     private function executeRequest(Request $request, ?CancellationToken $cancellationToken = null): Promise
     {
-        $this->client = $this->clientBuilder->build();
         return $this->client->request($request, $cancellationToken);
     }
 
@@ -524,11 +527,11 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     private function givenApplicationInterceptor(ApplicationInterceptor $interceptor): void
     {
-        $this->clientBuilder->addApplicationInterceptor($interceptor);
+        $this->client->addApplicationInterceptor($interceptor);
     }
 
     private function givenNetworkInterceptor(NetworkInterceptor $interceptor): void
     {
-        $this->clientBuilder->addNetworkInterceptor($interceptor);
+        $this->client->addNetworkInterceptor($interceptor);
     }
 }

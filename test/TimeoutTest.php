@@ -4,11 +4,10 @@ namespace Amp\Test\Artax;
 
 use Amp\CancellationToken;
 use Amp\Deferred;
-use Amp\Http\Client\ClientBuilder;
+use Amp\Http\Client\Client;
 use Amp\Http\Client\Connection\DefaultConnectionPool;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
-use Amp\Http\Client\SocketClient;
 use Amp\Http\Client\TimeoutException;
 use Amp\Loop;
 use Amp\PHPUnit\AsyncTestCase;
@@ -18,19 +17,19 @@ use function Amp\asyncCall;
 
 class TimeoutTest extends AsyncTestCase
 {
-    /** @var SocketClient */
+    /** @var Client */
     private $client;
 
     public function setUp(): void
     {
         parent::setUp();
 
-        $this->client = (new ClientBuilder)->build();
+        $this->client = new Client;
     }
 
     public function testTimeoutDuringBody(): \Generator
     {
-        $server = Socket\listen("tcp://127.0.0.1:0");
+        $server = Socket\Server::listen("tcp://127.0.0.1:0");
 
         asyncCall(static function () use ($server) {
             /** @var Socket\EncryptableSocket $client */
@@ -65,13 +64,13 @@ class TimeoutTest extends AsyncTestCase
     {
         $start = \microtime(true);
 
-        Loop::repeat(1000, function () {
+        Loop::repeat(1000, static function () {
             // dummy watcher, because socket pool doesn't do anything
         });
 
         $connector = $this->createMock(Socket\Connector::class);
         $connector->method('connect')
-            ->willReturnCallback(function (
+            ->willReturnCallback(static function (
                 string $uri,
                 ?Socket\ConnectContext $connectContext = null,
                 ?CancellationToken $token = null
@@ -85,7 +84,7 @@ class TimeoutTest extends AsyncTestCase
                 return $deferred->promise(); // never resolve
             });
 
-        $this->client = (new ClientBuilder(new DefaultConnectionPool($connector)))->build();
+        $this->client = new Client(new DefaultConnectionPool($connector));
 
         $this->expectException(TimeoutException::class);
         $this->expectExceptionMessage("Connection to 'localhost:1337' timed out, took longer than 1 ms");
@@ -100,7 +99,7 @@ class TimeoutTest extends AsyncTestCase
         $tlsContext = (new Socket\ServerTlsContext)
             ->withDefaultCertificate(new Socket\Certificate(__DIR__ . "/tls/amphp.org.pem"));
 
-        $server = Socket\listen("tcp://127.0.0.1:0", (new Socket\BindContext)->withTlsContext($tlsContext));
+        $server = Socket\Server::listen("tcp://127.0.0.1:0", (new Socket\BindContext)->withTlsContext($tlsContext));
 
         asyncCall(static function () use ($server) {
             /** @var Socket\ResourceSocket $client */

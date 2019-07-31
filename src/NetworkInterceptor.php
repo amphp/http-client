@@ -11,7 +11,6 @@ interface NetworkInterceptor
     public function interceptNetworkRequest(
         Request $request,
         CancellationToken $cancellationToken,
-        Connection $connection,
-        Client $next
+        Connection $connection
     ): Promise;
 }
