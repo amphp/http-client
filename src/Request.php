@@ -36,9 +36,6 @@ final class Request extends Message
     /** @var int */
     private $transferTimeout = 10000;
 
-    /** @var bool */
-    private $discardBody = false;
-
     /** @var int */
     private $maxBodyBytes = self::DEFAULT_MAX_BODY_BYTES;
 
@@ -314,27 +311,6 @@ final class Request extends Message
     {
         $clone = clone $this;
         $clone->maxBodyBytes = $maxBodyBytes;
-
-        return $clone;
-    }
-
-    public function isDiscardBody(): bool
-    {
-        return $this->discardBody;
-    }
-
-    public function withBodyDiscarding(): self
-    {
-        $clone = clone $this;
-        $clone->discardBody = true;
-
-        return $clone;
-    }
-
-    public function withoutBodyDiscarding(): self
-    {
-        $clone = clone $this;
-        $clone->discardBody = false;
 
         return $clone;
     }

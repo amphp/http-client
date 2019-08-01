@@ -193,11 +193,9 @@ final class Http1Connection implements Connection
         $bodyEmitter = new Emitter;
 
         $backpressure = new Success;
-        $bodyCallback = $request->isDiscardBody()
-            ? null
-            : static function ($data) use ($bodyEmitter, &$backpressure) {
-                $backpressure = $bodyEmitter->emit($data);
-            };
+        $bodyCallback = static function ($data) use ($bodyEmitter, &$backpressure) {
+            $backpressure = $bodyEmitter->emit($data);
+        };
 
         $parser = new Http1Parser($request, $bodyCallback);
 
