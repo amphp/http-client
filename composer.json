@@ -27,7 +27,7 @@
         "amphp/byte-stream": "^1.6",
         "amphp/hpack": "^2",
         "amphp/http": "^1.3",
-        "amphp/socket": "dev-master as 1.0",
+        "amphp/socket": "^1",
         "amphp/file": "^0.2 || ^0.3",
         "kelunik/certificate": "^1.1",
         "league/uri-schemes": "^1.2",
@@ -35,7 +35,7 @@
     },
     "require-dev": {
         "ext-json": "*",
-        "amphp/phpunit-util": "dev-master as 2.0.0",
+        "amphp/phpunit-util": "^1.1",
         "amphp/php-cs-fixer-config": "dev-master",
         "phpunit/phpunit": "^7 || ^8",
         "friendsofphp/php-cs-fixer": "^2.15",
