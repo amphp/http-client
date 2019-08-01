@@ -208,6 +208,10 @@ final class Http2Connection implements Connection
 
                 $chunk = yield $stream->read();
 
+                if (!isset($this->streams[$id]) || $token->isRequested()) {
+                    return;
+                }
+
                 $flag = self::END_HEADERS | ($chunk === null ? self::END_STREAM : "\0");
 
                 if (\strlen($headers) > $this->maxFrameSize) {
@@ -232,13 +236,20 @@ final class Http2Connection implements Connection
                     asyncCall(function () use ($chunk, $token, $stream, $id) {
                         $buffer = $chunk;
                         while (null !== $chunk = yield $stream->read()) {
-                            if ($token->isRequested()) {
+                            if (!isset($this->streams[$id]) || $token->isRequested()) {
                                 return;
                             }
 
                             yield $this->writeData($buffer, $id, false);
                             $buffer = $chunk;
                         }
+
+                        if (!isset($this->streams[$id])) {
+                            return;
+                        }
+
+                        $this->streams[$id]->status |= Http2Stream::LOCAL_CLOSED;
+
                         yield $this->writeData($buffer, $id, true);
                     });
                 }
@@ -365,9 +376,6 @@ final class Http2Connection implements Connection
         \assert(isset($this->streams[$stream]), "The stream was closed");
 
         $this->streams[$stream]->buffer .= $data;
-        if ($last) {
-            $this->streams[$stream]->state |= Http2Stream::LOCAL_CLOSED;
-        }
 
         return $this->writeBufferedData($stream);
     }
@@ -393,9 +401,10 @@ final class Http2Connection implements Connection
                 $promise = $this->writeFrame($stream->buffer, self::DATA, self::END_STREAM, $id);
             } else {
                 $promise = $this->writeFrame($stream->buffer, self::DATA, self::NOFLAG, $id);
-                $stream->clientWindow -= $length;
-                $stream->buffer = "";
             }
+
+            $stream->clientWindow -= $length;
+            $stream->buffer = "";
 
             if ($stream->deferred) {
                 $deferred = $stream->deferred;
@@ -417,11 +426,9 @@ final class Http2Connection implements Connection
                 $this->writeFrame(\substr($data, $off, $this->maxFrameSize), self::DATA, self::NOFLAG, $id);
             }
 
-            $promise = $this->writeFrame(\substr($data, $off, $delta - $off), self::DATA, self::NOFLAG, $id);
+            $this->writeFrame(\substr($data, $off, $delta - $off), self::DATA, self::NOFLAG, $id);
 
             $stream->buffer = \substr($data, $delta);
-
-            return $promise;
         }
 
         if ($stream->deferred === null) {
@@ -969,7 +976,6 @@ final class Http2Connection implements Connection
 
                     $headers = [];
                     $pseudo = [];
-                    $pseudoFinished = false;
                     foreach ($decoded as list($name, $value)) {
                         if (!\preg_match(self::HEADER_NAME_REGEX, $name)) {
                             $error = self::PROTOCOL_ERROR;
@@ -977,7 +983,7 @@ final class Http2Connection implements Connection
                         }
 
                         if ($name[0] === ':') {
-                            if ($pseudoFinished || !isset(self::KNOWN_PSEUDO_HEADERS[$name]) || isset($pseudo[$name])) {
+                            if (!empty($headers) || !isset(self::KNOWN_PSEUDO_HEADERS[$name]) || isset($pseudo[$name])) {
                                 $error = self::PROTOCOL_ERROR;
                                 goto connection_error;
                             }
@@ -986,7 +992,6 @@ final class Http2Connection implements Connection
                             continue;
                         }
 
-                        $pseudoFinished = true;
                         $headers[$name][] = $value;
                     }
 
@@ -1031,13 +1036,13 @@ final class Http2Connection implements Connection
                     }
 
                     if (isset($headers["content-length"])) {
-                        $length = \implode($headers["content-length"]);
-                        if (!\preg_match('/^(0|[1-9][0-9]*)$/', $length)) {
+                        $contentLength = \implode($headers["content-length"]);
+                        if (!\preg_match('/^(0|[1-9][0-9]*)$/', $contentLength)) {
                             $error = self::PROTOCOL_ERROR;
                             goto stream_error;
                         }
 
-                        $stream->expectedLength = (int) $length;
+                        $stream->expectedLength = (int) $contentLength;
                     }
 
                     unset($this->pendingRequests[$id]);
