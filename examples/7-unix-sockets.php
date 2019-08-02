@@ -1,19 +1,21 @@
 <?php
 
+use Amp\Http\Client\Client;
+use Amp\Http\Client\Connection\DefaultConnectionPool;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
-use Amp\Http\Client\SocketClient;
 use Amp\Loop;
-use Amp\Socket\StaticSocketPool;
+use Amp\Socket\DnsConnector;
+use Amp\Socket\StaticConnector;
 
 require __DIR__ . '/../vendor/autoload.php';
 
 Loop::run(function () {
     try {
         // Unix sockets require a socket pool that changes all URLs to a fixed one.
-        $socketPool = new StaticSocketPool("unix:///var/run/docker.sock");
-        $client = new SocketClient($socketPool);
+        $connector = new StaticConnector("unix:///var/run/docker.sock", new DnsConnector);
+        $client = new Client(new DefaultConnectionPool($connector));
 
         // Artax currently requires a host, so just use a dummy one.
         $request = new Request('http://docker/info');
@@ -29,7 +31,7 @@ Loop::run(function () {
             $response->getReason()
         );
 
-        $body = yield $response->getBody();
+        $body = yield $response->getBody()->buffer();
         print $body . "\n";
     } catch (HttpException $error) {
         echo $error;

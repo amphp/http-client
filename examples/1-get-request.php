@@ -1,9 +1,9 @@
 <?php
 
+use Amp\Http\Client\Client;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
-use Amp\Http\Client\SocketClient;
 use Amp\Loop;
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -11,7 +11,7 @@ require __DIR__ . '/../vendor/autoload.php';
 Loop::run(function () use ($argv) {
     try {
         // Instantiate the HTTP client
-        $client = new SocketClient;
+        $client = new Client;
 
         // Make an asynchronous HTTP request
         $promise = $client->request(new Request($argv[1] ?? 'https://httpbin.org/user-agent'));

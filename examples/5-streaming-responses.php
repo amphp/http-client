@@ -2,10 +2,10 @@
 
 use Amp\File\Handle;
 use Amp\File\StatCache;
+use Amp\Http\Client\Client;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
-use Amp\Http\Client\SocketClient;
 use Amp\Loop;
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -15,7 +15,7 @@ Loop::run(function () {
         $start = \microtime(1);
 
         // Instantiate the HTTP client
-        $client = new SocketClient;
+        $client = new Client;
 
         $request = new Request('http://speed.hetzner.de/100MB.bin');
 

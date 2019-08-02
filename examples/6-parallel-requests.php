@@ -1,9 +1,9 @@
 <?php
 
+use Amp\Http\Client\Client;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
-use Amp\Http\Client\SocketClient;
 use Amp\Loop;
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -16,7 +16,7 @@ Loop::run(function () {
     ];
 
     // Instantiate the HTTP client
-    $client = new SocketClient;
+    $client = new Client;
 
     $requestHandler = function (string $uri) use ($client) {
         /** @var Response $response */
