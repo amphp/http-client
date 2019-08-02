@@ -5,7 +5,7 @@ namespace Amp\Http\Client\Connection;
 use Amp\ByteStream\StreamException;
 use Amp\CancellationToken;
 use Amp\CancelledException;
-use Amp\Http\Client\Internal\CombinedCancellationToken;
+use Amp\CombinedCancellationToken;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\SocketException;
 use Amp\Http\Client\TimeoutException;

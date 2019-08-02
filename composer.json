@@ -23,7 +23,7 @@
     ],
     "require": {
         "php": ">=7.1",
-        "amphp/amp": "^2",
+        "amphp/amp": "^2.2",
         "amphp/byte-stream": "^1.6",
         "amphp/hpack": "^2",
         "amphp/http": "^1.3",
