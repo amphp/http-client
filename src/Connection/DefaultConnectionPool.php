@@ -87,7 +87,7 @@ final class DefaultConnectionPool implements ConnectionPool
                     $checkoutCancellationToken = new CombinedCancellationToken($cancellation, new TimeoutCancellationToken($request->getTcpConnectTimeout()));
 
                     /** @var EncryptableSocket $socket */
-                    $socket = yield $this->connector->connect('tcp://' . $authority, $connectContext, $checkoutCancellationToken);
+                    $socket = yield $this->connector->connect('tcp://' . $authority, $connectContext->withConnectTimeout($request->getTcpConnectTimeout()), $checkoutCancellationToken);
                 } catch (Socket\ConnectException $e) {
                     throw new SocketException(\sprintf("Connection to '%s' failed", $authority), 0, $e);
                 } catch (CancelledException $e) {
