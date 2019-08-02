@@ -365,7 +365,7 @@ final class Http1Parser
             // These first two (extreme) edge cases prevent errors where the packet boundary ends after
             // the \r and before the \n at the end of a chunk.
             if ($bufferLength === $this->chunkLengthRemaining || $bufferLength === $this->chunkLengthRemaining + 1) {
-                return null;
+                return false;
             }
 
             if ($bufferLength >= $this->chunkLengthRemaining + 2) {
