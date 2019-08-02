@@ -23,12 +23,16 @@ final class DefaultConnectionPool implements ConnectionPool
     /** @var Connector */
     private $connector;
 
+    /** @var ConnectContext */
+    private $connectContext;
+
     /** @var \SplObjectStorage[] */
     private $connections = [];
 
-    public function __construct(?Connector $connector = null)
+    public function __construct(?Connector $connector = null, ?ConnectContext $connectContext = null)
     {
         $this->connector = $connector ?? Socket\connector();
+        $this->connectContext = $connectContext ?? (new ConnectContext)->withConnectTimeout(30000);
     }
 
     public function getConnection(Request $request, CancellationToken $cancellation): Promise
@@ -61,12 +65,16 @@ final class DefaultConnectionPool implements ConnectionPool
             }
 
             $promise = call(function () use (&$promise, $request, $isHttps, $authority, $cancellation, $key) {
-                $connectContext = new ConnectContext;
+                $connectContext = $this->connectContext;
 
                 if ($isHttps) {
                     $tlsContext = ($connectContext->getTlsContext() ?? new ClientTlsContext($request->getUri()->getHost()))
                         ->withApplicationLayerProtocols(['http/1.1'])
                         ->withPeerCapturing();
+
+                    if ($tlsContext->getPeerName() === '') {
+                        $tlsContext = $tlsContext->withPeerName($request->getUri()->getHost());
+                    }
 
                     if (\in_array('2.0', $request->getProtocolVersions(), true)) {
                         $tlsContext = $tlsContext->withApplicationLayerProtocols(['h2', 'http/1.1']);
