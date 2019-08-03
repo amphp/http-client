@@ -27,39 +27,39 @@ use function Amp\call;
 
 final class Http2Connection implements Connection
 {
-    private const PREFACE = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
-    private const DEFAULT_MAX_FRAME_SIZE = 1 << 14;
-    private const DEFAULT_WINDOW_SIZE = (1 << 16) - 1;
+    public const PREFACE = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
+    public const DEFAULT_MAX_FRAME_SIZE = 1 << 14;
+    public const DEFAULT_WINDOW_SIZE = (1 << 16) - 1;
 
-    private const MAX_INCREMENT = (1 << 31) - 1;
+    public const MAX_INCREMENT = (1 << 31) - 1;
 
     private const HEADER_NAME_REGEX = '/^[\x21-\x40\x5b-\x7e]+$/';
 
-    private const NOFLAG = "\x00";
-    private const ACK = "\x01";
-    private const END_STREAM = "\x01";
-    private const END_HEADERS = "\x04";
-    private const PADDED = "\x08";
-    private const PRIORITY_FLAG = "\x20";
+    public const NOFLAG = "\x00";
+    public const ACK = "\x01";
+    public const END_STREAM = "\x01";
+    public const END_HEADERS = "\x04";
+    public const PADDED = "\x08";
+    public const PRIORITY_FLAG = "\x20";
 
-    private const DATA = "\x00";
-    private const HEADERS = "\x01";
-    private const PRIORITY = "\x02";
-    private const RST_STREAM = "\x03";
-    private const SETTINGS = "\x04";
-    private const PUSH_PROMISE = "\x05";
-    private const PING = "\x06";
-    private const GOAWAY = "\x07";
-    private const WINDOW_UPDATE = "\x08";
-    private const CONTINUATION = "\x09";
+    public const DATA = "\x00";
+    public const HEADERS = "\x01";
+    public const PRIORITY = "\x02";
+    public const RST_STREAM = "\x03";
+    public const SETTINGS = "\x04";
+    public const PUSH_PROMISE = "\x05";
+    public const PING = "\x06";
+    public const GOAWAY = "\x07";
+    public const WINDOW_UPDATE = "\x08";
+    public const CONTINUATION = "\x09";
 
     // Settings
-    private const HEADER_TABLE_SIZE = 0x1; // 1 << 12
-    private const ENABLE_PUSH = 0x2; // 1
-    private const MAX_CONCURRENT_STREAMS = 0x3; // INF
-    private const INITIAL_WINDOW_SIZE = 0x4; // 1 << 16 - 1
-    private const MAX_FRAME_SIZE = 0x5; // 1 << 14
-    private const MAX_HEADER_LIST_SIZE = 0x6; // INF
+    public const HEADER_TABLE_SIZE = 0x1; // 1 << 12
+    public const ENABLE_PUSH = 0x2; // 1
+    public const MAX_CONCURRENT_STREAMS = 0x3; // INF
+    public const INITIAL_WINDOW_SIZE = 0x4; // 1 << 16 - 1
+    public const MAX_FRAME_SIZE = 0x5; // 1 << 14
+    public const MAX_HEADER_LIST_SIZE = 0x6; // INF
 
     // Error codes
     public const GRACEFUL_SHUTDOWN = 0x0;
@@ -478,19 +478,18 @@ final class Http2Connection implements Connection
 
         $buffer = yield;
 
-        try {
-            while (true) {
-                while (\strlen($buffer) < 9) {
-                    $buffer .= yield;
-                }
+        while (true) {
+            while (\strlen($buffer) < 9) {
+                $buffer .= yield;
+            }
 
-                $length = \unpack("N", "\0" . \substr($buffer, 0, 3))[1];
-                $frameCount++;
-                $bytesReceived += $length;
+            $length = \unpack("N", "\0" . \substr($buffer, 0, 3))[1];
+            $frameCount++;
+            $bytesReceived += $length;
 
+            try {
                 if ($length > self::DEFAULT_MAX_FRAME_SIZE) { // Do we want to allow increasing max frame size?
-                    $error = self::FRAME_SIZE_ERROR;
-                    goto connection_error;
+                    throw new Http2ConnectionException("Max frame size exceeded", self::FRAME_SIZE_ERROR);
                 }
 
                 $type = $buffer[3];
@@ -506,8 +505,7 @@ final class Http2Connection implements Connection
 
                 // Fail if expecting a continuation frame and anything else is received.
                 if ($continuation && $type !== self::CONTINUATION) {
-                    $error = self::PROTOCOL_ERROR;
-                    goto connection_error;
+                    throw new Http2ConnectionException("Expected continuation frame", self::PROTOCOL_ERROR);
                 }
 
                 switch ($type) {
@@ -523,31 +521,26 @@ final class Http2Connection implements Connection
                             $length--;
 
                             if ($padding > $length) {
-                                $error = self::PROTOCOL_ERROR;
-                                goto connection_error;
+                                throw new Http2ConnectionException("Padding greater than length", self::PROTOCOL_ERROR);
                             }
                         }
 
                         if ($id === 0) {
-                            $error = self::PROTOCOL_ERROR;
-                            goto connection_error;
+                            throw new Http2ConnectionException("Invalid stream ID", self::PROTOCOL_ERROR);
                         }
 
                         if (!isset($this->streams[$id])) {
-                            $error = self::PROTOCOL_ERROR;
-                            goto connection_error;
+                            throw new Http2ConnectionException("Stream ID not found", self::PROTOCOL_ERROR);
                         }
 
                         $stream = $this->streams[$id];
 
                         if ($stream->headers !== null) {
-                            $error = self::PROTOCOL_ERROR;
-                            goto stream_error;
+                            throw new Http2StreamException("Stream headers not complete", $id, self::PROTOCOL_ERROR);
                         }
 
                         if ($stream->state & Http2Stream::REMOTE_CLOSED) {
-                            $error = self::PROTOCOL_ERROR;
-                            goto stream_error;
+                            throw new Http2StreamException("Stream remote closed", $id, self::PROTOCOL_ERROR);
                         }
 
 
@@ -556,8 +549,7 @@ final class Http2Connection implements Connection
                         $stream->received += $length;
 
                         if ($stream->received >= $stream->maxBodySize && ($flags & self::END_STREAM) === "\0") {
-                            $error = self::CANCEL;
-                            goto stream_error;
+                            throw new Http2StreamException("Max body size exceeded", $id, self::CANCEL);
                         }
 
                         if ($stream->serverWindow <= 0 && ($increment = $stream->maxBodySize - $stream->received)) {
@@ -598,8 +590,7 @@ final class Http2Connection implements Connection
                             $stream->state |= Http2Stream::REMOTE_CLOSED;
 
                             if ($stream->expectedLength) {
-                                $error = self::PROTOCOL_ERROR;
-                                goto stream_error;
+                                throw new Http2StreamException("Body length does not match content-length header", $id, self::PROTOCOL_ERROR);
                             }
 
                             if (!isset($this->bodyEmitters[$id])) {
@@ -617,15 +608,13 @@ final class Http2Connection implements Connection
 
                     case self::HEADERS:
                         if (!isset($this->streams[$id], $this->requests[$id])) {
-                            $error = self::PROTOCOL_ERROR;
-                            goto connection_error;
+                            throw new Http2ConnectionException("Headers already started on stream", self::PROTOCOL_ERROR);
                         }
 
                         $stream = $this->streams[$id];
 
                         if ($stream->state & Http2Stream::REMOTE_CLOSED) {
-                            $error = self::STREAM_CLOSED;
-                            goto stream_error;
+                            throw new Http2StreamException("Stream remote closed", $id, self::STREAM_CLOSED);
                         }
 
                         if (($flags & self::PADDED) !== "\0") {
@@ -651,8 +640,7 @@ final class Http2Connection implements Connection
                             }
 
                             if ($id === 0 || $dependency === $id) {
-                                $error = self::PROTOCOL_ERROR;
-                                goto connection_error;
+                                throw new Http2ConnectionException("Invalid dependency ID", self::PROTOCOL_ERROR);
                             }
 
                             $stream->dependency = $dependency;
@@ -663,13 +651,11 @@ final class Http2Connection implements Connection
                         }
 
                         if ($padding >= $length) {
-                            $error = self::PROTOCOL_ERROR;
-                            goto connection_error;
+                            throw new Http2ConnectionException("Padding greater than length", self::PROTOCOL_ERROR);
                         }
 
                         if ($length > $maxHeaderSize) {
-                            $error = self::ENHANCE_YOUR_CALM;
-                            goto stream_error;
+                            throw new Http2StreamException("Headers exceed maximum length", $id, self::ENHANCE_YOUR_CALM);
                         }
 
                         while (\strlen($buffer) < $length) {
@@ -693,8 +679,7 @@ final class Http2Connection implements Connection
 
                     case self::PRIORITY:
                         if ($length !== 5) {
-                            $error = self::FRAME_SIZE_ERROR;
-                            goto connection_error;
+                            throw new Http2ConnectionException("Invalid frame size", self::PROTOCOL_ERROR);
                         }
 
                         while (\strlen($buffer) < 5) {
@@ -710,20 +695,17 @@ final class Http2Connection implements Connection
                         $buffer = \substr($buffer, 5);
 
                         if ($id === 0 || $dependency === $id) {
-                            $error = self::PROTOCOL_ERROR;
-                            goto connection_error;
+                            throw new Http2ConnectionException("Invalid dependency ID", self::PROTOCOL_ERROR);
                         }
 
                         if (!isset($this->streams[$id])) {
-                            $error = self::PROTOCOL_ERROR;
-                            goto connection_error;
+                            throw new Http2ConnectionException("Stream not found", $id, self::PROTOCOL_ERROR);
                         }
 
                         $stream = $this->streams[$id];
 
                         if ($stream->headers !== null) {
-                            $error = self::PROTOCOL_ERROR;
-                            goto connection_error;
+                            throw new Http2ConnectionException("Headers not complete", self::PROTOCOL_ERROR);
                         }
 
                         $stream->dependency = $dependency;
@@ -733,13 +715,11 @@ final class Http2Connection implements Connection
 
                     case self::RST_STREAM:
                         if ($length !== 4) {
-                            $error = self::FRAME_SIZE_ERROR;
-                            goto connection_error;
+                            throw new Http2ConnectionException("Invalid frame size", self::PROTOCOL_ERROR);
                         }
 
                         if ($id === 0) {
-                            $error = self::PROTOCOL_ERROR;
-                            goto connection_error;
+                            throw new Http2ConnectionException("Invalid stream ID", self::PROTOCOL_ERROR);
                         }
 
                         while (\strlen($buffer) < 4) {
@@ -757,14 +737,12 @@ final class Http2Connection implements Connection
 
                     case self::SETTINGS:
                         if ($id !== 0) {
-                            $error = self::PROTOCOL_ERROR;
-                            goto connection_error;
+                            throw new Http2ConnectionException("Non-zero stream ID with settings frame", self::PROTOCOL_ERROR);
                         }
 
                         if (($flags & self::ACK) !== "\0") {
                             if ($length) {
-                                $error = self::PROTOCOL_ERROR;
-                                goto connection_error;
+                                throw new Http2ConnectionException("Invalid frame size", self::PROTOCOL_ERROR);
                             }
 
                             // Got ACK
@@ -772,15 +750,13 @@ final class Http2Connection implements Connection
                         }
 
                         if ($length % 6 !== 0) {
-                            $error = self::FRAME_SIZE_ERROR;
-                            goto connection_error;
+                            throw new Http2ConnectionException("Invalid frame size", self::PROTOCOL_ERROR);
                         }
 
                         if ($length > 60) {
                             // Even with room for a few future options, sending that a big SETTINGS frame is just about
                             // wasting our processing time. I hereby declare this a protocol error.
-                            $error = self::PROTOCOL_ERROR;
-                            goto connection_error;
+                            throw new Http2ConnectionException("Settings frame too big", self::PROTOCOL_ERROR);
                         }
 
                         while (\strlen($buffer) < $length) {
@@ -788,10 +764,7 @@ final class Http2Connection implements Connection
                         }
 
                         while ($length > 0) {
-                            if ($error = $this->updateSetting($buffer)) {
-                                goto connection_error;
-                            }
-
+                            $this->updateSetting($buffer);
                             $buffer = \substr($buffer, 6);
                             $length -= 6;
                         }
@@ -807,18 +780,15 @@ final class Http2Connection implements Connection
                         continue 2;
 
                     case self::PUSH_PROMISE:  // PUSH_PROMISE is disabled, so it is a protocol error
-                        $error = self::PROTOCOL_ERROR;
-                        goto connection_error;
+                        throw new Http2ConnectionException("Push is disabled", self::PROTOCOL_ERROR);
 
                     case self::PING:
                         if ($length !== 8) {
-                            $error = self::FRAME_SIZE_ERROR;
-                            goto connection_error;
+                            throw new Http2ConnectionException("Invalid frame size", self::PROTOCOL_ERROR);
                         }
 
                         if ($id !== 0) {
-                            $error = self::PROTOCOL_ERROR;
-                            goto connection_error;
+                            throw new Http2ConnectionException("Non-zero stream ID with ping frame", self::PROTOCOL_ERROR);
                         }
 
                         while (\strlen($buffer) < 8) {
@@ -837,14 +807,13 @@ final class Http2Connection implements Connection
 
                     case self::GOAWAY:
                         if ($id !== 0) {
-                            $error = self::PROTOCOL_ERROR;
-                            goto connection_error;
+                            throw new Http2ConnectionException("Non-zero stream ID with goaway frame", self::PROTOCOL_ERROR);
                         }
 
                         $lastId = \unpack("N", $buffer)[1];
-                        // the highest bit must be zero... but RFC does not specify what should happen when it is set to 1?
-                        if ($lastId < 0) {
-                            $lastId = ~$lastId;
+                        // If the highest bit is 1, ignore it.
+                        if ($lastId & 0x80000000) {
+                            $lastId &= 0x7fffffff;
                         }
                         $error = \unpack("N", \substr($buffer, 4, 4))[1];
 
@@ -859,14 +828,13 @@ final class Http2Connection implements Connection
                             // @TODO Log error, since the server says we made a boo-boo.
                         }
 
-                        $this->close();
+                        $this->shutdown($lastId, new Http2ConnectionException("Received GOAWAY frame"));
 
                         return;
 
                     case self::WINDOW_UPDATE:
                         if ($length !== 4) {
-                            $error = self::FRAME_SIZE_ERROR;
-                            goto connection_error;
+                            throw new Http2ConnectionException("Invalid frame size", self::FRAME_SIZE_ERROR);
                         }
 
                         while (\strlen($buffer) < 4) {
@@ -874,11 +842,10 @@ final class Http2Connection implements Connection
                         }
 
                         if ($buffer === "\0\0\0\0") {
-                            $error = self::PROTOCOL_ERROR;
                             if ($id) {
-                                goto stream_error;
+                                throw new Http2StreamException("Invalid window update value", $id, self::PROTOCOL_ERROR);
                             }
-                            goto connection_error;
+                            throw new Http2ConnectionException("Invalid window update value", self::PROTOCOL_ERROR);
                         }
 
                         $windowSize = \unpack("N", $buffer)[1];
@@ -892,15 +859,13 @@ final class Http2Connection implements Connection
                             $stream = $this->streams[$id];
 
                             if ($stream->clientWindow + $windowSize > (2 << 30) - 1) {
-                                $error = self::FLOW_CONTROL_ERROR;
-                                goto stream_error;
+                                throw new Http2StreamException("Current window size plus new window exceeds maximum size", $id, self::FLOW_CONTROL_ERROR);
                             }
 
                             $stream->clientWindow += $windowSize;
                         } else {
                             if ($this->clientWindow + $windowSize > (2 << 30) - 1) {
-                                $error = self::FLOW_CONTROL_ERROR;
-                                goto connection_error;
+                                throw new Http2ConnectionException("Current window size plus new window exceeds maximum size", self::FLOW_CONTROL_ERROR);
                             }
 
                             $this->clientWindow += $windowSize;
@@ -912,8 +877,7 @@ final class Http2Connection implements Connection
 
                     case self::CONTINUATION:
                         if (!isset($this->streams[$id], $this->requests[$id])) {
-                            $error = self::PROTOCOL_ERROR;
-                            goto connection_error;
+                            throw new Http2ConnectionException("Invalid stream ID", self::PROTOCOL_ERROR);
                         }
 
                         $continuation = true;
@@ -921,20 +885,17 @@ final class Http2Connection implements Connection
                         $stream = $this->streams[$id];
 
                         if ($stream->headers === null) {
-                            $error = self::PROTOCOL_ERROR;
-                            goto connection_error;
+                            throw new Http2ConnectionException("No headers received before continuation frame", self::PROTOCOL_ERROR);
                         }
 
                         if ($stream->state & Http2Stream::REMOTE_CLOSED) {
-                            $error = self::STREAM_CLOSED;
                             $continuation = false;
-                            goto stream_error;
+                            throw new Http2StreamException("Stream remote closed", $id, self::ENHANCE_YOUR_CALM);
                         }
 
                         if ($length > $maxHeaderSize - \strlen($stream->headers)) {
-                            $error = self::ENHANCE_YOUR_CALM;
                             $continuation = false;
-                            goto stream_error;
+                            throw new Http2StreamException("Headers exceed maximum length", $id, self::ENHANCE_YOUR_CALM);
                         }
 
                         while (\strlen($buffer) < $length) {
@@ -970,22 +931,19 @@ final class Http2Connection implements Connection
                     $stream->headers = null;
 
                     if ($decoded === null) {
-                        $error = self::COMPRESSION_ERROR;
-                        goto stream_error;
+                        throw new Http2ConnectionException("Compression error in headers", self::COMPRESSION_ERROR);
                     }
 
                     $headers = [];
                     $pseudo = [];
                     foreach ($decoded as list($name, $value)) {
                         if (!\preg_match(self::HEADER_NAME_REGEX, $name)) {
-                            $error = self::PROTOCOL_ERROR;
-                            goto stream_error;
+                            throw new Http2StreamException("Invalid header field name", $id, self::PROTOCOL_ERROR);
                         }
 
                         if ($name[0] === ':') {
                             if (!empty($headers) || !isset(self::KNOWN_PSEUDO_HEADERS[$name]) || isset($pseudo[$name])) {
-                                $error = self::PROTOCOL_ERROR;
-                                goto connection_error;
+                                throw new Http2ConnectionException("Unknown or invalid pseudo headers", self::PROTOCOL_ERROR);
                             }
 
                             $pseudo[$name] = $value;
@@ -996,15 +954,13 @@ final class Http2Connection implements Connection
                     }
 
                     if (!isset($pseudo[":status"])) {
-                        $error = self::PROTOCOL_ERROR;
-                        goto connection_error;
+                        throw new Http2ConnectionException("No status psuedo header in response", self::PROTOCOL_ERROR);
                     }
 
                     $status = $pseudo[":status"];
 
                     if ($stream->state & Http2Stream::RESERVED) {
-                        $error = self::PROTOCOL_ERROR;
-                        goto stream_error;
+                        throw new Http2StreamException("Stream already reserved", $id, self::PROTOCOL_ERROR);
                     }
 
                     $stream->state |= Http2Stream::RESERVED;
@@ -1038,8 +994,7 @@ final class Http2Connection implements Connection
                     if (isset($headers["content-length"])) {
                         $contentLength = \implode($headers["content-length"]);
                         if (!\preg_match('/^(0|[1-9][0-9]*)$/', $contentLength)) {
-                            $error = self::PROTOCOL_ERROR;
-                            goto stream_error;
+                            throw new Http2StreamException("Invalid content-length header value", $id, self::PROTOCOL_ERROR);
                         }
 
                         $stream->expectedLength = (int) $contentLength;
@@ -1057,70 +1012,70 @@ final class Http2Connection implements Connection
 
                     continue;
                 }
+            } catch (Http2StreamException $exception) {
+                $id = $exception->getStreamId();
+                $code = $exception->getCode();
 
-                stream_error: {
-                    $this->writeFrame(\pack("N", $error), self::RST_STREAM, self::NOFLAG, $id);
+                $this->writeFrame(\pack("N", $code), self::RST_STREAM, self::NOFLAG, $id);
 
-                    if (isset($this->streams[$id])) {
-                        $this->releaseStream($id, new SocketException("Stream error", self::CANCEL));
-                    }
+                if (isset($this->streams[$id])) {
+                    $this->releaseStream($id, new SocketException("Stream error", $code, $exception));
+                }
 
-                    // consume whole frame to be able to continue this connection
+                // consume whole frame to be able to continue this connection
+                $length -= \strlen($buffer);
+                while ($length > 0) {
+                    $buffer = yield;
                     $length -= \strlen($buffer);
-                    while ($length > 0) {
-                        $buffer = yield;
-                        $length -= \strlen($buffer);
-                    }
-                    $buffer = \substr($buffer, \strlen($buffer) + $length);
-
-                    continue;
                 }
+                $buffer = \substr($buffer, \strlen($buffer) + $length);
+            } catch (Http2ConnectionException $exception) {
+                $this->shutdown(null, $exception);
+                return;
             }
-        } finally {
-            if (!empty($this->streams)) {
-                $exception = new SocketException("Server disconnected", self::CANCEL);
-                foreach ($this->streams as $id => $stream) {
-                    $this->releaseStream($id, $exception);
-                }
-            }
-        }
-
-        connection_error: {
-            $this->shutdown(null, $error ?? self::PROTOCOL_ERROR);
         }
     }
 
     /**
-     * @param int|null $lastId ID of last processed frame. Null to use the last opened frame ID or 0 if no frames have
-     *                         been opened.
-     * @param int      $reason Error code.
+     * @param int|null   $lastId ID of last processed frame. Null to use the last opened frame ID or 0 if no frames have
+     *                           been opened.
+     * @param \Throwable $reason
      *
      * @return Promise
      */
-    private function shutdown(int $lastId = null, int $reason = self::GRACEFUL_SHUTDOWN): Promise
+    private function shutdown(?int $lastId = null, ?\Throwable $reason = null): Promise
     {
         $lastId = $lastId ?? ($id ?? 0);
-        return $this->writeFrame(\pack("NN", $lastId, $reason), self::GOAWAY, self::NOFLAG);
+        $promise = $this->writeFrame(\pack("NN", $lastId, $reason), self::GOAWAY, self::NOFLAG);
+
+        if (!empty($this->streams)) {
+            $exception = new SocketException("Server disconnected", $reason->getCode(), $reason);
+            foreach ($this->streams as $id => $stream) {
+                $this->releaseStream($id, $exception);
+            }
+        }
+
+        return $promise;
     }
 
 
     /**
      * @param string $buffer Entire settings frame payload. Only the first 6 bytes are examined.
      *
-     * @return int Error code, or 0 if the setting was valid or unknown.
+     * @throws Http2ConnectionException Thrown if the setting is invalid.
      */
-    private function updateSetting(string $buffer): int
+    private function updateSetting(string $buffer): void
     {
         $unpacked = \unpack("nsetting/Nvalue", $buffer);
 
         if ($unpacked["value"] < 0) {
-            return self::PROTOCOL_ERROR;
+            throw new Http2ConnectionException("Invalid settings value", self::PROTOCOL_ERROR);
         }
 
         switch ($unpacked["setting"]) {
             case self::INITIAL_WINDOW_SIZE:
                 if ($unpacked["value"] >= 1 << 31) {
-                    return self::FLOW_CONTROL_ERROR;
+                    throw new Http2ConnectionException("Invalid window size", self::FLOW_CONTROL_ERROR);
                 }
 
                 $priorWindowSize = $this->initialWindowSize;
@@ -1133,34 +1088,33 @@ final class Http2Connection implements Connection
 
                 // Settings ACK should be sent before HEADER or DATA frames.
                 Loop::defer(\Closure::fromCallable([$this, 'sendBufferedData']));
-
-                return 0;
+                return;
 
             case self::ENABLE_PUSH:
-                return self::PROTOCOL_ERROR; // Server should not enable push.
+                throw new Http2ConnectionException("Server cannot enable push", self::PROTOCOL_ERROR);
 
             case self::MAX_FRAME_SIZE:
                 if ($unpacked["value"] < 1 << 14 || $unpacked["value"] >= 1 << 24) {
-                    return self::PROTOCOL_ERROR;
+                    throw new Http2ConnectionException("Invalid max frame size", self::PROTOCOL_ERROR);
                 }
 
                 $this->maxFrameSize = $unpacked["value"];
-                return 0;
+                return;
 
             case self::MAX_CONCURRENT_STREAMS:
                 if ($unpacked["value"] >= 1 << 31) {
-                    return self::FLOW_CONTROL_ERROR;
+                    throw new Http2ConnectionException("Invalid concurrent streams value", self::PROTOCOL_ERROR);
                 }
 
                 $this->remainingStreams = $unpacked["value"] - \count($this->streams);
-                return 0;
+                return;
 
             case self::HEADER_TABLE_SIZE:
             case self::MAX_HEADER_LIST_SIZE:
-                return 0; // @TODO Respect these settings from the server.
+                return; // @TODO Respect these settings from the server.
 
             default:
-                return 0; // Unknown setting, ignore (6.5.2).
+                return; // Unknown setting, ignore (6.5.2).
         }
     }
 
