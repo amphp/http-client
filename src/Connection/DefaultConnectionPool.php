@@ -68,16 +68,18 @@ final class DefaultConnectionPool implements ConnectionPool
                 $connectContext = $this->connectContext;
 
                 if ($isHttps) {
+                    if (\in_array('2.0', $request->getProtocolVersions(), true)) {
+                        $protocols = ['h2', 'http/1.1'];
+                    } else {
+                        $protocols = ['http/1.1'];
+                    }
+
                     $tlsContext = ($connectContext->getTlsContext() ?? new ClientTlsContext($request->getUri()->getHost()))
-                        ->withApplicationLayerProtocols(['http/1.1'])
+                        ->withApplicationLayerProtocols($protocols)
                         ->withPeerCapturing();
 
                     if ($tlsContext->getPeerName() === '') {
                         $tlsContext = $tlsContext->withPeerName($request->getUri()->getHost());
-                    }
-
-                    if (\in_array('2.0', $request->getProtocolVersions(), true)) {
-                        $tlsContext = $tlsContext->withApplicationLayerProtocols(['h2', 'http/1.1']);
                     }
 
                     $connectContext = $connectContext->withTlsContext($tlsContext);

@@ -137,14 +137,6 @@ final class Http1Connection implements Connection
                 $readingCancellation = $cancellation;
             }
 
-            $cancellationId = $readingCancellation->subscribe([$this, 'close']);
-
-            $busy = &$this->busy;
-            $completionDeferred->promise()->onResolve(static function () use (&$busy, $readingCancellation, $cancellationId) {
-                $readingCancellation->unsubscribe($cancellationId);
-                $busy = false;
-            });
-
             try {
                 yield from $this->writeRequest($request, $protocolVersion);
                 return yield from $this->doRead($request, $cancellation, $readingCancellation, $completionDeferred);
@@ -226,6 +218,8 @@ final class Http1Connection implements Connection
                     $bodyCancellationToken,
                     &$backpressure
                 ) {
+                    $cancellationId = $readingCancellation->subscribe([$this, 'close']);
+
                     try {
                         // Required, otherwise responses without body hang
                         if (!$parser->isComplete()) {
@@ -267,6 +261,8 @@ final class Http1Connection implements Connection
                             $this->close();
                         }
 
+                        $this->busy = false;
+
                         $bodyEmitter->complete();
                         $completionDeferred->resolve();
                     } catch (\Throwable $e) {
@@ -274,6 +270,8 @@ final class Http1Connection implements Connection
 
                         $bodyEmitter->fail($e);
                         $completionDeferred->fail($e);
+                    } finally {
+                        $readingCancellation->unsubscribe($cancellationId);
                     }
                 });
 
