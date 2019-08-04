@@ -355,7 +355,9 @@ final class Http1Parser
             $this->chunkLengthRemaining = $dec;
             $this->buffer = \substr($this->buffer, $lineEndPos + 2);
 
-            return $dec === 0;
+            if ($this->chunkLengthRemaining === 0) {
+                return true;
+            }
         }
 
         decode_chunk:
