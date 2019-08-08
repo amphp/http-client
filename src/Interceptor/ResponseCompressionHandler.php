@@ -4,7 +4,7 @@ namespace Amp\Http\Client\Interceptor;
 
 use Amp\ByteStream\ZlibInputStream;
 use Amp\CancellationToken;
-use Amp\Http\Client\Connection\Connection;
+use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
@@ -23,9 +23,9 @@ final class ResponseCompressionHandler implements NetworkInterceptor
     public function interceptNetworkRequest(
         Request $request,
         CancellationToken $cancellationToken,
-        Connection $connection
+        Stream $stream
     ): Promise {
-        return call(function () use ($request, $cancellationToken, $connection) {
+        return call(function () use ($request, $cancellationToken, $stream) {
             $decodeResponse = false;
 
             // If a header is manually set, we won't interfere
@@ -35,7 +35,7 @@ final class ResponseCompressionHandler implements NetworkInterceptor
             }
 
             /** @var Response $response */
-            $response = yield $connection->request($request, $cancellationToken);
+            $response = yield $stream->request($request, $cancellationToken);
 
             if ($decodeResponse && ($encoding = $this->determineCompressionEncoding($response))) {
                 /** @noinspection PhpUnhandledExceptionInspection */

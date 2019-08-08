@@ -35,7 +35,7 @@ final class DefaultConnectionPool implements ConnectionPool
         $this->connectContext = $connectContext ?? (new ConnectContext)->withConnectTimeout(30000);
     }
 
-    public function getConnection(Request $request, CancellationToken $cancellation): Promise
+    public function getStream(Request $request, CancellationToken $cancellation): Promise
     {
         return call(function () use ($request, $cancellation) {
             $uri = $request->getUri();
@@ -53,14 +53,19 @@ final class DefaultConnectionPool implements ConnectionPool
             $authority = $host . ':' . $port;
             $key = $scheme . '://' . $authority;
 
-            $this->connections[$key] = $this->connections[$key] ?? new \SplObjectStorage;
+            $connections = $this->connections[$key] ?? new \SplObjectStorage;
 
-            foreach ($this->connections[$key] as $connection) {
-                $connection = yield $connection;
+            foreach ($connections as $connection) {
+                try {
+                    $connection = yield $connection;
+                } catch (CancelledException $exception) {
+                    continue; // Ignore cancellation of other requests.
+                }
+
                 \assert($connection instanceof Connection);
 
                 if (!$connection->isBusy()) {
-                    return $connection;
+                    return $connection->getStream($request);
                 }
             }
 
@@ -122,6 +127,7 @@ final class DefaultConnectionPool implements ConnectionPool
 
                 if ($isHttps && $socket->getTlsInfo()->getApplicationLayerProtocol() === 'h2') {
                     $connection = new Http2Connection($socket);
+                    yield $connection->initialize();
                 } else {
                     $connection = new Http1Connection($socket);
                 }
@@ -139,22 +145,24 @@ final class DefaultConnectionPool implements ConnectionPool
                 return $connection;
             });
 
+            $this->connections[$key] = $connections;
             $this->connections[$key]->attach($promise);
 
-            $promise->onResolve(function (?\Throwable $exception) use ($key, $promise): void {
-                if (!$exception) {
-                    return;
-                }
-
+            try {
+                $connection = yield $promise;
+                \assert($connection instanceof Connection);
+            } catch (\Throwable $exception) {
                 // Connection failed, remove from list of connections.
                 $this->connections[$key]->detach($promise);
 
                 if (!$this->connections[$key]->count()) {
                     unset($this->connections[$key]);
                 }
-            });
 
-            return $promise;
+                throw $exception;
+            }
+
+            return $connection->getStream($request);
         });
     }
 }

@@ -4,7 +4,7 @@ namespace Amp\Http\Client\Internal;
 
 use Amp\CancellationToken;
 use Amp\Failure;
-use Amp\Http\Client\Connection\Connection;
+use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request;
@@ -12,18 +12,18 @@ use Amp\Promise;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
 
-final class InterceptedConnection implements Connection
+final class InterceptedStream implements Stream
 {
-    /** @var Connection */
-    private $connection;
+    /** @var Stream */
+    private $stream;
     /** @var NetworkInterceptor[] */
     private $interceptors;
     /** @var bool */
     private $called = false;
 
-    public function __construct(Connection $connection, NetworkInterceptor... $interceptors)
+    public function __construct(Stream $stream, NetworkInterceptor... $interceptors)
     {
-        $this->connection = $connection;
+        $this->stream = $stream;
         $this->interceptors = $interceptors;
     }
 
@@ -37,7 +37,7 @@ final class InterceptedConnection implements Connection
 
             $this->called = true;
 
-            return $this->connection->request($request, $cancellation);
+            return $this->stream->request($request, $cancellation);
         }
 
         $interceptor = \array_shift($this->interceptors);
@@ -45,33 +45,18 @@ final class InterceptedConnection implements Connection
         return $interceptor->interceptNetworkRequest($request, $cancellation, $this);
     }
 
-    public function isBusy(): bool
-    {
-        return $this->connection->isBusy();
-    }
-
-    public function close(): Promise
-    {
-        return $this->connection->close();
-    }
-
-    public function onClose(callable $onClose): void
-    {
-        $this->connection->onClose($onClose);
-    }
-
     public function getLocalAddress(): SocketAddress
     {
-        return $this->connection->getLocalAddress();
+        return $this->stream->getLocalAddress();
     }
 
     public function getRemoteAddress(): SocketAddress
     {
-        return $this->connection->getRemoteAddress();
+        return $this->stream->getRemoteAddress();
     }
 
     public function getTlsInfo(): ?TlsInfo
     {
-        return $this->connection->getTlsInfo();
+        return $this->stream->getTlsInfo();
     }
 }

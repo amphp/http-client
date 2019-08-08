@@ -2,9 +2,8 @@
 
 namespace Amp\Http\Client\Connection;
 
-use Amp\CancellationToken;
 use Amp\Http\Client\Request;
-use Amp\Http\Client\Response;
+use Amp\Http\Client\SocketException;
 use Amp\Promise;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
@@ -14,13 +13,17 @@ interface Connection
     public const MAX_KEEP_ALIVE_TIMEOUT = 60;
 
     /**
-     * @param Request           $request
-     * @param CancellationToken $token
+     * @param Request $request
      *
-     * @return Promise<Response>
+     * @return Stream
+     *
+     * @throws SocketException If all available streams have been used. Verify a stream is available with isBusy().
      */
-    public function request(Request $request, CancellationToken $token): Promise;
+    public function getStream(Request $request): Stream;
 
+    /**
+     * @return bool True if a stream is still available, false if the connection is completely busy.
+     */
     public function isBusy(): bool;
 
     public function close(): Promise;

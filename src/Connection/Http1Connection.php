@@ -113,11 +113,20 @@ final class Http1Connection implements Connection
         return $this->socket instanceof EncryptableSocket ? $this->socket->getTlsInfo() : null;
     }
 
+    public function getStream(Request $request): Stream
+    {
+        if ($this->busy) {
+            throw new SocketException('All available streams have been used');
+        }
+
+        $this->busy = true;
+        return new HttpStream($this, \Closure::fromCallable([$this, 'request']));
+    }
+
     /** @inheritdoc */
-    public function request(Request $request, CancellationToken $cancellation): Promise
+    private function request(Request $request, CancellationToken $cancellation): Promise
     {
         return call(function () use ($request, $cancellation) {
-            $this->busy = true;
             ++$this->requestCounter;
 
             if ($this->timeoutWatcher !== null) {

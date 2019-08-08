@@ -22,12 +22,12 @@ final class RequestMapper implements NetworkInterceptor
     public function interceptNetworkRequest(
         Request $request,
         CancellationToken $cancellationToken,
-        Connection $connection
+        Connection $stream
     ): Promise {
-        return call(function () use ($request, $cancellationToken, $connection) {
+        return call(function () use ($request, $cancellationToken, $stream) {
             $request = yield call($this->mapper, $request);
 
-            return $connection->request($request, $cancellationToken);
+            return $stream->request($request, $cancellationToken);
         });
     }
 }

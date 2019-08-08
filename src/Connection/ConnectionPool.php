@@ -12,7 +12,7 @@ interface ConnectionPool
      * @param Request           $request
      * @param CancellationToken $token
      *
-     * @return Promise<Connection>
+     * @return Promise<Stream>
      */
-    public function getConnection(Request $request, CancellationToken $token): Promise;
+    public function getStream(Request $request, CancellationToken $token): Promise;
 }

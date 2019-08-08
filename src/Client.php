@@ -3,10 +3,10 @@
 namespace Amp\Http\Client;
 
 use Amp\CancellationToken;
-use Amp\Http\Client\Connection\Connection;
 use Amp\Http\Client\Connection\ConnectionPool;
 use Amp\Http\Client\Connection\DefaultConnectionPool;
-use Amp\Http\Client\Internal\InterceptedConnection;
+use Amp\Http\Client\Connection\Stream;
+use Amp\Http\Client\Internal\InterceptedStream;
 use Amp\NullCancellationToken;
 use Amp\Promise;
 use function Amp\call;
@@ -48,14 +48,14 @@ final class Client
                 $interceptor = \array_shift($client->applicationInterceptors);
                 $response = yield $interceptor->interceptApplicationRequest($request, $cancellation, $client);
             } else {
-                $connection = yield $this->connectionPool->getConnection($request, $cancellation);
-                \assert($connection instanceof Connection);
+                $stream = yield $this->connectionPool->getStream($request, $cancellation);
+                \assert($stream instanceof Stream);
 
                 if ($this->networkInterceptors) {
-                    $connection = new InterceptedConnection($connection, ...$this->networkInterceptors);
+                    $stream = new InterceptedStream($stream, ...$this->networkInterceptors);
                 }
 
-                $response = yield $connection->request($request, $cancellation);
+                $response = yield $stream->request($request, $cancellation);
             }
 
             return $response;

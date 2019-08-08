@@ -10,6 +10,7 @@ use Amp\CancelledException;
 use Amp\Coroutine;
 use Amp\Deferred;
 use Amp\Emitter;
+use Amp\Failure;
 use Amp\Http\Client\Connection\Internal\Http2Stream;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
@@ -117,14 +118,17 @@ final class Http2Connection implements Connection
     /** @var Emitter[] */
     private $bodyEmitters = [];
 
-    /** @var int Number of streams that may be opened. */
-    private $remainingStreams = 1;
+    /** @var int Number of streams that may be opened. Initially unlimited. */
+    private $remainingStreams = \PHP_INT_MAX;
 
     /** @var HPack */
     private $table;
 
     /** @var Deferred|null */
     private $settingsDeferred;
+
+    /** @var bool */
+    private $initialized = false;
 
     public function __construct(Socket $socket)
     {
@@ -134,35 +138,64 @@ final class Http2Connection implements Connection
 
         if ($this->socket->isClosed()) {
             $this->onClose = null;
-            return;
+        }
+    }
+
+    /**
+     * Returns a promise that is resolved once the connection has been initialized. A stream cannot be obtained from the
+     * connection until the promise returned by this method resolves.
+     *
+     * @return Promise
+     */
+    public function initialize(): Promise
+    {
+        $this->initialized = true;
+
+        if ($this->socket->isClosed()) {
+            return new Failure(new SocketException('The socket closed before the connection could be initialized'));
         }
 
         $this->settingsDeferred = new Deferred;
+        $promise = $this->settingsDeferred->promise();
 
         Promise\rethrow(new Coroutine($this->run()));
+
+        return $promise;
     }
 
-    public function request(Request $request, CancellationToken $token): Promise
+    public function getStream(Request $request): Stream
     {
-        return call(function () use ($request, $token) {
-            \assert($this->remainingStreams > 0);
+        if (!$this->initialized || $this->settingsDeferred !== null) {
+            throw new \Error('The promise returned from ' . __CLASS__ . '::initialize() must resolve before using the connection');
+        }
 
-            if ($this->settingsDeferred) {
-                yield $this->settingsDeferred->promise();
-            }
+        if ($this->remainingStreams <= 1) {
+            throw new SocketException('All available streams have been used');
+        }
 
+        --$this->remainingStreams;
+        $id = $this->streamId += 2; // Client streams should be odd-numbered, starting at 1.
+
+        $this->streams[$id] = new Http2Stream(
+            self::DEFAULT_WINDOW_SIZE,
+            $this->initialWindowSize,
+            self::DEFAULT_MAX_HEADER_SIZE, // $request->getMaxHeaderSize()
+            self::DEFAULT_MAX_BODY_SIZE // $request->getMaxBodySize()
+        );
+
+        return new HttpStream($this, function (Request $request, CancellationToken $token) use ($id): Promise {
+            return $this->request($id, $request, $token);
+        });
+    }
+
+    private function request(int $id, Request $request, CancellationToken $token): Promise
+    {
+        \assert(isset($this->streams[$id]));
+
+        return call(function () use ($id, $request, $token) {
             // Remove defunct HTTP/1.x headers.
             $request = $request->withoutHeader('host')
                 ->withoutHeader('connection');
-
-            $id = $this->streamId += 2; // Client streams should be odd-numbered, starting at 1.
-            $this->streams[$id] = new Http2Stream(
-                self::DEFAULT_WINDOW_SIZE,
-                $this->initialWindowSize,
-                self::DEFAULT_MAX_HEADER_SIZE, // $request->getMaxHeaderSize()
-                self::DEFAULT_MAX_BODY_SIZE // $request->getMaxBodySize()
-            );
-            --$this->remainingStreams;
 
             $this->requests[$id] = $request;
             $this->pendingRequests[$id] = $deferred = new Deferred;
@@ -357,6 +390,12 @@ final class Http2Connection implements Connection
                 }
             }
         } catch (\Throwable $exception) {
+            if ($this->settingsDeferred !== null) {
+                $deferred = $this->settingsDeferred;
+                $this->settingsDeferred = null;
+                $deferred->fail($exception);
+            }
+
             foreach ($this->streams as $id => $stream) {
                 $this->releaseStream($id, $exception);
             }
@@ -774,7 +813,7 @@ final class Http2Connection implements Connection
                         if ($this->settingsDeferred) {
                             $deferred = $this->settingsDeferred;
                             $this->settingsDeferred = null;
-                            $deferred->resolve();
+                            $deferred->resolve($this->remainingStreams);
                         }
 
                         continue 2;
