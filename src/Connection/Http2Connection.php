@@ -28,6 +28,8 @@ use function Amp\call;
 
 final class Http2Connection implements Connection
 {
+    private const PROTOCOL_VERSIONS = ['2.0'];
+
     public const PREFACE = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
     public const DEFAULT_MAX_FRAME_SIZE = 1 << 14;
     public const DEFAULT_WINDOW_SIZE = (1 << 16) - 1;
@@ -161,6 +163,11 @@ final class Http2Connection implements Connection
         Promise\rethrow(new Coroutine($this->run()));
 
         return $promise;
+    }
+
+    public function getProtocolVersions(): array
+    {
+        return self::PROTOCOL_VERSIONS;
     }
 
     public function getStream(Request $request): Stream

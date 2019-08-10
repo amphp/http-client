@@ -40,6 +40,8 @@ use function Amp\call;
  */
 final class Http1Connection implements Connection
 {
+    private const PROTOCOL_VERSIONS = ['1.0', '1.1'];
+
     /** @var Socket */
     private $socket;
 
@@ -111,6 +113,11 @@ final class Http1Connection implements Connection
     public function getTlsInfo(): ?TlsInfo
     {
         return $this->socket instanceof EncryptableSocket ? $this->socket->getTlsInfo() : null;
+    }
+
+    public function getProtocolVersions(): array
+    {
+        return self::PROTOCOL_VERSIONS;
     }
 
     public function getStream(Request $request): Stream

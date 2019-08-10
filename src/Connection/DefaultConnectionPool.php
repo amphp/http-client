@@ -6,6 +6,7 @@ use Amp\ByteStream\StreamException;
 use Amp\CancellationToken;
 use Amp\CancelledException;
 use Amp\CombinedCancellationToken;
+use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\SocketException;
 use Amp\Http\Client\TimeoutException;
@@ -20,6 +21,8 @@ use function Amp\call;
 
 final class DefaultConnectionPool implements ConnectionPool
 {
+    private const PROTOCOL_VERSIONS = ['1.0', '1.1', '2.0'];
+
     /** @var Connector */
     private $connector;
 
@@ -53,6 +56,11 @@ final class DefaultConnectionPool implements ConnectionPool
             $authority = $host . ':' . $port;
             $key = $scheme . '://' . $authority;
 
+            if (!\array_intersect($request->getProtocolVersions(), self::PROTOCOL_VERSIONS)) {
+                throw new HttpException('None of the requested protocol versions are supported; Supported versions: '
+                    . \implode(', ', self::PROTOCOL_VERSIONS));
+            }
+
             $connections = $this->connections[$key] ?? new \SplObjectStorage;
 
             foreach ($connections as $connection) {
@@ -63,6 +71,10 @@ final class DefaultConnectionPool implements ConnectionPool
                 }
 
                 \assert($connection instanceof Connection);
+
+                if (!\array_intersect($request->getProtocolVersions(), $connection->getProtocolVersions())) {
+                    continue; // Connection does not support any of the requested protocol versions.
+                }
 
                 if (!$connection->isBusy()) {
                     return $connection->getStream($request);
@@ -112,22 +124,33 @@ final class DefaultConnectionPool implements ConnectionPool
                             $tlsCancellationToken = new CombinedCancellationToken($cancellation, new TimeoutCancellationToken($request->getTlsHandshakeTimeout()));
                             yield $socket->setupTls($tlsCancellationToken);
                         } elseif ($tlsState !== EncryptableSocket::TLS_STATE_ENABLED) {
+                            $socket->close();
                             throw new SocketException('Failed to setup TLS connection, connection was in an unexpected TLS state (' . $tlsState . ')');
                         }
                     } catch (StreamException $exception) {
+                        $socket->close();
                         throw new SocketException(\sprintf("Connection to '%s' closed during TLS handshake", $authority), 0, $exception);
                     } catch (CancelledException $e) {
+                        $socket->close();
+
                         // In case of a user cancellation request, throw the expected exception
                         $cancellation->throwIfRequested();
 
                         // Otherwise we ran into a timeout of our TimeoutCancellationToken
                         throw new TimeoutException(\sprintf("TLS handshake with '%s' @ '%s' timed out, took longer than " . $request->getTlsHandshakeTimeout() . ' ms', $authority, $socket->getRemoteAddress()->toString())); // don't pass $e
                     }
-                }
 
-                if ($isHttps && $socket->getTlsInfo()->getApplicationLayerProtocol() === 'h2') {
-                    $connection = new Http2Connection($socket);
-                    yield $connection->initialize();
+                    if ($socket->getTlsInfo()->getApplicationLayerProtocol() === 'h2') {
+                        $connection = new Http2Connection($socket);
+                        yield $connection->initialize();
+                    } else {
+                        if (!\array_intersect($request->getProtocolVersions(), ['1.0', '1.1'])) {
+                            $socket->close();
+                            throw new HttpException('Downgrade to HTTP/1.x forbidden, but server does not support HTTP/2');
+                        }
+
+                        $connection = new Http1Connection($socket);
+                    }
                 } else {
                     $connection = new Http1Connection($socket);
                 }
@@ -164,5 +187,10 @@ final class DefaultConnectionPool implements ConnectionPool
 
             return $connection->getStream($request);
         });
+    }
+
+    public function getProtocolVersions(): array
+    {
+        return self::PROTOCOL_VERSIONS;
     }
 }

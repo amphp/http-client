@@ -22,6 +22,11 @@ interface Connection
     public function getStream(Request $request): Stream;
 
     /**
+     * @return string[] Array of supported protocol versions.
+     */
+    public function getProtocolVersions(): array;
+
+    /**
      * @return bool True if a stream is still available, false if the connection is completely busy.
      */
     public function isBusy(): bool;
