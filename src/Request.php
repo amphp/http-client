@@ -12,7 +12,7 @@ use Psr\Http\Message\UriInterface;
  */
 final class Request extends Message
 {
-    public const DEFAULT_HEADER_SIZE_LIMIT = 8192;
+    public const DEFAULT_HEADER_SIZE_LIMIT = 2 * 8192;
     public const DEFAULT_BODY_SIZE_LIMIT = 10485760;
 
     /** @var string[] */
