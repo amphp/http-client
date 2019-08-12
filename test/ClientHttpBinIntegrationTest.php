@@ -11,7 +11,7 @@ use Amp\CancelledException;
 use Amp\Delayed;
 use Amp\Http\Client\Body\FileBody;
 use Amp\Http\Client\Body\FormBody;
-use Amp\Http\Client\Interceptor\SetDefaultHeader;
+use Amp\Http\Client\Interceptor\SetRequestHeaderIfUnset;
 use Amp\Http\Client\Interceptor\FollowRedirects;
 use Amp\Http\Client\Interceptor\DecompressResponse;
 use Amp\Http\Client\Interceptor\TooManyRedirectsException;
@@ -114,7 +114,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     {
         $uri = 'http://httpbin.org/user-agent';
 
-        $this->givenNetworkInterceptor(new SetDefaultHeader('user-agent', 'amphp/http-client'));
+        $this->givenNetworkInterceptor(new SetRequestHeaderIfUnset('user-agent', 'amphp/http-client'));
 
         /** @var Response $response */
         $response = yield $this->executeRequest(new Request($uri));

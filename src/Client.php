@@ -6,7 +6,7 @@ use Amp\CancellationToken;
 use Amp\Http\Client\Connection\ConnectionPool;
 use Amp\Http\Client\Connection\DefaultConnectionPool;
 use Amp\Http\Client\Connection\Stream;
-use Amp\Http\Client\Interceptor\SetDefaultHeader;
+use Amp\Http\Client\Interceptor\SetRequestHeaderIfUnset;
 use Amp\Http\Client\Internal\InterceptedStream;
 use Amp\NullCancellationToken;
 use Amp\Promise;
@@ -35,8 +35,8 @@ final class Client
 
         // We want to set these by default if the user doesn't choose otherwise
         $this->defaultNetworkInterceptors = [
-            new SetDefaultHeader('accept', '*/*'),
-            new SetDefaultHeader('user-agent', 'amphp/http-client (v4.0.0-dev)'),
+            new SetRequestHeaderIfUnset('accept', '*/*'),
+            new SetRequestHeaderIfUnset('user-agent', 'amphp/http-client (v4.0.0-dev)'),
         ];
     }
 

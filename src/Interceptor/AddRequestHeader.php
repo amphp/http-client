@@ -4,7 +4,7 @@ namespace Amp\Http\Client\Interceptor;
 
 use Amp\Http\Client\Request;
 
-final class AddHeader extends ModifyRequest
+final class AddRequestHeader extends ModifyRequest
 {
     public function __construct(string $headerName, string ...$headerValues)
     {
