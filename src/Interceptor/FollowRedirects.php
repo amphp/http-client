@@ -13,7 +13,7 @@ use League\Uri\UriException;
 use Psr\Http\Message\UriInterface;
 use function Amp\call;
 
-final class RedirectHandler implements ApplicationInterceptor
+final class FollowRedirects implements ApplicationInterceptor
 {
     private $maxRedirects;
     private $autoReferrer;
@@ -31,10 +31,10 @@ final class RedirectHandler implements ApplicationInterceptor
 
     public function interceptApplication(
         Request $request,
-        CancellationToken $cancellationToken,
-        Client $next
+        CancellationToken $cancellation,
+        Client $client
     ): Promise {
-        return call(function () use ($request, $cancellationToken, $next) {
+        return call(function () use ($request, $cancellation, $client) {
             $originalUri = $request->getUri();
             $previousResponse = null;
 
@@ -43,7 +43,7 @@ final class RedirectHandler implements ApplicationInterceptor
 
             do {
                 /** @var Response $response */
-                $response = yield $next->request($request, $cancellationToken);
+                $response = yield $client->request($request, $cancellation);
                 if ($previousResponse !== null) {
                     $response->setPreviousResponse($previousResponse);
                 }

@@ -72,6 +72,9 @@ final class Client
     /**
      * Adds a network interceptor.
      *
+     * Network interceptors are only invoked if the request requires network access, i.e. there's no short-circuit by
+     * an application interceptor, e.g. a cache.
+     *
      * Whether the given network interceptor will be respected for currently running requests is undefined.
      *
      * Any new requests have to take the new interceptor into account.

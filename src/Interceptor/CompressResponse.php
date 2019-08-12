@@ -11,7 +11,7 @@ use Amp\Http\Client\Response;
 use Amp\Promise;
 use function Amp\call;
 
-final class ResponseCompressionHandler implements NetworkInterceptor
+final class CompressResponse implements NetworkInterceptor
 {
     private $hasZlib;
 
@@ -22,10 +22,10 @@ final class ResponseCompressionHandler implements NetworkInterceptor
 
     public function interceptNetwork(
         Request $request,
-        CancellationToken $cancellationToken,
+        CancellationToken $cancellation,
         Stream $stream
     ): Promise {
-        return call(function () use ($request, $cancellationToken, $stream) {
+        return call(function () use ($request, $cancellation, $stream) {
             $decodeResponse = false;
 
             // If a header is manually set, we won't interfere
@@ -35,7 +35,7 @@ final class ResponseCompressionHandler implements NetworkInterceptor
             }
 
             /** @var Response $response */
-            $response = yield $stream->request($request, $cancellationToken);
+            $response = yield $stream->request($request, $cancellation);
 
             if ($decodeResponse && ($encoding = $this->determineCompressionEncoding($response))) {
                 /** @noinspection PhpUnhandledExceptionInspection */

@@ -9,7 +9,7 @@ interface ApplicationInterceptor
 {
     public function interceptApplication(
         Request $request,
-        CancellationToken $cancellationToken,
-        Client $next
+        CancellationToken $cancellation,
+        Client $client
     ): Promise;
 }

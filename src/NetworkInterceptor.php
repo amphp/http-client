@@ -10,7 +10,7 @@ interface NetworkInterceptor
 {
     public function interceptNetwork(
         Request $request,
-        CancellationToken $cancellationToken,
+        CancellationToken $cancellation,
         Stream $stream
     ): Promise;
 }

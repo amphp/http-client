@@ -11,9 +11,9 @@ use Amp\CancelledException;
 use Amp\Delayed;
 use Amp\Http\Client\Body\FileBody;
 use Amp\Http\Client\Body\FormBody;
-use Amp\Http\Client\Interceptor\DefaultHeader;
-use Amp\Http\Client\Interceptor\RedirectHandler;
-use Amp\Http\Client\Interceptor\ResponseCompressionHandler;
+use Amp\Http\Client\Interceptor\SetDefaultHeader;
+use Amp\Http\Client\Interceptor\FollowRedirects;
+use Amp\Http\Client\Interceptor\CompressResponse;
 use Amp\Http\Client\Interceptor\TooManyRedirectsException;
 use Amp\Http\Server\RequestHandler\CallableRequestHandler;
 use Amp\Http\Server\Server;
@@ -114,7 +114,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     {
         $uri = 'http://httpbin.org/user-agent';
 
-        $this->givenNetworkInterceptor(new DefaultHeader('user-agent', 'amphp/http-client'));
+        $this->givenNetworkInterceptor(new SetDefaultHeader('user-agent', 'amphp/http-client'));
 
         /** @var Response $response */
         $response = yield $this->executeRequest(new Request($uri));
@@ -245,7 +245,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $redirectTo = "/status/{$statusCode}";
         $uri = "http://httpbin.org/redirect-to?url=" . \rawurlencode($redirectTo);
 
-        $this->givenApplicationInterceptor(new RedirectHandler);
+        $this->givenApplicationInterceptor(new FollowRedirects);
 
         /** @var Response $response */
         $response = yield $this->executeRequest(new Request($uri));
@@ -352,7 +352,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
      */
     public function testGzipResponse(): \Generator
     {
-        $this->givenNetworkInterceptor(new ResponseCompressionHandler);
+        $this->givenNetworkInterceptor(new CompressResponse);
 
         /** @var Response $response */
         $response = yield $this->executeRequest(new Request('http://httpbin.org/gzip'));
@@ -369,7 +369,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
      */
     public function testDeflateResponse(): \Generator
     {
-        $this->givenNetworkInterceptor(new ResponseCompressionHandler);
+        $this->givenNetworkInterceptor(new CompressResponse);
 
         /** @var Response $response */
         $response = yield $this->executeRequest(new Request('http://httpbin.org/deflate'));
@@ -383,7 +383,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testInfiniteRedirect(): \Generator
     {
-        $this->givenApplicationInterceptor(new RedirectHandler);
+        $this->givenApplicationInterceptor(new FollowRedirects);
 
         $this->expectException(TooManyRedirectsException::class);
 
