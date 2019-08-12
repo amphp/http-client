@@ -36,7 +36,7 @@ final class Client
         // We want to set these by default if the user doesn't choose otherwise
         $this->defaultNetworkInterceptors = [
             new SetRequestHeaderIfUnset('accept', '*/*'),
-            new SetRequestHeaderIfUnset('user-agent', 'amphp/http-client (v4.0.0-dev)'),
+            new SetRequestHeaderIfUnset('user-agent', 'amphp/http-client (v4.x)'),
         ];
     }
 
@@ -68,7 +68,7 @@ final class Client
 
                 \assert($stream instanceof Stream);
 
-                $networkInterceptors = \array_merge($this->networkInterceptors, $this->defaultNetworkInterceptors);
+                $networkInterceptors = \array_merge($this->defaultNetworkInterceptors, $this->networkInterceptors);
                 $stream = new InterceptedStream($stream, ...$networkInterceptors);
 
                 $response = yield $stream->request($request, $cancellation);
