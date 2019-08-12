@@ -6,6 +6,7 @@ use Amp\CancellationToken;
 use Amp\Http\Client\Connection\ConnectionPool;
 use Amp\Http\Client\Connection\DefaultConnectionPool;
 use Amp\Http\Client\Connection\Stream;
+use Amp\Http\Client\Interceptor\SetDefaultHeader;
 use Amp\Http\Client\Internal\InterceptedStream;
 use Amp\NullCancellationToken;
 use Amp\Promise;
@@ -23,12 +24,20 @@ final class Client
     private $applicationInterceptors;
     /** @var NetworkInterceptor[] */
     private $networkInterceptors;
+    /** @var NetworkInterceptor[] */
+    private $defaultNetworkInterceptors;
 
     public function __construct(?ConnectionPool $connectionPool = null)
     {
         $this->connectionPool = $connectionPool ?? new DefaultConnectionPool;
         $this->applicationInterceptors = [];
         $this->networkInterceptors = [];
+
+        // We want to set these by default if the user doesn't choose otherwise
+        $this->defaultNetworkInterceptors = [
+            new SetDefaultHeader('accept', '*/*'),
+            new SetDefaultHeader('user-agent', 'amphp/http-client (v4.0.0-dev)'),
+        ];
     }
 
     /**
@@ -56,11 +65,11 @@ final class Client
                 $response = yield $interceptor->interceptApplication($request, $cancellation, $client);
             } else {
                 $stream = yield $this->connectionPool->getStream($request, $cancellation);
+
                 \assert($stream instanceof Stream);
 
-                if ($this->networkInterceptors) {
-                    $stream = new InterceptedStream($stream, ...$this->networkInterceptors);
-                }
+                $networkInterceptors = \array_merge($this->networkInterceptors, $this->defaultNetworkInterceptors);
+                $stream = new InterceptedStream($stream, ...$networkInterceptors);
 
                 $response = yield $stream->request($request, $cancellation);
             }
