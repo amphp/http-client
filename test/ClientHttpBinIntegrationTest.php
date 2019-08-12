@@ -13,7 +13,7 @@ use Amp\Http\Client\Body\FileBody;
 use Amp\Http\Client\Body\FormBody;
 use Amp\Http\Client\Interceptor\SetDefaultHeader;
 use Amp\Http\Client\Interceptor\FollowRedirects;
-use Amp\Http\Client\Interceptor\CompressResponse;
+use Amp\Http\Client\Interceptor\DecompressResponse;
 use Amp\Http\Client\Interceptor\TooManyRedirectsException;
 use Amp\Http\Server\RequestHandler\CallableRequestHandler;
 use Amp\Http\Server\Server;
@@ -352,7 +352,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
      */
     public function testGzipResponse(): \Generator
     {
-        $this->givenNetworkInterceptor(new CompressResponse);
+        $this->givenNetworkInterceptor(new DecompressResponse);
 
         /** @var Response $response */
         $response = yield $this->executeRequest(new Request('http://httpbin.org/gzip'));
@@ -369,7 +369,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
      */
     public function testDeflateResponse(): \Generator
     {
-        $this->givenNetworkInterceptor(new CompressResponse);
+        $this->givenNetworkInterceptor(new DecompressResponse);
 
         /** @var Response $response */
         $response = yield $this->executeRequest(new Request('http://httpbin.org/deflate'));

@@ -11,7 +11,7 @@ use Amp\Http\Client\Response;
 use Amp\Promise;
 use function Amp\call;
 
-final class CompressResponse implements NetworkInterceptor
+final class DecompressResponse implements NetworkInterceptor
 {
     private $hasZlib;
 
