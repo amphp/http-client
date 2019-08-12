@@ -10,6 +10,15 @@ use Amp\Loop;
 
 require __DIR__ . '/../vendor/autoload.php';
 
+// https://stackoverflow.com/a/2510540/2373138
+function formatBytes(int $size, int $precision = 2)
+{
+    $base = \log($size, 1024);
+    $suffixes = ['bytes', 'kB', 'MB', 'GB', 'TB'];
+
+    return \round(1024 ** ($base - \floor($base)), $precision) . ' ' . $suffixes[(int) $base];
+}
+
 Loop::run(static function () {
     try {
         $start = \microtime(1);
@@ -18,6 +27,8 @@ Loop::run(static function () {
         $client = new Client;
 
         $request = new Request('http://speed.hetzner.de/100MB.bin');
+        $request->setBodySizeLimit(128 * 1024 * 1024); // 128 MB
+        $request->setTransferTimeout(120 * 1000); // 120 seconds
 
         // Make an asynchronous HTTP request
         $promise = $client->request($request);
@@ -51,13 +62,21 @@ Loop::run(static function () {
         /** @var Handle $file */
         $file = yield Amp\File\open($path, "w");
 
+        $bytes = 0;
+
         // The response body is an instance of Message, which allows buffering or streaming by the consumers choice.
-        // Pipe streams the body into the file, which is an instance of OutputStream.
-        yield Amp\ByteStream\pipe($response->getBody(), $file);
+        // We could also use Amp\ByteStream\pipe() here, but we want to show some progress.
+        while (null !== $chunk = yield $response->getBody()->read()) {
+            yield $file->write($chunk);
+            $bytes += \strlen($chunk);
+
+            print "\r" . formatBytes($bytes) . '    '; // blanks to remove previous output
+        }
+
         yield $file->close();
 
         print \sprintf(
-            "Done in %.2f with peak memory usage of %.2fMB.\n",
+            "\rDone in %.2f seconds with peak memory usage of %.2fMB.\n",
             \microtime(1) - $start,
             (float) \memory_get_peak_usage(true) / 1024 / 1024
         );
