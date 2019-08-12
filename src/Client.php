@@ -9,6 +9,7 @@ use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\Internal\InterceptedStream;
 use Amp\NullCancellationToken;
 use Amp\Promise;
+use Psr\Http\Message\UriInterface;
 use function Amp\call;
 
 /**
@@ -33,14 +34,20 @@ final class Client
     /**
      * Asynchronously request an HTTP resource.
      *
-     * @param Request           $request A Request instance.
-     * @param CancellationToken $cancellation A cancellation token to optionally cancel requests.
+     * @param Request|UriInterface|string $requestOrUri A Request / UriInterface instance or URL as string.
+     * @param CancellationToken           $cancellation A cancellation token to optionally cancel requests.
      *
      * @return Promise A promise to resolve to a response object as soon as its headers are received.
      */
-    public function request(Request $request, ?CancellationToken $cancellation = null): Promise
+    public function request($requestOrUri, ?CancellationToken $cancellation = null): Promise
     {
         $cancellation = $cancellation ?? new NullCancellationToken;
+
+        if ($requestOrUri instanceof Request) {
+            $request = $requestOrUri;
+        } else {
+            $request = new Request($requestOrUri);
+        }
 
         return call(function () use ($request, $cancellation) {
             if ($this->applicationInterceptors) {
