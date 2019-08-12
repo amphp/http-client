@@ -19,7 +19,7 @@ final class StringBody implements RequestBody
 
     public function createBodyStream(): InputStream
     {
-        return new InMemoryStream(\strlen($this->body) ? $this->body : null);
+        return new InMemoryStream($this->body !== '' ? $this->body : null);
     }
 
     public function getHeaders(): Promise

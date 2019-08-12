@@ -42,7 +42,8 @@
         "amphp/http-server": "v2.x-dev"
     },
     "suggest": {
-        "ext-zlib": "*"
+        "ext-zlib": "*",
+        "ext-json": "*"
     },
     "autoload": {
         "psr-4": {
