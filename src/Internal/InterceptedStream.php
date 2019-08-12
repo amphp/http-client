@@ -12,6 +12,7 @@ use Amp\Promise;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
 
+/** @internal */
 final class InterceptedStream implements Stream
 {
     /** @var Stream */

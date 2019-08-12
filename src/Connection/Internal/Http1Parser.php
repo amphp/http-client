@@ -10,6 +10,7 @@ use Amp\Http\InvalidHeaderException;
 use Amp\Http\Rfc7230;
 use Amp\Http\Status;
 
+/** @internal */
 final class Http1Parser
 {
     private const STATUS_LINE_PATTERN = "#^

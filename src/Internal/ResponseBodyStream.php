@@ -6,7 +6,8 @@ use Amp\ByteStream\InputStream;
 use Amp\CancellationTokenSource;
 use Amp\Promise;
 
-class ResponseBodyStream implements InputStream
+/** @internal */
+final class ResponseBodyStream implements InputStream
 {
     private $body;
     private $bodyCancellation;
