@@ -11,7 +11,7 @@ use Amp\Socket\StaticConnector;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-Loop::run(function () {
+Loop::run(static function () {
     try {
         // Unix sockets require a socket pool that changes all URLs to a fixed one.
         $connector = new StaticConnector("unix:///var/run/docker.sock", new DnsConnector);

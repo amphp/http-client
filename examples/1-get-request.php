@@ -8,7 +8,7 @@ use Amp\Loop;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-Loop::run(function () use ($argv) {
+Loop::run(static function () use ($argv) {
     try {
         // Instantiate the HTTP client
         $client = new Client;

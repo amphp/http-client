@@ -202,8 +202,8 @@ final class Http2Connection implements Connection
 
         return call(function () use ($id, $request, $token) {
             // Remove defunct HTTP/1.x headers.
-            $request = $request->withoutHeader('host')
-                ->withoutHeader('connection');
+            $request->removeHeader('host');
+            $request->removeHeader('connection');
 
             $this->requests[$id] = $request;
             $this->pendingRequests[$id] = $deferred = new Deferred;
@@ -232,7 +232,7 @@ final class Http2Connection implements Connection
                 $headers = yield $request->getBody()->getHeaders();
                 foreach ($headers as $name => $header) {
                     if (!$request->hasHeader($name)) {
-                        $request = $request->withHeaders([$name => $header]);
+                        $request->setHeaders([$name => $header]);
                     }
                 }
 

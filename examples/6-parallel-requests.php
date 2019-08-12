@@ -8,7 +8,7 @@ use Amp\Loop;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-Loop::run(function () {
+Loop::run(static function () {
     $uris = [
         "https://google.com/",
         "https://github.com/",
@@ -18,7 +18,7 @@ Loop::run(function () {
     // Instantiate the HTTP client
     $client = new Client;
 
-    $requestHandler = function (string $uri) use ($client) {
+    $requestHandler = static function (string $uri) use ($client) {
         /** @var Response $response */
         $response = yield $client->request(new Request($uri));
 

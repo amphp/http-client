@@ -2,6 +2,7 @@
 
 namespace Amp\Http\Client;
 
+use Amp\ByteStream\InMemoryStream;
 use Amp\ByteStream\InputStream;
 use Amp\ByteStream\Payload;
 use Amp\Http\Message;
@@ -57,12 +58,9 @@ final class Response extends Message
         return $this->protocolVersion;
     }
 
-    public function withProtocolVersion(string $protocolVersion): self
+    public function setProtocolVersion(string $protocolVersion): void
     {
-        $clone = clone $this;
-        $clone->protocolVersion = $protocolVersion;
-
-        return $clone;
+        $this->protocolVersion = $protocolVersion;
     }
 
     /**
@@ -75,12 +73,9 @@ final class Response extends Message
         return $this->status;
     }
 
-    public function withStatus(string $status): self
+    public function setStatus(string $status): void
     {
-        $clone = clone $this;
-        $clone->status = $status;
-
-        return $clone;
+        $this->status = $status;
     }
 
     /**
@@ -93,12 +88,9 @@ final class Response extends Message
         return $this->reason;
     }
 
-    public function withReason(string $reason): self
+    public function setReason(string $reason): void
     {
-        $clone = clone $this;
-        $clone->reason = $reason;
-
-        return $clone;
+        $this->reason = $reason;
     }
 
     /**
@@ -111,12 +103,9 @@ final class Response extends Message
         return $this->request;
     }
 
-    public function withRequest(Request $request): self
+    public function setRequest(Request $request): void
     {
-        $clone = clone $this;
-        $clone->request = $request;
-
-        return $clone;
+        $this->request = $request;
     }
 
     /**
@@ -146,68 +135,47 @@ final class Response extends Message
         return $this->previousResponse;
     }
 
-    public function withPreviousResponse(?Response $previousResponse): self
+    public function setPreviousResponse(?Response $previousResponse): void
     {
-        $clone = clone $this;
-        $clone->previousResponse = $previousResponse;
-
-        return $clone;
+        $this->previousResponse = $previousResponse;
     }
 
     /**
      * Assign a value for the specified header field by replacing any existing values for that field.
      *
-     * @param string $field Header name.
-     * @param string $value Header value.
-     *
-     * @return Response
+     * @param string          $field Header name.
+     * @param string|string[] $value Header value.
      */
-    public function withHeader(string $field, string $value): self
+    public function setHeader(string $field, $value): void
     {
-        $clone = clone $this;
-        $clone->setHeader($field, $value);
-
-        return $clone;
+        parent::setHeader($field, $value);
     }
 
     /**
      * Assign a value for the specified header field by adding an additional header line.
      *
-     * @param string $field Header name.
-     * @param string $value Header value.
-     *
-     * @return Response
+     * @param string          $field Header name.
+     * @param string|string[] $value Header value.
      */
-    public function withAddedHeader(string $field, string $value): self
+    public function addHeader(string $field, $value): void
     {
-        $clone = clone $this;
-        $clone->addHeader($field, $value);
-
-        return $clone;
+        parent::addHeader($field, $value);
     }
 
-    public function withHeaders(array $headers): self
+    public function setHeaders(array $headers): void
     {
-        $clone = clone $this;
         /** @noinspection PhpUnhandledExceptionInspection */
-        $clone->setHeaders($headers);
-
-        return $clone;
+        parent::setHeaders($headers);
     }
 
     /**
      * Remove the specified header field from the message.
      *
      * @param string $field Header name.
-     *
-     * @return Response
      */
-    public function withoutHeader(string $field): self
+    public function removeHeader(string $field): void
     {
-        $clone = clone $this;
-        $clone->removeHeader($field);
-
-        return $clone;
+        parent::removeHeader($field);
     }
 
     /**
@@ -222,12 +190,20 @@ final class Response extends Message
         return $this->body;
     }
 
-    public function withBody(InputStream $body): self
+    public function setBody(InputStream $body): void
     {
-        $clone = clone $this;
-        $clone->body = new Payload($body);
-
-        return $clone;
+        if ($body === null) {
+            $this->body = new Payload(new InMemoryStream);
+        } elseif ($body instanceof Payload) {
+            $this->body = $body;
+        } elseif ($body instanceof InputStream) {
+            $this->body = new Payload($body);
+        } elseif (\is_scalar($body)) {
+            $this->body = new Payload(new InMemoryStream((string) $body));
+        } else {
+            /** @noinspection PhpUndefinedClassInspection */
+            throw new \TypeError("Invalid body type: " . \gettype($body));
+        }
     }
 
     public function getCompletionPromise(): Promise
@@ -235,11 +211,8 @@ final class Response extends Message
         return $this->completionPromise;
     }
 
-    public function withCompletionPromise(Promise $promise): self
+    public function setCompletionPromise(Promise $promise): void
     {
-        $clone = clone $this;
-        $clone->completionPromise = $promise;
-
-        return $clone;
+        $this->completionPromise = $promise;
     }
 }

@@ -9,7 +9,7 @@ use Amp\Loop;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-Loop::run(function () {
+Loop::run(static function () {
     try {
         // Instantiate the HTTP client
         $client = new Client;
@@ -21,8 +21,8 @@ Loop::run(function () {
         $body->addField("submit", "ok");
         $body->addFile("foo", __DIR__ . "/small-file.txt");
 
-        $request = (new Request('https://httpbin.org/post', 'POST'))
-            ->withBody($body);
+        $request = new Request('https://httpbin.org/post', 'POST');
+        $request->setBody($body);
 
         // Make an asynchronous HTTP request
         $promise = $client->request($request);

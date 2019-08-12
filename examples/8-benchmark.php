@@ -16,10 +16,10 @@ require __DIR__ . '/../vendor/autoload.php';
 
 $count = (int) ($argv[1] ?? "1000");
 
-Loop::run(function () use ($count) {
+Loop::run(static function () use ($count) {
     $client = new Client;
 
-    $handler = coroutine(function (int $count) use ($client) {
+    $handler = coroutine(static function (int $count) use ($client) {
         for ($i = 0; $i < $count; $i++) {
             /** @var Response $response */
             $response = yield $client->request(new Request('http://localhost:1337/'), new TimeoutCancellationToken(50000));

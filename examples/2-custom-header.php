@@ -8,14 +8,14 @@ use Amp\Loop;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-Loop::run(function () {
+Loop::run(static function () {
     try {
         // Instantiate the HTTP client
         $client = new Client;
 
         // Here we create a custom request object instead of simply passing an URL to request().
-        $request = (new Request('https://httpbin.org/headers'))
-            ->withHeader('X-Hello-World', 'Awesome \o/');
+        $request = new Request('https://httpbin.org/headers');
+        $request->setHeader('X-Hello-World', 'Awesome \o/');
 
         // Make an asynchronous HTTP request
         $promise = $client->request($request);

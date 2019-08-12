@@ -45,7 +45,7 @@ final class RedirectHandler implements ApplicationInterceptor
                 /** @var Response $response */
                 $response = yield $next->request($request, $cancellationToken);
                 if ($previousResponse !== null) {
-                    $response = $response->withPreviousResponse($previousResponse);
+                    $response->setPreviousResponse($previousResponse);
                 }
 
                 if ($redirectUri = $this->getRedirectUri($response)) {
@@ -72,14 +72,15 @@ final class RedirectHandler implements ApplicationInterceptor
                     $isSameHost = $redirectUri->getAuthority() === $originalUri->getAuthority();
 
                     if ($isSameHost) {
-                        $request = $request->withUri($redirectUri);
+                        $request = clone $request;
+                        $request->setUri($redirectUri);
 
                         if ($status >= 300 && $status <= 303 && $method !== 'GET') {
-                            $request = $request->withMethod('GET');
-                            $request = $request->withoutHeader('transfer-encoding');
-                            $request = $request->withoutHeader('content-length');
-                            $request = $request->withoutHeader('content-type');
-                            $request = $request->withBody(null);
+                            $request->setMethod('GET');
+                            $request->removeHeader('transfer-encoding');
+                            $request->removeHeader('content-length');
+                            $request->removeHeader('content-type');
+                            $request->setBody(null);
                         }
                     } else {
                         // We ALWAYS follow with a GET and without any set headers or body for redirects to other hosts.
@@ -87,7 +88,7 @@ final class RedirectHandler implements ApplicationInterceptor
                     }
 
                     if ($this->autoReferrer) {
-                        $request = $this->assignRedirectRefererHeader($request, $originalUri, $redirectUri);
+                        $this->assignRedirectRefererHeader($request, $originalUri, $redirectUri);
                     }
 
                     $previousResponse = $response;
@@ -113,23 +114,21 @@ final class RedirectHandler implements ApplicationInterceptor
      * @param UriInterface $referrerUri
      * @param UriInterface $followUri
      *
-     * @return Request
-     *
      * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec15.html#sec15.1.3
      */
     private function assignRedirectRefererHeader(
         Request $request,
         UriInterface $referrerUri,
         UriInterface $followUri
-    ): Request {
+    ): void {
         $referrerIsEncrypted = $referrerUri->getScheme() === 'https';
         $destinationIsEncrypted = $followUri->getScheme() === 'https';
 
         if (!$referrerIsEncrypted || $destinationIsEncrypted) {
-            return $request->withHeader('Referer', $referrerUri);
+            $request->setHeader('Referer', $referrerUri);
         }
 
-        return $request->withoutHeader('Referer');
+        $request->removeHeader('Referer');
     }
 
     private function getRedirectUri(Response $response): ?UriInterface

@@ -30,7 +30,7 @@ final class ResponseCompressionHandler implements NetworkInterceptor
 
             // If a header is manually set, we won't interfere
             if (!$request->hasHeader('accept-encoding')) {
-                $request = $this->addAcceptEncodingHeader($request);
+                $this->addAcceptEncodingHeader($request);
                 $decodeResponse = true;
             }
 
@@ -39,20 +39,18 @@ final class ResponseCompressionHandler implements NetworkInterceptor
 
             if ($decodeResponse && ($encoding = $this->determineCompressionEncoding($response))) {
                 /** @noinspection PhpUnhandledExceptionInspection */
-                $response = $response->withBody(new ZlibInputStream($response->getBody(), $encoding));
+                $response->setBody(new ZlibInputStream($response->getBody(), $encoding));
             }
 
             return $response;
         });
     }
 
-    private function addAcceptEncodingHeader(Request $request): Request
+    private function addAcceptEncodingHeader(Request $request): void
     {
         if ($this->hasZlib) {
-            return $request->withHeader('Accept-Encoding', 'gzip, deflate, identity');
+            $request->setHeader('Accept-Encoding', 'gzip, deflate, identity');
         }
-
-        return $request;
     }
 
     private function determineCompressionEncoding(Response $response): int

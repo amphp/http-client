@@ -178,7 +178,7 @@ final class Http1Connection implements Connection
         $headers = yield $request->getBody()->getHeaders();
         foreach ($headers as $name => $header) {
             if (!$request->hasHeader($name)) {
-                $request = $request->withHeaders([$name => $header]);
+                $request->setHeaders([$name => $header]);
             }
         }
 
@@ -228,9 +228,8 @@ final class Http1Connection implements Connection
                 $bodyCancellationToken = new CombinedCancellationToken($readingCancellation, $bodyCancellationSource->getToken());
                 $bodyCancellationToken->subscribe([$this, 'close']);
 
-                $response = $response
-                    ->withBody(new ResponseBodyStream(new IteratorStream($bodyEmitter->iterate()), $bodyCancellationSource))
-                    ->withCompletionPromise($completionDeferred->promise());
+                $response->setBody(new ResponseBodyStream(new IteratorStream($bodyEmitter->iterate()), $bodyCancellationSource));
+                $response->setCompletionPromise($completionDeferred->promise());
 
                 // Read body async
                 asyncCall(function () use (
@@ -355,15 +354,16 @@ final class Http1Connection implements Connection
         // Host header some fail to do this correctly. As a result, we strip the port from the end
         // if it's a standard 80 or 443
         if ($request->getUri()->getScheme() === 'http' && \strpos($host, ':80') === \strlen($host) - 3) {
-            $request = $request->withHeader('host', \substr($host, 0, -3));
+            $request->setHeader('host', \substr($host, 0, -3));
         } elseif ($request->getUri()->getScheme() === 'https' && \strpos($host, ':443') === \strlen($host) - 4) {
-            $request = $request->withHeader('host', \substr($host, 0, -4));
+            $request->setHeader('host', \substr($host, 0, -4));
         } else {
-            $request = $request->withHeader('host', $host);
+            $request->setHeader('host', $host);
         }
 
         if ($request->hasHeader("transfer-encoding")) {
-            return $request->withoutHeader("content-length");
+            $request->removeHeader("content-length");
+            return $request;
         }
 
         if ($request->hasHeader("content-length")) {
@@ -375,13 +375,13 @@ final class Http1Connection implements Connection
         $bodyLength = yield $body->getBodyLength();
 
         if ($bodyLength === 0) {
-            $request = $request->withHeader('content-length', '0');
-            $request = $request->withoutHeader('transfer-encoding');
+            $request->setHeader('content-length', '0');
+            $request->removeHeader('transfer-encoding');
         } elseif ($bodyLength > 0) {
-            $request = $request->withHeader("content-length", $bodyLength);
-            $request = $request->withoutHeader("transfer-encoding");
+            $request->setHeader("content-length", $bodyLength);
+            $request->removeHeader("transfer-encoding");
         } else {
-            $request = $request->withHeader("transfer-encoding", "chunked");
+            $request->setHeader("transfer-encoding", "chunked");
         }
 
         return $request;
@@ -397,10 +397,10 @@ final class Http1Connection implements Connection
 
         // https://tools.ietf.org/html/rfc7231#section-4.3.8
         /** @var Request $request */
-        $request = $request->withBody(null);
+        $request->setBody(null);
 
         // Remove all body and sensitive headers
-        $request = $request->withHeaders([
+        $request->setHeaders([
             "transfer-encoding" => [],
             "content-length" => [],
             "authorization" => [],

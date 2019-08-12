@@ -25,7 +25,7 @@ final class DefaultHeader implements NetworkInterceptor
         Stream $stream
     ): Promise {
         if (!$request->hasHeader($this->headerName)) {
-            $request = $request->withHeader($this->headerName, $this->headerValue);
+            $request->setHeader($this->headerName, $this->headerValue);
         }
 
         return $stream->request($request, $cancellationToken);

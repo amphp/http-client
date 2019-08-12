@@ -10,7 +10,7 @@ use Amp\Loop;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-Loop::run(function () {
+Loop::run(static function () {
     try {
         $start = \microtime(1);
 

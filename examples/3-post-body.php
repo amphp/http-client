@@ -8,15 +8,15 @@ use Amp\Loop;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-Loop::run(function () {
+Loop::run(static function () {
     try {
         // Instantiate the HTTP client
         $client = new Client;
 
         // Here we create a custom request object instead of simply passing an URL to request().
         // We set the method to POST now and add a request body.
-        $request = (new Request('https://httpbin.org/post', 'POST'))
-            ->withBody('woot \o/');
+        $request = new Request('https://httpbin.org/post', 'POST');
+        $request->setBody('woot \o/');
 
         // Make an asynchronous HTTP request
         $promise = $client->request($request);

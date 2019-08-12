@@ -47,8 +47,11 @@ class TimeoutTest extends AsyncTestCase
 
             $start = \microtime(true);
 
+            $request = new Request($uri);
+            $request->setTransferTimeout(1000);
+
             /** @var Response $response */
-            $response = yield $this->client->request((new Request($uri))->withTransferTimeout(1000));
+            $response = yield $this->client->request($request);
 
             $this->expectException(TimeoutException::class);
             $this->expectExceptionMessage("Allowed transfer timeout exceeded, took longer than 1000 ms");
@@ -89,7 +92,10 @@ class TimeoutTest extends AsyncTestCase
         $this->expectException(TimeoutException::class);
         $this->expectExceptionMessage("Connection to 'localhost:1337' timed out, took longer than 1 ms");
 
-        yield $this->client->request((new Request('http://localhost:1337/'))->withTcpConnectTimeout(1));
+        $request = new Request('http://localhost:1337/');
+        $request->setTcpConnectTimeout(1);
+
+        yield $this->client->request($request);
 
         $this->assertLessThan(\microtime(true) - $start, 0.6);
     }
@@ -118,7 +124,10 @@ class TimeoutTest extends AsyncTestCase
             $this->expectException(TimeoutException::class);
             $this->expectExceptionMessageRegExp("(TLS handshake with '127.0.0.1:\d+' @ '127.0.0.1:\d+' timed out, took longer than 100 ms)");
 
-            yield $this->client->request((new Request($uri))->withTlsHandshakeTimeout(100));
+            $request = new Request($uri);
+            $request->setTlsHandshakeTimeout(100);
+
+            yield $this->client->request($request);
         } finally {
             $this->assertLessThan(0.6, \microtime(true) - $start);
             $server->close();

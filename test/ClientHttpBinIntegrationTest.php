@@ -45,7 +45,9 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->givenRawServerResponse("HTTP/1.0 200 OK\r\n\r\n");
 
         /** @var Response $response */
-        $response = yield $this->executeRequest($this->createRequest()->withProtocolVersions(["1.0"]));
+        $request = $this->createRequest();
+        $request->setProtocolVersions(["1.0"]);
+        $response = yield $this->executeRequest($request);
 
         $this->assertInstanceOf(Response::class, $response);
         $this->assertSame("", yield $response->getBody()->buffer());
@@ -59,7 +61,9 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectExceptionMessage("Receiving the response headers failed, because the socket closed early");
 
         /** @var Response $response */
-        yield $this->executeRequest($this->createRequest()->withProtocolVersions(["1.0"]));
+        $request = $this->createRequest();
+        $request->setProtocolVersions(["1.0"]);
+        yield $this->executeRequest($request);
     }
 
     public function testIncompleteHttpResponseWithContentLength(): \Generator
@@ -70,7 +74,10 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectExceptionMessage("Socket disconnected prior to response completion");
 
         /** @var Response $response */
-        $response = yield $this->executeRequest($this->createRequest()->withProtocolVersions(["1.0"]));
+        $request = $this->createRequest();
+        $request->setProtocolVersions(["1.0"]);
+
+        $response = yield $this->executeRequest($request);
         yield $response->getBody()->buffer();
     }
 
@@ -82,7 +89,10 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectExceptionMessage("Socket disconnected prior to response completion");
 
         /** @var Response $response */
-        $response = yield $this->executeRequest($this->createRequest()->withProtocolVersions(["1.0"]));
+        $request = $this->createRequest();
+        $request->setProtocolVersions(["1.0"]);
+
+        $response = yield $this->executeRequest($request);
         yield $response->getBody()->buffer();
     }
 
@@ -91,7 +101,10 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->givenRawServerResponse("HTTP/1.1 200 OK\r\n\r\n00000000000");
 
         /** @var Response $response */
-        $response = yield $this->executeRequest($this->createRequest()->withProtocolVersions(["1.0"]));
+        $request = $this->createRequest();
+        $request->setProtocolVersions(["1.0"]);
+
+        $response = yield $this->executeRequest($request);
         $body = yield $response->getBody()->buffer();
 
         self::assertSame('00000000000', $body);
@@ -119,10 +132,9 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $uri = 'http://httpbin.org/user-agent';
         $customUserAgent = 'test-user-agent';
 
-        $request = (new Request($uri))->withHeader('User-Agent', $customUserAgent)->withHeader(
-            'Connection',
-            'keep-alive'
-        );
+        $request = new Request($uri);
+        $request->setHeader('User-Agent', $customUserAgent);
+        $request->setHeader('Connection', 'keep-alive');
 
         /** @var Response $response */
         $response = yield $this->executeRequest($request);
@@ -138,7 +150,9 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     public function testPostStringBody(): \Generator
     {
         $body = 'zanzibar';
-        $request = (new Request('http://httpbin.org/post'))->withMethod('POST')->withBody($body);
+        $request = new Request('http://httpbin.org/post');
+        $request->setMethod('POST');
+        $request->setBody($body);
 
         /** @var Response $response */
         $response = yield $this->executeRequest($request);
@@ -155,7 +169,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $uri = 'http://httpbin.org/put';
 
         $body = 'zanzibar';
-        $request = (new Request($uri, "PUT"))->withBody($body);
+        $request = new Request($uri, "PUT");
+        $request->setBody($body);
 
         /** @var Response $response */
         $response = yield $this->executeRequest($request);
@@ -247,7 +262,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     {
         $uri = 'http://httpbin.org/post';
 
-        $request = (new Request($uri))->withMethod('POST');
+        $request = new Request($uri);
+        $request->setMethod('POST');
 
         /** @var Response $response */
         $response = yield $this->executeRequest($request);
@@ -268,7 +284,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $body->addField('field1', $field1);
         $body->addField('field2', $field2);
 
-        $request = (new Request('http://httpbin.org/post', "POST"))->withBody($body);
+        $request = new Request('http://httpbin.org/post', "POST");
+        $request->setBody($body);
 
         /** @var Response $response */
         $response = yield $this->executeRequest($request);
@@ -289,7 +306,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $bodyPath = __DIR__ . '/fixture/answer.txt';
         $body = new FileBody($bodyPath);
 
-        $request = (new Request($uri, "POST"))->withBody($body);
+        $request = new Request($uri, "POST");
+        $request->setBody($body);
 
         /** @var Response $response */
         $response = yield $this->executeRequest($request);
@@ -313,7 +331,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $body->addFields(['field1' => $field1]);
         $body->addFiles(['file1' => $file1, 'file2' => $file2]);
 
-        $request = (new Request('http://httpbin.org/post', "POST"))->withBody($body);
+        $request = new Request('http://httpbin.org/post', "POST");
+        $request->setBody($body);
 
         /** @var Response $response */
         $response = yield $this->executeRequest($request);
@@ -392,23 +411,23 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectException(HttpException::class);
         $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
 
-        $request = (new Request("http://httpbin.org/post", "POST"))
-            ->withBody(new class implements RequestBody {
-                public function getHeaders(): Promise
-                {
-                    return new Success([]);
-                }
+        $request = new Request("http://httpbin.org/post", "POST");
+        $request->setBody(new class implements RequestBody {
+            public function getHeaders(): Promise
+            {
+                return new Success([]);
+            }
 
-                public function createBodyStream(): InputStream
-                {
-                    return new InMemoryStream("foo");
-                }
+            public function createBodyStream(): InputStream
+            {
+                return new InMemoryStream("foo");
+            }
 
-                public function getBodyLength(): Promise
-                {
-                    return new Success(1);
-                }
-            });
+            public function getBodyLength(): Promise
+            {
+                return new Success(1);
+            }
+        });
 
         yield $this->executeRequest($request);
     }
@@ -418,23 +437,23 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectException(HttpException::class);
         $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
 
-        $request = (new Request("http://httpbin.org/post", "POST"))
-            ->withBody(new class implements RequestBody {
-                public function getHeaders(): Promise
-                {
-                    return new Success([]);
-                }
+        $request = new Request("http://httpbin.org/post", "POST");
+        $request->setBody(new class implements RequestBody {
+            public function getHeaders(): Promise
+            {
+                return new Success([]);
+            }
 
-                public function createBodyStream(): InputStream
-                {
-                    return new IteratorStream(fromIterable(["a", "b", "c"], 500));
-                }
+            public function createBodyStream(): InputStream
+            {
+                return new IteratorStream(fromIterable(["a", "b", "c"], 500));
+            }
 
-                public function getBodyLength(): Promise
-                {
-                    return new Success(2);
-                }
-            });
+            public function getBodyLength(): Promise
+            {
+                return new Success(2);
+            }
+        });
 
         yield $this->executeRequest($request);
     }
@@ -444,23 +463,23 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectException(HttpException::class);
         $this->expectExceptionMessage("Body contained fewer bytes than specified in Content-Length, aborting request");
 
-        $request = (new Request("http://httpbin.org/post", "POST"))
-            ->withBody(new class implements RequestBody {
-                public function getHeaders(): Promise
-                {
-                    return new Success([]);
-                }
+        $request = new Request("http://httpbin.org/post", "POST");
+        $request->setBody(new class implements RequestBody {
+            public function getHeaders(): Promise
+            {
+                return new Success([]);
+            }
 
-                public function createBodyStream(): InputStream
-                {
-                    return new InMemoryStream("foo");
-                }
+            public function createBodyStream(): InputStream
+            {
+                return new InMemoryStream("foo");
+            }
 
-                public function getBodyLength(): Promise
-                {
-                    return new Success(42);
-                }
-            });
+            public function getBodyLength(): Promise
+            {
+                return new Success(42);
+            }
+        });
 
         yield $this->executeRequest($request);
     }

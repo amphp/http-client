@@ -12,8 +12,8 @@ use Psr\Http\Message\UriInterface;
  */
 final class Request extends Message
 {
-    public const DEFAULT_MAX_HEADER_BYTES = 8192;
-    public const DEFAULT_MAX_BODY_BYTES = 10485760;
+    public const DEFAULT_HEADER_SIZE_LIMIT = 8192;
+    public const DEFAULT_BODY_SIZE_LIMIT = 10485760;
 
     /** @var string[] */
     private $protocolVersions = ["1.1", "2.0"];
@@ -37,14 +37,20 @@ final class Request extends Message
     private $transferTimeout = 10000;
 
     /** @var int */
-    private $maxBodyBytes = self::DEFAULT_MAX_BODY_BYTES;
+    private $bodySizeLimit = self::DEFAULT_BODY_SIZE_LIMIT;
 
     /** @var int */
-    private $maxHeaderBytes = self::DEFAULT_MAX_HEADER_BYTES;
+    private $headerSizeLimit = self::DEFAULT_HEADER_SIZE_LIMIT;
 
-    public function __construct(string $uri, string $method = "GET")
+    /**
+     * Request constructor.
+     *
+     * @param string|UriInterface $uri
+     * @param string              $method
+     */
+    public function __construct($uri, string $method = "GET")
     {
-        $this->uri = Uri\Http::createFromString($uri);
+        $this->uri = $uri instanceof UriInterface ? $uri : $this->createUriFromString($uri);
         $this->method = $method;
         $this->body = new StringBody("");
     }
@@ -65,10 +71,8 @@ final class Request extends Message
      * The HTTP client might choose any of these.
      *
      * @param string[] $versions
-     *
-     * @return Request
      */
-    public function withProtocolVersions(array $versions): self
+    public function setProtocolVersions(array $versions): void
     {
         $versions = \array_unique($versions);
 
@@ -86,14 +90,7 @@ final class Request extends Message
             }
         }
 
-        if ($this->protocolVersions === $versions) {
-            return $this;
-        }
-
-        $clone = clone $this;
-        $clone->protocolVersions = $versions;
-
-        return $clone;
+        $this->protocolVersions = $versions;
     }
 
     /**
@@ -110,19 +107,10 @@ final class Request extends Message
      * Specify the request's HTTP method verb.
      *
      * @param string $method
-     *
-     * @return Request
      */
-    public function withMethod(string $method): self
+    public function setMethod(string $method): void
     {
-        if ($this->method === $method) {
-            return $this;
-        }
-
-        $clone = clone $this;
-        $clone->method = $method;
-
-        return $clone;
+        $this->method = $method;
     }
 
     /**
@@ -138,78 +126,53 @@ final class Request extends Message
     /**
      * Specify the request's HTTP URI.
      *
-     * @param UriInterface $uri
-     *
-     * @return Request
+     * @param string|UriInterface $uri
      */
-    public function withUri(UriInterface $uri): self
+    public function setUri($uri): void
     {
-        $clone = clone $this;
-        $clone->uri = $uri;
-
-        return $clone;
+        $this->uri = $uri instanceof UriInterface ? $uri : $this->createUriFromString($uri);
     }
 
     /**
      * Assign a value for the specified header field by replacing any existing values for that field.
      *
-     * @param string $field Header name.
-     * @param string $value Header value.
-     *
-     * @return Request
+     * @param string          $field Header name.
+     * @param string|string[] $value Header value.
      */
-    public function withHeader(string $field, string $value): self
+    public function setHeader(string $field, $value): void
     {
-        $clone = clone $this;
-        $clone->setHeader($field, $value);
-
-        return $clone;
+        parent::setHeader($field, $value);
     }
 
     /**
      * Assign a value for the specified header field by adding an additional header line.
      *
-     * @param string $field Header name.
-     * @param string $value Header value.
-     *
-     * @return Request
+     * @param string          $field Header name.
+     * @param string|string[] $value Header value.
      */
-    public function withAddedHeader(string $field, string $value): self
+    public function addHeader(string $field, $value): void
     {
-        $clone = clone $this;
-        $clone->addHeader($field, $value);
-
-        return $clone;
+        parent::addHeader($field, $value);
     }
 
-    public function withHeaders(array $headers): self
+    public function setHeaders(array $headers): void
     {
-        $clone = clone $this;
         /** @noinspection PhpUnhandledExceptionInspection */
-        $clone->setHeaders($headers);
-
-        return $clone;
+        parent::setHeaders($headers);
     }
 
     /**
      * Remove the specified header field from the message.
      *
      * @param string $field Header name.
-     *
-     * @return Request
      */
-    public function withoutHeader(string $field): self
+    public function removeHeader(string $field): void
     {
-        $clone = clone $this;
-        $clone->removeHeader($field);
-
-        return $clone;
+        parent::removeHeader($field);
     }
 
     /**
      * Retrieve the message entity body.
-     *
-     * @return RequestBody
      */
     public function getBody(): RequestBody
     {
@@ -220,25 +183,19 @@ final class Request extends Message
      * Assign the message entity body.
      *
      * @param mixed $body
-     *
-     * @return Request
      */
-    public function withBody($body): self
+    public function setBody($body): void
     {
-        $clone = clone $this;
-
         if ($body === null) {
-            $clone->body = new StringBody("");
-        } elseif (\is_scalar($body)) {
-            $clone->body = new StringBody((string) $body);
+            $this->body = new StringBody("");
         } elseif ($body instanceof RequestBody) {
-            $clone->body = $body;
+            $this->body = $body;
+        } elseif (\is_scalar($body)) {
+            $this->body = new StringBody((string) $body);
         } else {
             /** @noinspection PhpUndefinedClassInspection */
             throw new \TypeError("Invalid body type: " . \gettype($body));
         }
-
-        return $clone;
     }
 
     /**
@@ -249,12 +206,9 @@ final class Request extends Message
         return $this->tcpConnectTimeout;
     }
 
-    public function withTcpConnectTimeout(int $tcpConnectTimeout): self
+    public function setTcpConnectTimeout(int $tcpConnectTimeout): void
     {
-        $clone = clone $this;
-        $clone->tcpConnectTimeout = $tcpConnectTimeout;
-
-        return $clone;
+        $this->tcpConnectTimeout = $tcpConnectTimeout;
     }
 
     /**
@@ -265,12 +219,9 @@ final class Request extends Message
         return $this->tlsHandshakeTimeout;
     }
 
-    public function withTlsHandshakeTimeout(int $tlsHandshakeTimeout): self
+    public function setTlsHandshakeTimeout(int $tlsHandshakeTimeout): void
     {
-        $clone = clone $this;
-        $clone->tlsHandshakeTimeout = $tlsHandshakeTimeout;
-
-        return $clone;
+        $this->tlsHandshakeTimeout = $tlsHandshakeTimeout;
     }
 
     /**
@@ -281,37 +232,33 @@ final class Request extends Message
         return $this->transferTimeout;
     }
 
-    public function withTransferTimeout(int $transferTimeout): self
+    public function setTransferTimeout(int $transferTimeout): void
     {
-        $clone = clone $this;
-        $clone->transferTimeout = $transferTimeout;
-
-        return $clone;
+        $this->transferTimeout = $transferTimeout;
     }
 
     public function getHeaderSizeLimit(): int
     {
-        return $this->maxHeaderBytes;
+        return $this->headerSizeLimit;
     }
 
-    public function withHeaderSizeLimit(int $maxHeaderBytes): self
+    public function setHeaderSizeLimit(int $headerSizeLimit): void
     {
-        $clone = clone $this;
-        $clone->maxHeaderBytes = $maxHeaderBytes;
-
-        return $clone;
+        $this->headerSizeLimit = $headerSizeLimit;
     }
 
     public function getBodySizeLimit(): int
     {
-        return $this->maxBodyBytes;
+        return $this->bodySizeLimit;
     }
 
-    public function withBodySizeLimit(int $maxBodyBytes): self
+    public function setBodySizeLimit(int $bodySizeLimit): void
     {
-        $clone = clone $this;
-        $clone->maxBodyBytes = $maxBodyBytes;
+        $this->bodySizeLimit = $bodySizeLimit;
+    }
 
-        return $clone;
+    private function createUriFromString(string $uri): UriInterface
+    {
+        return Uri\Http::createFromString($uri);
     }
 }
