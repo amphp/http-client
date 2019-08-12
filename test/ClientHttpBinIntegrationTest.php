@@ -124,7 +124,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $body = yield $response->getBody()->buffer();
         $result = \json_decode($body, true);
 
-        $this->assertSame('amphp/http-client', $result['user-agent']);
+        $this->assertSame('amphp/http-client (v4.x)', $result['user-agent']);
     }
 
     public function testCustomUserAgentSentIfAssigned(): \Generator
