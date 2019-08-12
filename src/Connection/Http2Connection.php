@@ -181,6 +181,16 @@ final class Http2Connection implements Connection
         }
 
         --$this->remainingStreams;
+
+        return new HttpStream(
+            $this,
+            \Closure::fromCallable([$this, 'request']),
+            \Closure::fromCallable([$this, 'release'])
+        );
+    }
+
+    private function request(Request $request, CancellationToken $token): Promise
+    {
         $id = $this->streamId += 2; // Client streams should be odd-numbered, starting at 1.
 
         $this->streams[$id] = new Http2Stream(
@@ -189,15 +199,6 @@ final class Http2Connection implements Connection
             self::DEFAULT_MAX_HEADER_SIZE, // $request->getMaxHeaderSize()
             self::DEFAULT_MAX_BODY_SIZE // $request->getMaxBodySize()
         );
-
-        return new HttpStream($this, function (Request $request, CancellationToken $token) use ($id): Promise {
-            return $this->request($id, $request, $token);
-        });
-    }
-
-    private function request(int $id, Request $request, CancellationToken $token): Promise
-    {
-        \assert(isset($this->streams[$id]));
 
         return call(function () use ($id, $request, $token) {
             // Remove defunct HTTP/1.x headers.
@@ -302,6 +303,11 @@ final class Http2Connection implements Connection
                 $token->unsubscribe($cancellationId);
             }
         });
+    }
+
+    private function release(): void
+    {
+        ++$this->remainingStreams;
     }
 
     public function isBusy(): bool

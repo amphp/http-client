@@ -16,22 +16,30 @@ final class HttpStream implements Stream
     /** @var callable */
     private $request;
 
-    /** @var bool */
-    private $used = false;
+    /** @var callable|null */
+    private $release;
 
-    public function __construct(Connection $connection, callable $request)
+    public function __construct(Connection $connection, callable $request, callable $release)
     {
         $this->connection = $connection;
         $this->request = $request;
+        $this->release = $release;
+    }
+
+    public function __destruct()
+    {
+        if ($this->release !== null) {
+            ($this->release)();
+        }
     }
 
     public function request(Request $request, CancellationToken $token): Promise
     {
-        if ($this->used) {
+        if ($this->release === null) {
             throw new \Error('A stream may only be used for a single request');
         }
 
-        $this->used = true;
+        $this->release = null;
 
         return ($this->request)($request, $token);
     }

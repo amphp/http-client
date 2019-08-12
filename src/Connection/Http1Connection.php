@@ -127,7 +127,12 @@ final class Http1Connection implements Connection
         }
 
         $this->busy = true;
-        return new HttpStream($this, \Closure::fromCallable([$this, 'request']));
+
+        return new HttpStream(
+            $this,
+            \Closure::fromCallable([$this, 'request']),
+            \Closure::fromCallable([$this, 'release'])
+        );
     }
 
     /** @inheritdoc */
@@ -160,6 +165,11 @@ final class Http1Connection implements Connection
                 $cancellation->throwIfRequested();
             }
         });
+    }
+
+    private function release(): void
+    {
+        $this->busy = false;
     }
 
     private function buildRequest(Request $request): \Generator
