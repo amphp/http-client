@@ -29,7 +29,7 @@ final class RedirectHandler implements ApplicationInterceptor
         $this->autoReferrer = $autoReferrer;
     }
 
-    public function interceptApplicationRequest(
+    public function interceptApplication(
         Request $request,
         CancellationToken $cancellationToken,
         Client $next

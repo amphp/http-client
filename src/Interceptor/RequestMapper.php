@@ -19,7 +19,7 @@ final class RequestMapper implements NetworkInterceptor
         $this->mapper = $mapper;
     }
 
-    public function interceptNetworkRequest(
+    public function interceptNetwork(
         Request $request,
         CancellationToken $cancellationToken,
         Connection $stream

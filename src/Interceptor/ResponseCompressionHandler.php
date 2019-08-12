@@ -20,7 +20,7 @@ final class ResponseCompressionHandler implements NetworkInterceptor
         $this->hasZlib = \extension_loaded('zlib');
     }
 
-    public function interceptNetworkRequest(
+    public function interceptNetwork(
         Request $request,
         CancellationToken $cancellationToken,
         Stream $stream
