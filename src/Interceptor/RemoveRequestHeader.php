@@ -1,6 +1,5 @@
 <?php
 
-
 namespace Amp\Http\Client\Interceptor;
 
 use Amp\Http\Client\Request;

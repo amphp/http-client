@@ -16,7 +16,10 @@
         "void",
         "object",
         "ZLIB_ENCODING_GZIP",
-        "ZLIB_ENCODING_DEFLATE"
+        "ZLIB_ENCODING_DEFLATE",
+        "json_encode",
+        "json_last_error",
+        "JSON_ERROR_NONE"
     ],
     "php-core-extensions": [
         "Core",
