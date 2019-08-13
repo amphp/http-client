@@ -149,7 +149,7 @@ final class Http1Connection implements Connection
             $request = yield from $this->buildRequest($request);
             $protocolVersion = $this->determineProtocolVersion($request);
 
-            $completionDeferred = new Deferred;
+            $trailersDeferred = new Deferred;
 
             if ($request->getTransferTimeout() > 0) {
                 $timeoutToken = new TimeoutCancellationToken($request->getTransferTimeout());
@@ -160,7 +160,7 @@ final class Http1Connection implements Connection
 
             try {
                 yield from $this->writeRequest($request, $protocolVersion);
-                return yield from $this->doRead($request, $cancellation, $readingCancellation, $completionDeferred);
+                return yield from $this->doRead($request, $cancellation, $readingCancellation, $trailersDeferred);
             } finally {
                 $cancellation->throwIfRequested();
             }
@@ -195,7 +195,7 @@ final class Http1Connection implements Connection
      * @param Request           $request
      * @param CancellationToken $originalCancellation
      * @param CancellationToken $readingCancellation
-     * @param Deferred          $completionDeferred
+     * @param Deferred          $trailersDeferred
      *
      * @return \Generator
      * @throws ParseException
@@ -206,16 +206,21 @@ final class Http1Connection implements Connection
         Request $request,
         CancellationToken $originalCancellation,
         CancellationToken $readingCancellation,
-        Deferred $completionDeferred
+        Deferred $trailersDeferred
     ): \Generator {
         $bodyEmitter = new Emitter;
 
         $backpressure = new Success;
-        $bodyCallback = static function ($data) use ($bodyEmitter, &$backpressure) {
+        $bodyCallback = static function ($data) use ($bodyEmitter, &$backpressure): void {
             $backpressure = $bodyEmitter->emit($data);
         };
 
-        $parser = new Http1Parser($request, $bodyCallback);
+        $trailers = [];
+        $trailersCallback = static function (array $headers) use (&$trailers): void {
+            $trailers = $headers;
+        };
+
+        $parser = new Http1Parser($request, $bodyCallback, $trailersCallback);
 
         try {
             while (null !== $chunk = yield $this->socket->read()) {
@@ -229,7 +234,7 @@ final class Http1Connection implements Connection
                 $bodyCancellationToken->subscribe([$this, 'close']);
 
                 $response->setBody(new ResponseBodyStream(new IteratorStream($bodyEmitter->iterate()), $bodyCancellationSource));
-                $response->setCompletionPromise($completionDeferred->promise());
+                $response->setTrailers($trailersDeferred->promise());
 
                 // Read body async
                 asyncCall(function () use (
@@ -237,11 +242,12 @@ final class Http1Connection implements Connection
                     $request,
                     $response,
                     $bodyEmitter,
-                    $completionDeferred,
+                    $trailersDeferred,
                     $originalCancellation,
                     $readingCancellation,
                     $bodyCancellationToken,
-                    &$backpressure
+                    &$backpressure,
+                    &$trailers
                 ) {
                     $cancellationId = $readingCancellation->subscribe([$this, 'close']);
 
@@ -289,12 +295,12 @@ final class Http1Connection implements Connection
                         $this->busy = false;
 
                         $bodyEmitter->complete();
-                        $completionDeferred->resolve();
+                        $trailersDeferred->resolve($trailers);
                     } catch (\Throwable $e) {
                         $this->close();
 
                         $bodyEmitter->fail($e);
-                        $completionDeferred->fail($e);
+                        $trailersDeferred->fail($e);
                     } finally {
                         $readingCancellation->unsubscribe($cancellationId);
                     }

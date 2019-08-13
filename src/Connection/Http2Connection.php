@@ -15,7 +15,9 @@ use Amp\Http\Client\Connection\Internal\Http2Stream;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\SocketException;
+use Amp\Http\Client\Trailers;
 use Amp\Http\HPack;
+use Amp\Http\InvalidHeaderException;
 use Amp\Http\Status;
 use Amp\Loop;
 use Amp\Promise;
@@ -120,6 +122,9 @@ final class Http2Connection implements Connection
     /** @var Emitter[] */
     private $bodyEmitters = [];
 
+    /** @var Deferred[] */
+    private $trailerDeferreds = [];
+
     /** @var int Number of streams that may be opened. Initially unlimited. */
     private $remainingStreams = \PHP_INT_MAX;
 
@@ -151,6 +156,10 @@ final class Http2Connection implements Connection
      */
     public function initialize(): Promise
     {
+        if ($this->initialized) {
+            throw new \Error('Connection may only be initialized once');
+        }
+
         $this->initialized = true;
 
         if ($this->socket->isClosed()) {
@@ -500,6 +509,12 @@ final class Http2Connection implements Connection
             $emitter->fail($exception ?? new SocketException("Server disconnected", self::CANCEL));
         }
 
+        if (isset($this->trailerDeferreds[$id])) {
+            $deferred = $this->trailerDeferreds[$id];
+            unset($this->trailerDeferreds[$id]);
+            $deferred->fail($exception ?? new SocketException("Server disconnected", self::CANCEL));
+        }
+
         if (isset($this->pendingRequests[$id])) {
             $deferred = $this->pendingRequests[$id];
             unset($this->pendingRequests[$id]);
@@ -512,7 +527,7 @@ final class Http2Connection implements Connection
             $this->remainingStreams++;
         }
 
-        if (empty($this->pendingRequests) && empty($this->bodyEmitters)) {
+        if (empty($this->pendingRequests) && empty($this->bodyEmitters) && empty($this->trailerDeferreds)) {
             $this->socket->unreference();
         }
     }
@@ -645,13 +660,17 @@ final class Http2Connection implements Connection
                                 throw new Http2StreamException("Body length does not match content-length header", $id, self::PROTOCOL_ERROR);
                             }
 
-                            if (!isset($this->bodyEmitters[$id])) {
+                            if (!isset($this->bodyEmitters[$id], $this->trailerDeferreds[$id])) {
                                 continue 2; // Stream closed after emitting body fragment.
                             }
 
+                            $deferred = $this->trailerDeferreds[$id];
                             $emitter = $this->bodyEmitters[$id];
-                            unset($this->bodyEmitters[$id]);
+
+                            unset($this->bodyEmitters[$id], $this->trailerDeferreds[$id]);
+
                             $emitter->complete();
+                            $deferred->resolve(new Trailers([]));
 
                             $this->releaseStream($id);
                         }
@@ -1005,6 +1024,34 @@ final class Http2Connection implements Connection
                         $headers[$name][] = $value;
                     }
 
+                    if (isset($this->trailerDeferreds[$id]) && $stream->state & Http2Stream::RESERVED) {
+                        if (($flags & self::END_STREAM) === "\0" || $stream->expectedLength) {
+                            throw new Http2StreamException("Stream not ended before receiving trailers", $id, self::PROTOCOL_ERROR);
+                        }
+
+                        // Trailers must not contain pseudo-headers.
+                        if (!empty($pseudo)) {
+                            throw new Http2StreamException("Trailers must not contain pseudo headers", $id, self::PROTOCOL_ERROR);
+                        }
+
+                        try {
+                            // Trailers constructor checks for any disallowed fields.
+                            $headers = new Trailers($headers);
+                        } catch (InvalidHeaderException $exception) {
+                            throw new Http2StreamException("Disallowed trailer field name", $id, self::PROTOCOL_ERROR, $exception);
+                        }
+
+                        $deferred = $this->trailerDeferreds[$id];
+                        $emitter = $this->bodyEmitters[$id];
+
+                        unset($this->bodyEmitters[$id], $this->trailerDeferreds[$id]);
+
+                        $emitter->complete();
+                        $deferred->resolve($headers);
+
+                        continue;
+                    }
+
                     if (!isset($pseudo[":status"])) {
                         throw new Http2ConnectionException("No status psuedo header in response", self::PROTOCOL_ERROR);
                     }
@@ -1035,6 +1082,7 @@ final class Http2Connection implements Connection
                         continue;
                     }
 
+                    $this->trailerDeferreds[$id] = new Deferred;
                     $this->bodyEmitters[$id] = new Emitter;
 
                     if ($this->serverWindow <= $stream->maxBodySize >> 1) {
@@ -1059,7 +1107,8 @@ final class Http2Connection implements Connection
                         Status::getReason($status),
                         $headers,
                         new IteratorStream($this->bodyEmitters[$id]->iterate()),
-                        $this->requests[$id]
+                        $this->requests[$id],
+                        $this->trailerDeferreds[$id]->promise()
                     ));
 
                     continue;

@@ -71,10 +71,14 @@ final class Http1Parser
     /** @var callable */
     private $bodyDataCallback;
 
-    public function __construct(Request $request, callable $bodyDataCallback = null)
+    /** @var callable */
+    private $trailersCallback;
+
+    public function __construct(Request $request, callable $bodyDataCallback, callable $trailersCallback)
     {
         $this->request = $request;
         $this->bodyDataCallback = $bodyDataCallback;
+        $this->trailersCallback = $trailersCallback;
         $this->maxHeaderBytes = $request->getHeaderSizeLimit();
         $this->maxBodyBytes = $request->getBodySizeLimit();
     }
@@ -397,15 +401,13 @@ final class Http1Parser
      */
     private function parseTrailers(string $trailers): void
     {
-        $trailerHeaders = $this->parseRawHeaders($trailers);
+        try {
+            $trailers = Rfc7230::parseHeaders($trailers);
+        } catch (InvalidHeaderException $e) {
+            throw new ParseException('Invalid trailers', Status::BAD_REQUEST, $e);
+        }
 
-        unset(
-            $trailerHeaders['transfer-encoding'],
-            $trailerHeaders['content-length'],
-            $trailerHeaders['trailer']
-        );
-
-        // TODO: Do something with the trailers
+        ($this->trailersCallback)($trailers);
     }
 
     /**
@@ -415,7 +417,13 @@ final class Http1Parser
      */
     private function addToBody(string $data): void
     {
-        $this->bodyBytesConsumed += \strlen($data);
+        $length = \strlen($data);
+
+        if (!$length) {
+            return;
+        }
+
+        $this->bodyBytesConsumed += $length;
 
         if ($this->maxBodyBytes > 0 && $this->bodyBytesConsumed > $this->maxBodyBytes) {
             throw new ParseException("Configured body size exceeded: {$this->bodyBytesConsumed} bytes received, while the configured limit is {$this->maxBodyBytes} bytes", Status::PAYLOAD_TOO_LARGE);
