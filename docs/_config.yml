@@ -28,6 +28,6 @@ shared_asset_path: "/http-client/asset"
 navigation:
  - requests
  - responses
- - configuration
- - parallel
+ - interceptors
+ - concurrent
  - streaming
