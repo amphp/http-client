@@ -22,7 +22,7 @@ class ModifyResponse implements NetworkInterceptor, ApplicationInterceptor
         $this->mapper = $mapper;
     }
 
-    final public function interceptNetwork(
+    final public function requestViaNetwork(
         Request $request,
         CancellationToken $cancellation,
         Stream $stream
@@ -34,7 +34,7 @@ class ModifyResponse implements NetworkInterceptor, ApplicationInterceptor
         });
     }
 
-    public function interceptApplication(Request $request, CancellationToken $cancellation, Client $client): Promise
+    public function request(Request $request, CancellationToken $cancellation, Client $client): Promise
     {
         return call(function () use ($request, $cancellation, $client) {
             /** @var Response $response */

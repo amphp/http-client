@@ -7,7 +7,7 @@ use Amp\Promise;
 
 interface ApplicationInterceptor
 {
-    public function interceptApplication(
+    public function request(
         Request $request,
         CancellationToken $cancellation,
         Client $client

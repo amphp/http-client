@@ -29,7 +29,7 @@ final class FollowRedirects implements ApplicationInterceptor
         $this->autoReferrer = $autoReferrer;
     }
 
-    public function interceptApplication(
+    public function request(
         Request $request,
         CancellationToken $cancellation,
         Client $client

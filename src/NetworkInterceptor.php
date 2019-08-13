@@ -8,7 +8,7 @@ use Amp\Promise;
 
 interface NetworkInterceptor
 {
-    public function interceptNetwork(
+    public function requestViaNetwork(
         Request $request,
         CancellationToken $cancellation,
         Stream $stream

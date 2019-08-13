@@ -43,7 +43,7 @@ final class InterceptedStream implements Stream
 
         $interceptor = \array_shift($this->interceptors);
 
-        return $interceptor->interceptNetwork($request, $cancellation, $this);
+        return $interceptor->requestViaNetwork($request, $cancellation, $this);
     }
 
     public function getLocalAddress(): SocketAddress

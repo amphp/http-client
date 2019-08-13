@@ -62,7 +62,7 @@ final class Client
             if ($this->applicationInterceptors) {
                 $client = clone $this;
                 $interceptor = \array_shift($client->applicationInterceptors);
-                $response = yield $interceptor->interceptApplication($request, $cancellation, $client);
+                $response = yield $interceptor->request($request, $cancellation, $client);
             } else {
                 $stream = yield $this->connectionPool->getStream($request, $cancellation);
 
