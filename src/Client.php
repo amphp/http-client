@@ -6,6 +6,7 @@ use Amp\CancellationToken;
 use Amp\Http\Client\Connection\ConnectionPool;
 use Amp\Http\Client\Connection\DefaultConnectionPool;
 use Amp\Http\Client\Connection\Stream;
+use Amp\Http\Client\Interceptor\DecompressResponse;
 use Amp\Http\Client\Interceptor\SetRequestHeaderIfUnset;
 use Amp\Http\Client\Internal\InterceptedStream;
 use Amp\NullCancellationToken;
@@ -37,6 +38,7 @@ final class Client
         $this->defaultNetworkInterceptors = [
             new SetRequestHeaderIfUnset('accept', '*/*'),
             new SetRequestHeaderIfUnset('user-agent', 'amphp/http-client (v4.x)'),
+            new DecompressResponse()
         ];
     }
 
