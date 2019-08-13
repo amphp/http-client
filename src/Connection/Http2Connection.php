@@ -1056,7 +1056,11 @@ final class Http2Connection implements Connection
                         throw new Http2ConnectionException("No status psuedo header in response", self::PROTOCOL_ERROR);
                     }
 
-                    $status = $pseudo[":status"];
+                    if (!\preg_match("/^[1-9]\d\d$/", $pseudo[":status"])) {
+                        throw new Http2StreamException("Invalid response status code", $id, self::PROTOCOL_ERROR);
+                    }
+
+                    $status = (int) $pseudo[":status"];
 
                     if ($stream->state & Http2Stream::RESERVED) {
                         throw new Http2StreamException("Stream already reserved", $id, self::PROTOCOL_ERROR);

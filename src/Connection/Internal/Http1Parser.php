@@ -15,7 +15,7 @@ final class Http1Parser
 {
     private const STATUS_LINE_PATTERN = "#^
         HTTP/(?P<protocol>\d+\.\d+)[\x20\x09]+
-        (?P<status>[1-5]\d\d)[\x20\x09]*
+        (?P<status>[1-9]\d\d)[\x20\x09]*
         (?P<reason>[^\x01-\x08\x10-\x19]*)
     $#ix";
 
