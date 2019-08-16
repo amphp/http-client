@@ -895,11 +895,13 @@ final class Http2Connection implements Connection
                             $buffer .= yield;
                         }
 
-                        if ($error !== 0) {
-                            // @TODO Log error, since the server says we made a boo-boo.
-                        }
+                        $message = \sprintf(
+                            "Received GOAWAY frame from %s with error code %d",
+                            $this->socket->getRemoteAddress(),
+                            $error
+                        );
 
-                        $this->shutdown($lastId, new Http2ConnectionException("Received GOAWAY frame"));
+                        $this->shutdown($lastId, new Http2ConnectionException($message, $error));
 
                         return;
 
