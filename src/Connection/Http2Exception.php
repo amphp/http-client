@@ -2,6 +2,8 @@
 
 namespace Amp\Http\Client\Connection;
 
-abstract class Http2Exception extends \Exception
+use Amp\Http\Client\HttpException;
+
+abstract class Http2Exception extends HttpException
 {
 }

@@ -42,6 +42,9 @@ final class Request extends Message
     /** @var int */
     private $headerSizeLimit = self::DEFAULT_HEADER_SIZE_LIMIT;
 
+    /** @var callable|null */
+    private $onPush;
+
     /**
      * Request constructor.
      *
@@ -196,6 +199,35 @@ final class Request extends Message
             /** @noinspection PhpUndefinedClassInspection */
             throw new \TypeError("Invalid body type: " . \gettype($body));
         }
+    }
+
+    /**
+     * Attaches a callback to the request that is invoked when the server pushes an additional resource.
+     * The callback is given two parameters: the Request generated from the pushed resource and a promise for the
+     * Response containing the pushed resource.
+     *
+     * Throwing an exception from the callback will refuse the pushed resource.
+     *
+     * Example:
+     * function (Request $request, Promise $promise): \Generator {
+     *     $uri = $request->getUri(); // URI of pushed resource.
+     *     $response = yield $promise; // Wait for resource to arrive.
+     *     // Use Response object from resolved promise.
+     * }
+     *
+     * @param callable|null $onPush
+     */
+    public function onPush(?callable $onPush = null): void
+    {
+        $this->onPush = $onPush;
+    }
+
+    /**
+     * @return callable|null
+     */
+    public function getPushCallable(): ?callable
+    {
+        return $this->onPush;
     }
 
     /**

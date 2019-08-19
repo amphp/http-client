@@ -2,6 +2,7 @@
 
 namespace Amp\Http\Client\Connection\Internal;
 
+use Amp\Http\Client\Request;
 use Amp\Struct;
 
 /**
@@ -18,6 +19,12 @@ final class Http2Stream
     public const REMOTE_CLOSED = 0b0010;
     public const LOCAL_CLOSED = 0b0100;
     public const CLOSED = 0b0110;
+
+    /** @var Request|null */
+    public $request;
+
+    /** @var self|null */
+    public $parent;
 
     /** @var string|null Packed header string. */
     public $headers;
