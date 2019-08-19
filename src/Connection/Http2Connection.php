@@ -1153,7 +1153,7 @@ final class Http2Connection implements Connection
     private function shutdown(?int $lastId = null, ?\Throwable $reason = null): Promise
     {
         $lastId = $lastId ?? ($id ?? 0);
-        $promise = $this->writeFrame(\pack("NN", $lastId, $reason), self::GOAWAY, self::NOFLAG);
+        $promise = $this->writeFrame(\pack("NN", $lastId, $reason->getCode()), self::GOAWAY, self::NOFLAG);
 
         if (!empty($this->streams)) {
             $exception = new SocketException("Server disconnected", $reason->getCode(), $reason);
