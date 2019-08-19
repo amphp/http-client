@@ -3,6 +3,7 @@
 namespace Amp\Http\Client\Interceptor;
 
 use Amp\CancellationToken;
+use Amp\CancellationTokenSource;
 use Amp\Http\Client\ApplicationInterceptor;
 use Amp\Http\Client\Client;
 use Amp\Http\Client\Request;
@@ -34,8 +35,47 @@ final class FollowRedirects implements ApplicationInterceptor
         CancellationToken $cancellation,
         Client $client
     ): Promise {
+        if ($onPush = $request->getPushCallable()) {
+            $request->onPush(function (Request $request, Promise $promise, CancellationTokenSource $source) use (
+                $onPush, $cancellation, $client
+            ) {
+                $promise = call(function () use ($request, $promise, $cancellation, $client) {
+                    $previousResponse = null;
+
+                    $maxRedirects = $this->maxRedirects;
+                    $requestNr = 1;
+
+                    do {
+                        /** @var Response $response */
+                        $response = yield $promise;
+
+                        if ($previousResponse !== null) {
+                            $response->setPreviousResponse($previousResponse);
+                        }
+
+                        $previousResponse = $response;
+
+                        $request = yield from $this->createRedirectRequest($request, $response);
+
+                        if ($request === null) {
+                            break;
+                        }
+
+                        $promise = $client->request($request, $cancellation);
+                    } while (++$requestNr <= $maxRedirects + 1);
+
+                    if ($maxRedirects !== 0 && $redirectUri = $this->getRedirectUri($response)) {
+                        throw new TooManyRedirectsException($response);
+                    }
+
+                    return $response;
+                });
+
+                return $onPush($request, $promise, $source);
+            });
+        }
+
         return call(function () use ($request, $cancellation, $client) {
-            $originalUri = $request->getUri();
             $previousResponse = null;
 
             $maxRedirects = $this->maxRedirects;
@@ -44,59 +84,15 @@ final class FollowRedirects implements ApplicationInterceptor
             do {
                 /** @var Response $response */
                 $response = yield $client->request($request, $cancellation);
+
                 if ($previousResponse !== null) {
                     $response->setPreviousResponse($previousResponse);
                 }
 
-                if ($redirectUri = $this->getRedirectUri($response)) {
-                    // Discard response body of redirect responses
-                    $body = $response->getBody();
+                $previousResponse = $response;
 
-                    /** @noinspection PhpStatementHasEmptyBodyInspection */
-                    /** @noinspection LoopWhichDoesNotLoopInspection */
-                    /** @noinspection MissingOrEmptyGroupStatementInspection */
-                    while (null !== yield $body->read()) {
-                        // discard
-                    }
-
-                    /**
-                     * If this is a 302/303 we need to follow the location with a GET if the original request wasn't
-                     * GET. Otherwise we need to send the body again.
-                     *
-                     * We won't resend the body nor any headers on redirects to other hosts for security reasons.
-                     *
-                     * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.3.3
-                     */
-                    $method = $request->getMethod();
-                    $status = $response->getStatus();
-                    $isSameHost = $redirectUri->getAuthority() === $originalUri->getAuthority();
-
-                    if ($isSameHost) {
-                        $request = clone $request;
-                        $request->setUri($redirectUri);
-
-                        if ($status >= 300 && $status <= 303 && $method !== 'GET') {
-                            $request->setMethod('GET');
-                            $request->removeHeader('transfer-encoding');
-                            $request->removeHeader('content-length');
-                            $request->removeHeader('content-type');
-                            $request->setBody(null);
-                        }
-                    } else {
-                        // We ALWAYS follow with a GET and without any set headers or body for redirects to other hosts.
-                        $request = new Request($redirectUri);
-                    }
-
-                    if ($this->autoReferrer) {
-                        $this->assignRedirectRefererHeader($request, $originalUri, $redirectUri);
-                    }
-
-                    $previousResponse = $response;
-                    $originalUri = $redirectUri;
-                } else {
-                    break;
-                }
-            } while (++$requestNr <= $maxRedirects + 1);
+                $request = yield from $this->createRedirectRequest($request, $response);
+            } while ($request !== null && ++$requestNr <= $maxRedirects + 1);
 
             if ($maxRedirects !== 0 && $redirectUri = $this->getRedirectUri($response)) {
                 throw new TooManyRedirectsException($response);
@@ -104,6 +100,59 @@ final class FollowRedirects implements ApplicationInterceptor
 
             return $response;
         });
+    }
+
+    private function createRedirectRequest(Request $request, Response $response): \Generator
+    {
+        if ($redirectUri = $this->getRedirectUri($response)) {
+            $originalUri = $request->getUri();
+
+            // Discard response body of redirect responses
+            $body = $response->getBody();
+
+            /** @noinspection PhpStatementHasEmptyBodyInspection */
+            /** @noinspection LoopWhichDoesNotLoopInspection */
+            /** @noinspection MissingOrEmptyGroupStatementInspection */
+            while (null !== yield $body->read()) {
+                // discard
+            }
+
+            /**
+             * If this is a 302/303 we need to follow the location with a GET if the original request wasn't
+             * GET. Otherwise we need to send the body again.
+             *
+             * We won't resend the body nor any headers on redirects to other hosts for security reasons.
+             *
+             * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.3.3
+             */
+            $method = $request->getMethod();
+            $status = $response->getStatus();
+            $isSameHost = $redirectUri->getAuthority() === $originalUri->getAuthority();
+
+            if ($isSameHost) {
+                $request = clone $request;
+                $request->setUri($redirectUri);
+
+                if ($status >= 300 && $status <= 303 && $method !== 'GET') {
+                    $request->setMethod('GET');
+                    $request->removeHeader('transfer-encoding');
+                    $request->removeHeader('content-length');
+                    $request->removeHeader('content-type');
+                    $request->setBody(null);
+                }
+            } else {
+                // We ALWAYS follow with a GET and without any set headers or body for redirects to other hosts.
+                $request = new Request($redirectUri);
+            }
+
+            if ($this->autoReferrer) {
+                $this->assignRedirectRefererHeader($request, $originalUri, $redirectUri);
+            }
+
+            return $request;
+        }
+
+        return null;
     }
 
     /**
