@@ -55,7 +55,7 @@ final class Client
         $cancellation = $cancellation ?? new NullCancellationToken;
 
         if ($requestOrUri instanceof Request) {
-            $request = $requestOrUri;
+            $request = clone $requestOrUri;
         } else {
             $request = new Request($requestOrUri);
         }

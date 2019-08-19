@@ -6,6 +6,7 @@ use Amp\ByteStream\InMemoryStream;
 use Amp\ByteStream\IteratorStream;
 use Amp\ByteStream\StreamException;
 use Amp\CancellationToken;
+use Amp\CancellationTokenSource;
 use Amp\CancelledException;
 use Amp\Coroutine;
 use Amp\Deferred;
@@ -1131,15 +1132,23 @@ final class Http2Connection implements Connection
                             $this->pendingRequests[$id] = $deferred = new Deferred;
 
                             asyncCall(function () use ($id, $stream, $deferred) {
-                                try {
-                                    $onPush = $stream->request->getPushCallable();
-                                    yield call($onPush, clone $stream->request, $deferred->promise());
-                                } catch (\Throwable $exception) {
-                                    if (!isset($this->streams[$id])) {
-                                        return;
+                                $tokenSource = new CancellationTokenSource;
+                                $cancellationToken = $tokenSource->getToken();
+                                $cancellationId = $cancellationToken->subscribe(function (CancelledException $exception) use ($id) {
+                                    if (isset($this->streams[$id])) {
+                                        $this->releaseStream($id, new Http2StreamException("Push promise refused", $id, self::CANCEL, $exception));
                                     }
+                                });
 
-                                    $this->releaseStream($id, new Http2StreamException("Push promise refused", $id, self::CANCEL, $exception));
+                                $onPush = $stream->request->getPushCallable();
+
+                                try {
+                                    yield call($onPush, clone $stream->request, $deferred->promise(), $tokenSource);
+                                } catch (\Throwable $exception) {
+                                    $tokenSource->cancel($exception);
+                                    throw $exception;
+                                } finally {
+                                    $cancellationToken->unsubscribe($cancellationId);
                                 }
                             });
 
