@@ -691,7 +691,7 @@ final class Http2Connection implements Connection
                             throw new Http2StreamException("Stream closed", $id, self::CANCEL);
                         }
 
-                        $stream = $this->streams[$id];
+                        $parent = $this->streams[$id];
 
                         while (\strlen($buffer) < 4) {
                             $buffer .= yield;
@@ -707,20 +707,22 @@ final class Http2Connection implements Connection
                         $buffer = \substr($buffer, 4);
                         $length -= 4;
 
-                        if ($stream->request->getPushCallable() === null || isset($this->streams[$pushedId])) {
+                        if ($parent->request->getPushCallable() === null || isset($this->streams[$pushedId])) {
                             throw new Http2StreamException("Push promise refused", $pushedId, self::CANCEL);
                         }
 
-                        $id = $pushedId; // Switch ID to pushed stream for parsing headers.
-
-                        $this->streams[$id] = new Http2Stream(
+                        $this->streams[$pushedId] = $stream = new Http2Stream(
                             self::DEFAULT_WINDOW_SIZE,
                             0,
                             self::DEFAULT_MAX_HEADER_SIZE, // $stream->request->getMaxHeaderSize()
                             0
                         );
 
-                        $this->streams[$id]->parent = $stream; // Set parent stream on new stream.
+                        $stream->parent = $parent; // Set parent stream on new stream.
+                        $stream->dependency = $id;
+                        $stream->weight = $parent->weight;
+
+                        $id = $pushedId; // Switch ID to pushed stream for parsing headers.
 
                         // No break to fall through to parsing remainder of PUSH_PROMISE frame as HEADERS frame.
 
@@ -751,18 +753,18 @@ final class Http2Connection implements Connection
                                 $buffer .= yield;
                             }
 
-                            $dependency = \unpack("N", $buffer)[1];
+                            $parent = \unpack("N", $buffer)[1];
 
-                            if ($exclusive = $dependency & 0x80000000) {
-                                $dependency &= 0x7fffffff;
+                            if ($exclusive = $parent & 0x80000000) {
+                                $parent &= 0x7fffffff;
                             }
 
-                            if ($id === 0 || $dependency === $id) {
+                            if ($id === 0 || $parent === $id) {
                                 throw new Http2ConnectionException("Invalid dependency ID", self::PROTOCOL_ERROR);
                             }
 
-                            $stream->dependency = $dependency;
-                            $stream->priority = \ord($buffer[4]);
+                            $stream->dependency = $parent;
+                            $stream->weight = \ord($buffer[4]);
 
                             $buffer = \substr($buffer, 5);
                             $length -= 5;
@@ -804,15 +806,15 @@ final class Http2Connection implements Connection
                             $buffer .= yield;
                         }
 
-                        $dependency = \unpack("N", $buffer)[1];
-                        if ($exclusive = $dependency & 0x80000000) {
-                            $dependency &= 0x7fffffff;
+                        $parent = \unpack("N", $buffer)[1];
+                        if ($exclusive = $parent & 0x80000000) {
+                            $parent &= 0x7fffffff;
                         }
 
-                        $priority = \ord($buffer[4]);
+                        $weight = \ord($buffer[4]);
                         $buffer = \substr($buffer, 5);
 
-                        if ($id === 0 || $dependency === $id) {
+                        if ($id === 0 || $parent === $id) {
                             throw new Http2ConnectionException("Invalid dependency ID", self::PROTOCOL_ERROR);
                         }
 
@@ -826,8 +828,8 @@ final class Http2Connection implements Connection
                             throw new Http2ConnectionException("Headers not complete", self::PROTOCOL_ERROR);
                         }
 
-                        $stream->dependency = $dependency;
-                        $stream->priority = $priority;
+                        $stream->dependency = $parent;
+                        $stream->weight = $weight;
 
                         continue 2;
 
