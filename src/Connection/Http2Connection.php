@@ -223,7 +223,7 @@ final class Http2Connection implements Connection
 
         $stream->request = $request;
 
-        return call(function () use ($id, $request, $token) {
+        return call(function () use ($id, $request, $token): \Generator {
             $this->pendingRequests[$id] = $deferred = new Deferred;
 
             $cancellationId = $token->subscribe(function (CancelledException $exception) use ($id): void {
@@ -288,39 +288,37 @@ final class Http2Connection implements Connection
                 }
 
                 if ($chunk === null) {
-                    return yield $deferred->promise();
+                    return $deferred->promise();
                 }
 
-                if ($chunk !== null) {
-                    asyncCall(function () use ($chunk, $token, $stream, $id) {
-                        $buffer = $chunk;
-                        while (null !== $chunk = yield $stream->read()) {
-                            if (!isset($this->streams[$id]) || $token->isRequested()) {
-                                return;
-                            }
+                $buffer = $chunk;
+                while (null !== $chunk = yield $stream->read()) {
+                    if (!isset($this->streams[$id]) || $token->isRequested()) {
+                        return $deferred->promise();
+                    }
 
-                            yield $this->writeData($buffer, $id);
-                            $buffer = $chunk;
-                        }
-
-                        if (!isset($this->streams[$id])) {
-                            return;
-                        }
-
-                        $this->streams[$id]->state |= Http2Stream::LOCAL_CLOSED;
-
-                        yield $this->writeData($buffer, $id);
-                    });
+                    yield $this->writeData($buffer, $id);
+                    $buffer = $chunk;
                 }
 
-                return yield $deferred->promise();
+                if (!isset($this->streams[$id]) || $token->isRequested()) {
+                    return $deferred->promise();
+                }
+
+                $this->streams[$id]->state |= Http2Stream::LOCAL_CLOSED;
+
+                yield $this->writeData($buffer, $id);
             } catch (\Throwable $exception) {
-                $this->releaseStream($id);
+                if (isset($this->streams[$id])) {
+                    $this->releaseStream($id);
+                }
+
                 throw new SocketException('Error when sending request over socket', 0, $exception);
             } finally {
-                unset($this->pendingRequests[$id]);
                 $token->unsubscribe($cancellationId);
             }
+
+            return $deferred->promise();
         });
     }
 
@@ -607,7 +605,7 @@ final class Http2Connection implements Connection
                         }
 
                         if (!isset($this->streams[$id])) {
-                            throw new Http2ConnectionException("Stream ID not found", self::PROTOCOL_ERROR);
+                            throw new Http2StreamException("Stream ID not found", $id, self::CANCEL);
                         }
 
                         $stream = $this->streams[$id];
@@ -1134,12 +1132,13 @@ final class Http2Connection implements Connection
 
                             $this->pendingRequests[$id] = $deferred = new Deferred;
 
-                            asyncCall(function () use ($id, $stream, $deferred) {
+                            asyncCall(function () use ($id, $stream, $deferred): \Generator {
                                 $tokenSource = new CancellationTokenSource;
                                 $cancellationToken = $tokenSource->getToken();
-                                $cancellationId = $cancellationToken->subscribe(function (CancelledException $exception) use ($id) {
+                                $cancellationId = $cancellationToken->subscribe(function (CancelledException $exception) use ($id): void {
                                     if (isset($this->streams[$id])) {
-                                        $this->releaseStream($id, new Http2StreamException("Push promise refused", $id, self::CANCEL, $exception));
+                                        $this->writeFrame(\pack("N", self::CANCEL), self::RST_STREAM, self::NOFLAG, $id);
+                                        $this->releaseStream($id, $exception);
                                     }
                                 });
 
