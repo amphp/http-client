@@ -148,6 +148,10 @@ final class Response extends Message
      */
     public function setHeader(string $field, $value): void
     {
+        if (($field[0] ?? ":") === ":") {
+            throw new \Error("Header name cannot be empty or start with a colon (:)");
+        }
+
         parent::setHeader($field, $value);
     }
 
@@ -159,6 +163,10 @@ final class Response extends Message
      */
     public function addHeader(string $field, $value): void
     {
+        if (($field[0] ?? ":") === ":") {
+            throw new \Error("Header name cannot be empty or start with a colon (:)");
+        }
+
         parent::addHeader($field, $value);
     }
 

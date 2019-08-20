@@ -1081,7 +1081,7 @@ final class Http2Connection implements Connection
                         if ($stream->request === null) {
                             // Request originated from push promise.
 
-                            if (!isset($pseudo[":method"], $pseudo[":path"], $pseudo[":scheme"])
+                            if (!isset($pseudo[":method"], $pseudo[":path"], $pseudo[":scheme"], $pseudo[":authority"])
                                 || isset($headers["connection"])
                                 || $pseudo[":path"] === ''
                                 || (isset($headers["te"]) && \implode($headers["te"]) !== "trailers")
@@ -1092,7 +1092,7 @@ final class Http2Connection implements Connection
                             $method = $pseudo[":method"];
                             $target = $pseudo[":path"];
                             $scheme = $pseudo[":scheme"];
-                            $host = $pseudo[":authority"] ?? "";
+                            $host = $pseudo[":authority"];
                             $query = null;
 
                             if ($method !== 'GET') {
