@@ -217,8 +217,8 @@ final class Http2Connection implements Connection
         $this->streams[$id] = $stream = new Http2Stream(
             self::DEFAULT_WINDOW_SIZE,
             $this->initialWindowSize,
-            self::DEFAULT_MAX_HEADER_SIZE, // $request->getMaxHeaderSize()
-            self::DEFAULT_MAX_BODY_SIZE // $request->getMaxBodySize()
+            $request->getHeaderSizeLimit(),
+            $request->getBodySizeLimit()
         );
 
         $stream->request = $request;
@@ -713,8 +713,8 @@ final class Http2Connection implements Connection
                         $this->streams[$pushedId] = $stream = new Http2Stream(
                             self::DEFAULT_WINDOW_SIZE,
                             0,
-                            self::DEFAULT_MAX_HEADER_SIZE, // $stream->request->getMaxHeaderSize()
-                            0
+                            $parent->request->getHeaderSizeLimit(),
+                            $parent->request->getBodySizeLimit()
                         );
 
                         $stream->parent = $parent; // Set parent stream on new stream.
