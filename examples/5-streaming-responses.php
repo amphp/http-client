@@ -64,7 +64,7 @@ Loop::run(static function () {
 
         $bytes = 0;
 
-        // The response body is an instance of Message, which allows buffering or streaming by the consumers choice.
+        // The response body is an instance of Payload, which allows buffering or streaming by the consumers choice.
         // We could also use Amp\ByteStream\pipe() here, but we want to show some progress.
         while (null !== $chunk = yield $response->getBody()->read()) {
             yield $file->write($chunk);

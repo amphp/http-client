@@ -387,7 +387,6 @@ final class Http2Connection implements Connection
             // Write initial preface
             yield $this->socket->write(self::PREFACE);
 
-            // Settings frame disabling push promises
             yield $this->writeFrame(
                 \pack(
                     "nNnNnNnNnN",

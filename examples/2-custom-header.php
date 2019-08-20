@@ -43,8 +43,7 @@ Loop::run(static function () {
 
         print "\n";
 
-        // The response body is an instance of Message, which allows buffering or streaming by the consumers choice.
-        // Simply yielding a Message buffers the complete response body.
+        // The response body is an instance of Payload, which allows buffering or streaming by the consumers choice.
         $body = yield $response->getBody()->buffer();
         print $body . "\n";
     } catch (HttpException $error) {
