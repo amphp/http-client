@@ -299,7 +299,7 @@ final class Http2Connection implements Connection
                                 return;
                             }
 
-                            yield $this->writeData($buffer, $id, false);
+                            yield $this->writeData($buffer, $id);
                             $buffer = $chunk;
                         }
 
@@ -307,15 +307,16 @@ final class Http2Connection implements Connection
                             return;
                         }
 
-                        $this->streams[$id]->status |= Http2Stream::LOCAL_CLOSED;
+                        $this->streams[$id]->state |= Http2Stream::LOCAL_CLOSED;
 
-                        yield $this->writeData($buffer, $id, true);
+                        yield $this->writeData($buffer, $id);
                     });
                 }
 
                 return yield $deferred->promise();
-            } catch (StreamException $exception) {
-                throw new SocketException('Socket disconnected prior to response completion');
+            } catch (\Throwable $exception) {
+                $this->releaseStream($id);
+                throw new SocketException('Error when sending request over socket', 0, $exception);
             } finally {
                 unset($this->pendingRequests[$id]);
                 $token->unsubscribe($cancellationId);
@@ -441,7 +442,7 @@ final class Http2Connection implements Connection
         return $this->socket->write($data);
     }
 
-    private function writeData(string $data, int $stream, bool $last): Promise
+    private function writeData(string $data, int $stream): Promise
     {
         \assert(isset($this->streams[$stream]), "The stream was closed");
 
