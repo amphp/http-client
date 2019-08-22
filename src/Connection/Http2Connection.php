@@ -4,7 +4,6 @@ namespace Amp\Http\Client\Connection;
 
 use Amp\ByteStream\InMemoryStream;
 use Amp\ByteStream\IteratorStream;
-use Amp\ByteStream\StreamException;
 use Amp\CancellationToken;
 use Amp\CancellationTokenSource;
 use Amp\CancelledException;
@@ -722,7 +721,7 @@ final class Http2Connection implements Connection
 
                         $id = $pushedId; // Switch ID to pushed stream for parsing headers.
 
-                        // No break to fall through to parsing remainder of PUSH_PROMISE frame as HEADERS frame.
+                        // no break to fall through to parsing remainder of PUSH_PROMISE frame as HEADERS frame.
 
                     case self::HEADERS:
                         if (!isset($this->streams[$id])) {
