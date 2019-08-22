@@ -135,12 +135,6 @@ class TimeoutTest extends AsyncTestCase
         }
     }
 
-
-
-
-
-
-
     public function testTimeoutDuringBodyInterceptor(): \Generator
     {
         $server = Socket\Server::listen("tcp://127.0.0.1:0");
