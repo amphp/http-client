@@ -40,7 +40,7 @@
         "amphp/php-cs-fixer-config": "dev-master",
         "phpunit/phpunit": "^7 || ^8",
         "friendsofphp/php-cs-fixer": "^2.15",
-        "amphp/http-server": "dev-master"
+        "amphp/http-server": "v2.0.0-rc1"
     },
     "suggest": {
         "ext-zlib": "*",
@@ -57,8 +57,12 @@
         }
     },
     "scripts": {
-        "cs-fix": [
-            "php-cs-fixer fix --config=./.php_cs.dist"
-        ]
+        "check": [
+            "@cs",
+            "@test"
+        ],
+        "cs": "PHP_CS_FIXER_IGNORE_ENV=1 php-cs-fixer fix -v --diff --dry-run",
+        "cs-fix": "PHP_CS_FIXER_IGNORE_ENV=1 php-cs-fixer fix -v --diff",
+        "test": "@php -dzend.assertions=1 -dassert.exception=1 ./vendor/bin/phpunit --coverage-text"
     }
 }
