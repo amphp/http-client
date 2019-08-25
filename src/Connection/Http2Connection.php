@@ -721,7 +721,7 @@ final class Http2Connection implements Connection
 
                         $id = $pushedId; // Switch ID to pushed stream for parsing headers.
 
-                        // No break to fall through to parsing remainder of PUSH_PROMISE frame as HEADERS frame.
+                        // no break to fall through to parsing remainder of PUSH_PROMISE frame as HEADERS frame.
 
                     case self::HEADERS:
                         if (!isset($this->streams[$id])) {
