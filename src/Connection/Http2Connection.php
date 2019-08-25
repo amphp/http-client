@@ -25,6 +25,7 @@ use Amp\Socket\EncryptableSocket;
 use Amp\Socket\Socket;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
+use Amp\Success;
 use League\Uri;
 use function Amp\asyncCall;
 use function Amp\call;
@@ -287,37 +288,35 @@ final class Http2Connection implements Connection
                 }
 
                 if ($chunk === null) {
-                    return $deferred->promise();
+                    return yield $deferred->promise();
                 }
 
-                $buffer = $chunk;
-                while (null !== $chunk = yield $stream->read()) {
-                    if (!isset($this->streams[$id]) || $token->isRequested()) {
-                        return $deferred->promise();
+                try {
+                    $buffer = $chunk;
+                    while (null !== $chunk = yield $stream->read()) {
+                        if (!isset($this->streams[$id]) || $token->isRequested()) {
+                            return yield $deferred->promise();
+                        }
+
+                        yield $this->writeData($buffer, $id);
+                        $buffer = $chunk;
                     }
 
+                    if (!isset($this->streams[$id]) || $token->isRequested()) {
+                        return yield $deferred->promise();
+                    }
+
+                    $this->streams[$id]->state |= Http2Stream::LOCAL_CLOSED;
+
                     yield $this->writeData($buffer, $id);
-                    $buffer = $chunk;
+                } catch (\Throwable $exception) {
+                    throw new SocketException('Exception when sending request body', 0, $exception);
                 }
 
-                if (!isset($this->streams[$id]) || $token->isRequested()) {
-                    return $deferred->promise();
-                }
-
-                $this->streams[$id]->state |= Http2Stream::LOCAL_CLOSED;
-
-                yield $this->writeData($buffer, $id);
-            } catch (\Throwable $exception) {
-                if (isset($this->streams[$id])) {
-                    $this->releaseStream($id);
-                }
-
-                throw new SocketException('Error when sending request over socket', 0, $exception);
+                return yield $deferred->promise();
             } finally {
                 $token->unsubscribe($cancellationId);
             }
-
-            return $deferred->promise();
         });
     }
 
@@ -343,26 +342,7 @@ final class Http2Connection implements Connection
 
     public function close(): Promise
     {
-        $this->socket->close();
-
-        if (!empty($this->streams)) {
-            foreach ($this->streams as $id => $stream) {
-                $this->releaseStream($id);
-            }
-        }
-
-        $promise = $this->shutdown();
-
-        if ($this->onClose !== null) {
-            $onClose = $this->onClose;
-            $this->onClose = null;
-
-            foreach ($onClose as $callback) {
-                asyncCall($callback, $this);
-            }
-        }
-
-        return $promise;
+        return $this->shutdown();
     }
 
     public function getLocalAddress(): SocketAddress
@@ -423,12 +403,8 @@ final class Http2Connection implements Connection
                 $this->settingsDeferred = null;
                 $deferred->fail($exception);
             }
-
-            foreach ($this->streams as $id => $stream) {
-                $this->releaseStream($id, $exception);
-            }
         } finally {
-            $this->close();
+            $this->shutdown(null, $exception ?? null);
         }
     }
 
@@ -1284,14 +1260,29 @@ final class Http2Connection implements Connection
      */
     private function shutdown(?int $lastId = null, ?\Throwable $reason = null): Promise
     {
+        if ($this->onClose === null) {
+            return new Success;
+        }
+
         $code = $reason ? $reason->getCode() : self::GRACEFUL_SHUTDOWN;
         $lastId = $lastId ?? ($id ?? 0);
         $promise = $this->writeFrame(\pack("NN", $lastId, $code), self::GOAWAY, self::NOFLAG);
 
+        $this->socket->close();
+
         if (!empty($this->streams)) {
-            $exception = new SocketException("Server disconnected", $reason->getCode(), $reason);
+            $exception = new SocketException("Connection closed", $reason->getCode(), $reason);
             foreach ($this->streams as $id => $stream) {
                 $this->releaseStream($id, $exception);
+            }
+        }
+
+        if ($this->onClose !== null) {
+            $onClose = $this->onClose;
+            $this->onClose = null;
+
+            foreach ($onClose as $callback) {
+                asyncCall($callback, $this);
             }
         }
 
