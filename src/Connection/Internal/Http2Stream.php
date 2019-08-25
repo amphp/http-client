@@ -2,6 +2,8 @@
 
 namespace Amp\Http\Client\Connection\Internal;
 
+use Amp\CancellationToken;
+use Amp\Deferred;
 use Amp\Http\Client\Request;
 use Amp\Struct;
 
@@ -22,6 +24,9 @@ final class Http2Stream
 
     /** @var Request|null */
     public $request;
+
+    /** @var CancellationToken */
+    public $cancellationToken;
 
     /** @var self|null */
     public $parent;
@@ -50,7 +55,7 @@ final class Http2Stream
     /** @var int */
     public $state;
 
-    /** @var \Amp\Deferred|null */
+    /** @var Deferred|null */
     public $deferred;
 
     /** @var int Integer between 1 and 256 */

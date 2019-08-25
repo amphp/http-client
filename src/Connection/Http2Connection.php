@@ -7,11 +7,13 @@ use Amp\ByteStream\IteratorStream;
 use Amp\CancellationToken;
 use Amp\CancellationTokenSource;
 use Amp\CancelledException;
+use Amp\CombinedCancellationToken;
 use Amp\Coroutine;
 use Amp\Deferred;
 use Amp\Emitter;
 use Amp\Failure;
 use Amp\Http\Client\Connection\Internal\Http2Stream;
+use Amp\Http\Client\Internal\ResponseBodyStream;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\SocketException;
@@ -26,6 +28,7 @@ use Amp\Socket\Socket;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
 use Amp\Success;
+use Amp\TimeoutCancellationToken;
 use League\Uri;
 use function Amp\asyncCall;
 use function Amp\call;
@@ -222,6 +225,13 @@ final class Http2Connection implements Connection
         );
 
         $stream->request = $request;
+        $stream->cancellationToken = $token;
+
+        if ($request->getTransferTimeout() > 0) {
+            // Cancellation token combined with timeout token should not be stored in $stream->cancellationToken,
+            // otherwise the timeout applies to the body transfer and pushes.
+            $token = new CombinedCancellationToken($token, new TimeoutCancellationToken($request->getTransferTimeout()));
+        }
 
         return call(function () use ($id, $request, $token): \Generator {
             $this->pendingRequests[$id] = $deferred = new Deferred;
@@ -694,6 +704,7 @@ final class Http2Connection implements Connection
                         $stream->parent = $parent; // Set parent stream on new stream.
                         $stream->dependency = $id;
                         $stream->weight = $parent->weight;
+                        $stream->cancellationToken = $parent->cancellationToken;
 
                         $id = $pushedId; // Switch ID to pushed stream for parsing headers.
 
@@ -1108,12 +1119,15 @@ final class Http2Connection implements Connection
 
                             asyncCall(function () use ($id, $stream, $deferred): \Generator {
                                 $tokenSource = new CancellationTokenSource;
-                                $cancellationToken = $tokenSource->getToken();
+                                $cancellationToken = new CombinedCancellationToken($stream->cancellationToken, $tokenSource->getToken());
+
                                 $cancellationId = $cancellationToken->subscribe(function (CancelledException $exception) use ($id): void {
-                                    if (isset($this->streams[$id])) {
-                                        $this->writeFrame(\pack("N", self::CANCEL), self::RST_STREAM, self::NOFLAG, $id);
-                                        $this->releaseStream($id, $exception);
+                                    if (!isset($this->streams[$id])) {
+                                        return;
                                     }
+
+                                    $this->writeFrame(\pack("N", self::CANCEL), self::RST_STREAM, self::NOFLAG, $id);
+                                    $this->releaseStream($id, $exception);
                                 });
 
                                 $onPush = $stream->request->getPushCallable();
@@ -1175,6 +1189,10 @@ final class Http2Connection implements Connection
 
                         $stream->state |= Http2Stream::RESERVED;
 
+                        if (!isset($this->pendingRequests[$id])) {
+                            throw new Http2StreamException("Stream already used", $id, self::INTERNAL_ERROR);
+                        }
+
                         if ($stream->state & Http2Stream::REMOTE_CLOSED) {
                             $response = new Response(
                                 "2.0",
@@ -1205,19 +1223,29 @@ final class Http2Connection implements Connection
                                 $stream->expectedLength = (int) $contentLength;
                             }
 
+                            $tokenSource = new CancellationTokenSource;
+                            $cancellationToken = new CombinedCancellationToken($stream->cancellationToken, $tokenSource->getToken());
+
+                            $cancellationToken->subscribe(function (CancelledException $exception) use ($id): void {
+                                if (!isset($this->streams[$id])) {
+                                    return;
+                                }
+
+                                $this->writeFrame(\pack("N", self::CANCEL), self::RST_STREAM, self::NOFLAG, $id);
+                                $this->releaseStream($id, $exception);
+                            });
+
                             $response = new Response(
                                 "2.0",
                                 $status,
                                 Status::getReason($status),
                                 $headers,
-                                new IteratorStream($this->bodyEmitters[$id]->iterate()),
+                                new ResponseBodyStream(new IteratorStream($this->bodyEmitters[$id]->iterate()), $tokenSource),
                                 $stream->request,
                                 $this->trailerDeferreds[$id]->promise()
                             );
-                        }
 
-                        if (!isset($this->pendingRequests[$id])) {
-                            throw new Http2StreamException("Stream already used", $id, self::INTERNAL_ERROR);
+                            $tokenSource = $cancellationToken = null; // Remove reference to cancellation token.
                         }
 
                         $deferred = $this->pendingRequests[$id];
