@@ -3,7 +3,6 @@
 namespace Amp\Http\Client\Interceptor;
 
 use Amp\CancellationToken;
-use Amp\CancellationTokenSource;
 use Amp\Http\Client\ApplicationInterceptor;
 use Amp\Http\Client\Client;
 use Amp\Http\Client\Connection\Stream;
