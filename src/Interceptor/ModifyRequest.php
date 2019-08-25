@@ -37,15 +37,7 @@ class ModifyRequest implements NetworkInterceptor, ApplicationInterceptor
     public function request(Request $request, CancellationToken $cancellation, Client $client): Promise
     {
         return call(function () use ($request, $cancellation, $client) {
-            if ($onPush = $request->getPushCallable()) {
-                $request->onPush(function (Request $request, Promise $promise, CancellationTokenSource $source) use ($onPush) {
-                    $request = yield call($this->mapper, $request);
-                    return yield call($onPush, $request, $promise, $source);
-                });
-            }
-
             $request = yield call($this->mapper, $request);
-
             return $client->request($request, $cancellation);
         });
     }
