@@ -4,7 +4,6 @@ namespace Amp\Http\Client\Connection;
 
 use Amp\ByteStream\InMemoryStream;
 use Amp\ByteStream\IteratorStream;
-use Amp\ByteStream\StreamException;
 use Amp\CancellationToken;
 use Amp\CancellationTokenSource;
 use Amp\CancelledException;
