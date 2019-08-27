@@ -278,7 +278,7 @@ final class Http2Connection implements Connection
                 $chunk = yield $stream->read();
 
                 if (!isset($this->streams[$id]) || $token->isRequested()) {
-                    return;
+                    return yield $deferred->promise();
                 }
 
                 $flag = self::END_HEADERS | ($chunk === null ? self::END_STREAM : "\0");
@@ -301,29 +301,30 @@ final class Http2Connection implements Connection
                     return yield $deferred->promise();
                 }
 
-                try {
-                    $buffer = $chunk;
-                    while (null !== $chunk = yield $stream->read()) {
-                        if (!isset($this->streams[$id]) || $token->isRequested()) {
-                            return yield $deferred->promise();
-                        }
-
-                        yield $this->writeData($buffer, $id);
-                        $buffer = $chunk;
-                    }
-
+                $buffer = $chunk;
+                while (null !== $chunk = yield $stream->read()) {
                     if (!isset($this->streams[$id]) || $token->isRequested()) {
                         return yield $deferred->promise();
                     }
 
-                    $this->streams[$id]->state |= Http2Stream::LOCAL_CLOSED;
-
                     yield $this->writeData($buffer, $id);
-                } catch (\Throwable $exception) {
-                    throw new SocketException('Exception when sending request body', 0, $exception);
+                    $buffer = $chunk;
                 }
 
+                if (!isset($this->streams[$id]) || $token->isRequested()) {
+                    return yield $deferred->promise();
+                }
+
+                $this->streams[$id]->state |= Http2Stream::LOCAL_CLOSED;
+
+                yield $this->writeData($buffer, $id);
+
                 return yield $deferred->promise();
+            } catch (\Throwable $exception) {
+                if (isset($this->streams[$id])) {
+                    $this->releaseStream($id, $exception);
+                }
+                throw $exception;
             } finally {
                 $token->unsubscribe($cancellationId);
             }
