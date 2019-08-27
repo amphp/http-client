@@ -134,7 +134,10 @@ final class Http2Connection implements Connection
     /** @var Deferred[] */
     private $trailerDeferreds = [];
 
-    /** @var int Number of streams that may be opened. Initially unlimited. */
+    /** @var int Maximum number of streams that may be opened. Initially unlimited. */
+    private $maxStreams = \PHP_INT_MAX;
+
+    /** @var int Currently open or reserved streams. Initially unlimited. */
     private $remainingStreams = \PHP_INT_MAX;
 
     /** @var HPack */
@@ -194,7 +197,7 @@ final class Http2Connection implements Connection
             throw new \Error('The promise returned from ' . __CLASS__ . '::initialize() must resolve before using the connection');
         }
 
-        if ($this->remainingStreams <= 1) {
+        if ($this->remainingStreams <= 0) {
             throw new SocketException('All available streams have been used');
         }
 
@@ -1366,7 +1369,10 @@ final class Http2Connection implements Connection
                     throw new Http2ConnectionException("Invalid concurrent streams value", self::PROTOCOL_ERROR);
                 }
 
-                $this->remainingStreams = $unpacked["value"] - \count($this->streams);
+                $priorUsedStreams = $this->maxStreams - $this->remainingStreams;
+
+                $this->maxStreams = $unpacked["value"];
+                $this->remainingStreams = $this->maxStreams - $priorUsedStreams;
                 return;
 
             case self::HEADER_TABLE_SIZE:
