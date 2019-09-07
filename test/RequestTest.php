@@ -44,8 +44,8 @@ class RequestTest extends TestCase
         $this->assertSame(["1.0"], $request->getProtocolVersions());
 
         $request = new Request("http://127.0.0.1/");
-        $request->setProtocolVersions(["1.0", "2.0"]);
-        $this->assertSame(["1.0", "2.0"], $request->getProtocolVersions());
+        $request->setProtocolVersions(["1.0", "2"]);
+        $this->assertSame(["1.0", "2"], $request->getProtocolVersions());
     }
 
     public function testHeader(): void

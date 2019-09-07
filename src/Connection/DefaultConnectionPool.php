@@ -21,7 +21,7 @@ use function Amp\call;
 
 final class DefaultConnectionPool implements ConnectionPool
 {
-    private const PROTOCOL_VERSIONS = ['1.0', '1.1', '2.0'];
+    private const PROTOCOL_VERSIONS = ['1.0', '1.1', '2'];
 
     /** @var Connector */
     private $connector;
@@ -85,7 +85,7 @@ final class DefaultConnectionPool implements ConnectionPool
                 $connectContext = $this->connectContext;
 
                 if ($isHttps) {
-                    if (\in_array('2.0', $request->getProtocolVersions(), true)) {
+                    if (\in_array('2', $request->getProtocolVersions(), true)) {
                         $protocols = ['h2', 'http/1.1'];
                     } else {
                         $protocols = ['http/1.1'];

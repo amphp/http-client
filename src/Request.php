@@ -16,7 +16,7 @@ final class Request extends Message
     public const DEFAULT_BODY_SIZE_LIMIT = 10485760;
 
     /** @var string[] */
-    private $protocolVersions = ["1.1", "2.0"];
+    private $protocolVersions = ['1.1', '2'];
 
     /** @var string */
     private $method;
@@ -85,7 +85,7 @@ final class Request extends Message
         }
 
         foreach ($versions as $version) {
-            if (!\in_array($version, ["1.0", "1.1", "2.0"], true)) {
+            if (!\in_array($version, ["1.0", "1.1", "2"], true)) {
                 /** @noinspection PhpUndefinedClassInspection */
                 throw new \Error(
                     "Invalid HTTP protocol version: " . $version

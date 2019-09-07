@@ -10,9 +10,9 @@ class ResponseTest extends TestCase
     public function testProtocolVersion(): void
     {
         $response = $this->createResponse();
-        $response->setProtocolVersion('2.0');
+        $response->setProtocolVersion('2');
 
-        $this->assertSame('2.0', $response->getProtocolVersion());
+        $this->assertSame('2', $response->getProtocolVersion());
     }
 
     public function testStatus(): void

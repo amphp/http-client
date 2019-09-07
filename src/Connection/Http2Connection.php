@@ -35,7 +35,7 @@ use function Amp\call;
 
 final class Http2Connection implements Connection
 {
-    private const PROTOCOL_VERSIONS = ['2.0'];
+    private const PROTOCOL_VERSIONS = ['2'];
 
     public const PREFACE = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
     public const DEFAULT_MAX_FRAME_SIZE = 1 << 14;
@@ -1116,7 +1116,7 @@ final class Http2Connection implements Connection
 
                             $stream->request = new Request($uri, $method);
                             $stream->request->setHeaders($headers);
-                            $stream->request->setProtocolVersions(['2.0']);
+                            $stream->request->setProtocolVersions(['2']);
                             $stream->request->onPush($stream->parent->request->getPushCallable());
 
                             $this->pendingRequests[$id] = $deferred = new Deferred;
@@ -1199,7 +1199,7 @@ final class Http2Connection implements Connection
 
                         if ($stream->state & Http2Stream::REMOTE_CLOSED) {
                             $response = new Response(
-                                "2.0",
+                                '2',
                                 $status,
                                 Status::getReason($status),
                                 $headers,
@@ -1240,7 +1240,7 @@ final class Http2Connection implements Connection
                             });
 
                             $response = new Response(
-                                "2.0",
+                                '2',
                                 $status,
                                 Status::getReason($status),
                                 $headers,
