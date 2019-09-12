@@ -258,6 +258,11 @@ final class Http2Connection implements Connection
                     $path = '/';
                 }
 
+                $query = $uri->getQuery();
+                if ($query !== '') {
+                    $path .= '?' . $query;
+                }
+
                 $body = $request->getBody();
 
                 $headers = yield $request->getBody()->getHeaders();
