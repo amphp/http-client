@@ -1,9 +1,10 @@
 <?php /** @noinspection PhpUnhandledExceptionInspection */
 
-namespace Amp\Test\Artax;
+namespace Amp\Http\Client\Test;
 
 use Amp\CancellationToken;
 use Amp\Deferred;
+use Amp\Failure;
 use Amp\Http\Client\Client;
 use Amp\Http\Client\Connection\DefaultConnectionPool;
 use Amp\Http\Client\Interceptor\SetRequestTimeout;
@@ -43,10 +44,10 @@ class TimeoutTest extends AsyncTestCase
             }
         });
 
+        $this->setTimeout(2000);
+
         try {
             $uri = "http://" . $server->getAddress() . "/";
-
-            $start = \microtime(true);
 
             $request = new Request($uri);
             $request->setTransferTimeout(1000);
@@ -59,46 +60,33 @@ class TimeoutTest extends AsyncTestCase
 
             yield $response->getBody()->buffer();
         } finally {
-            $this->assertLessThan(2, \microtime(true) - $start);
             $server->close();
         }
     }
 
     public function testTimeoutDuringConnect(): \Generator
     {
-        $start = \microtime(true);
-
-        Loop::repeat(1000, static function () {
-            // dummy watcher, because socket pool doesn't do anything
-        });
+        $this->setTimeout(600);
 
         $connector = $this->createMock(Socket\Connector::class);
         $connector->method('connect')
-            ->willReturnCallback(static function (
+            ->willReturnCallback(function (
                 string $uri,
                 ?Socket\ConnectContext $connectContext = null,
                 ?CancellationToken $token = null
             ): Promise {
-                $deferred = new Deferred;
-
-                if ($token) {
-                    $token->subscribe([$deferred, 'fail']);
-                }
-
-                return $deferred->promise(); // never resolve
+                $this->assertSame(1, $connectContext->getConnectTimeout());
+                return new Failure(new TimeoutException);
             });
 
         $this->client = new Client(new DefaultConnectionPool($connector));
 
         $this->expectException(TimeoutException::class);
-        $this->expectExceptionMessage("Connection to 'localhost:1337' timed out, took longer than 1 ms");
 
         $request = new Request('http://localhost:1337/');
         $request->setTcpConnectTimeout(1);
 
         yield $this->client->request($request);
-
-        $this->assertLessThan(\microtime(true) - $start, 0.6);
     }
 
     public function testTimeoutDuringTlsEnable(): \Generator
@@ -117,10 +105,10 @@ class TimeoutTest extends AsyncTestCase
             }
         });
 
+        $this->setTimeout(600);
+
         try {
             $uri = "https://" . $server->getAddress() . "/";
-
-            $start = \microtime(true);
 
             $this->expectException(TimeoutException::class);
             $this->expectExceptionMessageRegExp("(TLS handshake with '127.0.0.1:\d+' @ '127.0.0.1:\d+' timed out, took longer than 100 ms)");
@@ -130,7 +118,6 @@ class TimeoutTest extends AsyncTestCase
 
             yield $this->client->request($request);
         } finally {
-            $this->assertLessThan(0.6, \microtime(true) - $start);
             $server->close();
         }
     }
@@ -150,10 +137,10 @@ class TimeoutTest extends AsyncTestCase
             }
         });
 
+        $this->setTimeout(2000);
+
         try {
             $uri = "http://" . $server->getAddress() . "/";
-
-            $start = \microtime(true);
 
             $request = new Request($uri);
 
@@ -167,46 +154,34 @@ class TimeoutTest extends AsyncTestCase
 
             yield $response->getBody()->buffer();
         } finally {
-            $this->assertLessThan(2, \microtime(true) - $start);
             $server->close();
         }
+
     }
 
     public function testTimeoutDuringConnectInterceptor(): \Generator
     {
-        $start = \microtime(true);
-
-        Loop::repeat(1000, static function () {
-            // dummy watcher, because socket pool doesn't do anything
-        });
+        $this->setTimeout(600);
 
         $connector = $this->createMock(Socket\Connector::class);
         $connector->method('connect')
-            ->willReturnCallback(static function (
+            ->willReturnCallback(function (
                 string $uri,
                 ?Socket\ConnectContext $connectContext = null,
                 ?CancellationToken $token = null
             ): Promise {
-                $deferred = new Deferred;
-
-                if ($token) {
-                    $token->subscribe([$deferred, 'fail']);
-                }
-
-                return $deferred->promise(); // never resolve
+                $this->assertSame(1, $connectContext->getConnectTimeout());
+                return new Failure(new TimeoutException);
             });
 
         $client = new Client(new DefaultConnectionPool($connector));
         $client->addApplicationInterceptor(new SetRequestTimeout(1));
 
         $this->expectException(TimeoutException::class);
-        $this->expectExceptionMessage("Connection to 'localhost:1337' timed out, took longer than 1 ms");
 
         $request = new Request('http://localhost:1337/');
 
         yield $client->request($request);
-
-        $this->assertLessThan(\microtime(true) - $start, 0.6);
     }
 
     public function testTimeoutDuringTlsEnableInterceptor(): \Generator
@@ -225,10 +200,10 @@ class TimeoutTest extends AsyncTestCase
             }
         });
 
+        $this->setTimeout(600);
+
         try {
             $uri = "https://" . $server->getAddress() . "/";
-
-            $start = \microtime(true);
 
             $this->expectException(TimeoutException::class);
             $this->expectExceptionMessageRegExp("(TLS handshake with '127.0.0.1:\d+' @ '127.0.0.1:\d+' timed out, took longer than 100 ms)");
@@ -242,7 +217,6 @@ class TimeoutTest extends AsyncTestCase
 
             yield $client->request($request);
         } finally {
-            $this->assertLessThan(0.6, \microtime(true) - $start);
             $server->close();
         }
     }

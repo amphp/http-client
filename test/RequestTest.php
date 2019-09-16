@@ -1,8 +1,9 @@
 <?php /** @noinspection PhpUndefinedClassInspection */
 
-namespace Amp\Http\Client;
+namespace Amp\Http\Client\Test;
 
 use Amp\Http\Client\Body\StringBody;
+use Amp\Http\Client\Request;
 use PHPUnit\Framework\TestCase;
 
 class RequestTest extends TestCase

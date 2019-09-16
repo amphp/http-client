@@ -1,6 +1,6 @@
 <?php /** @noinspection PhpUnhandledExceptionInspection */
 
-namespace Amp\Http\Client;
+namespace Amp\Http\Client\Test;
 
 use Amp\ByteStream\InMemoryStream;
 use Amp\ByteStream\InputStream;
@@ -9,12 +9,20 @@ use Amp\CancellationToken;
 use Amp\CancellationTokenSource;
 use Amp\CancelledException;
 use Amp\Delayed;
+use Amp\Http\Client\ApplicationInterceptor;
 use Amp\Http\Client\Body\FileBody;
 use Amp\Http\Client\Body\FormBody;
+use Amp\Http\Client\Client;
+use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Interceptor\DecompressResponse;
 use Amp\Http\Client\Interceptor\FollowRedirects;
 use Amp\Http\Client\Interceptor\SetRequestHeaderIfUnset;
 use Amp\Http\Client\Interceptor\TooManyRedirectsException;
+use Amp\Http\Client\NetworkInterceptor;
+use Amp\Http\Client\Request;
+use Amp\Http\Client\RequestBody;
+use Amp\Http\Client\Response;
+use Amp\Http\Client\SocketException;
 use Amp\Http\Server\RequestHandler\CallableRequestHandler;
 use Amp\Http\Server\Server;
 use Amp\Http\Status;

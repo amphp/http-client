@@ -1,8 +1,10 @@
 <?php
 
-namespace Amp\Http\Client;
+namespace Amp\Http\Client\Test;
 
 use Amp\ByteStream\InMemoryStream;
+use Amp\Http\Client\Request;
+use Amp\Http\Client\Response;
 use PHPUnit\Framework\TestCase;
 
 class ResponseTest extends TestCase
