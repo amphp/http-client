@@ -3,7 +3,6 @@
 namespace Amp\Http\Client\Test;
 
 use Amp\CancellationToken;
-use Amp\Deferred;
 use Amp\Failure;
 use Amp\Http\Client\Client;
 use Amp\Http\Client\Connection\DefaultConnectionPool;
@@ -156,7 +155,6 @@ class TimeoutTest extends AsyncTestCase
         } finally {
             $server->close();
         }
-
     }
 
     public function testTimeoutDuringConnectInterceptor(): \Generator
