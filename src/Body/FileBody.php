@@ -3,6 +3,7 @@
 namespace Amp\Http\Client\Body;
 
 use Amp\ByteStream\InputStream;
+use Amp\File\Driver;
 use Amp\Http\Client\RequestBody;
 use Amp\Promise;
 use Amp\Success;
@@ -20,6 +21,10 @@ final class FileBody implements RequestBody
      */
     public function __construct(string $path)
     {
+        if (!\interface_exists(Driver::class)) {
+            throw new \Error("File request bodies require amphp/file to be installed");
+        }
+
         $this->path = $path;
     }
 
