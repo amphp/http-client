@@ -19,7 +19,10 @@
         "ZLIB_ENCODING_DEFLATE",
         "json_encode",
         "json_last_error",
-        "JSON_ERROR_NONE"
+        "JSON_ERROR_NONE",
+        "Amp\\File\\Driver",
+        "Amp\\File\\open",
+        "Amp\\File\\size"
     ],
     "php-core-extensions": [
         "Core",
