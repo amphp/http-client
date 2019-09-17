@@ -35,7 +35,6 @@ use Psr\Log\NullLogger;
 use function Amp\asyncCall;
 use function Amp\call;
 use function Amp\Iterator\fromIterable;
-use function Amp\Promise\wait;
 
 class ClientHttpBinIntegrationTest extends AsyncTestCase
 {
@@ -167,7 +166,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $this->assertInstanceOf(Response::class, $response);
 
-        $result = \json_decode(wait($response->getBody()->buffer()), true);
+        $result = \json_decode(yield $response->getBody()->buffer(), true);
 
         $this->assertEquals($body, $result['data']);
     }
@@ -185,7 +184,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $this->assertInstanceOf(Response::class, $response);
 
-        $result = \json_decode(wait($response->getBody()->buffer()), true);
+        $result = \json_decode(yield $response->getBody()->buffer(), true);
 
         $this->assertEquals($body, $result['data']);
     }
@@ -278,7 +277,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $this->assertInstanceOf(Response::class, $response);
 
-        $body = wait($response->getBody()->buffer());
+        $body = yield $response->getBody()->buffer();
         $result = \json_decode($body, true);
 
         $this->assertEquals('0', $result['headers']['Content-Length']);
@@ -300,7 +299,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $this->assertInstanceOf(Response::class, $response);
 
-        $result = \json_decode(wait($response->getBody()->buffer()), true);
+        $result = \json_decode(yield $response->getBody()->buffer(), true);
 
         $this->assertEquals($field1, $result['form']['field1']);
         $this->assertEquals($field2, $result['form']['field2']);
@@ -322,7 +321,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $this->assertInstanceOf(Response::class, $response);
 
-        $result = \json_decode(wait($response->getBody()->buffer()), true);
+        $result = \json_decode(yield $response->getBody()->buffer(), true);
 
         $this->assertStringEqualsFile($bodyPath, $result['data']);
     }
@@ -347,7 +346,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $this->assertEquals(200, $response->getStatus());
 
-        $result = \json_decode(wait($response->getBody()->buffer()), true);
+        $result = \json_decode(yield $response->getBody()->buffer(), true);
 
         $this->assertEquals($field1, $result['form']['field1']);
         $this->assertStringEqualsFile($file1, $result['files']['file1']);
@@ -367,7 +366,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $this->assertEquals(200, $response->getStatus());
 
-        $result = \json_decode(wait($response->getBody()->buffer()), true);
+        $result = \json_decode(yield $response->getBody()->buffer(), true);
 
         $this->assertTrue($result['gzipped']);
     }
@@ -384,7 +383,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $this->assertEquals(200, $response->getStatus());
 
-        $result = \json_decode(wait($response->getBody()->buffer()), true);
+        $result = \json_decode(yield $response->getBody()->buffer(), true);
 
         $this->assertTrue($result['deflated']);
     }
@@ -513,8 +512,6 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
                 yield $emit(".");
             })));
         }), new NullLogger);
-
-//         wait($this->server->start());
 
         asyncCall(function () {
             /** @var Socket\EncryptableSocket $client */
