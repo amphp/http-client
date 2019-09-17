@@ -151,19 +151,20 @@ final class Http1Connection implements Connection
             $request = yield from $this->buildRequest($request);
             $protocolVersion = $this->determineProtocolVersion($request);
 
-            $trailersDeferred = new Deferred;
-
             if ($request->getTransferTimeout() > 0) {
                 $timeoutToken = new TimeoutCancellationToken($request->getTransferTimeout());
-                $readingCancellation = new CombinedCancellationToken($cancellation, $timeoutToken);
+                $combinedCancellation = new CombinedCancellationToken($cancellation, $timeoutToken);
             } else {
-                $readingCancellation = $cancellation;
+                $combinedCancellation = $cancellation;
             }
 
+            $id = $combinedCancellation->subscribe([$this, 'close']);
+
             try {
-                yield from $this->writeRequest($request, $protocolVersion);
-                return yield from $this->doRead($request, $cancellation, $readingCancellation, $trailersDeferred);
+                yield from $this->writeRequest($request, $protocolVersion, $combinedCancellation);
+                return yield from $this->readResponse($request, $cancellation, $combinedCancellation);
             } finally {
+                $combinedCancellation->unsubscribe($id);
                 $cancellation->throwIfRequested();
             }
         });
@@ -197,18 +198,16 @@ final class Http1Connection implements Connection
      * @param Request           $request
      * @param CancellationToken $originalCancellation
      * @param CancellationToken $readingCancellation
-     * @param Deferred          $trailersDeferred
      *
      * @return \Generator
      * @throws ParseException
      * @throws SocketException
      * @throws CancelledException
      */
-    private function doRead(
+    private function readResponse(
         Request $request,
         CancellationToken $originalCancellation,
-        CancellationToken $readingCancellation,
-        Deferred $trailersDeferred
+        CancellationToken $readingCancellation
     ): \Generator {
         $bodyEmitter = new Emitter;
 
@@ -216,6 +215,8 @@ final class Http1Connection implements Connection
         $bodyCallback = static function ($data) use ($bodyEmitter, &$backpressure): void {
             $backpressure = $bodyEmitter->emit($data);
         };
+
+        $trailersDeferred = new Deferred;
 
         $trailers = [];
         $trailersCallback = static function (array $headers) use (&$trailers): void {
@@ -233,7 +234,6 @@ final class Http1Connection implements Connection
 
                 $bodyCancellationSource = new CancellationTokenSource;
                 $bodyCancellationToken = new CombinedCancellationToken($readingCancellation, $bodyCancellationSource->getToken());
-                $bodyCancellationToken->subscribe([$this, 'close']);
 
                 $response->setBody(new ResponseBodyStream(new IteratorStream($bodyEmitter->iterate()), $bodyCancellationSource));
                 $response->setTrailers($trailersDeferred->promise());
@@ -251,7 +251,7 @@ final class Http1Connection implements Connection
                     &$backpressure,
                     &$trailers
                 ) {
-                    $cancellationId = $readingCancellation->subscribe([$this, 'close']);
+                    $id = $bodyCancellationToken->subscribe([$this, 'close']);
 
                     try {
                         // Required, otherwise responses without body hang
@@ -304,7 +304,7 @@ final class Http1Connection implements Connection
                         $bodyEmitter->fail($e);
                         $trailersDeferred->fail($e);
                     } finally {
-                        $readingCancellation->unsubscribe($cancellationId);
+                        $bodyCancellationToken->unsubscribe($id);
                     }
                 });
 
@@ -461,7 +461,7 @@ final class Http1Connection implements Connection
         throw new HttpException("None of the requested protocol versions is supported: " . \implode(", ", $protocolVersions));
     }
 
-    private function writeRequest(Request $request, string $protocolVersion): \Generator
+    private function writeRequest(Request $request, string $protocolVersion, CancellationToken $cancellation): \Generator
     {
         try {
             $rawHeaders = $this->generateRawHeader($request, $protocolVersion);
@@ -479,6 +479,8 @@ final class Http1Connection implements Connection
             $buffer = "";
 
             while (null !== $chunk = yield $body->read()) {
+                $cancellation->throwIfRequested();
+
                 if ($chunk === "") {
                     continue;
                 }
@@ -496,6 +498,8 @@ final class Http1Connection implements Connection
                 yield $this->socket->write($buffer);
                 $buffer = $chunk;
             }
+
+            $cancellation->throwIfRequested();
 
             // Flush last buffered chunk.
             yield $this->socket->write($buffer);
