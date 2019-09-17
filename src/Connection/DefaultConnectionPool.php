@@ -50,7 +50,7 @@ final class DefaultConnectionPool implements ConnectionPool
             $port = $uri->getPort() ?? $defaultPort;
 
             if ($host === '') {
-                throw new \Error('A host must be provided in the URI');
+                throw new HttpException('A host must be provided in the request URI: ' . $uri);
             }
 
             $authority = $host . ':' . $port;
@@ -104,7 +104,11 @@ final class DefaultConnectionPool implements ConnectionPool
 
                 try {
                     /** @var EncryptableSocket $socket */
-                    $socket = yield $this->connector->connect('tcp://' . $authority, $connectContext->withConnectTimeout($request->getTcpConnectTimeout()), $cancellation);
+                    $socket = yield $this->connector->connect(
+                        'tcp://' . $authority,
+                        $connectContext->withConnectTimeout($request->getTcpConnectTimeout()),
+                        $cancellation
+                    );
                 } catch (Socket\ConnectException $e) {
                     throw new SocketException(\sprintf("Connection to '%s' failed", $authority), 0, $e);
                 } catch (CancelledException $e) {
@@ -112,14 +116,20 @@ final class DefaultConnectionPool implements ConnectionPool
                     $cancellation->throwIfRequested();
 
                     // Otherwise we ran into a timeout of our TimeoutCancellationToken
-                    throw new TimeoutException(\sprintf("Connection to '%s' timed out, took longer than " . $request->getTcpConnectTimeout() . ' ms', $authority)); // don't pass $e
+                    throw new TimeoutException(\sprintf(
+                        "Connection to '%s' timed out, took longer than " . $request->getTcpConnectTimeout() . ' ms',
+                        $authority
+                    )); // don't pass $e
                 }
 
                 if ($isHttps) {
                     try {
                         $tlsState = $socket->getTlsState();
                         if ($tlsState === EncryptableSocket::TLS_STATE_DISABLED) {
-                            $tlsCancellationToken = new CombinedCancellationToken($cancellation, new TimeoutCancellationToken($request->getTlsHandshakeTimeout()));
+                            $tlsCancellationToken = new CombinedCancellationToken(
+                                $cancellation,
+                                new TimeoutCancellationToken($request->getTlsHandshakeTimeout())
+                            );
                             yield $socket->setupTls($tlsCancellationToken);
                         } elseif ($tlsState !== EncryptableSocket::TLS_STATE_ENABLED) {
                             $socket->close();
@@ -127,7 +137,10 @@ final class DefaultConnectionPool implements ConnectionPool
                         }
                     } catch (StreamException $exception) {
                         $socket->close();
-                        throw new SocketException(\sprintf("Connection to '%s' closed during TLS handshake", $authority), 0, $exception);
+                        throw new SocketException(\sprintf(
+                            "Connection to '%s' closed during TLS handshake",
+                            $authority
+                        ), 0, $exception);
                     } catch (CancelledException $e) {
                         $socket->close();
 
@@ -135,10 +148,17 @@ final class DefaultConnectionPool implements ConnectionPool
                         $cancellation->throwIfRequested();
 
                         // Otherwise we ran into a timeout of our TimeoutCancellationToken
-                        throw new TimeoutException(\sprintf("TLS handshake with '%s' @ '%s' timed out, took longer than " . $request->getTlsHandshakeTimeout() . ' ms', $authority, $socket->getRemoteAddress()->toString())); // don't pass $e
+                        throw new TimeoutException(\sprintf(
+                            "TLS handshake with '%s' @ '%s' timed out, took longer than " . $request->getTlsHandshakeTimeout() . ' ms',
+                            $authority,
+                            $socket->getRemoteAddress()->toString()
+                        )); // don't pass $e
                     }
 
-                    if ($socket->getTlsInfo()->getApplicationLayerProtocol() === 'h2') {
+                    $tlsInfo = $socket->getTlsInfo();
+                    \assert($tlsInfo !== null);
+
+                    if ($tlsInfo->getApplicationLayerProtocol() === 'h2') {
                         $connection = new Http2Connection($socket);
                         yield $connection->initialize();
                     } else {
