@@ -650,7 +650,7 @@ final class Http2Connection implements Connection
                             }
 
                             if (isset($this->bodyEmitters[$id])) { // Stream may close while reading body chunk.
-                                yield $this->bodyEmitters[$id]->emit($body);
+                                $this->bodyEmitters[$id]->emit($body);
                             }
                         }
 
