@@ -41,7 +41,7 @@ final class Http2Connection implements Connection
     public const DEFAULT_MAX_FRAME_SIZE = 1 << 14;
     public const DEFAULT_WINDOW_SIZE = (1 << 16) - 1;
 
-    public const MAX_INCREMENT = (1 << 31) - 1;
+    public const MAX_INCREMENT = (1 << 16) - 1;
 
     private const HEADER_NAME_REGEX = '/^[\x21-\x40\x5b-\x7e]+$/';
 
@@ -626,13 +626,25 @@ final class Http2Connection implements Connection
 
                         $body = \substr($buffer, 0, $length - $padding);
                         $buffer = \substr($buffer, $length);
+
+                        if ($this->serverWindow <= 0) {
+                            $this->serverWindow += self::MAX_INCREMENT;
+                            $this->writeFrame(\pack("N", self::MAX_INCREMENT), self::WINDOW_UPDATE, self::NOFLAG);
+                        }
+
+                        // Stream may close while reading body chunk.
+                        if (!isset($this->bodyEmitters[$id])) {
+                            continue 2;
+                        }
+
                         if ($body !== "") {
                             if (\is_int($stream->expectedLength)) {
                                 $stream->expectedLength -= \strlen($body);
                             }
 
-                            if (isset($this->bodyEmitters[$id])) { // Stream may close while reading body chunk.
-                                $promise = $this->bodyEmitters[$id]->emit($body);
+                            $promise = $this->bodyEmitters[$id]->emit($body);
+
+                            if ($stream->serverWindow <= 0) {
                                 $promise->onResolve(function (?\Throwable $exception) use ($id): void {
                                     if ($exception || !isset($this->streams[$id])) {
                                         return;
@@ -640,28 +652,16 @@ final class Http2Connection implements Connection
 
                                     $stream = $this->streams[$id];
 
-                                    if ($stream->state & Http2Stream::REMOTE_CLOSED || $stream->serverWindow > 0) {
+                                    if ($stream->state & Http2Stream::REMOTE_CLOSED) {
                                         return;
                                     }
 
-                                    if ($increment = $stream->maxBodySize - $stream->received) {
-                                        if ($increment > self::MAX_INCREMENT) {
-                                            $increment = self::MAX_INCREMENT;
-                                        }
+                                    $increment = \min($stream->maxBodySize - $stream->received, self::MAX_INCREMENT);
+                                    $stream->serverWindow += $increment;
 
-                                        $stream->serverWindow += $increment;
-
-                                        $this->writeFrame(\pack("N", $increment), self::WINDOW_UPDATE, self::NOFLAG, $id);
-                                    }
+                                    $this->writeFrame(\pack("N", $increment), self::WINDOW_UPDATE, self::NOFLAG, $id);
                                 });
                             }
-                        }
-
-                        if ($this->serverWindow <= 0) {
-                            $increment = \max($stream->serverWindow, $stream->maxBodySize);
-                            $this->serverWindow += $increment;
-
-                            $this->writeFrame(\pack("N", $increment), self::WINDOW_UPDATE, self::NOFLAG);
                         }
 
                         if (($flags & self::END_STREAM) !== "\0") {
