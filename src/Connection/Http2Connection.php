@@ -657,7 +657,9 @@ final class Http2Connection implements Connection
                                         return;
                                     }
 
-                                    $increment = \min($stream->maxBodySize - $stream->received, self::MAX_INCREMENT);
+                                    if (!($increment = \min($stream->maxBodySize - $stream->received - $stream->serverWindow, self::MAX_INCREMENT))) {
+                                        return;
+                                    }
                                     $stream->serverWindow += $increment;
 
                                     $this->writeFrame(\pack("N", $increment), self::WINDOW_UPDATE, self::NOFLAG, $id);
