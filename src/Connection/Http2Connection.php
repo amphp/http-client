@@ -41,7 +41,8 @@ final class Http2Connection implements Connection
     public const DEFAULT_MAX_FRAME_SIZE = 1 << 14;
     public const DEFAULT_WINDOW_SIZE = (1 << 16) - 1;
 
-    public const MAX_INCREMENT = (1 << 16) - 1;
+    private const MINIMUM_WINDOW = (1 << 15) - 1;
+    private const MAX_INCREMENT = (1 << 16) - 1;
 
     private const HEADER_NAME_REGEX = '/^[\x21-\x40\x5b-\x7e]+$/';
 
@@ -627,7 +628,7 @@ final class Http2Connection implements Connection
                         $body = \substr($buffer, 0, $length - $padding);
                         $buffer = \substr($buffer, $length);
 
-                        if ($this->serverWindow <= 0) {
+                        if ($this->serverWindow <= self::MINIMUM_WINDOW) {
                             $this->serverWindow += self::MAX_INCREMENT;
                             $this->writeFrame(\pack("N", self::MAX_INCREMENT), self::WINDOW_UPDATE, self::NOFLAG);
                         }
@@ -644,7 +645,7 @@ final class Http2Connection implements Connection
 
                             $promise = $this->bodyEmitters[$id]->emit($body);
 
-                            if ($stream->serverWindow <= 0) {
+                            if ($stream->serverWindow <= self::MINIMUM_WINDOW) {
                                 $promise->onResolve(function (?\Throwable $exception) use ($id): void {
                                     if ($exception || !isset($this->streams[$id])) {
                                         return;
@@ -652,7 +653,7 @@ final class Http2Connection implements Connection
 
                                     $stream = $this->streams[$id];
 
-                                    if ($stream->state & Http2Stream::REMOTE_CLOSED) {
+                                    if ($stream->state & Http2Stream::REMOTE_CLOSED || $stream->serverWindow > self::MINIMUM_WINDOW) {
                                         return;
                                     }
 
