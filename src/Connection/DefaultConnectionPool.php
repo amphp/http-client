@@ -186,7 +186,7 @@ final class DefaultConnectionPool implements ConnectionPool
                 return $connection;
             });
 
-            $this->connections[$key] = $connections;
+            $this->connections[$key] = $this->connections[$key] ?? new \SplObjectStorage;
             $this->connections[$key]->attach($promise);
 
             try {
