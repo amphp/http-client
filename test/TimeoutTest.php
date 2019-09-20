@@ -121,6 +121,40 @@ class TimeoutTest extends AsyncTestCase
         }
     }
 
+    public function testTimeoutDuringTlsEnableCatchable(): \Generator
+    {
+        $tlsContext = (new Socket\ServerTlsContext)
+            ->withDefaultCertificate(new Socket\Certificate(__DIR__ . "/tls/amphp.org.pem"));
+
+        $server = Socket\Server::listen("tcp://127.0.0.1:0", (new Socket\BindContext)->withTlsContext($tlsContext));
+
+        asyncCall(static function () use ($server) {
+            /** @var Socket\ResourceSocket $client */
+            while ($client = yield $server->accept()) {
+                Loop::delay(3000, static function () use ($client) {
+                    $client->close();
+                });
+            }
+        });
+
+        $this->setTimeout(600);
+
+        try {
+            $uri = "https://" . $server->getAddress() . "/";
+
+            $request = new Request($uri);
+            $request->setTlsHandshakeTimeout(100);
+
+            yield $this->client->request($request);
+
+            $this->fail('No exception thrown');
+        } catch (TimeoutException $e) {
+            $this->assertStringStartsWith('TLS handshake with \'127.0.0.1:', $e->getMessage());
+        } finally {
+            $server->close();
+        }
+    }
+
     public function testTimeoutDuringBodyInterceptor(): \Generator
     {
         $server = Socket\Server::listen("tcp://127.0.0.1:0");
