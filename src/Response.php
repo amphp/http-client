@@ -39,7 +39,7 @@ final class Response extends Message
         $this->protocolVersion = $protocolVersion;
         $this->status = $status;
         $this->reason = $reason;
-        $this->body = new Payload($body);
+        $this->setBody($body);
         $this->request = $request;
         $this->previousResponse = $previousResponse;
 
