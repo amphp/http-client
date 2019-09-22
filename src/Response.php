@@ -39,7 +39,7 @@ final class Response extends Message
         $this->protocolVersion = $protocolVersion;
         $this->status = $status;
         $this->reason = $reason;
-        $this->body = new Payload($body);
+        $this->setBody($body);
         $this->request = $request;
         $this->previousResponse = $previousResponse;
 
@@ -200,17 +200,10 @@ final class Response extends Message
 
     public function setBody(InputStream $body): void
     {
-        if ($body === null) {
-            $this->body = new Payload(new InMemoryStream);
-        } elseif ($body instanceof Payload) {
+        if ($body instanceof Payload) {
             $this->body = $body;
-        } elseif ($body instanceof InputStream) {
-            $this->body = new Payload($body);
-        } elseif (\is_scalar($body)) {
-            $this->body = new Payload(new InMemoryStream((string) $body));
         } else {
-            /** @noinspection PhpUndefinedClassInspection */
-            throw new \TypeError("Invalid body type: " . \gettype($body));
+            $this->body = new Payload($body);
         }
     }
 
