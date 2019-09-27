@@ -65,9 +65,14 @@ final class DefaultConnectionPool implements ConnectionPool
 
             foreach ($connections as $connection) {
                 try {
-                    $connection = yield $connection;
-                } catch (CancelledException $exception) {
-                    continue; // Ignore cancellation of other requests.
+                    /** @var Promise $connection */
+                    if ($connections->count() < 4) {
+                        $connection = yield Promise\timeout($connection, 0);
+                    } else {
+                        $connection = yield $connection;
+                    }
+                } catch (\Exception $exception) {
+                    continue; // Ignore cancellations and errors of other requests.
                 }
 
                 \assert($connection instanceof Connection);
