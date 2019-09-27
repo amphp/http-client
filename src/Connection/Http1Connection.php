@@ -441,7 +441,7 @@ final class Http1Connection implements Connection
         $params = Http\createFieldValueComponentMap(Http\parseFieldValueComponents($response, 'keep-alive'));
 
         return $this->priorTimeout = \min(
-            \max(0, $params['timeout'] ?? $this->priorTimeout),
+            \max(0, ((int) ($params['timeout'] ?? $this->priorTimeout)) - 1),
             self::MAX_KEEP_ALIVE_TIMEOUT
         );
     }

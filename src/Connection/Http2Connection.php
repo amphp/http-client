@@ -102,6 +102,12 @@ final class Http2Connection implements Connection
     public const DEFAULT_MAX_HEADER_SIZE = 1 << 20;
     public const DEFAULT_MAX_BODY_SIZE = 1 << 30;
 
+    private const PING_INTERVAL = 5 * 1000; // Ping interval in milliseconds.
+    private const IDLE_PING_COUNT = 2; // Number of idle pings to send before closing the connection.
+
+    /** @var string 64-bit for ping. */
+    private $counter = "aaaaaaaa";
+
     /** @var Socket */
     private $socket;
 
@@ -150,6 +156,12 @@ final class Http2Connection implements Connection
     /** @var bool */
     private $initialized = false;
 
+    /** @var int */
+    private $pingCount = 0;
+
+    /** @var string */
+    private $pingWatcher;
+
     public function __construct(Socket $socket)
     {
         $this->table = new HPack;
@@ -159,6 +171,16 @@ final class Http2Connection implements Connection
         if ($this->socket->isClosed()) {
             $this->onClose = null;
         }
+
+        $this->pingWatcher = Loop::repeat(self::PING_INTERVAL, function (): void {
+            if (++$this->pingCount > self::IDLE_PING_COUNT) {
+                $this->close();
+                return;
+            }
+
+            $this->ping();
+        });
+        Loop::unreference($this->pingWatcher);
     }
 
     /**
@@ -213,6 +235,10 @@ final class Http2Connection implements Connection
 
     private function request(Request $request, CancellationToken $token): Promise
     {
+        $this->pingCount = 0;
+
+        Loop::disable($this->pingWatcher);
+
         $request = clone $request;
 
         // Remove defunct HTTP/1.x headers.
@@ -307,6 +333,7 @@ final class Http2Connection implements Connection
                 }
 
                 if ($chunk === null) {
+                    Loop::enable($this->pingWatcher);
                     return yield $deferred->promise();
                 }
 
@@ -328,6 +355,8 @@ final class Http2Connection implements Connection
 
                 yield $this->writeData($buffer, $id);
 
+                Loop::enable($this->pingWatcher);
+
                 return yield $deferred->promise();
             } catch (\Throwable $exception) {
                 if (isset($this->streams[$id])) {
@@ -338,6 +367,11 @@ final class Http2Connection implements Connection
                 $token->unsubscribe($cancellationId);
             }
         });
+    }
+
+    public function ping(): Promise
+    {
+        return $this->writeFrame($this->counter++, self::PING, self::NOFLAG);
     }
 
     private function release(): void
@@ -1336,6 +1370,8 @@ final class Http2Connection implements Connection
                 asyncCall($callback, $this);
             }
         }
+
+        Loop::cancel($this->pingWatcher);
 
         return $promise;
     }
