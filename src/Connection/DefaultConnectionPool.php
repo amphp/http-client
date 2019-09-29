@@ -16,6 +16,7 @@ use Amp\Socket\ClientTlsContext;
 use Amp\Socket\ConnectContext;
 use Amp\Socket\Connector;
 use Amp\Socket\EncryptableSocket;
+use Amp\Success;
 use Amp\TimeoutCancellationToken;
 use function Amp\call;
 
@@ -64,12 +65,16 @@ final class DefaultConnectionPool implements ConnectionPool
             $connections = $this->connections[$key] ?? new \SplObjectStorage;
 
             foreach ($connections as $connection) {
+                \assert($connection instanceof Promise);
                 try {
-                    /** @var Promise $connection */
-                    if ($connections->count() < 4) {
-                        $connection = yield Promise\timeout($connection, 0);
-                    } else {
+                    if ($isHttps && $connections->count() === 1) {
+                        // Wait for first successful connection if using a secure connection.
                         $connection = yield $connection;
+                    } else {
+                        $connection = yield Promise\first([$connection, new Success]);
+                        if ($connection === null) {
+                            continue;
+                        }
                     }
                 } catch (\Exception $exception) {
                     continue; // Ignore cancellations and errors of other requests.
