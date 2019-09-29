@@ -2,7 +2,6 @@
 
 namespace Amp\Http\Client;
 
-use Amp\ByteStream\InMemoryStream;
 use Amp\ByteStream\InputStream;
 use Amp\ByteStream\Payload;
 use Amp\Http\Message;

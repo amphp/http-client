@@ -4,7 +4,6 @@ namespace Amp\Http\Client\Interceptor;
 
 class AddResponseHeaderTest extends InterceptorTest
 {
-
     public function testNetworkInterceptor(): \Generator
     {
         $this->givenNetworkInterceptor(new AddResponseHeader('foo', 'bar'));

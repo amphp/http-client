@@ -66,10 +66,13 @@ abstract class InterceptorTest extends AsyncTestCase
         parent::setUp();
 
         $this->serverSocket = SocketServer::listen('tcp://127.0.0.1:0');
-        $this->server = new Server([$this->serverSocket],
+        $this->server = new Server(
+            [$this->serverSocket],
             new CallableRequestHandler(static function () {
                 return new Response(Status::OK, ['content-type' => 'text-plain; charset=utf-8'], 'OK');
-            }), new NullLogger);
+            }),
+            new NullLogger
+        );
 
         $staticConnector = new StaticConnector($this->serverSocket->getAddress()->toString(), connector());
         $this->client = new Client(new DefaultConnectionPool($staticConnector));
