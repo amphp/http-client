@@ -10,9 +10,9 @@ require __DIR__ . '/../vendor/autoload.php';
 
 Loop::run(static function () {
     $uris = [
-        "https://newlifecoffee.com/",
-        "https://newlifecoffee.com/coffee",
-        "https://newlifecoffee.com/images/splash/summer-coolers.png",
+        "https://google.com/",
+        "https://github.com/",
+        "https://stackoverflow.com/",
     ];
 
     // Instantiate the HTTP client
