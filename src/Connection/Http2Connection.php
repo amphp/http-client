@@ -233,6 +233,46 @@ final class Http2Connection implements Connection
         );
     }
 
+    public function ping(): Promise
+    {
+        return $this->writeFrame($this->counter++, self::PING, self::NOFLAG);
+    }
+
+    public function isBusy(): bool
+    {
+        return $this->remainingStreams <= 0 || $this->socket->isClosed();
+    }
+
+    public function onClose(callable $onClose): void
+    {
+        if ($this->onClose === null) {
+            asyncCall($onClose, $this);
+            return;
+        }
+
+        $this->onClose[] = $onClose;
+    }
+
+    public function close(): Promise
+    {
+        return $this->shutdown();
+    }
+
+    public function getLocalAddress(): SocketAddress
+    {
+        return $this->socket->getLocalAddress();
+    }
+
+    public function getRemoteAddress(): SocketAddress
+    {
+        return $this->socket->getRemoteAddress();
+    }
+
+    public function getTlsInfo(): ?TlsInfo
+    {
+        return $this->socket instanceof EncryptableSocket ? $this->socket->getTlsInfo() : null;
+    }
+
     private function request(Request $request, CancellationToken $token): Promise
     {
         $this->pingCount = 0;
@@ -260,7 +300,10 @@ final class Http2Connection implements Connection
         if ($request->getTransferTimeout() > 0) {
             // Cancellation token combined with timeout token should not be stored in $stream->cancellationToken,
             // otherwise the timeout applies to the body transfer and pushes.
-            $token = new CombinedCancellationToken($token, new TimeoutCancellationToken($request->getTransferTimeout()));
+            $token = new CombinedCancellationToken(
+                $token,
+                new TimeoutCancellationToken($request->getTransferTimeout())
+            );
         }
 
         return call(function () use ($id, $request, $token): \Generator {
@@ -369,49 +412,9 @@ final class Http2Connection implements Connection
         });
     }
 
-    public function ping(): Promise
-    {
-        return $this->writeFrame($this->counter++, self::PING, self::NOFLAG);
-    }
-
     private function release(): void
     {
         ++$this->remainingStreams;
-    }
-
-    public function isBusy(): bool
-    {
-        return $this->remainingStreams <= 0 || $this->socket->isClosed();
-    }
-
-    public function onClose(callable $onClose): void
-    {
-        if ($this->onClose === null) {
-            asyncCall($onClose, $this);
-            return;
-        }
-
-        $this->onClose[] = $onClose;
-    }
-
-    public function close(): Promise
-    {
-        return $this->shutdown();
-    }
-
-    public function getLocalAddress(): SocketAddress
-    {
-        return $this->socket->getLocalAddress();
-    }
-
-    public function getRemoteAddress(): SocketAddress
-    {
-        return $this->socket->getRemoteAddress();
-    }
-
-    public function getTlsInfo(): ?TlsInfo
-    {
-        return $this->socket instanceof EncryptableSocket ? $this->socket->getTlsInfo() : null;
     }
 
     private function run(): \Generator
@@ -563,7 +566,7 @@ final class Http2Connection implements Connection
             $this->remainingStreams++;
         }
 
-        if (empty($this->pendingRequests) && empty($this->bodyEmitters) && empty($this->trailerDeferreds)) {
+        if (empty($this->pendingRequests) && empty($this->bodyEmitters) && empty($this->trailerDeferreds) && !$this->socket->isClosed()) {
             $this->socket->unreference();
         }
     }
@@ -691,7 +694,10 @@ final class Http2Connection implements Connection
                                         return;
                                     }
 
-                                    $increment = \min($stream->maxBodySize - $stream->received - $stream->serverWindow, self::MAX_INCREMENT);
+                                    $increment = \min(
+                                        $stream->maxBodySize - $stream->received - $stream->serverWindow,
+                                        self::MAX_INCREMENT
+                                    );
                                     if ($increment <= 0) {
                                         return;
                                     }
@@ -706,7 +712,11 @@ final class Http2Connection implements Connection
                             $stream->state |= Http2Stream::REMOTE_CLOSED;
 
                             if ($stream->expectedLength) {
-                                throw new Http2StreamException("Body length does not match content-length header", $id, self::PROTOCOL_ERROR);
+                                throw new Http2StreamException(
+                                    "Body length does not match content-length header",
+                                    $id,
+                                    self::PROTOCOL_ERROR
+                                );
                             }
 
                             if (!isset($this->bodyEmitters[$id], $this->trailerDeferreds[$id])) {
@@ -765,11 +775,14 @@ final class Http2Connection implements Connection
 
                         $id = $pushedId; // Switch ID to pushed stream for parsing headers.
 
-                        // no break to fall through to parsing remainder of PUSH_PROMISE frame as HEADERS frame.
+                    // no break to fall through to parsing remainder of PUSH_PROMISE frame as HEADERS frame.
 
                     case self::HEADERS:
                         if (!isset($this->streams[$id])) {
-                            throw new Http2ConnectionException("Headers already started on stream", self::PROTOCOL_ERROR);
+                            throw new Http2ConnectionException(
+                                "Headers already started on stream",
+                                self::PROTOCOL_ERROR
+                            );
                         }
 
                         $stream = $this->streams[$id];
@@ -816,7 +829,11 @@ final class Http2Connection implements Connection
                         }
 
                         if ($length > $maxHeaderSize) {
-                            throw new Http2StreamException("Headers exceed maximum length", $id, self::ENHANCE_YOUR_CALM);
+                            throw new Http2StreamException(
+                                "Headers exceed maximum length",
+                                $id,
+                                self::ENHANCE_YOUR_CALM
+                            );
                         }
 
                         while (\strlen($buffer) < $length) {
@@ -898,7 +915,10 @@ final class Http2Connection implements Connection
 
                     case self::SETTINGS:
                         if ($id !== 0) {
-                            throw new Http2ConnectionException("Non-zero stream ID with settings frame", self::PROTOCOL_ERROR);
+                            throw new Http2ConnectionException(
+                                "Non-zero stream ID with settings frame",
+                                self::PROTOCOL_ERROR
+                            );
                         }
 
                         if (($flags & self::ACK) !== "\0") {
@@ -946,7 +966,10 @@ final class Http2Connection implements Connection
                         }
 
                         if ($id !== 0) {
-                            throw new Http2ConnectionException("Non-zero stream ID with ping frame", self::PROTOCOL_ERROR);
+                            throw new Http2ConnectionException(
+                                "Non-zero stream ID with ping frame",
+                                self::PROTOCOL_ERROR
+                            );
                         }
 
                         while (\strlen($buffer) < 8) {
@@ -965,7 +988,10 @@ final class Http2Connection implements Connection
 
                     case self::GOAWAY:
                         if ($id !== 0) {
-                            throw new Http2ConnectionException("Non-zero stream ID with goaway frame", self::PROTOCOL_ERROR);
+                            throw new Http2ConnectionException(
+                                "Non-zero stream ID with goaway frame",
+                                self::PROTOCOL_ERROR
+                            );
                         }
 
                         $lastId = \unpack("N", $buffer)[1];
@@ -1003,7 +1029,11 @@ final class Http2Connection implements Connection
 
                         if ($buffer === "\0\0\0\0") {
                             if ($id) {
-                                throw new Http2StreamException("Invalid window update value", $id, self::PROTOCOL_ERROR);
+                                throw new Http2StreamException(
+                                    "Invalid window update value",
+                                    $id,
+                                    self::PROTOCOL_ERROR
+                                );
                             }
                             throw new Http2ConnectionException("Invalid window update value", self::PROTOCOL_ERROR);
                         }
@@ -1019,13 +1049,20 @@ final class Http2Connection implements Connection
                             $stream = $this->streams[$id];
 
                             if ($stream->clientWindow + $windowSize > (2 << 30) - 1) {
-                                throw new Http2StreamException("Current window size plus new window exceeds maximum size", $id, self::FLOW_CONTROL_ERROR);
+                                throw new Http2StreamException(
+                                    "Current window size plus new window exceeds maximum size",
+                                    $id,
+                                    self::FLOW_CONTROL_ERROR
+                                );
                             }
 
                             $stream->clientWindow += $windowSize;
                         } else {
                             if ($this->clientWindow + $windowSize > (2 << 30) - 1) {
-                                throw new Http2ConnectionException("Current window size plus new window exceeds maximum size", self::FLOW_CONTROL_ERROR);
+                                throw new Http2ConnectionException(
+                                    "Current window size plus new window exceeds maximum size",
+                                    self::FLOW_CONTROL_ERROR
+                                );
                             }
 
                             $this->clientWindow += $windowSize;
@@ -1045,7 +1082,10 @@ final class Http2Connection implements Connection
                         $stream = $this->streams[$id];
 
                         if ($stream->headers === null) {
-                            throw new Http2ConnectionException("No headers received before continuation frame", self::PROTOCOL_ERROR);
+                            throw new Http2ConnectionException(
+                                "No headers received before continuation frame",
+                                self::PROTOCOL_ERROR
+                            );
                         }
 
                         if ($stream->state & Http2Stream::REMOTE_CLOSED) {
@@ -1055,7 +1095,11 @@ final class Http2Connection implements Connection
 
                         if ($length > $maxHeaderSize - \strlen($stream->headers)) {
                             $continuation = false;
-                            throw new Http2StreamException("Headers exceed maximum length", $id, self::ENHANCE_YOUR_CALM);
+                            throw new Http2StreamException(
+                                "Headers exceed maximum length",
+                                $id,
+                                self::ENHANCE_YOUR_CALM
+                            );
                         }
 
                         while (\strlen($buffer) < $length) {
@@ -1107,7 +1151,10 @@ final class Http2Connection implements Connection
 
                         if ($name[0] === ':') {
                             if (!empty($headers) || !isset($knownHeaders[$name]) || isset($pseudo[$name])) {
-                                throw new Http2ConnectionException("Unknown or invalid pseudo headers", self::PROTOCOL_ERROR);
+                                throw new Http2ConnectionException(
+                                    "Unknown or invalid pseudo headers",
+                                    self::PROTOCOL_ERROR
+                                );
                             }
 
                             $pseudo[$name] = $value;
@@ -1136,11 +1183,18 @@ final class Http2Connection implements Connection
                             $query = null;
 
                             if ($method !== 'GET') {
-                                throw new Http2ConnectionException("Push promises method must be GET", self::PROTOCOL_ERROR);
+                                throw new Http2ConnectionException(
+                                    "Push promises method must be GET",
+                                    self::PROTOCOL_ERROR
+                                );
                             }
 
                             if (!\preg_match("#^([A-Z\d\.\-]+|\[[\d:]+\])(?::([1-9]\d*))?$#i", $host, $matches)) {
-                                throw new Http2StreamException("Invalid authority (host) name", $id, self::PROTOCOL_ERROR);
+                                throw new Http2StreamException(
+                                    "Invalid authority (host) name",
+                                    $id,
+                                    self::PROTOCOL_ERROR
+                                );
                             }
 
                             $host = $matches[1];
@@ -1158,10 +1212,10 @@ final class Http2Connection implements Connection
                             try {
                                 $uri = Uri\Http::createFromComponents([
                                     "scheme" => $scheme,
-                                    "host"   => $host,
-                                    "port"   => $port,
-                                    "path"   => $target,
-                                    "query"  => $query,
+                                    "host" => $host,
+                                    "port" => $port,
+                                    "path" => $target,
+                                    "query" => $query,
                                 ]);
                             } catch (Uri\UriException $exception) {
                                 throw new Http2ConnectionException("Invalid push promise URI", self::PROTOCOL_ERROR);
@@ -1176,9 +1230,14 @@ final class Http2Connection implements Connection
 
                             asyncCall(function () use ($id, $stream, $deferred): \Generator {
                                 $tokenSource = new CancellationTokenSource;
-                                $cancellationToken = new CombinedCancellationToken($stream->cancellationToken, $tokenSource->getToken());
+                                $cancellationToken = new CombinedCancellationToken(
+                                    $stream->cancellationToken,
+                                    $tokenSource->getToken()
+                                );
 
-                                $cancellationId = $cancellationToken->subscribe(function (CancelledException $exception) use ($id): void {
+                                $cancellationId = $cancellationToken->subscribe(function (
+                                    CancelledException $exception
+                                ) use ($id): void {
                                     if (!isset($this->streams[$id])) {
                                         return;
                                     }
@@ -1204,19 +1263,32 @@ final class Http2Connection implements Connection
 
                         if (isset($this->trailerDeferreds[$id]) && $stream->state & Http2Stream::RESERVED) {
                             if (($flags & self::END_STREAM) === "\0" || $stream->expectedLength) {
-                                throw new Http2StreamException("Stream not ended before receiving trailers", $id, self::PROTOCOL_ERROR);
+                                throw new Http2StreamException(
+                                    "Stream not ended before receiving trailers",
+                                    $id,
+                                    self::PROTOCOL_ERROR
+                                );
                             }
 
                             // Trailers must not contain pseudo-headers.
                             if (!empty($pseudo)) {
-                                throw new Http2StreamException("Trailers must not contain pseudo headers", $id, self::PROTOCOL_ERROR);
+                                throw new Http2StreamException(
+                                    "Trailers must not contain pseudo headers",
+                                    $id,
+                                    self::PROTOCOL_ERROR
+                                );
                             }
 
                             try {
                                 // Trailers constructor checks for any disallowed fields.
                                 $headers = new Trailers($headers);
                             } catch (InvalidHeaderException $exception) {
-                                throw new Http2StreamException("Disallowed trailer field name", $id, self::PROTOCOL_ERROR, $exception);
+                                throw new Http2StreamException(
+                                    "Disallowed trailer field name",
+                                    $id,
+                                    self::PROTOCOL_ERROR,
+                                    $exception
+                                );
                             }
 
                             $deferred = $this->trailerDeferreds[$id];
@@ -1231,7 +1303,10 @@ final class Http2Connection implements Connection
                         }
 
                         if (!isset($pseudo[":status"])) {
-                            throw new Http2ConnectionException("No status psuedo header in response", self::PROTOCOL_ERROR);
+                            throw new Http2ConnectionException(
+                                "No status psuedo header in response",
+                                self::PROTOCOL_ERROR
+                            );
                         }
 
                         if (!\preg_match("/^[1-9]\d\d$/", $pseudo[":status"])) {
@@ -1274,14 +1349,21 @@ final class Http2Connection implements Connection
                             if (isset($headers["content-length"])) {
                                 $contentLength = \implode($headers["content-length"]);
                                 if (!\preg_match('/^(0|[1-9][0-9]*)$/', $contentLength)) {
-                                    throw new Http2StreamException("Invalid content-length header value", $id, self::PROTOCOL_ERROR);
+                                    throw new Http2StreamException(
+                                        "Invalid content-length header value",
+                                        $id,
+                                        self::PROTOCOL_ERROR
+                                    );
                                 }
 
                                 $stream->expectedLength = (int) $contentLength;
                             }
 
                             $tokenSource = new CancellationTokenSource;
-                            $cancellationToken = new CombinedCancellationToken($stream->cancellationToken, $tokenSource->getToken());
+                            $cancellationToken = new CombinedCancellationToken(
+                                $stream->cancellationToken,
+                                $tokenSource->getToken()
+                            );
 
                             $cancellationToken->subscribe(function (CancelledException $exception) use ($id): void {
                                 if (!isset($this->streams[$id])) {
@@ -1297,7 +1379,10 @@ final class Http2Connection implements Connection
                                 $status,
                                 Status::getReason($status),
                                 $headers,
-                                new ResponseBodyStream(new IteratorStream($this->bodyEmitters[$id]->iterate()), $tokenSource),
+                                new ResponseBodyStream(
+                                    new IteratorStream($this->bodyEmitters[$id]->iterate()),
+                                    $tokenSource
+                                ),
                                 $stream->request,
                                 $this->trailerDeferreds[$id]->promise()
                             );
