@@ -89,14 +89,14 @@ final class Http2Connection implements Connection
     public const HTTP_1_1_REQUIRED = 0xd;
 
     private const KNOWN_RESPONSE_PSEUDO_HEADERS = [
-        ":status" => 1,
+        ":status" => true,
     ];
 
     private const KNOWN_REQUEST_PSEUDO_HEADERS = [
-        ":method" => 1,
-        ":authority" => 1,
-        ":path" => 1,
-        ":scheme" => 1,
+        ":method" => true,
+        ":authority" => true,
+        ":path" => true,
+        ":scheme" => true,
     ];
 
     public const DEFAULT_MAX_HEADER_SIZE = 1 << 20;
