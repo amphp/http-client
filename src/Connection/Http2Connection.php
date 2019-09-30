@@ -1325,6 +1325,9 @@ final class Http2Connection implements Connection
                             throw new Http2StreamException("Stream already used", $id, self::INTERNAL_ERROR);
                         }
 
+                        $deferred = $this->pendingRequests[$id];
+                        unset($this->pendingRequests[$id]);
+
                         if ($stream->state & Http2Stream::REMOTE_CLOSED) {
                             $response = new Response(
                                 '2',
@@ -1334,6 +1337,8 @@ final class Http2Connection implements Connection
                                 new InMemoryStream,
                                 $stream->request
                             );
+
+                            $deferred->resolve($response);
 
                             $this->releaseStream($id); // Response has no body, release stream immediately.
                         } else {
@@ -1365,15 +1370,6 @@ final class Http2Connection implements Connection
                                 $tokenSource->getToken()
                             );
 
-                            $cancellationToken->subscribe(function (CancelledException $exception) use ($id): void {
-                                if (!isset($this->streams[$id])) {
-                                    return;
-                                }
-
-                                $this->writeFrame(\pack("N", self::CANCEL), self::RST_STREAM, self::NOFLAG, $id);
-                                $this->releaseStream($id, $exception);
-                            });
-
                             $response = new Response(
                                 '2',
                                 $status,
@@ -1387,12 +1383,19 @@ final class Http2Connection implements Connection
                                 $this->trailerDeferreds[$id]->promise()
                             );
 
+                            $deferred->resolve($response);
+
+                            $cancellationToken->subscribe(function (CancelledException $exception) use ($id): void {
+                                if (!isset($this->streams[$id])) {
+                                    return;
+                                }
+
+                                $this->writeFrame(\pack("N", self::CANCEL), self::RST_STREAM, self::NOFLAG, $id);
+                                $this->releaseStream($id, $exception);
+                            });
+
                             $tokenSource = $cancellationToken = null; // Remove reference to cancellation token.
                         }
-
-                        $deferred = $this->pendingRequests[$id];
-                        unset($this->pendingRequests[$id]);
-                        $deferred->resolve($response);
                     } finally {
                         $deferred = $response = null; // Remove reference to response from parser.
                     }
