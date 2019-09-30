@@ -37,9 +37,9 @@ class TimeoutTest extends AsyncTestCase
             while ($client = yield $server->accept()) {
                 yield $client->write("HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n.");
 
-                Loop::delay(3000, static function () use ($client) {
+                Loop::unreference(Loop::delay(3000, static function () use ($client) {
                     $client->close();
-                });
+                }));
             }
         });
 
@@ -98,9 +98,9 @@ class TimeoutTest extends AsyncTestCase
         asyncCall(static function () use ($server) {
             /** @var Socket\ResourceSocket $client */
             while ($client = yield $server->accept()) {
-                Loop::delay(3000, static function () use ($client) {
+                Loop::unreference(Loop::delay(3000, static function () use ($client) {
                     $client->close();
-                });
+                }));
             }
         });
 
@@ -131,9 +131,9 @@ class TimeoutTest extends AsyncTestCase
         asyncCall(static function () use ($server) {
             /** @var Socket\ResourceSocket $client */
             while ($client = yield $server->accept()) {
-                Loop::delay(3000, static function () use ($client) {
+                Loop::unreference(Loop::delay(3000, static function () use ($client) {
                     $client->close();
-                });
+                }));
             }
         });
 
@@ -164,9 +164,9 @@ class TimeoutTest extends AsyncTestCase
             while ($client = yield $server->accept()) {
                 yield $client->write("HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n.");
 
-                Loop::delay(3000, static function () use ($client) {
+                Loop::unreference(Loop::delay(3000, static function () use ($client) {
                     $client->close();
-                });
+                }));
             }
         });
 
@@ -226,9 +226,9 @@ class TimeoutTest extends AsyncTestCase
         asyncCall(static function () use ($server) {
             /** @var Socket\ResourceSocket $client */
             while ($client = yield $server->accept()) {
-                Loop::delay(3000, static function () use ($client) {
+                Loop::unreference(Loop::delay(3000, static function () use ($client) {
                     $client->close();
-                });
+                }));
             }
         });
 
