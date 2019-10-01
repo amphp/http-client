@@ -31,6 +31,8 @@ interface Connection
      */
     public function isBusy(): bool;
 
+    public function getRemainingTime(): ?int;
+
     public function close(): Promise;
 
     public function onClose(callable $onClose): void;

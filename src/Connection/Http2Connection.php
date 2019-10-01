@@ -243,6 +243,11 @@ final class Http2Connection implements Connection
         return $this->remainingStreams <= 0 || $this->socket->isClosed();
     }
 
+    public function getRemainingTime(): ?int
+    {
+        return null; // TODO Proper implementation
+    }
+
     public function onClose(callable $onClose): void
     {
         if ($this->onClose === null) {

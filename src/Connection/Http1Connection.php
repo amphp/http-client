@@ -55,10 +55,13 @@ final class Http1Connection implements Connection
     private $timeoutWatcher;
 
     /** @var int Keep-Alive timeout from last response. */
-    private $priorTimeout = self::MAX_KEEP_ALIVE_TIMEOUT;
+    private $priorTimeout;
 
     /** @var callable[]|null */
     private $onClose = [];
+
+    /** @var int|null */
+    private $estimatedClose;
 
     public function __construct(Socket $socket)
     {
@@ -79,6 +82,15 @@ final class Http1Connection implements Connection
         return $this->busy || $this->socket->isClosed();
     }
 
+    public function getRemainingTime(): ?int
+    {
+        if ($this->estimatedClose === null) {
+            return null;
+        }
+
+        return \max(0, $this->estimatedClose - \microtime(true));
+    }
+
     public function onClose(callable $onClose): void
     {
         if ($this->socket->isClosed()) {
@@ -91,6 +103,8 @@ final class Http1Connection implements Connection
 
     public function close(): Promise
     {
+        $this->estimatedClose = 0;
+
         if ($this->timeoutWatcher !== null) {
             Loop::cancel($this->timeoutWatcher);
         }
@@ -242,9 +256,11 @@ final class Http1Connection implements Connection
                 }
 
                 $bodyCancellationSource = new CancellationTokenSource;
-                $bodyCancellationToken = new CombinedCancellationToken($readingCancellation, $bodyCancellationSource->getToken());
+                $bodyCancellationToken = new CombinedCancellationToken($readingCancellation,
+                    $bodyCancellationSource->getToken());
 
-                $response->setBody(new ResponseBodyStream(new IteratorStream($bodyEmitter->iterate()), $bodyCancellationSource));
+                $response->setBody(new ResponseBodyStream(new IteratorStream($bodyEmitter->iterate()),
+                    $bodyCancellationSource));
                 $response->setTrailers($trailersDeferred->promise());
 
                 // Read body async
@@ -296,8 +312,11 @@ final class Http1Connection implements Connection
                             }
                         }
 
-                        if ($parser->getState() !== Http1Parser::BODY_IDENTITY_EOF && $timeout = $this->determineKeepAliveTimeout($response)) {
-                            $this->timeoutWatcher = Loop::delay($timeout * 1000, [$this, 'close']);
+                        $timeout = $this->determineKeepAliveTimeout($response);
+
+                        if (($timeout === null || $timeout > 0) && $parser->getState() !== Http1Parser::BODY_IDENTITY_EOF) {
+                            $timeout = $timeout ?? self::MAX_KEEP_ALIVE_TIMEOUT * 1000;
+                            $this->timeoutWatcher = Loop::delay($timeout, [$this, 'close']);
                             Loop::unreference($this->timeoutWatcher);
                         } else {
                             $this->close();
@@ -316,6 +335,8 @@ final class Http1Connection implements Connection
                         $bodyCancellationToken->unsubscribe($id);
                     }
                 });
+
+                $this->estimateClose($response);
 
                 return $response;
             }
@@ -428,7 +449,7 @@ final class Http1Connection implements Connection
         return $request;
     }
 
-    private function determineKeepAliveTimeout(Response $response): int
+    private function determineKeepAliveTimeout(Response $response): ?int
     {
         $request = $response->getRequest();
 
@@ -448,11 +469,13 @@ final class Http1Connection implements Connection
         }
 
         $params = Http\createFieldValueComponentMap(Http\parseFieldValueComponents($response, 'keep-alive'));
+        $timeout = $params['timeout'] ?? $this->priorTimeout;
 
-        return $this->priorTimeout = \min(
-            \max(0, ((int) ($params['timeout'] ?? $this->priorTimeout)) - 1),
-            self::MAX_KEEP_ALIVE_TIMEOUT
-        );
+        if ($timeout === null) {
+            return null;
+        }
+
+        return $this->priorTimeout = \min(\max(0, (int) $timeout), self::MAX_KEEP_ALIVE_TIMEOUT);
     }
 
     private function determineProtocolVersion(Request $request): string
@@ -467,11 +490,15 @@ final class Http1Connection implements Connection
             return "1.0";
         }
 
-        throw new HttpException("None of the requested protocol versions is supported: " . \implode(", ", $protocolVersions));
+        throw new HttpException("None of the requested protocol versions is supported: " . \implode(", ",
+                $protocolVersions));
     }
 
-    private function writeRequest(Request $request, string $protocolVersion, CancellationToken $cancellation): \Generator
-    {
+    private function writeRequest(
+        Request $request,
+        string $protocolVersion,
+        CancellationToken $cancellation
+    ): \Generator {
         try {
             $rawHeaders = $this->generateRawHeader($request, $protocolVersion);
             yield $this->socket->write($rawHeaders);
@@ -553,5 +580,17 @@ final class Http1Connection implements Connection
         }
 
         return $header . "\r\n";
+    }
+
+    private function estimateClose(Response $response): void
+    {
+        $timeout = $this->determineKeepAliveTimeout($response);
+        if ($timeout === null) {
+            $this->estimatedClose = null;
+        } elseif ($timeout <= 0) {
+            $this->estimatedClose = 0;
+        } else {
+            $this->estimatedClose = (\microtime(true) + $timeout) * 1000;
+        }
     }
 }

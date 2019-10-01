@@ -38,7 +38,7 @@ final class Client
         $this->defaultNetworkInterceptors = [
             new SetRequestHeaderIfUnset('accept', '*/*'),
             new SetRequestHeaderIfUnset('user-agent', 'amphp/http-client (v4.x)'),
-            new DecompressResponse()
+            new DecompressResponse(),
         ];
     }
 
@@ -66,6 +66,11 @@ final class Client
                 $interceptor = \array_shift($client->applicationInterceptors);
                 $response = yield $interceptor->request($request, $cancellation, $client);
             } else {
+                $attempt = 0;
+
+                retry:
+
+                $attempt++;
                 $stream = yield $this->connectionPool->getStream($request, $cancellation);
 
                 \assert($stream instanceof Stream);
@@ -73,7 +78,15 @@ final class Client
                 $networkInterceptors = \array_merge($this->defaultNetworkInterceptors, $this->networkInterceptors);
                 $stream = new InterceptedStream($stream, ...$networkInterceptors);
 
-                $response = yield $stream->request($request, $cancellation);
+                try {
+                    $response = yield $stream->request($request, $cancellation);
+                } catch (SocketException $e) {
+                    if ($attempt <= 2 && isRetryAllowed($request)) {
+                        goto retry;
+                    }
+
+                    throw $e;
+                }
             }
 
             return $response;

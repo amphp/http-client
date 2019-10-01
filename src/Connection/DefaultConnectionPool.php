@@ -66,9 +66,10 @@ final class DefaultConnectionPool implements ConnectionPool
 
             foreach ($connections as $connection) {
                 \assert($connection instanceof Promise);
+
                 try {
                     if ($isHttps && $connections->count() === 1) {
-                        // Wait for first successful connection if using a secure connection.
+                        // Wait for first successful connection if using a secure connection (maybe we can use HTTP/2)
                         $connection = yield $connection;
                     } else {
                         $connection = yield Promise\first([$connection, new Success]);
@@ -84,6 +85,13 @@ final class DefaultConnectionPool implements ConnectionPool
 
                 if (!\array_intersect($request->getProtocolVersions(), $connection->getProtocolVersions())) {
                     continue; // Connection does not support any of the requested protocol versions.
+                }
+
+                $remainingTime = $connection->getRemainingTime();
+                $highCloseRisk = $remainingTime === null || $remainingTime < 2000;
+
+                if ($highCloseRisk && !isRetryAllowed($request)) {
+                    continue;
                 }
 
                 if (!$connection->isBusy()) {
