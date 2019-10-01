@@ -8,7 +8,6 @@ use Amp\ByteStream\IteratorStream;
 use Amp\CancellationToken;
 use Amp\CancellationTokenSource;
 use Amp\CancelledException;
-use Amp\Delayed;
 use Amp\Http\Client\ApplicationInterceptor;
 use Amp\Http\Client\Body\FileBody;
 use Amp\Http\Client\Body\FormBody;
@@ -16,6 +15,7 @@ use Amp\Http\Client\Client;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Interceptor\DecompressResponse;
 use Amp\Http\Client\Interceptor\FollowRedirects;
+use Amp\Http\Client\Interceptor\ModifyRequest;
 use Amp\Http\Client\Interceptor\SetRequestHeaderIfUnset;
 use Amp\Http\Client\Interceptor\TooManyRedirectsException;
 use Amp\Http\Client\NetworkInterceptor;
@@ -23,25 +23,19 @@ use Amp\Http\Client\Request;
 use Amp\Http\Client\RequestBody;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\SocketException;
-use Amp\Http\Server\RequestHandler\CallableRequestHandler;
-use Amp\Http\Server\Server;
-use Amp\Http\Status;
 use Amp\PHPUnit\AsyncTestCase;
-use Amp\Producer;
 use Amp\Promise;
 use Amp\Socket;
 use Amp\Success;
-use Psr\Log\NullLogger;
 use function Amp\asyncCall;
 use function Amp\call;
+use function Amp\delay;
 use function Amp\Iterator\fromIterable;
 
 class ClientHttpBinIntegrationTest extends AsyncTestCase
 {
     /** @var Socket\Server */
     private $socket;
-    /** @var Socket\Server */
-    private $server;
     /** @var Client */
     private $client;
     /** @var callable */
@@ -410,6 +404,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $response = yield $this->executeRequest($this->createRequest(), $cancellationTokenSource->getToken());
         $cancellationTokenSource->cancel();
         $this->expectException(CancelledException::class);
+
         yield $response->getBody()->buffer();
     }
 
@@ -491,6 +486,43 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         yield $this->executeRequest($request);
     }
 
+    public function testHttp2Support(): \Generator
+    {
+        /** @var Response $response */
+        $response = yield $this->client->request('https://http2.pro/api/v1');
+        $body = yield $response->getBody()->buffer();
+        $json = \json_decode($body, true);
+
+        $this->assertSame(1, $json['http2']);
+        $this->assertSame('HTTP/2.0', $json['protocol']);
+        $this->assertSame(1, $json['push']);
+        $this->assertSame('2', $response->getProtocolVersion());
+    }
+
+    public function testConcurrentSlowNetworkInterceptor(): \Generator
+    {
+        $this->client->addNetworkInterceptor(new ModifyRequest(static function (Request $request) {
+            yield delay(5000);
+
+            return $request;
+        }));
+
+        /** @var Response $response1 */
+        $response1 = yield $this->client->request('https://http2.pro/api/v1');
+
+        /** @var Response $response2 */
+        $response2 = yield $this->client->request('https://http2.pro/api/v1');
+
+        $body1 = yield $response1->getBody()->buffer();
+        $body2 = yield $response2->getBody()->buffer();
+
+        $json1 = \json_decode($body1, true);
+        $json2 = \json_decode($body2, true);
+
+        $this->assertSame(1, $json1['http2']);
+        $this->assertSame(1, $json2['http2']);
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -503,19 +535,11 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $this->socket = Socket\Server::listen('127.0.0.1:0');
         $this->socket->unreference();
-        $this->server = new Server([$this->socket], new CallableRequestHandler(static function () {
-            return new \Amp\Http\Server\Response(Status::OK, [], new IteratorStream(new Producer(static function (
-                $emit
-            ) {
-                yield $emit(".");
-                yield new Delayed(5000);
-                yield $emit(".");
-            })));
-        }), new NullLogger);
 
         asyncCall(function () {
             /** @var Socket\EncryptableSocket $client */
             $client = yield $this->socket->accept();
+            $client->unreference();
             yield ($this->responseCallback)($client);
         });
     }
@@ -533,7 +557,9 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
             return call(static function () use ($socket, $delay, $chunks) {
                 foreach ($chunks as $chunk) {
                     $socket->write($chunk);
-                    yield new Delayed($delay);
+                    $delay = delay($delay);
+                    $delay->unreference();
+                    yield $delay;
                 }
             });
         };

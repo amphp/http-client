@@ -14,16 +14,16 @@ final class HttpStream implements Stream
     private $connection;
 
     /** @var callable */
-    private $request;
+    private $requestCallback;
 
     /** @var callable|null */
     private $release;
 
-    public function __construct(Connection $connection, callable $request, callable $release)
+    public function __construct(Connection $connection, callable $requestCallback, callable $releaseCallback)
     {
         $this->connection = $connection;
-        $this->request = $request;
-        $this->release = $release;
+        $this->requestCallback = $requestCallback;
+        $this->release = $releaseCallback;
     }
 
     public function __destruct()
@@ -41,7 +41,7 @@ final class HttpStream implements Stream
 
         $this->release = null;
 
-        return ($this->request)($request, $token);
+        return ($this->requestCallback)($request, $token);
     }
 
     public function getLocalAddress(): SocketAddress

@@ -69,6 +69,11 @@ final class Http1Connection implements Connection
         }
     }
 
+    public function __destruct()
+    {
+        $this->close();
+    }
+
     public function isBusy(): bool
     {
         return $this->busy || $this->socket->isClosed();
@@ -86,6 +91,10 @@ final class Http1Connection implements Connection
 
     public function close(): Promise
     {
+        if ($this->timeoutWatcher !== null) {
+            Loop::cancel($this->timeoutWatcher);
+        }
+
         $this->socket->close();
 
         if ($this->onClose !== null) {
@@ -93,7 +102,7 @@ final class Http1Connection implements Connection
             $this->onClose = null;
 
             foreach ($onClose as $callback) {
-                Promise\rethrow(call($callback, $this));
+                asyncCall($callback, $this);
             }
         }
 
