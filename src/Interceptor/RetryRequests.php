@@ -36,7 +36,7 @@ final class RetryRequests implements ApplicationInterceptor
                     // Request is invalid, so do not retry.
                     throw $exception;
                 } catch (HttpException $exception) {
-                    if (!$this->isRetryable($request)) {
+                    if (!$request->isRetryable()) {
                         throw $exception;
                     }
                     // Request can safely be retried.
@@ -49,11 +49,5 @@ final class RetryRequests implements ApplicationInterceptor
 
             throw $exception;
         });
-    }
-
-    private function isRetryable(Request $request): bool
-    {
-        // https://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html
-        return \in_array($request->getMethod(), ['GET', 'HEAD', 'PUT', 'DELETE'], true);
     }
 }

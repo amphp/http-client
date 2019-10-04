@@ -25,6 +25,8 @@ final class DefaultConnectionPool implements ConnectionPool
 {
     private const PROTOCOL_VERSIONS = ['1.0', '1.1', '2'];
 
+    private const TIMEOUT_BUFFER = 2000;
+
     /** @var Connector */
     private $connector;
 
@@ -92,13 +94,22 @@ final class DefaultConnectionPool implements ConnectionPool
 
                 \assert($connection instanceof Connection);
 
+                if ($connection->isBusy()) {
+                    continue; // Connection is currently used to full capacity.
+                }
+
                 if (!\array_intersect($request->getProtocolVersions(), $connection->getProtocolVersions())) {
                     continue; // Connection does not support any of the requested protocol versions.
                 }
 
-                if (!$connection->isBusy()) {
-                    return $connection->getStream($request);
+                if ($connection instanceof Http1Connection
+                    && $connection->getRemainingTime() < self::TIMEOUT_BUFFER
+                    && !$request->isRetryable()
+                ) {
+                    continue; // Connection is at high-risk of closing before the request can be sent.
                 }
+
+                return $connection->getStream($request);
             }
 
             $promise = new Coroutine($this->createConnection($request, $cancellation, $authority, $isHttps));

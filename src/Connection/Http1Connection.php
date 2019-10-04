@@ -61,6 +61,9 @@ final class Http1Connection implements Connection
     /** @var callable[]|null */
     private $onClose = [];
 
+    /** @var int */
+    private $estimatedClose;
+
     public function __construct(Socket $socket)
     {
         $this->socket = $socket;
@@ -68,6 +71,8 @@ final class Http1Connection implements Connection
         if ($this->socket->isClosed()) {
             $this->onClose = null;
         }
+
+        $this->estimatedClose = (int) ((\microtime(true) + self::MAX_KEEP_ALIVE_TIMEOUT) * 1000);
     }
 
     public function __destruct()
@@ -92,6 +97,8 @@ final class Http1Connection implements Connection
 
     public function close(): Promise
     {
+        $this->estimatedClose = 0;
+
         if ($this->timeoutWatcher !== null) {
             Loop::cancel($this->timeoutWatcher);
         }
@@ -303,6 +310,7 @@ final class Http1Connection implements Connection
                         if ($timeout > 0 && $parser->getState() !== Http1Parser::BODY_IDENTITY_EOF) {
                             $this->timeoutWatcher = Loop::delay($timeout * 1000, [$this, 'close']);
                             Loop::unreference($this->timeoutWatcher);
+                            $this->estimatedClose = (int) ((\microtime(true) + $timeout) * 1000);
                         } else {
                             $this->close();
                         }
@@ -330,6 +338,14 @@ final class Http1Connection implements Connection
         } catch (StreamException $e) {
             throw new SocketException('Receiving the response headers failed: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * @return int Approximate number of milliseconds remaining until the connection is closed.
+     */
+    public function getRemainingTime(): int
+    {
+        return (int) \max(0, $this->estimatedClose - \microtime(true) * 1000);
     }
 
     private function withCancellation(Promise $promise, CancellationToken $cancellationToken): Promise
@@ -455,7 +471,7 @@ final class Http1Connection implements Connection
 
         $timeout = (int) ($params['timeout'] ?? $this->priorTimeout);
 
-        return $this->priorTimeout = \min(\max(0, $timeout - 1), self::MAX_KEEP_ALIVE_TIMEOUT);
+        return $this->priorTimeout = \min(\max(0, $timeout), self::MAX_KEEP_ALIVE_TIMEOUT);
     }
 
     private function determineProtocolVersion(Request $request): string
