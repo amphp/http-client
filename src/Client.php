@@ -7,6 +7,7 @@ use Amp\Http\Client\Connection\ConnectionPool;
 use Amp\Http\Client\Connection\DefaultConnectionPool;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\Interceptor\DecompressResponse;
+use Amp\Http\Client\Interceptor\FollowRedirects;
 use Amp\Http\Client\Interceptor\RetryRequests;
 use Amp\Http\Client\Interceptor\SetRequestHeaderIfUnset;
 use Amp\Http\Client\Internal\InterceptedStream;
@@ -24,24 +25,26 @@ final class Client
     private $connectionPool;
 
     /** @var ApplicationInterceptor[] */
-    private $applicationInterceptors;
-    /** @var ApplicationInterceptor[] */
-    private $defaultApplicationInterceptors;
+    private $applicationInterceptors = [];
+
     /** @var NetworkInterceptor[] */
     private $networkInterceptors = [];
 
     /** @var NetworkInterceptor[] */
     private $defaultNetworkInterceptors;
 
-    public function __construct(?ConnectionPool $connectionPool = null, int $retryLimit = 3)
+    /** @var RetryRequests */
+    private $retryInterceptor;
+
+    /** @var FollowRedirects */
+    private $followRedirects;
+
+    public function __construct(?ConnectionPool $connectionPool = null)
     {
         $this->connectionPool = $connectionPool ?? new DefaultConnectionPool;
 
         $this->followRedirects = new FollowRedirects;
-
-        $this->defaultApplicationInterceptors = [
-            new RetryRequests($retryLimit),
-        ];
+        $this->retryInterceptor = new RetryRequests(3);
 
         // We want to set these by default if the user doesn't choose otherwise
         $this->defaultNetworkInterceptors = [
@@ -69,17 +72,8 @@ final class Client
             $request = new Request($requestOrUri);
         }
 
-        $client = clone $this;
-
-        if ($client->defaultApplicationInterceptors) {
-            $client->applicationInterceptors = \array_merge(
-                $client->applicationInterceptors,
-                $client->defaultApplicationInterceptors
-            );
-            $client->defaultApplicationInterceptors = [];
-        }
-
-        if ($client->applicationInterceptors) {
+        if ($this->applicationInterceptors) {
+            $client = clone $this;
             $interceptor = \array_shift($client->applicationInterceptors);
             return $interceptor->request($request, $cancellation, $client);
         }
@@ -90,12 +84,18 @@ final class Client
             return $this->followRedirects->request($request, $cancellation, $client);
         }
 
-        return call(function () use ($client, $request, $cancellation) {
-            $stream = yield $client->connectionPool->getStream($request, $cancellation);
+        if ($this->retryInterceptor) {
+            $client = clone $this;
+            $client->retryInterceptor = null;
+            return $this->retryInterceptor->request($request, $cancellation, $client);
+        }
+
+        return call(function () use ($request, $cancellation) {
+            $stream = yield $this->connectionPool->getStream($request, $cancellation);
 
             \assert($stream instanceof Stream);
 
-            $networkInterceptors = \array_merge($client->defaultNetworkInterceptors, $client->networkInterceptors);
+            $networkInterceptors = \array_merge($this->defaultNetworkInterceptors, $this->networkInterceptors);
             $stream = new InterceptedStream($stream, ...$networkInterceptors);
 
             return yield $stream->request($request, $cancellation);
@@ -141,6 +141,16 @@ final class Client
         return $client;
     }
 
+    /**
+     * @param int $retryLimit Maximum number of times a request may be retried. Only certain requests will be retried
+     *                        automatically (GET, HEAD, PUT, and DELETE requests are automatically retried, or any
+     *                        request that was indicated as unprocessed by the HTTP server).
+     */
+    public function setRetryLimit(int $retryLimit): void
+    {
+        $this->retryInterceptor = new RetryRequests($retryLimit);
+    }
+    
     /**
      * Returns a client that will automatically request the URI supplied by a redirect response (3xx status codes)
      * and return that response instead of the redirect response.

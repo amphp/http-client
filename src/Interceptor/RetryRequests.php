@@ -7,6 +7,7 @@ use Amp\Http\Client\ApplicationInterceptor;
 use Amp\Http\Client\Client;
 use Amp\Http\Client\Connection\UnprocessedRequestException;
 use Amp\Http\Client\HttpException;
+use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\Request;
 use Amp\Promise;
 use function Amp\call;
@@ -31,6 +32,9 @@ final class RetryRequests implements ApplicationInterceptor
                     return yield $client->request(clone $request, $cancellation);
                 } catch (UnprocessedRequestException $exception) {
                     // Request was deemed retryable by connection, so carry on.
+                } catch (InvalidRequestException $exception) {
+                    // Request is invalid, so do not retry.
+                    throw $exception;
                 } catch (HttpException $exception) {
                     if (!$this->isRetryable($request)) {
                         throw $exception;
