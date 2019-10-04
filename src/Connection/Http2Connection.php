@@ -102,7 +102,7 @@ final class Http2Connection implements Connection
     public const DEFAULT_MAX_HEADER_SIZE = 1 << 20;
     public const DEFAULT_MAX_BODY_SIZE = 1 << 30;
 
-    private const PING_INTERVAL = 5 * 1000; // Ping interval in milliseconds.
+    private const PING_INTERVAL = 10 * 1000; // Ping interval in milliseconds.
     private const IDLE_PING_COUNT = 2; // Number of idle pings to send before closing the connection.
 
     /** @var string 64-bit for ping. */
@@ -284,6 +284,7 @@ final class Http2Connection implements Connection
         // Remove defunct HTTP/1.x headers.
         $request->removeHeader('host');
         $request->removeHeader('connection');
+        $request->removeHeader('transfer-encoding');
 
         $id = $this->streamId += 2; // Client streams should be odd-numbered, starting at 1.
 
@@ -1451,8 +1452,13 @@ final class Http2Connection implements Connection
         $this->socket->close();
 
         if (!empty($this->streams)) {
-            $exception = new SocketException("Connection closed", $reason->getCode(), $reason);
+            $reason = $exception = $reason ?? new SocketException("Connection closed");
             foreach ($this->streams as $id => $stream) {
+                $exception = $reason;
+                if ($id > $lastId && $stream->request !== null) {
+                    $exception = new UnprocessedRequestException($stream->request, $reason);
+                }
+
                 $this->releaseStream($id, $exception);
             }
         }

@@ -7,7 +7,7 @@ use Amp\Http\Client\Connection\ConnectionPool;
 use Amp\Http\Client\Connection\DefaultConnectionPool;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\Interceptor\DecompressResponse;
-use Amp\Http\Client\Interceptor\FollowRedirects;
+use Amp\Http\Client\Interceptor\RetryRequests;
 use Amp\Http\Client\Interceptor\SetRequestHeaderIfUnset;
 use Amp\Http\Client\Internal\InterceptedStream;
 use Amp\NullCancellationToken;
@@ -24,22 +24,24 @@ final class Client
     private $connectionPool;
 
     /** @var ApplicationInterceptor[] */
-    private $applicationInterceptors = [];
-
+    private $applicationInterceptors;
+    /** @var ApplicationInterceptor[] */
+    private $defaultApplicationInterceptors;
     /** @var NetworkInterceptor[] */
     private $networkInterceptors = [];
 
     /** @var NetworkInterceptor[] */
     private $defaultNetworkInterceptors;
 
-    /** @var FollowRedirects|null */
-    private $followRedirects;
-
-    public function __construct(?ConnectionPool $connectionPool = null)
+    public function __construct(?ConnectionPool $connectionPool = null, int $retryLimit = 3)
     {
         $this->connectionPool = $connectionPool ?? new DefaultConnectionPool;
 
         $this->followRedirects = new FollowRedirects;
+
+        $this->defaultApplicationInterceptors = [
+            new RetryRequests($retryLimit),
+        ];
 
         // We want to set these by default if the user doesn't choose otherwise
         $this->defaultNetworkInterceptors = [
@@ -67,8 +69,17 @@ final class Client
             $request = new Request($requestOrUri);
         }
 
-        if ($this->applicationInterceptors) {
-            $client = clone $this;
+        $client = clone $this;
+
+        if ($client->defaultApplicationInterceptors) {
+            $client->applicationInterceptors = \array_merge(
+                $client->applicationInterceptors,
+                $client->defaultApplicationInterceptors
+            );
+            $client->defaultApplicationInterceptors = [];
+        }
+
+        if ($client->applicationInterceptors) {
             $interceptor = \array_shift($client->applicationInterceptors);
             return $interceptor->request($request, $cancellation, $client);
         }
@@ -79,12 +90,12 @@ final class Client
             return $this->followRedirects->request($request, $cancellation, $client);
         }
 
-        return call(function () use ($request, $cancellation) {
-            $stream = yield $this->connectionPool->getStream($request, $cancellation);
+        return call(function () use ($client, $request, $cancellation) {
+            $stream = yield $client->connectionPool->getStream($request, $cancellation);
 
             \assert($stream instanceof Stream);
 
-            $networkInterceptors = \array_merge($this->defaultNetworkInterceptors, $this->networkInterceptors);
+            $networkInterceptors = \array_merge($client->defaultNetworkInterceptors, $client->networkInterceptors);
             $stream = new InterceptedStream($stream, ...$networkInterceptors);
 
             return yield $stream->request($request, $cancellation);
