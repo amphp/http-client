@@ -16,6 +16,7 @@ use Amp\Http\Status;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Promise;
 use Amp\Socket\Server as SocketServer;
+use Amp\Socket\Socket;
 use Amp\Socket\StaticConnector;
 use Psr\Log\NullLogger;
 use function Amp\call;
@@ -23,8 +24,11 @@ use function Amp\Socket\connector;
 
 abstract class InterceptorTest extends AsyncTestCase
 {
+    /** @var Client */
     private $client;
+    /** @var Socket */
     private $serverSocket;
+    /** @var Server */
     private $server;
 
     /** @var Request */
@@ -78,9 +82,9 @@ abstract class InterceptorTest extends AsyncTestCase
         $this->client = new Client(new DefaultConnectionPool($staticConnector));
     }
 
-    final protected function thenRequestHasHeader(string $field, string $value): void
+    final protected function thenRequestHasHeader(string $field, string ...$values): void
     {
-        $this->assertSame([$value], $this->request->getHeaderArray($field));
+        $this->assertSame($values, $this->request->getHeaderArray($field));
     }
 
     final protected function thenRequestDoesNotHaveHeader(string $field): void
@@ -88,9 +92,9 @@ abstract class InterceptorTest extends AsyncTestCase
         $this->assertSame([], $this->request->getHeaderArray($field));
     }
 
-    final protected function thenResponseHasHeader(string $field, string $value): void
+    final protected function thenResponseHasHeader(string $field, string ...$values): void
     {
-        $this->assertSame([$value], $this->response->getHeaderArray($field));
+        $this->assertSame($values, $this->response->getHeaderArray($field));
     }
 
     final protected function thenResponseDoesNotHaveHeader(string $field): void
