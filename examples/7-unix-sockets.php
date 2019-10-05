@@ -17,22 +17,21 @@ Loop::run(static function () {
         $connector = new StaticConnector("unix:///var/run/docker.sock", new DnsConnector);
         $client = new Client(new DefaultConnectionPool($connector));
 
-        // Artax currently requires a host, so just use a dummy one.
+        // amphp/http-client requires a host, so just use a dummy one.
         $request = new Request('http://docker/info');
-        $promise = $client->request($request);
 
         /** @var Response $response */
-        $response = yield $promise;
+        $response = yield $client->request($request);
 
         \printf(
-            "HTTP/%s %d %s\n\n",
+            "HTTP/%s %d %s\r\n\r\n",
             $response->getProtocolVersion(),
             $response->getStatus(),
             $response->getReason()
         );
 
         $body = yield $response->getBody()->buffer();
-        print $body . "\n";
+        print $body . "\r\n";
     } catch (HttpException $error) {
         echo $error;
     }

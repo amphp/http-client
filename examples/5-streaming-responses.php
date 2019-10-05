@@ -42,7 +42,7 @@ Loop::run(static function () {
 
         // Output the results
         \printf(
-            "HTTP/%s %d %s\n%s\n\n",
+            "HTTP/%s %d %s\r\n%s\r\n\r\n",
             $response->getProtocolVersion(),
             $response->getStatus(),
             $response->getReason(),
@@ -51,7 +51,7 @@ Loop::run(static function () {
 
         foreach ($response->getHeaders() as $field => $values) {
             foreach ($values as $value) {
-                print "$field: $value\n";
+                print "$field: $value\r\n";
             }
         }
 
@@ -85,7 +85,7 @@ Loop::run(static function () {
         StatCache::clear($path);
         $size = yield Amp\File\size($path);
 
-        print \sprintf("%s has a size of %.2fMB\n", $path, (float) $size / 1024 / 1024);
+        print \sprintf("%s has a size of %.2fMB\r\n", $path, (float) $size / 1024 / 1024);
     } catch (HttpException $error) {
         // If something goes wrong Amp will throw the exception where the promise was yielded.
         // The Client::request() method itself will never throw directly, but returns a promise.

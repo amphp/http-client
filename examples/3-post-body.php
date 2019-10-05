@@ -30,7 +30,7 @@ Loop::run(static function () {
 
         // Output the results
         \printf(
-            "HTTP/%s %d %s\n\n",
+            "HTTP/%s %d %s\r\n\r\n",
             $response->getProtocolVersion(),
             $response->getStatus(),
             $response->getReason()
@@ -38,7 +38,7 @@ Loop::run(static function () {
 
         // The response body is an instance of Payload, which allows buffering or streaming by the consumers choice.
         $body = yield $response->getBody()->buffer();
-        print $body . "\n";
+        print $body . "\r\n";
     } catch (HttpException $error) {
         // If something goes wrong Amp will throw the exception where the promise was yielded.
         // The Client::request() method itself will never throw directly, but returns a promise.

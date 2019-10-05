@@ -14,7 +14,7 @@ Loop::run(static function () use ($argv) {
         $client = new Client;
 
         // Make an asynchronous HTTP request
-        $promise = $client->request(new Request($argv[1] ?? 'https://httpbin.org/user-agent'));
+        $promise = $client->request($argv[1] ?? 'https://httpbin.org/user-agent');
 
         // Client::request() is asynchronous! It doesn't return a response. Instead, it returns a promise to resolve the
         // response at some point in the future when we've received the headers of the response. Here we use yield which
