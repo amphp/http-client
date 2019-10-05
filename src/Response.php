@@ -2,6 +2,7 @@
 
 namespace Amp\Http\Client;
 
+use Amp\ByteStream\InMemoryStream;
 use Amp\ByteStream\InputStream;
 use Amp\ByteStream\Payload;
 use Amp\Http\Message;
@@ -197,12 +198,21 @@ final class Response extends Message
         return $this->body;
     }
 
-    public function setBody(InputStream $body): void
+    public function setBody($body): void
     {
         if ($body instanceof Payload) {
             $this->body = $body;
-        } else {
+        } elseif ($body === null) {
+            $this->body = new Payload(new InMemoryStream);
+        } elseif (\is_string($body)) {
+            $this->body = new Payload(new InMemoryStream($body));
+        } elseif (\is_scalar($body)) {
+            $this->body = new Payload(new InMemoryStream(\var_export($body, true)));
+        } elseif ($body instanceof InputStream) {
             $this->body = new Payload($body);
+        } else {
+            /** @noinspection PhpUndefinedClassInspection */
+            throw new \TypeError("Invalid body type: " . \gettype($body));
         }
     }
 

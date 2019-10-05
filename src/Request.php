@@ -199,10 +199,12 @@ final class Request extends Message
     {
         if ($body === null) {
             $this->body = new StringBody("");
+        } elseif (\is_string($body)) {
+            $this->body = new StringBody($body);
+        } elseif (\is_scalar($body)) {
+            $this->body = new StringBody(\var_export($body, true));
         } elseif ($body instanceof RequestBody) {
             $this->body = $body;
-        } elseif (\is_scalar($body)) {
-            $this->body = new StringBody((string) $body);
         } else {
             /** @noinspection PhpUndefinedClassInspection */
             throw new \TypeError("Invalid body type: " . \gettype($body));
