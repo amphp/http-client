@@ -17,7 +17,7 @@ final class RetryRequests implements ApplicationInterceptor
     /** @var int */
     private $retryLimit;
 
-    public function __construct(int $retryLimit = 2)
+    public function __construct(int $retryLimit)
     {
         $this->retryLimit = $retryLimit;
     }
