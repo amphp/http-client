@@ -309,6 +309,15 @@ final class Http2Connection implements Connection
         return call(function () use ($id, $request, $token): \Generator {
             $this->pendingRequests[$id] = $deferred = new Deferred;
 
+            if ($this->socket->isClosed()) {
+                throw new SocketException(\sprintf(
+                    "Socket to '%s' closed before the request could be sent",
+                    $this->socket->getRemoteAddress()
+                ));
+            }
+
+            $this->socket->reference();
+
             $cancellationId = $token->subscribe(function (CancelledException $exception) use ($id): void {
                 if (!isset($this->streams[$id])) {
                     return;
@@ -319,8 +328,6 @@ final class Http2Connection implements Connection
             });
 
             try {
-                $this->socket->reference();
-
                 $uri = $request->getUri();
 
                 $path = $uri->getPath();
