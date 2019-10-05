@@ -19,6 +19,7 @@ use Amp\Http\Client\Interceptor\ModifyRequest;
 use Amp\Http\Client\Interceptor\SetRequestHeaderIfUnset;
 use Amp\Http\Client\Interceptor\TooManyRedirectsException;
 use Amp\Http\Client\NetworkInterceptor;
+use Amp\Http\Client\ParseException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\RequestBody;
 use Amp\Http\Client\Response;
@@ -109,6 +110,44 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $body = yield $response->getBody()->buffer();
 
         self::assertSame('00000000000', $body);
+    }
+
+    public function testDuplicateContentLengthHeader(): \Generator
+    {
+        $this->givenRawServerResponse("HTTP/1.1 200 OK\r\ncontent-length: 1\r\ncontent-length: 2\r\n\r\n\r\n\r\n\r\n");
+
+        $this->expectException(ParseException::class);
+
+        yield $this->executeRequest($this->createRequest());
+    }
+
+    public function testInvalidContentLengthHeader(): \Generator
+    {
+        $this->givenRawServerResponse("HTTP/1.1 200 OK\r\ncontent-length: foobar\r\n\r\n\r\n\r\n\r\n");
+
+        $this->expectException(ParseException::class);
+
+        yield $this->executeRequest($this->createRequest());
+    }
+
+    public function testFoldedHeader(): \Generator
+    {
+        $this->givenRawServerResponse("HTTP/1.1 200 OK\r\ncontent-length: 0\r\nfoo: hello\r\n world\r\n\r\n");
+
+        /** @var Response $response */
+        $response = yield $this->executeRequest($this->createRequest());
+        yield $response->getBody()->buffer();
+
+        $this->assertSame(['hello world'], $response->getHeaderArray('foo'));
+    }
+
+    public function testInvalidHeaders(): \Generator
+    {
+        $this->givenRawServerResponse("HTTP/1.1 200 OK\r\ncontent-length: 0\r\nfoo\x2f: bar\r\n\r\n");
+
+        $this->expectException(ParseException::class);
+
+        yield $this->executeRequest($this->createRequest());
     }
 
     public function testDefaultUserAgentSent(): \Generator
