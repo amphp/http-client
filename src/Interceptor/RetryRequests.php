@@ -25,7 +25,7 @@ final class RetryRequests implements ApplicationInterceptor
     public function request(Request $request, CancellationToken $cancellation, Client $client): Promise
     {
         return call(function () use ($request, $cancellation, $client) {
-            $attempts = 0;
+            $attempts = 1;
 
             do {
                 try {
@@ -36,12 +36,12 @@ final class RetryRequests implements ApplicationInterceptor
                     // Request is invalid, so do not retry.
                     throw $exception;
                 } catch (HttpException $exception) {
-                    if (!$request->isRetryable()) {
+                    if (!$request->isIdempotent()) {
                         throw $exception;
                     }
                     // Request can safely be retried.
                 }
-            } while (++$attempts < $this->retryLimit);
+            } while ($attempts++ <= $this->retryLimit);
 
             if ($exception instanceof UnprocessedRequestException) {
                 throw $exception->getPrevious();

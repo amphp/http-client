@@ -148,6 +148,11 @@ final class Client
      */
     public function setRetryLimit(int $retryLimit): void
     {
+        if ($retryLimit <= 0) {
+            $this->retryInterceptor = null;
+            return;
+        }
+
         $this->retryInterceptor = new RetryRequests($retryLimit);
     }
     

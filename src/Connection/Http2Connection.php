@@ -311,10 +311,13 @@ final class Http2Connection implements Connection
             $this->pendingRequests[$id] = $deferred = new Deferred;
 
             if ($this->socket->isClosed()) {
-                throw new SocketException(\sprintf(
-                    "Socket to '%s' closed before the request could be sent",
-                    $this->socket->getRemoteAddress()
-                ));
+                throw new UnprocessedRequestException(
+                    $request,
+                    new SocketException(\sprintf(
+                        "Socket to '%s' closed before the request could be sent",
+                        $this->socket->getRemoteAddress()
+                    ))
+                );
             }
 
             $this->socket->reference();
@@ -1433,9 +1436,9 @@ final class Http2Connection implements Connection
     }
 
     /**
-     * @param int|null   $lastId ID of last processed frame. Null to use the last opened frame ID or 0 if no frames have
-     *                           been opened.
-     * @param \Throwable $reason
+     * @param int|null        $lastId ID of last processed frame. Null to use the last opened frame ID or 0 if no
+     *                        streams have been opened.
+     * @param \Throwable|null $reason
      *
      * @return Promise
      */
@@ -1445,36 +1448,40 @@ final class Http2Connection implements Connection
             return new Success;
         }
 
-        $code = $reason ? $reason->getCode() : self::GRACEFUL_SHUTDOWN;
-        $lastId = $lastId ?? ($id ?? 0);
-        $promise = $this->writeFrame(\pack("NN", $lastId, $code), self::GOAWAY, self::NOFLAG);
+        return call(function () use ($lastId, $reason) {
+            $code = $reason ? $reason->getCode() : self::GRACEFUL_SHUTDOWN;
+            $lastId = $lastId ?? ($this->streamId > 0 ? $this->streamId : 0);
+            $promise = $this->writeFrame(\pack("NN", $lastId, $code), self::GOAWAY, self::NOFLAG);
 
-        $this->socket->close();
+            if (!empty($this->streams)) {
+                $reason = $exception = $reason ?? new SocketException("Connection closed");
+                foreach ($this->streams as $id => $stream) {
+                    $exception = $reason;
+                    if ($id > $lastId && $stream->request !== null) {
+                        $exception = new UnprocessedRequestException($stream->request, $reason);
+                    }
 
-        if (!empty($this->streams)) {
-            $reason = $exception = $reason ?? new SocketException("Connection closed");
-            foreach ($this->streams as $id => $stream) {
-                $exception = $reason;
-                if ($id > $lastId && $stream->request !== null) {
-                    $exception = new UnprocessedRequestException($stream->request, $reason);
+                    $this->releaseStream($id, $exception);
                 }
-
-                $this->releaseStream($id, $exception);
             }
-        }
 
-        if ($this->onClose !== null) {
-            $onClose = $this->onClose;
-            $this->onClose = null;
+            if ($this->onClose !== null) {
+                $onClose = $this->onClose;
+                $this->onClose = null;
 
-            foreach ($onClose as $callback) {
-                asyncCall($callback, $this);
+                foreach ($onClose as $callback) {
+                    asyncCall($callback, $this);
+                }
             }
-        }
 
-        Loop::cancel($this->pingWatcher);
+            Loop::cancel($this->pingWatcher);
 
-        return $promise;
+            $bytes = yield $promise;
+
+            $this->socket->close();
+
+            return $bytes;
+        });
     }
 
 

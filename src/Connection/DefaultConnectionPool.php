@@ -64,7 +64,8 @@ final class DefaultConnectionPool implements ConnectionPool
                 throw new InvalidRequestException(
                     $request,
                     'None of the requested protocol versions are supported; Supported versions: '
-                        . \implode(', ', self::PROTOCOL_VERSIONS));
+                        . \implode(', ', self::PROTOCOL_VERSIONS)
+                );
             }
 
             if (!$isHttps && !\array_intersect($request->getProtocolVersions(), ['1.0', '1.1'])) {
@@ -104,7 +105,7 @@ final class DefaultConnectionPool implements ConnectionPool
 
                 if ($connection instanceof Http1Connection
                     && $connection->getRemainingTime() < self::TIMEOUT_BUFFER
-                    && !$request->isRetryable()
+                    && !$request->isIdempotent()
                 ) {
                     continue; // Connection is at high-risk of closing before the request can be sent.
                 }
