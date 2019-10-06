@@ -25,8 +25,6 @@ final class DefaultConnectionPool implements ConnectionPool
 {
     private const PROTOCOL_VERSIONS = ['1.0', '1.1', '2'];
 
-    private const TIMEOUT_BUFFER = 2000;
-
     /** @var Connector */
     private $connector;
 
@@ -35,6 +33,9 @@ final class DefaultConnectionPool implements ConnectionPool
 
     /** @var \SplObjectStorage[] */
     private $connections = [];
+
+    /** @var int */
+    private $timeoutDelta = 2000;
 
     public function __construct(?Connector $connector = null, ?ConnectContext $connectContext = null)
     {
@@ -104,7 +105,7 @@ final class DefaultConnectionPool implements ConnectionPool
                 }
 
                 if ($connection instanceof Http1Connection
-                    && $connection->getRemainingTime() < self::TIMEOUT_BUFFER
+                    && $connection->getRemainingTime() < $this->timeoutDelta
                     && !$request->isIdempotent()
                 ) {
                     continue; // Connection is at high-risk of closing before the request can be sent.
@@ -247,6 +248,16 @@ final class DefaultConnectionPool implements ConnectionPool
         }
 
         return new Http1Connection($socket);
+    }
+
+    /**
+     * @param int $timeout Number of milliseconds before the estimated connection timeout that a non-idempotent
+     *                     request should will not be sent on an existing HTTP/1.x connection, instead opening a
+     *                     new connection for the request. Default is 2000 ms.
+     */
+    public function setConnectionTimeoutDelta(int $timeout): void
+    {
+        $this->timeoutDelta = $timeout;
     }
 
     public function getProtocolVersions(): array
