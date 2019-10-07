@@ -76,18 +76,7 @@ final class DefaultConnectionPool implements ConnectionPool
                 );
             }
 
-            $i = 0;
-            while ($hashes = \array_keys($this->connections[$key] ?? [])) {
-                if (isset($hash) && $hash !== $hashes[$i++]) {
-                    $i = 0; // Connection list was modified while waiting, start over from beginning.
-                }
-
-                if (!isset($hashes[$i])) {
-                    break;
-                }
-
-                $hash = $hashes[$i];
-                $promise = $this->connections[$key][$hash];
+            foreach ($this->connections[$key] ?? [] as $promise) {
                 \assert($promise instanceof Promise);
 
                 try {
