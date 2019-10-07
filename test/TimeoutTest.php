@@ -26,7 +26,6 @@ class TimeoutTest extends AsyncTestCase
         parent::setUp();
 
         $this->client = new Client;
-        $this->client->setRetryLimit(0);
     }
 
     public function testTimeoutDuringBody(): \Generator
