@@ -10,6 +10,7 @@ use Amp\Http\Client\HttpException;
 use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\ParseException;
 use Amp\Http\Client\Request;
+use Amp\Http\Client\TimeoutException;
 use Amp\Promise;
 use function Amp\call;
 
@@ -33,8 +34,8 @@ final class RetryRequests implements ApplicationInterceptor
                     return yield $client->request(clone $request, $cancellation);
                 } catch (UnprocessedRequestException $exception) {
                     // Request was deemed retryable by connection, so carry on.
-                } catch (InvalidRequestException | ParseException $exception) {
-                    // Request is or response is invalid, so do not retry.
+                } catch (InvalidRequestException | ParseException | TimeoutException $exception) {
+                    // Request is or response is invalid or request timed out, so do not retry.
                     throw $exception;
                 } catch (HttpException $exception) {
                     if (!$request->isIdempotent()) {
