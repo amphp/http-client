@@ -59,6 +59,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     {
         $this->givenRawServerResponse("");
 
+        $this->client->setRetryLimit(0);
+
         $this->expectException(SocketException::class);
         $this->expectExceptionMessage("Receiving the response headers failed, because the socket closed early");
 
