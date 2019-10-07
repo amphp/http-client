@@ -37,14 +37,14 @@ final class Client
     private $retryInterceptor;
 
     /** @var FollowRedirects */
-    private $followRedirects;
+    private $followRedirectsInterceptor;
 
     public function __construct(?ConnectionPool $connectionPool = null)
     {
         $this->connectionPool = $connectionPool ?? new DefaultConnectionPool;
 
-        $this->followRedirects = new FollowRedirects;
-        $this->retryInterceptor = new RetryRequests(3);
+        $this->followRedirectsInterceptor = new FollowRedirects;
+        $this->retryInterceptor = new RetryRequests(2);
 
         // We want to set these by default if the user doesn't choose otherwise
         $this->defaultNetworkInterceptors = [
@@ -78,10 +78,10 @@ final class Client
             return $interceptor->request($request, $cancellation, $client);
         }
 
-        if ($this->followRedirects) {
+        if ($this->followRedirectsInterceptor) {
             $client = clone $this;
-            $client->followRedirects = null;
-            return $this->followRedirects->request($request, $cancellation, $client);
+            $client->followRedirectsInterceptor = null;
+            return $this->followRedirectsInterceptor->request($request, $cancellation, $client);
         }
 
         if ($this->retryInterceptor) {
@@ -145,17 +145,22 @@ final class Client
      * @param int $retryLimit Maximum number of times a request may be retried. Only certain requests will be retried
      *                        automatically (GET, HEAD, PUT, and DELETE requests are automatically retried, or any
      *                        request that was indicated as unprocessed by the HTTP server).
+     *
+     * @return self
      */
-    public function setRetryLimit(int $retryLimit): void
+    public function withRetryLimit(int $retryLimit): self
     {
+        $client = clone $this;
+
         if ($retryLimit <= 0) {
-            $this->retryInterceptor = null;
-            return;
+            $client->retryInterceptor = null;
+        } else {
+            $client->retryInterceptor = new RetryRequests($retryLimit);
         }
 
-        $this->retryInterceptor = new RetryRequests($retryLimit);
+        return $client;
     }
-    
+
     /**
      * Returns a client that will automatically request the URI supplied by a redirect response (3xx status codes)
      * and return that response instead of the redirect response.
@@ -165,7 +170,7 @@ final class Client
     public function withFollowingRedirects(): self
     {
         $client = clone $this;
-        $client->followRedirects = new FollowRedirects;
+        $client->followRedirectsInterceptor = new FollowRedirects;
         return $client;
     }
 
@@ -177,7 +182,7 @@ final class Client
     public function withoutFollowingRedirects(): self
     {
         $client = clone $this;
-        $client->followRedirects = null;
+        $client->followRedirectsInterceptor = null;
         return $client;
     }
 }
