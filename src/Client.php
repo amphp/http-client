@@ -21,10 +21,13 @@ final class Client
 {
     /** @var ConnectionPool */
     private $connectionPool;
+
     /** @var ApplicationInterceptor[] */
     private $applicationInterceptors;
+
     /** @var NetworkInterceptor[] */
     private $networkInterceptors;
+
     /** @var NetworkInterceptor[] */
     private $defaultNetworkInterceptors;
 
@@ -38,7 +41,7 @@ final class Client
         $this->defaultNetworkInterceptors = [
             new SetRequestHeaderIfUnset('accept', '*/*'),
             new SetRequestHeaderIfUnset('user-agent', 'amphp/http-client (v4.x)'),
-            new DecompressResponse()
+            new DecompressResponse,
         ];
     }
 
@@ -60,23 +63,21 @@ final class Client
             $request = new Request($requestOrUri);
         }
 
+        if ($this->applicationInterceptors) {
+            $client = clone $this;
+            $interceptor = \array_shift($client->applicationInterceptors);
+            return $interceptor->request($request, $cancellation, $client);
+        }
+
         return call(function () use ($request, $cancellation) {
-            if ($this->applicationInterceptors) {
-                $client = clone $this;
-                $interceptor = \array_shift($client->applicationInterceptors);
-                $response = yield $interceptor->request($request, $cancellation, $client);
-            } else {
-                $stream = yield $this->connectionPool->getStream($request, $cancellation);
+            $stream = yield $this->connectionPool->getStream($request, $cancellation);
 
-                \assert($stream instanceof Stream);
+            \assert($stream instanceof Stream);
 
-                $networkInterceptors = \array_merge($this->defaultNetworkInterceptors, $this->networkInterceptors);
-                $stream = new InterceptedStream($stream, ...$networkInterceptors);
+            $networkInterceptors = \array_merge($this->defaultNetworkInterceptors, $this->networkInterceptors);
+            $stream = new InterceptedStream($stream, ...$networkInterceptors);
 
-                $response = yield $stream->request($request, $cancellation);
-            }
-
-            return $response;
+            return yield $stream->request($request, $cancellation);
         });
     }
 
@@ -91,10 +92,14 @@ final class Client
      * Any new requests have to take the new interceptor into account.
      *
      * @param NetworkInterceptor $networkInterceptor
+     *
+     * @return self
      */
-    public function addNetworkInterceptor(NetworkInterceptor $networkInterceptor): void
+    public function withNetworkInterceptor(NetworkInterceptor $networkInterceptor): self
     {
-        $this->networkInterceptors[] = $networkInterceptor;
+        $client = clone $this;
+        $client->networkInterceptors[] = $networkInterceptor;
+        return $client;
     }
 
     /**
@@ -105,9 +110,13 @@ final class Client
      * Any new requests have to take the new interceptor into account.
      *
      * @param ApplicationInterceptor $applicationInterceptor
+     *
+     * @return self
      */
-    public function addApplicationInterceptor(ApplicationInterceptor $applicationInterceptor): void
+    public function withApplicationInterceptor(ApplicationInterceptor $applicationInterceptor): self
     {
-        $this->applicationInterceptors[] = $applicationInterceptor;
+        $client = clone $this;
+        $client->applicationInterceptors[] = $applicationInterceptor;
+        return $client;
     }
 }

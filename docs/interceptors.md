@@ -12,7 +12,7 @@ use Amp\Http\Client\Client;
 use Amp\Http\Client\Interceptor\SetRequestHeader;
 
 $client = new Client;
-$client->addApplicationInterceptor(new SetRequestHeader('x-foo', 'bar'));
+$client = $client->withApplicationInterceptor(new SetRequestHeader('x-foo', 'bar'));
 
 $response = yield $client->request("https://httpbin.org/get");
 

@@ -16,7 +16,6 @@ use Amp\Http\Status;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Promise;
 use Amp\Socket\Server as SocketServer;
-use Amp\Socket\Socket;
 use Amp\Socket\StaticConnector;
 use Psr\Log\NullLogger;
 use function Amp\call;
@@ -26,7 +25,7 @@ abstract class InterceptorTest extends AsyncTestCase
 {
     /** @var Client */
     private $client;
-    /** @var Socket */
+    /** @var SocketServer */
     private $serverSocket;
     /** @var Server */
     private $server;
@@ -38,12 +37,12 @@ abstract class InterceptorTest extends AsyncTestCase
 
     final protected function givenNetworkInterceptor(NetworkInterceptor $interceptor): void
     {
-        $this->client->addNetworkInterceptor($interceptor);
+        $this->client = $this->client->withNetworkInterceptor($interceptor);
     }
 
     final protected function givenApplicationInterceptor(ApplicationInterceptor $interceptor): void
     {
-        $this->client->addApplicationInterceptor($interceptor);
+        $this->client = $this->client->withApplicationInterceptor($interceptor);
     }
 
     final protected function whenRequestIsExecuted(?ClientRequest $request = null): Promise
