@@ -7,6 +7,7 @@ use Amp\Http\Client\Connection\ConnectionPool;
 use Amp\Http\Client\Connection\DefaultConnectionPool;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\Interceptor\DecompressResponse;
+use Amp\Http\Client\Interceptor\FollowRedirects;
 use Amp\Http\Client\Interceptor\SetRequestHeaderIfUnset;
 use Amp\Http\Client\Internal\InterceptedStream;
 use Amp\NullCancellationToken;
@@ -23,19 +24,22 @@ final class Client
     private $connectionPool;
 
     /** @var ApplicationInterceptor[] */
-    private $applicationInterceptors;
+    private $applicationInterceptors = [];
 
     /** @var NetworkInterceptor[] */
-    private $networkInterceptors;
+    private $networkInterceptors = [];
 
     /** @var NetworkInterceptor[] */
     private $defaultNetworkInterceptors;
 
+    /** @var FollowRedirects|null */
+    private $followRedirects;
+
     public function __construct(?ConnectionPool $connectionPool = null)
     {
         $this->connectionPool = $connectionPool ?? new DefaultConnectionPool;
-        $this->applicationInterceptors = [];
-        $this->networkInterceptors = [];
+
+        $this->followRedirects = new FollowRedirects;
 
         // We want to set these by default if the user doesn't choose otherwise
         $this->defaultNetworkInterceptors = [
@@ -67,6 +71,12 @@ final class Client
             $client = clone $this;
             $interceptor = \array_shift($client->applicationInterceptors);
             return $interceptor->request($request, $cancellation, $client);
+        }
+
+        if ($this->followRedirects) {
+            $client = clone $this;
+            $client->followRedirects = null;
+            return $this->followRedirects->request($request, $cancellation, $client);
         }
 
         return call(function () use ($request, $cancellation) {
@@ -117,6 +127,31 @@ final class Client
     {
         $client = clone $this;
         $client->applicationInterceptors[] = $applicationInterceptor;
+        return $client;
+    }
+
+    /**
+     * Returns a client that will automatically request the URI supplied by a redirect response (3xx status codes)
+     * and return that response instead of the redirect response.
+     *
+     * @return self
+     */
+    public function withFollowingRedirects(): self
+    {
+        $client = clone $this;
+        $client->followRedirects = new FollowRedirects;
+        return $client;
+    }
+
+    /**
+     * Returns a client that will not follow redirect responses (3xx status codes).
+     *
+     * @return self
+     */
+    public function withoutFollowingRedirects(): self
+    {
+        $client = clone $this;
+        $client->followRedirects = null;
         return $client;
     }
 }
