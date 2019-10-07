@@ -31,7 +31,7 @@ final class DefaultConnectionPool implements ConnectionPool
     /** @var ConnectContext */
     private $connectContext;
 
-    /** @var \SplObjectStorage[] */
+    /** @var Promise[][] */
     private $connections = [];
 
     /** @var int */
@@ -76,16 +76,26 @@ final class DefaultConnectionPool implements ConnectionPool
                 );
             }
 
-            $connections = $this->connections[$key] ?? new \SplObjectStorage;
+            $i = 0;
+            while ($hashes = \array_keys($this->connections[$key] ?? [])) {
+                if (isset($hash) && $hash !== $hashes[$i++]) {
+                    $i = 0; // Connection list was modified while waiting, start over from beginning.
+                }
 
-            foreach ($connections as $connection) {
-                \assert($connection instanceof Promise);
+                if (!isset($hashes[$i])) {
+                    break;
+                }
+
+                $hash = $hashes[$i];
+                $promise = $this->connections[$key][$hash];
+                \assert($promise instanceof Promise);
+
                 try {
-                    if ($isHttps && $connections->count() === 1) {
+                    if ($isHttps && \count($this->connections[$key]) === 1) {
                         // Wait for first successful connection if using a secure connection (maybe we can use HTTP/2).
-                        $connection = yield $connection;
+                        $connection = yield $promise;
                     } else {
-                        $connection = yield Promise\first([$connection, new Success]);
+                        $connection = yield Promise\first([$promise, new Success]);
                         if ($connection === null) {
                             continue;
                         }
@@ -116,27 +126,28 @@ final class DefaultConnectionPool implements ConnectionPool
 
             $promise = new Coroutine($this->createConnection($request, $cancellation, $authority, $isHttps));
 
-            $this->connections[$key] = $this->connections[$key] ?? $connections;
-            $this->connections[$key]->attach($promise);
+            $hash = \spl_object_hash($promise);
+            $this->connections[$key] = $this->connections[$key] ?? [];
+            $this->connections[$key][$hash] = $promise;
 
             try {
                 $connection = yield $promise;
                 \assert($connection instanceof Connection);
             } catch (\Throwable $exception) {
                 // Connection failed, remove from list of connections.
-                $this->connections[$key]->detach($promise);
+                unset($this->connections[$key][$hash]);
 
-                if (!$this->connections[$key]->count()) {
+                if (empty($this->connections[$key])) {
                     unset($this->connections[$key]);
                 }
 
                 throw $exception;
             }
 
-            $connection->onClose(function () use ($key, $promise): void {
-                $this->connections[$key]->detach($promise);
+            $connection->onClose(function () use ($key, $hash, $promise): void {
+                unset($this->connections[$key][$hash]);
 
-                if (!$this->connections[$key]->count()) {
+                if (empty($this->connections[$key])) {
                     unset($this->connections[$key]);
                 }
             });

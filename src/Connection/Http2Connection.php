@@ -1476,11 +1476,9 @@ final class Http2Connection implements Connection
 
             Loop::cancel($this->pingWatcher);
 
-            $bytes = yield $promise;
+            yield $promise;
 
             $this->socket->close();
-
-            return $bytes;
         });
     }
 
