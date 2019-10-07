@@ -569,6 +569,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         parent::setUp();
 
         $this->client = new Client;
+        $this->client->setRetryLimit(0);
 
         if ($this->socket) {
             $this->socket->close();
