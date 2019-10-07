@@ -268,6 +268,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $redirectTo = "/status/{$statusCode}";
         $uri = "http://httpbin.org/redirect-to?url=" . \rawurlencode($redirectTo);
 
+        $this->client = $this->client->withoutFollowingRedirects();
+
         /** @var Response $response */
         $response = yield $this->executeRequest(new Request($uri));
 
@@ -285,7 +287,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $redirectTo = "/status/{$statusCode}";
         $uri = "http://httpbin.org/redirect-to?url=" . \rawurlencode($redirectTo);
 
-        $this->givenApplicationInterceptor(new FollowRedirects);
+        $this->client = $this->client->withFollowingRedirects();
 
         /** @var Response $response */
         $response = yield $this->executeRequest(new Request($uri));
