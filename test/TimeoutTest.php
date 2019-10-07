@@ -179,7 +179,7 @@ class TimeoutTest extends AsyncTestCase
 
             /** @var Response $response */
             $client = new Client;
-            $client->addApplicationInterceptor(new SetRequestTimeout(10000, 10000, 1000));
+            $client = $client->withApplicationInterceptor(new SetRequestTimeout(10000, 10000, 1000));
             $response = yield $client->request($request);
 
             $this->expectException(TimeoutException::class);
@@ -207,7 +207,7 @@ class TimeoutTest extends AsyncTestCase
             });
 
         $client = new Client(new DefaultConnectionPool($connector));
-        $client->addApplicationInterceptor(new SetRequestTimeout(1));
+        $client = $client->withApplicationInterceptor(new SetRequestTimeout(1));
 
         $this->expectException(TimeoutException::class);
 
@@ -245,7 +245,7 @@ class TimeoutTest extends AsyncTestCase
 
 
             $client = new Client();
-            $client->addApplicationInterceptor(new SetRequestTimeout(10000, 100));
+            $client = $client->withApplicationInterceptor(new SetRequestTimeout(10000, 100));
 
             yield $client->request($request);
         } finally {

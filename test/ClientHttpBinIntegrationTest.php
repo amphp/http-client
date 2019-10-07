@@ -540,7 +540,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testConcurrentSlowNetworkInterceptor(): \Generator
     {
-        $this->client->addNetworkInterceptor(new ModifyRequest(static function (Request $request) {
+        $this->client = $this->client->withNetworkInterceptor(new ModifyRequest(static function (Request $request) {
             yield delay(5000);
 
             return $request;
@@ -616,11 +616,11 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     private function givenApplicationInterceptor(ApplicationInterceptor $interceptor): void
     {
-        $this->client->addApplicationInterceptor($interceptor);
+        $this->client = $this->client->withApplicationInterceptor($interceptor);
     }
 
     private function givenNetworkInterceptor(NetworkInterceptor $interceptor): void
     {
-        $this->client->addNetworkInterceptor($interceptor);
+        $this->client = $this->client->withNetworkInterceptor($interceptor);
     }
 }
