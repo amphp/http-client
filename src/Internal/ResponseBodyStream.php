@@ -37,4 +37,9 @@ final class ResponseBodyStream implements InputStream
             $this->bodyCancellation->cancel();
         }
     }
+
+    public function __sleep(): array
+    {
+        throw new \Error('Serialization of class ' . __CLASS__ . ' is not allowed');
+    }
 }

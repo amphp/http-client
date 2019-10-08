@@ -433,4 +433,9 @@ final class Http1Parser
             ($this->bodyDataCallback)($data);
         }
     }
+
+    public function __sleep(): array
+    {
+        throw new \Error('Serialization of class ' . __CLASS__ . ' is not allowed');
+    }
 }

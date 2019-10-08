@@ -304,6 +304,11 @@ final class Request extends Message
         return \in_array($this->method, ['GET', 'HEAD', 'PUT', 'DELETE'], true);
     }
 
+    public function __sleep(): array
+    {
+        throw new \Error('Serialization of class ' . __CLASS__ . ' is not allowed');
+    }
+
     private function createUriFromString(string $uri): UriInterface
     {
         return Uri\Http::createFromString($uri);

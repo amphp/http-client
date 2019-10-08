@@ -54,4 +54,9 @@ class ModifyResponse implements NetworkInterceptor, ApplicationInterceptor
             return call($this->mapper, $response);
         });
     }
+
+    final public function __sleep(): array
+    {
+        throw new \Error('Serialization of class ' . __CLASS__ . ' is not allowed');
+    }
 }

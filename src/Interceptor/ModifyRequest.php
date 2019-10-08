@@ -40,4 +40,9 @@ class ModifyRequest implements NetworkInterceptor, ApplicationInterceptor
             return $client->request($request, $cancellation);
         });
     }
+
+    final public function __sleep(): array
+    {
+        throw new \Error('Serialization of class ' . __CLASS__ . ' is not allowed');
+    }
 }

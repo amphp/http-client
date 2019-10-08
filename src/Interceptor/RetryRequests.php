@@ -24,6 +24,11 @@ final class RetryRequests implements ApplicationInterceptor
         $this->retryLimit = $retryLimit;
     }
 
+    public function __sleep(): array
+    {
+        throw new \Error('Serialization of class ' . __CLASS__ . ' is not allowed');
+    }
+
     public function request(Request $request, CancellationToken $cancellation, Client $client): Promise
     {
         return call(function () use ($request, $cancellation, $client) {

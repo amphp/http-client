@@ -582,4 +582,9 @@ final class Http1Connection implements Connection
 
         return $header . "\r\n";
     }
+
+    public function __sleep(): array
+    {
+        throw new \Error('Serialization of class ' . __CLASS__ . ' is not allowed');
+    }
 }

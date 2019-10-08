@@ -21,6 +21,11 @@ final class DecompressResponse implements NetworkInterceptor
         $this->hasZlib = \extension_loaded('zlib');
     }
 
+    public function __sleep(): array
+    {
+        throw new \Error('Serialization of class ' . __CLASS__ . ' is not allowed');
+    }
+
     public function requestViaNetwork(
         Request $request,
         CancellationToken $cancellation,
@@ -36,7 +41,9 @@ final class DecompressResponse implements NetworkInterceptor
             }
 
             if ($onPush = $request->getPushCallable()) {
-                $request->onPush(function (Request $request, Promise $promise, CancellationTokenSource $source) use ($onPush) {
+                $request->onPush(function (Request $request, Promise $promise, CancellationTokenSource $source) use (
+                    $onPush
+                ) {
                     if (!$request->hasHeader('accept-encoding')) {
                         return $onPush($request, $promise, $source);
                     }

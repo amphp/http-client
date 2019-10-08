@@ -42,4 +42,9 @@ final class Trailers extends Message
             throw new InvalidHeaderException('Disallowed field in trailers');
         }
     }
+
+    public function __sleep(): array
+    {
+        throw new \Error('Serialization of class ' . __CLASS__ . ' is not allowed');
+    }
 }

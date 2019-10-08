@@ -55,6 +55,11 @@ final class Client
         ];
     }
 
+    public function __sleep(): array
+    {
+        throw new \Error('Serialization of class ' . __CLASS__ . ' is not allowed');
+    }
+
     /**
      * Asynchronously request an HTTP resource.
      *

@@ -75,4 +75,9 @@ final class Http2Stream
         $this->clientWindow = $clientSize;
         $this->state = $state;
     }
+
+    public function __sleep(): array
+    {
+        throw new \Error('Serialization of class ' . __CLASS__ . ' is not allowed');
+    }
 }

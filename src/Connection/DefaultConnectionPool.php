@@ -273,4 +273,9 @@ final class DefaultConnectionPool implements ConnectionPool
     {
         return self::PROTOCOL_VERSIONS;
     }
+
+    public function __sleep(): array
+    {
+        throw new \Error('Serialization of class ' . __CLASS__ . ' is not allowed');
+    }
 }

@@ -48,6 +48,11 @@ final class Response extends Message
         $this->setHeaders($headers);
     }
 
+    public function __sleep(): array
+    {
+        throw new \Error('Serialization of class ' . __CLASS__ . ' is not allowed');
+    }
+
     /**
      * Retrieve the requests's HTTP protocol version.
      *

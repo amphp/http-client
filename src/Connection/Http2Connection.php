@@ -1559,4 +1559,9 @@ final class Http2Connection implements Connection
             $this->writeBufferedData($id);
         }
     }
+
+    public function __sleep(): array
+    {
+        throw new \Error('Serialization of class ' . __CLASS__ . ' is not allowed');
+    }
 }

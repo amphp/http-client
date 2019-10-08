@@ -58,4 +58,9 @@ final class HttpStream implements Stream
     {
         return $this->connection->getTlsInfo();
     }
+
+    public function __sleep(): array
+    {
+        throw new \Error('Serialization of class ' . __CLASS__ . ' is not allowed');
+    }
 }
