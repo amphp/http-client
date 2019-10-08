@@ -35,12 +35,17 @@ final class DefaultConnectionPool implements ConnectionPool
     private $connections = [];
 
     /** @var int */
-    private $timeoutDelta = 2000;
+    private $timeoutGracePeriod = 2000;
 
     public function __construct(?Connector $connector = null, ?ConnectContext $connectContext = null)
     {
         $this->connector = $connector ?? Socket\connector();
         $this->connectContext = $connectContext ?? new ConnectContext;
+    }
+
+    public function __clone()
+    {
+        $this->connections = [];
     }
 
     public function getStream(Request $request, CancellationToken $cancellation): Promise
@@ -104,7 +109,7 @@ final class DefaultConnectionPool implements ConnectionPool
                 }
 
                 if ($connection instanceof Http1Connection
-                    && $connection->getRemainingTime() < $this->timeoutDelta
+                    && $connection->getRemainingTime() < $this->timeoutGracePeriod
                     && !$request->isIdempotent()
                 ) {
                     continue; // Connection is at high-risk of closing before the request can be sent.
@@ -124,21 +129,12 @@ final class DefaultConnectionPool implements ConnectionPool
                 \assert($connection instanceof Connection);
             } catch (\Throwable $exception) {
                 // Connection failed, remove from list of connections.
-                unset($this->connections[$key][$hash]);
-
-                if (empty($this->connections[$key])) {
-                    unset($this->connections[$key]);
-                }
-
+                $this->dropConnection($key, $hash);
                 throw $exception;
             }
 
-            $connection->onClose(function () use ($key, $hash, $promise): void {
-                unset($this->connections[$key][$hash]);
-
-                if (empty($this->connections[$key])) {
-                    unset($this->connections[$key]);
-                }
+            $connection->onClose(function () use ($key, $hash): void {
+                $this->dropConnection($key, $hash);
             });
 
             return $connection->getStream($request);
@@ -250,14 +246,27 @@ final class DefaultConnectionPool implements ConnectionPool
         return new Http1Connection($socket);
     }
 
+    private function dropConnection(string $uri, string $connectionHash): void
+    {
+        unset($this->connections[$uri][$connectionHash]);
+
+        if (empty($this->connections[$uri])) {
+            unset($this->connections[$uri]);
+        }
+    }
+
     /**
      * @param int $timeout Number of milliseconds before the estimated connection timeout that a non-idempotent
      *                     request should will not be sent on an existing HTTP/1.x connection, instead opening a
      *                     new connection for the request. Default is 2000 ms.
+     *
+     * @return self
      */
-    public function setConnectionTimeoutDelta(int $timeout): void
+    public function withTimeoutGracePeriod(int $timeout): self
     {
-        $this->timeoutDelta = $timeout;
+        $pool = clone $this;
+        $pool->timeoutGracePeriod = $timeout;
+        return $pool;
     }
 
     public function getProtocolVersions(): array
