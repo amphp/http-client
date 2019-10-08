@@ -3,13 +3,11 @@
 namespace Amp\Http\Client\Connection;
 
 use Amp\Http\Client\HttpException;
-use Amp\Http\Client\Request;
-use Amp\Http\Client\RequestException;
 
-final class UnprocessedRequestException extends RequestException
+final class UnprocessedRequestException extends HttpException
 {
-    public function __construct(Request $request, HttpException $previous)
+    public function __construct(HttpException $previous)
     {
-        parent::__construct($request, "The request was not processed and can be safely retried", 0, $previous);
+        parent::__construct("The request was not processed and can be safely retried", 0, $previous);
     }
 }

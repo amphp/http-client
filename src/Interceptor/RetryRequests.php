@@ -6,11 +6,8 @@ use Amp\CancellationToken;
 use Amp\Http\Client\ApplicationInterceptor;
 use Amp\Http\Client\Client;
 use Amp\Http\Client\Connection\UnprocessedRequestException;
-use Amp\Http\Client\HttpException;
-use Amp\Http\Client\InvalidRequestException;
-use Amp\Http\Client\ParseException;
 use Amp\Http\Client\Request;
-use Amp\Http\Client\TimeoutException;
+use Amp\Http\Client\SocketException;
 use Amp\Promise;
 use function Amp\call;
 
@@ -27,23 +24,21 @@ final class RetryRequests implements ApplicationInterceptor
     public function request(Request $request, CancellationToken $cancellation, Client $client): Promise
     {
         return call(function () use ($request, $cancellation, $client) {
-            $attempts = 1;
+            $attempt = 1;
 
             do {
                 try {
                     return yield $client->request(clone $request, $cancellation);
                 } catch (UnprocessedRequestException $exception) {
                     // Request was deemed retryable by connection, so carry on.
-                } catch (InvalidRequestException | ParseException | TimeoutException $exception) {
-                    // Request is or response is invalid or request timed out, so do not retry.
-                    throw $exception;
-                } catch (HttpException $exception) {
+                } catch (SocketException $exception) {
                     if (!$request->isIdempotent()) {
                         throw $exception;
                     }
+
                     // Request can safely be retried.
                 }
-            } while ($attempts++ <= $this->retryLimit);
+            } while ($attempt++ <= $this->retryLimit);
 
             throw $exception;
         });
