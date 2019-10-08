@@ -44,7 +44,7 @@ final class Client
     {
         $this->connectionPool = $connectionPool ?? new DefaultConnectionPool;
 
-        $this->followRedirectsInterceptor = new FollowRedirects;
+        $this->followRedirectsInterceptor = new FollowRedirects(10);
         $this->retryInterceptor = new RetryRequests(2);
 
         // We want to set these by default if the user doesn't choose otherwise
@@ -170,12 +170,14 @@ final class Client
      * Returns a client that will automatically request the URI supplied by a redirect response (3xx status codes)
      * and return that response instead of the redirect response.
      *
+     * @param int $limit
+     *
      * @return self
      */
-    public function withFollowingRedirects(): self
+    public function withFollowingRedirects(int $limit = 10): self
     {
         $client = clone $this;
-        $client->followRedirectsInterceptor = new FollowRedirects;
+        $client->followRedirectsInterceptor = new FollowRedirects($limit);
         return $client;
     }
 

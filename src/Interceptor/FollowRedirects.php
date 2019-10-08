@@ -19,14 +19,14 @@ final class FollowRedirects implements ApplicationInterceptor
     private $maxRedirects;
     private $autoReferrer;
 
-    public function __construct(int $maxRedirects = 10, bool $autoReferrer = true)
+    public function __construct(int $limit, bool $autoReferrer = true)
     {
-        if ($maxRedirects < 1) {
+        if ($limit < 1) {
             /** @noinspection PhpUndefinedClassInspection */
-            throw new \Error("Invalid redirection limit: " . $maxRedirects);
+            throw new \Error("Invalid redirection limit: " . $limit);
         }
 
-        $this->maxRedirects = $maxRedirects;
+        $this->maxRedirects = $limit;
         $this->autoReferrer = $autoReferrer;
     }
 

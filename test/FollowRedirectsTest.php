@@ -26,7 +26,7 @@ class FollowRedirectsTest extends AsyncTestCase
      */
     public function testResolve(string $baseUri, string $toResolve, string $expectedResult): \Generator
     {
-        $redirect = new FollowRedirects;
+        $redirect = new FollowRedirects(10);
         $request = new Request($baseUri);
 
         $stream1 = $this->createMock(Stream::class);
