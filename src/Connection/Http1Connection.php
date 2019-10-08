@@ -140,7 +140,7 @@ final class Http1Connection implements Connection
     public function getStream(Request $request): Stream
     {
         if ($this->busy) {
-            throw new SocketException('All available streams have been used');
+            throw new \Error('All available streams have been used');
         }
 
         $this->busy = true;

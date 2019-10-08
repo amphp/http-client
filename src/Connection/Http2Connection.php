@@ -221,7 +221,7 @@ final class Http2Connection implements Connection
         }
 
         if ($this->remainingStreams <= 0) {
-            throw new SocketException('All available streams have been used');
+            throw new \Error('All available streams have been used');
         }
 
         --$this->remainingStreams;
