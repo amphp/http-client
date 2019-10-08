@@ -185,7 +185,12 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $response = yield $this->client->request($request);
 
         $this->expectException(ParseException::class);
-        $this->expectExceptionMessageMatches('(Configured body size exceeded: \d+ bytes received, while the configured limit is 10485760 bytes)');
+
+        if (\method_exists($this, 'expectExceptionMessageMatches')) {
+            $this->expectExceptionMessageMatches('(Configured body size exceeded: \d+ bytes received, while the configured limit is 10485760 bytes)');
+        } else {
+            $this->expectExceptionMessageRegExp('(Configured body size exceeded: \d+ bytes received, while the configured limit is 10485760 bytes)');
+        }
 
         yield $response->getBody()->buffer();
     }
