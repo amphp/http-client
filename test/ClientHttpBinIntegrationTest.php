@@ -24,6 +24,8 @@ use Amp\Http\Client\Request;
 use Amp\Http\Client\RequestBody;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\SocketException;
+use Amp\Http\Cookie\RequestCookie;
+use Amp\Http\Cookie\ResponseCookie;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Promise;
 use Amp\Socket;
@@ -167,6 +169,25 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $result = \json_decode($body, true);
 
         $this->assertSame('amphp/http-client (v4.x)', $result['user-agent']);
+    }
+
+    public function testGzipBomb(): \Generator
+    {
+        /** @var Response $response */
+        $response = yield $this->client->request('https://blog.haschek.at/tools/bomb.php');
+
+        $sessionCookie = ResponseCookie::fromHeader($response->getHeader('set-cookie'));
+        $body = yield $response->getBody()->buffer();
+        \preg_match('(bombme=[a-f0-9]+)', $body, $match);
+
+        $request = new Request('https://blog.haschek.at/tools/bomb.php?' . $match[0]);
+        $request->setHeader('cookie', new RequestCookie($sessionCookie->getName(), $sessionCookie->getValue()));
+        $response = yield $this->client->request($request);
+
+        $this->expectException(ParseException::class);
+        $this->expectExceptionMessageMatches('(Configured body size exceeded: \d+ bytes received, while the configured limit is 10485760 bytes)');
+
+        yield $response->getBody()->buffer();
     }
 
     public function testCustomUserAgentSentIfAssigned(): \Generator

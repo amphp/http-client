@@ -6,6 +6,7 @@ use Amp\ByteStream\ZlibInputStream;
 use Amp\CancellationToken;
 use Amp\CancellationTokenSource;
 use Amp\Http\Client\Connection\Stream;
+use Amp\Http\Client\Internal\SizeLimitingInputStream;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
@@ -41,13 +42,13 @@ final class DecompressResponse implements NetworkInterceptor
                         return $onPush($request, $promise, $source);
                     }
 
-                    $promise = call(function () use ($promise) {
+                    $promise = call(function () use ($promise, $request) {
                         /** @var Response $response */
                         $response = yield $promise;
 
                         if (($encoding = $this->determineCompressionEncoding($response))) {
                             /** @noinspection PhpUnhandledExceptionInspection */
-                            $response->setBody(new ZlibInputStream($response->getBody(), $encoding));
+                            $response->setBody(new SizeLimitingInputStream(new ZlibInputStream($response->getBody(), $encoding), $request->getBodySizeLimit()));
                         }
 
                         return $response;
@@ -62,7 +63,7 @@ final class DecompressResponse implements NetworkInterceptor
 
             if ($decodeResponse && ($encoding = $this->determineCompressionEncoding($response))) {
                 /** @noinspection PhpUnhandledExceptionInspection */
-                $response->setBody(new ZlibInputStream($response->getBody(), $encoding));
+                $response->setBody(new SizeLimitingInputStream(new ZlibInputStream($response->getBody(), $encoding), $request->getBodySizeLimit()));
             }
 
             return $response;
