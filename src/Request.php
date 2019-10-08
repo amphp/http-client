@@ -45,6 +45,9 @@ final class Request extends Message
     /** @var callable|null */
     private $onPush;
 
+    /** @var mixed[] */
+    private $attributes = [];
+
     /**
      * Request constructor.
      *
@@ -296,6 +299,89 @@ final class Request extends Message
     public function setBodySizeLimit(int $bodySizeLimit): void
     {
         $this->bodySizeLimit = $bodySizeLimit;
+    }
+
+    /**
+     * @return mixed[] An array of all request attributes in the request's mutable local storage, indexed by name.
+     */
+    public function getAttributes(): array
+    {
+        return $this->attributes;
+    }
+
+    /**
+     * Check whether a variable with the given name exists in the request's mutable local storage.
+     *
+     * Each request has its own mutable local storage to which applications and interceptors may read and write data.
+     * Other interceptors which are aware of this data can then access it without the server being tightly coupled to
+     * specific implementations.
+     *
+     * @param string $name Name of the attribute, should be namespaced with a vendor and package namespace like classes.
+     *
+     * @return bool
+     */
+    public function hasAttribute(string $name): bool
+    {
+        return \array_key_exists($name, $this->attributes);
+    }
+
+    /**
+     * Retrieve a variable from the request's mutable local storage.
+     *
+     * Each request has its own mutable local storage to which applications and interceptors may read and write data.
+     * Other interceptors which are aware of this data can then access it without the server being tightly coupled to
+     * specific implementations.
+     *
+     * @param string $name Name of the attribute, should be namespaced with a vendor and package namespace like classes.
+     *
+     * @return mixed
+     *
+     * @throws MissingAttributeError If an attribute with the given name does not exist.
+     */
+    public function getAttribute(string $name)
+    {
+        if (!$this->hasAttribute($name)) {
+            throw new MissingAttributeError("The requested attribute '{$name}' does not exist");
+        }
+
+        return $this->attributes[$name];
+    }
+
+    /**
+     * Assign a variable to the request's mutable local storage.
+     *
+     * Each request has its own mutable local storage to which applications and interceptors may read and write data.
+     * Other interceptors which are aware of this data can then access it without the server being tightly coupled to
+     * specific implementations.
+     *
+     * **Example**
+     *
+     * ```php
+     * $request->setAttribute(Timing::class, $stopWatch);
+     * ```
+     *
+     * @param string $name Name of the attribute, should be namespaced with a vendor and package namespace like classes.
+     * @param mixed $value Value of the attribute, might be any value.
+     */
+    public function setAttribute(string $name, $value): void
+    {
+        $this->attributes[$name] = $value;
+    }
+
+    /**
+     * Remove an attribute from the request's mutable local storage.
+     *
+     * @param string $name Name of the attribute, should be namespaced with a vendor and package namespace like classes.
+     *
+     * @throws MissingAttributeError If an attribute with the given name does not exist.
+     */
+    public function removeAttribute(string $name): void
+    {
+        if (!$this->hasAttribute($name)) {
+            throw new MissingAttributeError("The requested attribute '{$name}' does not exist");
+        }
+
+        unset($this->attributes[$name]);
     }
 
     public function isIdempotent(): bool
