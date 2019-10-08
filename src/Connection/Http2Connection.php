@@ -312,7 +312,6 @@ final class Http2Connection implements Connection
 
             if ($this->socket->isClosed()) {
                 throw new UnprocessedRequestException(
-                    $request,
                     new SocketException(\sprintf(
                         "Socket to '%s' closed before the request could be sent",
                         $this->socket->getRemoteAddress()
@@ -918,7 +917,12 @@ final class Http2Connection implements Connection
                         $error = \unpack("N", $buffer)[1];
 
                         if (isset($this->streams[$id])) {
-                            $this->releaseStream($id, new SocketException("Server ended stream", $error));
+                            $stream = $this->streams[$id];
+                            $exception = new Http2StreamException("Stream closed by server", $id, $error);
+                            if ($error === self::REFUSED_STREAM && $stream->request !== null) {
+                                $exception = new UnprocessedRequestException($exception);
+                            }
+                            $this->releaseStream($id, $exception);
                         }
 
                         $buffer = \substr($buffer, 4);
@@ -1458,7 +1462,7 @@ final class Http2Connection implements Connection
                 foreach ($this->streams as $id => $stream) {
                     $exception = $reason;
                     if ($id > $lastId && $stream->request !== null) {
-                        $exception = new UnprocessedRequestException($stream->request, $reason);
+                        $exception = new UnprocessedRequestException($reason);
                     }
 
                     $this->releaseStream($id, $exception);
