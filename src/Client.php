@@ -6,6 +6,7 @@ use Amp\CancellationToken;
 use Amp\Http\Client\Connection\ConnectionPool;
 use Amp\Http\Client\Connection\DefaultConnectionPool;
 use Amp\Http\Client\Connection\Stream;
+use Amp\Http\Client\Connection\UnprocessedRequestException;
 use Amp\Http\Client\Interceptor\DecompressResponse;
 use Amp\Http\Client\Interceptor\FollowRedirects;
 use Amp\Http\Client\Interceptor\RetryRequests;
@@ -33,10 +34,10 @@ final class Client
     /** @var NetworkInterceptor[] */
     private $defaultNetworkInterceptors;
 
-    /** @var RetryRequests */
+    /** @var RetryRequests|null */
     private $retryInterceptor;
 
-    /** @var FollowRedirects */
+    /** @var FollowRedirects|null */
     private $followRedirectsInterceptor;
 
     public function __construct(?ConnectionPool $connectionPool = null)
@@ -98,7 +99,11 @@ final class Client
             $networkInterceptors = \array_merge($this->defaultNetworkInterceptors, $this->networkInterceptors);
             $stream = new InterceptedStream($stream, ...$networkInterceptors);
 
-            return yield $stream->request($request, $cancellation);
+            try {
+                return yield $stream->request($request, $cancellation);
+            } catch (UnprocessedRequestException $exception) {
+                throw $exception->getPrevious();
+            }
         });
     }
 

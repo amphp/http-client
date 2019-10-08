@@ -45,10 +45,6 @@ final class RetryRequests implements ApplicationInterceptor
                 }
             } while ($attempts++ <= $this->retryLimit);
 
-            if ($exception instanceof UnprocessedRequestException) {
-                throw $exception->getPrevious();
-            }
-
             throw $exception;
         });
     }
