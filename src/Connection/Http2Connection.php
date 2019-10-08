@@ -919,9 +919,8 @@ final class Http2Connection implements Connection
                         $error = \unpack("N", $buffer)[1];
 
                         if (isset($this->streams[$id])) {
-                            $stream = $this->streams[$id];
                             $exception = new Http2StreamException("Stream closed by server", $id, $error);
-                            if ($error === self::REFUSED_STREAM && $stream->request !== null) {
+                            if ($error === self::REFUSED_STREAM) {
                                 $exception = new UnprocessedRequestException($exception);
                             }
                             $this->releaseStream($id, $exception);
@@ -1463,7 +1462,7 @@ final class Http2Connection implements Connection
                 $reason = $exception = $reason ?? new SocketException("Connection closed");
                 foreach ($this->streams as $id => $stream) {
                     $exception = $reason;
-                    if ($id > $lastId && $stream->request !== null) {
+                    if ($id > $lastId) {
                         $exception = new UnprocessedRequestException($reason);
                     }
 
