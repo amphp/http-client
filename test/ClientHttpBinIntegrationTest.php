@@ -427,6 +427,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $result = \json_decode(yield $response->getBody()->buffer(), true);
 
         $this->assertTrue($result['gzipped']);
+        $this->assertFalse($response->hasHeader('content-encoding'));
     }
 
     /**

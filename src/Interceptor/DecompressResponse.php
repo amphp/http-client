@@ -49,6 +49,7 @@ final class DecompressResponse implements NetworkInterceptor
                         if (($encoding = $this->determineCompressionEncoding($response))) {
                             /** @noinspection PhpUnhandledExceptionInspection */
                             $response->setBody(new SizeLimitingInputStream(new ZlibInputStream($response->getBody(), $encoding), $request->getBodySizeLimit()));
+                            $response->removeHeader('content-encoding');
                         }
 
                         return $response;
@@ -64,6 +65,7 @@ final class DecompressResponse implements NetworkInterceptor
             if ($decodeResponse && ($encoding = $this->determineCompressionEncoding($response))) {
                 /** @noinspection PhpUnhandledExceptionInspection */
                 $response->setBody(new SizeLimitingInputStream(new ZlibInputStream($response->getBody(), $encoding), $request->getBodySizeLimit()));
+                $response->removeHeader('content-encoding');
             }
 
             return $response;
