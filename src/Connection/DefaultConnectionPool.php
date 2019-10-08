@@ -175,7 +175,9 @@ final class DefaultConnectionPool implements ConnectionPool
                 $cancellation
             );
         } catch (Socket\ConnectException $e) {
-            throw new SocketException(\sprintf("Connection to '%s' failed", $authority), 0, $e);
+            throw new UnprocessedRequestException(
+                new SocketException(\sprintf("Connection to '%s' failed", $authority), 0, $e)
+            );
         } catch (CancelledException $e) {
             // In case of a user cancellation request, throw the expected exception
             $cancellation->throwIfRequested();
@@ -201,14 +203,16 @@ final class DefaultConnectionPool implements ConnectionPool
                 yield $socket->setupTls($tlsCancellationToken);
             } elseif ($tlsState !== EncryptableSocket::TLS_STATE_ENABLED) {
                 $socket->close();
-                throw new SocketException('Failed to setup TLS connection, connection was in an unexpected TLS state (' . $tlsState . ')');
+                throw new UnprocessedRequestException(
+                    new SocketException('Failed to setup TLS connection, connection was in an unexpected TLS state (' . $tlsState . ')')
+                );
             }
         } catch (StreamException $exception) {
             $socket->close();
-            throw new SocketException(\sprintf(
+            throw new UnprocessedRequestException(new SocketException(\sprintf(
                 "Connection to '%s' closed during TLS handshake",
                 $authority
-            ), 0, $exception);
+            ), 0, $exception));
         } catch (CancelledException $e) {
             $socket->close();
 
@@ -225,7 +229,9 @@ final class DefaultConnectionPool implements ConnectionPool
 
         $tlsInfo = $socket->getTlsInfo();
         if ($tlsInfo === null) {
-            throw new SocketException('Socket disconnected immediately after enabling TLS');
+            throw new UnprocessedRequestException(
+                new SocketException('Socket disconnected immediately after enabling TLS')
+            );
         }
 
         if ($tlsInfo->getApplicationLayerProtocol() === 'h2') {
