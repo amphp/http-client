@@ -198,7 +198,9 @@ final class Http2Connection implements Connection
         $this->initialized = true;
 
         if ($this->socket->isClosed()) {
-            return new Failure(new SocketException('The socket closed before the connection could be initialized'));
+            return new Failure(new UnprocessedRequestException(
+                new SocketException('The socket closed before the connection could be initialized')
+            ));
         }
 
         $this->settingsDeferred = new Deferred;
