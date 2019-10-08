@@ -3,6 +3,7 @@
 namespace Amp\Http\Client\Test;
 
 use Amp\Http\Client\Body\StringBody;
+use Amp\Http\Client\MissingAttributeError;
 use Amp\Http\Client\Request;
 use PHPUnit\Framework\TestCase;
 
@@ -108,5 +109,23 @@ class RequestTest extends TestCase
 
         $this->expectException(\TypeError::class);
         $request->setBody(new \stdClass);
+    }
+
+    public function testAttributes(): void
+    {
+        $request = new Request("http://127.0.0.1/");
+        $request->setAttribute('foo', 'bar');
+
+        $this->assertSame('bar', $request->getAttribute('foo'));
+        $this->assertTrue($request->hasAttribute('foo'));
+        $this->assertSame(['foo' => 'bar'], $request->getAttributes());
+
+        $request->removeAttribute('foo');
+
+        $this->assertFalse($request->hasAttribute('foo'));
+
+        $this->expectException(MissingAttributeError::class);
+
+        $request->getAttribute('foo');
     }
 }
