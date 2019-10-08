@@ -11,10 +11,6 @@ use Amp\Success;
 
 /**
  * An HTTP response.
- *
- * This interface allows mocking responses and allows custom implementations.
- *
- * `DefaultClient` uses an anonymous class to implement this interface.
  */
 final class Response extends Message
 {
