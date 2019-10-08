@@ -102,7 +102,7 @@ final class Http2Connection implements Connection
     public const DEFAULT_MAX_HEADER_SIZE = 1 << 20;
     public const DEFAULT_MAX_BODY_SIZE = 1 << 30;
 
-    private const PING_INTERVAL = 5 * 1000; // Ping interval in milliseconds.
+    private const PING_INTERVAL = 10 * 1000; // Ping interval in milliseconds.
     private const IDLE_PING_COUNT = 2; // Number of idle pings to send before closing the connection.
 
     /** @var string 64-bit for ping. */
@@ -284,6 +284,7 @@ final class Http2Connection implements Connection
         // Remove defunct HTTP/1.x headers.
         $request->removeHeader('host');
         $request->removeHeader('connection');
+        $request->removeHeader('transfer-encoding');
 
         $id = $this->streamId += 2; // Client streams should be odd-numbered, starting at 1.
 
@@ -310,10 +311,13 @@ final class Http2Connection implements Connection
             $this->pendingRequests[$id] = $deferred = new Deferred;
 
             if ($this->socket->isClosed()) {
-                throw new SocketException(\sprintf(
-                    "Socket to '%s' closed before the request could be sent",
-                    $this->socket->getRemoteAddress()
-                ));
+                throw new UnprocessedRequestException(
+                    $request,
+                    new SocketException(\sprintf(
+                        "Socket to '%s' closed before the request could be sent",
+                        $this->socket->getRemoteAddress()
+                    ))
+                );
             }
 
             $this->socket->reference();
@@ -1432,9 +1436,9 @@ final class Http2Connection implements Connection
     }
 
     /**
-     * @param int|null   $lastId ID of last processed frame. Null to use the last opened frame ID or 0 if no frames have
-     *                           been opened.
-     * @param \Throwable $reason
+     * @param int|null        $lastId ID of last processed frame. Null to use the last opened frame ID or 0 if no
+     *                        streams have been opened.
+     * @param \Throwable|null $reason
      *
      * @return Promise
      */
@@ -1444,31 +1448,38 @@ final class Http2Connection implements Connection
             return new Success;
         }
 
-        $code = $reason ? $reason->getCode() : self::GRACEFUL_SHUTDOWN;
-        $lastId = $lastId ?? ($id ?? 0);
-        $promise = $this->writeFrame(\pack("NN", $lastId, $code), self::GOAWAY, self::NOFLAG);
+        return call(function () use ($lastId, $reason) {
+            $code = $reason ? $reason->getCode() : self::GRACEFUL_SHUTDOWN;
+            $lastId = $lastId ?? ($this->streamId > 0 ? $this->streamId : 0);
+            $promise = $this->writeFrame(\pack("NN", $lastId, $code), self::GOAWAY, self::NOFLAG);
 
-        $this->socket->close();
+            if (!empty($this->streams)) {
+                $reason = $exception = $reason ?? new SocketException("Connection closed");
+                foreach ($this->streams as $id => $stream) {
+                    $exception = $reason;
+                    if ($id > $lastId && $stream->request !== null) {
+                        $exception = new UnprocessedRequestException($stream->request, $reason);
+                    }
 
-        if (!empty($this->streams)) {
-            $exception = new SocketException("Connection closed", $reason->getCode(), $reason);
-            foreach ($this->streams as $id => $stream) {
-                $this->releaseStream($id, $exception);
+                    $this->releaseStream($id, $exception);
+                }
             }
-        }
 
-        if ($this->onClose !== null) {
-            $onClose = $this->onClose;
-            $this->onClose = null;
+            if ($this->onClose !== null) {
+                $onClose = $this->onClose;
+                $this->onClose = null;
 
-            foreach ($onClose as $callback) {
-                asyncCall($callback, $this);
+                foreach ($onClose as $callback) {
+                    asyncCall($callback, $this);
+                }
             }
-        }
 
-        Loop::cancel($this->pingWatcher);
+            Loop::cancel($this->pingWatcher);
 
-        return $promise;
+            yield $promise;
+
+            $this->socket->close();
+        });
     }
 
 

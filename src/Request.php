@@ -298,6 +298,12 @@ final class Request extends Message
         $this->bodySizeLimit = $bodySizeLimit;
     }
 
+    public function isIdempotent(): bool
+    {
+        // https://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html
+        return \in_array($this->method, ['GET', 'HEAD', 'PUT', 'DELETE'], true);
+    }
+
     private function createUriFromString(string $uri): UriInterface
     {
         return Uri\Http::createFromString($uri);

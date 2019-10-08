@@ -14,6 +14,7 @@ use Amp\Http;
 use Amp\Http\Client\Connection\Internal\Http1Parser;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Internal\ResponseBodyStream;
+use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\ParseException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\RequestBody;
@@ -60,6 +61,9 @@ final class Http1Connection implements Connection
     /** @var callable[]|null */
     private $onClose = [];
 
+    /** @var int */
+    private $estimatedClose;
+
     public function __construct(Socket $socket)
     {
         $this->socket = $socket;
@@ -67,6 +71,8 @@ final class Http1Connection implements Connection
         if ($this->socket->isClosed()) {
             $this->onClose = null;
         }
+
+        $this->estimatedClose = (int) ((\microtime(true) + self::MAX_KEEP_ALIVE_TIMEOUT) * 1000);
     }
 
     public function __destruct()
@@ -91,6 +97,8 @@ final class Http1Connection implements Connection
 
     public function close(): Promise
     {
+        $this->estimatedClose = 0;
+
         if ($this->timeoutWatcher !== null) {
             Loop::cancel($this->timeoutWatcher);
         }
@@ -154,6 +162,7 @@ final class Http1Connection implements Connection
 
             if ($this->timeoutWatcher !== null) {
                 Loop::cancel($this->timeoutWatcher);
+                $this->timeoutWatcher = null;
             }
 
             /** @var Request $request */
@@ -296,9 +305,12 @@ final class Http1Connection implements Connection
                             }
                         }
 
-                        if ($parser->getState() !== Http1Parser::BODY_IDENTITY_EOF && $timeout = $this->determineKeepAliveTimeout($response)) {
+                        $timeout = $this->determineKeepAliveTimeout($response);
+
+                        if ($timeout > 0 && $parser->getState() !== Http1Parser::BODY_IDENTITY_EOF) {
                             $this->timeoutWatcher = Loop::delay($timeout * 1000, [$this, 'close']);
                             Loop::unreference($this->timeoutWatcher);
+                            $this->estimatedClose = (int) ((\microtime(true) + $timeout) * 1000);
                         } else {
                             $this->close();
                         }
@@ -326,6 +338,14 @@ final class Http1Connection implements Connection
         } catch (StreamException $e) {
             throw new SocketException('Receiving the response headers failed: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * @return int Approximate number of milliseconds remaining until the connection is closed.
+     */
+    public function getRemainingTime(): int
+    {
+        return (int) \max(0, $this->estimatedClose - \microtime(true) * 1000);
     }
 
     private function withCancellation(Promise $promise, CancellationToken $cancellationToken): Promise
@@ -449,10 +469,9 @@ final class Http1Connection implements Connection
 
         $params = Http\createFieldValueComponentMap(Http\parseFieldValueComponents($response, 'keep-alive'));
 
-        return $this->priorTimeout = \min(
-            \max(0, ((int) ($params['timeout'] ?? $this->priorTimeout)) - 1),
-            self::MAX_KEEP_ALIVE_TIMEOUT
-        );
+        $timeout = (int) ($params['timeout'] ?? $this->priorTimeout);
+
+        return $this->priorTimeout = \min(\max(0, $timeout), self::MAX_KEEP_ALIVE_TIMEOUT);
     }
 
     private function determineProtocolVersion(Request $request): string
@@ -467,7 +486,10 @@ final class Http1Connection implements Connection
             return "1.0";
         }
 
-        throw new HttpException("None of the requested protocol versions is supported: " . \implode(", ", $protocolVersions));
+        throw new InvalidRequestException(
+            $request,
+            "None of the requested protocol versions is supported: " . \implode(", ", $protocolVersions)
+        );
     }
 
     private function writeRequest(Request $request, string $protocolVersion, CancellationToken $cancellation): \Generator
@@ -481,7 +503,7 @@ final class Http1Connection implements Connection
             $remainingBytes = $request->getHeader("content-length");
 
             if ($chunking && $protocolVersion === "1.0") {
-                throw new HttpException("Can't send chunked bodies over HTTP/1.0");
+                throw new InvalidRequestException($request, "Can't send chunked bodies over HTTP/1.0");
             }
 
             // We always buffer the last chunk to make sure we don't write $contentLength bytes if the body is too long.
@@ -500,7 +522,10 @@ final class Http1Connection implements Connection
                     $remainingBytes -= \strlen($chunk);
 
                     if ($remainingBytes < 0) {
-                        throw new HttpException("Body contained more bytes than specified in Content-Length, aborting request");
+                        throw new InvalidRequestException(
+                            $request,
+                            "Body contained more bytes than specified in Content-Length, aborting request"
+                        );
                     }
                 }
 
@@ -516,7 +541,10 @@ final class Http1Connection implements Connection
             if ($chunking) {
                 yield $this->socket->write("0\r\n\r\n");
             } elseif ($remainingBytes !== null && $remainingBytes > 0) {
-                throw new HttpException("Body contained fewer bytes than specified in Content-Length, aborting request");
+                throw new InvalidRequestException(
+                    $request,
+                    "Body contained fewer bytes than specified in Content-Length, aborting request"
+                );
             }
         } catch (StreamException $exception) {
             throw new SocketException('Socket disconnected prior to response completion');

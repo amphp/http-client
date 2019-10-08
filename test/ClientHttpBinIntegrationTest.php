@@ -12,12 +12,12 @@ use Amp\Http\Client\ApplicationInterceptor;
 use Amp\Http\Client\Body\FileBody;
 use Amp\Http\Client\Body\FormBody;
 use Amp\Http\Client\Client;
-use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Interceptor\DecompressResponse;
 use Amp\Http\Client\Interceptor\FollowRedirects;
 use Amp\Http\Client\Interceptor\ModifyRequest;
 use Amp\Http\Client\Interceptor\SetRequestHeaderIfUnset;
 use Amp\Http\Client\Interceptor\TooManyRedirectsException;
+use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\ParseException;
 use Amp\Http\Client\Request;
@@ -58,6 +58,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     public function testCloseAfterConnect(): \Generator
     {
         $this->givenRawServerResponse("");
+
+        $this->client = $this->client->withRetryLimit(0);
 
         $this->expectException(SocketException::class);
         $this->expectExceptionMessage("Receiving the response headers failed, because the socket closed early");
@@ -451,7 +453,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testContentLengthBodyMismatchWithTooManyBytesSimple(): \Generator
     {
-        $this->expectException(HttpException::class);
+        $this->expectException(InvalidRequestException::class);
         $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
 
         $request = new Request("http://httpbin.org/post", "POST");
@@ -477,7 +479,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testContentLengthBodyMismatchWithTooManyBytesWith3ByteChunksAndLength2(): \Generator
     {
-        $this->expectException(HttpException::class);
+        $this->expectException(InvalidRequestException::class);
         $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
 
         $request = new Request("http://httpbin.org/post", "POST");
@@ -503,7 +505,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testContentLengthBodyMismatchWithTooFewBytes(): \Generator
     {
-        $this->expectException(HttpException::class);
+        $this->expectException(InvalidRequestException::class);
         $this->expectExceptionMessage("Body contained fewer bytes than specified in Content-Length, aborting request");
 
         $request = new Request("http://httpbin.org/post", "POST");

@@ -6,8 +6,10 @@ use Amp\CancellationToken;
 use Amp\Http\Client\Connection\ConnectionPool;
 use Amp\Http\Client\Connection\DefaultConnectionPool;
 use Amp\Http\Client\Connection\Stream;
+use Amp\Http\Client\Connection\UnprocessedRequestException;
 use Amp\Http\Client\Interceptor\DecompressResponse;
 use Amp\Http\Client\Interceptor\FollowRedirects;
+use Amp\Http\Client\Interceptor\RetryRequests;
 use Amp\Http\Client\Interceptor\SetRequestHeaderIfUnset;
 use Amp\Http\Client\Internal\InterceptedStream;
 use Amp\NullCancellationToken;
@@ -32,14 +34,18 @@ final class Client
     /** @var NetworkInterceptor[] */
     private $defaultNetworkInterceptors;
 
+    /** @var RetryRequests|null */
+    private $retryInterceptor;
+
     /** @var FollowRedirects|null */
-    private $followRedirects;
+    private $followRedirectsInterceptor;
 
     public function __construct(?ConnectionPool $connectionPool = null)
     {
         $this->connectionPool = $connectionPool ?? new DefaultConnectionPool;
 
-        $this->followRedirects = new FollowRedirects;
+        $this->followRedirectsInterceptor = new FollowRedirects;
+        $this->retryInterceptor = new RetryRequests(2);
 
         // We want to set these by default if the user doesn't choose otherwise
         $this->defaultNetworkInterceptors = [
@@ -73,10 +79,16 @@ final class Client
             return $interceptor->request($request, $cancellation, $client);
         }
 
-        if ($this->followRedirects) {
+        if ($this->followRedirectsInterceptor) {
             $client = clone $this;
-            $client->followRedirects = null;
-            return $this->followRedirects->request($request, $cancellation, $client);
+            $client->followRedirectsInterceptor = null;
+            return $this->followRedirectsInterceptor->request($request, $cancellation, $client);
+        }
+
+        if ($this->retryInterceptor) {
+            $client = clone $this;
+            $client->retryInterceptor = null;
+            return $this->retryInterceptor->request($request, $cancellation, $client);
         }
 
         return call(function () use ($request, $cancellation) {
@@ -87,7 +99,11 @@ final class Client
             $networkInterceptors = \array_merge($this->defaultNetworkInterceptors, $this->networkInterceptors);
             $stream = new InterceptedStream($stream, ...$networkInterceptors);
 
-            return yield $stream->request($request, $cancellation);
+            try {
+                return yield $stream->request($request, $cancellation);
+            } catch (UnprocessedRequestException $exception) {
+                throw $exception->getPrevious();
+            }
         });
     }
 
@@ -131,6 +147,26 @@ final class Client
     }
 
     /**
+     * @param int $retryLimit Maximum number of times a request may be retried. Only certain requests will be retried
+     *                        automatically (GET, HEAD, PUT, and DELETE requests are automatically retried, or any
+     *                        request that was indicated as unprocessed by the HTTP server).
+     *
+     * @return self
+     */
+    public function withRetryLimit(int $retryLimit): self
+    {
+        $client = clone $this;
+
+        if ($retryLimit <= 0) {
+            $client->retryInterceptor = null;
+        } else {
+            $client->retryInterceptor = new RetryRequests($retryLimit);
+        }
+
+        return $client;
+    }
+
+    /**
      * Returns a client that will automatically request the URI supplied by a redirect response (3xx status codes)
      * and return that response instead of the redirect response.
      *
@@ -139,7 +175,7 @@ final class Client
     public function withFollowingRedirects(): self
     {
         $client = clone $this;
-        $client->followRedirects = new FollowRedirects;
+        $client->followRedirectsInterceptor = new FollowRedirects;
         return $client;
     }
 
@@ -151,7 +187,7 @@ final class Client
     public function withoutFollowingRedirects(): self
     {
         $client = clone $this;
-        $client->followRedirects = null;
+        $client->followRedirectsInterceptor = null;
         return $client;
     }
 }
