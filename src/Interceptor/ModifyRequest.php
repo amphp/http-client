@@ -27,8 +27,7 @@ class ModifyRequest implements NetworkInterceptor, ApplicationInterceptor
         Stream $stream
     ): Promise {
         return call(function () use ($request, $cancellation, $stream) {
-            $request = yield call($this->mapper, $request);
-
+            $request = (yield call($this->mapper, $request)) ?? $request;
             return $stream->request($request, $cancellation);
         });
     }
@@ -36,7 +35,7 @@ class ModifyRequest implements NetworkInterceptor, ApplicationInterceptor
     public function request(Request $request, CancellationToken $cancellation, Client $client): Promise
     {
         return call(function () use ($request, $cancellation, $client) {
-            $request = yield call($this->mapper, $request);
+            $request = (yield call($this->mapper, $request)) ?? $request;
             return $client->request($request, $cancellation);
         });
     }

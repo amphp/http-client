@@ -31,7 +31,7 @@ class ModifyResponse implements NetworkInterceptor, ApplicationInterceptor
         return call(function () use ($request, $cancellation, $stream) {
             /** @var Response $response */
             $response = yield $stream->request($request, $cancellation);
-            return call($this->mapper, $response);
+            return (yield call($this->mapper, $response)) ?? $response;
         });
     }
 
@@ -42,7 +42,7 @@ class ModifyResponse implements NetworkInterceptor, ApplicationInterceptor
                 $request->onPush(function (Request $request, Promise $promise, CancellationTokenSource $source) use ($onPush) {
                     $promise = call(function () use ($promise) {
                         $response = yield $promise;
-                        return yield call($this->mapper, $response);
+                        return (yield call($this->mapper, $response)) ?? $response;
                     });
 
                     return $onPush($request, $promise, $source);
@@ -51,7 +51,7 @@ class ModifyResponse implements NetworkInterceptor, ApplicationInterceptor
 
             /** @var Response $response */
             $response = yield $client->request($request, $cancellation);
-            return call($this->mapper, $response);
+            return (yield call($this->mapper, $response)) ?? $response;
         });
     }
 }
