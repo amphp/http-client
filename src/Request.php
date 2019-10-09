@@ -384,6 +384,14 @@ final class Request extends Message
         unset($this->attributes[$name]);
     }
 
+    /**
+     * Remove all attributes from the request's mutable local storage.
+     */
+    public function removeAttributes(): void
+    {
+        $this->attributes = [];
+    }
+
     public function isIdempotent(): bool
     {
         // https://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html
