@@ -3,6 +3,7 @@
 namespace Amp\Http\Client\Interceptor;
 
 use Amp\Http\Client\Response;
+use Amp\Http\Client\Test\Interceptor\InterceptorTest;
 
 class ModifyResponseTest extends InterceptorTest
 {
