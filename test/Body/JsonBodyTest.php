@@ -1,7 +1,8 @@
 <?php /** @noinspection PhpUnhandledExceptionInspection */
 
-namespace Amp\Http\Client\Body;
+namespace Amp\Http\Client\Test\Body;
 
+use Amp\Http\Client\Body\JsonBody;
 use Amp\Http\Client\HttpException;
 use Amp\PHPUnit\AsyncTestCase;
 use function Amp\ByteStream\buffer;

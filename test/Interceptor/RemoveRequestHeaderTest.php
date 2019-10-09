@@ -1,7 +1,8 @@
 <?php
 
-namespace Amp\Http\Client\Interceptor;
+namespace Amp\Http\Client\Test\Interceptor;
 
+use Amp\Http\Client\Interceptor\RemoveRequestHeader;
 use Amp\Http\Client\Request;
 
 class RemoveRequestHeaderTest extends InterceptorTest
