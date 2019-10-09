@@ -54,7 +54,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Amp\\Http\\Client\\": "test"
+            "Amp\\Http\\Client\\Test\\": "test"
         }
     },
     "conflict": {
