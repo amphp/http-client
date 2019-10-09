@@ -108,6 +108,10 @@ final class DefaultConnectionPool implements ConnectionPool
                     continue; // Connection does not support any of the requested protocol versions.
                 }
 
+                if ($connection instanceof Http2Connection && $connection->isIdle() && !(yield $connection->ping())) {
+                    continue; // Connection closed while idle.
+                }
+
                 if ($connection instanceof Http1Connection
                     && $connection->getRemainingTime() < $this->timeoutGracePeriod
                     && !$request->isIdempotent()

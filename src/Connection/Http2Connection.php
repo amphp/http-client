@@ -102,8 +102,8 @@ final class Http2Connection implements Connection
     public const DEFAULT_MAX_HEADER_SIZE = 1 << 20;
     public const DEFAULT_MAX_BODY_SIZE = 1 << 30;
 
-    private const PING_INTERVAL = 10 * 1000; // Ping interval in milliseconds.
-    private const IDLE_PING_COUNT = 2; // Number of idle pings to send before closing the connection.
+    // Milliseconds to wait for pong (PING with ACK) frame before closing the connection.
+    private const PONG_TIMEOUT = 500;
 
     /** @var string 64-bit for ping. */
     private $counter = "aaaaaaaa";
@@ -156,11 +156,11 @@ final class Http2Connection implements Connection
     /** @var bool */
     private $initialized = false;
 
-    /** @var int */
-    private $pingCount = 0;
+    /** @var string|null */
+    private $pongWatcher;
 
-    /** @var string */
-    private $pingWatcher;
+    /** @var Deferred|null */
+    private $pongDeferred;
 
     public function __construct(Socket $socket)
     {
@@ -171,16 +171,6 @@ final class Http2Connection implements Connection
         if ($this->socket->isClosed()) {
             $this->onClose = null;
         }
-
-        $this->pingWatcher = Loop::repeat(self::PING_INTERVAL, function (): void {
-            if (++$this->pingCount > self::IDLE_PING_COUNT) {
-                $this->close();
-                return;
-            }
-
-            $this->ping();
-        });
-        Loop::unreference($this->pingWatcher);
     }
 
     /**
@@ -235,14 +225,37 @@ final class Http2Connection implements Connection
         );
     }
 
+    /**
+     * @return Promise<bool> Fulfilled with true if a pong is received within the timeout, false if none is received.
+     */
     public function ping(): Promise
     {
-        return $this->writeFrame($this->counter++, self::PING, self::NOFLAG);
+        if ($this->onClose === null) {
+            return new Success(false);
+        }
+
+        if ($this->pongDeferred !== null) {
+            return $this->pongDeferred->promise();
+        }
+
+        $this->pongDeferred = new Deferred;
+
+        $this->writeFrame($this->counter++, self::PING, self::NOFLAG);
+
+        $this->pongWatcher = Loop::delay(self::PONG_TIMEOUT, [$this, 'close']);
+        Loop::unreference($this->pongWatcher);
+
+        return $this->pongDeferred->promise();
+    }
+
+    public function isIdle(): bool
+    {
+        return empty($this->streams) && $this->onClose !== null;
     }
 
     public function isBusy(): bool
     {
-        return $this->remainingStreams <= 0 || $this->socket->isClosed();
+        return $this->remainingStreams <= 0 || $this->onClose === null;
     }
 
     public function onClose(callable $onClose): void
@@ -277,10 +290,6 @@ final class Http2Connection implements Connection
 
     private function request(Request $request, CancellationToken $token): Promise
     {
-        $this->pingCount = 0;
-
-        Loop::disable($this->pingWatcher);
-
         $request = clone $request;
 
         // Remove defunct HTTP/1.x headers.
@@ -388,7 +397,6 @@ final class Http2Connection implements Connection
                 }
 
                 if ($chunk === null) {
-                    Loop::enable($this->pingWatcher);
                     return yield $deferred->promise();
                 }
 
@@ -409,8 +417,6 @@ final class Http2Connection implements Connection
                 $this->streams[$id]->state |= Http2Stream::LOCAL_CLOSED;
 
                 yield $this->writeData($buffer, $id);
-
-                Loop::enable($this->pingWatcher);
 
                 return yield $deferred->promise();
             } catch (\Throwable $exception) {
@@ -996,6 +1002,15 @@ final class Http2Connection implements Connection
 
                         if (($flags & self::ACK) === "\0") {
                             $this->writeFrame($data, self::PING, self::ACK);
+                        } elseif ($this->pongDeferred !== null) {
+                            if ($this->pongWatcher !== null) {
+                                Loop::cancel($this->pongWatcher);
+                                $this->pongWatcher = null;
+                            }
+
+                            $deferred = $this->pongDeferred;
+                            $this->pongDeferred = null;
+                            $deferred->resolve(true);
                         }
 
                         $buffer = \substr($buffer, 8);
@@ -1470,6 +1485,10 @@ final class Http2Connection implements Connection
                 }
             }
 
+            if ($this->pongDeferred !== null) {
+                $this->pongDeferred->resolve(false);
+            }
+
             if ($this->onClose !== null) {
                 $onClose = $this->onClose;
                 $this->onClose = null;
@@ -1479,7 +1498,9 @@ final class Http2Connection implements Connection
                 }
             }
 
-            Loop::cancel($this->pingWatcher);
+            if ($this->pongWatcher !== null) {
+                Loop::cancel($this->pongWatcher);
+            }
 
             yield $promise;
 
