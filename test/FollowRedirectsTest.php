@@ -63,7 +63,7 @@ class FollowRedirectsTest extends AsyncTestCase
         yield $redirect->request($request, new NullCancellationToken, $client);
     }
 
-    public function provideResolvables()
+    public function provideResolvables(): array
     {
         return [
             ['http://localhost/1/2/a.php', 'http://google.com/', 'http://google.com/'],
@@ -107,6 +107,65 @@ class FollowRedirectsTest extends AsyncTestCase
             ["http://a/b/c/d;p?q", "../..", "http://a/"],
             ["http://a/b/c/d;p?q", "../../", "http://a/"],
             ["http://a/b/c/d;p?q", "../../g", "http://a/g"],
+        ];
+    }
+
+    /**
+     * @dataProvider provideUserInfo
+     */
+    public function testWithUserInfo(string $uri, bool $shouldKeepUserInfo): \Generator
+    {
+        $request = new Request('http://username:password@127.0.0.1/');
+
+        $stream1 = $this->createMock(Stream::class);
+        $stream1->expects($this->once())
+            ->method('request')
+            ->willReturn(new Success(new Response(
+                '1.1',
+                Status::MOVED_PERMANENTLY,
+                Status::getReason(Status::MOVED_PERMANENTLY),
+                ['location' => $uri],
+                new InMemoryStream,
+                $request
+            )));
+
+        $stream2 = $this->createMock(Stream::class);
+        $stream2->expects($this->once())
+            ->method('request')
+            ->willReturnCallback(function (Request $request) use ($shouldKeepUserInfo): Promise {
+                $this->assertSame($shouldKeepUserInfo ? 'username:password' : '', $request->getUri()->getUserInfo());
+                return new Success(new Response(
+                    '1.1',
+                    Status::OK,
+                    Status::getReason(Status::OK),
+                    [],
+                    new InMemoryStream,
+                    $request
+                ));
+            });
+
+        $pool = $this->createMock(ConnectionPool::class);
+        $pool->expects($this->exactly(2))
+            ->method('getStream')
+            ->willReturnOnConsecutiveCalls(new Success($stream1), new Success($stream2));
+
+        $client = new Client($pool);
+
+        $response = yield $client->request($request);
+        \assert($response instanceof Response);
+
+        $this->assertSame(Status::OK, $response->getStatus());
+        $request = $response->getRequest();
+        $this->assertSame($shouldKeepUserInfo ? 'username:password' : '', $request->getUri()->getUserInfo());
+    }
+
+    public function provideUserInfo(): array
+    {
+        return [
+            ['/redirected', true],
+            ['http://127.0.0.1/redirected', true],
+            ['https://127.0.0.1/', true],
+            ['http://example.org', false],
         ];
     }
 }

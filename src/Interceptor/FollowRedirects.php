@@ -107,6 +107,10 @@ final class FollowRedirects implements ApplicationInterceptor
         if ($redirectUri = $this->getRedirectUri($response)) {
             $originalUri = $request->getUri();
 
+            // Remove user info from original URI for host comparison.
+            $userInfo = $originalUri->getUserInfo();
+            $originalUri = $originalUri->withUserInfo('');
+
             // Discard response body of redirect responses
             $body = $response->getBody();
 
@@ -130,6 +134,11 @@ final class FollowRedirects implements ApplicationInterceptor
             $isSameHost = $redirectUri->getAuthority() === $originalUri->getAuthority();
 
             if ($isSameHost) {
+                if ($userInfo !== '') {
+                    [$username, $password] = \explode(':', $userInfo) + ['', null];
+                    $redirectUri = $redirectUri->withUserInfo($username, $password);
+                }
+
                 $request = clone $request;
                 $request->setUri($redirectUri);
 
