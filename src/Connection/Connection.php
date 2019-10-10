@@ -32,10 +32,12 @@ interface Connection
     public function hasStreamAvailable(): bool;
 
     /**
+     * @param Request $request
+     *
      * @return Promise<bool> True if the connection is safe to use for a new request, false if a new connection should
      *                       be opened.
      */
-    public function checkLiveliness(): Promise;
+    public function checkLiveliness(Request $request): Promise;
 
     public function close(): Promise;
 

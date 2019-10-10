@@ -258,7 +258,7 @@ final class Http2Connection implements Connection
         return $this->remainingStreams > 0 && $this->onClose !== null;
     }
 
-    public function checkLiveliness(): Promise
+    public function checkLiveliness(Request $request): Promise
     {
         if (!$this->isIdle()) {
             return new Success(true);

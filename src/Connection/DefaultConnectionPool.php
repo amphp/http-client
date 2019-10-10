@@ -100,16 +100,16 @@ final class DefaultConnectionPool implements ConnectionPool
 
                 \assert($connection instanceof Connection);
 
-                if ($connection->hasStreamAvailable()) {
-                    continue; // Connection is currently used to full capacity.
-                }
-
                 if (!\array_intersect($request->getProtocolVersions(), $connection->getProtocolVersions())) {
                     continue; // Connection does not support any of the requested protocol versions.
                 }
 
-                if (!yield $connection->checkLiveliness()) {
-                    continue;
+                if (!yield $connection->checkLiveliness($request)) {
+                    continue; // Connection is not suited for this request.
+                }
+
+                if ($connection->hasStreamAvailable()) {
+                    continue; // Connection is currently used to full capacity.
                 }
 
                 return $connection->getStream($request);

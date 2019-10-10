@@ -89,9 +89,9 @@ final class Http1Connection implements Connection
         return !$this->busy && !$this->socket->isClosed();
     }
 
-    public function checkLiveliness(): Promise
+    public function checkLiveliness(Request $request): Promise
     {
-        return new Success($this->getRemainingTime() > $this->timeoutGracePeriod);
+        return new Success($this->getRemainingTime() > $this->timeoutGracePeriod || $request->isIdempotent());
     }
 
     public function onClose(callable $onClose): void
