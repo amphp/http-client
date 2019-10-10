@@ -228,7 +228,7 @@ final class Http2Connection implements Connection
     /**
      * @return Promise<bool> Fulfilled with true if a pong is received within the timeout, false if none is received.
      */
-    public function ping(): Promise
+    private function ping(): Promise
     {
         if ($this->onClose === null) {
             return new Success(false);
@@ -248,14 +248,23 @@ final class Http2Connection implements Connection
         return $this->pongDeferred->promise();
     }
 
-    public function isIdle(): bool
+    private function isIdle(): bool
     {
         return empty($this->streams) && $this->onClose !== null;
     }
 
-    public function isBusy(): bool
+    public function hasStreamAvailable(): bool
     {
-        return $this->remainingStreams <= 0 || $this->onClose === null;
+        return $this->remainingStreams > 0 && $this->onClose !== null;
+    }
+
+    public function checkLiveliness(): Promise
+    {
+        if (!$this->isIdle()) {
+            return new Success(true);
+        }
+
+        return $this->ping();
     }
 
     public function onClose(callable $onClose): void
@@ -1489,6 +1498,10 @@ final class Http2Connection implements Connection
                 $this->pongDeferred->resolve(false);
             }
 
+            if ($this->pongWatcher !== null) {
+                Loop::cancel($this->pongWatcher);
+            }
+
             if ($this->onClose !== null) {
                 $onClose = $this->onClose;
                 $this->onClose = null;
@@ -1496,10 +1509,6 @@ final class Http2Connection implements Connection
                 foreach ($onClose as $callback) {
                     asyncCall($callback, $this);
                 }
-            }
-
-            if ($this->pongWatcher !== null) {
-                Loop::cancel($this->pongWatcher);
             }
 
             yield $promise;

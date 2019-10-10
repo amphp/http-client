@@ -62,9 +62,12 @@ final class Http1Connection implements Connection
     private $onClose = [];
 
     /** @var int */
+    private $timeoutGracePeriod;
+
+    /** @var int */
     private $estimatedClose;
 
-    public function __construct(Socket $socket)
+    public function __construct(Socket $socket, int $timeoutGracePeriod)
     {
         $this->socket = $socket;
 
@@ -72,6 +75,7 @@ final class Http1Connection implements Connection
             $this->onClose = null;
         }
 
+        $this->timeoutGracePeriod = $timeoutGracePeriod;
         $this->estimatedClose = (int) ((\microtime(true) + self::MAX_KEEP_ALIVE_TIMEOUT) * 1000);
     }
 
@@ -80,9 +84,14 @@ final class Http1Connection implements Connection
         $this->close();
     }
 
-    public function isBusy(): bool
+    public function hasStreamAvailable(): bool
     {
-        return $this->busy || $this->socket->isClosed();
+        return !$this->busy && !$this->socket->isClosed();
+    }
+
+    public function checkLiveliness(): Promise
+    {
+        return new Success($this->getRemainingTime() > $this->timeoutGracePeriod);
     }
 
     public function onClose(callable $onClose): void
@@ -343,7 +352,7 @@ final class Http1Connection implements Connection
     /**
      * @return int Approximate number of milliseconds remaining until the connection is closed.
      */
-    public function getRemainingTime(): int
+    private function getRemainingTime(): int
     {
         return (int) \max(0, $this->estimatedClose - \microtime(true) * 1000);
     }

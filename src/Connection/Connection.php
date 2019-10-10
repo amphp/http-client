@@ -29,7 +29,13 @@ interface Connection
     /**
      * @return bool True if a stream is still available, false if the connection is completely busy.
      */
-    public function isBusy(): bool;
+    public function hasStreamAvailable(): bool;
+
+    /**
+     * @return Promise<bool> True if the connection is safe to use for a new request, false if a new connection should
+     *                       be opened.
+     */
+    public function checkLiveliness(): Promise;
 
     public function close(): Promise;
 

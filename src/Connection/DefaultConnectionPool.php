@@ -100,7 +100,7 @@ final class DefaultConnectionPool implements ConnectionPool
 
                 \assert($connection instanceof Connection);
 
-                if ($connection->isBusy()) {
+                if ($connection->hasStreamAvailable()) {
                     continue; // Connection is currently used to full capacity.
                 }
 
@@ -108,15 +108,8 @@ final class DefaultConnectionPool implements ConnectionPool
                     continue; // Connection does not support any of the requested protocol versions.
                 }
 
-                if ($connection instanceof Http2Connection && $connection->isIdle() && !(yield $connection->ping())) {
-                    continue; // Connection closed while idle.
-                }
-
-                if ($connection instanceof Http1Connection
-                    && $connection->getRemainingTime() < $this->timeoutGracePeriod
-                    && !$request->isIdempotent()
-                ) {
-                    continue; // Connection is at high-risk of closing before the request can be sent.
+                if (!yield $connection->checkLiveliness()) {
+                    continue;
                 }
 
                 return $connection->getStream($request);
@@ -194,7 +187,7 @@ final class DefaultConnectionPool implements ConnectionPool
         }
 
         if (!$isHttps) {
-            return new Http1Connection($socket);
+            return new Http1Connection($socket, $this->timeoutGracePeriod);
         }
 
         try {
@@ -253,7 +246,7 @@ final class DefaultConnectionPool implements ConnectionPool
             );
         }
 
-        return new Http1Connection($socket);
+        return new Http1Connection($socket, $this->timeoutGracePeriod);
     }
 
     private function dropConnection(string $uri, string $connectionHash): void
