@@ -13,31 +13,24 @@ interface Connection
     public const MAX_KEEP_ALIVE_TIMEOUT = 60;
 
     /**
+     * @return Promise<Stream>
+     */
+    public function getStream(): Promise;
+
+    /**
      * @param Request $request
      *
-     * @return Stream
+     * @return Promise<Stream|null> Returns a stream for the given request, or null if no stream is available or if
+     *                              the connection is not suited for the given request.
      *
      * @throws SocketException If all available streams have been used. Verify a stream is available with isBusy().
      */
-    public function getStream(Request $request): Stream;
+    public function getStreamFor(Request $request): Promise;
 
     /**
      * @return string[] Array of supported protocol versions.
      */
     public function getProtocolVersions(): array;
-
-    /**
-     * @return bool True if a stream is still available, false if the connection is completely busy.
-     */
-    public function hasStreamAvailable(): bool;
-
-    /**
-     * @param Request $request
-     *
-     * @return Promise<bool> True if the connection is safe to use for a new request, false if a new connection should
-     *                       be opened.
-     */
-    public function checkLiveliness(Request $request): Promise;
 
     public function close(): Promise;
 

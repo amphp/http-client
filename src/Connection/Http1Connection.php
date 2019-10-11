@@ -84,14 +84,11 @@ final class Http1Connection implements Connection
         $this->close();
     }
 
-    public function hasStreamAvailable(): bool
+    private function hasStreamFor(Request $request): bool
     {
-        return !$this->busy && !$this->socket->isClosed();
-    }
-
-    public function checkLiveliness(Request $request): Promise
-    {
-        return new Success($this->getRemainingTime() > $this->timeoutGracePeriod || $request->isIdempotent());
+        return !$this->busy
+            && !$this->socket->isClosed()
+            && ($this->getRemainingTime() > $this->timeoutGracePeriod || $request->isIdempotent());
     }
 
     public function onClose(callable $onClose): void
@@ -146,19 +143,24 @@ final class Http1Connection implements Connection
         return self::PROTOCOL_VERSIONS;
     }
 
-    public function getStream(Request $request): Stream
+    public function getStream(): Promise
     {
-        if ($this->busy) {
-            throw new \Error('All available streams have been used');
-        }
-
         $this->busy = true;
 
-        return new HttpStream(
+        return new Success(new HttpStream(
             $this,
             \Closure::fromCallable([$this, 'request']),
             \Closure::fromCallable([$this, 'release'])
-        );
+        ));
+    }
+
+    public function getStreamFor(Request $request): Promise
+    {
+        if (!$this->hasStreamFor($request)) {
+            return new Success;
+        }
+
+        return $this->getStream();
     }
 
     /** @inheritdoc */

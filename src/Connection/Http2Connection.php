@@ -206,23 +206,35 @@ final class Http2Connection implements Connection
         return self::PROTOCOL_VERSIONS;
     }
 
-    public function getStream(Request $request): Stream
+    public function getStream(): Promise
+    {
+        return $this->tryGetStream();
+    }
+
+    public function getStreamFor(Request $request): Promise
+    {
+        return $this->tryGetStream($request);
+    }
+
+    private function tryGetStream(?Request $request = null): Promise
     {
         if (!$this->initialized || $this->settingsDeferred !== null) {
             throw new \Error('The promise returned from ' . __CLASS__ . '::initialize() must resolve before using the connection');
         }
 
-        if ($this->remainingStreams <= 0) {
-            throw new \Error('All available streams have been used');
-        }
+        return call(function () use ($request) {
+            if ($request !== null && !yield from $this->checkLiveliness()) {
+                return null;
+            }
 
-        --$this->remainingStreams;
+            --$this->remainingStreams;
 
-        return new HttpStream(
-            $this,
-            \Closure::fromCallable([$this, 'request']),
-            \Closure::fromCallable([$this, 'release'])
-        );
+            return new HttpStream(
+                $this,
+                \Closure::fromCallable([$this, 'request']),
+                \Closure::fromCallable([$this, 'release'])
+            );
+        });
     }
 
     /**
@@ -250,21 +262,21 @@ final class Http2Connection implements Connection
 
     private function isIdle(): bool
     {
-        return empty($this->streams) && $this->onClose !== null;
+        return empty($this->streams);
     }
 
-    public function hasStreamAvailable(): bool
+    private function hasStream(): bool
     {
         return $this->remainingStreams > 0 && $this->onClose !== null;
     }
 
-    public function checkLiveliness(Request $request): Promise
+    private function checkLiveliness(): \Generator
     {
         if (!$this->isIdle()) {
-            return new Success(true);
+            return $this->hasStream();
         }
 
-        return $this->ping();
+        return ((yield $this->ping()) && !$this->hasStream());
     }
 
     public function onClose(callable $onClose): void

@@ -104,15 +104,13 @@ final class DefaultConnectionPool implements ConnectionPool
                     continue; // Connection does not support any of the requested protocol versions.
                 }
 
-                if (!yield $connection->checkLiveliness($request)) {
-                    continue; // Connection is not suited for this request.
+                $stream = yield $connection->getStreamFor($request);
+
+                if ($stream === null) {
+                    continue; // No stream available for the given request.
                 }
 
-                if ($connection->hasStreamAvailable()) {
-                    continue; // Connection is currently used to full capacity.
-                }
-
-                return $connection->getStream($request);
+                return $stream;
             }
 
             $promise = new Coroutine($this->createConnection($request, $cancellation, $authority, $isHttps));
@@ -134,7 +132,7 @@ final class DefaultConnectionPool implements ConnectionPool
                 $this->dropConnection($key, $hash);
             });
 
-            return $connection->getStream($request);
+            return yield $connection->getStream();
         });
     }
 
