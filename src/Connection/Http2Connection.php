@@ -206,24 +206,18 @@ final class Http2Connection implements Connection
         return self::PROTOCOL_VERSIONS;
     }
 
-    public function getStream(): Promise
-    {
-        return $this->tryGetStream();
-    }
-
-    public function getStreamFor(Request $request): Promise
-    {
-        return $this->tryGetStream($request);
-    }
-
-    private function tryGetStream(?Request $request = null): Promise
+    public function getStream(Request $request): Promise
     {
         if (!$this->initialized || $this->settingsDeferred !== null) {
             throw new \Error('The promise returned from ' . __CLASS__ . '::initialize() must resolve before using the connection');
         }
 
         return call(function () use ($request) {
-            if ($request !== null && !yield from $this->checkLiveliness()) {
+            if ($this->streamId > 0 && empty($this->streams) && !yield $this->ping()) {
+                return null;
+            }
+
+            if ($this->remainingStreams <= 0 || $this->onClose === null) {
                 return null;
             }
 
@@ -255,28 +249,8 @@ final class Http2Connection implements Connection
         $this->writeFrame($this->counter++, self::PING, self::NOFLAG);
 
         $this->pongWatcher = Loop::delay(self::PONG_TIMEOUT, [$this, 'close']);
-        Loop::unreference($this->pongWatcher);
 
         return $this->pongDeferred->promise();
-    }
-
-    private function isIdle(): bool
-    {
-        return empty($this->streams);
-    }
-
-    private function hasStream(): bool
-    {
-        return $this->remainingStreams > 0 && $this->onClose !== null;
-    }
-
-    private function checkLiveliness(): \Generator
-    {
-        if (!$this->isIdle()) {
-            return $this->hasStream();
-        }
-
-        return ((yield $this->ping()) && !$this->hasStream());
     }
 
     public function onClose(callable $onClose): void

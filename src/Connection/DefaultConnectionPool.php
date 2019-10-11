@@ -81,11 +81,13 @@ final class DefaultConnectionPool implements ConnectionPool
                 );
             }
 
-            foreach ($this->connections[$key] ?? [] as $promise) {
+            $connections = $this->connections[$key] ?? [];
+
+            foreach ($connections as $promise) {
                 \assert($promise instanceof Promise);
 
                 try {
-                    if ($isHttps && \count($this->connections[$key]) === 1) {
+                    if ($isHttps && \count($connections) === 1) {
                         // Wait for first successful connection if using a secure connection (maybe we can use HTTP/2).
                         $connection = yield $promise;
                     } else {
@@ -104,7 +106,7 @@ final class DefaultConnectionPool implements ConnectionPool
                     continue; // Connection does not support any of the requested protocol versions.
                 }
 
-                $stream = yield $connection->getStreamFor($request);
+                $stream = yield $connection->getStream($request);
 
                 if ($stream === null) {
                     continue; // No stream available for the given request.
@@ -132,7 +134,10 @@ final class DefaultConnectionPool implements ConnectionPool
                 $this->dropConnection($key, $hash);
             });
 
-            return yield $connection->getStream();
+            $stream = yield $connection->getStream($request);
+            \assert($stream instanceof Stream); // New connection must always resolve with a Stream instance.
+
+            return $stream;
         });
     }
 
