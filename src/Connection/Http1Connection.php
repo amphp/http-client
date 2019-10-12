@@ -62,9 +62,12 @@ final class Http1Connection implements Connection
     private $onClose = [];
 
     /** @var int */
+    private $timeoutGracePeriod;
+
+    /** @var int */
     private $estimatedClose;
 
-    public function __construct(Socket $socket)
+    public function __construct(Socket $socket, int $timeoutGracePeriod)
     {
         $this->socket = $socket;
 
@@ -72,17 +75,13 @@ final class Http1Connection implements Connection
             $this->onClose = null;
         }
 
+        $this->timeoutGracePeriod = $timeoutGracePeriod;
         $this->estimatedClose = (int) ((\microtime(true) + self::MAX_KEEP_ALIVE_TIMEOUT) * 1000);
     }
 
     public function __destruct()
     {
         $this->close();
-    }
-
-    public function isBusy(): bool
-    {
-        return $this->busy || $this->socket->isClosed();
     }
 
     public function onClose(callable $onClose): void
@@ -137,19 +136,26 @@ final class Http1Connection implements Connection
         return self::PROTOCOL_VERSIONS;
     }
 
-    public function getStream(Request $request): Stream
+    public function getStream(Request $request): Promise
     {
-        if ($this->busy) {
-            throw new \Error('All available streams have been used');
+        if ($this->busy || ($this->requestCounter && !$this->hasStreamFor($request))) {
+            return new Success;
         }
 
         $this->busy = true;
 
-        return new HttpStream(
+        return new Success(new HttpStream(
             $this,
             \Closure::fromCallable([$this, 'request']),
             \Closure::fromCallable([$this, 'release'])
-        );
+        ));
+    }
+
+    private function hasStreamFor(Request $request): bool
+    {
+        return !$this->busy
+            && !$this->socket->isClosed()
+            && ($this->getRemainingTime() > $this->timeoutGracePeriod || $request->isIdempotent());
     }
 
     /** @inheritdoc */
@@ -343,7 +349,7 @@ final class Http1Connection implements Connection
     /**
      * @return int Approximate number of milliseconds remaining until the connection is closed.
      */
-    public function getRemainingTime(): int
+    private function getRemainingTime(): int
     {
         return (int) \max(0, $this->estimatedClose - \microtime(true) * 1000);
     }

@@ -3,7 +3,6 @@
 namespace Amp\Http\Client\Connection;
 
 use Amp\Http\Client\Request;
-use Amp\Http\Client\SocketException;
 use Amp\Promise;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
@@ -15,21 +14,16 @@ interface Connection
     /**
      * @param Request $request
      *
-     * @return Stream
-     *
-     * @throws SocketException If all available streams have been used. Verify a stream is available with isBusy().
+     * @return Promise<Stream|null> Returns a stream for the given request, or null if no stream is available or if
+     *                              the connection is not suited for the given request. The first request for a stream
+     *                              on a new connection MUST resolve the promise with a Stream instance.
      */
-    public function getStream(Request $request): Stream;
+    public function getStream(Request $request): Promise;
 
     /**
      * @return string[] Array of supported protocol versions.
      */
     public function getProtocolVersions(): array;
-
-    /**
-     * @return bool True if a stream is still available, false if the connection is completely busy.
-     */
-    public function isBusy(): bool;
 
     public function close(): Promise;
 

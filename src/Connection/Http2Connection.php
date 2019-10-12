@@ -206,29 +206,35 @@ final class Http2Connection implements Connection
         return self::PROTOCOL_VERSIONS;
     }
 
-    public function getStream(Request $request): Stream
+    public function getStream(Request $request): Promise
     {
         if (!$this->initialized || $this->settingsDeferred !== null) {
             throw new \Error('The promise returned from ' . __CLASS__ . '::initialize() must resolve before using the connection');
         }
 
-        if ($this->remainingStreams <= 0) {
-            throw new \Error('All available streams have been used');
-        }
+        return call(function () use ($request) {
+            if ($this->streamId > 0 && empty($this->streams) && !yield $this->ping()) {
+                return null;
+            }
 
-        --$this->remainingStreams;
+            if ($this->remainingStreams <= 0 || $this->onClose === null) {
+                return null;
+            }
 
-        return new HttpStream(
-            $this,
-            \Closure::fromCallable([$this, 'request']),
-            \Closure::fromCallable([$this, 'release'])
-        );
+            --$this->remainingStreams;
+
+            return new HttpStream(
+                $this,
+                \Closure::fromCallable([$this, 'request']),
+                \Closure::fromCallable([$this, 'release'])
+            );
+        });
     }
 
     /**
      * @return Promise<bool> Fulfilled with true if a pong is received within the timeout, false if none is received.
      */
-    public function ping(): Promise
+    private function ping(): Promise
     {
         if ($this->onClose === null) {
             return new Success(false);
@@ -243,19 +249,8 @@ final class Http2Connection implements Connection
         $this->writeFrame($this->counter++, self::PING, self::NOFLAG);
 
         $this->pongWatcher = Loop::delay(self::PONG_TIMEOUT, [$this, 'close']);
-        Loop::unreference($this->pongWatcher);
 
         return $this->pongDeferred->promise();
-    }
-
-    public function isIdle(): bool
-    {
-        return empty($this->streams) && $this->onClose !== null;
-    }
-
-    public function isBusy(): bool
-    {
-        return $this->remainingStreams <= 0 || $this->onClose === null;
     }
 
     public function onClose(callable $onClose): void
@@ -1489,6 +1484,10 @@ final class Http2Connection implements Connection
                 $this->pongDeferred->resolve(false);
             }
 
+            if ($this->pongWatcher !== null) {
+                Loop::cancel($this->pongWatcher);
+            }
+
             if ($this->onClose !== null) {
                 $onClose = $this->onClose;
                 $this->onClose = null;
@@ -1496,10 +1495,6 @@ final class Http2Connection implements Connection
                 foreach ($onClose as $callback) {
                     asyncCall($callback, $this);
                 }
-            }
-
-            if ($this->pongWatcher !== null) {
-                Loop::cancel($this->pongWatcher);
             }
 
             yield $promise;

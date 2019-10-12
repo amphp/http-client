@@ -81,11 +81,13 @@ final class DefaultConnectionPool implements ConnectionPool
                 );
             }
 
-            foreach ($this->connections[$key] ?? [] as $promise) {
+            $connections = $this->connections[$key] ?? [];
+
+            foreach ($connections as $promise) {
                 \assert($promise instanceof Promise);
 
                 try {
-                    if ($isHttps && \count($this->connections[$key]) === 1) {
+                    if ($isHttps && \count($connections) === 1) {
                         // Wait for first successful connection if using a secure connection (maybe we can use HTTP/2).
                         $connection = yield $promise;
                     } else {
@@ -100,26 +102,17 @@ final class DefaultConnectionPool implements ConnectionPool
 
                 \assert($connection instanceof Connection);
 
-                if ($connection->isBusy()) {
-                    continue; // Connection is currently used to full capacity.
-                }
-
                 if (!\array_intersect($request->getProtocolVersions(), $connection->getProtocolVersions())) {
                     continue; // Connection does not support any of the requested protocol versions.
                 }
 
-                if ($connection instanceof Http2Connection && $connection->isIdle() && !(yield $connection->ping())) {
-                    continue; // Connection closed while idle.
+                $stream = yield $connection->getStream($request);
+
+                if ($stream === null) {
+                    continue; // No stream available for the given request.
                 }
 
-                if ($connection instanceof Http1Connection
-                    && $connection->getRemainingTime() < $this->timeoutGracePeriod
-                    && !$request->isIdempotent()
-                ) {
-                    continue; // Connection is at high-risk of closing before the request can be sent.
-                }
-
-                return $connection->getStream($request);
+                return $stream;
             }
 
             $promise = new Coroutine($this->createConnection($request, $cancellation, $authority, $isHttps));
@@ -141,7 +134,10 @@ final class DefaultConnectionPool implements ConnectionPool
                 $this->dropConnection($key, $hash);
             });
 
-            return $connection->getStream($request);
+            $stream = yield $connection->getStream($request);
+            \assert($stream instanceof Stream); // New connection must always resolve with a Stream instance.
+
+            return $stream;
         });
     }
 
@@ -194,7 +190,7 @@ final class DefaultConnectionPool implements ConnectionPool
         }
 
         if (!$isHttps) {
-            return new Http1Connection($socket);
+            return new Http1Connection($socket, $this->timeoutGracePeriod);
         }
 
         try {
@@ -253,7 +249,7 @@ final class DefaultConnectionPool implements ConnectionPool
             );
         }
 
-        return new Http1Connection($socket);
+        return new Http1Connection($socket, $this->timeoutGracePeriod);
     }
 
     private function dropConnection(string $uri, string $connectionHash): void
