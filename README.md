@@ -45,7 +45,7 @@ More extensive code examples reside in the [`examples`](./examples) directory.
 
 `amphp/http-client` follows the [semver](http://semver.org/) semantic versioning specification like all other `amphp` packages.
 
-Prior to version 4.0, this package was named [`amphp/artax`](https://gitub.com/amphp/artax). While older tags also exist in this repository, `amphp/artax` should be used as package name for versions prior to 4.0. 
+Prior to version 4.0, this package was named [`amphp/artax`](https://github.com/amphp/artax). While older tags also exist in this repository, `amphp/artax` should be used as package name for versions prior to 4.0. 
 
 | Version                                               | Bug Fixes Until              | Security Fixes Until         |
 | ----------------------------------------------------- | ---------------------------- | ---------------------------- |
