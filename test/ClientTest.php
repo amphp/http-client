@@ -3,6 +3,7 @@
 namespace Amp\Http\Client\Test;
 
 use Amp\Http\Client\Client;
+use Amp\Http\Client\HttpException;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Promise;
 
@@ -18,7 +19,7 @@ class ClientTest extends AsyncTestCase
 
     public function testUserInfoDeprecation(): Promise
     {
-        $this->expectException(\Error::class);
+        $this->expectException(HttpException::class);
         $this->expectExceptionMessage('has been deprecated');
 
         return $this->client->request('https://username:password@localhost');

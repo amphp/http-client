@@ -3,6 +3,7 @@
 namespace Amp\Http\Client;
 
 use Amp\CancellationToken;
+use Amp\Failure;
 use Amp\Http\Client\Connection\ConnectionPool;
 use Amp\Http\Client\Connection\DefaultConnectionPool;
 use Amp\Http\Client\Connection\Stream;
@@ -61,7 +62,7 @@ final class Client
      * @param Request|UriInterface|string $requestOrUri A Request / UriInterface instance or URL as string.
      * @param CancellationToken           $cancellation A cancellation token to optionally cancel requests.
      *
-     * @return Promise A promise to resolve to a response object as soon as its headers are received.
+     * @return Promise<Response> A promise to resolve to a response object as soon as its headers are received.
      */
     public function request($requestOrUri, ?CancellationToken $cancellation = null): Promise
     {
@@ -71,6 +72,12 @@ final class Client
             $request = clone $requestOrUri;
         } else {
             $request = new Request($requestOrUri);
+        }
+
+        if ($request->getUri()->getUserInfo() !== '') {
+            return new Failure(new HttpException('The user information (username:password) component of URIs has been deprecated '
+                . '(see https://tools.ietf.org/html/rfc3986#section-3.2.1 and https://tools.ietf.org/html/rfc7230#section-2.7.1); '
+                . 'Instead, set an "Authorization" header containing "Basic " . \\base64_encode("username:password")'));
         }
 
         if ($this->applicationInterceptors) {
@@ -89,12 +96,6 @@ final class Client
             $client = clone $this;
             $client->retryInterceptor = null;
             return $this->retryInterceptor->request($request, $cancellation, $client);
-        }
-
-        if ($request->getUri()->getUserInfo() !== '') {
-            throw new \Error('The user information (username:password) component of URIs has been deprecated '
-                . '(see https://tools.ietf.org/html/rfc3986#section-3.2.1 and https://tools.ietf.org/html/rfc7230#section-2.7.1); '
-                . 'Instead, set an "Authorization" header containing "Basic " . \\base64_encode("username:password")');
         }
 
         return call(function () use ($request, $cancellation) {
