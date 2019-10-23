@@ -16,7 +16,7 @@ Loop::run(static function () {
     ];
 
     // Instantiate the HTTP client
-    $client = HttpClientBuilder::ofPool()->build();
+    $client = HttpClientBuilder::buildDefault();
 
     $requestHandler = static function (string $uri) use ($client) {
         /** @var Response $response */

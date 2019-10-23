@@ -17,7 +17,7 @@ require __DIR__ . '/../vendor/autoload.php';
 $count = (int) ($argv[1] ?? "1000");
 
 Loop::run(static function () use ($count) {
-    $client = HttpClientBuilder::ofPool()->build();
+    $client = HttpClientBuilder::buildDefault();
 
     $handler = coroutine(static function (int $count) use ($client) {
         for ($i = 0; $i < $count; $i++) {

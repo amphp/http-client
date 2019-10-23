@@ -18,6 +18,11 @@ final class HttpClientBuilder
         return new self(new PooledHttpClient($pool));
     }
 
+    public static function buildDefault(): HttpClient
+    {
+        return self::ofPool()->build();
+    }
+
     /** @var HttpClient */
     private $base;
     /** @var RetryRequests|null */

@@ -11,7 +11,7 @@ require __DIR__ . '/../vendor/autoload.php';
 Loop::run(static function () use ($argv) {
     try {
         // Instantiate the HTTP client
-        $client = HttpClientBuilder::ofPool()->build();
+        $client = HttpClientBuilder::buildDefault();
 
         // Make an asynchronous HTTP request
         $promise = $client->request(new Request($argv[1] ?? 'https://httpbin.org/user-agent'));
