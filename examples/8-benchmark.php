@@ -5,7 +5,7 @@
 // Infinite (10 x 100    requests): php examples/8-benchmark.php 0
 // Custom   (10 x $count requests): php examples/8-benchmark.php $count
 
-use Amp\Http\Client\Client;
+use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Loop;
@@ -17,7 +17,7 @@ require __DIR__ . '/../vendor/autoload.php';
 $count = (int) ($argv[1] ?? "1000");
 
 Loop::run(static function () use ($count) {
-    $client = new Client;
+    $client = HttpClientBuilder::ofPool()->build();
 
     $handler = coroutine(static function (int $count) use ($client) {
         for ($i = 0; $i < $count; $i++) {
