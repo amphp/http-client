@@ -24,7 +24,7 @@ Loop::run(static function () {
         $start = \microtime(1);
 
         // Instantiate the HTTP client
-        $client = HttpClientBuilder::ofPool()->build();
+        $client = HttpClientBuilder::buildDefault();
 
         $request = new Request('http://speed.hetzner.de/100MB.bin');
         $request->setBodySizeLimit(128 * 1024 * 1024); // 128 MB

@@ -28,7 +28,7 @@ class TimeoutTest extends AsyncTestCase
     {
         parent::setUp();
 
-        $this->client = HttpClientBuilder::ofPool()->build();
+        $this->client = HttpClientBuilder::buildDefault();
     }
 
     public function testTimeoutDuringBody(): \Generator

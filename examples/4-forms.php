@@ -12,7 +12,7 @@ require __DIR__ . '/../vendor/autoload.php';
 Loop::run(static function () {
     try {
         // Instantiate the HTTP client
-        $client = HttpClientBuilder::ofPool()->build();
+        $client = HttpClientBuilder::buildDefault();
 
         // Here we create a custom request object instead of simply passing an URL to request().
         // We set the method to POST and add a FormBody to submit a form.
