@@ -28,7 +28,6 @@
         "amphp/hpack": "^2",
         "amphp/http": "^1.3",
         "amphp/socket": "^1",
-        "kelunik/certificate": "^1.1",
         "league/uri-schemes": "^1.2",
         "psr/http-message": "^1"
     },
