@@ -1,6 +1,6 @@
 <?php
 
-use Amp\Http\Client\Client;
+use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
@@ -11,10 +11,10 @@ require __DIR__ . '/../vendor/autoload.php';
 Loop::run(static function () use ($argv) {
     try {
         // Instantiate the HTTP client
-        $client = new Client;
+        $client = HttpClientBuilder::ofPool()->build();
 
         // Make an asynchronous HTTP request
-        $promise = $client->request($argv[1] ?? 'https://httpbin.org/user-agent');
+        $promise = $client->request(new Request($argv[1] ?? 'https://httpbin.org/user-agent'));
 
         // Client::request() is asynchronous! It doesn't return a response. Instead, it returns a promise to resolve the
         // response at some point in the future when we've received the headers of the response. Here we use yield which

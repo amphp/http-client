@@ -1,6 +1,6 @@
 <?php
 
-use Amp\Http\Client\Client;
+use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
@@ -16,7 +16,7 @@ Loop::run(static function () {
     ];
 
     // Instantiate the HTTP client
-    $client = new Client;
+    $client = HttpClientBuilder::ofPool()->build();
 
     $requestHandler = static function (string $uri) use ($client) {
         /** @var Response $response */

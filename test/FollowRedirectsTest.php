@@ -3,10 +3,10 @@
 namespace Amp\Http\Client\Test;
 
 use Amp\ByteStream\InMemoryStream;
-use Amp\Http\Client\Client;
 use Amp\Http\Client\Connection\ConnectionPool;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\Interceptor\FollowRedirects;
+use Amp\Http\Client\PooledHttpClient;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Status;
@@ -58,12 +58,12 @@ class FollowRedirectsTest extends AsyncTestCase
         $pool->method('getStream')
             ->willReturnOnConsecutiveCalls(new Success($stream1), new Success($stream2));
 
-        $client = new Client($pool);
+        $client = new PooledHttpClient($pool);
 
         yield $redirect->request($request, new NullCancellationToken, $client);
     }
 
-    public function provideResolvables()
+    public function provideResolvables(): array
     {
         return [
             ['http://localhost/1/2/a.php', 'http://google.com/', 'http://google.com/'],

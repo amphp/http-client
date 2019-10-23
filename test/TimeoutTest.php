@@ -4,9 +4,12 @@ namespace Amp\Http\Client\Test;
 
 use Amp\CancellationToken;
 use Amp\Failure;
-use Amp\Http\Client\Client;
 use Amp\Http\Client\Connection\DefaultConnectionPool;
+use Amp\Http\Client\HttpClient;
+use Amp\Http\Client\HttpClientBuilder;
+use Amp\Http\Client\InterceptedHttpClient;
 use Amp\Http\Client\Interceptor\SetRequestTimeout;
+use Amp\Http\Client\PooledHttpClient;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\TimeoutException;
@@ -18,14 +21,14 @@ use function Amp\asyncCall;
 
 class TimeoutTest extends AsyncTestCase
 {
-    /** @var Client */
+    /** @var HttpClient */
     private $client;
 
     public function setUp(): void
     {
         parent::setUp();
 
-        $this->client = new Client;
+        $this->client = HttpClientBuilder::ofPool()->build();
     }
 
     public function testTimeoutDuringBody(): \Generator
@@ -78,7 +81,7 @@ class TimeoutTest extends AsyncTestCase
                 return new Failure(new TimeoutException);
             });
 
-        $this->client = new Client(new DefaultConnectionPool($connector));
+        $this->client = new PooledHttpClient(new DefaultConnectionPool($connector));
 
         $this->expectException(TimeoutException::class);
 
@@ -178,8 +181,7 @@ class TimeoutTest extends AsyncTestCase
             $request = new Request($uri);
 
             /** @var Response $response */
-            $client = new Client;
-            $client = $client->withApplicationInterceptor(new SetRequestTimeout(10000, 10000, 1000));
+            $client = new InterceptedHttpClient(new PooledHttpClient, new SetRequestTimeout(10000, 10000, 1000));
             $response = yield $client->request($request);
 
             $this->expectException(TimeoutException::class);
@@ -206,8 +208,8 @@ class TimeoutTest extends AsyncTestCase
                 return new Failure(new TimeoutException);
             });
 
-        $client = new Client(new DefaultConnectionPool($connector));
-        $client = $client->withApplicationInterceptor(new SetRequestTimeout(1));
+        $client = new PooledHttpClient(new DefaultConnectionPool($connector));
+        $client = new InterceptedHttpClient($client, new SetRequestTimeout(1));
 
         $this->expectException(TimeoutException::class);
 
@@ -244,8 +246,8 @@ class TimeoutTest extends AsyncTestCase
             $request->setTlsHandshakeTimeout(100);
 
 
-            $client = new Client();
-            $client = $client->withApplicationInterceptor(new SetRequestTimeout(10000, 100));
+            $client = new PooledHttpClient();
+            $client = new InterceptedHttpClient($client, new SetRequestTimeout(10000, 100));
 
             yield $client->request($request);
         } finally {

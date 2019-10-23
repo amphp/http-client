@@ -5,7 +5,7 @@ namespace Amp\Http\Client\Interceptor;
 use Amp\CancellationToken;
 use Amp\CancellationTokenSource;
 use Amp\Http\Client\ApplicationInterceptor;
-use Amp\Http\Client\Client;
+use Amp\Http\Client\HttpClient;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Promise;
@@ -33,13 +33,13 @@ final class FollowRedirects implements ApplicationInterceptor
     public function request(
         Request $request,
         CancellationToken $cancellation,
-        Client $client
+        HttpClient $next
     ): Promise {
         if ($onPush = $request->getPushCallable()) {
             $request->onPush(function (Request $request, Promise $promise, CancellationTokenSource $source) use (
-                $onPush, $cancellation, $client
+                $onPush, $cancellation, $next
             ) {
-                $promise = call(function () use ($request, $promise, $cancellation, $client) {
+                $promise = call(function () use ($request, $promise, $cancellation, $next) {
                     $previousResponse = null;
 
                     $maxRedirects = $this->maxRedirects;
@@ -61,7 +61,7 @@ final class FollowRedirects implements ApplicationInterceptor
                             break;
                         }
 
-                        $promise = $client->request($request, $cancellation);
+                        $promise = $next->request($request, $cancellation);
                     } while (++$requestNr <= $maxRedirects + 1);
 
                     if ($maxRedirects !== 0 && $redirectUri = $this->getRedirectUri($response)) {
@@ -75,7 +75,7 @@ final class FollowRedirects implements ApplicationInterceptor
             });
         }
 
-        return call(function () use ($request, $cancellation, $client) {
+        return call(function () use ($request, $cancellation, $next) {
             $previousResponse = null;
 
             $maxRedirects = $this->maxRedirects;
@@ -83,7 +83,7 @@ final class FollowRedirects implements ApplicationInterceptor
 
             do {
                 /** @var Response $response */
-                $response = yield $client->request($request, $cancellation);
+                $response = yield $next->request($request, $cancellation);
 
                 if ($previousResponse !== null) {
                     $response->setPreviousResponse($previousResponse);

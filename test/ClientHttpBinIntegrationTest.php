@@ -11,7 +11,8 @@ use Amp\CancelledException;
 use Amp\Http\Client\ApplicationInterceptor;
 use Amp\Http\Client\Body\FileBody;
 use Amp\Http\Client\Body\FormBody;
-use Amp\Http\Client\Client;
+use Amp\Http\Client\HttpClient;
+use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\Interceptor\DecompressResponse;
 use Amp\Http\Client\Interceptor\FollowRedirects;
 use Amp\Http\Client\Interceptor\ModifyRequest;
@@ -20,6 +21,7 @@ use Amp\Http\Client\Interceptor\TooManyRedirectsException;
 use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\ParseException;
+use Amp\Http\Client\PooledHttpClient;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\RequestBody;
 use Amp\Http\Client\Response;
@@ -39,8 +41,10 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 {
     /** @var Socket\Server */
     private $socket;
-    /** @var Client */
+    /** @var HttpClient */
     private $client;
+    /** @var HttpClientBuilder */
+    private $builder;
     /** @var callable */
     private $responseCallback;
 
@@ -61,7 +65,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     {
         $this->givenRawServerResponse("");
 
-        $this->client = $this->client->withRetryLimit(0);
+        $this->client = $this->builder->retry(0)->build();
 
         $this->expectException(SocketException::class);
         $this->expectExceptionMessage("Receiving the response headers failed, because the socket closed early");
@@ -168,13 +172,13 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $body = yield $response->getBody()->buffer();
         $result = \json_decode($body, true);
 
-        $this->assertSame('amphp/http-client (v4.x)', $result['user-agent']);
+        $this->assertSame('amphp/http-client @ v4.x', $result['user-agent']);
     }
 
     public function testGzipBomb(): \Generator
     {
         /** @var Response $response */
-        $response = yield $this->client->request('https://blog.haschek.at/tools/bomb.php');
+        $response = yield $this->client->request(new Request('https://blog.haschek.at/tools/bomb.php'));
 
         $sessionCookie = ResponseCookie::fromHeader($response->getHeader('set-cookie'));
         $body = yield $response->getBody()->buffer();
@@ -189,6 +193,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         if (\method_exists($this, 'expectExceptionMessageMatches')) {
             $this->expectExceptionMessageMatches('(Configured body size exceeded: \d+ bytes received, while the configured limit is 10485760 bytes)');
         } else {
+            /** @noinspection PhpDeprecationInspection */
             $this->expectExceptionMessageRegExp('(Configured body size exceeded: \d+ bytes received, while the configured limit is 10485760 bytes)');
         }
 
@@ -296,7 +301,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $redirectTo = "/status/{$statusCode}";
         $uri = "http://httpbin.org/redirect-to?url=" . \rawurlencode($redirectTo);
 
-        $this->client = $this->client->withoutFollowingRedirects();
+        $this->client = $this->builder->followRedirects(0)->build();
 
         /** @var Response $response */
         $response = yield $this->executeRequest(new Request($uri));
@@ -315,7 +320,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $redirectTo = "/status/{$statusCode}";
         $uri = "http://httpbin.org/redirect-to?url=" . \rawurlencode($redirectTo);
 
-        $this->client = $this->client->withFollowingRedirects();
+        $this->client = $this->builder->followRedirects()->build();
 
         /** @var Response $response */
         $response = yield $this->executeRequest(new Request($uri));
@@ -559,7 +564,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     public function testHttp2Support(): \Generator
     {
         /** @var Response $response */
-        $response = yield $this->client->request('https://http2.pro/api/v1');
+        $response = yield $this->client->request(new Request('https://http2.pro/api/v1'));
         $body = yield $response->getBody()->buffer();
         $json = \json_decode($body, true);
 
@@ -571,17 +576,17 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testConcurrentSlowNetworkInterceptor(): \Generator
     {
-        $this->client = $this->client->withNetworkInterceptor(new ModifyRequest(static function (Request $request) {
+        $this->client = (new PooledHttpClient)->intercept(new ModifyRequest(static function (Request $request) {
             yield delay(5000);
 
             return $request;
         }));
 
         /** @var Response $response1 */
-        $response1 = yield $this->client->request('https://http2.pro/api/v1');
+        $response1 = yield $this->client->request(new Request('https://http2.pro/api/v1'));
 
         /** @var Response $response2 */
-        $response2 = yield $this->client->request('https://http2.pro/api/v1');
+        $response2 = yield $this->client->request(new Request('https://http2.pro/api/v1'));
 
         $body1 = yield $response1->getBody()->buffer();
         $body2 = yield $response2->getBody()->buffer();
@@ -597,7 +602,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     {
         parent::setUp();
 
-        $this->client = new Client;
+        $this->builder = HttpClientBuilder::ofPool();
+        $this->client = $this->builder->build();
 
         if ($this->socket) {
             $this->socket->close();
@@ -647,11 +653,13 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     private function givenApplicationInterceptor(ApplicationInterceptor $interceptor): void
     {
-        $this->client = $this->client->withApplicationInterceptor($interceptor);
+        $this->builder = $this->builder->intercept($interceptor);
+        $this->client = $this->builder->build();
     }
 
     private function givenNetworkInterceptor(NetworkInterceptor $interceptor): void
     {
-        $this->client = $this->client->withNetworkInterceptor($interceptor);
+        $this->client = (new PooledHttpClient)->intercept($interceptor);
+        $this->builder = HttpClientBuilder::of($this->client);
     }
 }

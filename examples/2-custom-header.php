@@ -1,6 +1,6 @@
 <?php
 
-use Amp\Http\Client\Client;
+use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
@@ -11,7 +11,7 @@ require __DIR__ . '/../vendor/autoload.php';
 Loop::run(static function () {
     try {
         // Instantiate the HTTP client
-        $client = new Client;
+        $client = HttpClientBuilder::ofPool()->build();
 
         // Here we create a custom request object instead of simply passing an URL to request().
         $request = new Request('https://httpbin.org/headers');

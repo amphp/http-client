@@ -1,8 +1,8 @@
 <?php
 
-use Amp\File\Handle;
+use Amp\File\File;
 use Amp\File\StatCache;
-use Amp\Http\Client\Client;
+use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
@@ -24,7 +24,7 @@ Loop::run(static function () {
         $start = \microtime(1);
 
         // Instantiate the HTTP client
-        $client = new Client;
+        $client = HttpClientBuilder::ofPool()->build();
 
         $request = new Request('http://speed.hetzner.de/100MB.bin');
         $request->setBodySizeLimit(128 * 1024 * 1024); // 128 MB
@@ -59,7 +59,7 @@ Loop::run(static function () {
 
         $path = \tempnam(\sys_get_temp_dir(), "artax-streaming-");
 
-        /** @var Handle $file */
+        /** @var File $file */
         $file = yield Amp\File\open($path, "w");
 
         $bytes = 0;
