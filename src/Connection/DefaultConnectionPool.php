@@ -37,6 +37,15 @@ final class DefaultConnectionPool implements ConnectionPool
     /** @var int */
     private $timeoutGracePeriod = 2000;
 
+    /** @var int */
+    private $totalConnectionAttempts = 0;
+
+    /** @var int */
+    private $totalStreamRequests = 0;
+
+    /** @var int */
+    private $openConnectionCount = 0;
+
     public function __construct(?Connector $connector = null, ?ConnectContext $connectContext = null)
     {
         $this->connector = $connector ?? Socket\connector();
@@ -46,11 +55,31 @@ final class DefaultConnectionPool implements ConnectionPool
     public function __clone()
     {
         $this->connections = [];
+        $this->totalConnectionAttempts = 0;
+        $this->totalStreamRequests = 0;
+        $this->openConnectionCount = 0;
+    }
+
+    public function getTotalConnectionAttempts(): int
+    {
+        return $this->totalConnectionAttempts;
+    }
+
+    public function getTotalStreamRequests(): int
+    {
+        return $this->totalStreamRequests;
+    }
+
+    public function getOpenConnectionCount(): int
+    {
+        return $this->openConnectionCount;
     }
 
     public function getStream(Request $request, CancellationToken $cancellation): Promise
     {
         return call(function () use ($request, $cancellation) {
+            $this->totalStreamRequests++;
+
             $uri = $request->getUri();
             $scheme = \strtolower($uri->getScheme());
             $isHttps = $scheme === 'https';
@@ -70,7 +99,7 @@ final class DefaultConnectionPool implements ConnectionPool
                 throw new InvalidRequestException(
                     $request,
                     'None of the requested protocol versions are supported; Supported versions: '
-                        . \implode(', ', self::PROTOCOL_VERSIONS)
+                    . \implode(', ', self::PROTOCOL_VERSIONS)
                 );
             }
 
@@ -123,6 +152,7 @@ final class DefaultConnectionPool implements ConnectionPool
 
             try {
                 $connection = yield $promise;
+                $this->openConnectionCount++;
                 \assert($connection instanceof Connection);
             } catch (\Throwable $exception) {
                 // Connection failed, remove from list of connections.
@@ -131,6 +161,7 @@ final class DefaultConnectionPool implements ConnectionPool
             }
 
             $connection->onClose(function () use ($key, $hash): void {
+                $this->openConnectionCount--;
                 $this->dropConnection($key, $hash);
             });
 
@@ -141,12 +172,33 @@ final class DefaultConnectionPool implements ConnectionPool
         });
     }
 
+    /**
+     * @param int $timeout Number of milliseconds before the estimated connection timeout that a non-idempotent
+     *                     request should will not be sent on an existing HTTP/1.x connection, instead opening a
+     *                     new connection for the request. Default is 2000 ms.
+     *
+     * @return self
+     */
+    public function withTimeoutGracePeriod(int $timeout): self
+    {
+        $pool = clone $this;
+        $pool->timeoutGracePeriod = $timeout;
+        return $pool;
+    }
+
+    public function getProtocolVersions(): array
+    {
+        return self::PROTOCOL_VERSIONS;
+    }
+
     private function createConnection(
         Request $request,
         CancellationToken $cancellation,
         string $authority,
         bool $isHttps
     ): \Generator {
+        $this->totalConnectionAttempts++;
+
         $connectContext = $this->connectContext;
 
         if ($isHttps) {
@@ -259,24 +311,5 @@ final class DefaultConnectionPool implements ConnectionPool
         if (empty($this->connections[$uri])) {
             unset($this->connections[$uri]);
         }
-    }
-
-    /**
-     * @param int $timeout Number of milliseconds before the estimated connection timeout that a non-idempotent
-     *                     request should will not be sent on an existing HTTP/1.x connection, instead opening a
-     *                     new connection for the request. Default is 2000 ms.
-     *
-     * @return self
-     */
-    public function withTimeoutGracePeriod(int $timeout): self
-    {
-        $pool = clone $this;
-        $pool->timeoutGracePeriod = $timeout;
-        return $pool;
-    }
-
-    public function getProtocolVersions(): array
-    {
-        return self::PROTOCOL_VERSIONS;
     }
 }
