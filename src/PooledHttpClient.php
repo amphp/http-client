@@ -6,7 +6,6 @@ use Amp\CancellationToken;
 use Amp\Http\Client\Connection\ConnectionPool;
 use Amp\Http\Client\Connection\DefaultConnectionPool;
 use Amp\Http\Client\Connection\Stream;
-use Amp\Http\Client\Connection\UnprocessedRequestException;
 use Amp\Http\Client\Interceptor\DecompressResponse;
 use Amp\Http\Client\Interceptor\SetRequestHeaderIfUnset;
 use Amp\Http\Client\Internal\InterceptedStream;
@@ -41,24 +40,15 @@ final class PooledHttpClient implements HttpClient
     {
         return call(function () use ($request, $cancellation) {
             $cancellation = $cancellation ?? new NullCancellationToken;
-            $request = clone $request;
 
-            try {
-                $stream = yield $this->connectionPool->getStream($request, $cancellation);
+            $stream = yield $this->connectionPool->getStream(clone $request, $cancellation);
 
-                \assert($stream instanceof Stream);
+            \assert($stream instanceof Stream);
 
-                $networkInterceptors = \array_merge($this->defaultNetworkInterceptors, $this->networkInterceptors);
-                $stream = new InterceptedStream($stream, ...$networkInterceptors);
+            $networkInterceptors = \array_merge($this->defaultNetworkInterceptors, $this->networkInterceptors);
+            $stream = new InterceptedStream($stream, ...$networkInterceptors);
 
-                return yield $stream->request($request, $cancellation);
-            } catch (UnprocessedRequestException $exception) {
-                while ($exception instanceof UnprocessedRequestException) {
-                    $exception = $exception->getPrevious();
-                }
-
-                throw $exception;
-            }
+            return yield $stream->request(clone $request, $cancellation);
         });
     }
 
