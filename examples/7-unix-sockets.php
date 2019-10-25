@@ -15,7 +15,7 @@ Loop::run(static function () {
     try {
         // Unix sockets require a socket pool that changes all URLs to a fixed one.
         $connector = new StaticConnector("unix:///var/run/docker.sock", new DnsConnector);
-        $client = HttpClientBuilder::ofPool(new DefaultConnectionPool($connector))->build();
+        $client = (new HttpClientBuilder)->usingPool(new DefaultConnectionPool($connector))->build();
 
         // amphp/http-client requires a host, so just use a dummy one.
         $request = new Request('http://docker/info');

@@ -13,7 +13,7 @@ require __DIR__ . '/../vendor/autoload.php';
 
 Loop::run(static function () use ($argv) {
     try {
-        $client = HttpClientBuilder::ofPool()
+        $client = (new HttpClientBuilder)
             ->intercept(new IfOrigin('https://amphp.org', new SetRequestHeader('x-amphp', 'true')))
             ->followRedirects(0)
             ->retry(3)
