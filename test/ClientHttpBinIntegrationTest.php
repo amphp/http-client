@@ -21,7 +21,6 @@ use Amp\Http\Client\Interceptor\TooManyRedirectsException;
 use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\ParseException;
-use Amp\Http\Client\PooledHttpClient;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\RequestBody;
 use Amp\Http\Client\Response;
@@ -489,8 +488,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
 
         $request = new Request("http://httpbin.org/post", "POST");
-        $request->setBody(new class implements RequestBody
-        {
+        $request->setBody(new class implements RequestBody {
             public function getHeaders(): Promise
             {
                 return new Success([]);
@@ -516,8 +514,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
 
         $request = new Request("http://httpbin.org/post", "POST");
-        $request->setBody(new class implements RequestBody
-        {
+        $request->setBody(new class implements RequestBody {
             public function getHeaders(): Promise
             {
                 return new Success([]);
@@ -543,8 +540,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectExceptionMessage("Body contained fewer bytes than specified in Content-Length, aborting request");
 
         $request = new Request("http://httpbin.org/post", "POST");
-        $request->setBody(new class implements RequestBody
-        {
+        $request->setBody(new class implements RequestBody {
             public function getHeaders(): Promise
             {
                 return new Success([]);

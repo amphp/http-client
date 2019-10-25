@@ -10,6 +10,6 @@ interface ApplicationInterceptor
     public function request(
         Request $request,
         CancellationToken $cancellation,
-        HttpClient $next
+        DelegateHttpClient $next
     ): Promise;
 }
