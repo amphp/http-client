@@ -5,7 +5,7 @@ namespace Amp\Http\Client\Interceptor;
 use Amp\CancellationToken;
 use Amp\CancellationTokenSource;
 use Amp\Http\Client\ApplicationInterceptor;
-use Amp\Http\Client\HttpClient;
+use Amp\Http\Client\DelegateHttpClient;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Promise;
@@ -33,7 +33,7 @@ final class FollowRedirects implements ApplicationInterceptor
     public function request(
         Request $request,
         CancellationToken $cancellation,
-        HttpClient $next
+        DelegateHttpClient $next
     ): Promise {
         if ($onPush = $request->getPushCallable()) {
             $request->onPush(function (Request $request, Promise $promise, CancellationTokenSource $source) use (

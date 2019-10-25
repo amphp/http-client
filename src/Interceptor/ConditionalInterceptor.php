@@ -5,7 +5,7 @@ namespace Amp\Http\Client\Interceptor;
 use Amp\CancellationToken;
 use Amp\Http\Client\ApplicationInterceptor;
 use Amp\Http\Client\Connection\Stream;
-use Amp\Http\Client\HttpClient;
+use Amp\Http\Client\DelegateHttpClient;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request;
 use Amp\Promise;
@@ -28,7 +28,7 @@ abstract class ConditionalInterceptor implements ApplicationInterceptor, Network
         $this->interceptor = $interceptor;
     }
 
-    final public function request(Request $request, CancellationToken $cancellation, HttpClient $next): Promise
+    final public function request(Request $request, CancellationToken $cancellation, DelegateHttpClient $next): Promise
     {
         if ($this->interceptor instanceof ApplicationInterceptor && $this->matches($request)) {
             return $this->interceptor->request($request, $cancellation, $next);
