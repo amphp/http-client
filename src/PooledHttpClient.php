@@ -8,6 +8,8 @@ use Amp\Http\Client\Connection\DefaultConnectionPool;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\Interceptor\DecompressResponse;
 use Amp\Http\Client\Interceptor\SetRequestHeaderIfUnset;
+use Amp\Http\Client\Internal\ForbidCloning;
+use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Internal\InterceptedStream;
 use Amp\NullCancellationToken;
 use Amp\Promise;
@@ -15,6 +17,9 @@ use function Amp\call;
 
 final class PooledHttpClient implements HttpClient
 {
+    use ForbidCloning;
+    use ForbidSerialization;
+
     /** @var ConnectionPool */
     private $connectionPool;
 

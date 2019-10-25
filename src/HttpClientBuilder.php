@@ -5,9 +5,14 @@ namespace Amp\Http\Client;
 use Amp\Http\Client\Connection\ConnectionPool;
 use Amp\Http\Client\Interceptor\FollowRedirects;
 use Amp\Http\Client\Interceptor\RetryRequests;
+use Amp\Http\Client\Internal\ForbidCloning;
+use Amp\Http\Client\Internal\ForbidSerialization;
 
 final class HttpClientBuilder
 {
+    use ForbidCloning;
+    use ForbidSerialization;
+
     public static function buildDefault(): HttpClient
     {
         return (new self)->build();

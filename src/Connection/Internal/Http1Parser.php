@@ -3,6 +3,8 @@
 namespace Amp\Http\Client\Connection\Internal;
 
 use Amp\ByteStream\InMemoryStream;
+use Amp\Http\Client\Internal\ForbidCloning;
+use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\ParseException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
@@ -13,6 +15,9 @@ use Amp\Http\Status;
 /** @internal */
 final class Http1Parser
 {
+    use ForbidSerialization;
+    use ForbidCloning;
+
     private const STATUS_LINE_PATTERN = "#^
         HTTP/(?P<protocol>\d+\.\d+)[\x20\x09]+
         (?P<status>[1-9]\d\d)[\x20\x09]*

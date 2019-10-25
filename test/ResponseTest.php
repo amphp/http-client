@@ -53,37 +53,37 @@ class ResponseTest extends TestCase
     {
         $response = $this->createResponse();
 
-        $response1 = (clone $response);
-        $response1->setHeader('foo', 'bar');
+        $this->assertNull($response->getHeader('Foo'));
+        $this->assertFalse($response->hasHeader('Foo'));
+        $this->assertSame([], $response->getHeaderArray('Foo'));
 
-        $response2 = (clone $response1);
-        $response2->addHeader('foo', 'baz');
+        $response = $this->createResponse();
+        $response->setHeader('foo', 'bar');
 
-        $response3 = (clone $response2);
-        $response3->removeHeader('fOo');
+        $this->assertSame('bar', $response->getHeader('Foo'));
+        $this->assertSame(['bar'], $response->getHeaderArray('fOO'));
+        $this->assertTrue($response->hasHeader('fOO'));
 
-        $response4 = (clone $response);
-        $response4->setHeaders(['foO' => ['bar', 'bax']]);
+        $response = $this->createResponse();
+        $response->setHeader('foo', 'bar');
+        $response->addHeader('foo', 'baz');
+
+        $this->assertSame('bar', $response->getHeader('Foo'));
+        $this->assertSame(['bar', 'baz'], $response->getHeaderArray('fOO'));
+        $this->assertTrue($response->hasHeader('fOO'));
+
+        $response->removeHeader('fOo');
 
         $this->assertNull($response->getHeader('Foo'));
         $this->assertFalse($response->hasHeader('Foo'));
         $this->assertSame([], $response->getHeaderArray('Foo'));
 
-        $this->assertSame('bar', $response1->getHeader('Foo'));
-        $this->assertSame(['bar'], $response1->getHeaderArray('fOO'));
-        $this->assertTrue($response1->hasHeader('fOO'));
+        $response = $this->createResponse();
+        $response->setHeaders(['foO' => ['bar', 'bax']]);
 
-        $this->assertSame('bar', $response2->getHeader('Foo'));
-        $this->assertSame(['bar', 'baz'], $response2->getHeaderArray('fOO'));
-        $this->assertTrue($response2->hasHeader('fOO'));
-
-        $this->assertNull($response3->getHeader('Foo'));
-        $this->assertFalse($response3->hasHeader('Foo'));
-        $this->assertSame([], $response3->getHeaderArray('Foo'));
-
-        $this->assertSame('bar', $response4->getHeader('Foo'));
-        $this->assertSame(['bar', 'bax'], $response4->getHeaderArray('fOO'));
-        $this->assertTrue($response4->hasHeader('fOO'));
+        $this->assertSame('bar', $response->getHeader('Foo'));
+        $this->assertSame(['bar', 'bax'], $response->getHeaderArray('fOO'));
+        $this->assertTrue($response->hasHeader('fOO'));
     }
 
     private function createResponse(): Response

@@ -9,6 +9,9 @@ use Amp\Promise;
 /** @internal */
 final class ResponseBodyStream implements InputStream
 {
+    use ForbidSerialization;
+    use ForbidCloning;
+
     private $body;
     private $bodyCancellation;
     private $successfulEnd = false;

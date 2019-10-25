@@ -3,11 +3,16 @@
 namespace Amp\Http\Client;
 
 use Amp\CancellationToken;
+use Amp\Http\Client\Internal\ForbidCloning;
+use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\NullCancellationToken;
 use Amp\Promise;
 
 final class InterceptedHttpClient implements HttpClient
 {
+    use ForbidCloning;
+    use ForbidSerialization;
+
     /** @var HttpClient */
     private $httpClient;
 

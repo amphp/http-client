@@ -5,6 +5,8 @@ namespace Amp\Http\Client;
 use Amp\ByteStream\InMemoryStream;
 use Amp\ByteStream\InputStream;
 use Amp\ByteStream\Payload;
+use Amp\Http\Client\Internal\ForbidCloning;
+use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Message;
 use Amp\Promise;
 use Amp\Success;
@@ -14,6 +16,9 @@ use Amp\Success;
  */
 final class Response extends Message
 {
+    use ForbidSerialization;
+    use ForbidCloning;
+
     private $protocolVersion;
     private $status;
     private $reason;

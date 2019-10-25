@@ -13,6 +13,8 @@ use Amp\Emitter;
 use Amp\Http;
 use Amp\Http\Client\Connection\Internal\Http1Parser;
 use Amp\Http\Client\HttpException;
+use Amp\Http\Client\Internal\ForbidCloning;
+use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Internal\ResponseBodyStream;
 use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\ParseException;
@@ -41,6 +43,9 @@ use function Amp\call;
  */
 final class Http1Connection implements Connection
 {
+    use ForbidSerialization;
+    use ForbidCloning;
+
     private const PROTOCOL_VERSIONS = ['1.0', '1.1'];
 
     /** @var Socket */

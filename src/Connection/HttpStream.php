@@ -3,6 +3,8 @@
 namespace Amp\Http\Client\Connection;
 
 use Amp\CancellationToken;
+use Amp\Http\Client\Internal\ForbidCloning;
+use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
 use Amp\Promise;
 use Amp\Socket\SocketAddress;
@@ -10,6 +12,9 @@ use Amp\Socket\TlsInfo;
 
 final class HttpStream implements Stream
 {
+    use ForbidSerialization;
+    use ForbidCloning;
+
     /** @var Connection */
     private $connection;
 

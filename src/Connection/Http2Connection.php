@@ -13,6 +13,8 @@ use Amp\Deferred;
 use Amp\Emitter;
 use Amp\Failure;
 use Amp\Http\Client\Connection\Internal\Http2Stream;
+use Amp\Http\Client\Internal\ForbidCloning;
+use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Internal\ResponseBodyStream;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
@@ -35,6 +37,9 @@ use function Amp\call;
 
 final class Http2Connection implements Connection
 {
+    use ForbidSerialization;
+    use ForbidCloning;
+
     private const PROTOCOL_VERSIONS = ['2'];
 
     public const PREFACE = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";

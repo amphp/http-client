@@ -15,6 +15,9 @@ use Amp\Socket\TlsInfo;
 /** @internal */
 final class InterceptedStream implements Stream
 {
+    use ForbidSerialization;
+    use ForbidCloning;
+
     /** @var Stream */
     private $stream;
     /** @var NetworkInterceptor[] */

@@ -3,6 +3,7 @@
 namespace Amp\Http\Client;
 
 use Amp\Http\Client\Body\StringBody;
+use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Message;
 use League\Uri;
 use Psr\Http\Message\UriInterface;
@@ -12,6 +13,8 @@ use Psr\Http\Message\UriInterface;
  */
 final class Request extends Message
 {
+    use ForbidSerialization;
+
     public const DEFAULT_HEADER_SIZE_LIMIT = 2 * 8192;
     public const DEFAULT_BODY_SIZE_LIMIT = 10485760;
 

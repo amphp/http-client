@@ -7,6 +7,7 @@ use Amp\CancellationToken;
 use Amp\CancelledException;
 use Amp\CombinedCancellationToken;
 use Amp\Coroutine;
+use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\SocketException;
@@ -23,6 +24,8 @@ use function Amp\call;
 
 final class DefaultConnectionPool implements ConnectionPool
 {
+    use ForbidSerialization;
+
     private const PROTOCOL_VERSIONS = ['1.0', '1.1', '2'];
 
     /** @var Connector */

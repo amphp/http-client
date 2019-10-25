@@ -11,6 +11,9 @@ use Amp\Promise;
 /** @internal */
 final class SizeLimitingInputStream implements InputStream
 {
+    use ForbidSerialization;
+    use ForbidCloning;
+
     /** @var InputStream */
     private $source;
     private $bytesRead = 0;

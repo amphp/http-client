@@ -2,11 +2,14 @@
 
 namespace Amp\Http\Client;
 
+use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\InvalidHeaderException;
 use Amp\Http\Message;
 
 final class Trailers extends Message
 {
+    use ForbidSerialization;
+
     /** @see https://tools.ietf.org/html/rfc7230#section-4.1.2 */
     public const DISALLOWED_TRAILERS = [
         "authorization" => true,
