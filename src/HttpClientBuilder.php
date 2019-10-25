@@ -4,6 +4,7 @@ namespace Amp\Http\Client;
 
 use Amp\Http\Client\Connection\ConnectionPool;
 use Amp\Http\Client\Interceptor\FollowRedirects;
+use Amp\Http\Client\Interceptor\ForbidUriUserInfo;
 use Amp\Http\Client\Interceptor\RetryRequests;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
@@ -18,6 +19,8 @@ final class HttpClientBuilder
         return (new self)->build();
     }
 
+    /** @var ForbidUriUserInfo|null */
+    private $forbidUriUserInfo;
     /** @var RetryRequests|null */
     private $retryInterceptor;
     /** @var FollowRedirects|null */
@@ -31,6 +34,7 @@ final class HttpClientBuilder
 
     public function __construct()
     {
+        $this->forbidUriUserInfo = new ForbidUriUserInfo;
         $this->followRedirectsInterceptor = new FollowRedirects(10);
         $this->retryInterceptor = new RetryRequests(2);
     }
@@ -53,6 +57,10 @@ final class HttpClientBuilder
 
         if ($this->retryInterceptor) {
             $client = new InterceptedHttpClient($client, $this->retryInterceptor);
+        }
+
+        if ($this->forbidUriUserInfo) {
+            $client = new InterceptedHttpClient($client, $this->forbidUriUserInfo);
         }
 
         return $client;
@@ -134,6 +142,19 @@ final class HttpClientBuilder
         } else {
             $builder->followRedirectsInterceptor = new FollowRedirects($limit);
         }
+
+        return $builder;
+    }
+
+    /**
+     * Removes the default restriction of user:password in request URIs.
+     *
+     * @return self
+     */
+    public function allowDeprecatedUriUserInfo(): self
+    {
+        $builder = clone $this;
+        $builder->forbidUriUserInfo = null;
 
         return $builder;
     }

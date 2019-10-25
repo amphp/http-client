@@ -174,10 +174,10 @@ final class FollowRedirects implements ApplicationInterceptor
         $destinationIsEncrypted = $followUri->getScheme() === 'https';
 
         if (!$referrerIsEncrypted || $destinationIsEncrypted) {
-            $request->setHeader('Referer', $referrerUri);
+            $request->setHeader('Referer', $referrerUri->withUserInfo('')->withFragment(''));
+        } else {
+            $request->removeHeader('Referer');
         }
-
-        $request->removeHeader('Referer');
     }
 
     private function getRedirectUri(Response $response): ?PsrUri

@@ -364,7 +364,7 @@ final class Http2Connection implements Connection
                 }
 
                 $headers = \array_merge([
-                    ":authority" => [$uri->getAuthority()],
+                    ":authority" => [$uri->withUserInfo('')->getAuthority()],
                     ":path" => [$path],
                     ":scheme" => [$uri->getScheme()],
                     ":method" => [$request->getMethod()],
