@@ -8,40 +8,35 @@ use Amp\Http\Client\Interceptor\RetryRequests;
 
 final class HttpClientBuilder
 {
-    public static function of(HttpClient $base): self
-    {
-        return new self($base);
-    }
-
-    public static function ofPool(?ConnectionPool $pool = null): self
-    {
-        return new self(new PooledHttpClient($pool));
-    }
-
     public static function buildDefault(): HttpClient
     {
-        return self::ofPool()->build();
+        return (new self)->build();
     }
 
-    /** @var HttpClient */
-    private $base;
     /** @var RetryRequests|null */
     private $retryInterceptor;
     /** @var FollowRedirects|null */
     private $followRedirectsInterceptor;
     /** @var ApplicationInterceptor[] */
     private $applicationInterceptors = [];
+    /** @var NetworkInterceptor[] */
+    private $networkInterceptors = [];
+    /** @var ConnectionPool */
+    private $pool;
 
-    private function __construct(HttpClient $base)
+    public function __construct()
     {
-        $this->base = $base;
         $this->followRedirectsInterceptor = new FollowRedirects(10);
         $this->retryInterceptor = new RetryRequests(2);
     }
 
     public function build(): HttpClient
     {
-        $client = $this->base;
+        $client = new PooledHttpClient($this->pool);
+
+        foreach ($this->networkInterceptors as $interceptor) {
+            $client = $client->intercept($interceptor);
+        }
 
         foreach (\array_reverse($this->applicationInterceptors) as $interceptor) {
             $client = new InterceptedHttpClient($client, $interceptor);
@@ -58,10 +53,15 @@ final class HttpClientBuilder
         return $client;
     }
 
-    public function basedOn(HttpClient $base): self
+    /**
+     * @param ConnectionPool $pool Connection pool to use.
+     *
+     * @return self
+     */
+    public function usingPool(ConnectionPool $pool): self
     {
         $builder = clone $this;
-        $builder->base = $base;
+        $builder->pool = $pool;
 
         return $builder;
     }
@@ -76,6 +76,20 @@ final class HttpClientBuilder
     {
         $builder = clone $this;
         $builder->applicationInterceptors[] = $interceptor;
+
+        return $builder;
+    }
+
+    /**
+     * @param NetworkInterceptor $interceptor This interceptor gets added to the interceptor queue, so interceptors
+     *                                        are executed in the order given to this method.
+     *
+     * @return self
+     */
+    public function interceptNetwork(NetworkInterceptor $interceptor): self
+    {
+        $builder = clone $this;
+        $builder->networkInterceptors[] = $interceptor;
 
         return $builder;
     }
