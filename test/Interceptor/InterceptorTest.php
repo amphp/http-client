@@ -41,11 +41,13 @@ abstract class InterceptorTest extends AsyncTestCase
     final protected function givenApplicationInterceptor(ApplicationInterceptor $interceptor): void
     {
         $this->builder = $this->builder->intercept($interceptor);
+        $this->client = $this->builder->build();
     }
 
     final protected function givenNetworkInterceptor(NetworkInterceptor $interceptor): void
     {
-        $this->client = $this->client->intercept($interceptor);
+        $this->builder = $this->builder->interceptNetwork($interceptor);
+        $this->client = $this->builder->build();
     }
 
     final protected function whenRequestIsExecuted(?ClientRequest $request = null): Promise
@@ -53,10 +55,8 @@ abstract class InterceptorTest extends AsyncTestCase
         return call(function () use ($request) {
             yield $this->server->start();
 
-            $client = $this->builder->basedOn($this->client)->build();
-
             /** @var ClientResponse $response */
-            $response = yield $client->request($request ?? new ClientRequest('http://example.org/'));
+            $response = yield $this->client->request($request ?? new ClientRequest('http://example.org/'));
 
             $this->request = $response->getRequest();
             $this->response = $response;
@@ -83,8 +83,8 @@ abstract class InterceptorTest extends AsyncTestCase
         );
 
         $staticConnector = new StaticConnector($this->serverSocket->getAddress()->toString(), connector());
-        $this->client = new PooledHttpClient(new DefaultConnectionPool($staticConnector));
-        $this->builder = HttpClientBuilder::of($this->client);
+        $this->builder = (new HttpClientBuilder)->usingPool(new DefaultConnectionPool($staticConnector));
+        $this->client = $this->builder->build();
     }
 
     final protected function thenRequestHasHeader(string $field, string ...$values): void

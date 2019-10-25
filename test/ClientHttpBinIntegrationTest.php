@@ -489,7 +489,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
 
         $request = new Request("http://httpbin.org/post", "POST");
-        $request->setBody(new class implements RequestBody {
+        $request->setBody(new class implements RequestBody
+        {
             public function getHeaders(): Promise
             {
                 return new Success([]);
@@ -515,7 +516,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
 
         $request = new Request("http://httpbin.org/post", "POST");
-        $request->setBody(new class implements RequestBody {
+        $request->setBody(new class implements RequestBody
+        {
             public function getHeaders(): Promise
             {
                 return new Success([]);
@@ -541,7 +543,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectExceptionMessage("Body contained fewer bytes than specified in Content-Length, aborting request");
 
         $request = new Request("http://httpbin.org/post", "POST");
-        $request->setBody(new class implements RequestBody {
+        $request->setBody(new class implements RequestBody
+        {
             public function getHeaders(): Promise
             {
                 return new Success([]);
@@ -576,7 +579,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testConcurrentSlowNetworkInterceptor(): \Generator
     {
-        $this->client = (new PooledHttpClient)->intercept(new ModifyRequest(static function (Request $request) {
+        $this->givenNetworkInterceptor(new ModifyRequest(static function (Request $request) {
             yield delay(5000);
 
             return $request;
@@ -602,7 +605,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     {
         parent::setUp();
 
-        $this->builder = HttpClientBuilder::ofPool();
+        $this->builder = new HttpClientBuilder;
         $this->client = $this->builder->build();
 
         if ($this->socket) {
@@ -659,7 +662,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     private function givenNetworkInterceptor(NetworkInterceptor $interceptor): void
     {
-        $this->client = (new PooledHttpClient)->intercept($interceptor);
-        $this->builder = HttpClientBuilder::of($this->client);
+        $this->builder = $this->builder->interceptNetwork($interceptor);
+        $this->client = $this->builder->build();
     }
 }
