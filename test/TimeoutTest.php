@@ -1,18 +1,11 @@
 <?php /** @noinspection PhpUnhandledExceptionInspection */
 
-namespace Amp\Http\Client\Test;
+namespace Amp\Http\Client;
 
 use Amp\CancellationToken;
 use Amp\Failure;
 use Amp\Http\Client\Connection\DefaultConnectionPool;
-use Amp\Http\Client\HttpClient;
-use Amp\Http\Client\HttpClientBuilder;
-use Amp\Http\Client\InterceptedHttpClient;
 use Amp\Http\Client\Interceptor\SetRequestTimeout;
-use Amp\Http\Client\PooledHttpClient;
-use Amp\Http\Client\Request;
-use Amp\Http\Client\Response;
-use Amp\Http\Client\TimeoutException;
 use Amp\Loop;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Promise;

@@ -1,6 +1,6 @@
 <?php
 
-namespace Amp\Http\Client\Test;
+namespace Amp\Http\Client;
 
 use Amp\Http\Client\Body\FileBody;
 use Amp\Http\Client\Body\FormBody;

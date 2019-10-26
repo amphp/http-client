@@ -1,11 +1,7 @@
 <?php
 
-namespace Amp\Http\Client\Test;
+namespace Amp\Http\Client;
 
-use Amp\Http\Client\HttpClientBuilder;
-use Amp\Http\Client\HttpException;
-use Amp\Http\Client\Request;
-use Amp\Http\Client\Response;
 use Amp\PHPUnit\AsyncTestCase;
 
 class HttpClientBuilderTest extends AsyncTestCase

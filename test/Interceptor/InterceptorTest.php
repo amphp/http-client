@@ -1,6 +1,6 @@
 <?php /** @noinspection PhpUnhandledExceptionInspection */
 
-namespace Amp\Http\Client\Test\Interceptor;
+namespace Amp\Http\Client\Interceptor;
 
 use Amp\Http\Client\ApplicationInterceptor;
 use Amp\Http\Client\Connection\DefaultConnectionPool;

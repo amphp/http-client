@@ -1,9 +1,6 @@
 <?php
 
-namespace Amp\Http\Client\Test\Interceptor;
-
-use Amp\Http\Client\Interceptor\AddResponseHeader;
-use Amp\Http\Client\Interceptor\SetResponseHeader;
+namespace Amp\Http\Client\Interceptor;
 
 class SetResponseHeaderTest extends InterceptorTest
 {

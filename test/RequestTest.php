@@ -1,10 +1,8 @@
 <?php /** @noinspection PhpUndefinedClassInspection */
 
-namespace Amp\Http\Client\Test;
+namespace Amp\Http\Client;
 
 use Amp\Http\Client\Body\StringBody;
-use Amp\Http\Client\MissingAttributeError;
-use Amp\Http\Client\Request;
 use PHPUnit\Framework\TestCase;
 
 class RequestTest extends TestCase

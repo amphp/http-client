@@ -1,14 +1,11 @@
 <?php /** @noinspection PhpUnhandledExceptionInspection */
 
-namespace Amp\Http\Client\Test;
+namespace Amp\Http\Client;
 
 use Amp\ByteStream\InMemoryStream;
 use Amp\Http\Client\Connection\ConnectionPool;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\Interceptor\FollowRedirects;
-use Amp\Http\Client\PooledHttpClient;
-use Amp\Http\Client\Request;
-use Amp\Http\Client\Response;
 use Amp\Http\Status;
 use Amp\NullCancellationToken;
 use Amp\PHPUnit\AsyncTestCase;

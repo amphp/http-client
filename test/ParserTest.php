@@ -1,9 +1,8 @@
 <?php /** @noinspection PhpUnhandledExceptionInspection */
 
-namespace Amp\Http\Client\Test;
+namespace Amp\Http\Client;
 
 use Amp\Http\Client\Connection\Internal\Http1Parser;
-use Amp\Http\Client\Request;
 use Amp\PHPUnit\AsyncTestCase;
 
 class ParserTest extends AsyncTestCase

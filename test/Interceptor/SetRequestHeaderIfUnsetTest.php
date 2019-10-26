@@ -1,9 +1,6 @@
 <?php
 
-namespace Amp\Http\Client\Test\Interceptor;
-
-use Amp\Http\Client\Interceptor\SetRequestHeader;
-use Amp\Http\Client\Interceptor\SetRequestHeaderIfUnset;
+namespace Amp\Http\Client\Interceptor;
 
 class SetRequestHeaderIfUnsetTest extends InterceptorTest
 {
