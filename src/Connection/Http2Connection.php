@@ -363,8 +363,13 @@ final class Http2Connection implements Connection
                     }
                 }
 
+                $authority = $uri->getHost();
+                if ($port = $uri->getPort()) {
+                    $authority .= ':' . $port;
+                }
+
                 $headers = \array_merge([
-                    ":authority" => [$uri->withUserInfo('')->getAuthority()],
+                    ":authority" => [$authority],
                     ":path" => [$path],
                     ":scheme" => [$uri->getScheme()],
                     ":method" => [$request->getMethod()],
