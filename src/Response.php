@@ -8,6 +8,7 @@ use Amp\ByteStream\Payload;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Message;
+use Amp\Http\Status;
 use Amp\Promise;
 use Amp\Success;
 
@@ -30,23 +31,21 @@ final class Response extends Message
     public function __construct(
         string $protocolVersion,
         int $status,
-        string $reason,
+        ?string $reason,
         array $headers,
         InputStream $body,
         Request $request,
         ?Promise $trailerPromise = null,
         ?Response $previousResponse = null
     ) {
-        $this->protocolVersion = $protocolVersion;
-        $this->status = $status;
-        $this->reason = $reason;
+        $this->setProtocolVersion($protocolVersion);
+        $this->setStatus($status, $reason);
+        $this->setHeaders($headers);
         $this->setBody($body);
         $this->request = $request;
-        $this->previousResponse = $previousResponse;
-
         /** @noinspection PhpUnhandledExceptionInspection */
         $this->trailers = $trailerPromise ?? new Success(new Trailers([]));
-        $this->setHeaders($headers);
+        $this->previousResponse = $previousResponse;
     }
 
     /**
@@ -61,6 +60,13 @@ final class Response extends Message
 
     public function setProtocolVersion(string $protocolVersion): void
     {
+        if (!\in_array($protocolVersion, ["1.0", "1.1", "2"], true)) {
+            /** @noinspection PhpUndefinedClassInspection */
+            throw new \Error(
+                "Invalid HTTP protocol version: " . $protocolVersion
+            );
+        }
+
         $this->protocolVersion = $protocolVersion;
     }
 
@@ -74,9 +80,10 @@ final class Response extends Message
         return $this->status;
     }
 
-    public function setStatus(string $status): void
+    public function setStatus(int $status, ?string $reason = null): void
     {
         $this->status = $status;
+        $this->reason = $reason ?? Status::getReason($status);
     }
 
     /**
@@ -87,11 +94,6 @@ final class Response extends Message
     public function getReason(): string
     {
         return $this->reason;
-    }
-
-    public function setReason(string $reason): void
-    {
-        $this->reason = $reason;
     }
 
     /**
