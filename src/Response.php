@@ -129,6 +129,23 @@ final class Response extends Message
     }
 
     /**
+     * Retrieve the original Response instance associated with this Response instance.
+     *
+     * A given Response may be the result of one or more redirects. This method is a shortcut to
+     * access information from the original Response that led to this response.
+     *
+     * @return Response
+     */
+    public function getOriginalResponse(): Response
+    {
+        if (empty($this->previousResponse)) {
+            return $this;
+        }
+
+        return $this->previousResponse->getOriginalResponse();
+    }
+
+    /**
      * If this Response is the result of a redirect traverse up the redirect history.
      *
      * @return Response|null
