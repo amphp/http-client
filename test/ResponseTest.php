@@ -21,13 +21,15 @@ class ResponseTest extends TestCase
         $response->setStatus(400);
 
         $this->assertSame(400, $response->getStatus());
+        $this->assertSame('Bad Request', $response->getReason());
     }
 
     public function testReason(): void
     {
         $response = $this->createResponse();
-        $response->setReason('Hello');
+        $response->setStatus(400, 'Hello');
 
+        $this->assertSame(400, $response->getStatus());
         $this->assertSame('Hello', $response->getReason());
     }
 
