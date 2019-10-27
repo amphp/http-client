@@ -5,12 +5,12 @@ namespace Amp\Http\Client;
 use Amp\CancellationToken;
 use Amp\Http\Client\Connection\ConnectionPool;
 use Amp\Http\Client\Connection\DefaultConnectionPool;
+use Amp\Http\Client\Connection\InterceptedStream;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\Interceptor\DecompressResponse;
 use Amp\Http\Client\Interceptor\SetRequestHeaderIfUnset;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
-use Amp\Http\Client\Internal\InterceptedStream;
 use Amp\NullCancellationToken;
 use Amp\Promise;
 use function Amp\call;
@@ -51,7 +51,10 @@ final class PooledHttpClient implements HttpClient
             \assert($stream instanceof Stream);
 
             $networkInterceptors = \array_merge($this->defaultNetworkInterceptors, $this->networkInterceptors);
-            $stream = new InterceptedStream($stream, ...$networkInterceptors);
+
+            foreach (\array_reverse($networkInterceptors) as $interceptor) {
+                $stream = new InterceptedStream($stream, $interceptor);
+            }
 
             return yield $stream->request(clone $request, $cancellation);
         });
