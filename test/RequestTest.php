@@ -126,4 +126,38 @@ class RequestTest extends TestCase
 
         $request->getAttribute('foo');
     }
+
+    public function testRemoveAttributes(): void
+    {
+        $request = new Request("http://127.0.0.1/");
+        $request->setAttribute('foo', 'bar');
+        $request->setAttribute('a', 'b');
+
+        $request->removeAttributes();
+
+        $this->assertSame([], $request->getAttributes());
+    }
+
+    public function testMutateAttribute(): void
+    {
+        $object = new \stdClass;
+
+        $request = new Request("http://127.0.0.1/");
+        $request->setAttribute('foo', $object);
+
+        $this->assertNotSame($object, $request->getAttribute('foo'));
+        $this->assertEquals($object, $request->getAttribute('foo'));
+
+        $object->foobar = 'additional property';
+
+        $this->assertNotEquals($object, $request->getAttribute('foo'));
+
+        $request->mutateAttribute('foo', static function ($object) {
+            $object->mutation = true;
+        });
+
+        $this->assertFalse(\property_exists($object, 'mutation'));
+        $this->assertTrue(\property_exists($request->getAttribute('foo'), 'mutation'));
+        $this->assertTrue($request->getAttribute('foo')->mutation);
+    }
 }

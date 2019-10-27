@@ -18,6 +18,16 @@ final class Request extends Message
     public const DEFAULT_HEADER_SIZE_LIMIT = 2 * 8192;
     public const DEFAULT_BODY_SIZE_LIMIT = 10485760;
 
+    private static function clone($value)
+    {
+        if ($value === null || \is_scalar($value)) {
+            return $value;
+        }
+
+        // force deep cloning
+        return \unserialize(\serialize($value), ['allowed_classes' => true]);
+    }
+
     /** @var string[] */
     private $protocolVersions = ['1.1', '2'];
 
@@ -59,9 +69,9 @@ final class Request extends Message
      */
     public function __construct($uri, string $method = "GET")
     {
-        $this->uri = $uri instanceof UriInterface ? $uri : $this->createUriFromString($uri);
-        $this->method = $method;
-        $this->body = new StringBody("");
+        $this->setUri($uri);
+        $this->setMethod($method);
+        $this->setBody('');
     }
 
     /**
@@ -305,17 +315,20 @@ final class Request extends Message
     }
 
     /**
-     * @return mixed[] An array of all request attributes in the request's mutable local storage, indexed by name.
+     * Note: This method returns a deep clone of the request's attributes, so you can't modify the request attributes
+     * by modifying the returned value in any way.
+     *
+     * @return mixed[] An array of all request attributes in the request's local storage, indexed by name.
      */
     public function getAttributes(): array
     {
-        return $this->attributes;
+        return self::clone($this->attributes);
     }
 
     /**
-     * Check whether a variable with the given name exists in the request's mutable local storage.
+     * Check whether a variable with the given name exists in the request's immutable local storage.
      *
-     * Each request has its own mutable local storage to which applications and interceptors may read and write data.
+     * Each request has its own local storage to which applications and interceptors may read and write data.
      * Other interceptors which are aware of this data can then access it without the server being tightly coupled to
      * specific implementations.
      *
@@ -329,11 +342,14 @@ final class Request extends Message
     }
 
     /**
-     * Retrieve a variable from the request's mutable local storage.
+     * Retrieve a variable from the request's local storage.
      *
-     * Each request has its own mutable local storage to which applications and interceptors may read and write data.
+     * Each request has its own local storage to which applications and interceptors may read and write data.
      * Other interceptors which are aware of this data can then access it without the server being tightly coupled to
      * specific implementations.
+     *
+     * Note: This method returns a deep clone of the request's attribute, so you can't modify the request attribute
+     * by modifying the returned value in any way.
      *
      * @param string $name Name of the attribute, should be namespaced with a vendor and package namespace like classes.
      *
@@ -347,15 +363,39 @@ final class Request extends Message
             throw new MissingAttributeError("The requested attribute '{$name}' does not exist");
         }
 
-        return $this->attributes[$name];
+        return self::clone($this->attributes[$name]);
     }
 
     /**
-     * Assign a variable to the request's mutable local storage.
+     * Modify a variable from the request's local storage.
      *
-     * Each request has its own mutable local storage to which applications and interceptors may read and write data.
+     * Each request has its own local storage to which applications and interceptors may read and write data.
      * Other interceptors which are aware of this data can then access it without the server being tightly coupled to
      * specific implementations.
+     *
+     * Note: The given callback receives a deep clone of the request's attribute, which can be modified. The result of
+     * the operation will be deeply cloned again, to ensure clones of the request object are deep clones. If the
+     * callback returns null, the passed instance will be used instead of the return value.
+     *
+     * @param string   $name Name of the attribute, should be namespaced with a vendor and package namespace like
+     *     classes.
+     * @param callable $mutator
+     */
+    public function mutateAttribute(string $name, callable $mutator): void
+    {
+        $clone = $this->getAttribute($name);
+        $this->setAttribute($name, $mutator($clone) ?? $clone);
+    }
+
+    /**
+     * Assign a variable to the request's local storage.
+     *
+     * Each request has its own local storage to which applications and interceptors may read and write data.
+     * Other interceptors which are aware of this data can then access it without the server being tightly coupled to
+     * specific implementations.
+     *
+     * Note: This method performs a deep clone of the value via serialization, so you can't modify the given value
+     * after setting it.
      *
      * **Example**
      *
@@ -364,15 +404,15 @@ final class Request extends Message
      * ```
      *
      * @param string $name Name of the attribute, should be namespaced with a vendor and package namespace like classes.
-     * @param mixed $value Value of the attribute, might be any value.
+     * @param mixed  $value Value of the attribute, might be any serializable value.
      */
     public function setAttribute(string $name, $value): void
     {
-        $this->attributes[$name] = $value;
+        $this->attributes[$name] = self::clone($value);
     }
 
     /**
-     * Remove an attribute from the request's mutable local storage.
+     * Remove an attribute from the request's local storage.
      *
      * @param string $name Name of the attribute, should be namespaced with a vendor and package namespace like classes.
      *
@@ -388,7 +428,7 @@ final class Request extends Message
     }
 
     /**
-     * Remove all attributes from the request's mutable local storage.
+     * Remove all attributes from the request's local storage.
      */
     public function removeAttributes(): void
     {
