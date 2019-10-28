@@ -10,6 +10,11 @@ use Amp\Http\Client\Interceptor\RetryRequests;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 
+/**
+ * Allows building an HttpClient instance.
+ *
+ * The builder is the recommended way to build an HttpClient instance.
+ */
 final class HttpClientBuilder
 {
     use ForbidCloning;

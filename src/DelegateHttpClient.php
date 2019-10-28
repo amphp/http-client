@@ -16,5 +16,17 @@ use Amp\Promise;
  */
 interface DelegateHttpClient
 {
+    /**
+     * Request a specific resource from an HTTP server.
+     *
+     * Note: Each client implementation MUST clone the given request before any modification or before passing the
+     * request to another object. This ensures that interceptors don't have to care about cloning and work reliably
+     * even if requests are retried.
+     *
+     * @param Request           $request
+     * @param CancellationToken $cancellation
+     *
+     * @return Promise<Response>
+     */
     public function request(Request $request, CancellationToken $cancellation): Promise;
 }

@@ -3,12 +3,13 @@
 namespace Amp\Http\Client\Connection;
 
 use Amp\CancellationToken;
+use Amp\Http\Client\DelegateHttpClient;
 use Amp\Http\Client\Request;
 use Amp\Promise;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
 
-interface Stream
+interface Stream extends DelegateHttpClient
 {
     /**
      * @param Request           $request
