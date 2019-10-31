@@ -367,27 +367,6 @@ final class Request extends Message
     }
 
     /**
-     * Modify a variable from the request's local storage.
-     *
-     * Each request has its own local storage to which applications and interceptors may read and write data.
-     * Other interceptors which are aware of this data can then access it without the server being tightly coupled to
-     * specific implementations.
-     *
-     * Note: The given callback receives a deep clone of the request's attribute, which can be modified. The result of
-     * the operation will be deeply cloned again, to ensure clones of the request object are deep clones. If the
-     * callback returns null, the passed instance will be used instead of the return value.
-     *
-     * @param string   $name Name of the attribute, should be namespaced with a vendor and package namespace like
-     *     classes.
-     * @param callable $mutator
-     */
-    public function mutateAttribute(string $name, callable $mutator): void
-    {
-        $clone = $this->getAttribute($name);
-        $this->setAttribute($name, $mutator($clone) ?? $clone);
-    }
-
-    /**
      * Assign a variable to the request's local storage.
      *
      * Each request has its own local storage to which applications and interceptors may read and write data.
