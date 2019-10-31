@@ -166,8 +166,6 @@ final class Http1Connection implements Connection
     /** @inheritdoc */
     private function request(Request $request, CancellationToken $cancellation): Promise
     {
-        $request = clone $request;
-
         return call(function () use ($request, $cancellation) {
             ++$this->requestCounter;
 

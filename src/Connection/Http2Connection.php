@@ -290,8 +290,6 @@ final class Http2Connection implements Connection
 
     private function request(Request $request, CancellationToken $token): Promise
     {
-        $request = clone $request;
-
         // Remove defunct HTTP/1.x headers.
         $request->removeHeader('host');
         $request->removeHeader('connection');
