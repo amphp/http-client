@@ -66,12 +66,13 @@ final class Request extends Message
      *
      * @param string|UriInterface $uri
      * @param string              $method
+     * @param string              $body
      */
-    public function __construct($uri, string $method = "GET")
+    public function __construct($uri, string $method = "GET", ?string $body = null)
     {
         $this->setUri($uri);
         $this->setMethod($method);
-        $this->setBody('');
+        $this->setBody($body);
     }
 
     /**
