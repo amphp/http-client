@@ -44,9 +44,10 @@ final class PooledHttpClient implements HttpClient
     public function request(Request $request, ?CancellationToken $cancellation = null): Promise
     {
         return call(function () use ($request, $cancellation) {
+            $request = clone $request;
             $cancellation = $cancellation ?? new NullCancellationToken;
 
-            $stream = yield $this->connectionPool->getStream(clone $request, $cancellation);
+            $stream = yield $this->connectionPool->getStream($request, $cancellation);
 
             \assert($stream instanceof Stream);
 
@@ -56,7 +57,7 @@ final class PooledHttpClient implements HttpClient
                 $stream = new InterceptedStream($stream, $interceptor);
             }
 
-            return yield $stream->request(clone $request, $cancellation);
+            return yield $stream->request($request, $cancellation);
         });
     }
 
