@@ -326,7 +326,7 @@ final class Request extends Message
     }
 
     /**
-     * Check whether a variable with the given name exists in the request's immutable local storage.
+     * Check whether a variable with the given name exists in the request's local storage.
      *
      * Each request has its own local storage to which applications and interceptors may read and write data.
      * Other interceptors which are aware of this data can then access it without the server being tightly coupled to
