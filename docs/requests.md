@@ -2,13 +2,17 @@
 title: Requests
 permalink: /requests
 ---
-The HTTP client allows either passing a string (which is interpreted as URI) or a `Request` object to `Client::request()`. The `Request` class can be used to specify further specifics of the request such as setting headers or changing the request method.
+The `HttpClient` interface requires a `Request` being passed as first argument to `HttpClient::request()`.
+The `Request` class can be used to specify further specifics of the request such as setting headers or changing the request method.
 
-`Request` objects are mutable, instead of immutable as in Artax v3 / PSR-7.
+{:.note}
+> `Request` objects are mutable (instead of immutable as in `amphp/artax` / PSR-7).
+>
+> Cloning `Request` objects will result in a deep clone, but you usually don't have to manually clone a `Request`, because every `HttpClient` implementation automatically clones the `Request` when `HttpClient::request()` is called.
 
 ## Request URI
 
-The constructor requires an absolute request URI. `Request::setUri(string $uri)` allows changing the request method.
+The constructor requires an absolute request URI. `Request::setUri(string $uri)` allows changing the request URI.
 
 ```php
 $request = new Request("https://httpbin.org/post", "POST");
@@ -55,7 +59,7 @@ $request->setBody("foobar");
 `Request::setBody($body)` allows changing the request body. Accepted types are `string`, `null`, and `RequestBody`. `string` and `null` are automatically converted to an instance of `RequestBody`.
 
 {:.note}
-> `RequestBody` is basically a factory for request bodies. We cannot simply accept streams there, because a request body might have to be sent again on a redirect. Additionally, `RequestBody` allows the body to set headers, which can be used to automatically set headers such as `Content-Type: application/json` for a `JsonBody`. Note that headers set via `RequestBody::getHeaders()` are only applied if the `Request` doesn't have such a header. This allows overriding the default body header in a request. 
+> `RequestBody` is basically a factory for request bodies. We cannot simply accept streams there, because a request body might have to be sent again on a redirect / retry. Additionally, `RequestBody` allows the body to set headers, which can be used to automatically set headers such as `Content-Type: application/json` for a `JsonBody`. Note that headers set via `RequestBody::getHeaders()` are only applied if the `Request` doesn't have such a header. This allows overriding the default body header in a request. 
 
 ```php
 $request = new Request("https://httpbin.org/post", "POST");

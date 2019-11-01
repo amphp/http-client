@@ -2,9 +2,10 @@
 title: Responses
 permalink: /responses
 ---
-`Client::request()` returns a `Promise` that resolves to an instance of `Response` as soon as the response headers are successfully received.
+`HttpClient::request()` returns a `Promise` that resolves to an instance of `Response` as soon as the response headers are successfully received.
 
-`Response` objects are mutable, instead of immutable as in Artax v3 / PSR-7.
+{:.note}
+> `Response` objects are mutable (instead of immutable as in Artax v3 / PSR-7)
 
 ## Response Status
 

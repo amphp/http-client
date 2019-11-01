@@ -8,22 +8,17 @@ This package provides an asynchronous HTTP client for PHP based on [Amp](https:/
 
 ## Features
 
- - Requests asynchronously for full single-threaded concurrency
- - Pools persistent keep-alive connections
+ - Supports HTTP/1 and HTTP/2
+ - Requests concurrently by default
+ - Pools persistent connections (keep-alive @ HTTP/1.1, multiplexing @ HTTP/2)
  - Transparently follows redirects
- - Decodes gzipped entity bodies
+ - Decodes compressed entity bodies (gzip, deflate)
  - Exposes headers and message data
  - Streams entity bodies for memory management with large transfers
  - Supports all standard and custom HTTP method verbs
  - Simplifies HTTP form submissions
  - Implements secure-by-default TLS (`https://`)
  - Supports cookies and sessions
- - Functions seamlessly behind HTTP proxies
-
-## Project Goals
-
- - Model all code as closely as possible to the relevant HTTP protocol RFCs
- - Implement an HTTP/1.1 client built on socket streams with no `libcurl` dependency
 
 ## Installation
 
@@ -45,14 +40,21 @@ More extensive code examples reside in the [`examples`](./examples) directory.
 
 `amphp/http-client` follows the [semver](http://semver.org/) semantic versioning specification like all other `amphp` packages.
 
-Prior to version 4.0, this package was named [`amphp/artax`](https://github.com/amphp/artax). While older tags also exist in this repository, `amphp/artax` should be used as package name for versions prior to 4.0. 
+##### 4.x
 
-| Version                                               | Bug Fixes Until              | Security Fixes Until         |
-| ----------------------------------------------------- | ---------------------------- | ---------------------------- |
-| 4.x                                                   | Under development            | Under development            |
-| [3.x](https://github.com/amphp/artax/tree/master)     | Supported, no end date, yet. | Supported, no end date, yet. |
-| [2.x](https://github.com/amphp/artax/tree/2.x)        | Unmaintained.	               | Unmaintained.	              |
-| [1.x](https://github.com/amphp/artax/tree/1.x)        | Unmaintained.                | Unmaintained.                |
+Under development.
+
+##### [3.x](https://github.com/amphp/artax/tree/master)
+
+Use [`amphp/artax`](https://github.com/amphp/artax) as package name instead.
+
+##### [2.x](https://github.com/amphp/artax/tree/2.x)
+
+No longer maintained. Use [`amphp/artax`](https://github.com/amphp/artax) as package name instead.
+
+##### [1.x](https://github.com/amphp/artax/tree/1.x)
+
+No longer maintained. Use [`amphp/artax`](https://github.com/amphp/artax) as package name instead.
 
 ## Security
 

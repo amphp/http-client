@@ -14,7 +14,7 @@ As you can see in the sequence diagrams, we save some time there. We only have t
 ```php
 <?php
 
-$client = new Amp\Http\Client\Client;
+$client = Amp\Http\Client\HttpClientBuilder::buildDefault();
 $promises = [];
 
 $urls = ['https://github.com/', 'https://google.com/', 'https://amphp.org/http-client'];

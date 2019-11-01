@@ -2,24 +2,30 @@
 title: Interceptors
 permalink: /interceptors
 ---
-The HTTP client allows modifying HTTP requests / responses and short circuiting via interceptors.
-An example of such a short circuit is the [cache implementation](https://github.com/amphp/http-client-cache), that avoids forwarding the requests to further interceptors if it can satisfy a request completely from the cache.
+Interceptors allow customizing the `HttpClient` behavior in a composable fashion without writing another client implementation.
+
+Interceptor use cases range from adding / removing headers from a request / response and recording timing information to more advanced use cases like a fully compliant [HTTP cache](https://github.com/amphp/http-client-cache) that intercepts requests and serves them from the cache if possible.
 
 ```php
 <?php
 
 use Amp\Http\Client\Client;
+use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\Interceptor\SetRequestHeader;
+use Amp\Http\Client\Interceptor\SetResponseHeader;
+use Amp\Http\Client\Request;
 
-$client = new Client;
-$client = $client->withApplicationInterceptor(new SetRequestHeader('x-foo', 'bar'));
+$client = (new HttpClientBuilder)
+    ->intercept(new SetRequestHeader('x-foo', 'bar'))
+    ->intercept(new SetResponseHeader('x-tea', 'now'))
+    ->build();
 
-$response = yield $client->request("https://httpbin.org/get");
+$response = yield $client->request(new Request("https://httpbin.org/get"));
 
 $body = yield $response->getBody()->buffer();
 ```
 
-There are two kinds of interceptors with two separate interfaces named `ApplicationInterceptor` and `NetworkInterceptor`.
+There are two kinds of interceptors with separate interfaces named `ApplicationInterceptor` and `NetworkInterceptor`.
 
 ## Choosing the right interceptor
 
@@ -34,15 +40,19 @@ The big disadvantage of network interceptors is that they have to be rather quic
 
  - `AddRequestHeader`
  - `AddResponseHeader`
+ - `ConditionalInterceptor`
  - `DecompressResponse`
  - `FollowRedirects`
+ - `ForbidUriUserInfo`
+ - `IfOrigin`
  - `ModifyRequest`
  - `ModifyResponse`
  - `RemoveRequestHeader`
  - `RemoveResponseHeader`
+ - `RetryRequests`
  - `SetRequestHeader`
- - `SetResponseHeader`
  - `SetRequestHeaderIfUnset`
+ - `SetResponseHeader`
  - `SetResponseHeaderIfUnset`
  - [`CookieHandler`](https://github.com/amphp/http-client-cookies)
  - [`PrivateCache`](https://github.com/amphp/http-client-cache)
