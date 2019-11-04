@@ -4,6 +4,7 @@ use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
+use Amp\Http\Rfc7230;
 use Amp\Loop;
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -25,11 +26,13 @@ Loop::run(static function () use ($argv) {
 
         // Output the results
         \printf(
-            "HTTP/%s %d %s\n\n",
+            "HTTP/%s %d %s\r\n",
             $response->getProtocolVersion(),
             $response->getStatus(),
             $response->getReason()
         );
+
+        print Rfc7230::formatHeaders($response->getHeaders()) . "\r\n\r\n";
 
         // The response body is an instance of Payload, which allows buffering or streaming by the consumers choice.
         $body = yield $response->getBody()->buffer();
