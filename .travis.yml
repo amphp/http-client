@@ -3,7 +3,6 @@ sudo: false
 language: php
 
 php:
-  - 7.1
   - 7.2
   - 7.3
   - 7.4snapshot
@@ -36,11 +35,7 @@ install:
   - cd test/tls && ./regenerate.sh && cd -
 
 script:
-  - if [ "$TRAVIS_PHP_VERSION" = "7.1" ]; then
-      vendor/bin/phpunit --verbose;
-    else
-      vendor/bin/phpunit --coverage-text --verbose --coverage-clover build/logs/clover.xml;
-    fi
+  - vendor/bin/phpunit --coverage-text --verbose --coverage-clover build/logs/clover.xml;
 
   - php composer-require-checker.phar check composer.json --config-file $PWD/composer-require-check.json
 
