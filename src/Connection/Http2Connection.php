@@ -1251,7 +1251,7 @@ final class Http2Connection implements Connection
                                     "path" => $target,
                                     "query" => $query,
                                 ]);
-                            } catch (Uri\UriException $exception) {
+                            } catch (\Exception $exception) {
                                 throw new Http2ConnectionException("Invalid push promise URI", self::PROTOCOL_ERROR);
                             }
 

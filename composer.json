@@ -19,16 +19,20 @@
         {
             "name": "Niklas Keller",
             "email": "me@kelunik.com"
+        },
+        {
+            "name": "Aaron Piotrowski",
+            "email": "aaron@trowski.com"
         }
     ],
     "require": {
-        "php": ">=7.1",
+        "php": ">=7.2",
         "amphp/amp": "^2.2",
         "amphp/byte-stream": "^1.6",
         "amphp/hpack": "^2",
         "amphp/http": "^1.3",
         "amphp/socket": "^1",
-        "league/uri-schemes": "^1.2",
+        "league/uri": "^6",
         "psr/http-message": "^1"
     },
     "require-dev": {
@@ -37,9 +41,8 @@
         "amphp/phpunit-util": "^1.1",
         "amphp/php-cs-fixer-config": "dev-master",
         "phpunit/phpunit": "^7 || ^8",
-        "amphp/http-server": "^2"
+        "amphp/http-server": "^2-rc3"
     },
-    "minimum-stability": "RC",
     "suggest": {
         "ext-zlib": "*",
         "ext-json": "*",

@@ -10,7 +10,6 @@ use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Promise;
 use League\Uri;
-use League\Uri\UriException;
 use Psr\Http\Message\UriInterface as PsrUri;
 use function Amp\call;
 
@@ -197,10 +196,11 @@ final class FollowRedirects implements ApplicationInterceptor
 
         try {
             $locationUri = Uri\Http::createFromString($response->getHeader('location'));
-            return self::resolve($request->getUri(), $locationUri);
-        } catch (UriException $e) {
+        } catch (\Exception $e) {
             return null;
         }
+
+        return self::resolve($request->getUri(), $locationUri);
     }
 
     /**
