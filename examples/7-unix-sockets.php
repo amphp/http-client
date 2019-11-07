@@ -1,6 +1,6 @@
 <?php
 
-use Amp\Http\Client\Connection\DefaultConnectionPool;
+use Amp\Http\Client\Connection\UnlimitedConnectionPool;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
@@ -15,7 +15,7 @@ Loop::run(static function () {
     try {
         // Unix sockets require a socket pool that changes all URLs to a fixed one.
         $connector = new StaticConnector("unix:///var/run/docker.sock", new DnsConnector);
-        $client = (new HttpClientBuilder)->usingPool(new DefaultConnectionPool($connector))->build();
+        $client = (new HttpClientBuilder)->usingPool(new UnlimitedConnectionPool($connector))->build();
 
         // amphp/http-client requires a host, so just use a dummy one.
         $request = new Request('http://docker/info');

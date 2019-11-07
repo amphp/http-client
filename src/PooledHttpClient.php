@@ -4,7 +4,7 @@ namespace Amp\Http\Client;
 
 use Amp\CancellationToken;
 use Amp\Http\Client\Connection\ConnectionPool;
-use Amp\Http\Client\Connection\DefaultConnectionPool;
+use Amp\Http\Client\Connection\UnlimitedConnectionPool;
 use Amp\Http\Client\Connection\InterceptedStream;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\Interceptor\DecompressResponse;
@@ -31,7 +31,7 @@ final class PooledHttpClient implements HttpClient
 
     public function __construct(?ConnectionPool $connectionPool = null)
     {
-        $this->connectionPool = $connectionPool ?? new DefaultConnectionPool;
+        $this->connectionPool = $connectionPool ?? new UnlimitedConnectionPool;
 
         // We want to set these by default if the user doesn't choose otherwise
         $this->defaultNetworkInterceptors = [

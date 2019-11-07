@@ -3,7 +3,7 @@
 namespace Amp\Http\Client\Interceptor;
 
 use Amp\Http\Client\ApplicationInterceptor;
-use Amp\Http\Client\Connection\DefaultConnectionPool;
+use Amp\Http\Client\Connection\UnlimitedConnectionPool;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\PooledHttpClient;
@@ -83,7 +83,7 @@ abstract class InterceptorTest extends AsyncTestCase
         );
 
         $staticConnector = new StaticConnector($this->serverSocket->getAddress()->toString(), connector());
-        $this->builder = (new HttpClientBuilder)->usingPool(new DefaultConnectionPool($staticConnector));
+        $this->builder = (new HttpClientBuilder)->usingPool(new UnlimitedConnectionPool($staticConnector));
         $this->client = $this->builder->build();
     }
 

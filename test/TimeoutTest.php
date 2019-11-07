@@ -4,7 +4,7 @@ namespace Amp\Http\Client;
 
 use Amp\CancellationToken;
 use Amp\Failure;
-use Amp\Http\Client\Connection\DefaultConnectionPool;
+use Amp\Http\Client\Connection\UnlimitedConnectionPool;
 use Amp\Http\Client\Interceptor\SetRequestTimeout;
 use Amp\Loop;
 use Amp\PHPUnit\AsyncTestCase;
@@ -74,7 +74,7 @@ class TimeoutTest extends AsyncTestCase
                 return new Failure(new TimeoutException);
             });
 
-        $this->client = new PooledHttpClient(new DefaultConnectionPool($connector));
+        $this->client = new PooledHttpClient(new UnlimitedConnectionPool($connector));
 
         $this->expectException(TimeoutException::class);
 
@@ -201,7 +201,7 @@ class TimeoutTest extends AsyncTestCase
                 return new Failure(new TimeoutException);
             });
 
-        $client = new PooledHttpClient(new DefaultConnectionPool($connector));
+        $client = new PooledHttpClient(new UnlimitedConnectionPool($connector));
         $client = new InterceptedHttpClient($client, new SetRequestTimeout(1));
 
         $this->expectException(TimeoutException::class);

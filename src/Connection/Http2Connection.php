@@ -228,7 +228,7 @@ final class Http2Connection implements Connection
 
             --$this->remainingStreams;
 
-            return new HttpStream(
+            return HttpStream::fromConnection(
                 $this,
                 \Closure::fromCallable([$this, 'request']),
                 \Closure::fromCallable([$this, 'release'])

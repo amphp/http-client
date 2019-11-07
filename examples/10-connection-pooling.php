@@ -1,6 +1,6 @@
 <?php
 
-use Amp\Http\Client\Connection\DefaultConnectionPool;
+use Amp\Http\Client\Connection\UnlimitedConnectionPool;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
@@ -12,7 +12,7 @@ require __DIR__ . '/../vendor/autoload.php';
 Loop::run(static function () use ($argv) {
     try {
         // There's no need to create a custom pool here, we just need it to access the statistics.
-        $pool = new DefaultConnectionPool;
+        $pool = new UnlimitedConnectionPool;
 
         $client = (new HttpClientBuilder)->usingPool($pool)->followRedirects(0)->build();
 
