@@ -4,6 +4,7 @@ namespace Amp\Http\Client\Connection;
 
 use Amp\CancellationToken;
 use Amp\Http\Client\Request;
+use Amp\Http\Client\Response;
 use Amp\Promise;
 use Amp\Sync\KeyedSemaphore;
 use Amp\Sync\Lock;
@@ -40,10 +41,15 @@ abstract class LimitedConnectionPool implements ConnectionPool
                     $lock
                 ) {
                     try {
-                        return yield $stream->request($request, $cancellationToken);
+                        /** @var Response $response */
+                        $response =  yield $stream->request($request, $cancellationToken);
                     } finally {
                         $lock->release();
                     }
+
+                    // TODO Await body completion
+
+                    return $response;
                 }),
                 static function () use ($lock) {
                     $lock->release();

@@ -33,7 +33,7 @@ Loop::run(static function () {
                     try {
                         return yield $stream->request($request, $cancellation);
                     } finally {
-                        print 'Done.' . PHP_EOL;
+                        print 'Done @ ' . $request->getUri() . ' ' . PHP_EOL;
                     }
                 });
             }
@@ -44,9 +44,9 @@ Loop::run(static function () {
         for ($i = 0; $i < 3; $i++) {
             $promises = [];
             for ($j = 0; $j < 10; $j++) {
-                $promises[] = call(static function () use ($client, $i) {
+                $promises[] = call(static function () use ($client, $i, $j) {
                     /** @var Response $response */
-                    $response = yield $client->request(new Request("http://amphp.org/$i"));
+                    $response = yield $client->request(new Request("http://amphp.org/$i.$j"));
                     yield $response->getBody()->buffer();
                 });
             }
