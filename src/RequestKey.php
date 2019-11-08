@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client;
 
-interface KeyExtractor
+interface RequestKey
 {
     public function getKey(Request $request): string;
 }

@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client;
 
-final class HostKeyExtractor implements KeyExtractor
+final class HostRequestKey implements RequestKey
 {
     public function getKey(Request $request): string
     {

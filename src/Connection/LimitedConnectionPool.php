@@ -3,7 +3,7 @@
 namespace Amp\Http\Client\Connection;
 
 use Amp\CancellationToken;
-use Amp\Http\Client\KeyExtractor;
+use Amp\Http\Client\RequestKey;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Promise;
@@ -20,10 +20,10 @@ final class LimitedConnectionPool implements ConnectionPool
     /** @var KeyedSemaphore */
     private $semaphore;
 
-    /** @var KeyExtractor */
+    /** @var RequestKey */
     private $keyExtractor;
 
-    public function __construct(ConnectionPool $delegate, KeyedSemaphore $semaphore, KeyExtractor $keyExtractor)
+    public function __construct(ConnectionPool $delegate, KeyedSemaphore $semaphore, RequestKey $keyExtractor)
     {
         $this->delegate = $delegate;
         $this->semaphore = $semaphore;
