@@ -28,47 +28,26 @@ final class DecompressResponse implements NetworkInterceptor
         Stream $stream
     ): Promise {
         return call(function () use ($request, $cancellation, $stream) {
-            $decodeResponse = false;
-
             // If a header is manually set, we won't interfere
-            if (!$request->hasHeader('accept-encoding')) {
-                $this->addAcceptEncodingHeader($request);
-                $decodeResponse = true;
+            if ($request->hasHeader('accept-encoding')) {
+                return $stream->request($request, $cancellation);
             }
 
+            $this->addAcceptEncodingHeader($request);
+
             if ($onPush = $request->getPushCallable()) {
-                $request->onPush(function (Request $request, Promise $promise, CancellationTokenSource $source) use ($onPush) {
-                    if (!$request->hasHeader('accept-encoding')) {
-                        return $onPush($request, $promise, $source);
-                    }
-
-                    $promise = call(function () use ($promise, $request) {
-                        /** @var Response $response */
-                        $response = yield $promise;
-
-                        if (($encoding = $this->determineCompressionEncoding($response))) {
-                            /** @noinspection PhpUnhandledExceptionInspection */
-                            $response->setBody(new SizeLimitingInputStream(new ZlibInputStream($response->getBody(), $encoding), $request->getBodySizeLimit()));
-                            $response->removeHeader('content-encoding');
-                        }
-
-                        return $response;
+                $request->onPush(function (Request $request, Promise $response, CancellationTokenSource $source) use (
+                    $onPush
+                ) {
+                    $response = call(function () use ($response) {
+                        return $this->decompressResponse(yield $response);
                     });
 
-                    return $onPush($request, $promise, $source);
+                    return $onPush($request, $response, $source);
                 });
             }
 
-            /** @var Response $response */
-            $response = yield $stream->request($request, $cancellation);
-
-            if ($decodeResponse && ($encoding = $this->determineCompressionEncoding($response))) {
-                /** @noinspection PhpUnhandledExceptionInspection */
-                $response->setBody(new SizeLimitingInputStream(new ZlibInputStream($response->getBody(), $encoding), $request->getBodySizeLimit()));
-                $response->removeHeader('content-encoding');
-            }
-
-            return $response;
+            return $this->decompressResponse(yield $stream->request($request, $cancellation));
         });
     }
 
@@ -77,6 +56,20 @@ final class DecompressResponse implements NetworkInterceptor
         if ($this->hasZlib) {
             $request->setHeader('Accept-Encoding', 'gzip, deflate, identity');
         }
+    }
+
+    private function decompressResponse(Response $response): Response
+    {
+        if (($encoding = $this->determineCompressionEncoding($response))) {
+            /** @noinspection PhpUnhandledExceptionInspection */
+            $sizeLimit = $response->getRequest()->getBodySizeLimit();
+            $decompressedBody = new ZlibInputStream($response->getBody(), $encoding);
+
+            $response->setBody(new SizeLimitingInputStream($decompressedBody, $sizeLimit));
+            $response->removeHeader('content-encoding');
+        }
+
+        return $response;
     }
 
     private function determineCompressionEncoding(Response $response): int
