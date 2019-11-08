@@ -17,6 +17,7 @@ use Amp\Http\Status;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Promise;
 use Amp\Socket\Server as SocketServer;
+use Amp\Socket\SocketAddress;
 use Amp\Socket\StaticConnector;
 use Psr\Log\NullLogger;
 use function Amp\call;
@@ -38,6 +39,14 @@ abstract class InterceptorTest extends AsyncTestCase
     /** @var Response */
     private $response;
 
+    /** @var SocketAddress|null */
+    private $serverAddress;
+
+    final public function getServerAddress(): SocketAddress
+    {
+        return $this->serverSocket->getAddress();
+    }
+
     final protected function givenApplicationInterceptor(ApplicationInterceptor $interceptor): void
     {
         $this->builder = $this->builder->intercept($interceptor);
@@ -54,6 +63,8 @@ abstract class InterceptorTest extends AsyncTestCase
     {
         return call(function () use ($request) {
             yield $this->server->start();
+
+            $this->serverAddress = $this->serverSocket->getAddress();
 
             /** @var ClientResponse $response */
             $response = yield $this->client->request($request ?? new ClientRequest('http://example.org/'));
