@@ -60,7 +60,7 @@ final class FollowRedirects implements ApplicationInterceptor
                     throw new TooManyRedirectsException($response);
                 }
 
-                return $onPush($response);
+                return call($onPush, $response);
             });
         }
 
