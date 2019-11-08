@@ -32,7 +32,7 @@
         "amphp/hpack": "^2",
         "amphp/http": "^1.3",
         "amphp/socket": "^1",
-        "amphp/sync": "dev-keyed-semaphore as 1.3.0",
+        "amphp/sync": "^1.3",
         "league/uri": "^6",
         "psr/http-message": "^1"
     },
