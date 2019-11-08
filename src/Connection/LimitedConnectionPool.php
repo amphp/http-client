@@ -3,6 +3,7 @@
 namespace Amp\Http\Client\Connection;
 
 use Amp\CancellationToken;
+use Amp\Http\Client\KeyExtractor;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Promise;
@@ -11,7 +12,7 @@ use Amp\Sync\Lock;
 use function Amp\call;
 use function Amp\coroutine;
 
-abstract class LimitedConnectionPool implements ConnectionPool
+final class LimitedConnectionPool implements ConnectionPool
 {
     /** @var ConnectionPool */
     private $delegate;
@@ -19,17 +20,21 @@ abstract class LimitedConnectionPool implements ConnectionPool
     /** @var KeyedSemaphore */
     private $semaphore;
 
-    public function __construct(ConnectionPool $delegate, KeyedSemaphore $mutex)
+    /** @var KeyExtractor */
+    private $keyExtractor;
+
+    public function __construct(ConnectionPool $delegate, KeyedSemaphore $semaphore, KeyExtractor $keyExtractor)
     {
         $this->delegate = $delegate;
-        $this->semaphore = $mutex;
+        $this->semaphore = $semaphore;
+        $this->keyExtractor = $keyExtractor;
     }
 
-    final public function getStream(Request $request, CancellationToken $token): Promise
+    public function getStream(Request $request, CancellationToken $token): Promise
     {
         return call(function () use ($request, $token) {
             /** @var Lock $lock */
-            $lock = yield $this->semaphore->acquire($request->getUri()->getHost());
+            $lock = yield $this->semaphore->acquire($this->keyExtractor->getKey($request));
 
             /** @var Stream $stream */
             $stream = yield $this->delegate->getStream($request, $token);
@@ -42,12 +47,17 @@ abstract class LimitedConnectionPool implements ConnectionPool
                 ) {
                     try {
                         /** @var Response $response */
-                        $response =  yield $stream->request($request, $cancellationToken);
-                    } finally {
-                        $lock->release();
-                    }
+                        $response = yield $stream->request($request, $cancellationToken);
 
-                    // TODO Await body completion
+                        // await response being completely received
+                        $response->getTrailers()->onResolve(static function () use ($lock) {
+                            $lock->release();
+                        });
+                    } catch (\Throwable $e) {
+                        $lock->release();
+
+                        throw $e;
+                    }
 
                     return $response;
                 }),
@@ -57,6 +67,4 @@ abstract class LimitedConnectionPool implements ConnectionPool
             );
         });
     }
-
-    abstract protected function getKey(Request $request): string;
 }
