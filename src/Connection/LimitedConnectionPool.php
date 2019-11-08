@@ -3,7 +3,6 @@
 namespace Amp\Http\Client\Connection;
 
 use Amp\CancellationToken;
-use Amp\Http\Client\RequestKey;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Promise;
@@ -14,27 +13,52 @@ use function Amp\coroutine;
 
 final class LimitedConnectionPool implements ConnectionPool
 {
+    public static function byHost(ConnectionPool $delegate, KeyedSemaphore $semaphore): LimitedConnectionPool
+    {
+        return new self($delegate, $semaphore, static function (Request $request) {
+            return $request->getUri()->getHost();
+        });
+    }
+
+    public static function byStaticKey(
+        ConnectionPool $delegate,
+        KeyedSemaphore $semaphore,
+        string $key = ''
+    ): LimitedConnectionPool {
+        return new self($delegate, $semaphore, static function () use ($key) {
+            return $key;
+        });
+    }
+
+    public static function byCustomKey(
+        ConnectionPool $delegate,
+        KeyedSemaphore $semaphore,
+        callable $requestToKeyMapper
+    ): LimitedConnectionPool {
+        return new self($delegate, $semaphore, $requestToKeyMapper);
+    }
+
     /** @var ConnectionPool */
     private $delegate;
 
     /** @var KeyedSemaphore */
     private $semaphore;
 
-    /** @var RequestKey */
-    private $keyExtractor;
+    /** @var callable */
+    private $requestToKeyMapper;
 
-    public function __construct(ConnectionPool $delegate, KeyedSemaphore $semaphore, RequestKey $keyExtractor)
+    private function __construct(ConnectionPool $delegate, KeyedSemaphore $semaphore, callable $requestToKeyMapper)
     {
         $this->delegate = $delegate;
         $this->semaphore = $semaphore;
-        $this->keyExtractor = $keyExtractor;
+        $this->requestToKeyMapper = $requestToKeyMapper;
     }
 
     public function getStream(Request $request, CancellationToken $token): Promise
     {
         return call(function () use ($request, $token) {
             /** @var Lock $lock */
-            $lock = yield $this->semaphore->acquire($this->keyExtractor->getKey($request));
+            $lock = yield $this->semaphore->acquire(($this->requestToKeyMapper)($request));
 
             /** @var Stream $stream */
             $stream = yield $this->delegate->getStream($request, $token);
