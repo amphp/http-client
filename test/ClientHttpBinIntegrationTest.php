@@ -166,6 +166,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testGzipBomb(): \Generator
     {
+        $this->markTestSkipped('Run this manually');
+
         /** @var Response $response */
         $response = yield $this->client->request(new Request('https://blog.haschek.at/tools/bomb.php'));
 
