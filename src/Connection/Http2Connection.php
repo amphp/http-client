@@ -28,7 +28,6 @@ use Amp\Http\Status;
 use Amp\Loop;
 use Amp\Promise;
 use Amp\Socket\EncryptableSocket;
-use Amp\Socket\Socket;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
 use Amp\Success;
@@ -115,7 +114,7 @@ final class Http2Connection implements Connection
     /** @var string 64-bit for ping. */
     private $counter = "aaaaaaaa";
 
-    /** @var Socket */
+    /** @var EncryptableSocket */
     private $socket;
 
     /** @var callable[]|null */
@@ -169,7 +168,7 @@ final class Http2Connection implements Connection
     /** @var Deferred|null */
     private $pongDeferred;
 
-    public function __construct(Socket $socket)
+    public function __construct(EncryptableSocket $socket)
     {
         $this->table = new HPack;
 
@@ -1235,6 +1234,14 @@ final class Http2Connection implements Connection
 
                             $host = $matches[1];
                             $port = isset($matches[2]) ? (int) $matches[2] : $this->socket->getLocalAddress()->getPort();
+
+                            if (\strcasecmp($host, $stream->parent->request->getUri()->getHost()) !== 0) {
+                                throw new Http2StreamException(
+                                    "Authority does not match original request authority",
+                                    $id,
+                                    self::PROTOCOL_ERROR
+                                );
+                            }
 
                             if ($position = \strpos($target, "#")) {
                                 $target = \substr($target, 0, $position);
