@@ -34,42 +34,33 @@ final class FollowRedirects implements ApplicationInterceptor
         DelegateHttpClient $next
     ): Promise {
         if ($onPush = $request->getPushCallable()) {
-            $request->onPush(function (Request $request, Promise $promise) use (
-                $onPush, $cancellation, $next
-            ) {
-                $promise = call(function () use ($request, $promise, $cancellation, $next) {
-                    $previousResponse = null;
+            $request->onPush(function (Response $response) use ($onPush, $cancellation, $next): \Generator {
+                $previousResponse = null;
 
-                    $maxRedirects = $this->maxRedirects;
-                    $requestNr = 1;
+                $maxRedirects = $this->maxRedirects;
+                $requestNr = 1;
 
-                    do {
-                        /** @var Response $response */
-                        $response = yield $promise;
-
-                        if ($previousResponse !== null) {
-                            $response->setPreviousResponse($previousResponse);
-                        }
-
-                        $previousResponse = $response;
-
-                        $request = yield from $this->createRedirectRequest($request, $response);
-
-                        if ($request === null) {
-                            break;
-                        }
-
-                        $promise = $next->request($request, $cancellation);
-                    } while (++$requestNr <= $maxRedirects + 1);
-
-                    if ($maxRedirects !== 0 && $redirectUri = $this->getRedirectUri($response)) {
-                        throw new TooManyRedirectsException($response);
+                do {
+                    if ($previousResponse !== null) {
+                        $response->setPreviousResponse($previousResponse);
                     }
 
-                    return $response;
-                });
+                    $previousResponse = $response;
 
-                return $onPush($request, $promise);
+                    $request = yield from $this->createRedirectRequest($response->getRequest(), $response);
+
+                    if ($request === null) {
+                        break;
+                    }
+
+                    $response = yield $next->request($request, $cancellation);
+                } while (++$requestNr <= $maxRedirects + 1);
+
+                if ($maxRedirects !== 0 && $redirectUri = $this->getRedirectUri($response)) {
+                    throw new TooManyRedirectsException($response);
+                }
+
+                return $onPush($response);
             });
         }
 

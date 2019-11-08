@@ -35,12 +35,8 @@ final class DecompressResponse implements NetworkInterceptor
             $this->addAcceptEncodingHeader($request);
 
             if ($onPush = $request->getPushCallable()) {
-                $request->onPush(function (Request $request, Promise $response) use ($onPush) {
-                    $response = call(function () use ($response) {
-                        return $this->decompressResponse(yield $response);
-                    });
-
-                    return $onPush($request, $response);
+                $request->onPush(function (Response $response) use ($onPush) {
+                    return $onPush($this->decompressResponse($response));
                 });
             }
 

@@ -1285,7 +1285,8 @@ final class Http2Connection implements Connection
                                 $onPush = $stream->request->getPushCallable();
 
                                 try {
-                                    yield call($onPush, clone $stream->request, $deferred->promise());
+                                    $response = yield $deferred->promise();
+                                    yield call($onPush, $response);
                                 } catch (HttpException | StreamException | CancelledException $exception) {
                                     $tokenSource->cancel($exception);
                                 } catch (\Throwable $exception) {
