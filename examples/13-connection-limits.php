@@ -4,7 +4,6 @@ use Amp\CancellationToken;
 use Amp\Http\Client\Connection\LimitedConnectionPool;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\Connection\UnlimitedConnectionPool;
-use Amp\Http\Client\HostRequestKey;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\NetworkInterceptor;
