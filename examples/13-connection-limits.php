@@ -19,7 +19,6 @@ require __DIR__ . '/../vendor/autoload.php';
 
 Loop::run(static function () {
     try {
-        // There's no need to create a custom pool here, we just need it to access the statistics.
         $pool = LimitedConnectionPool::byHost(new UnlimitedConnectionPool, new LocalKeyedSemaphore(1));
 
         $logger = new class implements NetworkInterceptor {
