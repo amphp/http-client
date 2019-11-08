@@ -14,185 +14,6 @@ use function Amp\call;
 
 final class FollowRedirects implements ApplicationInterceptor
 {
-    private $maxRedirects;
-    private $autoReferrer;
-
-    public function __construct(int $limit, bool $autoReferrer = true)
-    {
-        if ($limit < 1) {
-            /** @noinspection PhpUndefinedClassInspection */
-            throw new \Error("Invalid redirection limit: " . $limit);
-        }
-
-        $this->maxRedirects = $limit;
-        $this->autoReferrer = $autoReferrer;
-    }
-
-    public function request(
-        Request $request,
-        CancellationToken $cancellation,
-        DelegateHttpClient $next
-    ): Promise {
-        if ($onPush = $request->getPushCallable()) {
-            $request->onPush(function (Response $response) use ($onPush, $cancellation, $next): \Generator {
-                $previousResponse = null;
-
-                $maxRedirects = $this->maxRedirects;
-                $requestNr = 1;
-
-                do {
-                    if ($previousResponse !== null) {
-                        $response->setPreviousResponse($previousResponse);
-                    }
-
-                    $previousResponse = $response;
-
-                    $request = yield from $this->createRedirectRequest($response->getRequest(), $response);
-
-                    if ($request === null) {
-                        break;
-                    }
-
-                    $response = yield $next->request($request, $cancellation);
-                } while (++$requestNr <= $maxRedirects + 1);
-
-                if ($maxRedirects !== 0 && $redirectUri = $this->getRedirectUri($response)) {
-                    throw new TooManyRedirectsException($response);
-                }
-
-                return call($onPush, $response);
-            });
-        }
-
-        return call(function () use ($request, $cancellation, $next) {
-            $previousResponse = null;
-
-            $maxRedirects = $this->maxRedirects;
-            $requestNr = 1;
-
-            do {
-                /** @var Response $response */
-                $response = yield $next->request($request, $cancellation);
-
-                if ($previousResponse !== null) {
-                    $response->setPreviousResponse($previousResponse);
-                }
-
-                $previousResponse = $response;
-
-                $request = yield from $this->createRedirectRequest($request, $response);
-            } while ($request !== null && ++$requestNr <= $maxRedirects + 1);
-
-            if ($maxRedirects !== 0 && $redirectUri = $this->getRedirectUri($response)) {
-                throw new TooManyRedirectsException($response);
-            }
-
-            return $response;
-        });
-    }
-
-    private function createRedirectRequest(Request $request, Response $response): \Generator
-    {
-        if ($redirectUri = $this->getRedirectUri($response)) {
-            $originalUri = $request->getUri();
-
-            // Discard response body of redirect responses
-            $body = $response->getBody();
-
-            /** @noinspection PhpStatementHasEmptyBodyInspection */
-            /** @noinspection LoopWhichDoesNotLoopInspection */
-            /** @noinspection MissingOrEmptyGroupStatementInspection */
-            while (null !== yield $body->read()) {
-                // discard
-            }
-
-            /**
-             * If this is a 302/303 we need to follow the location with a GET if the original request wasn't
-             * GET. Otherwise we need to send the body again.
-             *
-             * We won't resend the body nor any headers on redirects to other hosts for security reasons.
-             *
-             * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.3.3
-             */
-            $method = $request->getMethod();
-            $status = $response->getStatus();
-            $isSameHost = $redirectUri->getAuthority() === $originalUri->getAuthority();
-
-            if ($isSameHost) {
-                $request = clone $request;
-                $request->setUri($redirectUri);
-
-                if ($status >= 300 && $status <= 303 && $method !== 'GET') {
-                    $request->setMethod('GET');
-                    $request->removeHeader('transfer-encoding');
-                    $request->removeHeader('content-length');
-                    $request->removeHeader('content-type');
-                    $request->setBody(null);
-                }
-            } else {
-                // We ALWAYS follow with a GET and without any set headers or body for redirects to other hosts.
-                $request = new Request($redirectUri);
-            }
-
-            if ($this->autoReferrer) {
-                $this->assignRedirectRefererHeader($request, $originalUri, $redirectUri);
-            }
-
-            return $request;
-        }
-
-        return null;
-    }
-
-    /**
-     * Clients must not add a Referer header when leaving an unencrypted resource and redirecting to an encrypted
-     * resource.
-     *
-     * @param Request $request
-     * @param PsrUri  $referrerUri
-     * @param PsrUri  $followUri
-     *
-     * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec15.html#sec15.1.3
-     */
-    private function assignRedirectRefererHeader(
-        Request $request,
-        PsrUri $referrerUri,
-        PsrUri $followUri
-    ): void {
-        $referrerIsEncrypted = $referrerUri->getScheme() === 'https';
-        $destinationIsEncrypted = $followUri->getScheme() === 'https';
-
-        if (!$referrerIsEncrypted || $destinationIsEncrypted) {
-            $request->setHeader('Referer', $referrerUri->withUserInfo('')->withFragment(''));
-        } else {
-            $request->removeHeader('Referer');
-        }
-    }
-
-    private function getRedirectUri(Response $response): ?PsrUri
-    {
-        if (!$response->hasHeader('Location')) {
-            return null;
-        }
-
-        $request = $response->getRequest();
-        $method = $request->getMethod();
-
-        $status = $response->getStatus();
-
-        if ($status < 300 || $status > 399 || $method === 'HEAD') {
-            return null;
-        }
-
-        try {
-            $locationUri = Uri\Http::createFromString($response->getHeader('location'));
-        } catch (\Exception $e) {
-            return null;
-        }
-
-        return self::resolve($request->getUri(), $locationUri);
-    }
-
     /**
      * Resolves the given path in $locationUri using $baseUri as a base URI. For example, a base URI of
      * http://example.com/example/path and a location path of 'to/resolve' will return a URI of
@@ -285,5 +106,171 @@ final class FollowRedirects implements ApplicationInterceptor
         $parts[] = $pathToMerge;
 
         return self::removeDotSegments(\implode('/', $parts));
+    }
+
+    private $maxRedirects;
+    private $autoReferrer;
+
+    public function __construct(int $limit, bool $autoReferrer = true)
+    {
+        if ($limit < 1) {
+            /** @noinspection PhpUndefinedClassInspection */
+            throw new \Error("Invalid redirection limit: " . $limit);
+        }
+
+        $this->maxRedirects = $limit;
+        $this->autoReferrer = $autoReferrer;
+    }
+
+    public function request(
+        Request $request,
+        CancellationToken $cancellation,
+        DelegateHttpClient $next
+    ): Promise {
+        if ($onPush = $request->getPushCallable()) {
+            $request->onPush(function (Response $response) use ($onPush, $cancellation, $next): \Generator {
+                return call($onPush, yield from $this->followRedirects($response, $next, $cancellation));
+            });
+        }
+
+        return call(function () use ($request, $cancellation, $next) {
+            /** @var Response $response */
+            $response = yield $next->request($request, $cancellation);
+            $response = yield from $this->followRedirects($response, $next, $cancellation);
+
+            return $response;
+        });
+    }
+
+    private function followRedirects(
+        Response $response,
+        DelegateHttpClient $client,
+        CancellationToken $cancellationToken
+    ): \Generator {
+        $previousResponse = null;
+
+        $maxRedirects = $this->maxRedirects;
+        $requestNr = 2;
+
+        do {
+            $request = yield from $this->createRedirectRequest($response);
+            if ($request === null) {
+                return $response;
+            }
+
+            /** @var Response $redirectResponse */
+            $redirectResponse = yield $client->request($request, $cancellationToken);
+            $redirectResponse->setPreviousResponse($response);
+
+            $response = $redirectResponse;
+        } while (++$requestNr <= $maxRedirects + 1);
+
+        if ($this->getRedirectUri($response) !== null) {
+            throw new TooManyRedirectsException($response);
+        }
+
+        return $response;
+    }
+
+    private function createRedirectRequest(Response $response): \Generator
+    {
+        if ($redirectUri = $this->getRedirectUri($response)) {
+            $originalUri = $response->getRequest()->getUri();
+
+            // Discard response body of redirect responses
+            $body = $response->getBody();
+
+            /** @noinspection PhpStatementHasEmptyBodyInspection */
+            /** @noinspection LoopWhichDoesNotLoopInspection */
+            /** @noinspection MissingOrEmptyGroupStatementInspection */
+            while (null !== yield $body->read()) {
+                // discard
+            }
+
+            /**
+             * If this is a 302/303 we need to follow the location with a GET if the original request wasn't
+             * GET. Otherwise we need to send the body again.
+             *
+             * We won't resend the body nor any headers on redirects to other hosts for security reasons.
+             *
+             * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.3.3
+             */
+            $method = $response->getRequest()->getMethod();
+            $status = $response->getStatus();
+            $isSameHost = $redirectUri->getAuthority() === $originalUri->getAuthority();
+
+            if ($isSameHost) {
+                $request = clone $response->getRequest();
+                $request->setUri($redirectUri);
+
+                if ($status >= 300 && $status <= 303 && $method !== 'GET') {
+                    $request->setMethod('GET');
+                    $request->removeHeader('transfer-encoding');
+                    $request->removeHeader('content-length');
+                    $request->removeHeader('content-type');
+                    $request->setBody(null);
+                }
+            } else {
+                // We ALWAYS follow with a GET and without any set headers or body for redirects to other hosts.
+                $request = new Request($redirectUri);
+            }
+
+            if ($this->autoReferrer) {
+                $this->assignRedirectRefererHeader($request, $originalUri, $redirectUri);
+            }
+
+            return $request;
+        }
+
+        return null;
+    }
+
+    /**
+     * Clients must not add a Referer header when leaving an unencrypted resource and redirecting to an encrypted
+     * resource.
+     *
+     * @param Request $request
+     * @param PsrUri  $referrerUri
+     * @param PsrUri  $followUri
+     *
+     * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec15.html#sec15.1.3
+     */
+    private function assignRedirectRefererHeader(
+        Request $request,
+        PsrUri $referrerUri,
+        PsrUri $followUri
+    ): void {
+        $referrerIsEncrypted = $referrerUri->getScheme() === 'https';
+        $destinationIsEncrypted = $followUri->getScheme() === 'https';
+
+        if (!$referrerIsEncrypted || $destinationIsEncrypted) {
+            $request->setHeader('Referer', $referrerUri->withUserInfo('')->withFragment(''));
+        } else {
+            $request->removeHeader('Referer');
+        }
+    }
+
+    private function getRedirectUri(Response $response): ?PsrUri
+    {
+        if (!$response->hasHeader('Location')) {
+            return null;
+        }
+
+        $request = $response->getRequest();
+        $method = $request->getMethod();
+
+        $status = $response->getStatus();
+
+        if ($status < 300 || $status > 399 || $method === 'HEAD') {
+            return null;
+        }
+
+        try {
+            $locationUri = Uri\Http::createFromString($response->getHeader('location'));
+        } catch (\Exception $e) {
+            return null;
+        }
+
+        return self::resolve($request->getUri(), $locationUri);
     }
 }
