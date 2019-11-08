@@ -4,6 +4,7 @@ namespace Amp\Http\Client\Connection;
 
 use Amp\ByteStream\InMemoryStream;
 use Amp\ByteStream\IteratorStream;
+use Amp\ByteStream\StreamException;
 use Amp\CancellationToken;
 use Amp\CancellationTokenSource;
 use Amp\CancelledException;
@@ -13,6 +14,7 @@ use Amp\Deferred;
 use Amp\Emitter;
 use Amp\Failure;
 use Amp\Http\Client\Connection\Internal\Http2Stream;
+use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Internal\ResponseBodyStream;
@@ -1283,7 +1285,9 @@ final class Http2Connection implements Connection
                                 $onPush = $stream->request->getPushCallable();
 
                                 try {
-                                    yield call($onPush, clone $stream->request, $deferred->promise(), $tokenSource);
+                                    yield call($onPush, clone $stream->request, $deferred->promise());
+                                } catch (HttpException | StreamException | CancelledException $exception) {
+                                    $tokenSource->cancel($exception);
                                 } catch (\Throwable $exception) {
                                     $tokenSource->cancel($exception);
                                     throw $exception;

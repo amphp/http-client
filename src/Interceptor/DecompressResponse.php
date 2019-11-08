@@ -4,7 +4,6 @@ namespace Amp\Http\Client\Interceptor;
 
 use Amp\ByteStream\ZlibInputStream;
 use Amp\CancellationToken;
-use Amp\CancellationTokenSource;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\Internal\SizeLimitingInputStream;
 use Amp\Http\Client\NetworkInterceptor;
@@ -36,14 +35,12 @@ final class DecompressResponse implements NetworkInterceptor
             $this->addAcceptEncodingHeader($request);
 
             if ($onPush = $request->getPushCallable()) {
-                $request->onPush(function (Request $request, Promise $response, CancellationTokenSource $source) use (
-                    $onPush
-                ) {
+                $request->onPush(function (Request $request, Promise $response) use ($onPush) {
                     $response = call(function () use ($response) {
                         return $this->decompressResponse(yield $response);
                     });
 
-                    return $onPush($request, $response, $source);
+                    return $onPush($request, $response);
                 });
             }
 

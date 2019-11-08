@@ -3,7 +3,6 @@
 namespace Amp\Http\Client\Interceptor;
 
 use Amp\CancellationToken;
-use Amp\CancellationTokenSource;
 use Amp\Http\Client\ApplicationInterceptor;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\DelegateHttpClient;
@@ -39,7 +38,7 @@ class ModifyResponse implements NetworkInterceptor, ApplicationInterceptor
     {
         return call(function () use ($request, $cancellation, $next) {
             if ($onPush = $request->getPushCallable()) {
-                $request->onPush(function (Request $request, Promise $promise, CancellationTokenSource $source) use (
+                $request->onPush(function (Request $request, Promise $promise) use (
                     $onPush
                 ) {
                     $promise = call(function () use ($promise) {
@@ -47,7 +46,7 @@ class ModifyResponse implements NetworkInterceptor, ApplicationInterceptor
                         return (yield call($this->mapper, $response)) ?? $response;
                     });
 
-                    return $onPush($request, $promise, $source);
+                    return $onPush($request, $promise);
                 });
             }
 

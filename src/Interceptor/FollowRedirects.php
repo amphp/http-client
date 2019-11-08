@@ -3,7 +3,6 @@
 namespace Amp\Http\Client\Interceptor;
 
 use Amp\CancellationToken;
-use Amp\CancellationTokenSource;
 use Amp\Http\Client\ApplicationInterceptor;
 use Amp\Http\Client\DelegateHttpClient;
 use Amp\Http\Client\Request;
@@ -35,7 +34,7 @@ final class FollowRedirects implements ApplicationInterceptor
         DelegateHttpClient $next
     ): Promise {
         if ($onPush = $request->getPushCallable()) {
-            $request->onPush(function (Request $request, Promise $promise, CancellationTokenSource $source) use (
+            $request->onPush(function (Request $request, Promise $promise) use (
                 $onPush, $cancellation, $next
             ) {
                 $promise = call(function () use ($request, $promise, $cancellation, $next) {
@@ -70,7 +69,7 @@ final class FollowRedirects implements ApplicationInterceptor
                     return $response;
                 });
 
-                return $onPush($request, $promise, $source);
+                return $onPush($request, $promise);
             });
         }
 

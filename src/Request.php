@@ -231,11 +231,11 @@ final class Request extends Message
     /**
      * Attaches a callback to the request that is invoked when the server pushes an additional resource.
      * The callback is given three parameters: the Request generated from the pushed resource, a promise for the
-     * Response containing the pushed resource, and an instance of Amp\CancellationTokenSource that may be used to
-     * refuse (cancel) the pushed resource.
+     * Response containing the pushed resource. An HttpException, StreamException, or CancelledException can be thrown
+     * to refuse the push.
      *
      * Example:
-     * function (Request $request, Promise $promise, CancellationTokenSource $tokenSource): \Generator {
+     * function (Request $request, Promise $response): \Generator {
      *     $uri = $request->getUri(); // URI of pushed resource.
      *     $response = yield $promise; // Wait for resource to arrive.
      *     // Use Response object from resolved promise.
