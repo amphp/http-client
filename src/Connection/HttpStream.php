@@ -15,52 +15,85 @@ final class HttpStream implements Stream
     use ForbidSerialization;
     use ForbidCloning;
 
-    /** @var Connection */
-    private $connection;
+    public static function fromConnection(
+        Connection $connection,
+        callable $requestCallback,
+        callable $releaseCallback
+    ): self {
+        return new self(
+            $connection->getLocalAddress(),
+            $connection->getRemoteAddress(),
+            $connection->getTlsInfo(),
+            $requestCallback,
+            $releaseCallback
+        );
+    }
+
+    public static function fromStream(Stream $stream, callable $requestCallback, callable $releaseCallback): self
+    {
+        return new self(
+            $stream->getLocalAddress(),
+            $stream->getRemoteAddress(),
+            $stream->getTlsInfo(),
+            $requestCallback,
+            $releaseCallback
+        );
+    }
+
+    /** @var SocketAddress */
+    private $localAddress;
+
+    /** @var SocketAddress */
+    private $remoteAddress;
+
+    /** @var TlsInfo */
+    private $tlsInfo;
 
     /** @var callable */
     private $requestCallback;
 
     /** @var callable|null */
-    private $release;
+    private $releaseCallback;
 
-    public function __construct(Connection $connection, callable $requestCallback, callable $releaseCallback)
+    private function __construct(SocketAddress $localAddress, SocketAddress $remoteAddress, ?TlsInfo $tlsInfo, callable $requestCallback, callable $releaseCallback)
     {
-        $this->connection = $connection;
+        $this->localAddress = $localAddress;
+        $this->remoteAddress = $remoteAddress;
+        $this->tlsInfo = $tlsInfo;
         $this->requestCallback = $requestCallback;
-        $this->release = $releaseCallback;
+        $this->releaseCallback = $releaseCallback;
     }
 
     public function __destruct()
     {
-        if ($this->release !== null) {
-            ($this->release)();
+        if ($this->releaseCallback !== null) {
+            ($this->releaseCallback)();
         }
     }
 
     public function request(Request $request, CancellationToken $token): Promise
     {
-        if ($this->release === null) {
+        if ($this->releaseCallback === null) {
             throw new \Error('A stream may only be used for a single request');
         }
 
-        $this->release = null;
+        $this->releaseCallback = null;
 
         return ($this->requestCallback)(clone $request, $token);
     }
 
     public function getLocalAddress(): SocketAddress
     {
-        return $this->connection->getLocalAddress();
+        return $this->localAddress;
     }
 
     public function getRemoteAddress(): SocketAddress
     {
-        return $this->connection->getRemoteAddress();
+        return $this->remoteAddress;
     }
 
     public function getTlsInfo(): ?TlsInfo
     {
-        return $this->connection->getTlsInfo();
+        return $this->tlsInfo;
     }
 }

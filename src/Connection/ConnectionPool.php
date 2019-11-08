@@ -15,9 +15,4 @@ interface ConnectionPool
      * @return Promise<Stream>
      */
     public function getStream(Request $request, CancellationToken $token): Promise;
-
-    /**
-     * @return string[] Array of supported protocol versions.
-     */
-    public function getProtocolVersions(): array;
 }

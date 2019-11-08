@@ -36,17 +36,15 @@ final class SizeLimitingInputStream implements InputStream
 
         $promise = $this->source->read();
         $promise->onResolve(function ($error, $value) {
-            if ($error === null) {
-                if ($value !== null) {
-                    $this->bytesRead += \strlen($value);
-                    if ($this->bytesRead > $this->sizeLimit) {
-                        $this->exception = new ParseException(
-                            "Configured body size exceeded: {$this->bytesRead} bytes received, while the configured limit is {$this->sizeLimit} bytes",
-                            Status::PAYLOAD_TOO_LARGE
-                        );
+            if ($value !== null) {
+                $this->bytesRead += \strlen($value);
+                if ($this->bytesRead > $this->sizeLimit) {
+                    $this->exception = new ParseException(
+                        "Configured body size exceeded: {$this->bytesRead} bytes received, while the configured limit is {$this->sizeLimit} bytes",
+                        Status::PAYLOAD_TOO_LARGE
+                    );
 
-                        $this->source = null;
-                    }
+                    $this->source = null;
                 }
             }
         });

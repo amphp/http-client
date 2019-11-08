@@ -3,7 +3,7 @@
 namespace Amp\Http\Client;
 
 use Amp\Http\Client\Connection\ConnectionPool;
-use Amp\Http\Client\Connection\DefaultConnectionPool;
+use Amp\Http\Client\Connection\UnlimitedConnectionPool;
 use Amp\Http\Client\Interceptor\FollowRedirects;
 use Amp\Http\Client\Interceptor\ForbidUriUserInfo;
 use Amp\Http\Client\Interceptor\RetryRequests;
@@ -40,7 +40,7 @@ final class HttpClientBuilder
 
     public function __construct()
     {
-        $this->pool = new DefaultConnectionPool;
+        $this->pool = new UnlimitedConnectionPool;
         $this->forbidUriUserInfo = new ForbidUriUserInfo;
         $this->followRedirectsInterceptor = new FollowRedirects(10);
         $this->retryInterceptor = new RetryRequests(2);

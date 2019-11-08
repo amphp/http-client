@@ -6,7 +6,7 @@
 // Custom   (10 x $count requests): php examples/8-benchmark.php $count
 
 use Amp\CancellationToken;
-use Amp\Http\Client\Connection\DefaultConnectionPool;
+use Amp\Http\Client\Connection\UnlimitedConnectionPool;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
@@ -38,7 +38,7 @@ Loop::run(static function () use ($count, $argv) {
     };
 
     $client = (new HttpClientBuilder)
-        ->usingPool(new DefaultConnectionPool($connector))
+        ->usingPool(new UnlimitedConnectionPool($connector))
         ->build();
 
     $handler = coroutine(static function (int $count) use ($client, $argv) {

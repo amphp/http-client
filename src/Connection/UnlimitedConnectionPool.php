@@ -22,7 +22,7 @@ use Amp\Success;
 use Amp\TimeoutCancellationToken;
 use function Amp\call;
 
-final class DefaultConnectionPool implements ConnectionPool
+final class UnlimitedConnectionPool implements ConnectionPool
 {
     use ForbidSerialization;
 
@@ -187,11 +187,6 @@ final class DefaultConnectionPool implements ConnectionPool
         $pool = clone $this;
         $pool->timeoutGracePeriod = $timeout;
         return $pool;
-    }
-
-    public function getProtocolVersions(): array
-    {
-        return self::PROTOCOL_VERSIONS;
     }
 
     private function createConnection(

@@ -149,7 +149,7 @@ final class Http1Connection implements Connection
 
         $this->busy = true;
 
-        return new Success(new HttpStream(
+        return new Success(HttpStream::fromConnection(
             $this,
             \Closure::fromCallable([$this, 'request']),
             \Closure::fromCallable([$this, 'release'])
