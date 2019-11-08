@@ -1,9 +1,10 @@
 <?php
 
 use Amp\CancellationToken;
-use Amp\Http\Client\Connection\PerHostLimitedConnectionPool;
+use Amp\Http\Client\Connection\LimitedConnectionPool;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\Connection\UnlimitedConnectionPool;
+use Amp\Http\Client\HostKeyExtractor;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\NetworkInterceptor;
@@ -19,7 +20,7 @@ require __DIR__ . '/../vendor/autoload.php';
 Loop::run(static function () {
     try {
         // There's no need to create a custom pool here, we just need it to access the statistics.
-        $pool = new PerHostLimitedConnectionPool(new UnlimitedConnectionPool, new LocalKeyedSemaphore(1));
+        $pool = new LimitedConnectionPool(new UnlimitedConnectionPool, new LocalKeyedSemaphore(1), new HostKeyExtractor);
 
         $logger = new class implements NetworkInterceptor {
             public function requestViaNetwork(
