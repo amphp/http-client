@@ -29,5 +29,6 @@ navigation:
  - requests
  - responses
  - interceptors
+ - follow-redirects
  - concurrent
  - streaming
