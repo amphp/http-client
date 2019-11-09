@@ -2,7 +2,7 @@
 
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
-use Amp\Http\Client\Interceptor\IfOrigin;
+use Amp\Http\Client\Interceptor\MatchOrigin;
 use Amp\Http\Client\Interceptor\SetRequestHeader;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
@@ -13,7 +13,7 @@ require __DIR__ . '/../.helper/functions.php';
 Loop::run(static function () use ($argv) {
     try {
         $client = (new HttpClientBuilder)
-            ->intercept(new IfOrigin('https://amphp.org', new SetRequestHeader('x-amphp', 'true')))
+            ->intercept(new MatchOrigin(['https://amphp.org' => new SetRequestHeader('x-amphp', 'true')]))
             ->followRedirects(0)
             ->retry(3)
             ->build();
