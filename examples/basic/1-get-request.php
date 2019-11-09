@@ -4,10 +4,9 @@ use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
-use Amp\Http\Rfc7230;
 use Amp\Loop;
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/../.helper/functions.php';
 
 Loop::run(static function () use ($argv) {
     try {
@@ -24,19 +23,10 @@ Loop::run(static function () use ($argv) {
         /** @var Response $response */
         $response = yield $promise;
 
-        // Output the results
-        \printf(
-            "HTTP/%s %d %s\r\n",
-            $response->getProtocolVersion(),
-            $response->getStatus(),
-            $response->getReason()
-        );
+        dumpRequestTrace($response->getRequest());
+        dumpResponseTrace($response);
 
-        print Rfc7230::formatHeaders($response->getHeaders()) . "\r\n\r\n";
-
-        // The response body is an instance of Payload, which allows buffering or streaming by the consumers choice.
-        $body = yield $response->getBody()->buffer();
-        print $body . "\n";
+        dumpResponseBodyPreview(yield $response->getBody()->buffer());
     } catch (HttpException $error) {
         // If something goes wrong Amp will throw the exception where the promise was yielded.
         // The Client::request() method itself will never throw directly, but returns a promise.

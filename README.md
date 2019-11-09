@@ -9,15 +9,15 @@ This package provides an asynchronous HTTP client for PHP based on [Amp](https:/
 ## Features
 
  - Supports HTTP/1 and HTTP/2
- - [Requests concurrently by default](./examples/6-concurrent-requests.php)
- - [Pools persistent connections (keep-alive @ HTTP/1.1, multiplexing @ HTTP/2)](./examples/10-connection-pooling.php)
+ - [Requests concurrently by default](examples/concurrency/6-concurrent-requests.php)
+ - [Pools persistent connections (keep-alive @ HTTP/1.1, multiplexing @ HTTP/2)](examples/pooling/10-connection-pooling.php)
  - [Transparently follows redirects](https://amphp.org/http-client/follow-redirects)
- - [Decodes compressed entity bodies (gzip, deflate)](./examples/12-gzip.php)
- - [Exposes headers and message data](./examples/1-get-request.php)
- - [Streams entity bodies for memory management with large transfers](./examples/5-streaming-responses.php)
+ - [Decodes compressed entity bodies (gzip, deflate)](examples/basic/12-gzip.php)
+ - [Exposes headers and message data](examples/basic/1-get-request.php)
+ - [Streams entity bodies for memory management with large transfers](examples/streaming/5-streaming-responses.php)
  - [Supports all standard and custom HTTP method verbs](https://amphp.org/http-client/requests#request-method)
- - [Simplifies HTTP form submissions](./examples/4-forms.php)
- - [Implements secure-by-default TLS (`https://`)](./examples/1-get-request.php)
+ - [Simplifies HTTP form submissions](examples/basic/4-forms.php)
+ - [Implements secure-by-default TLS (`https://`)](examples/basic/1-get-request.php)
  - [Supports cookies and sessions](https://github.com/amphp/http-client-cookies)
 
 ## Installation

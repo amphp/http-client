@@ -1,22 +1,27 @@
 <?php
 
+use Amp\Http\Client\Connection\UnlimitedConnectionPool;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Loop;
+use Amp\Socket\DnsConnector;
+use Amp\Socket\StaticConnector;
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/../.helper/functions.php';
 
-Loop::run(static function () {
+Loop::run(static function () use ($argv) {
     try {
-        // Instantiate the HTTP client
-        $client = HttpClientBuilder::buildDefault();
+        // Unix sockets require a socket pool that changes all URLs to a fixed one.
+        $connector = new StaticConnector("unix:///var/run/docker.sock", new DnsConnector);
 
-        // Here we create a custom request object instead of simply passing an URL to request().
-        // We set the method to POST now and add a request body.
-        $request = new Request('https://httpbin.org/post', 'POST');
-        $request->setBody('woot \o/');
+        $client = (new HttpClientBuilder)
+            ->usingPool(new UnlimitedConnectionPool($connector))
+            ->build();
+
+        // amphp/http-client requires a host, so just use a dummy one.
+        $request = new Request('http://docker/info');
 
         // Make an asynchronous HTTP request
         $promise = $client->request($request);
@@ -28,17 +33,10 @@ Loop::run(static function () {
         /** @var Response $response */
         $response = yield $promise;
 
-        // Output the results
-        \printf(
-            "HTTP/%s %d %s\r\n\r\n",
-            $response->getProtocolVersion(),
-            $response->getStatus(),
-            $response->getReason()
-        );
+        dumpRequestTrace($response->getRequest());
+        dumpResponseTrace($response);
 
-        // The response body is an instance of Payload, which allows buffering or streaming by the consumers choice.
-        $body = yield $response->getBody()->buffer();
-        print $body . "\r\n";
+        dumpResponseBodyPreview(yield $response->getBody()->buffer());
     } catch (HttpException $error) {
         // If something goes wrong Amp will throw the exception where the promise was yielded.
         // The Client::request() method itself will never throw directly, but returns a promise.

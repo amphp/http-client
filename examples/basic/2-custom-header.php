@@ -6,16 +6,15 @@ use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Loop;
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/../.helper/functions.php';
 
-Loop::run(static function () {
+Loop::run(static function () use ($argv) {
     try {
         // Instantiate the HTTP client
         $client = HttpClientBuilder::buildDefault();
 
-        // Here we create a custom request object instead of simply passing an URL to request().
-        $request = new Request('https://httpbin.org/headers');
-        $request->setHeader('X-Hello-World', 'Awesome \o/');
+        $request = new Request($argv[1] ?? 'https://httpbin.org/user-agent');
+        $request->setHeader('foo', 'bar');
 
         // Make an asynchronous HTTP request
         $promise = $client->request($request);
@@ -27,25 +26,10 @@ Loop::run(static function () {
         /** @var Response $response */
         $response = yield $promise;
 
-        // Output the results
-        \printf(
-            "HTTP/%s %d %s\r\n",
-            $response->getProtocolVersion(),
-            $response->getStatus(),
-            $response->getReason()
-        );
+        dumpRequestTrace($response->getRequest());
+        dumpResponseTrace($response);
 
-        foreach ($response->getHeaders() as $field => $values) {
-            foreach ($values as $value) {
-                print "$field: $value\r\n";
-            }
-        }
-
-        print "\r\n";
-
-        // The response body is an instance of Payload, which allows buffering or streaming by the consumers choice.
-        $body = yield $response->getBody()->buffer();
-        print $body . "\r\n";
+        dumpResponseBodyPreview(yield $response->getBody()->buffer());
     } catch (HttpException $error) {
         // If something goes wrong Amp will throw the exception where the promise was yielded.
         // The Client::request() method itself will never throw directly, but returns a promise.

@@ -14,10 +14,11 @@ use Amp\Promise;
 use Amp\Sync\LocalKeyedSemaphore;
 use function Amp\call;
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/../.helper/functions.php';
 
 Loop::run(static function () {
     try {
+        // Limit to one concurrent request per host
         $pool = LimitedConnectionPool::byHost(new UnlimitedConnectionPool, new LocalKeyedSemaphore(1));
 
         $logger = new class implements NetworkInterceptor {
@@ -38,14 +39,18 @@ Loop::run(static function () {
             }
         };
 
-        $client = (new HttpClientBuilder)->usingPool($pool)->followRedirects(0)->interceptNetwork($logger)->build();
+        $client = (new HttpClientBuilder)
+            ->usingPool($pool)
+            ->followRedirects(0)
+            ->interceptNetwork($logger)
+            ->build();
 
         for ($i = 0; $i < 3; $i++) {
             $promises = [];
             for ($j = 0; $j < 10; $j++) {
                 $promises[] = call(static function () use ($client, $i, $j) {
                     /** @var Response $response */
-                    $response = yield $client->request(new Request("http://amphp.org/$i.$j"));
+                    $response = yield $client->request(new Request("https://amphp.org/$i.$j"));
                     yield $response->getBody()->buffer();
                 });
             }

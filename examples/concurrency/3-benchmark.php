@@ -1,44 +1,34 @@
 <?php
 
 // Usage -----------------------------------------------
-// Default  (10 x 100    requests): php examples/8-benchmark.php
-// Infinite (10 x 100    requests): php examples/8-benchmark.php 0
-// Custom   (10 x $count requests): php examples/8-benchmark.php $count
+// Default  (10 x 100    requests): php examples/concurrency/3-benchmark.php
+// Infinite (10 x 100    requests): php examples/concurrency/3-benchmark.php 0
+// Custom   (10 x $count requests): php examples/concurrency/3-benchmark.php $count
 
-use Amp\CancellationToken;
 use Amp\Http\Client\Connection\UnlimitedConnectionPool;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Loop;
-use Amp\Promise;
 use Amp\Socket\ClientTlsContext;
 use Amp\Socket\ConnectContext;
-use Amp\Socket\Connector;
 use function Amp\coroutine;
 use function Amp\Internal\getCurrentTime;
-use function Amp\Socket\connector;
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/../.helper/functions.php';
 
 $count = (int) ($argv[1] ?? "1000");
 
 Loop::run(static function () use ($count, $argv) {
-    $connector = new class implements Connector {
-        public function connect(string $uri, ?ConnectContext $context = null, ?CancellationToken $token = null): Promise
-        {
-            // Disable peer verification (not recommended, but we use a random test certificate here)
-            $context = $context ?? new ConnectContext;
-            $tlsContext = $context->getTlsContext() ?? new ClientTlsContext('');
-            $tlsContext = $tlsContext->withoutPeerVerification();
-            $context = $context->withTlsContext($tlsContext);
+    // Disable peer verification (not recommended, but we use a random test certificate here)
+    $tlsContext = (new ClientTlsContext)
+        ->withoutPeerVerification();
 
-            return connector()->connect($uri, $context, $token);
-        }
-    };
+    $connectContext = (new ConnectContext)
+        ->withTlsContext($tlsContext);
 
     $client = (new HttpClientBuilder)
-        ->usingPool(new UnlimitedConnectionPool($connector))
+        ->usingPool(new UnlimitedConnectionPool(null, $connectContext))
         ->build();
 
     $handler = coroutine(static function (int $count) use ($client, $argv) {

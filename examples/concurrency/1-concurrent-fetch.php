@@ -6,9 +6,9 @@ use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Loop;
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/../.helper/functions.php';
 
-Loop::run(static function () {
+Loop::run(static function () use ($argv) {
     $uris = [
         "https://google.com/",
         "https://github.com/",

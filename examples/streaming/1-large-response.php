@@ -8,7 +8,7 @@ use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Loop;
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/../.helper/functions.php';
 
 // https://stackoverflow.com/a/2510540/2373138
 function formatBytes(int $size, int $precision = 2)
