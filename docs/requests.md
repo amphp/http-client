@@ -28,7 +28,7 @@ The constructor accepts an optional request method, it defaults to `GET`. `Reque
 
 ```php
 $request = new Request("https://httpbin.org/post", "POST");
-$request->withBody("foobar");
+$request->setBody("foobar");
 $request->setMethod("PUT");
 ```
 

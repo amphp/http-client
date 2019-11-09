@@ -54,8 +54,9 @@ Response headers can be accessed by a set of methods.
 
 `getBody()` returns a [`Payload`](https://amphp.org/byte-stream/payload), which allows simple buffering and streaming access.
 
-{:.note}
-> `chunk = yield $response->getBody()->read();` reads only a single chunk from the body while `$contents = yield $response->getBody()->buffer()` buffers the complete body. Please refer to the `Payload` documentation for more information.
+{:.warning}
+> `chunk = yield $response->getBody()->read();` reads only a single chunk from the body while `$contents = yield $response->getBody()->buffer()` buffers the complete body.
+> Please refer to the [`Payload` documentation](https://amphp.org/byte-stream/payload) for more information.
 
 ## Request, Original Request and Previous Response
 
