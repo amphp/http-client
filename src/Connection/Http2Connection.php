@@ -1179,7 +1179,7 @@ final class Http2Connection implements Connection
                         ? self::KNOWN_REQUEST_PSEUDO_HEADERS
                         : self::KNOWN_RESPONSE_PSEUDO_HEADERS;
 
-                    foreach ($decoded as list($name, $value)) {
+                    foreach ($decoded as [$name, $value]) {
                         if (!\preg_match(self::HEADER_NAME_REGEX, $name)) {
                             throw new Http2StreamException("Invalid header field name", $id, self::PROTOCOL_ERROR);
                         }
@@ -1217,16 +1217,17 @@ final class Http2Connection implements Connection
                             $host = $pseudo[":authority"];
                             $query = null;
 
-                            if ($method !== 'GET') {
-                                throw new Http2ConnectionException(
-                                    "Push promises method must be GET",
+                            if ($method !== 'GET' && $method !== 'HEAD') {
+                                throw new Http2StreamException(
+                                    "Pushed request method must be a safe method",
+                                    $id,
                                     self::PROTOCOL_ERROR
                                 );
                             }
 
                             if (!\preg_match("#^([A-Z\d\.\-]+|\[[\d:]+\])(?::([1-9]\d*))?$#i", $host, $matches)) {
                                 throw new Http2StreamException(
-                                    "Invalid authority (host) name",
+                                    "Invalid pushed authority (host) name",
                                     $id,
                                     self::PROTOCOL_ERROR
                                 );
