@@ -26,19 +26,9 @@ final class PooledHttpClient implements HttpClient
     /** @var NetworkInterceptor[] */
     private $networkInterceptors = [];
 
-    /** @var NetworkInterceptor[] */
-    private $defaultNetworkInterceptors;
-
     public function __construct(?ConnectionPool $connectionPool = null)
     {
         $this->connectionPool = $connectionPool ?? new UnlimitedConnectionPool;
-
-        // We want to set these by default if the user doesn't choose otherwise
-        $this->defaultNetworkInterceptors = [
-            new SetRequestHeaderIfUnset('accept', '*/*'),
-            new SetRequestHeaderIfUnset('user-agent', 'amphp/http-client @ v4.x'),
-            new DecompressResponse,
-        ];
     }
 
     public function request(Request $request, ?CancellationToken $cancellation = null): Promise
@@ -51,9 +41,7 @@ final class PooledHttpClient implements HttpClient
 
             \assert($stream instanceof Stream);
 
-            $networkInterceptors = \array_merge($this->defaultNetworkInterceptors, $this->networkInterceptors);
-
-            foreach (\array_reverse($networkInterceptors) as $interceptor) {
+            foreach (\array_reverse($this->networkInterceptors) as $interceptor) {
                 $stream = new InterceptedStream($stream, $interceptor);
             }
 

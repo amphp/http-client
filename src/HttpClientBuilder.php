@@ -4,9 +4,11 @@ namespace Amp\Http\Client;
 
 use Amp\Http\Client\Connection\ConnectionPool;
 use Amp\Http\Client\Connection\UnlimitedConnectionPool;
+use Amp\Http\Client\Interceptor\DecompressResponse;
 use Amp\Http\Client\Interceptor\FollowRedirects;
 use Amp\Http\Client\Interceptor\ForbidUriUserInfo;
 use Amp\Http\Client\Interceptor\RetryRequests;
+use Amp\Http\Client\Interceptor\SetRequestHeaderIfUnset;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 
@@ -53,6 +55,10 @@ final class HttpClientBuilder
         foreach ($this->networkInterceptors as $interceptor) {
             $client = $client->intercept($interceptor);
         }
+
+        $client = $client->intercept(new SetRequestHeaderIfUnset('accept', '*/*'));
+        $client = $client->intercept(new SetRequestHeaderIfUnset('user-agent', 'amphp/http-client @ v4.x'));
+        $client = $client->intercept(new DecompressResponse);
 
         foreach (\array_reverse($this->applicationInterceptors) as $interceptor) {
             $client = new InterceptedHttpClient($client, $interceptor);
