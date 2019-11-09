@@ -151,6 +151,21 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     {
         $uri = 'http://httpbin.org/user-agent';
 
+        /** @var Response $response */
+        $response = yield $this->executeRequest(new Request($uri));
+
+        $this->assertInstanceOf(Response::class, $response);
+
+        $body = yield $response->getBody()->buffer();
+        $result = \json_decode($body, true);
+
+        $this->assertSame('amphp/http-client @ v4.x', $result['user-agent']);
+    }
+
+    public function testDefaultUserAgentCanBeChanged(): \Generator
+    {
+        $uri = 'http://httpbin.org/user-agent';
+
         $this->givenNetworkInterceptor(new SetRequestHeaderIfUnset('user-agent', 'amphp/http-client'));
 
         /** @var Response $response */
@@ -161,7 +176,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $body = yield $response->getBody()->buffer();
         $result = \json_decode($body, true);
 
-        $this->assertSame('amphp/http-client @ v4.x', $result['user-agent']);
+        $this->assertSame('amphp/http-client', $result['user-agent']);
     }
 
     public function testGzipBomb(): \Generator
