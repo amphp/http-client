@@ -5,8 +5,10 @@ namespace Amp\Http\Client;
 use Amp\Http\Client\Body\StringBody;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Message;
+use Amp\Promise;
 use League\Uri;
 use Psr\Http\Message\UriInterface;
+use function Amp\call;
 
 /**
  * An HTTP request.
@@ -229,10 +231,12 @@ final class Request extends Message
     }
 
     /**
-     * Attaches a callback to the request that is invoked when the server pushes an additional resource.
-     * The callback is given three parameters: the Request generated from the pushed resource, a promise for the
+     * Registers a callback to the request that is invoked when the server pushes an additional resource.
+     * The callback is given two parameters: the Request generated from the pushed resource, and a promise for the
      * Response containing the pushed resource. An HttpException, StreamException, or CancelledException can be thrown
-     * to refuse the push.
+     * to refuse the push. If no callback is registered, pushes are automatically rejected.
+     *
+     * Interceptors can mostly use {@code interceptPush} instead.
      *
      * Example:
      * function (Request $request, Promise $response): \Generator {
@@ -243,15 +247,39 @@ final class Request extends Message
      *
      * @param callable|null $onPush
      */
-    public function onPush(?callable $onPush = null): void
+    public function setPushHandler(?callable $onPush = null): void
     {
         $this->onPush = $onPush;
     }
 
     /**
+     * Allows interceptors to modify also pushed responses.
+     *
+     * If no push callable has been set by the application, the interceptor won't be invoked. If you want to enable
+     * push in an interceptor without the application setting a push handler, you need to use {@code setPushHandler}.
+     *
+     * @param callable $interceptor Receives the response and might modify it or return a new instance.
+     */
+    public function interceptPush(callable $interceptor): void
+    {
+        if ($this->onPush === null) {
+            return;
+        }
+
+        $onPush = $this->onPush;
+        $this->onPush = static function (Request $request, Promise $response) use ($onPush, $interceptor) {
+            $response = call(static function () use ($response, $interceptor) {
+                return (yield call($interceptor, yield $response)) ?? $response;
+            });
+
+            return $onPush($request, $response);
+        };
+    }
+
+    /**
      * @return callable|null
      */
-    public function getPushCallable(): ?callable
+    public function getPushHandler(): ?callable
     {
         return $this->onPush;
     }

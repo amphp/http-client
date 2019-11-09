@@ -779,7 +779,7 @@ final class Http2Connection implements Connection
                         $buffer = \substr($buffer, 4);
                         $length -= 4;
 
-                        if ($parent->request->getPushCallable() === null || isset($this->streams[$pushedId])) {
+                        if ($parent->request->getPushHandler() === null || isset($this->streams[$pushedId])) {
                             throw new Http2StreamException("Push promise refused", $pushedId, self::CANCEL);
                         }
 
@@ -1267,7 +1267,7 @@ final class Http2Connection implements Connection
                             $stream->request = new Request($uri, $method);
                             $stream->request->setHeaders($headers);
                             $stream->request->setProtocolVersions(['2']);
-                            $stream->request->onPush($stream->parent->request->getPushCallable());
+                            $stream->request->setPushHandler($stream->parent->request->getPushHandler());
 
                             $this->pendingRequests[$id] = $deferred = new Deferred;
 
@@ -1289,11 +1289,10 @@ final class Http2Connection implements Connection
                                     $this->releaseStream($id, $exception);
                                 });
 
-                                $onPush = $stream->request->getPushCallable();
+                                $onPush = $stream->request->getPushHandler();
 
                                 try {
-                                    $response = yield $deferred->promise();
-                                    yield call($onPush, $response);
+                                    yield call($onPush, $stream->request, $deferred->promise());
                                 } catch (HttpException | StreamException | CancelledException $exception) {
                                     $tokenSource->cancel($exception);
                                 } catch (\Throwable $exception) {

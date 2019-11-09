@@ -37,11 +37,7 @@ class ModifyResponse implements NetworkInterceptor, ApplicationInterceptor
     public function request(Request $request, CancellationToken $cancellation, DelegateHttpClient $next): Promise
     {
         return call(function () use ($request, $cancellation, $next) {
-            if ($onPush = $request->getPushCallable()) {
-                $request->onPush(function (Response $response) use ($onPush): \Generator {
-                    return call($onPush, (yield call($this->mapper, $response)) ?? $response);
-                });
-            }
+            $request->interceptPush($this->mapper);
 
             /** @var Response $response */
             $response = yield $next->request($request, $cancellation);

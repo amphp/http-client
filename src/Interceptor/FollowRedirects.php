@@ -127,11 +127,9 @@ final class FollowRedirects implements ApplicationInterceptor
         CancellationToken $cancellation,
         DelegateHttpClient $next
     ): Promise {
-        if ($onPush = $request->getPushCallable()) {
-            $request->onPush(function (Response $response) use ($onPush, $cancellation, $next): \Generator {
-                return call($onPush, yield from $this->followRedirects($response, $next, $cancellation));
-            });
-        }
+        $request->interceptPush(function (Response $response) use ($cancellation, $next): \Generator {
+            return yield from $this->followRedirects($response, $next, $cancellation);
+        });
 
         return call(function () use ($request, $cancellation, $next) {
             /** @var Response $response */
