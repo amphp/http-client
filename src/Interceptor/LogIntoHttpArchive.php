@@ -160,4 +160,17 @@ final class LogIntoHttpArchive implements ApplicationInterceptor
             return $response;
         });
     }
+
+    public function reset(): Promise
+    {
+        return call(function () {
+            /** @var Lock $lock */
+            $lock = yield $this->fileMutex->acquire();
+
+            // Will automatically reopen and reset the file
+            $this->fileHandle = null;
+
+            $lock->release();
+        });
+    }
 }
