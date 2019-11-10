@@ -452,6 +452,11 @@ final class Http2Connection implements Connection
                 if (isset($this->streams[$id])) {
                     $this->releaseStream($id, $exception);
                 }
+
+                if ($exception instanceof StreamException) {
+                    $exception = new HttpException('Failed to write request: ' . $exception->getMessage());
+                }
+
                 throw $exception;
             } finally {
                 $token->unsubscribe($cancellationId);
