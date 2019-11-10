@@ -170,6 +170,9 @@ final class Http2Connection implements Connection
     /** @var Deferred|null */
     private $pongDeferred;
 
+    /** @var string|null */
+    private $idleWatcher;
+
     public function __construct(EncryptableSocket $socket)
     {
         $this->table = new HPack;
@@ -220,11 +223,7 @@ final class Http2Connection implements Connection
             throw new \Error('The promise returned from ' . __CLASS__ . '::initialize() must resolve before using the connection');
         }
 
-        return call(function () use ($request) {
-            if ($this->streamId > 0 && empty($this->streams) && !yield $this->ping()) {
-                return null;
-            }
-
+        return call(function () {
             if ($this->remainingStreams <= 0 || $this->onClose === null) {
                 return null;
             }
@@ -237,28 +236,6 @@ final class Http2Connection implements Connection
                 \Closure::fromCallable([$this, 'release'])
             );
         });
-    }
-
-    /**
-     * @return Promise<bool> Fulfilled with true if a pong is received within the timeout, false if none is received.
-     */
-    private function ping(): Promise
-    {
-        if ($this->onClose === null) {
-            return new Success(false);
-        }
-
-        if ($this->pongDeferred !== null) {
-            return $this->pongDeferred->promise();
-        }
-
-        $this->pongDeferred = new Deferred;
-
-        $this->writeFrame($this->counter++, self::PING, self::NOFLAG);
-
-        $this->pongWatcher = Loop::delay(self::PONG_TIMEOUT, [$this, 'close']);
-
-        return $this->pongDeferred->promise();
     }
 
     public function onClose(callable $onClose): void
@@ -291,8 +268,32 @@ final class Http2Connection implements Connection
         return $this->socket instanceof EncryptableSocket ? $this->socket->getTlsInfo() : null;
     }
 
+    /**
+     * @return Promise<bool> Fulfilled with true if a pong is received within the timeout, false if none is received.
+     */
+    private function ping(): Promise
+    {
+        if ($this->onClose === null) {
+            return new Success(false);
+        }
+
+        if ($this->pongDeferred !== null) {
+            return $this->pongDeferred->promise();
+        }
+
+        $this->pongDeferred = new Deferred;
+
+        $this->writeFrame($this->counter++, self::PING, self::NOFLAG);
+
+        $this->pongWatcher = Loop::delay(self::PONG_TIMEOUT, [$this, 'close']);
+
+        return $this->pongDeferred->promise();
+    }
+
     private function request(Request $request, CancellationToken $token): Promise
     {
+        $this->cancelIdleWatcher();
+
         // Remove defunct HTTP/1.x headers.
         $request->removeHeader('host');
         $request->removeHeader('connection');
@@ -765,6 +766,8 @@ final class Http2Connection implements Connection
                             unset($this->bodyEmitters[$id], $this->trailerDeferreds[$id]);
 
                             $stream->request->setAttribute(HarAttributes::TIME_COMPLETE, getCurrentTime());
+
+                            $this->setupPingIfIdle();
 
                             $emitter->complete();
                             $deferred->resolve(new Trailers([]));
@@ -1360,6 +1363,8 @@ final class Http2Connection implements Connection
 
                             $stream->request->setAttribute(HarAttributes::TIME_COMPLETE, getCurrentTime());
 
+                            $this->setupPingIfIdle();
+
                             $emitter->complete();
                             $deferred->resolve($headers);
 
@@ -1528,6 +1533,8 @@ final class Http2Connection implements Connection
                 Loop::cancel($this->pongWatcher);
             }
 
+            $this->cancelIdleWatcher();
+
             if ($this->onClose !== null) {
                 $onClose = $this->onClose;
                 $this->onClose = null;
@@ -1618,6 +1625,45 @@ final class Http2Connection implements Connection
             }
 
             $this->writeBufferedData($id);
+        }
+    }
+
+    private function setupPingIfIdle(): void
+    {
+        if ($this->idleWatcher !== null) {
+            return;
+        }
+
+        $this->idleWatcher = Loop::defer(function ($watcher) {
+            \assert($this->idleWatcher === null || $this->idleWatcher === $watcher);
+
+            $this->idleWatcher = null;
+            if (!empty($this->streams)) {
+                return;
+            }
+
+            $this->idleWatcher = Loop::delay(60000, function ($watcher) {
+                \assert($this->idleWatcher === null || $this->idleWatcher === $watcher);
+                \assert(empty($this->streams));
+
+                $this->idleWatcher = null;
+
+                if (yield $this->ping()) {
+                    $this->setupPingIfIdle();
+                }
+            });
+
+            Loop::unreference($this->idleWatcher);
+        });
+
+        Loop::unreference($this->idleWatcher);
+    }
+
+    private function cancelIdleWatcher(): void
+    {
+        if ($this->idleWatcher !== null) {
+            Loop::cancel($this->idleWatcher);
+            $this->idleWatcher = null;
         }
     }
 }

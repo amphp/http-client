@@ -8,6 +8,7 @@ use Amp\Http\Client\Interceptor\SetRequestHeader;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Loop;
+use function Amp\delay;
 
 require __DIR__ . '/../.helper/functions.php';
 
@@ -28,6 +29,12 @@ Loop::run(static function () use ($argv) {
             dumpResponseTrace($response);
 
             dumpResponseBodyPreview(yield $response->getBody()->buffer());
+
+            print 'Waiting ' . ($i * 10) . ' seconds...' . "\r\n";
+
+            if ($i !== 10) {
+                yield delay($i * 10 * 1000);
+            }
         }
     } catch (HttpException $error) {
         // If something goes wrong Amp will throw the exception where the promise was yielded.
