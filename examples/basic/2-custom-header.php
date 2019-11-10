@@ -32,7 +32,7 @@ Loop::run(static function () use ($argv) {
         dumpResponseBodyPreview(yield $response->getBody()->buffer());
     } catch (HttpException $error) {
         // If something goes wrong Amp will throw the exception where the promise was yielded.
-        // The Client::request() method itself will never throw directly, but returns a promise.
+        // The HttpClient::request() method itself will never throw directly, but returns a promise.
         echo $error;
     }
 });
