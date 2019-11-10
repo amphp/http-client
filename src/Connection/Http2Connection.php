@@ -14,6 +14,7 @@ use Amp\Deferred;
 use Amp\Emitter;
 use Amp\Failure;
 use Amp\Http\Client\Connection\Internal\Http2Stream;
+use Amp\Http\Client\HarAttributes;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
@@ -35,6 +36,7 @@ use Amp\TimeoutCancellationToken;
 use League\Uri;
 use function Amp\asyncCall;
 use function Amp\call;
+use function Amp\Internal\getCurrentTime;
 
 final class Http2Connection implements Connection
 {
@@ -376,6 +378,8 @@ final class Http2Connection implements Connection
                     ":method" => [$request->getMethod()],
                 ], $request->getHeaders());
 
+                $request->setAttribute(HarAttributes::TIME_SEND, getCurrentTime());
+
                 $headers = $this->table->encode($headers);
 
                 $stream = $body->createBodyStream();
@@ -383,6 +387,8 @@ final class Http2Connection implements Connection
                 $chunk = yield $stream->read();
 
                 if (!isset($this->streams[$id]) || $token->isRequested()) {
+                    $request->setAttribute(HarAttributes::TIME_WAIT, getCurrentTime());
+
                     return yield $deferred->promise();
                 }
 
@@ -403,12 +409,16 @@ final class Http2Connection implements Connection
                 }
 
                 if ($chunk === null) {
+                    $request->setAttribute(HarAttributes::TIME_WAIT, getCurrentTime());
+
                     return yield $deferred->promise();
                 }
 
                 $buffer = $chunk;
                 while (null !== $chunk = yield $stream->read()) {
                     if (!isset($this->streams[$id]) || $token->isRequested()) {
+                        $request->setAttribute(HarAttributes::TIME_WAIT, getCurrentTime());
+
                         return yield $deferred->promise();
                     }
 
@@ -417,12 +427,16 @@ final class Http2Connection implements Connection
                 }
 
                 if (!isset($this->streams[$id]) || $token->isRequested()) {
+                    $request->setAttribute(HarAttributes::TIME_WAIT, getCurrentTime());
+
                     return yield $deferred->promise();
                 }
 
                 $this->streams[$id]->state |= Http2Stream::LOCAL_CLOSED;
 
                 yield $this->writeData($buffer, $id);
+
+                $request->setAttribute(HarAttributes::TIME_WAIT, getCurrentTime());
 
                 return yield $deferred->promise();
             } catch (\Throwable $exception) {
@@ -751,6 +765,8 @@ final class Http2Connection implements Connection
                             $emitter = $this->bodyEmitters[$id];
 
                             unset($this->bodyEmitters[$id], $this->trailerDeferreds[$id]);
+
+                            $stream->request->setAttribute(HarAttributes::TIME_COMPLETE, getCurrentTime());
 
                             $emitter->complete();
                             $deferred->resolve(new Trailers([]));
@@ -1344,6 +1360,8 @@ final class Http2Connection implements Connection
 
                             unset($this->bodyEmitters[$id], $this->trailerDeferreds[$id]);
 
+                            $stream->request->setAttribute(HarAttributes::TIME_COMPLETE, getCurrentTime());
+
                             $emitter->complete();
                             $deferred->resolve($headers);
 
@@ -1375,6 +1393,8 @@ final class Http2Connection implements Connection
 
                         $deferred = $this->pendingRequests[$id];
                         unset($this->pendingRequests[$id]);
+
+                        $stream->request->setAttribute(HarAttributes::TIME_RECEIVE, getCurrentTime());
 
                         if ($stream->state & Http2Stream::REMOTE_CLOSED) {
                             $response = new Response(
