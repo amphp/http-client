@@ -21,7 +21,7 @@ Loop::run(static function () use ($argv) {
             ->retry(3)
             ->build();
 
-        for ($i = 0; $i < 10; $i++) {
+        for ($i = 0; $i < 5; $i++) {
             /** @var Response $response */
             $response = yield $client->request(new Request($argv[1] ?? 'https://httpbin.org/user-agent'));
 
@@ -30,10 +30,10 @@ Loop::run(static function () use ($argv) {
 
             dumpResponseBodyPreview(yield $response->getBody()->buffer());
 
-            print 'Waiting ' . ($i * 10) . ' seconds...' . "\r\n";
+            print 'Waiting ' . ($i * 65) . ' seconds...' . "\r\n";
 
-            if ($i !== 10) {
-                yield delay($i * 10 * 1000);
+            if ($i !== 5) {
+                yield delay($i * 65 * 1000);
             }
         }
     } catch (HttpException $error) {
