@@ -12,6 +12,7 @@ use Amp\Deferred;
 use Amp\Emitter;
 use Amp\Http;
 use Amp\Http\Client\Connection\Internal\Http1Parser;
+use Amp\Http\Client\HarAttributes;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
@@ -35,6 +36,7 @@ use Amp\Success;
 use Amp\TimeoutCancellationToken;
 use function Amp\asyncCall;
 use function Amp\call;
+use function Amp\Internal\getCurrentTime;
 
 /**
  * Socket client implementation.
@@ -188,7 +190,9 @@ final class Http1Connection implements Connection
             $id = $combinedCancellation->subscribe([$this, 'close']);
 
             try {
+                $request->setAttribute(HarAttributes::TIME_SEND, getCurrentTime());
                 yield from $this->writeRequest($request, $protocolVersion, $combinedCancellation);
+                $request->setAttribute(HarAttributes::TIME_WAIT, getCurrentTime());
                 return yield from $this->readResponse($request, $cancellation, $combinedCancellation);
             } finally {
                 $combinedCancellation->unsubscribe($id);
@@ -252,8 +256,15 @@ final class Http1Connection implements Connection
 
         $parser = new Http1Parser($request, $bodyCallback, $trailersCallback);
 
+        $firstRead = true;
+
         try {
             while (null !== $chunk = yield $this->socket->read()) {
+                if ($firstRead) {
+                    $request->setAttribute(HarAttributes::TIME_RECEIVE, getCurrentTime());
+                    $firstRead = false;
+                }
+
                 $response = $parser->parse($chunk);
                 if ($response === null) {
                     continue;
@@ -325,6 +336,8 @@ final class Http1Connection implements Connection
                         }
 
                         $this->busy = false;
+
+                        $request->setAttribute(HarAttributes::TIME_COMPLETE, getCurrentTime());
 
                         $bodyEmitter->complete();
                         $trailersDeferred->resolve($trailers);
