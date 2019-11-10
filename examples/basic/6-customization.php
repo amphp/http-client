@@ -2,9 +2,9 @@
 
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
+use Amp\Http\Client\Interceptor\LogIntoHttpArchive;
 use Amp\Http\Client\Interceptor\MatchOrigin;
 use Amp\Http\Client\Interceptor\SetRequestHeader;
-use Amp\Http\Client\Interceptor\LogIntoHttpArchive;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Loop;
