@@ -21,7 +21,7 @@ $count = (int) ($argv[1] ?? "1000");
 
 Loop::run(static function () use ($count, $argv) {
     // Disable peer verification (not recommended, but we use a random test certificate here)
-    $tlsContext = (new ClientTlsContext)
+    $tlsContext = (new ClientTlsContext(''))
         ->withoutPeerVerification();
 
     $connectContext = (new ConnectContext)
@@ -33,7 +33,7 @@ Loop::run(static function () use ($count, $argv) {
 
     $handler = coroutine(static function (int $count) use ($client, $argv) {
         for ($i = 0; $i < $count; $i++) {
-            $request = new Request($argv[2] ?? 'http://localhost:1337/');
+            $request = new Request($argv[2] ?? 'https://localhost:1338/');
             $request->setTcpConnectTimeout(1000);
             $request->setTlsHandshakeTimeout(1000);
             $request->setTransferTimeout(1000);
