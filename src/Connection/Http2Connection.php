@@ -173,6 +173,12 @@ final class Http2Connection implements Connection
     /** @var string|null */
     private $idleWatcher;
 
+    /** @var int */
+    private $idlePings = 0;
+
+    /** @var int */
+    private $requestCount = 0;
+
     public function __construct(EncryptableSocket $socket)
     {
         $this->table = new HPack;
@@ -282,6 +288,7 @@ final class Http2Connection implements Connection
         }
 
         $this->pongDeferred = new Deferred;
+        $this->idlePings++;
 
         $this->writeFrame($this->counter++, self::PING, self::NOFLAG);
 
@@ -292,6 +299,9 @@ final class Http2Connection implements Connection
 
     private function request(Request $request, CancellationToken $token): Promise
     {
+        $this->requestCount++;
+
+        $this->idlePings = 0;
         $this->cancelIdleWatcher();
 
         // Remove defunct HTTP/1.x headers.
@@ -1647,6 +1657,13 @@ final class Http2Connection implements Connection
                 \assert(empty($this->streams));
 
                 $this->idleWatcher = null;
+
+                $maxIdleMinutes = $this->requestCount < 2 ? 1 : 3;
+
+                if ($this->idlePings + 1 >= $maxIdleMinutes) {
+                    $this->close();
+                    return;
+                }
 
                 if (yield $this->ping()) {
                     $this->setupPingIfIdle();
