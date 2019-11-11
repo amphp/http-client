@@ -22,7 +22,7 @@ use Amp\Socket\EncryptableSocket;
 use Amp\Success;
 use Amp\TimeoutCancellationToken;
 use function Amp\call;
-use function Amp\Internal\getCurrentTime;
+use function Amp\getCurrentTime;
 
 final class UnlimitedConnectionPool implements ConnectionPool
 {

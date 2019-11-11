@@ -36,7 +36,7 @@ use Amp\TimeoutCancellationToken;
 use League\Uri;
 use function Amp\asyncCall;
 use function Amp\call;
-use function Amp\Internal\getCurrentTime;
+use function Amp\getCurrentTime;
 
 final class Http2Connection implements Connection
 {

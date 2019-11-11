@@ -8,7 +8,7 @@ use Amp\Http\Client\DelegateHttpClient;
 use Amp\Http\Client\HarAttributes;
 use Amp\Http\Client\Request;
 use Amp\Promise;
-use function Amp\Internal\getCurrentTime;
+use function Amp\getCurrentTime;
 
 final class RecordStartTime implements ApplicationInterceptor
 {
