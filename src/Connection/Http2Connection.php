@@ -296,6 +296,8 @@ final class Http2Connection implements Connection
         $request->removeHeader('connection');
         $request->removeHeader('transfer-encoding');
 
+        $request->setProtocolVersions(['2']);
+
         $id = $this->streamId += 2; // Client streams should be odd-numbered, starting at 1.
 
         $this->streams[$id] = $stream = new Http2Stream(

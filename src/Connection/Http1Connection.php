@@ -178,6 +178,8 @@ final class Http1Connection implements Connection
             $request = yield from $this->buildRequest($request);
             $protocolVersion = $this->determineProtocolVersion($request);
 
+            $request->setProtocolVersions([$protocolVersion]);
+
             if ($request->getTransferTimeout() > 0) {
                 $timeoutToken = new TimeoutCancellationToken($request->getTransferTimeout());
                 $combinedCancellation = new CombinedCancellationToken($cancellation, $timeoutToken);
