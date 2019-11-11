@@ -29,12 +29,6 @@ Loop::run(static function () use ($argv) {
             dumpResponseTrace($response);
 
             dumpResponseBodyPreview(yield $response->getBody()->buffer());
-
-            print 'Waiting ' . ($i * 65) . ' seconds...' . "\r\n";
-
-            if ($i !== 5) {
-                yield delay($i * 65 * 1000);
-            }
         }
     } catch (HttpException $error) {
         // If something goes wrong Amp will throw the exception where the promise was yielded.
