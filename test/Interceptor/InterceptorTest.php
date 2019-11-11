@@ -73,6 +73,7 @@ abstract class InterceptorTest extends AsyncTestCase
             $this->response = $response;
 
             yield $this->response->getBody()->buffer();
+            yield $this->response->getTrailers();
 
             yield $this->server->stop();
 
