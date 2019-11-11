@@ -7,6 +7,7 @@ use Amp\File;
 use Amp\Http\Client\ApplicationInterceptor;
 use Amp\Http\Client\DelegateHttpClient;
 use Amp\Http\Client\HarAttributes;
+use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Message;
@@ -14,6 +15,7 @@ use Amp\Promise;
 use Amp\Sync\LocalMutex;
 use Amp\Sync\Lock;
 use function Amp\call;
+use function Amp\Promise\rethrow;
 
 final class LogIntoHttpArchive implements ApplicationInterceptor
 {
@@ -122,6 +124,8 @@ final class LogIntoHttpArchive implements ApplicationInterceptor
     private $fileHandle;
     /** @var string */
     private $filePath;
+    /** @var \Throwable|null */
+    private $error;
 
     public function __construct(string $filePath)
     {
@@ -132,30 +136,14 @@ final class LogIntoHttpArchive implements ApplicationInterceptor
     public function request(Request $request, CancellationToken $cancellation, DelegateHttpClient $next): Promise
     {
         return call(function () use ($request, $cancellation, $next) {
+            if ($this->error) {
+                throw $this->error;
+            }
+
             /** @var Response $response */
             $response = yield $next->request($request, $cancellation);
 
-            /** @var Lock $lock */
-            $lock = yield $this->fileMutex->acquire();
-
-            $firstEntry = $this->fileHandle === null;
-
-            if ($firstEntry) {
-                $this->fileHandle = yield File\open($this->filePath, 'w');
-
-                $header = '{"log":{"version":"1.2","creator":{"name":"amphp/http-client","version":"4.x"},"pages":[],"entries":[';
-
-                yield $this->fileHandle->write($header);
-            } else {
-                yield $this->fileHandle->seek(-3, \SEEK_CUR);
-            }
-
-            /** @noinspection PhpComposerExtensionStubsInspection */
-            $json = \json_encode(self::formatEntry($response));
-
-            yield $this->fileHandle->write(($firstEntry ? '' : ',') . $json . ']}}');
-
-            $lock->release();
+            rethrow($this->writeLog($response));
 
             return $response;
         });
@@ -169,8 +157,48 @@ final class LogIntoHttpArchive implements ApplicationInterceptor
 
             // Will automatically reopen and reset the file
             $this->fileHandle = null;
+            $this->error = null;
 
             $lock->release();
+        });
+    }
+
+    private function writeLog(Response $response): Promise
+    {
+        return call(function () use ($response) {
+            try {
+                yield $response->getTrailers();
+            } catch (\Throwable $e) {
+                // ignore, still log the remaining response times
+            }
+
+            try {
+                /** @var Lock $lock */
+                $lock = yield $this->fileMutex->acquire();
+
+                $firstEntry = $this->fileHandle === null;
+
+                if ($firstEntry) {
+                    $this->fileHandle = yield File\open($this->filePath, 'w');
+
+                    $header = '{"log":{"version":"1.2","creator":{"name":"amphp/http-client","version":"4.x"},"pages":[],"entries":[';
+
+                    yield $this->fileHandle->write($header);
+                } else {
+                    yield $this->fileHandle->seek(-3, \SEEK_CUR);
+                }
+
+                /** @noinspection PhpComposerExtensionStubsInspection */
+                $json = \json_encode(self::formatEntry($response));
+
+                yield $this->fileHandle->write(($firstEntry ? '' : ',') . $json . ']}}');
+
+                $lock->release();
+            } catch (HttpException $e) {
+                $this->error = $e;
+            } catch (\Throwable $e) {
+                $this->error = new HttpException('Writing HTTP archive log failed', 0, $e);
+            }
         });
     }
 }
