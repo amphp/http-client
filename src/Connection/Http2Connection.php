@@ -1654,15 +1654,14 @@ final class Http2Connection implements Connection
                 return;
             }
 
-            $this->idleWatcher = Loop::delay(60000, function ($watcher) {
+            $this->idleWatcher = Loop::delay(300000, function ($watcher) {
                 \assert($this->idleWatcher === null || $this->idleWatcher === $watcher);
                 \assert(empty($this->streams));
 
                 $this->idleWatcher = null;
 
-                $maxIdleMinutes = $this->requestCount < 2 ? 1 : 3;
-
-                if ($this->idlePings + 1 >= $maxIdleMinutes) {
+                // Connection idle for 10 minutes
+                if ($this->idlePings >= 1) {
                     $this->close();
                     return;
                 }
