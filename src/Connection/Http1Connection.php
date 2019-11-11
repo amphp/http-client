@@ -36,7 +36,7 @@ use Amp\Success;
 use Amp\TimeoutCancellationToken;
 use function Amp\asyncCall;
 use function Amp\call;
-use function Amp\Internal\getCurrentTime;
+use function Amp\getCurrentTime;
 
 /**
  * Socket client implementation.

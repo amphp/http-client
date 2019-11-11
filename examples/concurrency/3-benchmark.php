@@ -13,7 +13,7 @@ use Amp\Loop;
 use Amp\Socket\ClientTlsContext;
 use Amp\Socket\ConnectContext;
 use function Amp\coroutine;
-use function Amp\Internal\getCurrentTime;
+use function Amp\getCurrentTime;
 
 require __DIR__ . '/../.helper/functions.php';
 

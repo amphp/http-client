@@ -8,7 +8,6 @@ use Amp\Http\Client\Interceptor\SetRequestHeader;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Loop;
-use function Amp\delay;
 
 require __DIR__ . '/../.helper/functions.php';
 
