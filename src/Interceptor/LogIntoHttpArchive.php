@@ -151,12 +151,18 @@ final class LogIntoHttpArchive implements ApplicationInterceptor
 
     public function reset(): Promise
     {
-        return call(function () {
+        return $this->rotate($this->filePath);
+    }
+
+    public function rotate(string $filePath): Promise
+    {
+        return call(function () use ($filePath) {
             /** @var Lock $lock */
             $lock = yield $this->fileMutex->acquire();
 
             // Will automatically reopen and reset the file
             $this->fileHandle = null;
+            $this->filePath = $filePath;
             $this->error = null;
 
             $lock->release();
