@@ -107,9 +107,6 @@ final class Http2Connection implements Connection
         ":scheme" => true,
     ];
 
-    public const DEFAULT_MAX_HEADER_SIZE = 1 << 20;
-    public const DEFAULT_MAX_BODY_SIZE = 1 << 30;
-
     // Milliseconds to wait for pong (PING with ACK) frame before closing the connection.
     private const PONG_TIMEOUT = 500;
 
@@ -479,15 +476,13 @@ final class Http2Connection implements Connection
 
             yield $this->writeFrame(
                 \pack(
-                    "nNnNnNnNnN",
+                    "nNnNnNnN",
                     self::ENABLE_PUSH,
                     1,
                     self::MAX_CONCURRENT_STREAMS,
                     256,
                     self::INITIAL_WINDOW_SIZE,
                     self::DEFAULT_WINDOW_SIZE,
-                    self::MAX_HEADER_LIST_SIZE,
-                    self::DEFAULT_MAX_HEADER_SIZE,
                     self::MAX_FRAME_SIZE,
                     self::DEFAULT_MAX_FRAME_SIZE
                 ),
