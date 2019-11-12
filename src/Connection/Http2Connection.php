@@ -1406,6 +1406,18 @@ final class Http2Connection implements Connection
                             throw new Http2StreamException("Stream already used", $id, self::INTERNAL_ERROR);
                         }
 
+                        if ($status === Status::SWITCHING_PROTOCOLS) {
+                            throw new Http2ConnectionException("Switching Protocols (101) is not part of HTTP/2", self::PROTOCOL_ERROR);
+                        }
+
+                        if ($status < Status::OK) {
+                            $stream->headers = '';
+                            $stream->state &= ~Http2Stream::RESERVED;
+                            continue;
+                        }
+
+                        $stream->state |= Http2Stream::RESERVED;
+
                         $deferred = $this->pendingRequests[$id];
                         unset($this->pendingRequests[$id]);
 
