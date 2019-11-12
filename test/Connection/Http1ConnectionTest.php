@@ -23,7 +23,7 @@ class Http1ConnectionTest extends AsyncTestCase
 
         $connection = new Http1Connection($client, 5000);
 
-        $request = new Request('http://example.com');
+        $request = new Request('http://localhost');
         $request->setBody($this->createSlowBody());
 
         /** @var Stream $stream */
@@ -40,7 +40,7 @@ class Http1ConnectionTest extends AsyncTestCase
 
         $connection = new Http1Connection($client, 5000);
 
-        $request = new Request('http://example.com');
+        $request = new Request('http://localhost');
         $request->setBody($this->createSlowBody());
 
         /** @var Stream $stream */
@@ -56,7 +56,7 @@ class Http1ConnectionTest extends AsyncTestCase
 
         $connection = new Http1Connection($client, 5000);
 
-        $request = new Request('http://example.com');
+        $request = new Request('http://localhost');
         $request->setBody($this->createSlowBody());
 
         /** @var Stream $stream */
@@ -89,6 +89,39 @@ class Http1ConnectionTest extends AsyncTestCase
 
         $this->assertSame(204, $response->getStatus());
         $this->assertSame('Nothing to send', $response->getReason());
+    }
+
+    public function testUpgrade(): \Generator
+    {
+        [$server, $client] = Socket\createPair();
+
+        $connection = new Http1Connection($client, 5000);
+
+        $socketData = "Data that should be sent after the upgrade response";
+
+        $invoked = false;
+        $callback = function (Socket\EncryptableSocket $socket, Request $request, Response $response) use (&$invoked, $socketData) {
+            $invoked = true;
+            $this->assertSame(101, $response->getStatus());
+            $this->assertSame($socketData, yield $socket->read());
+        };
+
+        $request = new Request('http://httpbin.org/upgrade', 'GET');
+        $request->setHeader('connection', 'upgrade');
+        $request->setUpgradeHandler($callback);
+
+        /** @var Stream $stream */
+        $stream = yield $connection->getStream($request);
+
+        $server->write("HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: test\r\n\r\n" . $socketData);
+
+        /** @var Response $response */
+        $response = yield $stream->request($request, new NullCancellationToken);
+
+        $this->assertTrue($invoked);
+        $this->assertSame(101, $response->getStatus());
+        $this->assertSame('Switching Protocols', $response->getReason());
+        $this->assertSame([], (yield $response->getTrailers())->getHeaders());
     }
 
     private function createSlowBody()

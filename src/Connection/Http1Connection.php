@@ -29,7 +29,6 @@ use Amp\Http\Rfc7230;
 use Amp\Loop;
 use Amp\Promise;
 use Amp\Socket\EncryptableSocket;
-use Amp\Socket\Socket;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
 use Amp\Success;
@@ -50,7 +49,7 @@ final class Http1Connection implements Connection
 
     private const PROTOCOL_VERSIONS = ['1.0', '1.1'];
 
-    /** @var Socket */
+    /** @var EncryptableSocket */
     private $socket;
 
     /** @var bool */
@@ -74,7 +73,7 @@ final class Http1Connection implements Connection
     /** @var int */
     private $estimatedClose;
 
-    public function __construct(Socket $socket, int $timeoutGracePeriod)
+    public function __construct(EncryptableSocket $socket, int $timeoutGracePeriod)
     {
         $this->socket = $socket;
 
@@ -103,13 +102,17 @@ final class Http1Connection implements Connection
 
     public function close(): Promise
     {
+        $this->socket->close();
+        return $this->free();
+    }
+
+    private function free(): Promise
+    {
         $this->estimatedClose = 0;
 
         if ($this->timeoutWatcher !== null) {
             Loop::cancel($this->timeoutWatcher);
         }
-
-        $this->socket->close();
 
         if ($this->onClose !== null) {
             $onClose = $this->onClose;
@@ -273,7 +276,34 @@ final class Http1Connection implements Connection
                     continue;
                 }
 
-                if ($response->getStatus() < Http\Status::OK) {
+                $status = $response->getStatus();
+
+                if ($status === Http\Status::SWITCHING_PROTOCOLS) {
+                    $connection = Http\createFieldValueComponentMap(Http\parseFieldValueComponents($response, 'connection'));
+                    if (!isset($connection['upgrade'])) {
+                        throw new HttpException('Switching protocols response missing "Connection: upgrade" header');
+                    }
+
+                    if (!$response->hasHeader('upgrade')) {
+                        throw new HttpException('Switching protocols response missing "Upgrade" header');
+                    }
+
+                    if (($onUpgrade = $request->getUpgradeHandler()) === null) {
+                        throw new HttpException('Received switching protocols response without upgrade handler callback');
+                    }
+
+                    $socket = new UpgradedSocket($this->socket, $parser->getBuffer());
+
+                    asyncCall($onUpgrade, $socket, clone $request, $response);
+
+                    $this->free(); // Close this connection without closing socket.
+
+                    $trailersDeferred->resolve($trailers);
+
+                    return $response;
+                }
+
+                if ($status < Http\Status::OK) {
                     $chunk = $parser->getBuffer();
                     $parser = new Http1Parser($request, $bodyCallback, $trailersCallback);
                     goto parseChunk;

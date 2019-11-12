@@ -60,6 +60,9 @@ final class Request extends Message
     /** @var callable|null */
     private $onPush;
 
+    /** @var callable|null */
+    private $onUpgrade;
+
     /** @var mixed[] */
     private $attributes = [];
 
@@ -247,7 +250,7 @@ final class Request extends Message
      *
      * @param callable|null $onPush
      */
-    public function setPushHandler(?callable $onPush = null): void
+    public function setPushHandler(?callable $onPush): void
     {
         $this->onPush = $onPush;
     }
@@ -282,6 +285,24 @@ final class Request extends Message
     public function getPushHandler(): ?callable
     {
         return $this->onPush;
+    }
+
+    /**
+     * Registers a callback invoked if a 101 response is returned to the request.
+     *
+     * @param callable|null $onUpgrade
+     */
+    public function setUpgradeHandler(?callable $onUpgrade): void
+    {
+        $this->onUpgrade = $onUpgrade;
+    }
+
+    /**
+     * @return callable|null
+     */
+    public function getUpgradeHandler(): ?callable
+    {
+        return $this->onUpgrade;
     }
 
     /**
