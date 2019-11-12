@@ -6,6 +6,7 @@ use Amp\ByteStream\InputStream;
 use Amp\ByteStream\IteratorStream;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\RequestBody;
+use Amp\Http\Client\Response;
 use Amp\Iterator;
 use Amp\NullCancellationToken;
 use Amp\PHPUnit\AsyncTestCase;
@@ -67,6 +68,27 @@ class Http1ConnectionTest extends AsyncTestCase
         yield delay(0); // required to clear instance in coroutine :-(
 
         $this->assertNotNull(yield $connection->getStream($request));
+    }
+
+    public function test100Continue(): \Generator
+    {
+        [$server, $client] = Socket\createPair();
+
+        $connection = new Http1Connection($client, 5000);
+
+        $request = new Request('http://httpbin.org/post', 'POST');
+        $request->setHeader('expect', '100-continue');
+
+        /** @var Stream $stream */
+        $stream = yield $connection->getStream($request);
+
+        $server->write("HTTP/1.1 100 Continue\r\nFoo: Bar\r\n\r\nHTTP/1.1 204 Nothing to send\r\n\r\n");
+
+        /** @var Response $response */
+        $response = yield $stream->request($request, new NullCancellationToken);
+
+        $this->assertSame(204, $response->getStatus());
+        $this->assertSame('Nothing to send', $response->getReason());
     }
 
     private function createSlowBody()

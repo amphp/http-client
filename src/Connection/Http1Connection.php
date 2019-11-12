@@ -267,9 +267,16 @@ final class Http1Connection implements Connection
                     $firstRead = false;
                 }
 
+                parseChunk:
                 $response = $parser->parse($chunk);
                 if ($response === null) {
                     continue;
+                }
+
+                if ($response->getStatus() < Http\Status::OK) {
+                    $chunk = $parser->getBuffer();
+                    $parser = new Http1Parser($request, $bodyCallback, $trailersCallback);
+                    goto parseChunk;
                 }
 
                 $bodyCancellationSource = new CancellationTokenSource;

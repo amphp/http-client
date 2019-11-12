@@ -88,7 +88,7 @@ final class Http1Parser
         $this->maxBodyBytes = $request->getBodySizeLimit();
     }
 
-    public function getBuffer(): ?string
+    public function getBuffer(): string
     {
         return $this->buffer;
     }
@@ -189,7 +189,7 @@ final class Http1Parser
 
             if ($bufferDataSize <= $this->remainingBodyBytes) {
                 $chunk = $this->buffer;
-                $this->buffer = null;
+                $this->buffer = '';
                 $this->remainingBodyBytes -= $bufferDataSize;
                 $this->addToBody($chunk);
 
