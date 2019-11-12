@@ -453,7 +453,7 @@ final class Http2Connection implements Connection
                 }
 
                 if ($exception instanceof StreamException) {
-                    $exception = new HttpException('Failed to write request: ' . $exception->getMessage());
+                    $exception = new SocketException('Failed to write request to socket: ' . $exception->getMessage());
                 }
 
                 throw $exception;
