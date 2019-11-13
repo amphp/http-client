@@ -296,8 +296,10 @@ final class Http1Connection implements Connection
                 $status = $response->getStatus();
 
                 if ($status === Http\Status::SWITCHING_PROTOCOLS) {
-                    $connection = Http\createFieldValueComponentMap(Http\parseFieldValueComponents($response,
-                        'connection'));
+                    $connection = Http\createFieldValueComponentMap(Http\parseFieldValueComponents(
+                        $response,
+                        'connection'
+                    ));
                     if (!isset($connection['upgrade'])) {
                         throw new HttpException('Switching protocols response missing "Connection: upgrade" header');
                     }
