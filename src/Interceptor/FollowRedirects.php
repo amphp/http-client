@@ -122,25 +122,21 @@ final class FollowRedirects implements ApplicationInterceptor
         $this->autoReferrer = $autoReferrer;
     }
 
-    public function request(
-        Request $request,
-        CancellationToken $cancellation,
-        DelegateHttpClient $next
-    ): Promise {
-        $request->interceptPush(function (Response $response) use ($cancellation, $next): \Generator {
-            return yield from $this->followRedirects($response, $next, $cancellation);
-        });
+    public function request(Request $request, CancellationToken $cancellation, DelegateHttpClient $next): Promise
+    {
+        // Don't follow redirects on pushes, just store the redirect in cache (if an interceptor is configured)
 
         return call(function () use ($request, $cancellation, $next) {
             /** @var Response $response */
             $response = yield $next->request($request, $cancellation);
-            $response = yield from $this->followRedirects($response, $next, $cancellation);
+            $response = yield from $this->followRedirects($request, $response, $next, $cancellation);
 
             return $response;
         });
     }
 
     private function followRedirects(
+        Request $request,
         Response $response,
         DelegateHttpClient $client,
         CancellationToken $cancellationToken
@@ -151,7 +147,7 @@ final class FollowRedirects implements ApplicationInterceptor
         $requestNr = 2;
 
         do {
-            $request = yield from $this->createRedirectRequest($response);
+            $request = yield from $this->createRedirectRequest($request, $response);
             if ($request === null) {
                 return $response;
             }
@@ -170,7 +166,7 @@ final class FollowRedirects implements ApplicationInterceptor
         return $response;
     }
 
-    private function createRedirectRequest(Response $response): \Generator
+    private function createRedirectRequest(Request $request, Response $response): \Generator
     {
         if ($redirectUri = $this->getRedirectUri($response)) {
             $originalUri = $response->getRequest()->getUri();
@@ -198,7 +194,7 @@ final class FollowRedirects implements ApplicationInterceptor
             $isSameHost = $redirectUri->getAuthority() === $originalUri->getAuthority();
 
             if ($isSameHost) {
-                $request = clone $response->getRequest();
+                $request = clone $request;
                 $request->setUri($redirectUri);
 
                 if ($status >= 300 && $status <= 303 && $method !== 'GET') {
