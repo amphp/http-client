@@ -208,6 +208,16 @@ class RequestTest extends AsyncTestCase
         $this->assertSame(512, $response->getStatus());
     }
 
+    public function testRemoveNonexistentAttribute(): void
+    {
+        $request = new Request('https://amphp.org/');
+
+        $this->expectException(MissingAttributeError::class);
+        $this->expectExceptionMessage('The requested attribute \'foobar\' does not exist');
+        $request->removeAttribute('foobar');
+    }
+
+
     public function testPushHandlerInterceptNewReturn(): \Generator
     {
         $request = new Request('https://amphp.org/');
