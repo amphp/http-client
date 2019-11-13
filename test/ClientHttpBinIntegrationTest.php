@@ -179,6 +179,17 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->assertSame('amphp/http-client', $result['user-agent']);
     }
 
+    public function testHttp2Push(): \Generator
+    {
+        $request = new Request('https://http2-server-push-demo.keksi.io/');
+        $request->setPushHandler(static function (Request $request, Promise $response) {
+            self::assertSame('/image.jpg', $request->getUri()->getPath());
+            self::assertSame('image/jpeg', (yield $response)->getHeader('content-type'));
+        });
+
+        yield $this->executeRequest($request);
+    }
+
     public function testGzipBomb(): \Generator
     {
         $this->markTestSkipped('Run this manually');
