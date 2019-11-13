@@ -179,12 +179,7 @@ final class Http2Connection implements Connection
     public function __construct(EncryptableSocket $socket)
     {
         $this->table = new HPack;
-
         $this->socket = $socket;
-
-        if ($this->socket->isClosed()) {
-            $this->onClose = null;
-        }
     }
 
     /**

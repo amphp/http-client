@@ -73,7 +73,6 @@ final class Http1Connection implements Connection
     /** @var int */
     private $estimatedClose;
 
-
     /** @var SocketAddress */
     private $localAddress;
 
@@ -89,11 +88,6 @@ final class Http1Connection implements Connection
         $this->localAddress = $socket->getLocalAddress();
         $this->remoteAddress = $socket->getRemoteAddress();
         $this->tlsInfo = $socket->getTlsInfo();
-
-        if ($this->socket->isClosed()) {
-            $this->onClose = null;
-        }
-
         $this->timeoutGracePeriod = $timeoutGracePeriod;
         $this->estimatedClose = (int) ((\microtime(true) + self::MAX_KEEP_ALIVE_TIMEOUT) * 1000);
     }
