@@ -66,18 +66,19 @@ abstract class InterceptorTest extends AsyncTestCase
 
             $this->serverAddress = $this->serverSocket->getAddress();
 
-            /** @var ClientResponse $response */
-            $response = yield $this->client->request($request ?? new ClientRequest('http://example.org/'));
+            try {
+                /** @var ClientResponse $response */
+                $response = yield $this->client->request($request ?? new ClientRequest('http://example.org/'));
 
-            $this->request = $response->getRequest();
-            $this->response = $response;
+                $this->request = $response->getRequest();
+                $this->response = $response;
 
-            yield $this->response->getBody()->buffer();
-            yield $this->response->getTrailers();
-
-            yield $this->server->stop();
-
-            $this->serverSocket->close();
+                yield $this->response->getBody()->buffer();
+                yield $this->response->getTrailers();
+            } finally {
+                yield $this->server->stop();
+                $this->serverSocket->close();
+            }
         });
     }
 
