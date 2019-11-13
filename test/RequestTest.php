@@ -1,11 +1,15 @@
-<?php /** @noinspection PhpUndefinedClassInspection */
+<?php
 
 namespace Amp\Http\Client;
 
+use Amp\ByteStream\InMemoryStream;
 use Amp\Http\Client\Body\StringBody;
-use PHPUnit\Framework\TestCase;
+use Amp\PHPUnit\AsyncTestCase;
+use Amp\Promise;
+use Amp\Success;
+use function Amp\call;
 
-class RequestTest extends TestCase
+class RequestTest extends AsyncTestCase
 {
     public function provideInvalidProtocolVersions(): array
     {
@@ -138,6 +142,100 @@ class RequestTest extends TestCase
 
         $this->expectException(\TypeError::class);
         $request->setBody(new \stdClass);
+    }
+
+    public function testPushHandler(): \Generator
+    {
+        $request = new Request('https://amphp.org/');
+        $invocationCount = 0;
+        $pushHandler = static function () use (&$invocationCount) {
+            $invocationCount++;
+        };
+
+        $this->assertNull($request->getPushHandler());
+
+        $request->setPushHandler($pushHandler);
+
+        $this->assertSame($pushHandler, $request->getPushHandler());
+
+        yield call($request->getPushHandler());
+
+        $this->assertSame(1, $invocationCount);
+    }
+
+    public function testPushHandlerInterceptNull(): void
+    {
+        $request = new Request('https://amphp.org/');
+        $invocationCount = 0;
+        $pushHandler = static function () use (&$invocationCount) {
+            $invocationCount++;
+        };
+
+        $this->assertNull($request->getPushHandler());
+
+        $request->interceptPush($pushHandler);
+
+        $this->assertNull($request->getPushHandler());
+    }
+
+    public function testPushHandlerInterceptNullReturn(): \Generator
+    {
+        $request = new Request('https://amphp.org/');
+        $invocationCount = 0;
+        $responsePromise = null;
+        $pushHandler = static function (Request $request, Promise $response) use (
+            &$invocationCount,
+            &$responsePromise
+        ) {
+            $invocationCount++;
+            $responsePromise = $response;
+        };
+
+        $request->setPushHandler($pushHandler);
+        $request->interceptPush(static function (Response $response) {
+            $response->setStatus(512);
+        });
+
+        yield call(
+            $request->getPushHandler(),
+            new Request('https://amphp.org/'),
+            new Success(new Response('2', 200, null, [], new InMemoryStream, $request))
+        );
+
+        /** @var Response $response */
+        $response = yield $responsePromise;
+
+        $this->assertSame(512, $response->getStatus());
+    }
+
+    public function testPushHandlerInterceptNewReturn(): \Generator
+    {
+        $request = new Request('https://amphp.org/');
+        $invocationCount = 0;
+        $responsePromise = null;
+        $pushHandler = static function (Request $request, Promise $response) use (
+            &$invocationCount,
+            &$responsePromise
+        ) {
+            $invocationCount++;
+            $responsePromise = $response;
+        };
+
+        $request->setPushHandler($pushHandler);
+        $request->interceptPush(static function (Response $response) {
+            return new Response('2', 523, null, [], new InMemoryStream, $response->getRequest());
+        });
+
+        yield call(
+            $request->getPushHandler(),
+            new Request('https://amphp.org/'),
+            new Success(new Response('2', 200, null, [], new InMemoryStream, $request))
+        );
+
+        /** @var Response $response */
+        $response = yield $responsePromise;
+
+        $this->assertSame(523, $response->getStatus());
     }
 
     public function testHeaderSizeLimit(): void

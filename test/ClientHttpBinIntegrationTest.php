@@ -316,6 +316,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->assertEquals(302, $response->getStatus());
 
         $originalUri = $response->getOriginalRequest()->getUri();
+        $this->assertSame($response, $response->getOriginalResponse());
 
         $this->assertSame($uri, (string) $originalUri);
     }
@@ -335,6 +336,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->assertEquals($statusCode, $response->getStatus());
 
         $originalUri = $response->getOriginalRequest()->getUri();
+        $this->assertSame(302, $response->getOriginalResponse()->getStatus());
 
         $this->assertSame($uri, (string) $originalUri);
     }
