@@ -1,11 +1,11 @@
 <?php
 
 use Amp\Http\Client\Connection\UnlimitedConnectionPool;
-use Amp\Http\Client\Http1Tunnel;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
+use Amp\Http\Client\Tunnel\Http1Tunnel;
 use Amp\Loop;
 use Amp\Socket\SocketAddress;
 
@@ -21,6 +21,9 @@ Loop::run(static function () use ($argv) {
         // $connector = new Http1Tunnel(new SocketAddress('127.0.0.1', 5512), [
         //     'proxy-authorization' => 'Basic ' . \base64_encode('user:pass'),
         // ]);
+
+        // If you have a proxy accepting HTTPS connections, you need to use Https1Tunnel instead:
+        // $connector = new Https1Tunnel(new SocketAddress('proxy.example.com', 5512));
 
         $client = (new HttpClientBuilder)
             ->usingPool(new UnlimitedConnectionPool($connector))
