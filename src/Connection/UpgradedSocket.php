@@ -3,6 +3,8 @@
 namespace Amp\Http\Client\Connection;
 
 use Amp\CancellationToken;
+use Amp\Http\Client\Internal\ForbidCloning;
+use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Promise;
 use Amp\Socket\EncryptableSocket;
 use Amp\Socket\SocketAddress;
@@ -11,6 +13,9 @@ use Amp\Success;
 
 final class UpgradedSocket implements EncryptableSocket
 {
+    use ForbidCloning;
+    use ForbidSerialization;
+
     /** @var EncryptableSocket */
     private $socket;
 

@@ -3,6 +3,8 @@
 namespace Amp\Http\Client\Tunnel\Internal;
 
 use Amp\CancellationToken;
+use Amp\Http\Client\Internal\ForbidCloning;
+use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Promise;
 use Amp\Socket\EncryptableSocket;
 use Amp\Socket\SocketAddress;
@@ -11,6 +13,9 @@ use Amp\Socket\TlsInfo;
 /** @internal */
 final class TunnelSocket implements EncryptableSocket
 {
+    use ForbidCloning;
+    use ForbidSerialization;
+
     /** @var EncryptableSocket */
     private $localSocket;
     /** @var EncryptableSocket */

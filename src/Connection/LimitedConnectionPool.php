@@ -3,6 +3,8 @@
 namespace Amp\Http\Client\Connection;
 
 use Amp\CancellationToken;
+use Amp\Http\Client\Internal\ForbidCloning;
+use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Promise;
@@ -13,6 +15,9 @@ use function Amp\coroutine;
 
 final class LimitedConnectionPool implements ConnectionPool
 {
+    use ForbidCloning;
+    use ForbidSerialization;
+
     public static function byHost(ConnectionPool $delegate, KeyedSemaphore $semaphore): LimitedConnectionPool
     {
         return new self($delegate, $semaphore, static function (Request $request) {

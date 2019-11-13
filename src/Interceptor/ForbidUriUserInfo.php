@@ -3,10 +3,15 @@
 namespace Amp\Http\Client\Interceptor;
 
 use Amp\Http\Client\HttpException;
+use Amp\Http\Client\Internal\ForbidCloning;
+use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
 
 final class ForbidUriUserInfo extends ModifyRequest
 {
+    use ForbidCloning;
+    use ForbidSerialization;
+
     public function __construct()
     {
         parent::__construct(static function (Request $request) {

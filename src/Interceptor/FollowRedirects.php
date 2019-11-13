@@ -5,6 +5,8 @@ namespace Amp\Http\Client\Interceptor;
 use Amp\CancellationToken;
 use Amp\Http\Client\ApplicationInterceptor;
 use Amp\Http\Client\DelegateHttpClient;
+use Amp\Http\Client\Internal\ForbidCloning;
+use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Promise;
@@ -14,6 +16,9 @@ use function Amp\call;
 
 final class FollowRedirects implements ApplicationInterceptor
 {
+    use ForbidCloning;
+    use ForbidSerialization;
+
     /**
      * Resolves the given path in $locationUri using $baseUri as a base URI. For example, a base URI of
      * http://example.com/example/path and a location path of 'to/resolve' will return a URI of

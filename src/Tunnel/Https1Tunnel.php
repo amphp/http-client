@@ -3,6 +3,8 @@
 namespace Amp\Http\Client\Tunnel;
 
 use Amp\CancellationToken;
+use Amp\Http\Client\Internal\ForbidCloning;
+use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Tunnel\Internal\TunnelSocket;
 use Amp\Promise;
 use Amp\Socket\ClientTlsContext;
@@ -19,6 +21,9 @@ use function Amp\Socket\connector;
 
 final class Https1Tunnel implements Connector
 {
+    use ForbidCloning;
+    use ForbidSerialization;
+
     /** @var string */
     private $proxyUri;
     /** @var ClientTlsContext */

@@ -5,6 +5,8 @@ namespace Amp\Http\Client\Interceptor;
 use Amp\ByteStream\ZlibInputStream;
 use Amp\CancellationToken;
 use Amp\Http\Client\Connection\Stream;
+use Amp\Http\Client\Internal\ForbidCloning;
+use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Internal\SizeLimitingInputStream;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request;
@@ -14,6 +16,9 @@ use function Amp\call;
 
 final class DecompressResponse implements NetworkInterceptor
 {
+    use ForbidCloning;
+    use ForbidSerialization;
+
     private $hasZlib;
 
     public function __construct()

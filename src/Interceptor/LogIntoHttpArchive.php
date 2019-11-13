@@ -8,6 +8,8 @@ use Amp\Http\Client\ApplicationInterceptor;
 use Amp\Http\Client\DelegateHttpClient;
 use Amp\Http\Client\HarAttributes;
 use Amp\Http\Client\HttpException;
+use Amp\Http\Client\Internal\ForbidCloning;
+use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Message;
@@ -19,6 +21,9 @@ use function Amp\Promise\rethrow;
 
 final class LogIntoHttpArchive implements ApplicationInterceptor
 {
+    use ForbidCloning;
+    use ForbidSerialization;
+
     private static function getTime(Request $request, string $start, string $end): int
     {
         if (!$request->hasAttribute($start) || !$request->hasAttribute($end)) {

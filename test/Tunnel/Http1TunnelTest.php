@@ -4,7 +4,6 @@ namespace Amp\Http\Client\Tunnel;
 
 use Amp\Http\Client\Connection\UnlimitedConnectionPool;
 use Amp\Http\Client\HttpClientBuilder;
-use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\PHPUnit\AsyncTestCase;

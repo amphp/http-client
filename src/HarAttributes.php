@@ -2,8 +2,14 @@
 
 namespace Amp\Http\Client;
 
+use Amp\Http\Client\Internal\ForbidCloning;
+use Amp\Http\Client\Internal\ForbidSerialization;
+
 final class HarAttributes
 {
+    use ForbidCloning;
+    use ForbidSerialization;
+
     public const STARTED_DATE_TIME = 'amp.http.client.har.startedDateTime';
     public const SERVER_IP_ADDRESS = 'amp.http.client.har.serverIPAddress';
 

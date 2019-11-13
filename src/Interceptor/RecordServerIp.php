@@ -5,12 +5,17 @@ namespace Amp\Http\Client\Interceptor;
 use Amp\CancellationToken;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\HarAttributes;
+use Amp\Http\Client\Internal\ForbidCloning;
+use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request;
 use Amp\Promise;
 
 final class RecordServerIp implements NetworkInterceptor
 {
+    use ForbidCloning;
+    use ForbidSerialization;
+
     public function requestViaNetwork(Request $request, CancellationToken $cancellation, Stream $stream): Promise
     {
         $host = $stream->getRemoteAddress()->getHost();

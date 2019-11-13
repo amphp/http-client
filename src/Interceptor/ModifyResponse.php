@@ -6,6 +6,8 @@ use Amp\CancellationToken;
 use Amp\Http\Client\ApplicationInterceptor;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\DelegateHttpClient;
+use Amp\Http\Client\Internal\ForbidCloning;
+use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
@@ -14,6 +16,9 @@ use function Amp\call;
 
 class ModifyResponse implements NetworkInterceptor, ApplicationInterceptor
 {
+    use ForbidCloning;
+    use ForbidSerialization;
+
     /** @var callable */
     private $mapper;
 

@@ -5,6 +5,8 @@ namespace Amp\Http\Client\Tunnel;
 use Amp\CancellationToken;
 use Amp\Http\Client\Connection\Http1Connection;
 use Amp\Http\Client\Connection\Stream;
+use Amp\Http\Client\Internal\ForbidCloning;
+use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\NullCancellationToken;
@@ -19,6 +21,9 @@ use function Amp\Socket\connector;
 
 final class Http1Tunnel implements Connector
 {
+    use ForbidCloning;
+    use ForbidSerialization;
+
     public static function tunnel(EncryptableSocket $socket, string $target, array $customHeaders): Promise
     {
         return call(static function () use ($socket, $target, $customHeaders) {
