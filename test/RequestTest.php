@@ -93,6 +93,34 @@ class RequestTest extends TestCase
         ], $request->getHeaders());
     }
 
+    public function testPseudoSetHeader(): void
+    {
+        $this->expectExceptionMessage('Header name cannot be empty or start with a colon (:)');
+
+        (new Request('https://google.com/'))->setHeader(':foobar', 'foobar');
+    }
+
+    public function testEmptySetHeader(): void
+    {
+        $this->expectExceptionMessage('Header name cannot be empty or start with a colon (:)');
+
+        (new Request('https://google.com/'))->setHeader('', 'foobar');
+    }
+
+    public function testPseudoAddHeader(): void
+    {
+        $this->expectExceptionMessage('Header name cannot be empty or start with a colon (:)');
+
+        (new Request('https://google.com/'))->addHeader(':foobar', 'foobar');
+    }
+
+    public function testEmptyAddHeader(): void
+    {
+        $this->expectExceptionMessage('Header name cannot be empty or start with a colon (:)');
+
+        (new Request('https://google.com/'))->addHeader('', 'foobar');
+    }
+
     public function testBody(): void
     {
         /** @var Request $request */
@@ -105,8 +133,44 @@ class RequestTest extends TestCase
         $request->setBody("foobar");
         $this->assertInstanceOf(StringBody::class, $request->getBody());
 
+        $request->setBody(143);
+        $this->assertInstanceOf(StringBody::class, $request->getBody());
+
         $this->expectException(\TypeError::class);
         $request->setBody(new \stdClass);
+    }
+
+    public function testHeaderSizeLimit(): void
+    {
+        $request = new Request('https://amphp.org/');
+
+        $this->assertSame(Request::DEFAULT_HEADER_SIZE_LIMIT, $request->getHeaderSizeLimit());
+
+        $request->setHeaderSizeLimit(100);
+
+        $this->assertSame(100, $request->getHeaderSizeLimit());
+    }
+
+    public function testBodySizeLimit(): void
+    {
+        $request = new Request('https://amphp.org/');
+
+        $this->assertSame(Request::DEFAULT_BODY_SIZE_LIMIT, $request->getBodySizeLimit());
+
+        $request->setBodySizeLimit(100);
+
+        $this->assertSame(100, $request->getBodySizeLimit());
+    }
+
+    public function testIdempotent(): void
+    {
+        $this->assertTrue((new Request('https://localhost/', 'GET'))->isIdempotent());
+        $this->assertTrue((new Request('https://localhost/', 'HEAD'))->isIdempotent());
+        $this->assertTrue((new Request('https://localhost/', 'PUT'))->isIdempotent());
+        $this->assertTrue((new Request('https://localhost/', 'DELETE'))->isIdempotent());
+        $this->assertFalse((new Request('https://localhost/', 'CONNECT'))->isIdempotent());
+        $this->assertFalse((new Request('https://localhost/', 'POST'))->isIdempotent());
+        $this->assertFalse((new Request('https://localhost/', 'PATCH'))->isIdempotent());
     }
 
     public function testAttributes(): void
