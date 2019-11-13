@@ -2,18 +2,20 @@
 
 namespace Amp\Http\Client\Interceptor;
 
-use Amp\Http\Client\Internal\ForbidCloning;
-use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
 
 final class SetRequestTimeout extends ModifyRequest
 {
-    use ForbidCloning;
-    use ForbidSerialization;
-
-    public function __construct(int $tcpConnectTimeout = 10000, int $tlsHandshakeTimeout = 10000, int $transferTimeout = 10000)
-    {
-        parent::__construct(static function (Request $request) use ($tcpConnectTimeout, $tlsHandshakeTimeout, $transferTimeout) {
+    public function __construct(
+        int $tcpConnectTimeout = 10000,
+        int $tlsHandshakeTimeout = 10000,
+        int $transferTimeout = 10000
+    ) {
+        parent::__construct(static function (Request $request) use (
+            $tcpConnectTimeout,
+            $tlsHandshakeTimeout,
+            $transferTimeout
+        ) {
             $request->setTcpConnectTimeout($tcpConnectTimeout);
             $request->setTlsHandshakeTimeout($tlsHandshakeTimeout);
             $request->setTransferTimeout($transferTimeout);
