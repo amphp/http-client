@@ -73,9 +73,22 @@ final class Http1Connection implements Connection
     /** @var int */
     private $estimatedClose;
 
+
+    /** @var SocketAddress */
+    private $localAddress;
+
+    /** @var SocketAddress */
+    private $remoteAddress;
+
+    /** @var TlsInfo|null */
+    private $tlsInfo;
+
     public function __construct(EncryptableSocket $socket, int $timeoutGracePeriod)
     {
         $this->socket = $socket;
+        $this->localAddress = $socket->getLocalAddress();
+        $this->remoteAddress = $socket->getRemoteAddress();
+        $this->tlsInfo = $socket->getTlsInfo();
 
         if ($this->socket->isClosed()) {
             $this->onClose = null;
@@ -92,7 +105,7 @@ final class Http1Connection implements Connection
 
     public function onClose(callable $onClose): void
     {
-        if ($this->socket->isClosed()) {
+        if (!$this->socket || $this->socket->isClosed()) {
             Promise\rethrow(call($onClose, $this));
             return;
         }
@@ -102,43 +115,26 @@ final class Http1Connection implements Connection
 
     public function close(): Promise
     {
-        $this->socket->close();
+        if ($this->socket) {
+            $this->socket->close();
+        }
+
         return $this->free();
-    }
-
-    private function free(): Promise
-    {
-        $this->estimatedClose = 0;
-
-        if ($this->timeoutWatcher !== null) {
-            Loop::cancel($this->timeoutWatcher);
-        }
-
-        if ($this->onClose !== null) {
-            $onClose = $this->onClose;
-            $this->onClose = null;
-
-            foreach ($onClose as $callback) {
-                asyncCall($callback, $this);
-            }
-        }
-
-        return new Success;
     }
 
     public function getLocalAddress(): SocketAddress
     {
-        return $this->socket->getLocalAddress();
+        return $this->localAddress;
     }
 
     public function getRemoteAddress(): SocketAddress
     {
-        return $this->socket->getRemoteAddress();
+        return $this->remoteAddress;
     }
 
     public function getTlsInfo(): ?TlsInfo
     {
-        return $this->socket instanceof EncryptableSocket ? $this->socket->getTlsInfo() : null;
+        return $this->tlsInfo;
     }
 
     public function getProtocolVersions(): array
@@ -161,9 +157,30 @@ final class Http1Connection implements Connection
         ));
     }
 
+    private function free(): Promise
+    {
+        $this->estimatedClose = 0;
+
+        if ($this->timeoutWatcher !== null) {
+            Loop::cancel($this->timeoutWatcher);
+        }
+
+        if ($this->onClose !== null) {
+            $onClose = $this->onClose;
+            $this->onClose = null;
+
+            foreach ($onClose as $callback) {
+                asyncCall($callback, $this);
+            }
+        }
+
+        return new Success;
+    }
+
     private function hasStreamFor(Request $request): bool
     {
         return !$this->busy
+            && $this->socket
             && !$this->socket->isClosed()
             && ($this->getRemainingTime() > $this->timeoutGracePeriod || $request->isIdempotent());
     }
@@ -279,7 +296,8 @@ final class Http1Connection implements Connection
                 $status = $response->getStatus();
 
                 if ($status === Http\Status::SWITCHING_PROTOCOLS) {
-                    $connection = Http\createFieldValueComponentMap(Http\parseFieldValueComponents($response, 'connection'));
+                    $connection = Http\createFieldValueComponentMap(Http\parseFieldValueComponents($response,
+                        'connection'));
                     if (!isset($connection['upgrade'])) {
                         throw new HttpException('Switching protocols response missing "Connection: upgrade" header');
                     }
@@ -293,7 +311,7 @@ final class Http1Connection implements Connection
                     }
 
                     $socket = new UpgradedSocket($this->socket, $parser->getBuffer());
-
+                    $this->socket = null;
                     asyncCall($onUpgrade, $socket, clone $request, $response);
 
                     $this->free(); // Close this connection without closing socket.
@@ -307,6 +325,14 @@ final class Http1Connection implements Connection
                     $chunk = $parser->getBuffer();
                     $parser = new Http1Parser($request, $bodyCallback, $trailersCallback);
                     goto parseChunk;
+                }
+
+                if ($status === Http\Status::OK && $request->getMethod() === 'CONNECT' && $request->getUpgradeHandler() !== null) {
+                    $socket = new UpgradedSocket($this->socket, $parser->getBuffer());
+                    $this->socket = null;
+                    asyncCall($request->getUpgradeHandler(), $socket, clone $request, $response);
+
+                    return $response;
                 }
 
                 $bodyCancellationSource = new CancellationTokenSource;
@@ -553,11 +579,18 @@ final class Http1Connection implements Connection
         );
     }
 
-    private function writeRequest(Request $request, string $protocolVersion, CancellationToken $cancellation): \Generator
-    {
+    private function writeRequest(
+        Request $request,
+        string $protocolVersion,
+        CancellationToken $cancellation
+    ): \Generator {
         try {
             $rawHeaders = $this->generateRawHeader($request, $protocolVersion);
             yield $this->socket->write($rawHeaders);
+
+            if ($request->getMethod() === 'CONNECT') {
+                return;
+            }
 
             $body = $request->getBody()->createBodyStream();
             $chunking = $request->getHeader("transfer-encoding") === "chunked";
@@ -622,15 +655,16 @@ final class Http1Connection implements Connection
      */
     private function generateRawHeader(Request $request, string $protocolVersion): string
     {
-        // TODO: Send absolute URIs in the request line when using a proxy server
-        //  Right now this doesn't matter because all proxy requests use a CONNECT
-        //  tunnel but this likely will not always be the case.
-
         $uri = $request->getUri();
         $requestUri = $uri->getPath() ?: '/';
 
         if ('' !== $query = $uri->getQuery()) {
             $requestUri .= '?' . $query;
+        }
+
+        if ($request->getMethod() === 'CONNECT') {
+            $defaultPort = $uri->getScheme() === 'https' ? 443 : 80;
+            $requestUri = $uri->getHost() . ':' . ($uri->getPort() ?? $defaultPort);
         }
 
         $header = $request->getMethod() . ' ' . $requestUri . ' HTTP/' . $protocolVersion . "\r\n";
