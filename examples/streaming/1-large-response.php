@@ -7,6 +7,7 @@ use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Loop;
+use function Amp\getCurrentTime;
 
 require __DIR__ . '/../.helper/functions.php';
 
@@ -21,7 +22,7 @@ function formatBytes(int $size, int $precision = 2)
 
 Loop::run(static function () {
     try {
-        $start = \microtime(1);
+        $start = getCurrentTime();
 
         // Instantiate the HTTP client
         $client = HttpClientBuilder::buildDefault();
@@ -77,7 +78,7 @@ Loop::run(static function () {
 
         print \sprintf(
             "\rDone in %.2f seconds with peak memory usage of %.2fMB.\n",
-            \microtime(1) - $start,
+            (getCurrentTime() - $start) / 1000,
             (float) \memory_get_peak_usage(true) / 1024 / 1024
         );
 

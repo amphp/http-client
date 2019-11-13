@@ -89,7 +89,7 @@ final class Http1Connection implements Connection
         $this->remoteAddress = $socket->getRemoteAddress();
         $this->tlsInfo = $socket->getTlsInfo();
         $this->timeoutGracePeriod = $timeoutGracePeriod;
-        $this->estimatedClose = (int) ((\microtime(true) + self::MAX_KEEP_ALIVE_TIMEOUT) * 1000);
+        $this->estimatedClose = getCurrentTime() + self::MAX_KEEP_ALIVE_TIMEOUT * 1000;
     }
 
     public function __destruct()
@@ -391,7 +391,7 @@ final class Http1Connection implements Connection
                         if ($timeout > 0 && $parser->getState() !== Http1Parser::BODY_IDENTITY_EOF) {
                             $this->timeoutWatcher = Loop::delay($timeout * 1000, [$this, 'close']);
                             Loop::unreference($this->timeoutWatcher);
-                            $this->estimatedClose = (int) ((\microtime(true) + $timeout) * 1000);
+                            $this->estimatedClose = getCurrentTime() + $timeout * 1000;
                         } else {
                             $this->close();
                         }
@@ -428,7 +428,7 @@ final class Http1Connection implements Connection
      */
     private function getRemainingTime(): int
     {
-        return (int) \max(0, $this->estimatedClose - \microtime(true) * 1000);
+        return \max(0, $this->estimatedClose - getCurrentTime());
     }
 
     private function withCancellation(Promise $promise, CancellationToken $cancellationToken): Promise
