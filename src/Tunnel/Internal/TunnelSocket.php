@@ -76,6 +76,7 @@ final class TunnelSocket implements EncryptableSocket
 
     public function close(): void
     {
+        // Don't close remote socket here, as there might still be pending data in flight there
         $this->localSocket->close();
     }
 
@@ -86,7 +87,7 @@ final class TunnelSocket implements EncryptableSocket
 
     public function getLocalAddress(): SocketAddress
     {
-        return $this->remoteSocket->getLocalAddress();
+        return $this->localSocket->getLocalAddress();
     }
 
     public function getRemoteAddress(): SocketAddress
