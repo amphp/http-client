@@ -52,6 +52,7 @@ final class HttpClientBuilder
 
     public function build(): HttpClient
     {
+        /** @var PooledHttpClient $client */
         $client = new PooledHttpClient($this->pool);
 
         foreach ($this->networkInterceptors as $interceptor) {
@@ -63,23 +64,23 @@ final class HttpClientBuilder
         $client = $client->intercept(new DecompressResponse);
         $client = $client->intercept(new RecordServerIp);
 
-        foreach (\array_reverse($this->applicationInterceptors) as $interceptor) {
-            $client = new InterceptedHttpClient($client, $interceptor);
-        }
+        $applicationInterceptors = $this->applicationInterceptors;
 
-        if ($this->followRedirectsInterceptor) {
-            $client = new InterceptedHttpClient($client, $this->followRedirectsInterceptor);
+        \array_unshift($applicationInterceptors, new RecordStartTime);
+
+        if ($this->forbidUriUserInfo) {
+            \array_unshift($applicationInterceptors, $this->forbidUriUserInfo);
         }
 
         if ($this->retryInterceptor) {
-            $client = new InterceptedHttpClient($client, $this->retryInterceptor);
+            $applicationInterceptors[] = $this->retryInterceptor;
         }
 
-        if ($this->forbidUriUserInfo) {
-            $client = new InterceptedHttpClient($client, $this->forbidUriUserInfo);
+        if ($this->followRedirectsInterceptor) {
+            $applicationInterceptors[] = $this->followRedirectsInterceptor;
         }
 
-        return new InterceptedHttpClient($client, new RecordStartTime);
+        return new HttpClient(new InterceptedHttpClient($client, ...$applicationInterceptors));
     }
 
     /**
