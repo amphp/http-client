@@ -73,6 +73,9 @@ final class Http1Connection implements Connection
     /** @var int */
     private $estimatedClose;
 
+    /** @var bool */
+    private $explicitTimeout = false;
+
     /** @var SocketAddress */
     private $localAddress;
 
@@ -173,10 +176,12 @@ final class Http1Connection implements Connection
 
     private function hasStreamFor(Request $request): bool
     {
+        $connectionUnlikelyToClose = $this->explicitTimeout && $this->getRemainingTime() > $this->timeoutGracePeriod;
+
         return !$this->busy
             && $this->socket
             && !$this->socket->isClosed()
-            && ($this->getRemainingTime() > $this->timeoutGracePeriod || $request->isIdempotent());
+            && ($connectionUnlikelyToClose || $request->isIdempotent());
     }
 
     /** @inheritdoc */
@@ -332,9 +337,11 @@ final class Http1Connection implements Connection
                 }
 
                 $bodyCancellationSource = new CancellationTokenSource;
-                $bodyCancellationToken = new CombinedCancellationToken($readingCancellation, $bodyCancellationSource->getToken());
+                $bodyCancellationToken = new CombinedCancellationToken($readingCancellation,
+                    $bodyCancellationSource->getToken());
 
-                $response->setBody(new ResponseBodyStream(new IteratorStream($bodyEmitter->iterate()), $bodyCancellationSource));
+                $response->setBody(new ResponseBodyStream(new IteratorStream($bodyEmitter->iterate()),
+                    $bodyCancellationSource));
                 $response->setTrailers($trailersDeferred->promise());
 
                 // Read body async
@@ -546,13 +553,16 @@ final class Http1Connection implements Connection
             return 0;
         }
 
-        if (\strcasecmp($responseConnHeader, 'keep-alive')) {
+        if (!\strcasecmp($responseConnHeader, 'close')) {
             return 0;
         }
 
         $params = Http\createFieldValueComponentMap(Http\parseFieldValueComponents($response, 'keep-alive'));
 
         $timeout = (int) ($params['timeout'] ?? $this->priorTimeout);
+        if (isset($params['timeout'])) {
+            $this->explicitTimeout = true;
+        }
 
         return $this->priorTimeout = \min(\max(0, $timeout), self::MAX_KEEP_ALIVE_TIMEOUT);
     }
