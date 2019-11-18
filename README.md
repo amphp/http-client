@@ -19,7 +19,7 @@ This package provides an asynchronous HTTP client for PHP based on [Amp](https:/
  - [Simplifies HTTP form submissions](examples/basic/4-forms.php)
  - [Implements secure-by-default TLS (`https://`)](examples/basic/1-get-request.php)
  - [Supports cookies and sessions](https://github.com/amphp/http-client-cookies)
- - [Functions seamlessly behind HTTP proxies](examples/basic/8-proxy.php)
+ - [Functions seamlessly behind HTTP proxies](https://github.com/amphp/http-tunnel)
 
 ## Installation
 
