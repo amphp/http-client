@@ -7,6 +7,7 @@ use Amp\Failure;
 use Amp\Http\Client\Connection\UnlimitedConnectionPool;
 use Amp\Http\Client\Interceptor\SetRequestTimeout;
 use Amp\Loop;
+use Amp\NullCancellationToken;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Promise;
 use Amp\Socket;
@@ -81,7 +82,7 @@ class TimeoutTest extends AsyncTestCase
         $request = new Request('http://localhost:1337/');
         $request->setTcpConnectTimeout(1);
 
-        yield $this->client->request($request);
+        yield $this->client->request($request, new NullCancellationToken);
     }
 
     public function testTimeoutDuringTlsEnable(): \Generator
@@ -175,7 +176,7 @@ class TimeoutTest extends AsyncTestCase
 
             /** @var Response $response */
             $client = new InterceptedHttpClient(new PooledHttpClient, new SetRequestTimeout(10000, 10000, 1000));
-            $response = yield $client->request($request);
+            $response = yield $client->request($request, new NullCancellationToken);
 
             $this->expectException(TimeoutException::class);
             $this->expectExceptionMessage("Allowed transfer timeout exceeded, took longer than 1000 ms");
@@ -208,7 +209,7 @@ class TimeoutTest extends AsyncTestCase
 
         $request = new Request('http://localhost:1337/');
 
-        yield $client->request($request);
+        yield $client->request($request, new NullCancellationToken);
     }
 
     public function testTimeoutDuringTlsEnableInterceptor(): \Generator
@@ -238,11 +239,10 @@ class TimeoutTest extends AsyncTestCase
             $request = new Request($uri);
             $request->setTlsHandshakeTimeout(100);
 
-
             $client = new PooledHttpClient();
             $client = new InterceptedHttpClient($client, new SetRequestTimeout(10000, 100));
 
-            yield $client->request($request);
+            yield $client->request($request, new NullCancellationToken);
         } finally {
             $server->close();
         }

@@ -5,7 +5,7 @@ namespace Amp\Http\Client\Interceptor;
 use Amp\CancellationToken;
 use Amp\Http\Client\ApplicationInterceptor;
 use Amp\Http\Client\Connection\UnprocessedRequestException;
-use Amp\Http\Client\DelegateHttpClient;
+use Amp\Http\Client\InterceptedHttpClient;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
@@ -26,14 +26,17 @@ final class RetryRequests implements ApplicationInterceptor
         $this->retryLimit = $retryLimit;
     }
 
-    public function request(Request $request, CancellationToken $cancellation, DelegateHttpClient $next): Promise
-    {
-        return call(function () use ($request, $cancellation, $next) {
+    public function request(
+        Request $request,
+        CancellationToken $cancellation,
+        InterceptedHttpClient $httpClient
+    ): Promise {
+        return call(function () use ($request, $cancellation, $httpClient) {
             $attempt = 1;
 
             do {
                 try {
-                    return yield $next->request($request, $cancellation);
+                    return yield $httpClient->request($request, $cancellation);
                 } catch (UnprocessedRequestException $exception) {
                     // Request was deemed retryable by connection, so carry on.
                 } catch (SocketException $exception) {

@@ -5,6 +5,7 @@ namespace Amp\Http\Client\Interceptor;
 use Amp\CancellationToken;
 use Amp\Http\Client\ApplicationInterceptor;
 use Amp\Http\Client\DelegateHttpClient;
+use Amp\Http\Client\InterceptedHttpClient;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
@@ -127,14 +128,14 @@ final class FollowRedirects implements ApplicationInterceptor
         $this->autoReferrer = $autoReferrer;
     }
 
-    public function request(Request $request, CancellationToken $cancellation, DelegateHttpClient $next): Promise
+    public function request(Request $request, CancellationToken $cancellation, InterceptedHttpClient $httpClient): Promise
     {
         // Don't follow redirects on pushes, just store the redirect in cache (if an interceptor is configured)
 
-        return call(function () use ($request, $cancellation, $next) {
+        return call(function () use ($request, $cancellation, $httpClient) {
             /** @var Response $response */
-            $response = yield $next->request($request, $cancellation);
-            $response = yield from $this->followRedirects($request, $response, $next, $cancellation);
+            $response = yield $httpClient->request($request, $cancellation);
+            $response = yield from $this->followRedirects($request, $response, $httpClient, $cancellation);
 
             return $response;
         });

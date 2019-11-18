@@ -5,7 +5,7 @@ namespace Amp\Http\Client\Interceptor;
 use Amp\CancellationToken;
 use Amp\Http\Client\ApplicationInterceptor;
 use Amp\Http\Client\Connection\Stream;
-use Amp\Http\Client\DelegateHttpClient;
+use Amp\Http\Client\InterceptedHttpClient;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\NetworkInterceptor;
@@ -39,13 +39,16 @@ class ModifyResponse implements NetworkInterceptor, ApplicationInterceptor
         });
     }
 
-    public function request(Request $request, CancellationToken $cancellation, DelegateHttpClient $next): Promise
-    {
-        return call(function () use ($request, $cancellation, $next) {
+    public function request(
+        Request $request,
+        CancellationToken $cancellation,
+        InterceptedHttpClient $httpClient
+    ): Promise {
+        return call(function () use ($request, $cancellation, $httpClient) {
             $request->interceptPush($this->mapper);
 
             /** @var Response $response */
-            $response = yield $next->request($request, $cancellation);
+            $response = yield $httpClient->request($request, $cancellation);
             return (yield call($this->mapper, $response)) ?? $response;
         });
     }

@@ -8,27 +8,48 @@ use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\NullCancellationToken;
 use Amp\Promise;
 
-final class InterceptedHttpClient implements HttpClient
+final class InterceptedHttpClient implements DelegateHttpClient
 {
     use ForbidCloning;
     use ForbidSerialization;
 
-    /** @var HttpClient */
+    /** @var DelegateHttpClient */
     private $httpClient;
 
-    /** @var ApplicationInterceptor */
-    private $interceptor;
+    /** @var ApplicationInterceptor[] */
+    private $interceptors;
 
-    public function __construct(HttpClient $httpClient, ApplicationInterceptor $interceptor)
+    /** @var string */
+    private $attributeKey;
+
+    public function __construct(DelegateHttpClient $httpClient, ApplicationInterceptor ...$interceptors)
     {
         $this->httpClient = $httpClient;
-        $this->interceptor = $interceptor;
+        $this->interceptors = $interceptors;
+
+        $this->attributeKey = self::class . '.' . \spl_object_hash($this);
     }
 
-    public function request(Request $request, ?CancellationToken $cancellation = null): Promise
+    public function request(Request $request, CancellationToken $cancellation): Promise
     {
         $cancellation = $cancellation ?? new NullCancellationToken;
+        $request = clone $request;
 
-        return $this->interceptor->request(clone $request, $cancellation, $this->httpClient);
+        if ($request->hasAttribute($this->attributeKey)) {
+            $interceptorIndex = $request->getAttribute($this->attributeKey) + 1;
+        } else {
+            $interceptorIndex = 0;
+        }
+
+        if ($interceptorIndex < \count($this->interceptors)) {
+            $request->setAttribute($this->attributeKey, $interceptorIndex);
+            return $this->interceptors[$interceptorIndex]->request($request, $cancellation, $this);
+        }
+
+        if ($request->hasAttribute($this->attributeKey)) {
+            $request->removeAttribute($this->attributeKey);
+        }
+
+        return $this->httpClient->request($request, $cancellation);
     }
 }

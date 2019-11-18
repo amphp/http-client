@@ -4,8 +4,8 @@ namespace Amp\Http\Client\Interceptor;
 
 use Amp\CancellationToken;
 use Amp\Http\Client\ApplicationInterceptor;
-use Amp\Http\Client\DelegateHttpClient;
 use Amp\Http\Client\HttpException;
+use Amp\Http\Client\InterceptedHttpClient;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
@@ -29,7 +29,6 @@ final class MatchOrigin implements ApplicationInterceptor
      * @param ApplicationInterceptor   $default
      *
      * @throws HttpException
-     * @throws \TypeError
      */
     public function __construct(array $originMap, ?ApplicationInterceptor $default = null)
     {
@@ -45,15 +44,18 @@ final class MatchOrigin implements ApplicationInterceptor
         $this->default = $default;
     }
 
-    public function request(Request $request, CancellationToken $cancellation, DelegateHttpClient $next): Promise
-    {
+    public function request(
+        Request $request,
+        CancellationToken $cancellation,
+        InterceptedHttpClient $httpClient
+    ): Promise {
         $interceptor = $this->originMap[$this->normalizeOrigin($request->getUri())] ?? $this->default;
 
         if (!$interceptor) {
-            return $next->request($request, $cancellation);
+            return $httpClient->request($request, $cancellation);
         }
 
-        return $interceptor->request($request, $cancellation, $next);
+        return $interceptor->request($request, $cancellation, $httpClient);
     }
 
     private function checkOrigin(string $origin): string

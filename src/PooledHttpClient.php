@@ -13,7 +13,7 @@ use Amp\NullCancellationToken;
 use Amp\Promise;
 use function Amp\call;
 
-final class PooledHttpClient implements HttpClient
+final class PooledHttpClient implements DelegateHttpClient
 {
     use ForbidCloning;
     use ForbidSerialization;
@@ -29,7 +29,7 @@ final class PooledHttpClient implements HttpClient
         $this->connectionPool = $connectionPool ?? new UnlimitedConnectionPool;
     }
 
-    public function request(Request $request, ?CancellationToken $cancellation = null): Promise
+    public function request(Request $request, CancellationToken $cancellation): Promise
     {
         return call(function () use ($request, $cancellation) {
             $request = clone $request;

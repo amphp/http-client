@@ -5,9 +5,9 @@ namespace Amp\Http\Client\Interceptor;
 use Amp\CancellationToken;
 use Amp\File;
 use Amp\Http\Client\ApplicationInterceptor;
-use Amp\Http\Client\DelegateHttpClient;
 use Amp\Http\Client\HarAttributes;
 use Amp\Http\Client\HttpException;
+use Amp\Http\Client\InterceptedHttpClient;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
@@ -138,15 +138,18 @@ final class LogIntoHttpArchive implements ApplicationInterceptor
         $this->fileMutex = new LocalMutex;
     }
 
-    public function request(Request $request, CancellationToken $cancellation, DelegateHttpClient $next): Promise
-    {
-        return call(function () use ($request, $cancellation, $next) {
+    public function request(
+        Request $request,
+        CancellationToken $cancellation,
+        InterceptedHttpClient $httpClient
+    ): Promise {
+        return call(function () use ($request, $cancellation, $httpClient) {
             if ($this->error) {
                 throw $this->error;
             }
 
             /** @var Response $response */
-            $response = yield $next->request($request, $cancellation);
+            $response = yield $httpClient->request($request, $cancellation);
 
             rethrow($this->writeLog($response));
 
