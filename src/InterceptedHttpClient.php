@@ -33,7 +33,6 @@ final class InterceptedHttpClient implements DelegateHttpClient
     public function request(Request $request, CancellationToken $cancellation): Promise
     {
         $cancellation = $cancellation ?? new NullCancellationToken;
-        $request = clone $request;
 
         if ($request->hasAttribute($this->attributeKey)) {
             $interceptorIndex = $request->getAttribute($this->attributeKey) + 1;

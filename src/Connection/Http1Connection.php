@@ -337,12 +337,16 @@ final class Http1Connection implements Connection
                 }
 
                 $bodyCancellationSource = new CancellationTokenSource;
-                $bodyCancellationToken = new CombinedCancellationToken($readingCancellation,
-                    $bodyCancellationSource->getToken());
+                $bodyCancellationToken = new CombinedCancellationToken(
+                    $readingCancellation,
+                    $bodyCancellationSource->getToken()
+                );
 
-                $response->setBody(new ResponseBodyStream(new IteratorStream($bodyEmitter->iterate()),
-                    $bodyCancellationSource));
                 $response->setTrailers($trailersDeferred->promise());
+                $response->setBody(new ResponseBodyStream(
+                    new IteratorStream($bodyEmitter->iterate()),
+                    $bodyCancellationSource
+                ));
 
                 // Read body async
                 asyncCall(function () use (
