@@ -36,7 +36,7 @@ final class RetryRequests implements ApplicationInterceptor
 
             do {
                 try {
-                    return yield $httpClient->request($request, $cancellation);
+                    return yield $httpClient->request(clone $request, $cancellation);
                 } catch (UnprocessedRequestException $exception) {
                     // Request was deemed retryable by connection, so carry on.
                 } catch (SocketException $exception) {

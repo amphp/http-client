@@ -32,7 +32,6 @@ final class PooledHttpClient implements DelegateHttpClient
     public function request(Request $request, CancellationToken $cancellation): Promise
     {
         return call(function () use ($request, $cancellation) {
-            $request = clone $request;
             $cancellation = $cancellation ?? new NullCancellationToken;
 
             $stream = yield $this->connectionPool->getStream($request, $cancellation);
