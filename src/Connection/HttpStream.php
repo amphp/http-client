@@ -9,6 +9,7 @@ use Amp\Http\Client\Request;
 use Amp\Promise;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
+use function Amp\call;
 
 final class HttpStream implements Stream
 {
@@ -55,8 +56,13 @@ final class HttpStream implements Stream
     /** @var callable|null */
     private $releaseCallback;
 
-    private function __construct(SocketAddress $localAddress, SocketAddress $remoteAddress, ?TlsInfo $tlsInfo, callable $requestCallback, callable $releaseCallback)
-    {
+    private function __construct(
+        SocketAddress $localAddress,
+        SocketAddress $remoteAddress,
+        ?TlsInfo $tlsInfo,
+        callable $requestCallback,
+        callable $releaseCallback
+    ) {
         $this->localAddress = $localAddress;
         $this->remoteAddress = $remoteAddress;
         $this->tlsInfo = $tlsInfo;
@@ -79,7 +85,13 @@ final class HttpStream implements Stream
 
         $this->releaseCallback = null;
 
-        return ($this->requestCallback)($request, $token);
+        return call(function () use ($request, $token) {
+            foreach ($request->getEventListeners() as $eventListener) {
+                yield $eventListener->startRequest($request);
+            }
+
+            return call($this->requestCallback, $request, $token, $this);
+        });
     }
 
     public function getLocalAddress(): SocketAddress

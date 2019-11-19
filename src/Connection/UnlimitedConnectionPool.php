@@ -7,7 +7,6 @@ use Amp\CancellationToken;
 use Amp\CancelledException;
 use Amp\CombinedCancellationToken;
 use Amp\Coroutine;
-use Amp\Http\Client\HarAttributes;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\Request;
@@ -22,7 +21,6 @@ use Amp\Socket\EncryptableSocket;
 use Amp\Success;
 use Amp\TimeoutCancellationToken;
 use function Amp\call;
-use function Amp\getCurrentTime;
 
 final class UnlimitedConnectionPool implements ConnectionPool
 {
@@ -146,12 +144,12 @@ final class UnlimitedConnectionPool implements ConnectionPool
                     continue; // No stream available for the given request.
                 }
 
-                $request->setAttribute(HarAttributes::TIME_CONNECT, getCurrentTime());
-
                 return $stream;
             }
 
-            $request->setAttribute(HarAttributes::TIME_CONNECT, getCurrentTime());
+            foreach ($request->getEventListeners() as $eventListener) {
+                yield $eventListener->startConnectionAttempt($request);
+            }
 
             $promise = new Coroutine($this->createConnection($request, $cancellation, $authority, $isHttps));
 
@@ -250,7 +248,9 @@ final class UnlimitedConnectionPool implements ConnectionPool
         }
 
         try {
-            $request->setAttribute(HarAttributes::TIME_SSL, getCurrentTime());
+            foreach ($request->getEventListeners() as $eventListener) {
+                yield $eventListener->startTlsNegotiation($request);
+            }
 
             $tlsState = $socket->getTlsState();
             if ($tlsState === EncryptableSocket::TLS_STATE_DISABLED) {

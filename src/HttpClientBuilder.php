@@ -7,8 +7,6 @@ use Amp\Http\Client\Connection\UnlimitedConnectionPool;
 use Amp\Http\Client\Interceptor\DecompressResponse;
 use Amp\Http\Client\Interceptor\FollowRedirects;
 use Amp\Http\Client\Interceptor\ForbidUriUserInfo;
-use Amp\Http\Client\Interceptor\RecordServerIp;
-use Amp\Http\Client\Interceptor\RecordStartTime;
 use Amp\Http\Client\Interceptor\RetryRequests;
 use Amp\Http\Client\Interceptor\SetRequestHeaderIfUnset;
 use Amp\Http\Client\Internal\ForbidCloning;
@@ -62,11 +60,8 @@ final class HttpClientBuilder
         $client = $client->intercept(new SetRequestHeaderIfUnset('accept', '*/*'));
         $client = $client->intercept(new SetRequestHeaderIfUnset('user-agent', 'amphp/http-client @ v4.x'));
         $client = $client->intercept(new DecompressResponse);
-        $client = $client->intercept(new RecordServerIp);
 
         $applicationInterceptors = $this->applicationInterceptors;
-
-        \array_unshift($applicationInterceptors, new RecordStartTime);
 
         if ($this->forbidUriUserInfo) {
             \array_unshift($applicationInterceptors, $this->forbidUriUserInfo);
@@ -80,7 +75,11 @@ final class HttpClientBuilder
             $applicationInterceptors[] = $this->followRedirectsInterceptor;
         }
 
-        return new HttpClient(new InterceptedHttpClient($client, ...$applicationInterceptors));
+        foreach (\array_reverse($applicationInterceptors) as $applicationInterceptor) {
+            $client = new InterceptedHttpClient($client, $applicationInterceptor);
+        }
+
+        return new HttpClient($client);
     }
 
     /**

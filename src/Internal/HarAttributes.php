@@ -1,10 +1,8 @@
 <?php
 
-namespace Amp\Http\Client;
+namespace Amp\Http\Client\Internal;
 
-use Amp\Http\Client\Internal\ForbidCloning;
-use Amp\Http\Client\Internal\ForbidSerialization;
-
+/** @internal */
 final class HarAttributes
 {
     use ForbidCloning;

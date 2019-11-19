@@ -14,7 +14,6 @@ use Amp\Deferred;
 use Amp\Emitter;
 use Amp\Failure;
 use Amp\Http\Client\Connection\Internal\Http2Stream;
-use Amp\Http\Client\HarAttributes;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
@@ -36,7 +35,6 @@ use Amp\TimeoutCancellationToken;
 use League\Uri;
 use function Amp\asyncCall;
 use function Amp\call;
-use function Amp\getCurrentTime;
 
 final class Http2Connection implements Connection
 {
@@ -289,7 +287,7 @@ final class Http2Connection implements Connection
         return $this->pongDeferred->promise();
     }
 
-    private function request(Request $request, CancellationToken $token): Promise
+    private function request(Request $request, CancellationToken $token, Stream $applicationStream): Promise
     {
         $this->requestCount++;
 
@@ -312,6 +310,7 @@ final class Http2Connection implements Connection
             $request->getBodySizeLimit()
         );
 
+        $stream->applicationStream = $applicationStream;
         $stream->request = $request;
         $stream->cancellationToken = $token;
 
@@ -324,7 +323,7 @@ final class Http2Connection implements Connection
             );
         }
 
-        return call(function () use ($id, $request, $token): \Generator {
+        return call(function () use ($id, $request, $token, $applicationStream): \Generator {
             $this->pendingRequests[$id] = $deferred = new Deferred;
 
             if ($this->socket->isClosed()) {
@@ -381,7 +380,9 @@ final class Http2Connection implements Connection
                     ":method" => [$request->getMethod()],
                 ], $request->getHeaders());
 
-                $request->setAttribute(HarAttributes::TIME_SEND, getCurrentTime());
+                foreach ($request->getEventListeners() as $eventListener) {
+                    yield $eventListener->startSendingRequest($request, $applicationStream);
+                }
 
                 $headers = $this->table->encode($headers);
 
@@ -390,7 +391,9 @@ final class Http2Connection implements Connection
                 $chunk = yield $stream->read();
 
                 if (!isset($this->streams[$id]) || $token->isRequested()) {
-                    $request->setAttribute(HarAttributes::TIME_WAIT, getCurrentTime());
+                    foreach ($request->getEventListeners() as $eventListener) {
+                        yield $eventListener->startWaitingForResponse($request, $applicationStream);
+                    }
 
                     return yield $deferred->promise();
                 }
@@ -412,7 +415,9 @@ final class Http2Connection implements Connection
                 }
 
                 if ($chunk === null) {
-                    $request->setAttribute(HarAttributes::TIME_WAIT, getCurrentTime());
+                    foreach ($request->getEventListeners() as $eventListener) {
+                        yield $eventListener->startWaitingForResponse($request, $applicationStream);
+                    }
 
                     return yield $deferred->promise();
                 }
@@ -420,7 +425,9 @@ final class Http2Connection implements Connection
                 $buffer = $chunk;
                 while (null !== $chunk = yield $stream->read()) {
                     if (!isset($this->streams[$id]) || $token->isRequested()) {
-                        $request->setAttribute(HarAttributes::TIME_WAIT, getCurrentTime());
+                        foreach ($request->getEventListeners() as $eventListener) {
+                            yield $eventListener->startWaitingForResponse($request, $applicationStream);
+                        }
 
                         return yield $deferred->promise();
                     }
@@ -430,7 +437,9 @@ final class Http2Connection implements Connection
                 }
 
                 if (!isset($this->streams[$id]) || $token->isRequested()) {
-                    $request->setAttribute(HarAttributes::TIME_WAIT, getCurrentTime());
+                    foreach ($request->getEventListeners() as $eventListener) {
+                        yield $eventListener->startWaitingForResponse($request, $applicationStream);
+                    }
 
                     return yield $deferred->promise();
                 }
@@ -439,7 +448,9 @@ final class Http2Connection implements Connection
 
                 yield $this->writeData($buffer, $id);
 
-                $request->setAttribute(HarAttributes::TIME_WAIT, getCurrentTime());
+                foreach ($request->getEventListeners() as $eventListener) {
+                    yield $eventListener->startWaitingForResponse($request, $applicationStream);
+                }
 
                 return yield $deferred->promise();
             } catch (\Throwable $exception) {
@@ -697,7 +708,7 @@ final class Http2Connection implements Connection
                         $stream->serverWindow -= $length;
                         $stream->received += $length;
 
-                        if ($stream->received >= $stream->maxBodySize && ($flags & self::END_STREAM) === "\0") {
+                        if ($stream->received >= $stream->bodySizeLimit && ($flags & self::END_STREAM) === "\0") {
                             throw new Http2StreamException("Max body size exceeded", $id, self::CANCEL);
                         }
 
@@ -739,7 +750,7 @@ final class Http2Connection implements Connection
                                     }
 
                                     $increment = \min(
-                                        $stream->maxBodySize - $stream->received - $stream->serverWindow,
+                                        $stream->bodySizeLimit - $stream->received - $stream->serverWindow,
                                         self::MAX_INCREMENT
                                     );
                                     if ($increment <= 0) {
@@ -772,7 +783,9 @@ final class Http2Connection implements Connection
 
                             unset($this->bodyEmitters[$id], $this->trailerDeferreds[$id]);
 
-                            $stream->request->setAttribute(HarAttributes::TIME_COMPLETE, getCurrentTime());
+                            foreach ($stream->request->getEventListeners() as $eventListener) {
+                                yield $eventListener->completeRequest($stream->request);
+                            }
 
                             $this->setupPingIfIdle();
 
@@ -1368,7 +1381,9 @@ final class Http2Connection implements Connection
 
                             unset($this->bodyEmitters[$id], $this->trailerDeferreds[$id]);
 
-                            $stream->request->setAttribute(HarAttributes::TIME_COMPLETE, getCurrentTime());
+                            foreach ($stream->request->getEventListeners() as $eventListener) {
+                                yield $eventListener->completeRequest($stream->request);
+                            }
 
                             $this->setupPingIfIdle();
 
@@ -1416,7 +1431,9 @@ final class Http2Connection implements Connection
                         $deferred = $this->pendingRequests[$id];
                         unset($this->pendingRequests[$id]);
 
-                        $stream->request->setAttribute(HarAttributes::TIME_RECEIVE, getCurrentTime());
+                        foreach ($stream->request->getEventListeners() as $eventListener) {
+                            yield $eventListener->startReceivingResponse($stream->request, $stream->applicationStream);
+                        }
 
                         if ($stream->state & Http2Stream::REMOTE_CLOSED) {
                             $response = new Response(
@@ -1435,9 +1452,9 @@ final class Http2Connection implements Connection
                             $this->trailerDeferreds[$id] = new Deferred;
                             $this->bodyEmitters[$id] = new Emitter;
 
-                            if ($this->serverWindow <= $stream->maxBodySize >> 1) {
-                                $increment = $stream->maxBodySize - $this->serverWindow;
-                                $this->serverWindow = $stream->maxBodySize;
+                            if ($this->serverWindow <= $stream->bodySizeLimit >> 1) {
+                                $increment = $stream->bodySizeLimit - $this->serverWindow;
+                                $this->serverWindow = $stream->bodySizeLimit;
                                 $this->writeFrame(\pack("N", $increment), self::WINDOW_UPDATE, self::NOFLAG);
                             }
 

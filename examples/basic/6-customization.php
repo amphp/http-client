@@ -2,7 +2,7 @@
 
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
-use Amp\Http\Client\Interceptor\LogIntoHttpArchive;
+use Amp\Http\Client\Interceptor\LogHttpArchive;
 use Amp\Http\Client\Interceptor\MatchOrigin;
 use Amp\Http\Client\Interceptor\SetRequestHeader;
 use Amp\Http\Client\Request;
@@ -14,7 +14,7 @@ require __DIR__ . '/../.helper/functions.php';
 Loop::run(static function () use ($argv) {
     try {
         $client = (new HttpClientBuilder)
-            ->intercept(new LogIntoHttpArchive(__DIR__ . '/log.har'))
+            ->intercept(new LogHttpArchive(__DIR__ . '/log.har'))
             ->intercept(new MatchOrigin(['https://amphp.org' => new SetRequestHeader('x-amphp', 'true')]))
             ->followRedirects(0)
             ->retry(3)

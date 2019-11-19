@@ -9,7 +9,6 @@ use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\Connection\UnlimitedConnectionPool;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
-use Amp\NullCancellationToken;
 use Amp\Promise;
 use function Amp\call;
 
@@ -32,7 +31,9 @@ final class PooledHttpClient implements DelegateHttpClient
     public function request(Request $request, CancellationToken $cancellation): Promise
     {
         return call(function () use ($request, $cancellation) {
-            $cancellation = $cancellation ?? new NullCancellationToken;
+            foreach ($request->getEventListeners() as $eventListener) {
+                yield $eventListener->startRequest($request);
+            }
 
             $stream = yield $this->connectionPool->getStream($request, $cancellation);
 

@@ -5,8 +5,8 @@ namespace Amp\Http\Client;
 use Amp\CancellationToken;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
-use Amp\NullCancellationToken;
 use Amp\Promise;
+use function Amp\call;
 
 final class InterceptedHttpClient implements DelegateHttpClient
 {
@@ -16,39 +16,23 @@ final class InterceptedHttpClient implements DelegateHttpClient
     /** @var DelegateHttpClient */
     private $httpClient;
 
-    /** @var ApplicationInterceptor[] */
-    private $interceptors;
+    /** @var ApplicationInterceptor */
+    private $interceptor;
 
-    /** @var string */
-    private $attributeKey;
-
-    public function __construct(DelegateHttpClient $httpClient, ApplicationInterceptor ...$interceptors)
+    public function __construct(DelegateHttpClient $httpClient, ApplicationInterceptor $interceptor)
     {
         $this->httpClient = $httpClient;
-        $this->interceptors = $interceptors;
-
-        $this->attributeKey = self::class . '.' . \spl_object_hash($this);
+        $this->interceptor = $interceptor;
     }
 
     public function request(Request $request, CancellationToken $cancellation): Promise
     {
-        $cancellation = $cancellation ?? new NullCancellationToken;
+        return call(function () use ($request, $cancellation) {
+            foreach ($request->getEventListeners() as $eventListener) {
+                yield $eventListener->startRequest($request);
+            }
 
-        if ($request->hasAttribute($this->attributeKey)) {
-            $interceptorIndex = $request->getAttribute($this->attributeKey) + 1;
-        } else {
-            $interceptorIndex = 0;
-        }
-
-        if ($interceptorIndex < \count($this->interceptors)) {
-            $request->setAttribute($this->attributeKey, $interceptorIndex);
-            return $this->interceptors[$interceptorIndex]->request($request, $cancellation, $this);
-        }
-
-        if ($request->hasAttribute($this->attributeKey)) {
-            $request->removeAttribute($this->attributeKey);
-        }
-
-        return $this->httpClient->request($request, $cancellation);
+            return $this->interceptor->request($request, $cancellation, $this->httpClient);
+        });
     }
 }
