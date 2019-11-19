@@ -57,7 +57,7 @@ class FollowRedirectsTest extends AsyncTestCase
 
         $client = new PooledHttpClient($pool);
 
-        yield $redirect->request($request, new NullCancellationToken, new InterceptedHttpClient($client));
+        yield $redirect->request($request, new NullCancellationToken, $client);
     }
 
     public function provideResolvables(): array

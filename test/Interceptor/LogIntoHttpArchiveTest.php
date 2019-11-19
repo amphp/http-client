@@ -9,7 +9,7 @@ class LogIntoHttpArchiveTest extends InterceptorTest
     public function testProducesValidJson(): \Generator
     {
         $filePath = \tempnam(\sys_get_temp_dir(), 'amphp-http-client-test-');
-        $logger = new LogIntoHttpArchive($filePath);
+        $logger = new LogHttpArchive($filePath);
 
         $this->givenApplicationInterceptor($logger);
 

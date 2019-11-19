@@ -5,11 +5,13 @@ namespace Amp\Http\Client\Interceptor;
 use Amp\CancellationToken;
 use Amp\File;
 use Amp\Http\Client\ApplicationInterceptor;
-use Amp\Http\Client\HarAttributes;
+use Amp\Http\Client\DelegateHttpClient;
+use Amp\Http\Client\EventListener;
+use Amp\Http\Client\EventListener\RecordHarAttributes;
 use Amp\Http\Client\HttpException;
-use Amp\Http\Client\InterceptedHttpClient;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
+use Amp\Http\Client\Internal\HarAttributes;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Message;
@@ -19,18 +21,24 @@ use Amp\Sync\Lock;
 use function Amp\call;
 use function Amp\Promise\rethrow;
 
-final class LogIntoHttpArchive implements ApplicationInterceptor
+final class LogHttpArchive implements ApplicationInterceptor
 {
     use ForbidCloning;
     use ForbidSerialization;
 
-    private static function getTime(Request $request, string $start, string $end): int
+    private static function getTime(Request $request, string $start, string ...$ends): int
     {
-        if (!$request->hasAttribute($start) || !$request->hasAttribute($end)) {
+        if (!$request->hasAttribute($start)) {
             return -1;
         }
 
-        return $request->getAttribute($end) - $request->getAttribute($start);
+        foreach ($ends as $end) {
+            if ($request->hasAttribute($end)) {
+                return $request->getAttribute($end) - $request->getAttribute($start);
+            }
+        }
+
+        return -1;
     }
 
     private static function formatHeaders(Message $message): array
@@ -85,7 +93,8 @@ final class LogIntoHttpArchive implements ApplicationInterceptor
                 'blocked' => self::getTime(
                     $request,
                     HarAttributes::TIME_START,
-                    HarAttributes::TIME_CONNECT
+                    HarAttributes::TIME_CONNECT,
+                    HarAttributes::TIME_SEND
                 ),
                 'dns' => -1,
                 'connect' => self::getTime(
@@ -131,22 +140,27 @@ final class LogIntoHttpArchive implements ApplicationInterceptor
     private $filePath;
     /** @var \Throwable|null */
     private $error;
+    /** @var EventListener */
+    private $eventListener;
 
     public function __construct(string $filePath)
     {
         $this->filePath = $filePath;
         $this->fileMutex = new LocalMutex;
+        $this->eventListener = new RecordHarAttributes;
     }
 
     public function request(
         Request $request,
         CancellationToken $cancellation,
-        InterceptedHttpClient $httpClient
+        DelegateHttpClient $httpClient
     ): Promise {
         return call(function () use ($request, $cancellation, $httpClient) {
             if ($this->error) {
                 throw $this->error;
             }
+
+            $this->ensureEventListenerIsRegistered($request);
 
             /** @var Response $response */
             $response = yield $httpClient->request($request, $cancellation);
@@ -214,5 +228,16 @@ final class LogIntoHttpArchive implements ApplicationInterceptor
                 $this->error = new HttpException('Writing HTTP archive log failed', 0, $e);
             }
         });
+    }
+
+    private function ensureEventListenerIsRegistered(Request $request): void
+    {
+        foreach ($request->getEventListeners() as $eventListener) {
+            if ($eventListener instanceof RecordHarAttributes) {
+                return; // user added it manually
+            }
+        }
+
+        $request->addEventListener($this->eventListener);
     }
 }

@@ -4,6 +4,7 @@ namespace Amp\Http\Client\Connection\Internal;
 
 use Amp\CancellationToken;
 use Amp\Deferred;
+use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
@@ -39,10 +40,10 @@ final class Http2Stream
     public $headers;
 
     /** @var int Max header length. */
-    public $maxHeaderSize;
+    public $headerSizeLimit;
 
     /** @var int Max body length. */
-    public $maxBodySize;
+    public $bodySizeLimit;
 
     /** @var int Bytes received on the stream. */
     public $received = 0;
@@ -71,11 +72,19 @@ final class Http2Stream
     /** @var int|null */
     public $expectedLength;
 
-    public function __construct(int $serverSize, int $clientSize, int $maxHeaderSize, int $maxBodySize, int $state = self::OPEN)
-    {
+    /** @var Stream|null */
+    public $applicationStream;
+
+    public function __construct(
+        int $serverSize,
+        int $clientSize,
+        int $maxHeaderSize,
+        int $maxBodySize,
+        int $state = self::OPEN
+    ) {
         $this->serverWindow = $serverSize;
-        $this->maxHeaderSize = $maxHeaderSize;
-        $this->maxBodySize = $maxBodySize;
+        $this->headerSizeLimit = $maxHeaderSize;
+        $this->bodySizeLimit = $maxBodySize;
         $this->clientWindow = $clientSize;
         $this->state = $state;
     }

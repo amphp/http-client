@@ -12,7 +12,6 @@ use Amp\Deferred;
 use Amp\Emitter;
 use Amp\Http;
 use Amp\Http\Client\Connection\Internal\Http1Parser;
-use Amp\Http\Client\HarAttributes;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
@@ -185,9 +184,9 @@ final class Http1Connection implements Connection
     }
 
     /** @inheritdoc */
-    private function request(Request $request, CancellationToken $cancellation): Promise
+    private function request(Request $request, CancellationToken $cancellation, Stream $stream): Promise
     {
-        return call(function () use ($request, $cancellation) {
+        return call(function () use ($request, $cancellation, $stream) {
             ++$this->requestCounter;
 
             if ($this->timeoutWatcher !== null) {
@@ -211,10 +210,17 @@ final class Http1Connection implements Connection
             $id = $combinedCancellation->subscribe([$this, 'close']);
 
             try {
-                $request->setAttribute(HarAttributes::TIME_SEND, getCurrentTime());
+                foreach ($request->getEventListeners() as $eventListener) {
+                    yield $eventListener->startSendingRequest($request, $stream);
+                }
+
                 yield from $this->writeRequest($request, $protocolVersion, $combinedCancellation);
-                $request->setAttribute(HarAttributes::TIME_WAIT, getCurrentTime());
-                return yield from $this->readResponse($request, $cancellation, $combinedCancellation);
+
+                foreach ($request->getEventListeners() as $eventListener) {
+                    yield $eventListener->startWaitingForResponse($request, $stream);
+                }
+
+                return yield from $this->readResponse($request, $cancellation, $combinedCancellation, $stream);
             } finally {
                 $combinedCancellation->unsubscribe($id);
                 $cancellation->throwIfRequested();
@@ -251,15 +257,19 @@ final class Http1Connection implements Connection
      * @param CancellationToken $originalCancellation
      * @param CancellationToken $readingCancellation
      *
+     * @param Stream            $stream
+     *
      * @return \Generator
+     * @throws CancelledException
+     * @throws HttpException
      * @throws ParseException
      * @throws SocketException
-     * @throws CancelledException
      */
     private function readResponse(
         Request $request,
         CancellationToken $originalCancellation,
-        CancellationToken $readingCancellation
+        CancellationToken $readingCancellation,
+        Stream $stream
     ): \Generator {
         $bodyEmitter = new Emitter;
 
@@ -282,7 +292,10 @@ final class Http1Connection implements Connection
         try {
             while (null !== $chunk = yield $this->socket->read()) {
                 if ($firstRead) {
-                    $request->setAttribute(HarAttributes::TIME_RECEIVE, getCurrentTime());
+                    foreach ($request->getEventListeners() as $eventListener) {
+                        yield $eventListener->startReceivingResponse($request, $stream);
+                    }
+
                     $firstRead = false;
                 }
 
@@ -409,7 +422,9 @@ final class Http1Connection implements Connection
 
                         $this->busy = false;
 
-                        $request->setAttribute(HarAttributes::TIME_COMPLETE, getCurrentTime());
+                        foreach ($request->getEventListeners() as $eventListener) {
+                            yield $eventListener->completeRequest($request);
+                        }
 
                         $bodyEmitter->complete();
                         $trailersDeferred->resolve($trailers);

@@ -66,6 +66,9 @@ final class Request extends Message
     /** @var mixed[] */
     private $attributes = [];
 
+    /** @var EventListener[] */
+    private $eventListeners = [];
+
     /**
      * Request constructor.
      *
@@ -78,6 +81,19 @@ final class Request extends Message
         $this->setUri($uri);
         $this->setMethod($method);
         $this->setBody($body);
+    }
+
+    public function addEventListener(EventListener $eventListener): void
+    {
+        $this->eventListeners[] = $eventListener;
+    }
+
+    /**
+     * @return EventListener[]
+     */
+    public function getEventListeners(): array
+    {
+        return $this->eventListeners;
     }
 
     /**

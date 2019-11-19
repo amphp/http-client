@@ -10,6 +10,7 @@ use Amp\Http\Client\Request;
 use Amp\Promise;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
+use function Amp\call;
 
 final class InterceptedStream implements Stream
 {
@@ -37,7 +38,13 @@ final class InterceptedStream implements Stream
         $interceptor = $this->interceptor;
         $this->interceptor = null;
 
-        return $interceptor->requestViaNetwork($request, $cancellation, $this->stream);
+        return call(function () use ($interceptor, $request, $cancellation) {
+            foreach ($request->getEventListeners() as $eventListener) {
+                yield $eventListener->startRequest($request);
+            }
+
+            return $interceptor->requestViaNetwork($request, $cancellation, $this->stream);
+        });
     }
 
     public function getLocalAddress(): SocketAddress
