@@ -9,8 +9,6 @@ use Amp\Socket\TlsInfo;
 
 interface Connection
 {
-    public const MAX_KEEP_ALIVE_TIMEOUT = 60;
-
     /**
      * @param Request $request
      *
