@@ -46,6 +46,7 @@ final class Http1Connection implements Connection
     use ForbidSerialization;
     use ForbidCloning;
 
+    private const MAX_KEEP_ALIVE_TIMEOUT = 60;
     private const PROTOCOL_VERSIONS = ['1.0', '1.1'];
 
     /** @var EncryptableSocket */
