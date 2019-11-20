@@ -217,7 +217,7 @@ final class Http1Connection implements Connection
                 yield from $this->writeRequest($request, $protocolVersion, $combinedCancellation);
 
                 foreach ($request->getEventListeners() as $eventListener) {
-                    yield $eventListener->startWaitingForResponse($request, $stream);
+                    yield $eventListener->completeSendingRequest($request, $stream);
                 }
 
                 return yield from $this->readResponse($request, $cancellation, $combinedCancellation, $stream);
@@ -371,6 +371,7 @@ final class Http1Connection implements Connection
                     $originalCancellation,
                     $readingCancellation,
                     $bodyCancellationToken,
+                    $stream,
                     &$backpressure,
                     &$trailers
                 ) {
@@ -423,7 +424,7 @@ final class Http1Connection implements Connection
                         $this->busy = false;
 
                         foreach ($request->getEventListeners() as $eventListener) {
-                            yield $eventListener->completeRequest($request);
+                            yield $eventListener->completeReceivingResponse($request, $stream);
                         }
 
                         $bodyEmitter->complete();

@@ -148,7 +148,7 @@ final class UnlimitedConnectionPool implements ConnectionPool
             }
 
             foreach ($request->getEventListeners() as $eventListener) {
-                yield $eventListener->startConnectionAttempt($request);
+                yield $eventListener->startConnectionCreation($request);
             }
 
             $promise = new Coroutine($this->createConnection($request, $cancellation, $authority, $isHttps));
@@ -244,21 +244,30 @@ final class UnlimitedConnectionPool implements ConnectionPool
         }
 
         if (!$isHttps) {
+            foreach ($request->getEventListeners() as $eventListener) {
+                yield $eventListener->completeConnectionCreation($request);
+            }
+
             return new Http1Connection($socket, $this->timeoutGracePeriod);
         }
 
         try {
-            foreach ($request->getEventListeners() as $eventListener) {
-                yield $eventListener->startTlsNegotiation($request);
-            }
-
             $tlsState = $socket->getTlsState();
             if ($tlsState === EncryptableSocket::TLS_STATE_DISABLED) {
+                foreach ($request->getEventListeners() as $eventListener) {
+                    yield $eventListener->startTlsNegotiation($request);
+                }
+
                 $tlsCancellationToken = new CombinedCancellationToken(
                     $cancellation,
                     new TimeoutCancellationToken($request->getTlsHandshakeTimeout())
                 );
+
                 yield $socket->setupTls($tlsCancellationToken);
+
+                foreach ($request->getEventListeners() as $eventListener) {
+                    yield $eventListener->completeTlsNegotiation($request);
+                }
             } elseif ($tlsState !== EncryptableSocket::TLS_STATE_ENABLED) {
                 $socket->close();
                 throw new UnprocessedRequestException(
@@ -296,6 +305,10 @@ final class UnlimitedConnectionPool implements ConnectionPool
             $connection = new Http2Connection($socket);
             yield $connection->initialize();
 
+            foreach ($request->getEventListeners() as $eventListener) {
+                yield $eventListener->completeConnectionCreation($request);
+            }
+
             return $connection;
         }
 
@@ -305,6 +318,10 @@ final class UnlimitedConnectionPool implements ConnectionPool
                 $request,
                 'Downgrade to HTTP/1.x forbidden, but server does not support HTTP/2'
             );
+        }
+
+        foreach ($request->getEventListeners() as $eventListener) {
+            yield $eventListener->completeConnectionCreation($request);
         }
 
         return new Http1Connection($socket, $this->timeoutGracePeriod);

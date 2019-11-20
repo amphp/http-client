@@ -26,7 +26,7 @@ final class RecordHarAttributes implements EventListener
         return new Success; // not implemented
     }
 
-    public function startConnectionAttempt(Request $request): Promise
+    public function startConnectionCreation(Request $request): Promise
     {
         return $this->addTiming(HarAttributes::TIME_CONNECT, $request);
     }
@@ -48,7 +48,7 @@ final class RecordHarAttributes implements EventListener
         return $this->addTiming(HarAttributes::TIME_SEND, $request);
     }
 
-    public function startWaitingForResponse(Request $request, Stream $stream): Promise
+    public function completeSendingRequest(Request $request, Stream $stream): Promise
     {
         return $this->addTiming(HarAttributes::TIME_WAIT, $request);
     }
@@ -58,9 +58,24 @@ final class RecordHarAttributes implements EventListener
         return $this->addTiming(HarAttributes::TIME_RECEIVE, $request);
     }
 
-    public function completeRequest(Request $request): Promise
+    public function completeReceivingResponse(Request $request, Stream $stream): Promise
     {
         return $this->addTiming(HarAttributes::TIME_COMPLETE, $request);
+    }
+
+    public function completeDnsResolution(Request $request): Promise
+    {
+        return new Success; // not implemented
+    }
+
+    public function completeConnectionCreation(Request $request): Promise
+    {
+        return new Success; // not implemented
+    }
+
+    public function completeTlsNegotiation(Request $request): Promise
+    {
+        return new Success; // not implemented
     }
 
     private function addTiming(string $key, Request $request): Promise
