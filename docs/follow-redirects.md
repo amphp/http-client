@@ -10,9 +10,11 @@ Automatic following can be customized or disabled (using a limit of `0`) using `
 
 ## Redirect Policy
 
-Redirects to the same host will clone the request and apply the redirect URI.
-If the response status code is `300`, `301`, `302`, or `303`, the request body is removed and the request method changed to `GET`.
-Redirects to other hosts will always follow with an empty `Request` using the `GET` method.
+The `FollowRedirects` interceptor will only follow redirects with a `GET` method.
+If another request method is used and a `307` or `308` response is received, the response will be returned as is, so another interceptor or the application can take care of it.
+Cross-origin redirects will be attempted without any headers set, so any application headers will be discarded.
+If `HttpClientBuilder` is used to configure the client, the `FollowRedirects` interceptor is the outermost interceptor, so any headers set by interceptors will still be present in the response.
+It is therefore recommended to set headers via interceptors instead of directly in the request.
 
 ## Examining the Redirect Chain
 

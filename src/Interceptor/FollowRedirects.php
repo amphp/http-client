@@ -245,7 +245,7 @@ final class FollowRedirects implements ApplicationInterceptor
         $request = $response->getRequest();
         $method = $request->getMethod();
 
-        if ($method !== 'GET') {
+        if ($method !== 'GET' && \in_array($status, [307, 308], true)) {
             return null;
         }
 
