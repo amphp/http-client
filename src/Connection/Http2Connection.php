@@ -392,7 +392,7 @@ final class Http2Connection implements Connection
 
                 if (!isset($this->streams[$id]) || $token->isRequested()) {
                     foreach ($request->getEventListeners() as $eventListener) {
-                        yield $eventListener->startWaitingForResponse($request, $applicationStream);
+                        yield $eventListener->completeSendingRequest($request, $applicationStream);
                     }
 
                     return yield $deferred->promise();
@@ -416,7 +416,7 @@ final class Http2Connection implements Connection
 
                 if ($chunk === null) {
                     foreach ($request->getEventListeners() as $eventListener) {
-                        yield $eventListener->startWaitingForResponse($request, $applicationStream);
+                        yield $eventListener->completeSendingRequest($request, $applicationStream);
                     }
 
                     return yield $deferred->promise();
@@ -426,7 +426,7 @@ final class Http2Connection implements Connection
                 while (null !== $chunk = yield $stream->read()) {
                     if (!isset($this->streams[$id]) || $token->isRequested()) {
                         foreach ($request->getEventListeners() as $eventListener) {
-                            yield $eventListener->startWaitingForResponse($request, $applicationStream);
+                            yield $eventListener->completeSendingRequest($request, $applicationStream);
                         }
 
                         return yield $deferred->promise();
@@ -438,7 +438,7 @@ final class Http2Connection implements Connection
 
                 if (!isset($this->streams[$id]) || $token->isRequested()) {
                     foreach ($request->getEventListeners() as $eventListener) {
-                        yield $eventListener->startWaitingForResponse($request, $applicationStream);
+                        yield $eventListener->completeSendingRequest($request, $applicationStream);
                     }
 
                     return yield $deferred->promise();
@@ -449,7 +449,7 @@ final class Http2Connection implements Connection
                 yield $this->writeData($buffer, $id);
 
                 foreach ($request->getEventListeners() as $eventListener) {
-                    yield $eventListener->startWaitingForResponse($request, $applicationStream);
+                    yield $eventListener->completeSendingRequest($request, $applicationStream);
                 }
 
                 return yield $deferred->promise();
@@ -784,7 +784,10 @@ final class Http2Connection implements Connection
                             unset($this->bodyEmitters[$id], $this->trailerDeferreds[$id]);
 
                             foreach ($stream->request->getEventListeners() as $eventListener) {
-                                yield $eventListener->completeRequest($stream->request);
+                                yield $eventListener->completeReceivingResponse(
+                                    $stream->request,
+                                    $stream->applicationStream
+                                );
                             }
 
                             $this->setupPingIfIdle();
@@ -833,6 +836,15 @@ final class Http2Connection implements Connection
                         $stream->dependency = $id;
                         $stream->weight = $parent->weight;
                         $stream->cancellationToken = $parent->cancellationToken;
+                        $stream->applicationStream = HttpStream::fromStream(
+                            $parent->applicationStream,
+                            static function () {
+                                throw new \Error('A stream may only be used for a single request');
+                            },
+                            static function () {
+                                // nothing to do
+                            }
+                        );
 
                         $id = $pushedId; // Switch ID to pushed stream for parsing headers.
 
@@ -1382,7 +1394,10 @@ final class Http2Connection implements Connection
                             unset($this->bodyEmitters[$id], $this->trailerDeferreds[$id]);
 
                             foreach ($stream->request->getEventListeners() as $eventListener) {
-                                yield $eventListener->completeRequest($stream->request);
+                                yield $eventListener->completeReceivingResponse(
+                                    $stream->request,
+                                    $stream->applicationStream
+                                );
                             }
 
                             $this->setupPingIfIdle();
@@ -1417,7 +1432,10 @@ final class Http2Connection implements Connection
                         }
 
                         if ($status === Status::SWITCHING_PROTOCOLS) {
-                            throw new Http2ConnectionException("Switching Protocols (101) is not part of HTTP/2", self::PROTOCOL_ERROR);
+                            throw new Http2ConnectionException(
+                                "Switching Protocols (101) is not part of HTTP/2",
+                                self::PROTOCOL_ERROR
+                            );
                         }
 
                         if ($status < Status::OK) {

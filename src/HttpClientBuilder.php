@@ -63,16 +63,16 @@ final class HttpClientBuilder
 
         $applicationInterceptors = $this->applicationInterceptors;
 
+        if ($this->followRedirectsInterceptor) {
+            \array_unshift($applicationInterceptors, $this->followRedirectsInterceptor);
+        }
+
         if ($this->forbidUriUserInfo) {
             \array_unshift($applicationInterceptors, $this->forbidUriUserInfo);
         }
 
         if ($this->retryInterceptor) {
             $applicationInterceptors[] = $this->retryInterceptor;
-        }
-
-        if ($this->followRedirectsInterceptor) {
-            $applicationInterceptors[] = $this->followRedirectsInterceptor;
         }
 
         foreach (\array_reverse($applicationInterceptors) as $applicationInterceptor) {
