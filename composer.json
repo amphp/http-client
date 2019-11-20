@@ -42,9 +42,7 @@
         "amphp/phpunit-util": "^1.1",
         "amphp/php-cs-fixer-config": "dev-master",
         "phpunit/phpunit": "^7 || ^8",
-        "amphp/http-server": "^2-rc3",
-        "leproxy/leproxy": "^0.2.2",
-        "amphp/react-adapter": "^2.1"
+        "amphp/http-server": "^2-rc3"
     },
     "suggest": {
         "ext-zlib": "*",
