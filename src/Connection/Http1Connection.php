@@ -156,6 +156,7 @@ final class Http1Connection implements Connection
 
     private function free(): Promise
     {
+        $this->socket = null;
         $this->estimatedClose = 0;
 
         if ($this->timeoutWatcher !== null) {
@@ -313,6 +314,7 @@ final class Http1Connection implements Connection
                         $response,
                         'connection'
                     ));
+
                     if (!isset($connection['upgrade'])) {
                         throw new HttpException('Switching protocols response missing "Connection: upgrade" header');
                     }
@@ -321,33 +323,19 @@ final class Http1Connection implements Connection
                         throw new HttpException('Switching protocols response missing "Upgrade" header');
                     }
 
-                    if (($onUpgrade = $request->getUpgradeHandler()) === null) {
-                        throw new HttpException('Received switching protocols response without upgrade handler callback');
-                    }
-
-                    $socket = new UpgradedSocket($this->socket, $parser->getBuffer());
-                    $this->socket = null;
-                    asyncCall($onUpgrade, $socket, clone $request, $response);
-
-                    $this->free(); // Close this connection without closing socket.
-
                     $trailersDeferred->resolve($trailers);
-
-                    return $response;
+                    return $this->handleUpgradeResponse($request, $response, $parser->getBuffer());
                 }
 
-                if ($status < Http\Status::OK) {
+                if ($status < Http\Status::OK) { // 1XX responses (excluding 101, handled above)
                     $chunk = $parser->getBuffer();
                     $parser = new Http1Parser($request, $bodyCallback, $trailersCallback);
                     goto parseChunk;
                 }
 
-                if ($status === Http\Status::OK && $request->getMethod() === 'CONNECT' && $request->getUpgradeHandler() !== null) {
-                    $socket = new UpgradedSocket($this->socket, $parser->getBuffer());
-                    $this->socket = null;
-                    asyncCall($request->getUpgradeHandler(), $socket, clone $request, $response);
-
-                    return $response;
+                if ($status >= Http\Status::OK && $status < Http\Status::MULTIPLE_CHOICES && $request->getMethod() === 'CONNECT') {
+                    $trailersDeferred->resolve($trailers);
+                    return $this->handleUpgradeResponse($request, $response, $parser->getBuffer());
                 }
 
                 $bodyCancellationSource = new CancellationTokenSource;
@@ -449,6 +437,28 @@ final class Http1Connection implements Connection
         } catch (StreamException $e) {
             throw new SocketException('Receiving the response headers failed: ' . $e->getMessage());
         }
+    }
+
+    private function handleUpgradeResponse(Request $request, Response $response, string $buffer): Response
+    {
+        if (($onUpgrade = $request->getUpgradeHandler()) === null) {
+            throw new HttpException('CONNECT or upgrade request made without upgrade handler callback');
+        }
+
+        $socket = new UpgradedSocket($this->socket, $buffer);
+        $this->free(); // Mark this connection as unusable without closing socket.
+
+        asyncCall(function () use ($onUpgrade, $socket, $request, $response): \Generator {
+            try {
+                yield call($onUpgrade, $socket, clone $request, $response);
+            } catch (\Throwable $exception) {
+                throw new HttpException('Upgrade handler threw an exception', 0, $exception);
+            } finally {
+                $socket->close();
+            }
+        });
+
+        return $response;
     }
 
     /**
@@ -689,12 +699,14 @@ final class Http1Connection implements Connection
             $requestUri .= '?' . $query;
         }
 
-        if ($request->getMethod() === 'CONNECT') {
+        $method = $request->getMethod();
+
+        if ($method === 'CONNECT') {
             $defaultPort = $uri->getScheme() === 'https' ? 443 : 80;
             $requestUri = $uri->getHost() . ':' . ($uri->getPort() ?? $defaultPort);
         }
 
-        $header = $request->getMethod() . ' ' . $requestUri . ' HTTP/' . $protocolVersion . "\r\n";
+        $header = $method . ' ' . $requestUri . ' HTTP/' . $protocolVersion . "\r\n";
 
         try {
             $header .= Rfc7230::formatHeaders($request->getHeaders());
