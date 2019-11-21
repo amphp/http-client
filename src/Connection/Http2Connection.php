@@ -368,17 +368,28 @@ final class Http2Connection implements Connection
                     }
                 }
 
-                $authority = $uri->getHost();
-                if ($port = $uri->getPort()) {
-                    $authority .= ':' . $port;
+                $method = $request->getMethod();
+
+                if ($method === 'CONNECT') {
+                    $defaultPort = $uri->getScheme() === 'https' ? 443 : 80;
+                    $authority = $uri->getHost() . ':' . ($uri->getPort() ?? $defaultPort);
+                } else {
+                    $authority = $uri->getHost();
+                    if ($port = $uri->getPort()) {
+                        $authority .= ':' . $port;
+                    }
                 }
 
                 $headers = \array_merge([
-                    ":authority" => [$authority],
-                    ":path" => [$path],
-                    ":scheme" => [$uri->getScheme()],
-                    ":method" => [$request->getMethod()],
+                    ':method' => [$request->getMethod()],
+                    ':scheme' => [$uri->getScheme()],
+                    ':authority' => [$authority],
+                    ':path' => [$path],
                 ], $request->getHeaders());
+
+                if ($method === 'CONNECT') {
+                    unset($headers[':path'], $headers[':scheme']);
+                }
 
                 foreach ($request->getEventListeners() as $eventListener) {
                     yield $eventListener->startSendingRequest($request, $applicationStream);
@@ -1467,8 +1478,57 @@ final class Http2Connection implements Connection
 
                             $this->releaseStream($id); // Response has no body, release stream immediately.
                         } else {
-                            $this->trailerDeferreds[$id] = new Deferred;
                             $this->bodyEmitters[$id] = new Emitter;
+
+                            if ($status >= Status::OK && $status < Status::MULTIPLE_CHOICES && $stream->request->getMethod() === 'CONNECT') {
+                                if (($onUpgrade = $stream->request->getUpgradeHandler()) === null) {
+                                    throw new Http2StreamException('CONNECT or upgrade request made without upgrade handler callback', $id, self::CANCEL);
+                                }
+
+                                $stream->bodySizeLimit = \PHP_INT_MAX; // Remove any body size limitation.
+
+                                $response = new Response(
+                                    '2',
+                                    $status,
+                                    Status::getReason($status),
+                                    $headers,
+                                    new InMemoryStream,
+                                    $stream->request
+                                );
+
+                                $socket = new UpgradedStream(
+                                    new IteratorStream($this->bodyEmitters[$id]->iterate()),
+                                    function (string $data, bool $final) use ($id): Promise {
+                                        if (!isset($this->streams[$id])) {
+                                            return new Failure(new SocketException('Stream closed'));
+                                        }
+
+                                        if ($final) {
+                                            $this->streams[$id]->state |= Http2Stream::LOCAL_CLOSED;
+                                        }
+
+                                        return $this->writeData($data, $id);
+                                    },
+                                    $this->socket->getLocalAddress(),
+                                    $this->socket->getRemoteAddress()
+                                );
+
+                                asyncCall(function () use ($onUpgrade, $socket, $stream, $response): \Generator {
+                                    try {
+                                        yield call($onUpgrade, $socket, clone $stream->request, $response);
+                                    } catch (\Throwable $exception) {
+                                        throw new HttpException('Upgrade handler threw an exception', 0, $exception);
+                                    } finally {
+                                        $socket->close();
+                                    }
+                                });
+
+                                $deferred->resolve($response);
+
+                                continue;
+                            }
+
+                            $this->trailerDeferreds[$id] = new Deferred;
 
                             if ($this->serverWindow <= $stream->bodySizeLimit >> 1) {
                                 $increment = $stream->bodySizeLimit - $this->serverWindow;
