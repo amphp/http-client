@@ -853,7 +853,7 @@ final class Http2Connection implements Connection
                     case self::HEADERS:
                         if (!isset($this->streams[$id])) {
                             throw new Http2ConnectionException(
-                                "Headers already started on stream",
+                                "Headers already started on stream {$id}",
                                 self::PROTOCOL_ERROR
                             );
                         }
@@ -861,7 +861,7 @@ final class Http2Connection implements Connection
                         $stream = $this->streams[$id];
 
                         if ($stream->state & Http2Stream::REMOTE_CLOSED) {
-                            throw new Http2StreamException("Stream remote closed", $id, self::STREAM_CLOSED);
+                            throw new Http2StreamException("Stream {$id} remote closed", $id, self::STREAM_CLOSED);
                         }
 
                         if (($flags & self::PADDED) !== "\0") {
@@ -886,8 +886,15 @@ final class Http2Connection implements Connection
                                 $parent &= 0x7fffffff;
                             }
 
-                            if ($id === 0 || $parent === $id) {
-                                throw new Http2ConnectionException("Invalid dependency ID", self::PROTOCOL_ERROR);
+                            if ($id === 0) {
+                                throw new Http2ConnectionException("Invalid dependency ID 0", self::PROTOCOL_ERROR);
+                            }
+
+                            if ($parent === $id) {
+                                throw new Http2ConnectionException(
+                                    "Invalid dependency ID {$id}: Must not match parent stream ID",
+                                    self::PROTOCOL_ERROR
+                                );
                             }
 
                             $stream->dependency = $parent;
@@ -903,7 +910,7 @@ final class Http2Connection implements Connection
 
                         if ($length > $maxHeaderSize) {
                             throw new Http2StreamException(
-                                "Headers exceed maximum length",
+                                "Headers exceed maximum configured size of {$maxHeaderSize} bytes",
                                 $id,
                                 self::ENHANCE_YOUR_CALM
                             );
@@ -945,18 +952,25 @@ final class Http2Connection implements Connection
                         $weight = \ord($buffer[4]);
                         $buffer = \substr($buffer, 5);
 
-                        if ($id === 0 || $parent === $id) {
-                            throw new Http2ConnectionException("Invalid dependency ID", self::PROTOCOL_ERROR);
+                        if ($id === 0) {
+                            throw new Http2ConnectionException("Invalid dependency ID 0", self::PROTOCOL_ERROR);
+                        }
+
+                        if ($parent === $id) {
+                            throw new Http2ConnectionException(
+                                "Invalid dependency ID {$id}: Must not match parent stream ID",
+                                self::PROTOCOL_ERROR
+                            );
                         }
 
                         if (!isset($this->streams[$id])) {
-                            throw new Http2ConnectionException("Stream not found", self::PROTOCOL_ERROR);
+                            throw new Http2ConnectionException("Stream {$id} not found", self::PROTOCOL_ERROR);
                         }
 
                         $stream = $this->streams[$id];
 
                         if ($stream->headers !== null) {
-                            throw new Http2ConnectionException("Headers not complete", self::PROTOCOL_ERROR);
+                            throw new Http2ConnectionException("Headers not complete for stream {$id}", self::PROTOCOL_ERROR);
                         }
 
                         $stream->dependency = $parent;
@@ -970,7 +984,7 @@ final class Http2Connection implements Connection
                         }
 
                         if ($id === 0) {
-                            throw new Http2ConnectionException("Invalid stream ID", self::PROTOCOL_ERROR);
+                            throw new Http2ConnectionException("Invalid stream ID 0", self::PROTOCOL_ERROR);
                         }
 
                         while (\strlen($buffer) < 4) {
@@ -1160,7 +1174,7 @@ final class Http2Connection implements Connection
 
                     case self::CONTINUATION:
                         if (!isset($this->streams[$id])) {
-                            throw new Http2ConnectionException("Invalid stream ID", self::PROTOCOL_ERROR);
+                            throw new Http2ConnectionException("Invalid stream ID {$id}", self::PROTOCOL_ERROR);
                         }
 
                         $continuation = true;
@@ -1169,7 +1183,7 @@ final class Http2Connection implements Connection
 
                         if ($stream->headers === null) {
                             throw new Http2ConnectionException(
-                                "No headers received before continuation frame",
+                                "No headers received before continuation frame on stream {$id}",
                                 self::PROTOCOL_ERROR
                             );
                         }
@@ -1182,7 +1196,7 @@ final class Http2Connection implements Connection
                         if ($length > $maxHeaderSize - \strlen($stream->headers)) {
                             $continuation = false;
                             throw new Http2StreamException(
-                                "Headers exceed maximum length",
+                                "Headers exceed maximum configured length of {$maxHeaderSize} bytes",
                                 $id,
                                 self::ENHANCE_YOUR_CALM
                             );
