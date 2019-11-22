@@ -1285,7 +1285,7 @@ final class Http2Connection implements Connection
                             }
 
                             $host = $matches[1];
-                            $port = isset($matches[2]) ? (int) $matches[2] : $this->socket->getLocalAddress()->getPort();
+                            $port = isset($matches[2]) ? (int) $matches[2] : $this->socket->getRemoteAddress()->getPort();
 
                             if (\strcasecmp($host, $stream->parent->request->getUri()->getHost()) !== 0) {
                                 throw new Http2StreamException(
