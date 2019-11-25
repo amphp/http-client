@@ -3,15 +3,14 @@
 namespace Amp\Http\Client\Connection;
 
 use Amp\ByteStream\InputStream;
+use Amp\ByteStream\OutputStream;
 use Amp\Failure;
-use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Promise;
 use Amp\Socket\Socket;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\SocketException;
-use function Amp\call;
 
 final class UpgradedStream implements Socket
 {
@@ -23,7 +22,7 @@ final class UpgradedStream implements Socket
     private $localAddress;
     private $remoteAddress;
 
-    public function __construct(InputStream $read, callable $write, SocketAddress $local, SocketAddress $remote)
+    public function __construct(InputStream $read, OutputStream $write, SocketAddress $local, SocketAddress $remote)
     {
         $this->read = $read;
         $this->write = $write;
@@ -43,7 +42,7 @@ final class UpgradedStream implements Socket
     public function close(): void
     {
         if ($this->write !== null) {
-            ($this->write)('', true);
+            $this->write->end();
         }
 
         $this->read = null;
@@ -57,28 +56,20 @@ final class UpgradedStream implements Socket
 
     public function write(string $data): Promise
     {
-        return $this->send($data, false);
-    }
+        if ($this->write === null) {
+            return new Failure(new SocketException('The socket is no longer writable'));
+        }
 
-
-    public function send(string $data, bool $final): Promise
-    {
-        return call(function () use ($data, $final): \Generator {
-            if ($this->write === null) {
-                throw new SocketException('The socket is no longer writable');
-            }
-
-            try {
-                return yield call($this->write, $data, $final);
-            } catch (HttpException $exception) {
-                throw new SocketException('An error occurred while writing to the tunnelled socket', 0, $exception);
-            }
-        });
+        return $this->write->write($data);
     }
 
     public function end(string $finalData = ""): Promise
     {
-        return $this->send($finalData, true);
+        if ($this->write === null) {
+            return new Failure(new SocketException('The socket is no longer writable'));
+        }
+
+        return $this->write->end($finalData);
     }
 
     public function reference(): void

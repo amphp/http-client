@@ -333,7 +333,7 @@ final class Http1Connection implements Connection
                     goto parseChunk;
                 }
 
-                if ($status >= Http\Status::OK && $status < Http\Status::MULTIPLE_CHOICES && $request->getMethod() === 'CONNECT') {
+                if ($status >= 200 && $status < 300 && $request->getMethod() === 'CONNECT') {
                     $trailersDeferred->resolve($trailers);
                     return $this->handleUpgradeResponse($request, $response, $parser->getBuffer());
                 }

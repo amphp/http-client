@@ -1480,7 +1480,7 @@ final class Http2Connection implements Connection
                         } else {
                             $this->bodyEmitters[$id] = new Emitter;
 
-                            if ($status >= Status::OK && $status < Status::MULTIPLE_CHOICES && $stream->request->getMethod() === 'CONNECT') {
+                            if ($status >= 200 && $status < 300 && $stream->request->getMethod() === 'CONNECT') {
                                 if (($onUpgrade = $stream->request->getUpgradeHandler()) === null) {
                                     throw new Http2StreamException('CONNECT or upgrade request made without upgrade handler callback', $id, self::CANCEL);
                                 }
@@ -1498,17 +1498,19 @@ final class Http2Connection implements Connection
 
                                 $socket = new UpgradedStream(
                                     new IteratorStream($this->bodyEmitters[$id]->iterate()),
-                                    function (string $data, bool $final) use ($id): Promise {
-                                        if (!isset($this->streams[$id])) {
-                                            return new Failure(new SocketException('Stream closed'));
-                                        }
+                                    new Internal\Http2UpgradeOutputStream(
+                                        function (string $data, bool $final) use ($id): Promise {
+                                            if (!isset($this->streams[$id])) {
+                                                return new Failure(new SocketException('Stream closed'));
+                                            }
 
-                                        if ($final) {
-                                            $this->streams[$id]->state |= Http2Stream::LOCAL_CLOSED;
-                                        }
+                                            if ($final) {
+                                                $this->streams[$id]->state |= Http2Stream::LOCAL_CLOSED;
+                                            }
 
-                                        return $this->writeData($data, $id);
-                                    },
+                                            return $this->writeData($data, $id);
+                                        }
+                                    ),
                                     $this->socket->getLocalAddress(),
                                     $this->socket->getRemoteAddress()
                                 );
