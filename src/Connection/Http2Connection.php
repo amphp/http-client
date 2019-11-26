@@ -1500,8 +1500,8 @@ final class Http2Connection implements Connection
                                     new IteratorStream($this->bodyEmitters[$id]->iterate()),
                                     new Internal\Http2UpgradeOutputStream(
                                         function (string $data, bool $final) use ($id): Promise {
-                                            if (!isset($this->streams[$id])) {
-                                                return new Failure(new SocketException('Stream closed'));
+                                            if (!isset($this->streams[$id]) || $this->streams[$id]->state & Http2Stream::REMOTE_CLOSED) {
+                                                return new Failure(new SocketException('Stream closed by peer'));
                                             }
 
                                             if ($final) {
@@ -1515,13 +1515,12 @@ final class Http2Connection implements Connection
                                     $this->socket->getRemoteAddress()
                                 );
 
-                                asyncCall(function () use ($onUpgrade, $socket, $stream, $response): \Generator {
+                                asyncCall(function () use ($id, $onUpgrade, $socket, $stream, $response): \Generator {
                                     try {
                                         yield call($onUpgrade, $socket, clone $stream->request, $response);
                                     } catch (\Throwable $exception) {
+                                        $this->writeFrame(\pack("N", self::INTERNAL_ERROR), self::RST_STREAM, self::NOFLAG, $id);
                                         throw new HttpException('Upgrade handler threw an exception', 0, $exception);
-                                    } finally {
-                                        $socket->close();
                                     }
                                 });
 

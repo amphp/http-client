@@ -6,11 +6,17 @@ use Amp\ByteStream\ClosedException;
 use Amp\ByteStream\OutputStream;
 use Amp\ByteStream\StreamException;
 use Amp\Http\Client\HttpException;
+use Amp\Http\Client\Internal\ForbidCloning;
+use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Promise;
 use function Amp\call;
 
-class Http2UpgradeOutputStream implements OutputStream
+/** @internal */
+final class Http2UpgradeOutputStream implements OutputStream
 {
+    use ForbidCloning;
+    use ForbidSerialization;
+
     private $write;
 
     public function __construct(callable $write)

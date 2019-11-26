@@ -11,6 +11,7 @@ use Amp\Promise;
 use Amp\Socket\Socket;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\SocketException;
+use function Amp\call;
 
 final class UpgradedStream implements Socket
 {
@@ -32,11 +33,19 @@ final class UpgradedStream implements Socket
 
     public function read(): Promise
     {
-        if ($this->read === null) {
-            return new Failure(new SocketException('The socket is no longer readable'));
-        }
+        return call(function (): \Generator {
+            if ($this->read === null) {
+                throw new SocketException('The socket is no longer readable');
+            }
 
-        return $this->read->read();
+            $chunk = yield $this->read->read();
+
+            if ($chunk === null) {
+                $this->read = null;
+            }
+
+            return $chunk;
+        });
     }
 
     public function close(): void
@@ -56,11 +65,18 @@ final class UpgradedStream implements Socket
 
     public function write(string $data): Promise
     {
-        if ($this->write === null) {
-            return new Failure(new SocketException('The socket is no longer writable'));
-        }
+        return call(function () use ($data): \Generator {
+            if ($this->write === null) {
+                throw new SocketException('The socket is no longer writable');
+            }
 
-        return $this->write->write($data);
+            try {
+                return yield $this->write->write($data);
+            } catch (\Throwable $exception) {
+                $this->write = null;
+                throw $exception;
+            }
+        });
     }
 
     public function end(string $finalData = ""): Promise
@@ -69,7 +85,9 @@ final class UpgradedStream implements Socket
             return new Failure(new SocketException('The socket is no longer writable'));
         }
 
-        return $this->write->end($finalData);
+        $promise = $this->write->end($finalData);
+        $this->write = null;
+        return $promise;
     }
 
     public function reference(): void

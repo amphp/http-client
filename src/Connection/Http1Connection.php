@@ -452,9 +452,8 @@ final class Http1Connection implements Connection
             try {
                 yield call($onUpgrade, $socket, clone $request, $response);
             } catch (\Throwable $exception) {
-                throw new HttpException('Upgrade handler threw an exception', 0, $exception);
-            } finally {
                 $socket->close();
+                throw new HttpException('Upgrade handler threw an exception', 0, $exception);
             }
         });
 
