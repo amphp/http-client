@@ -183,7 +183,7 @@ final class Http2Parser
 
     private function consume(int $bytes): \Generator
     {
-        while (\strlen($this->buffer) < 9) {
+        while (\strlen($this->buffer) < $bytes) {
             $this->buffer .= yield;
         }
 
