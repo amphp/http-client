@@ -4,6 +4,7 @@ namespace Amp\Http\Client\Interceptor;
 
 use Amp\CancellationToken;
 use Amp\File;
+use Amp\File\Driver;
 use Amp\Http\Client\ApplicationInterceptor;
 use Amp\Http\Client\DelegateHttpClient;
 use Amp\Http\Client\EventListener;
@@ -148,6 +149,10 @@ final class LogHttpArchive implements ApplicationInterceptor
         $this->filePath = $filePath;
         $this->fileMutex = new LocalMutex;
         $this->eventListener = new RecordHarAttributes;
+
+        if (!\interface_exists(Driver::class)) {
+            throw new \Error(__CLASS__ . ' requires amphp/file to be installed');
+        }
     }
 
     public function request(
