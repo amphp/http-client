@@ -880,15 +880,16 @@ final class InternalHttp2Connection implements Http2FrameProcessor
         return call(function () use ($streamId, $request, $cancellationToken, $stream, $http2stream): \Generator {
             $this->socket->reference();
 
-            $cancellationId = $cancellationToken->subscribe(function (CancelledException $exception) use ($streamId
-            ): void {
+            $onCancel = function (CancelledException $exception) use ($streamId): void {
                 if (!isset($this->streams[$streamId])) {
                     return;
                 }
 
                 $this->writeFrame(\pack("N", self::CANCEL), self::RST_STREAM, self::NO_FLAG, $streamId);
                 $this->releaseStream($streamId, $exception);
-            });
+            };
+
+            $cancellationId = $cancellationToken->subscribe($onCancel);
 
             try {
                 $headers = yield from $this->generateHeaders($request);
@@ -1121,6 +1122,12 @@ final class InternalHttp2Connection implements Http2FrameProcessor
         $length = \strlen($stream->buffer);
 
         if ($length <= $windowSize) {
+            if ($stream->windowSizeIncrease) {
+                $deferred = $stream->windowSizeIncrease;
+                $stream->windowSizeIncrease = null;
+                $deferred->resolve();
+            }
+
             $this->clientWindow -= $length;
             $stream->clientWindow -= $length;
 
@@ -1141,12 +1148,17 @@ final class InternalHttp2Connection implements Http2FrameProcessor
 
             $stream->buffer = "";
 
-            // TODO Read next request body chunk
-
             return $promise;
         }
 
         if ($windowSize > 0) {
+            // Read next body chunk if less than 8192 bytes will remain in the buffer
+            if ($length - 8192 < $windowSize && $stream->windowSizeIncrease) {
+                $deferred = $stream->windowSizeIncrease;
+                $stream->windowSizeIncrease = null;
+                $deferred->resolve();
+            }
+
             $data = $stream->buffer;
             $end = $windowSize - $this->frameSizeLimit;
 
@@ -1169,7 +1181,11 @@ final class InternalHttp2Connection implements Http2FrameProcessor
             return $promise;
         }
 
-        return new Success;
+        if ($stream->windowSizeIncrease === null) {
+            $stream->windowSizeIncrease = new Deferred;
+        }
+
+        return $stream->windowSizeIncrease->promise();
     }
 
     private function releaseStream(int $streamId, ?\Throwable $exception = null): void
