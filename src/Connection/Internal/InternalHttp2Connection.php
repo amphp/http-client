@@ -304,9 +304,10 @@ final class InternalHttp2Connection implements Http2FrameProcessor
         $stream = $this->streams[$streamId];
 
         if ($stream->trailers) {
-            if ($stream->body || $stream->expectedLength) {
+            if ($stream->expectedLength && $stream->received !== $stream->expectedLength) {
+                $diff = $stream->expectedLength - $stream->received;
                 $this->handleStreamException(new Http2StreamException(
-                    "Stream not ended before receiving trailers",
+                    "Content length mismatch: " . \abs($diff) . ' bytes ' . ($diff > 0 ? ' missing' : 'too much'),
                     $streamId,
                     self::PROTOCOL_ERROR
                 ));
@@ -705,7 +706,6 @@ final class InternalHttp2Connection implements Http2FrameProcessor
 
         $length = \strlen($data);
 
-        // TODO Check window size
         $this->serverWindow -= $length;
         $stream->serverWindow -= $length;
         $stream->received += $length;
@@ -799,6 +799,11 @@ final class InternalHttp2Connection implements Http2FrameProcessor
         $stream->body = null;
         $body->complete();
 
+        $trailers = $stream->trailers;
+        $stream->trailers = null;
+        /** @noinspection PhpUnhandledExceptionInspection */
+        $trailers->resolve(new Trailers([]));
+
         asyncCall(function () use ($stream, $streamId) {
             try {
                 foreach ($stream->request->getEventListeners() as $eventListener) {
@@ -809,7 +814,6 @@ final class InternalHttp2Connection implements Http2FrameProcessor
             }
         });
 
-        // TODO Trailers?
         $this->setupPingIfIdle();
 
         $this->releaseStream($streamId);
