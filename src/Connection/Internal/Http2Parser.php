@@ -73,6 +73,9 @@ final class Http2Parser
     private $buffer = '';
 
     /** @var int */
+    private $bufferOffset = 0;
+
+    /** @var int */
     private $headerSizeLimit = self::DEFAULT_MAX_FRAME_SIZE; // Should be configurable?
 
     /** @var bool */
@@ -183,12 +186,20 @@ final class Http2Parser
 
     private function consume(int $bytes): \Generator
     {
-        while (\strlen($this->buffer) < $bytes) {
+        $bufferEnd = $this->bufferOffset + $bytes;
+
+        while (\strlen($this->buffer) < $bufferEnd) {
             $this->buffer .= yield;
         }
 
-        $consumed = \substr($this->buffer, 0, $bytes);
-        $this->buffer = \substr($this->buffer, $bytes);
+        $consumed = \substr($this->buffer, $this->bufferOffset, $bytes);
+
+        if ($bufferEnd > 2048) {
+            $this->buffer = \substr($this->buffer, $bufferEnd);
+            $this->bufferOffset = 0;
+        } else {
+            $this->bufferOffset += $bytes;
+        }
 
         return $consumed;
     }

@@ -1178,30 +1178,30 @@ final class InternalHttp2Connection implements Http2FrameProcessor
             $pendingResponse = $stream->pendingResponse;
             $stream->pendingResponse = null;
             $pendingResponse->fail($exception ?? new Http2StreamException(
-                    "Stream closed unexpectedly",
-                    $streamId,
-                    self::INTERNAL_ERROR
-                ));
+                "Stream closed unexpectedly",
+                $streamId,
+                self::INTERNAL_ERROR
+            ));
         }
 
         if ($stream->body) {
             $body = $stream->body;
             $stream->body = null;
             $body->fail($exception ?? new Http2StreamException(
-                    "Stream closed unexpectedly",
-                    $streamId,
-                    self::INTERNAL_ERROR
-                ));
+                "Stream closed unexpectedly",
+                $streamId,
+                self::INTERNAL_ERROR
+            ));
         }
 
         if ($stream->trailers) {
             $trailers = $stream->trailers;
             $stream->trailers = null;
             $trailers->fail($exception ?? new Http2StreamException(
-                    "Stream closed unexpectedly",
-                    $streamId,
-                    self::INTERNAL_ERROR
-                ));
+                "Stream closed unexpectedly",
+                $streamId,
+                self::INTERNAL_ERROR
+            ));
         }
 
         unset($this->streams[$streamId]);

@@ -10,8 +10,7 @@ require __DIR__ . '/.helper/functions.php';
 
 $data = \file_get_contents(__DIR__ . '/../test/fixture/h2.log');
 
-$processor = new class implements Http2FrameProcessor
-{
+$processor = new class implements Http2FrameProcessor {
     public function handlePong(string $data): void
     {
         // empty stub
