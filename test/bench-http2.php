@@ -6,9 +6,9 @@ use Amp\Http\Client\Connection\Internal\Http2Processor;
 use Amp\Http\Client\Connection\Internal\Http2Parser;
 use function Amp\getCurrentTime;
 
-require __DIR__ . '/.helper/functions.php';
+require __DIR__ . '/../vendor/autoload.php';
 
-$data = \file_get_contents(__DIR__ . '/../test/fixture/h2.log');
+$data = \file_get_contents(__DIR__ . '/fixture/h2.log');
 
 $processor = new class implements Http2Processor {
     public function handlePong(string $data): void
