@@ -253,26 +253,29 @@ final class UnlimitedConnectionPool implements ConnectionPool
 
         try {
             $tlsState = $socket->getTlsState();
-            if ($tlsState === EncryptableSocket::TLS_STATE_DISABLED) {
-                foreach ($request->getEventListeners() as $eventListener) {
-                    yield $eventListener->startTlsNegotiation($request);
-                }
 
-                $tlsCancellationToken = new CombinedCancellationToken(
-                    $cancellation,
-                    new TimeoutCancellationToken($request->getTlsHandshakeTimeout())
-                );
-
-                yield $socket->setupTls($tlsCancellationToken);
-
-                foreach ($request->getEventListeners() as $eventListener) {
-                    yield $eventListener->completeTlsNegotiation($request);
-                }
-            } elseif ($tlsState !== EncryptableSocket::TLS_STATE_ENABLED) {
+            // Error if anything enabled TLS on a new connection before we can do it
+            if ($tlsState !== EncryptableSocket::TLS_STATE_DISABLED) {
                 $socket->close();
+
                 throw new UnprocessedRequestException(
                     new SocketException('Failed to setup TLS connection, connection was in an unexpected TLS state (' . $tlsState . ')')
                 );
+            }
+
+            foreach ($request->getEventListeners() as $eventListener) {
+                yield $eventListener->startTlsNegotiation($request);
+            }
+
+            $tlsCancellationToken = new CombinedCancellationToken(
+                $cancellation,
+                new TimeoutCancellationToken($request->getTlsHandshakeTimeout())
+            );
+
+            yield $socket->setupTls($tlsCancellationToken);
+
+            foreach ($request->getEventListeners() as $eventListener) {
+                yield $eventListener->completeTlsNegotiation($request);
             }
         } catch (StreamException $exception) {
             $socket->close();
