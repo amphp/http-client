@@ -11,7 +11,6 @@ use Amp\CancelledException;
 use Amp\Http\Client\Body\FileBody;
 use Amp\Http\Client\Body\FormBody;
 use Amp\Http\Client\Interceptor\DecompressResponse;
-use Amp\Http\Client\Interceptor\FollowRedirects;
 use Amp\Http\Client\Interceptor\ModifyRequest;
 use Amp\Http\Client\Interceptor\SetRequestHeaderIfUnset;
 use Amp\Http\Client\Interceptor\TooManyRedirectsException;

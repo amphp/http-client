@@ -2,8 +2,8 @@
 
 use Amp\Http\Client\Connection\Http2ConnectionException;
 use Amp\Http\Client\Connection\Http2StreamException;
-use Amp\Http\Client\Connection\Internal\Http2Processor;
 use Amp\Http\Client\Connection\Internal\Http2Parser;
+use Amp\Http\Client\Connection\Internal\Http2Processor;
 use function Amp\getCurrentTime;
 
 require __DIR__ . '/../vendor/autoload.php';
