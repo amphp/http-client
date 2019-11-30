@@ -2,7 +2,9 @@
 
 namespace Amp\Http\Client\Connection;
 
-final class Http2StreamException extends Http2Exception
+use Amp\Http\Client\HttpException;
+
+final class Http2StreamException extends HttpException
 {
     /** @var int */
     private $streamId;

@@ -2,7 +2,9 @@
 
 namespace Amp\Http\Client\Connection;
 
-final class Http2ConnectionException extends Http2Exception
+use Amp\Http\Client\HttpException;
+
+final class Http2ConnectionException extends HttpException
 {
     public function __construct(string $message, int $code, ?\Throwable $previous = null)
     {

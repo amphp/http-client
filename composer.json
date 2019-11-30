@@ -1,12 +1,12 @@
 {
     "name": "amphp/http-client",
     "homepage": "https://github.com/amphp/http-client",
-    "description": "Asynchronous parallel HTTP/2 and HTTP/1.1 client built on the Amp concurrency framework",
+    "description": "Asynchronous concurrent HTTP/2 and HTTP/1.1 client built on the Amp concurrency framework",
     "keywords": [
         "http",
         "rest",
         "client",
-        "parallel",
+        "concurrent",
         "async",
         "non-blocking"
     ],
@@ -30,7 +30,7 @@
         "amphp/amp": "^2.4",
         "amphp/byte-stream": "^1.6",
         "amphp/hpack": "^2",
-        "amphp/http": "^1.3",
+        "amphp/http": "^1.5",
         "amphp/socket": "^1",
         "amphp/sync": "^1.3",
         "league/uri": "^6",
@@ -47,7 +47,7 @@
     "suggest": {
         "ext-zlib": "*",
         "ext-json": "*",
-        "amphp/file": "Required for file request bodies"
+        "amphp/file": "Required for file request bodies and HTTP archive logging"
     },
     "autoload": {
         "psr-4": {
