@@ -950,7 +950,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                         return yield $http2stream->pendingResponse->promise();
                     }
 
-                    yield $this->writeData($buffer, $streamId);
+                    yield $this->writeData($http2stream, $buffer);
 
                     $buffer = $chunk;
                 }
@@ -965,7 +965,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
                 $http2stream->bufferComplete = true;
 
-                yield $this->writeData($buffer, $streamId);
+                yield $this->writeData($http2stream, $buffer);
 
                 foreach ($request->getEventListeners() as $eventListener) {
                     yield $eventListener->completeSendingRequest($request, $stream);

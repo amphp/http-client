@@ -592,6 +592,22 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->assertSame('2', $response->getProtocolVersion());
     }
 
+    public function testHttp2SupportBody(): \Generator
+    {
+        $request = new Request('https://http2.pro/api/v1', 'POST');
+        $request->setBody('foobar');
+
+        /** @var Response $response */
+        $response = yield $this->client->request($request);
+        $body = yield $response->getBody()->buffer();
+        $json = \json_decode($body, true);
+
+        $this->assertSame(1, $json['http2']);
+        $this->assertSame('HTTP/2.0', $json['protocol']);
+        $this->assertSame(1, $json['push']);
+        $this->assertSame('2', $response->getProtocolVersion());
+    }
+
     public function testConcurrentSlowNetworkInterceptor(): \Generator
     {
         $this->givenNetworkInterceptor(new ModifyRequest(static function (Request $request) {
