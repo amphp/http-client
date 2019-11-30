@@ -32,8 +32,11 @@ final class Http2Stream
     /** @var Response|null */
     public $response;
 
-    /** @var Deferred|null */
+    /** @var Deferred */
     public $pendingResponse;
+
+    /** @var bool */
+    public $responsePending = true;
 
     /** @var Emitter|null */
     public $body;
@@ -54,10 +57,13 @@ final class Http2Stream
     public $clientWindow;
 
     /** @var string */
-    public $buffer = '';
+    public $requestBodyBuffer = '';
 
     /** @var bool */
-    public $bufferComplete = false;
+    public $requestBodyComplete = false;
+
+    /** @var Deferred */
+    public $requestBodyCompletion;
 
     /** @var int Integer between 1 and 256 */
     public $weight = 16;
@@ -89,5 +95,6 @@ final class Http2Stream
         $this->serverWindow = $serverSize;
         $this->clientWindow = $clientSize;
         $this->pendingResponse = new Deferred;
+        $this->requestBodyCompletion = new Deferred;
     }
 }

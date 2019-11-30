@@ -288,7 +288,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                 return;
             }
 
-            if ($stream->buffer === '' || $stream->clientWindow <= 0) {
+            if ($stream->requestBodyBuffer === '' || $stream->clientWindow <= 0) {
                 continue;
             }
 
@@ -439,9 +439,13 @@ final class Http2ConnectionProcessor implements Http2Processor
             $stream->trailers->promise()
         );
 
-        $pendingResponse = $stream->pendingResponse;
-        $stream->pendingResponse = null;
-        $pendingResponse->resolve($response);
+        $requestCompletion = $stream->requestBodyCompletion;
+        $stream->responsePending = false;
+        $stream->pendingResponse->resolve(call(static function () use ($response, $requestCompletion) {
+            yield $requestCompletion->promise();
+
+            return $response;
+        }));
 
         if ($this->serverWindow <= $stream->request->getBodySizeLimit() >> 1) {
             $increment = $stream->request->getBodySizeLimit() - $this->serverWindow;
@@ -734,32 +738,19 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         $promise = $stream->body->emit($data);
 
-        if ($stream->serverWindow <= self::MINIMUM_WINDOW) {
-            $promise->onResolve(function (?\Throwable $exception) use ($streamId): void {
-                if ($exception || !isset($this->streams[$streamId])) {
-                    return;
-                }
+        $promise->onResolve(function (?\Throwable $exception) use ($streamId): void {
+            if ($exception || !isset($this->streams[$streamId])) {
+                return;
+            }
 
-                $stream = $this->streams[$streamId];
+            $stream = $this->streams[$streamId];
 
-                if ($stream->serverWindow > self::MINIMUM_WINDOW) {
-                    return;
-                }
+            if ($stream->serverWindow <= self::MINIMUM_WINDOW) {
+                $stream->serverWindow += self::MAX_INCREMENT;
 
-                $increment = \min(
-                    $stream->request->getBodySizeLimit() - $stream->received - $stream->serverWindow,
-                    self::MAX_INCREMENT
-                );
-
-                if ($increment <= 0) {
-                    return;
-                }
-
-                $stream->serverWindow += $increment;
-
-                $this->writeFrame(self::WINDOW_UPDATE, self::NO_FLAG, $streamId, \pack("N", $increment));
-            });
-        }
+                $this->writeFrame(self::WINDOW_UPDATE, self::NO_FLAG, $streamId, \pack("N", self::MAX_INCREMENT));
+            }
+        });
     }
 
     public function handleSettings(array $settings): void
@@ -937,6 +928,9 @@ final class Http2ConnectionProcessor implements Http2Processor
                         yield $eventListener->completeSendingRequest($request, $stream);
                     }
 
+                    $http2stream->requestBodyComplete = true;
+                    $http2stream->requestBodyCompletion->resolve();
+
                     return yield $http2stream->pendingResponse->promise();
                 }
 
@@ -963,7 +957,8 @@ final class Http2ConnectionProcessor implements Http2Processor
                     return yield $http2stream->pendingResponse->promise();
                 }
 
-                $http2stream->bufferComplete = true;
+                $http2stream->requestBodyComplete = true;
+                $http2stream->requestBodyCompletion->resolve();
 
                 yield $this->writeData($http2stream, $buffer);
 
@@ -974,6 +969,8 @@ final class Http2ConnectionProcessor implements Http2Processor
                 return yield $http2stream->pendingResponse->promise();
             } catch (\Throwable $exception) {
                 if (isset($this->streams[$streamId])) {
+                    $http2stream->requestBodyCompletion->fail($exception);
+
                     $this->releaseStream($streamId, $exception);
                 }
 
@@ -1071,7 +1068,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                                 return;
                             }
 
-                            if ($stream->buffer === '' || $stream->clientWindow <= 0) {
+                            if ($stream->requestBodyBuffer === '' || $stream->clientWindow <= 0) {
                                 continue;
                             }
 
@@ -1122,7 +1119,7 @@ final class Http2ConnectionProcessor implements Http2Processor
     private function writeBufferedData(Http2Stream $stream): Promise
     {
         $windowSize = \min($this->clientWindow, $stream->clientWindow);
-        $length = \strlen($stream->buffer);
+        $length = \strlen($stream->requestBodyBuffer);
 
         if ($length <= $windowSize) {
             if ($stream->windowSizeIncrease) {
@@ -1135,21 +1132,21 @@ final class Http2ConnectionProcessor implements Http2Processor
             $stream->clientWindow -= $length;
 
             if ($length > $this->frameSizeLimit) {
-                $chunks = \str_split($stream->buffer, $this->frameSizeLimit);
-                $stream->buffer = \array_pop($chunks);
+                $chunks = \str_split($stream->requestBodyBuffer, $this->frameSizeLimit);
+                $stream->requestBodyBuffer = \array_pop($chunks);
 
                 foreach ($chunks as $chunk) {
                     $this->writeFrame(self::DATA, self::NO_FLAG, $stream->id, $chunk);
                 }
             }
 
-            if ($stream->bufferComplete) {
-                $promise = $this->writeFrame(self::DATA, self::END_STREAM, $stream->id, $stream->buffer);
+            if ($stream->requestBodyComplete) {
+                $promise = $this->writeFrame(self::DATA, self::END_STREAM, $stream->id, $stream->requestBodyBuffer);
             } else {
-                $promise = $this->writeFrame(self::DATA, self::NO_FLAG, $stream->id, $stream->buffer);
+                $promise = $this->writeFrame(self::DATA, self::NO_FLAG, $stream->id, $stream->requestBodyBuffer);
             }
 
-            $stream->buffer = "";
+            $stream->requestBodyBuffer = "";
 
             return $promise;
         }
@@ -1162,7 +1159,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                 $deferred->resolve();
             }
 
-            $data = $stream->buffer;
+            $data = $stream->requestBodyBuffer;
             $end = $windowSize - $this->frameSizeLimit;
 
             $stream->clientWindow -= $windowSize;
@@ -1179,7 +1176,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                 \substr($data, $off, $windowSize - $off)
             );
 
-            $stream->buffer = \substr($data, $windowSize);
+            $stream->requestBodyBuffer = \substr($data, $windowSize);
 
             return $promise;
         }
@@ -1197,10 +1194,9 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         $stream = $this->streams[$streamId];
 
-        if ($stream->pendingResponse) {
-            $pendingResponse = $stream->pendingResponse;
-            $stream->pendingResponse = null;
-            $pendingResponse->fail($exception ?? new Http2StreamException(
+        if ($stream->responsePending) {
+            $stream->responsePending = false;
+            $stream->pendingResponse->fail($exception ?? new Http2StreamException(
                 "Stream closed unexpectedly",
                 $streamId,
                 self::INTERNAL_ERROR
@@ -1400,7 +1396,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     private function writeData(Http2Stream $stream, string $data): Promise
     {
-        $stream->buffer .= $data;
+        $stream->requestBodyBuffer .= $data;
 
         return $this->writeBufferedData($stream);
     }
