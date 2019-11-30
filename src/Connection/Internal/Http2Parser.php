@@ -361,7 +361,7 @@ final class Http2Parser
                 $this->throwInvalidRecursiveDependency($streamId);
             }
 
-            $this->handler->handlePriority($streamId, $parent, $weight);
+            $this->handler->handlePriority($streamId, $parent, $weight + 1);
         }
 
         if ($frameLength - $headerLength - $padding < 0) {
@@ -422,7 +422,7 @@ final class Http2Parser
             $this->throwInvalidRecursiveDependency($streamId);
         }
 
-        $this->handler->handlePriority($streamId, $parent, $weight);
+        $this->handler->handlePriority($streamId, $parent, $weight + 1);
     }
 
     private function parseStreamReset(string $frameBuffer, int $frameLength, int $streamId): void
