@@ -103,6 +103,14 @@ final class HttpClientBuilder
      */
     public function intercept(ApplicationInterceptor $interceptor): self
     {
+        if ($this->followRedirectsInterceptor !== null && $interceptor instanceof FollowRedirects) {
+            throw new \Error('Disable automatic redirect following or use HttpClientBuilder::followRedirects() to customize redirects');
+        }
+
+        if ($this->retryInterceptor !== null && $interceptor instanceof RetryRequests) {
+            throw new \Error('Disable automatic retries or use HttpClientBuilder::retry() to customize retries');
+        }
+
         $builder = clone $this;
         $builder->applicationInterceptors[] = $interceptor;
 

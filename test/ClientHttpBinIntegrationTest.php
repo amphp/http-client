@@ -478,7 +478,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testInfiniteRedirect(): \Generator
     {
-        $this->givenApplicationInterceptor(new FollowRedirects(10));
+        $this->builder->followRedirects(10);
 
         $this->expectException(TooManyRedirectsException::class);
 
