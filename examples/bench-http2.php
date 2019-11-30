@@ -2,7 +2,7 @@
 
 use Amp\Http\Client\Connection\Http2ConnectionException;
 use Amp\Http\Client\Connection\Http2StreamException;
-use Amp\Http\Client\Connection\Internal\Http2FrameProcessor;
+use Amp\Http\Client\Connection\Internal\Http2Processor;
 use Amp\Http\Client\Connection\Internal\Http2Parser;
 use function Amp\getCurrentTime;
 
@@ -10,7 +10,7 @@ require __DIR__ . '/.helper/functions.php';
 
 $data = \file_get_contents(__DIR__ . '/../test/fixture/h2.log');
 
-$processor = new class implements Http2FrameProcessor {
+$processor = new class implements Http2Processor {
     public function handlePong(string $data): void
     {
         // empty stub

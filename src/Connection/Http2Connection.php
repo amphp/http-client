@@ -3,7 +3,8 @@
 namespace Amp\Http\Client\Connection;
 
 use Amp\CancellationToken;
-use Amp\Http\Client\Connection\Internal\InternalHttp2Connection;
+use Amp\Http\Client\Connection\Internal\Http2ConnectionProcessor;
+use Amp\Http\Client\Connection\Internal\Http2Processor;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
@@ -23,8 +24,8 @@ final class Http2Connection implements Connection
     /** @var EncryptableSocket */
     private $socket;
 
-    /** @var InternalHttp2Connection */
-    private $connection;
+    /** @var Http2Processor */
+    private $processor;
 
     /** @var int */
     private $requestCount = 0;
@@ -32,7 +33,7 @@ final class Http2Connection implements Connection
     public function __construct(EncryptableSocket $socket)
     {
         $this->socket = $socket;
-        $this->connection = new InternalHttp2Connection($socket);
+        $this->processor = new Http2ConnectionProcessor($socket);
     }
 
     public function getProtocolVersions(): array
@@ -42,38 +43,38 @@ final class Http2Connection implements Connection
 
     public function initialize(): Promise
     {
-        return $this->connection->initialize();
+        return $this->processor->initialize();
     }
 
     public function getStream(Request $request): Promise
     {
-        if (!$this->connection->isInitialized()) {
+        if (!$this->processor->isInitialized()) {
             throw new \Error('The promise returned from ' . __CLASS__ . '::initialize() must resolve before using the connection');
         }
 
         return call(function () {
-            if ($this->connection->isClosed() || $this->connection->getRemainingStreams() <= 0) {
+            if ($this->processor->isClosed() || $this->processor->getRemainingStreams() <= 0) {
                 return null;
             }
 
-            $this->connection->reserveStream();
+            $this->processor->reserveStream();
 
             return HttpStream::fromConnection(
                 $this,
                 \Closure::fromCallable([$this, 'request']),
-                \Closure::fromCallable([$this->connection, 'unreserveStream'])
+                \Closure::fromCallable([$this->processor, 'unreserveStream'])
             );
         });
     }
 
     public function onClose(callable $onClose): void
     {
-        $this->connection->onClose($onClose);
+        $this->processor->onClose($onClose);
     }
 
     public function close(): Promise
     {
-        return $this->connection->close();
+        return $this->processor->close();
     }
 
     public function getLocalAddress(): SocketAddress
@@ -95,6 +96,6 @@ final class Http2Connection implements Connection
     {
         $this->requestCount++;
 
-        return $this->connection->request($request, $token, $applicationStream);
+        return $this->processor->request($request, $token, $applicationStream);
     }
 }

@@ -36,7 +36,7 @@ use function Amp\asyncCall;
 use function Amp\call;
 
 /** @internal */
-final class InternalHttp2Connection implements Http2FrameProcessor
+final class Http2ConnectionProcessor implements Http2Processor
 {
     private const PREFACE = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
     private const DEFAULT_MAX_FRAME_SIZE = 1 << 14;

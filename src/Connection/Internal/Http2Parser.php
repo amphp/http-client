@@ -91,10 +91,10 @@ final class Http2Parser
     /** @var HPack */
     private $hpack;
 
-    /** @var Http2FrameProcessor */
+    /** @var Http2Processor */
     private $handler;
 
-    public function __construct(Http2FrameProcessor $handler)
+    public function __construct(Http2Processor $handler)
     {
         $this->hpack = new HPack;
         $this->handler = $handler;
