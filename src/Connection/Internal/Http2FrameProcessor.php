@@ -5,6 +5,7 @@ namespace Amp\Http\Client\Connection\Internal;
 use Amp\Http\Client\Connection\Http2ConnectionException;
 use Amp\Http\Client\Connection\Http2StreamException;
 
+/** @internal */
 interface Http2FrameProcessor
 {
     public function handlePong(string $data): void;

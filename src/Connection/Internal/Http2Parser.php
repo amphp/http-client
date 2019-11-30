@@ -12,9 +12,7 @@ use Amp\Http\Client\Connection\Http2ConnectionException;
 use Amp\Http\Client\Connection\Http2StreamException;
 use Amp\Http\HPack;
 
-/**
- * @internal
- */
+/** @internal */
 final class Http2Parser
 {
     private const DEFAULT_MAX_FRAME_SIZE = 1 << 14;

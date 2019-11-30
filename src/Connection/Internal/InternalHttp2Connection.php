@@ -35,6 +35,7 @@ use League\Uri;
 use function Amp\asyncCall;
 use function Amp\call;
 
+/** @internal */
 final class InternalHttp2Connection implements Http2FrameProcessor
 {
     private const PREFACE = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
