@@ -219,7 +219,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     public function handlePong(string $data): void
     {
-        $this->writeFrame($data, self::PING, self::ACK);
+        $this->writeFrame(self::PING, self::ACK, 0, $data);
     }
 
     public function handlePing(string $data): void
@@ -447,7 +447,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             $increment = $stream->request->getBodySizeLimit() - $this->serverWindow;
             $this->serverWindow = $stream->request->getBodySizeLimit();
 
-            $this->writeFrame(\pack("N", $increment), self::WINDOW_UPDATE);
+            $this->writeFrame(self::WINDOW_UPDATE, 0, 0, \pack("N", $increment));
         }
 
         if (isset($headers["content-length"])) {
@@ -480,7 +480,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                 return;
             }
 
-            $this->writeFrame(\pack("N", self::CANCEL), self::RST_STREAM, self::NO_FLAG, $streamId);
+            $this->writeFrame(self::RST_STREAM, self::NO_FLAG, $streamId, \pack("N", self::CANCEL));
             $this->releaseStream($streamId, $exception);
         });
 
@@ -626,7 +626,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                     return;
                 }
 
-                $this->writeFrame(\pack("N", self::CANCEL), self::RST_STREAM, self::NO_FLAG, $streamId);
+                $this->writeFrame(self::RST_STREAM, self::NO_FLAG, $streamId, \pack("N", self::CANCEL));
                 $this->releaseStream($streamId, $exception);
             });
 
@@ -675,7 +675,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             $exception = new UnprocessedRequestException($exception);
         }
 
-        $this->writeFrame(\pack("N", $code), self::RST_STREAM, self::NO_FLAG, $id);
+        $this->writeFrame(self::RST_STREAM, self::NO_FLAG, $id, \pack("N", $code));
 
         if (isset($this->streams[$id])) {
             $this->releaseStream($id, $exception);
@@ -729,7 +729,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         if ($this->serverWindow <= self::MINIMUM_WINDOW) {
             $this->serverWindow += self::MAX_INCREMENT;
-            $this->writeFrame(\pack("N", self::MAX_INCREMENT), self::WINDOW_UPDATE);
+            $this->writeFrame(self::WINDOW_UPDATE, 0, 0, \pack("N", self::MAX_INCREMENT));
         }
 
         $promise = $stream->body->emit($data);
@@ -757,7 +757,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
                 $stream->serverWindow += $increment;
 
-                $this->writeFrame(\pack("N", $increment), self::WINDOW_UPDATE, self::NO_FLAG, $streamId);
+                $this->writeFrame(self::WINDOW_UPDATE, self::NO_FLAG, $streamId, \pack("N", $increment));
             });
         }
     }
@@ -768,7 +768,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             $this->applySetting($setting, $value);
         }
 
-        $this->writeFrame('', self::SETTINGS, self::ACK);
+        $this->writeFrame(self::SETTINGS, self::ACK);
 
         if ($this->settings) {
             $deferred = $this->settings;
@@ -886,7 +886,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                     return;
                 }
 
-                $this->writeFrame(\pack("N", self::CANCEL), self::RST_STREAM, self::NO_FLAG, $streamId);
+                $this->writeFrame(self::RST_STREAM, self::NO_FLAG, $streamId, \pack("N", self::CANCEL));
                 $this->releaseStream($streamId, $exception);
             };
 
@@ -920,16 +920,16 @@ final class Http2ConnectionProcessor implements Http2Processor
                     $lastChunk = \array_pop($split);
 
                     // no yield, because there must not be other frames in between
-                    $this->writeFrame($firstChunk, self::HEADERS, self::NO_FLAG, $streamId);
+                    $this->writeFrame(self::HEADERS, self::NO_FLAG, $streamId, $firstChunk);
 
                     foreach ($split as $headerChunk) {
                         // no yield, because there must not be other frames in between
-                        $this->writeFrame($headerChunk, self::CONTINUATION, self::NO_FLAG, $streamId);
+                        $this->writeFrame(self::CONTINUATION, self::NO_FLAG, $streamId, $headerChunk);
                     }
 
-                    yield $this->writeFrame($lastChunk, self::CONTINUATION, $flag, $streamId);
+                    yield $this->writeFrame(self::CONTINUATION, $flag, $streamId, $lastChunk);
                 } else {
-                    yield $this->writeFrame($headers, self::HEADERS, $flag, $streamId);
+                    yield $this->writeFrame(self::HEADERS, $flag, $streamId, $headers);
                 }
 
                 if ($chunk === null) {
@@ -999,6 +999,9 @@ final class Http2ConnectionProcessor implements Http2Processor
             yield $this->socket->write(self::PREFACE);
 
             yield $this->writeFrame(
+                self::SETTINGS,
+                0,
+                0,
                 \pack(
                     "nNnNnNnN",
                     self::ENABLE_PUSH,
@@ -1009,8 +1012,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                     self::DEFAULT_WINDOW_SIZE,
                     self::MAX_FRAME_SIZE,
                     self::DEFAULT_MAX_FRAME_SIZE
-                ),
-                self::SETTINGS
+                )
             );
 
             $parser = (new Http2Parser($this))->parse();
@@ -1034,7 +1036,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         }
     }
 
-    private function writeFrame(string $data, int $type, int $flags = self::NO_FLAG, int $stream = 0): Promise
+    private function writeFrame(int $type, int $flags = self::NO_FLAG, int $stream = 0, string $data = ''): Promise
     {
         /** @noinspection PhpUnhandledExceptionInspection */
         return $this->socket->write(\substr(\pack("NccN", \strlen($data), $type, $flags, $stream), 1) . $data);
@@ -1137,14 +1139,14 @@ final class Http2ConnectionProcessor implements Http2Processor
                 $stream->buffer = \array_pop($chunks);
 
                 foreach ($chunks as $chunk) {
-                    $this->writeFrame($chunk, self::DATA, self::NO_FLAG, $stream->id);
+                    $this->writeFrame(self::DATA, self::NO_FLAG, $stream->id, $chunk);
                 }
             }
 
             if ($stream->bufferComplete) {
-                $promise = $this->writeFrame($stream->buffer, self::DATA, self::END_STREAM, $stream->id);
+                $promise = $this->writeFrame(self::DATA, self::END_STREAM, $stream->id, $stream->buffer);
             } else {
-                $promise = $this->writeFrame($stream->buffer, self::DATA, self::NO_FLAG, $stream->id);
+                $promise = $this->writeFrame(self::DATA, self::NO_FLAG, $stream->id, $stream->buffer);
             }
 
             $stream->buffer = "";
@@ -1167,14 +1169,14 @@ final class Http2ConnectionProcessor implements Http2Processor
             $this->clientWindow -= $windowSize;
 
             for ($off = 0; $off < $end; $off += $this->frameSizeLimit) {
-                $this->writeFrame(\substr($data, $off, $this->frameSizeLimit), self::DATA, self::NO_FLAG, $stream->id);
+                $this->writeFrame(self::DATA, self::NO_FLAG, $stream->id, \substr($data, $off, $this->frameSizeLimit));
             }
 
             $promise = $this->writeFrame(
-                \substr($data, $off, $windowSize - $off),
                 self::DATA,
                 self::NO_FLAG,
-                $stream->id
+                $stream->id,
+                \substr($data, $off, $windowSize - $off)
             );
 
             $stream->buffer = \substr($data, $windowSize);
@@ -1297,7 +1299,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         $this->pongDeferred = new Deferred;
         $this->idlePings++;
 
-        $this->writeFrame($this->counter++, self::PING);
+        $this->writeFrame(self::PING, 0, 0, $this->counter++);
 
         $this->pongWatcher = Loop::delay(self::PONG_TIMEOUT, [$this, 'close']);
 
@@ -1320,7 +1322,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         return call(function () use ($lastId, $reason) {
             $code = $reason ? $reason->getCode() : self::GRACEFUL_SHUTDOWN;
             $lastId = $lastId ?? ($this->streamId > 0 ? $this->streamId : 0);
-            $goawayPromise = $this->writeFrame(\pack("NN", $lastId, $code), self::GOAWAY, self::NO_FLAG);
+            $goawayPromise = $this->writeFrame(self::GOAWAY, self::NO_FLAG, 0, \pack("NN", $lastId, $code));
 
             if ($this->settings !== null) {
                 $settings = $this->settings;
