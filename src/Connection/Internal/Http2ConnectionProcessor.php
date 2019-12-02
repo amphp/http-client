@@ -42,8 +42,8 @@ final class Http2ConnectionProcessor implements Http2Processor
     private const DEFAULT_MAX_FRAME_SIZE = 1 << 14;
     private const DEFAULT_WINDOW_SIZE = (1 << 16) - 1;
 
-    private const MINIMUM_WINDOW = 128 * 1024;
-    private const WINDOW_INCREMENT = 128 * 1024;
+    private const MINIMUM_WINDOW = 512 * 1024;
+    private const WINDOW_INCREMENT = 1024 * 1024;
 
     // Milliseconds to wait for pong (PING with ACK) frame before closing the connection.
     private const PONG_TIMEOUT = 500;
@@ -448,15 +448,8 @@ final class Http2ConnectionProcessor implements Http2Processor
             return $response;
         }));
 
-        while ($this->serverWindow <= self::MINIMUM_WINDOW) {
-            $this->serverWindow += self::WINDOW_INCREMENT;
-            $this->writeFrame(self::WINDOW_UPDATE, 0, 0, \pack("N", self::WINDOW_INCREMENT));
-        }
-
-        while ($stream->serverWindow <= self::MINIMUM_WINDOW) {
-            $stream->serverWindow += self::WINDOW_INCREMENT;
-            $this->writeFrame(self::WINDOW_UPDATE, self::NO_FLAG, $streamId, \pack("N", self::WINDOW_INCREMENT));
-        }
+        $this->increaseConnectionWindow();
+        $this->increaseStreamWindow($stream);
 
         if (isset($headers["content-length"])) {
             if (\count($headers['content-length']) !== 1) {
@@ -738,24 +731,15 @@ final class Http2ConnectionProcessor implements Http2Processor
             return;
         }
 
-        while ($this->serverWindow <= self::MINIMUM_WINDOW) {
-            $this->serverWindow += self::WINDOW_INCREMENT;
-            $this->writeFrame(self::WINDOW_UPDATE, 0, 0, \pack("N", self::WINDOW_INCREMENT));
-        }
+        $this->increaseConnectionWindow();
 
         $promise = $stream->body->emit($data);
-
         $promise->onResolve(function (?\Throwable $exception) use ($streamId): void {
             if ($exception || !isset($this->streams[$streamId])) {
                 return;
             }
 
-            $stream = $this->streams[$streamId];
-
-            while ($stream->serverWindow <= self::MINIMUM_WINDOW) {
-                $stream->serverWindow += self::WINDOW_INCREMENT;
-                $this->writeFrame(self::WINDOW_UPDATE, self::NO_FLAG, $streamId, \pack("N", self::WINDOW_INCREMENT));
-            }
+            $this->increaseStreamWindow($this->streams[$streamId]);
         });
     }
 
@@ -1398,5 +1382,34 @@ final class Http2ConnectionProcessor implements Http2Processor
         $stream->requestBodyBuffer .= $data;
 
         return $this->writeBufferedData($stream);
+    }
+
+    private function increaseConnectionWindow(): void
+    {
+        $increase = 0;
+
+        while ($this->serverWindow <= self::MINIMUM_WINDOW) {
+            $this->serverWindow += self::WINDOW_INCREMENT;
+            $increase += self::WINDOW_INCREMENT;
+        }
+
+        if ($increase > 0) {
+            $this->writeFrame(self::WINDOW_UPDATE, 0, 0, \pack("N", self::WINDOW_INCREMENT));
+        }
+    }
+
+    private function increaseStreamWindow(Http2Stream $stream): void
+    {
+        $minWindow = \min($stream->request->getBodySizeLimit(), self::MINIMUM_WINDOW);
+        $increase = 0;
+
+        while ($stream->serverWindow <= $minWindow) {
+            $stream->serverWindow += self::WINDOW_INCREMENT;
+            $increase += self::WINDOW_INCREMENT;
+        }
+
+        if ($increase > 0) {
+            $this->writeFrame(self::WINDOW_UPDATE, self::NO_FLAG, $stream->id, \pack("N", self::WINDOW_INCREMENT));
+        }
     }
 }
