@@ -342,21 +342,23 @@ final class Http2ConnectionProcessor implements Http2Processor
 
             $trailers = $stream->trailers;
             $stream->trailers = null;
-            $trailers->resolve($parsedTrailers);
-
-            asyncCall(function () use ($stream, $streamId) {
+            $trailers->resolve(call(function () use ($stream, $streamId, $parsedTrailers) {
                 try {
                     foreach ($stream->request->getEventListeners() as $eventListener) {
                         yield $eventListener->completeReceivingResponse($stream->request, $stream->stream);
                     }
+
+                    return $parsedTrailers;
                 } catch (\Throwable $e) {
                     $this->handleStreamException(new Http2StreamException(
                         "Event listener error",
                         $streamId,
                         self::CANCEL
                     ));
+
+                    throw $e;
                 }
-            });
+            }));
 
             $this->setupPingIfIdle();
 
@@ -783,18 +785,19 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         $trailers = $stream->trailers;
         $stream->trailers = null;
-        /** @noinspection PhpUnhandledExceptionInspection */
-        $trailers->resolve(new Trailers([]));
-
-        asyncCall(function () use ($stream, $streamId) {
+        $trailers->resolve(call(function () use ($stream, $streamId) {
             try {
                 foreach ($stream->request->getEventListeners() as $eventListener) {
                     yield $eventListener->completeReceivingResponse($stream->request, $stream->stream);
                 }
+
+                return new Trailers([]);
             } catch (\Throwable $e) {
                 $this->handleStreamException(new Http2StreamException("Event listener error", $streamId, self::CANCEL));
+
+                throw $e;
             }
-        });
+        }));
 
         $this->setupPingIfIdle();
 
@@ -1182,10 +1185,10 @@ final class Http2ConnectionProcessor implements Http2Processor
         $stream = $this->streams[$streamId];
 
         $exception = $exception ?? new Http2StreamException(
-            "Stream closed unexpectedly",
-            $streamId,
-            self::INTERNAL_ERROR
-        );
+                "Stream closed unexpectedly",
+                $streamId,
+                self::INTERNAL_ERROR
+            );
 
         if ($stream->responsePending) {
             $stream->responsePending = false;
