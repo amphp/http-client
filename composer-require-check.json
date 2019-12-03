@@ -22,7 +22,8 @@
         "JSON_ERROR_NONE",
         "Amp\\File\\Driver",
         "Amp\\File\\open",
-        "Amp\\File\\size"
+        "Amp\\File\\size",
+        "AMP_DEBUG_HTTP2_FRAMES"
     ],
     "php-core-extensions": [
         "Core",
