@@ -1108,6 +1108,10 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     private function writeBufferedData(Http2Stream $stream): Promise
     {
+        if ($stream->requestBodyComplete && $stream->requestBodyBuffer === '') {
+            return new Success;
+        }
+
         $windowSize = \min($this->clientWindow, $stream->clientWindow);
         $length = \strlen($stream->requestBodyBuffer);
 
