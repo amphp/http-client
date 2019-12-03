@@ -5,6 +5,7 @@
 // Infinite (10 x 100    requests): php examples/concurrency/3-benchmark.php 0
 // Custom   (10 x $count requests): php examples/concurrency/3-benchmark.php $count
 
+use Amp\Http\Client\Connection\DefaultConnectionFactory;
 use Amp\Http\Client\Connection\UnlimitedConnectionPool;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\Request;
@@ -28,7 +29,7 @@ Loop::run(static function () use ($count, $argv) {
         ->withTlsContext($tlsContext);
 
     $client = (new HttpClientBuilder)
-        ->usingPool(new UnlimitedConnectionPool(null, $connectContext))
+        ->usingPool(new UnlimitedConnectionPool(new DefaultConnectionFactory(null, $connectContext)))
         ->build();
 
     $handler = coroutine(static function (int $count) use ($client, $argv) {

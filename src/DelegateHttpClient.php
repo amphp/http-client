@@ -9,10 +9,8 @@ use Amp\Promise;
  * Base HTTP client interface for use in {@see ApplicationInterceptor}.
  *
  * Applications and implementations should depend on {@see HttpClient} instead. The intent of this interface is to
- * allow
- * static analysis tools to find interceptors that forget to pass the cancellation token down. This situation is
- * created
- * because of the cancellation token being optional.
+ * allow static analysis tools to find interceptors that forget to pass the cancellation token down. This situation is
+ * created because of the cancellation token being optional.
  *
  * Before executing or delegating the request, any client implementation must call {@see EventListener::startRequest()}
  * on all event listeners registered on the given request in the order defined by {@see Request::getEventListeners()}.
@@ -24,10 +22,6 @@ interface DelegateHttpClient
 {
     /**
      * Request a specific resource from an HTTP server.
-     *
-     * Note: Each client implementation MUST clone the given request before any modification or before passing the
-     * request to another object. This ensures that interceptors don't have to care about cloning and work reliably
-     * even if requests are retried.
      *
      * @param Request           $request
      * @param CancellationToken $cancellation

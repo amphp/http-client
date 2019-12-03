@@ -2,6 +2,6 @@
 
 namespace Amp\Http\Client;
 
-class SocketException extends HttpException
+final class SocketException extends HttpException
 {
 }

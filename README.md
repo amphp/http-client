@@ -41,6 +41,8 @@ More extensive code examples reside in the [`examples`](./examples) directory.
 
 `amphp/http-client` follows the [semver](http://semver.org/) semantic versioning specification like all other `amphp` packages.
 
+Everything in an `Internal` namespace or marked as `@internal` is not public API and therefore not covered by BC guarantees.
+
 ##### 4.x
 
 Under development.

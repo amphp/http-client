@@ -4,10 +4,12 @@ namespace Amp\Http\Client\Connection\Internal;
 
 use Amp\CancellationToken;
 use Amp\Deferred;
+use Amp\Emitter;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
+use Amp\Http\Client\Response;
 use Amp\Struct;
 
 /**
@@ -21,29 +23,29 @@ final class Http2Stream
     use ForbidSerialization;
     use ForbidCloning;
 
-    public const OPEN = 0;
-    public const RESERVED = 0b0001;
-    public const REMOTE_CLOSED = 0b0010;
-    public const LOCAL_CLOSED = 0b0100;
-    public const CLOSED = 0b0110;
+    /** @var int */
+    public $id;
 
-    /** @var Request|null */
+    /** @var Request */
     public $request;
+
+    /** @var Response|null */
+    public $response;
+
+    /** @var Deferred */
+    public $pendingResponse;
+
+    /** @var bool */
+    public $responsePending = true;
+
+    /** @var Emitter|null */
+    public $body;
+
+    /** @var Deferred|null */
+    public $trailers;
 
     /** @var CancellationToken */
     public $cancellationToken;
-
-    /** @var self|null */
-    public $parent;
-
-    /** @var string|null Packed header string. */
-    public $headers;
-
-    /** @var int Max header length. */
-    public $headerSizeLimit;
-
-    /** @var int Max body length. */
-    public $bodySizeLimit;
 
     /** @var int Bytes received on the stream. */
     public $received = 0;
@@ -55,16 +57,16 @@ final class Http2Stream
     public $clientWindow;
 
     /** @var string */
-    public $buffer = "";
+    public $requestBodyBuffer = '';
 
-    /** @var int */
-    public $state;
+    /** @var bool */
+    public $requestBodyComplete = false;
 
-    /** @var Deferred|null */
-    public $deferred;
+    /** @var Deferred */
+    public $requestBodyCompletion;
 
     /** @var int Integer between 1 and 256 */
-    public $weight = 0;
+    public $weight = 16;
 
     /** @var int */
     public $dependency = 0;
@@ -72,20 +74,27 @@ final class Http2Stream
     /** @var int|null */
     public $expectedLength;
 
-    /** @var Stream|null */
-    public $applicationStream;
+    /** @var Stream */
+    public $stream;
+
+    /**@var Deferred|null */
+    public $windowSizeIncrease;
 
     public function __construct(
+        int $id,
+        Request $request,
+        Stream $stream,
+        CancellationToken $cancellationToken,
         int $serverSize,
-        int $clientSize,
-        int $maxHeaderSize,
-        int $maxBodySize,
-        int $state = self::OPEN
+        int $clientSize
     ) {
+        $this->id = $id;
+        $this->request = $request;
+        $this->stream = $stream;
+        $this->cancellationToken = $cancellationToken;
         $this->serverWindow = $serverSize;
-        $this->headerSizeLimit = $maxHeaderSize;
-        $this->bodySizeLimit = $maxBodySize;
         $this->clientWindow = $clientSize;
-        $this->state = $state;
+        $this->pendingResponse = new Deferred;
+        $this->requestBodyCompletion = new Deferred;
     }
 }

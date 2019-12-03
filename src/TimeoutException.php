@@ -2,6 +2,6 @@
 
 namespace Amp\Http\Client;
 
-class TimeoutException extends HttpException
+final class TimeoutException extends HttpException
 {
 }

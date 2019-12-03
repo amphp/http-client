@@ -11,7 +11,6 @@ use Amp\CancelledException;
 use Amp\Http\Client\Body\FileBody;
 use Amp\Http\Client\Body\FormBody;
 use Amp\Http\Client\Interceptor\DecompressResponse;
-use Amp\Http\Client\Interceptor\FollowRedirects;
 use Amp\Http\Client\Interceptor\ModifyRequest;
 use Amp\Http\Client\Interceptor\SetRequestHeaderIfUnset;
 use Amp\Http\Client\Interceptor\TooManyRedirectsException;
@@ -478,7 +477,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testInfiniteRedirect(): \Generator
     {
-        $this->givenApplicationInterceptor(new FollowRedirects(10));
+        $this->builder->followRedirects(10);
 
         $this->expectException(TooManyRedirectsException::class);
 
@@ -591,6 +590,51 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->assertSame('HTTP/2.0', $json['protocol']);
         $this->assertSame(1, $json['push']);
         $this->assertSame('2', $response->getProtocolVersion());
+    }
+
+    public function testHttp2SupportBody(): \Generator
+    {
+        $request = new Request('https://http2.pro/api/v1', 'POST');
+        $request->setBody('foobar');
+
+        /** @var Response $response */
+        $response = yield $this->client->request($request);
+        $body = yield $response->getBody()->buffer();
+        $json = \json_decode($body, true);
+
+        $this->assertSame(1, $json['http2']);
+        $this->assertSame('HTTP/2.0', $json['protocol']);
+        $this->assertSame(1, $json['push']);
+        $this->assertSame('2', $response->getProtocolVersion());
+    }
+
+    public function testHttp2SupportLargeBody(): \Generator
+    {
+        $request = new Request('https://http2.pro/api/v1', 'POST');
+        $request->setBody(\str_repeat(',', 256 * 1024)); // larger than initial stream window
+
+        /** @var Response $response */
+        $response = yield $this->client->request($request);
+        $body = yield $response->getBody()->buffer();
+        $json = \json_decode($body, true);
+
+        $this->assertSame(1, $json['http2']);
+        $this->assertSame('HTTP/2.0', $json['protocol']);
+        $this->assertSame(1, $json['push']);
+        $this->assertSame('2', $response->getProtocolVersion());
+    }
+
+    public function testHttp2SupportLargeResponseBody(): \Generator
+    {
+        $request = new Request('https://1906714720.rsc.cdn77.org/img/cdn77-test-3mb.jpg', 'GET');
+        $request->setTransferTimeout(100000);
+        $request->setBodySizeLimit(10000000000);
+
+        /** @var Response $response */
+        $response = yield $this->client->request($request);
+        yield $response->getBody()->buffer();
+
+        $this->assertSame(200, $response->getStatus());
     }
 
     public function testConcurrentSlowNetworkInterceptor(): \Generator

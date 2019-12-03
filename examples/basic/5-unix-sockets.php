@@ -1,5 +1,6 @@
 <?php
 
+use Amp\Http\Client\Connection\DefaultConnectionFactory;
 use Amp\Http\Client\Connection\UnlimitedConnectionPool;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
@@ -17,7 +18,7 @@ Loop::run(static function () use ($argv) {
         $connector = new StaticConnector("unix:///var/run/docker.sock", new DnsConnector);
 
         $client = (new HttpClientBuilder)
-            ->usingPool(new UnlimitedConnectionPool($connector))
+            ->usingPool(new UnlimitedConnectionPool(new DefaultConnectionFactory($connector)))
             ->build();
 
         // amphp/http-client requires a host, so just use a dummy one.

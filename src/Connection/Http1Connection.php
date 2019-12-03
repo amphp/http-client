@@ -85,7 +85,7 @@ final class Http1Connection implements Connection
     /** @var TlsInfo|null */
     private $tlsInfo;
 
-    public function __construct(EncryptableSocket $socket, int $timeoutGracePeriod)
+    public function __construct(EncryptableSocket $socket, int $timeoutGracePeriod = 2000)
     {
         $this->socket = $socket;
         $this->localAddress = $socket->getLocalAddress();
@@ -448,9 +448,9 @@ final class Http1Connection implements Connection
         $socket = new UpgradedSocket($this->socket, $buffer);
         $this->free(); // Mark this connection as unusable without closing socket.
 
-        asyncCall(function () use ($onUpgrade, $socket, $request, $response): \Generator {
+        asyncCall(static function () use ($onUpgrade, $socket, $request, $response): \Generator {
             try {
-                yield call($onUpgrade, $socket, clone $request, $response);
+                yield call($onUpgrade, $socket, $request, $response);
             } catch (\Throwable $exception) {
                 throw new HttpException('Upgrade handler threw an exception', 0, $exception);
             } finally {

@@ -17,8 +17,8 @@ interface NetworkInterceptor
      * The implementation might modify the request and/or modify the response after the promise returned from
      * `$stream->request(...)` resolved.
      *
-     * A NetworkInterceptor MUST NOT short-circuit and MUST delegate to the `$stream` passed as third argument exactly
-     * once. The only exception to this rule is throwing an exception, e.g. because the TLS settings used are
+     * A NetworkInterceptor SHOULD NOT short-circuit and SHOULD delegate to the `$stream` passed as third argument
+     * exactly once. The only exception to this is throwing an exception, e.g. because the TLS settings used are
      * unacceptable. If you need short circuits, use an {@see ApplicationInterceptor} instead.
      *
      * @param Request           $request
