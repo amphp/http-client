@@ -67,6 +67,40 @@ final class Http2Parser
     public const INADEQUATE_SECURITY = 0xc;
     public const HTTP_1_1_REQUIRED = 0xd;
 
+    public static function getFrameName(int $type): string
+    {
+        $names = [
+            self::DATA => 'DATA',
+            self::HEADERS => 'HEADERS',
+            self::PRIORITY => 'PRIORITY',
+            self::RST_STREAM => 'RST_STREAM',
+            self::SETTINGS => 'SETTINGS',
+            self::PUSH_PROMISE => 'PUSH_PROMISE',
+            self::PING => 'PING',
+            self::GOAWAY => 'GOAWAY',
+            self::WINDOW_UPDATE => 'WINDOW_UPDATE',
+            self::CONTINUATION => 'CONTINUATION',
+        ];
+
+        return $names[$type] ?? ('0x' . \bin2hex(\chr($type)));
+    }
+
+    public static function logDebugFrame(
+        string $action,
+        int $frameType,
+        int $frameFlags,
+        int $streamId,
+        int $frameLength
+    ): bool {
+        $env = \getenv("AMP_DEBUG_HTTP2_FRAMES") ?: "0";
+        if (($env !== "0" && $env !== "false") || (\defined("AMP_DEBUG_HTTP2_FRAMES") && \AMP_DEBUG_HTTP2_FRAMES)) {
+            \fwrite(\STDERR,
+                $action . ' ' . self::getFrameName($frameType) . ' <flags = ' . \bin2hex(\chr($frameFlags)) . ', stream = ' . $streamId . ', length = ' . $frameLength . '>' . "\r\n");
+        }
+
+        return true;
+    }
+
     /** @var string */
     private $buffer = '';
 
@@ -117,6 +151,8 @@ final class Http2Parser
             $streamId &= 0x7fffffff;
 
             $frameBuffer = $frameLength === 0 ? '' : yield from $this->consume($frameLength);
+
+            \assert(self::logDebugFrame('recv', $frameType, $frameFlags, $streamId, $frameLength));
 
             try {
                 // Do we want to allow increasing the maximum frame size?

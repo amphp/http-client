@@ -1025,6 +1025,8 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     private function writeFrame(int $type, int $flags = self::NO_FLAG, int $stream = 0, string $data = ''): Promise
     {
+        \assert(Http2Parser::logDebugFrame('send', $type, $flags, $stream, \strlen($data)));
+
         /** @noinspection PhpUnhandledExceptionInspection */
         return $this->socket->write(\substr(\pack("NccN", \strlen($data), $type, $flags, $stream), 1) . $data);
     }
