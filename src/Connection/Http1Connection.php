@@ -85,7 +85,7 @@ final class Http1Connection implements Connection
     /** @var TlsInfo|null */
     private $tlsInfo;
 
-    public function __construct(EncryptableSocket $socket, int $timeoutGracePeriod)
+    public function __construct(EncryptableSocket $socket, int $timeoutGracePeriod = 2000)
     {
         $this->socket = $socket;
         $this->localAddress = $socket->getLocalAddress();
