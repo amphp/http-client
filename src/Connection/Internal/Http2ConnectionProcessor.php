@@ -1191,10 +1191,10 @@ final class Http2ConnectionProcessor implements Http2Processor
         $stream = $this->streams[$streamId];
 
         $exception = $exception ?? new Http2StreamException(
-                "Stream closed unexpectedly",
-                $streamId,
-                self::INTERNAL_ERROR
-            );
+            "Stream closed unexpectedly",
+            $streamId,
+            self::INTERNAL_ERROR
+        );
 
         if ($stream->responsePending) {
             $stream->responsePending = false;

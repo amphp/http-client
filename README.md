@@ -9,12 +9,12 @@ This package provides an asynchronous HTTP client for PHP based on [Amp](https:/
 ## Features
 
  - Supports HTTP/1 and HTTP/2
- - [Requests concurrently by default](examples/concurrency/6-concurrent-requests.php)
- - [Pools persistent connections (keep-alive @ HTTP/1.1, multiplexing @ HTTP/2)](examples/pooling/10-connection-pooling.php)
+ - [Requests concurrently by default](examples/concurrency/1-concurrent-fetch.php)
+ - [Pools persistent connections (keep-alive @ HTTP/1.1, multiplexing @ HTTP/2)](examples/pooling/1-connection-count.php)
  - [Transparently follows redirects](https://amphp.org/http-client/follow-redirects)
- - [Decodes compressed entity bodies (gzip, deflate)](examples/basic/12-gzip.php)
+ - [Decodes compressed entity bodies (gzip, deflate)](examples/basic/7-gzip.php)
  - [Exposes headers and message data](examples/basic/1-get-request.php)
- - [Streams entity bodies for memory management with large transfers](examples/streaming/5-streaming-responses.php)
+ - [Streams entity bodies for memory management with large transfers](examples/streaming/1-large-response.php)
  - [Supports all standard and custom HTTP method verbs](https://amphp.org/http-client/requests#request-method)
  - [Simplifies HTTP form submissions](examples/basic/4-forms.php)
  - [Implements secure-by-default TLS (`https://`)](examples/basic/1-get-request.php)

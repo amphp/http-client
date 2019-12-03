@@ -94,8 +94,10 @@ final class Http2Parser
     ): bool {
         $env = \getenv("AMP_DEBUG_HTTP2_FRAMES") ?: "0";
         if (($env !== "0" && $env !== "false") || (\defined("AMP_DEBUG_HTTP2_FRAMES") && \AMP_DEBUG_HTTP2_FRAMES)) {
-            \fwrite(\STDERR,
-                $action . ' ' . self::getFrameName($frameType) . ' <flags = ' . \bin2hex(\chr($frameFlags)) . ', stream = ' . $streamId . ', length = ' . $frameLength . '>' . "\r\n");
+            \fwrite(
+                \STDERR,
+                $action . ' ' . self::getFrameName($frameType) . ' <flags = ' . \bin2hex(\chr($frameFlags)) . ', stream = ' . $streamId . ', length = ' . $frameLength . '>' . "\r\n"
+            );
         }
 
         return true;
