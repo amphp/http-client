@@ -328,13 +328,13 @@ final class Http1Connection implements Connection
                     return $this->handleUpgradeResponse($request, $response, $parser->getBuffer());
                 }
 
-                if ($status < Http\Status::OK) { // 1XX responses (excluding 101, handled above)
+                if ($status < 200) { // 1XX responses (excluding 101, handled above)
                     $chunk = $parser->getBuffer();
                     $parser = new Http1Parser($request, $bodyCallback, $trailersCallback);
                     goto parseChunk;
                 }
 
-                if ($status >= Http\Status::OK && $status < Http\Status::MULTIPLE_CHOICES && $request->getMethod() === 'CONNECT') {
+                if ($status >= 200 && $status < 300 && $request->getMethod() === 'CONNECT') {
                     $trailersDeferred->resolve($trailers);
                     return $this->handleUpgradeResponse($request, $response, $parser->getBuffer());
                 }
@@ -449,20 +449,22 @@ final class Http1Connection implements Connection
 
     private function handleUpgradeResponse(Request $request, Response $response, string $buffer): Response
     {
-        if (($onUpgrade = $request->getUpgradeHandler()) === null) {
-            throw new HttpException('CONNECT or upgrade request made without upgrade handler callback');
-        }
-
         $socket = new UpgradedSocket($this->socket, $buffer);
         $this->free(); // Mark this connection as unusable without closing socket.
+
+        if (($onUpgrade = $request->getUpgradeHandler()) === null) {
+            $socket->close();
+
+            throw new HttpException('CONNECT or upgrade request made without upgrade handler callback');
+        }
 
         asyncCall(static function () use ($onUpgrade, $socket, $request, $response): \Generator {
             try {
                 yield call($onUpgrade, $socket, $request, $response);
             } catch (\Throwable $exception) {
-                throw new HttpException('Upgrade handler threw an exception', 0, $exception);
-            } finally {
                 $socket->close();
+
+                throw new HttpException('Upgrade handler threw an exception', 0, $exception);
             }
         });
 
