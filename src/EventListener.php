@@ -116,4 +116,14 @@ interface EventListener
      * @return Promise Should resolve successfully, otherwise aborts the request.
      */
     public function completeReceivingResponse(Request $request, Stream $stream): Promise;
+
+    /**
+     * Called if the request is aborted.
+     *
+     * @param Request    $request
+     * @param \Throwable $cause
+     *
+     * @return Promise Should resolve successfully.
+     */
+    public function abort(Request $request, \Throwable $cause): Promise;
 }

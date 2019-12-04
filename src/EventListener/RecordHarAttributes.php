@@ -86,4 +86,9 @@ final class RecordHarAttributes implements EventListener
 
         return new Success;
     }
+
+    public function abort(Request $request, \Throwable $cause): Promise
+    {
+        return new Success;
+    }
 }

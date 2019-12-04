@@ -834,12 +834,20 @@ final class Http2ConnectionProcessor implements Http2Processor
         $request->setProtocolVersions(['2']);
 
         if ($this->socket->isClosed()) {
-            return new Failure(new UnprocessedRequestException(
+            $exception = new UnprocessedRequestException(
                 new SocketException(\sprintf(
                     "Socket to '%s' closed before the request could be sent",
                     $this->socket->getRemoteAddress()
                 ))
-            ));
+            );
+
+            return call(static function () use ($request, $exception) {
+                foreach ($request->getEventListeners() as $eventListener) {
+                    yield $eventListener->abort($request, $exception);
+                }
+
+                throw $exception;
+            });
         }
 
         $streamId = $this->streamId += 2; // Client streams should be odd-numbered, starting at 1.
@@ -1196,23 +1204,38 @@ final class Http2ConnectionProcessor implements Http2Processor
             self::INTERNAL_ERROR
         );
 
-        if ($stream->responsePending) {
-            $stream->responsePending = false;
-            $pendingResponse = $stream->pendingResponse;
-            $stream->pendingResponse = null;
-            $pendingResponse->fail($exception);
-        }
+        if ($stream->responsePending || $stream->body || $stream->trailers) {
+            /** @var Deferred[]|Emitter[] $deferredAndEmitter */
+            $deferredAndEmitter = [];
 
-        if ($stream->body) {
-            $body = $stream->body;
-            $stream->body = null;
-            $body->fail($exception);
-        }
+            if ($stream->responsePending) {
+                $stream->responsePending = false;
+                $deferredAndEmitter[] = $stream->pendingResponse;
+                $stream->pendingResponse = null;
+            }
 
-        if ($stream->trailers) {
-            $trailers = $stream->trailers;
-            $stream->trailers = null;
-            $trailers->fail($exception);
+            if ($stream->body) {
+                $deferredAndEmitter[] = $stream->body;
+                $stream->body = null;
+            }
+
+            if ($stream->trailers) {
+                $deferredAndEmitter[] = $stream->trailers;
+                $stream->trailers = null;
+            }
+
+            $request = $stream->request;
+            asyncCall(static function () use ($request, $deferredAndEmitter, $exception) {
+                try {
+                    foreach ($request->getEventListeners() as $eventListener) {
+                        yield $eventListener->abort($request, $exception);
+                    }
+                } finally {
+                    foreach ($deferredAndEmitter as $deferredOrEmitter) {
+                        $deferredOrEmitter->fail($exception);
+                    }
+                }
+            });
         }
 
         unset($this->streams[$streamId]);

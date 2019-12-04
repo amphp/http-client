@@ -223,6 +223,12 @@ final class Http1Connection implements Connection
                 }
 
                 return yield from $this->readResponse($request, $cancellation, $combinedCancellation, $stream);
+            } catch (\Throwable $e) {
+                foreach ($request->getEventListeners() as $eventListener) {
+                    yield $eventListener->abort($request, $e);
+                }
+
+                throw $e;
             } finally {
                 $combinedCancellation->unsubscribe($id);
                 $cancellation->throwIfRequested();
@@ -324,7 +330,12 @@ final class Http1Connection implements Connection
                         throw new HttpException('Switching protocols response missing "Upgrade" header');
                     }
 
+                    foreach ($request->getEventListeners() as $eventListener) {
+                        yield $eventListener->completeReceivingResponse($request, $stream);
+                    }
+
                     $trailersDeferred->resolve($trailers);
+
                     return $this->handleUpgradeResponse($request, $response, $parser->getBuffer());
                 }
 
@@ -335,7 +346,12 @@ final class Http1Connection implements Connection
                 }
 
                 if ($status >= 200 && $status < 300 && $request->getMethod() === 'CONNECT') {
+                    foreach ($request->getEventListeners() as $eventListener) {
+                        yield $eventListener->completeReceivingResponse($request, $stream);
+                    }
+
                     $trailersDeferred->resolve($trailers);
+
                     return $this->handleUpgradeResponse($request, $response, $parser->getBuffer());
                 }
 
@@ -422,8 +438,14 @@ final class Http1Connection implements Connection
                     } catch (\Throwable $e) {
                         $this->close();
 
-                        $bodyEmitter->fail($e);
-                        $trailersDeferred->fail($e);
+                        try {
+                            foreach ($request->getEventListeners() as $eventListener) {
+                                yield $eventListener->abort($request, $e);
+                            }
+                        } finally {
+                            $bodyEmitter->fail($e);
+                            $trailersDeferred->fail($e);
+                        }
                     } finally {
                         $bodyCancellationToken->unsubscribe($id);
                     }
