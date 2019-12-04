@@ -289,6 +289,7 @@ final class Http1Connection implements Connection
 
         $parser = new Http1Parser($request, $bodyCallback, $trailersCallback);
 
+        $start = getCurrentTime();
         $firstRead = true;
 
         try {
@@ -433,7 +434,14 @@ final class Http1Connection implements Connection
 
             $originalCancellation->throwIfRequested();
 
-            throw new SocketException('Receiving the response headers failed, because the socket closed early');
+            throw new SocketException(\sprintf(
+                "Receiving the response headers for '%s' failed, because the socket to '%s' @ '%s' closed early with %d bytes received within %d milliseconds",
+                $request->getUri()->withUserInfo(''),
+                $request->getUri()->withUserInfo('')->getAuthority(),
+                $this->socket->getRemoteAddress(),
+                \strlen($parser->getBuffer()),
+                getCurrentTime() - $start
+            ));
         } catch (StreamException $e) {
             throw new SocketException('Receiving the response headers failed: ' . $e->getMessage());
         }
