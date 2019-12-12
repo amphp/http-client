@@ -2,7 +2,7 @@
 title: An Asynchronous HTTP Client for PHP
 permalink: /
 ---
-`amphp/http-client` is an asynchronous HTTP/1.1 and HTTP/2 client for PHP based on Amp. Its API simplifies standards-compliant HTTP resource traversal and RESTful web service consumption without obscuring the underlying protocol. The library manually implements HTTP over TCP sockets; as such it has no dependency on `ext/curl`.
+`amphp/http-client` is an asynchronous HTTP/1 and HTTP/2 client for PHP based on Amp. Its API simplifies standards-compliant HTTP resource traversal and RESTful web service consumption without obscuring the underlying protocol. The library manually implements HTTP over TCP sockets; as such it has no dependency on `ext/curl`.
 
 ## Features
 
@@ -28,7 +28,7 @@ composer require amphp/http-client
 
 ## Usage
 
-The main interaction point with this library is the `HttpClient` interface.
+The main interaction point with this library is the `HttpClient` class.
 `HttpClient` instances can be built using `HttpClientBuilder` without knowing about the exiting implementations of the `HttpClient` interface.
 
 `HttpClientBuilder` allows to register two kinds of [interceptors](./interceptors.md), which allows customizing the `HttpClient` behavior in a composable fashion without writing another client implementation.
@@ -40,12 +40,15 @@ In its simplest form, the HTTP client takes a request with an URL as string and 
 ```php
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\Request;
+use Amp\Loop;
 
-$client = HttpClientBuilder::buildDefault();
+Loop::run(function () {
+    $client = HttpClientBuilder::buildDefault();
 
-$response = yield $client->request(new Request("https://httpbin.org/get"));
+    $response = yield $client->request(new Request("https://httpbin.org/get"));
 
-var_dump($response->getStatus());
-var_dump($response->getHeaders());
-var_dump(yield $response->getBody()->buffer());
+    var_dump($response->getStatus());
+    var_dump($response->getHeaders());
+    var_dump(yield $response->getBody()->buffer());
+});
 ```

@@ -2,13 +2,13 @@
 title: Requests
 permalink: /requests
 ---
-The `HttpClient` interface requires a `Request` being passed as first argument to `HttpClient::request()`.
+The `HttpClient` requires a `Request` being passed as first argument to `request()`.
 The `Request` class can be used to specify further specifics of the request such as setting headers or changing the request method.
 
 {:.note}
 > `Request` objects are mutable (instead of immutable as in `amphp/artax` / PSR-7).
 >
-> Cloning `Request` objects will result in a deep clone, but you usually don't have to manually clone a `Request`, because every `HttpClient` implementation automatically clones the `Request` when `HttpClient::request()` is called.
+> Cloning `Request` objects will result in a deep clone, but doing so is usually only required if requests are retried or cloned for sub-requests.
 
 ## Request URI
 
@@ -37,7 +37,7 @@ $request->setMethod("PUT");
 ## Request Headers
 
 `Request::setHeader(string $field, string $value)` allows changing the request headers. It will remove any previous values for that field. `Request::addHeader(string $field, string $value)` allows adding an additional header line without removing existing lines.
- 
+
 `Request::setHeaders(array $headers)` allows adding multiple headers at once with the array keys being the field names and the values being the header values. The header values can also be arrays of strings to set multiple header lines.
 
 `Request::hasHeader(string $field)` checks whether at least one header line with the given name exists.
@@ -50,7 +50,7 @@ $request->setMethod("PUT");
 
 ```php
 $request = new Request("https://httpbin.org/post", "POST");
-$request->setHeader("X-Foobar", "Hello World")
+$request->setHeader("X-Foobar", "Hello World");
 $request->setBody("foobar");
 ```
 
@@ -59,7 +59,7 @@ $request->setBody("foobar");
 `Request::setBody($body)` allows changing the request body. Accepted types are `string`, `null`, and `RequestBody`. `string` and `null` are automatically converted to an instance of `RequestBody`.
 
 {:.note}
-> `RequestBody` is basically a factory for request bodies. We cannot simply accept streams there, because a request body might have to be sent again on a redirect / retry. Additionally, `RequestBody` allows the body to set headers, which can be used to automatically set headers such as `Content-Type: application/json` for a `JsonBody`. Note that headers set via `RequestBody::getHeaders()` are only applied if the `Request` doesn't have such a header. This allows overriding the default body header in a request. 
+> `RequestBody` is basically a factory for request bodies. We cannot simply accept streams here, because a request body might have to be sent again on a redirect / retry. Additionally, `RequestBody` allows the body to set headers, which can be used to automatically set headers such as `Content-Type: application/json` for a `JsonBody`. Note that headers set via `RequestBody::getHeaders()` are only applied if the `Request` doesn't have such a header. This allows overriding the default body header in a request.
 
 ```php
 $request = new Request("https://httpbin.org/post", "POST");

@@ -3,7 +3,7 @@ title: Concurrent Requests
 permalink: /concurrent
 description: HTTP client allows making multiple requests concurrently. It leverages non-blocking I/O like all other Amp libraries for that.
 ---
-The HTTP client allows making multiple requests in parallel. It leverages non-blocking I/O like all other Amp libraries for that.
+The HTTP client allows making multiple requests concurrently. It leverages non-blocking I/O like all other Amp libraries for that.
 Instead of sending one request, waiting for the response, then doing something different like sending another request, we can use the time we're usually waiting for the server to respond to send a second request to another (or the same) server.
 
 {:.table-no-border .table-full-width .table-text-center}

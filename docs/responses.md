@@ -32,8 +32,8 @@ var_dump($response->getProtocolVersion());
 Response headers can be accessed by a set of methods.
 
  * `hasHeader(string)` returns whether a given header is present.
- * `getHeader(string)` returns the first header line of the specified header or `null` if it doesn't exist.
- * `getHeaderArray(string)` returns all header lines, possibly an empty array.
+ * `getHeader(string)` returns the first header with the given name or `null` if no such header is present.
+ * `getHeaderArray(string)` returns all headers with the given name, possibly an empty array.
  * `getHeaders()` returns all headers as an associative array, see below.
 
 **`getHeaders()` Format**
