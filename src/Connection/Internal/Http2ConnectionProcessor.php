@@ -1411,12 +1411,18 @@ final class Http2ConnectionProcessor implements Http2Processor
             $authority .= ':' . $port;
         }
 
-        $headers = \array_merge([
-            ":authority" => [$authority],
-            ":path" => [$path],
-            ":scheme" => [$uri->getScheme()],
-            ":method" => [$request->getMethod()],
-        ], $request->getHeaders());
+        $headers = [
+            [":authority", $authority],
+            [":path", $path],
+            [":scheme", $uri->getScheme()],
+            [":method", $request->getMethod()],
+        ];
+
+        foreach ($request->getHeaders() as $field => $values) {
+            foreach ($values as $value) {
+                $headers[] = [$field, $value];
+            }
+        }
 
         return $headers;
     }

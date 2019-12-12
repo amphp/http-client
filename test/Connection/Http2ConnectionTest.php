@@ -22,38 +22,6 @@ class Http2ConnectionTest extends AsyncTestCase
         return \substr(\pack("NccN", \strlen($data), $type, $flags, $stream), 1) . $data;
     }
 
-    public static function packHeader(
-        array $headers,
-        bool $continue = false,
-        int $stream = 1,
-        int $split = \PHP_INT_MAX
-    ): string {
-        $data = "";
-        $hpack = new HPack;
-        $headers = $hpack->encode($headers);
-        $all = \str_split($headers, $split);
-        if ($split !== PHP_INT_MAX) {
-            $flag = Http2Parser::PADDED;
-            $len = 1;
-            $all[0] = \chr($len) . $all[0] . \str_repeat("\0", $len);
-        } else {
-            $flag = 0;
-        }
-
-        $end = \array_pop($all);
-        $type = Http2Parser::HEADERS;
-
-        foreach ($all as $frame) {
-            $data .= self::packFrame($frame, $type, $flag, $stream);
-            $type = Http2Parser::CONTINUATION;
-            $flag = 0;
-        }
-
-        $flags = ($continue ? $flag : Http2Parser::END_STREAM | $flag) | Http2Parser::END_HEADERS;
-
-        return $data . self::packFrame($end, $type, $flags, $stream);
-    }
-
     public function test100Continue(): \Generator
     {
         $hpack = new HPack;
@@ -72,13 +40,13 @@ class Http2ConnectionTest extends AsyncTestCase
         $stream = yield $connection->getStream($request);
 
         $server->write(self::packFrame($hpack->encode([
-            ":status" => Status::CONTINUE,
-            "date" => [formatDateHeader()],
+            [":status", Status::CONTINUE],
+            ["date", formatDateHeader()],
         ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS, 1));
 
         $server->write(self::packFrame($hpack->encode([
-            ":status" => Status::NO_CONTENT,
-            "date" => [formatDateHeader()],
+            [":status", Status::NO_CONTENT],
+            ["date", formatDateHeader()],
         ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS | Http2Parser::END_STREAM, 1));
 
         /** @var Response $response */
@@ -105,8 +73,8 @@ class Http2ConnectionTest extends AsyncTestCase
         $stream = yield $connection->getStream($request);
 
         $server->write(self::packFrame($hpack->encode([
-            ":status" => Status::SWITCHING_PROTOCOLS,
-            "date" => [formatDateHeader()],
+            [":status", Status::SWITCHING_PROTOCOLS],
+            ["date", formatDateHeader()],
         ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS, 1));
 
         $this->expectException(Http2ConnectionException::class);
@@ -136,10 +104,10 @@ class Http2ConnectionTest extends AsyncTestCase
             yield delay(100);
 
             $server->write(self::packFrame($hpack->encode([
-                ":status" => Status::OK,
-                "content-length" => ["4"],
-                "trailers" => ["Foo"],
-                "date" => [formatDateHeader()],
+                [":status", Status::OK],
+                ["content-length", "4"],
+                ["trailers", "Foo"],
+                ["date", formatDateHeader()],
             ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS, 1));
 
             yield delay(100);
@@ -149,7 +117,7 @@ class Http2ConnectionTest extends AsyncTestCase
             yield delay(100);
 
             $server->write(self::packFrame($hpack->encode([
-                "foo" => ['bar'],
+                ["foo", 'bar'],
             ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS | Http2Parser::END_STREAM, 1));
         });
 
@@ -182,9 +150,9 @@ class Http2ConnectionTest extends AsyncTestCase
         $stream = yield $connection->getStream($request);
 
         $server->write(self::packFrame($hpack->encode([
-            ":status" => Status::OK,
-            "content-length" => ["4"],
-            "date" => [formatDateHeader()],
+            [":status", Status::OK],
+            ["content-length", "4"],
+            ["date", formatDateHeader()],
         ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS, 1));
 
         $server->write(self::packFrame('test', Http2Parser::DATA, Http2Parser::END_STREAM, 1));
