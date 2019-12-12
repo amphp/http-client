@@ -833,6 +833,18 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         $request->setProtocolVersions(['2']);
 
+        if ($request->getMethod() === 'CONNECT') {
+            $exception = new HttpException("CONNECT requests are currently not supported on HTTP/2");
+
+            return call(static function () use ($request, $exception) {
+                foreach ($request->getEventListeners() as $eventListener) {
+                    yield $eventListener->abort($request, $exception);
+                }
+
+                throw $exception;
+            });
+        }
+
         if ($this->socket->isClosed()) {
             $exception = new UnprocessedRequestException(
                 new SocketException(\sprintf(

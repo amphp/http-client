@@ -66,37 +66,28 @@ final class DefaultConnectionFactory implements ConnectionFactory
             $authority = $host . ':' . $port;
             $protocolVersions = $request->getProtocolVersions();
 
-            if (!\array_intersect($protocolVersions, ['1.0', '1.1', '2'])) {
-                throw new InvalidRequestException(
-                    $request,
-                    \sprintf(
-                        "None of the requested protocol versions (%s) are supported by %s",
-                        \implode(', ', $protocolVersions),
-                        self::class
-                    )
-                );
-            }
-
-            if (!$isHttps && !\array_intersect($protocolVersions, ['1.0', '1.1'])) {
-                throw new InvalidRequestException(
-                    $request,
-                    \sprintf(
-                        "None of the requested protocol versions (%s) are supported by %s (HTTP/2 is only supported on HTTPS)",
-                        \implode(', ', $protocolVersions),
-                        self::class
-                    )
-                );
-            }
+            $isConnect = $request->getMethod() === 'CONNECT';
 
             if ($isHttps) {
                 $protocols = [];
 
-                if (\in_array('2', $protocolVersions, true)) {
+                if (!$isConnect && \in_array('2', $protocolVersions, true)) {
                     $protocols[] = 'h2';
                 }
 
                 if (\in_array('1.1', $protocolVersions, true) || \in_array('1.0', $protocolVersions, true)) {
                     $protocols[] = 'http/1.1';
+                }
+
+                if (!$protocols) {
+                    throw new InvalidRequestException(
+                        $request,
+                        \sprintf(
+                            "None of the requested protocol versions (%s) are supported by %s (HTTP/2 is only supported on HTTPS)",
+                            \implode(', ', $protocolVersions),
+                            self::class
+                        )
+                    );
                 }
 
                 $tlsContext = ($connectContext->getTlsContext() ?? new ClientTlsContext(''))
