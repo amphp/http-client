@@ -565,7 +565,7 @@ final class Http1Connection implements Connection
         $bodyLength = yield $body->getBodyLength();
 
         if ($bodyLength === 0) {
-            if ($request->getHeader('upgrade') === 'websocket') {
+            if ($request->hasHeader('upgrade')) {
                 $request->removeHeader('content-length');
             } else {
                 $request->setHeader('content-length', '0');
