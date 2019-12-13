@@ -63,7 +63,7 @@ final class RequestNormalizer
         $bodyLength = yield $body->getBodyLength();
 
         if ($bodyLength === 0) {
-            if (!\in_array($request->getMethod(), ['HEAD', 'GET', 'CONNECT'], true)) {
+            if (\in_array($request->getMethod(), ['HEAD', 'GET', 'CONNECT'], true)) {
                 $request->removeHeader('content-length');
             } else {
                 $request->setHeader('content-length', '0');
