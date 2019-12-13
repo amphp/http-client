@@ -821,68 +821,66 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     public function request(Request $request, CancellationToken $cancellationToken, Stream $stream): Promise
     {
-        $this->idlePings = 0;
-        $this->cancelIdleWatcher();
+        return call(function () use ($request, $cancellationToken, $stream): \Generator {
+            $this->idlePings = 0;
+            $this->cancelIdleWatcher();
 
-        // Remove defunct HTTP/1.x headers.
-        $request->removeHeader('host');
-        $request->removeHeader('connection');
-        $request->removeHeader('keep-alive');
-        $request->removeHeader('transfer-encoding');
-        $request->removeHeader('upgrade');
+            yield RequestNormalizer::normalizeRequest($request);
 
-        $request->setProtocolVersions(['2']);
+            // Remove defunct HTTP/1.x headers.
+            $request->removeHeader('host');
+            $request->removeHeader('connection');
+            $request->removeHeader('keep-alive');
+            $request->removeHeader('transfer-encoding');
+            $request->removeHeader('upgrade');
 
-        if ($request->getMethod() === 'CONNECT') {
-            $exception = new HttpException("CONNECT requests are currently not supported on HTTP/2");
+            $request->setProtocolVersions(['2']);
 
-            return call(static function () use ($request, $exception) {
+            if ($request->getMethod() === 'CONNECT') {
+                $exception = new HttpException("CONNECT requests are currently not supported on HTTP/2");
+
                 foreach ($request->getEventListeners() as $eventListener) {
                     yield $eventListener->abort($request, $exception);
                 }
 
                 throw $exception;
-            });
-        }
+            }
 
-        if ($this->socket->isClosed()) {
-            $exception = new UnprocessedRequestException(
-                new SocketException(\sprintf(
-                    "Socket to '%s' closed before the request could be sent",
-                    $this->socket->getRemoteAddress()
-                ))
-            );
+            if ($this->socket->isClosed()) {
+                $exception = new UnprocessedRequestException(
+                    new SocketException(\sprintf(
+                        "Socket to '%s' closed before the request could be sent",
+                        $this->socket->getRemoteAddress()
+                    ))
+                );
 
-            return call(static function () use ($request, $exception) {
                 foreach ($request->getEventListeners() as $eventListener) {
                     yield $eventListener->abort($request, $exception);
                 }
 
                 throw $exception;
-            });
-        }
+            }
 
-        $streamId = $this->streamId += 2; // Client streams should be odd-numbered, starting at 1.
+            $streamId = $this->streamId += 2; // Client streams should be odd-numbered, starting at 1.
 
-        $this->streams[$streamId] = $http2stream = new Http2Stream(
-            $streamId,
-            $request,
-            $stream,
-            $cancellationToken,
-            self::DEFAULT_WINDOW_SIZE,
-            $this->initialWindowSize
-        );
-
-        if ($request->getTransferTimeout() > 0) {
-            // Cancellation token combined with timeout token should not be stored in $stream->cancellationToken,
-            // otherwise the timeout applies to the body transfer and pushes.
-            $cancellationToken = new CombinedCancellationToken(
+            $this->streams[$streamId] = $http2stream = new Http2Stream(
+                $streamId,
+                $request,
+                $stream,
                 $cancellationToken,
-                new TimeoutCancellationToken($request->getTransferTimeout())
+                self::DEFAULT_WINDOW_SIZE,
+                $this->initialWindowSize
             );
-        }
 
-        return call(function () use ($streamId, $request, $cancellationToken, $stream, $http2stream): \Generator {
+            if ($request->getTransferTimeout() > 0) {
+                // Cancellation token combined with timeout token should not be stored in $stream->cancellationToken,
+                // otherwise the timeout applies to the body transfer and pushes.
+                $cancellationToken = new CombinedCancellationToken(
+                    $cancellationToken,
+                    new TimeoutCancellationToken($request->getTransferTimeout())
+                );
+            }
+
             $this->socket->reference();
 
             $onCancel = function (CancelledException $exception) use ($streamId): void {
@@ -1397,13 +1395,6 @@ final class Http2ConnectionProcessor implements Http2Processor
         $query = $uri->getQuery();
         if ($query !== '') {
             $path .= '?' . $query;
-        }
-
-        $headers = yield $request->getBody()->getHeaders();
-        foreach ($headers as $name => $header) {
-            if (!$request->hasHeader($name)) {
-                $request->setHeaders([$name => $header]);
-            }
         }
 
         $authority = $uri->getHost();

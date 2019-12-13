@@ -12,6 +12,7 @@ use Amp\Deferred;
 use Amp\Emitter;
 use Amp\Http;
 use Amp\Http\Client\Connection\Internal\Http1Parser;
+use Amp\Http\Client\Connection\Internal\RequestNormalizer;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
@@ -196,8 +197,8 @@ final class Http1Connection implements Connection
                 $this->timeoutWatcher = null;
             }
 
-            /** @var Request $request */
-            $request = yield from $this->buildRequest($request);
+            yield RequestNormalizer::normalizeRequest($request);
+
             $protocolVersion = $this->determineProtocolVersion($request);
 
             $request->setProtocolVersions([$protocolVersion]);
@@ -228,6 +229,8 @@ final class Http1Connection implements Connection
                     yield $eventListener->abort($request, $e);
                 }
 
+                $this->socket->close();
+
                 throw $e;
             } finally {
                 $combinedCancellation->unsubscribe($id);
@@ -239,25 +242,6 @@ final class Http1Connection implements Connection
     private function release(): void
     {
         $this->busy = false;
-    }
-
-    private function buildRequest(Request $request): \Generator
-    {
-        /** @var array $headers */
-        $headers = yield $request->getBody()->getHeaders();
-        foreach ($headers as $name => $header) {
-            if (!$request->hasHeader($name)) {
-                $request->setHeaders([$name => $header]);
-            }
-        }
-
-        /** @var Request $request */
-        $request = yield from $this->normalizeRequestBodyHeaders($request);
-
-        // Always normalize this as last item, because we need to strip sensitive headers
-        $request = $this->normalizeTraceRequest($request);
-
-        return $request;
     }
 
     /**
@@ -530,75 +514,6 @@ final class Http1Connection implements Connection
         });
 
         return $newPromise;
-    }
-
-    private function normalizeRequestBodyHeaders(Request $request): \Generator
-    {
-        if ($request->hasHeader('host')) {
-            $host = $request->getHeader('host');
-        } else {
-            $host = $request->getUri()->withUserInfo('')->getAuthority();
-        }
-
-        // Though servers are supposed to be able to handle standard port names on the end of the
-        // Host header some fail to do this correctly. As a result, we strip the port from the end
-        // if it's a standard 80 or 443
-        if ($request->getUri()->getScheme() === 'http' && \strpos($host, ':80') === \strlen($host) - 3) {
-            $request->setHeader('host', \substr($host, 0, -3));
-        } elseif ($request->getUri()->getScheme() === 'https' && \strpos($host, ':443') === \strlen($host) - 4) {
-            $request->setHeader('host', \substr($host, 0, -4));
-        } else {
-            $request->setHeader('host', $host);
-        }
-
-        if ($request->hasHeader("transfer-encoding")) {
-            $request->removeHeader("content-length");
-            return $request;
-        }
-
-        if ($request->hasHeader("content-length")) {
-            return $request;
-        }
-
-        /** @var RequestBody $body */
-        $body = $request->getBody();
-        $bodyLength = yield $body->getBodyLength();
-
-        if ($bodyLength === 0) {
-            $request->setHeader('content-length', '0');
-            $request->removeHeader('transfer-encoding');
-        } elseif ($bodyLength > 0) {
-            $request->setHeader("content-length", $bodyLength);
-            $request->removeHeader("transfer-encoding");
-        } else {
-            $request->setHeader("transfer-encoding", "chunked");
-        }
-
-        return $request;
-    }
-
-    private function normalizeTraceRequest(Request $request): Request
-    {
-        $method = $request->getMethod();
-
-        if ($method !== 'TRACE') {
-            return $request;
-        }
-
-        // https://tools.ietf.org/html/rfc7231#section-4.3.8
-        /** @var Request $request */
-        $request->setBody(null);
-
-        // Remove all body and sensitive headers
-        $request->setHeaders([
-            "transfer-encoding" => [],
-            "content-length" => [],
-            "authorization" => [],
-            "proxy-authorization" => [],
-            "cookie" => [],
-        ]);
-
-        return $request;
     }
 
     private function determineKeepAliveTimeout(Response $response): int
