@@ -563,9 +563,11 @@ final class Http1Connection implements Connection
         /** @var RequestBody $body */
         $body = $request->getBody();
         $bodyLength = yield $body->getBodyLength();
-        
+
         if ($bodyLength === 0) {
-            if ($request->getHeader('upgrade') !== 'websocket') {
+            if ($request->getHeader('upgrade') === 'websocket') {
+                $request->removeHeader('content-length');
+            } else {
                 $request->setHeader('content-length', '0');
             }
             $request->removeHeader('transfer-encoding');
