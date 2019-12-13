@@ -895,7 +895,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             $cancellationId = $cancellationToken->subscribe($onCancel);
 
             try {
-                $headers = yield from $this->generateHeaders($request);
+                $headers = $this->generateHeaders($request);
                 $headers = $this->hpack->encode($headers);
                 $body = $request->getBody()->createBodyStream();
 
@@ -1383,7 +1383,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         });
     }
 
-    private function generateHeaders(Request $request): \Generator
+    private function generateHeaders(Request $request): array
     {
         $uri = $request->getUri();
 

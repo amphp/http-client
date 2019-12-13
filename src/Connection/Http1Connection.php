@@ -20,7 +20,6 @@ use Amp\Http\Client\Internal\ResponseBodyStream;
 use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\ParseException;
 use Amp\Http\Client\Request;
-use Amp\Http\Client\RequestBody;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\SocketException;
 use Amp\Http\Client\TimeoutException;
