@@ -33,19 +33,10 @@ final class RequestNormalizer
     private static function normalizeRequestBodyHeaders(Request $request): \Generator
     {
         if (!$request->hasHeader('host')) {
-            $uri = $request->getUri();
-            $scheme = $uri->getScheme();
-            $host = $uri->getHost();
-            $port = $uri->getPort();
-
             // Though servers are supposed to be able to handle standard port names on the end of the
-            // Host header some fail to do this correctly. As a result, we strip the port from the end
-            // if it's a standard 80 or 443
-            if (($scheme === 'http' && $port === 80) || ($scheme === 'https' && $port === 443)) {
-                $request->setHeader('host', $host);
-            } else {
-                $request->setHeader('host', $host . ':' . $port);
-            }
+            // Host header some fail to do this correctly. Thankfully PSR-7 recommends to strip the port
+            // if it is the standard port for the given scheme.
+            $request->setHeader('host', $request->getUri()->withUserInfo('')->getAuthority());
         }
 
         if ($request->hasHeader("transfer-encoding")) {
