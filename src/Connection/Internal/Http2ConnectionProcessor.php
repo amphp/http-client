@@ -376,7 +376,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         if (!\preg_match("/^[1-5]\d\d$/", $pseudo[":status"])) {
             $this->handleStreamException(new Http2StreamException(
-                "Invalid response status code",
+                "Invalid response status code: " . $pseudo[':status'],
                 $streamId,
                 self::PROTOCOL_ERROR
             ));
