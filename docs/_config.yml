@@ -32,3 +32,4 @@ navigation:
  - follow-redirects
  - concurrent
  - streaming
+ - logging
