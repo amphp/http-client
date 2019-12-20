@@ -29,6 +29,8 @@ This package can be installed as a [Composer](https://getcomposer.org/) dependen
 composer require amphp/http-client
 ```
 
+Additionally, you might want to install the `nghttp2` library to take advantage of FFI to speed up and reduce the memory usage on PHP 7.4.
+
 ## Documentation
 
 Documentation is bundled within this repository in the [`docs`](./docs) directory.
