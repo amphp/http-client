@@ -45,8 +45,8 @@
         "amphp/http-server": "dev-master"
     },
     "suggest": {
-        "ext-zlib": "*",
-        "ext-json": "*",
+        "ext-zlib": "Allows using compression for response bodies.",
+        "ext-json": "Required for logging HTTP archives",
         "amphp/file": "Required for file request bodies and HTTP archive logging"
     },
     "autoload": {
