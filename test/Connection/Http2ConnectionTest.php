@@ -2,11 +2,12 @@
 
 namespace Amp\Http\Client\Connection;
 
-use Amp\Http\Client\Connection\Internal\Http2Parser;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\Trailers;
 use Amp\Http\HPack;
+use Amp\Http\Http2\Http2ConnectionException;
+use Amp\Http\Http2\Http2Parser;
 use Amp\Http\Status;
 use Amp\NullCancellationToken;
 use Amp\PHPUnit\AsyncTestCase;

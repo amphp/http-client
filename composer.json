@@ -30,7 +30,7 @@
         "amphp/amp": "^2.4",
         "amphp/byte-stream": "^1.6",
         "amphp/hpack": "^3",
-        "amphp/http": "^1.5",
+        "amphp/http": "^1.6-rc1",
         "amphp/socket": "^1",
         "amphp/sync": "^1.3",
         "league/uri": "^6",
@@ -42,7 +42,7 @@
         "amphp/phpunit-util": "^1.1",
         "amphp/php-cs-fixer-config": "dev-master",
         "phpunit/phpunit": "^7 || ^8",
-        "amphp/http-server": "dev-master"
+        "amphp/http-server": "^2-rc4"
     },
     "suggest": {
         "ext-zlib": "Allows using compression for response bodies.",
