@@ -312,8 +312,13 @@ final class Http2Parser
 
     private function parseHeaderBuffer(array $knownHeaders): array
     {
-        \assert($this->headerStream !== 0);
-        \assert($this->headerBuffer !== '');
+        if ($this->headerStream === 0) {
+            throw new Http2ConnectionException('Invalid stream ID 0 for header block', self::PROTOCOL_ERROR);
+        }
+
+        if ($this->headerBuffer === '') {
+            throw new Http2StreamException('Invalid empty header section', $this->headerStream, self::PROTOCOL_ERROR);
+        }
 
         $decoded = $this->hpack->decode($this->headerBuffer, $this->headerSizeLimit);
 
