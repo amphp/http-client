@@ -270,7 +270,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         $this->writeBufferedData($stream);
     }
 
-    public function handleConnectionWindowIncrement($windowSize): void
+    public function handleConnectionWindowIncrement(int $windowSize): void
     {
         if ($this->clientWindow + $windowSize > (2 << 30) - 1) {
             $this->handleConnectionException(new Http2ConnectionException(
