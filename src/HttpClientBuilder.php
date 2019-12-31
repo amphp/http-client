@@ -39,6 +39,10 @@ final class HttpClientBuilder
     private $networkInterceptors = [];
     /** @var ConnectionPool */
     private $pool;
+    private $headersIfUnset = [
+        'accept' => '*/*',
+        'user-agent' => 'amphp/http-client @ v4.x',
+    ];
 
     public function __construct()
     {
@@ -57,8 +61,10 @@ final class HttpClientBuilder
             $client = $client->intercept($interceptor);
         }
 
-        $client = $client->intercept(new SetRequestHeaderIfUnset('accept', '*/*'));
-        $client = $client->intercept(new SetRequestHeaderIfUnset('user-agent', 'amphp/http-client @ v4.x'));
+        foreach ($this->headersIfUnset as $header => $value) {
+            $client = $client->intercept(new SetRequestHeaderIfUnset($header, $value));
+        }
+
         $client = $client->intercept(new DecompressResponse);
 
         $applicationInterceptors = $this->applicationInterceptors;
@@ -179,6 +185,28 @@ final class HttpClientBuilder
     {
         $builder = clone $this;
         $builder->forbidUriUserInfo = null;
+
+        return $builder;
+    }
+
+    /**
+     * @return self
+     */
+    public function withHeaderIfUnset(string $headerName, string $headerValue): self
+    {
+        $builder = clone $this;
+        $builder->headersIfUnset[\strtolower($headerName)] = $headerValue;
+
+        return $builder;
+    }
+
+    /**
+     * @return self
+     */
+    public function withoutHeaderIfUnset(string $headerName): self
+    {
+        $builder = clone $this;
+        unset($builder->headersIfUnset[\strtolower($headerName)]);
 
         return $builder;
     }
