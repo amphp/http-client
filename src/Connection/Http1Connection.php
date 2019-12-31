@@ -323,6 +323,12 @@ final class Http1Connection implements Connection
                 }
 
                 if ($status < 200) { // 1XX responses (excluding 101, handled above)
+                    $onInformationalResponse = $request->getInformationalResponseHandler();
+
+                    if ($onInformationalResponse !== null) {
+                        yield call($onInformationalResponse, $response);
+                    }
+
                     $chunk = $parser->getBuffer();
                     $parser = new Http1Parser($request, $bodyCallback, $trailersCallback);
                     goto parseChunk;

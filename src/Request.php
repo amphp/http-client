@@ -63,6 +63,9 @@ final class Request extends Message
     /** @var callable|null */
     private $onUpgrade;
 
+    /** @var callable|null */
+    private $onInformationalResponse;
+
     /** @var mixed[] */
     private $attributes = [];
 
@@ -319,6 +322,24 @@ final class Request extends Message
     public function getUpgradeHandler(): ?callable
     {
         return $this->onUpgrade;
+    }
+
+    /**
+     * Registers a callback invoked when a 1xx response is returned to the request (other than a 101).
+     *
+     * @param callable|null $onInformationalResponse
+     */
+    public function setInformationalResponseHandler(?callable $onInformationalResponse): void
+    {
+        $this->onInformationalResponse = $onInformationalResponse;
+    }
+
+    /**
+     * @return callable|null
+     */
+    public function getInformationalResponseHandler(): ?callable
+    {
+        return $this->onInformationalResponse;
     }
 
     /**
