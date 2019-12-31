@@ -2,6 +2,7 @@
 
 namespace Amp\Http\Client\Connection\Internal;
 
+use Amp\ByteStream\InMemoryStream;
 use Amp\ByteStream\IteratorStream;
 use Amp\ByteStream\StreamException;
 use Amp\CancellationToken;
@@ -405,10 +406,6 @@ final class Http2ConnectionProcessor implements Http2Processor
             return;
         }
 
-        if ($status < 200) {
-            return; // ignore 1xx responses
-        }
-
         asyncCall(function () use ($stream, $streamId) {
             try {
                 foreach ($stream->request->getEventListeners() as $eventListener) {
@@ -419,6 +416,31 @@ final class Http2ConnectionProcessor implements Http2Processor
             }
         });
 
+        $response = new Response(
+            '2',
+            $status,
+            Status::getReason($status),
+            $headers,
+            new InMemoryStream,
+            $stream->request
+        );
+
+        if ($status < 200) {
+            $onInformationalResponse = $stream->request->getInformationalResponseHandler();
+
+            if ($onInformationalResponse !== null) {
+                asyncCall(function () use ($onInformationalResponse, $response, $streamId) {
+                    try {
+                        yield call($onInformationalResponse, $response);
+                    } catch (\Throwable $e) {
+                        $this->handleStreamException(new Http2StreamException('Informational response handler threw an exception', $streamId, self::CANCEL));
+                    }
+                });
+            }
+
+            return;
+        }
+
         $stream->body = new Emitter;
         $stream->trailers = new Deferred;
 
@@ -428,18 +450,13 @@ final class Http2ConnectionProcessor implements Http2Processor
             $bodyCancellation->getToken()
         );
 
-        $response = new Response(
-            '2',
-            $status,
-            Status::getReason($status),
-            $headers,
+        $response->setBody(
             new ResponseBodyStream(
                 new IteratorStream($stream->body->iterate()),
                 $bodyCancellation
-            ),
-            $stream->request,
-            $stream->trailers->promise()
+            )
         );
+        $response->setTrailers($stream->trailers->promise());
 
         $stream->responsePending = false;
         $stream->pendingResponse->resolve(call(static function () use ($response, $stream) {
