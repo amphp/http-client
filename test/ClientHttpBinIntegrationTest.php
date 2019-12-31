@@ -456,6 +456,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $this->assertTrue($result['gzipped']);
         $this->assertFalse($response->hasHeader('content-encoding'));
+        $this->assertSame('gzip', $response->getRequest()->getAttribute(DecompressResponse::CONTENT_ENCODING_ATTR));
     }
 
     /**

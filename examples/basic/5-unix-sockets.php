@@ -7,15 +7,15 @@ use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Loop;
-use Amp\Socket\DnsConnector;
 use Amp\Socket\StaticConnector;
+use function Amp\Socket\connector;
 
 require __DIR__ . '/../.helper/functions.php';
 
 Loop::run(static function () use ($argv) {
     try {
         // Unix sockets require a socket pool that changes all URLs to a fixed one.
-        $connector = new StaticConnector("unix:///var/run/docker.sock", new DnsConnector);
+        $connector = new StaticConnector("unix:///var/run/docker.sock", connector());
 
         $client = (new HttpClientBuilder)
             ->usingPool(new UnlimitedConnectionPool(new DefaultConnectionFactory($connector)))

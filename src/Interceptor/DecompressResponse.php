@@ -19,6 +19,8 @@ final class DecompressResponse implements NetworkInterceptor
     use ForbidCloning;
     use ForbidSerialization;
 
+    public const CONTENT_ENCODING_ATTR = 'amp.http.client.decompress.content-encoding';
+
     private $hasZlib;
 
     public function __construct()
@@ -61,6 +63,7 @@ final class DecompressResponse implements NetworkInterceptor
             $sizeLimit = $response->getRequest()->getBodySizeLimit();
             $decompressedBody = new ZlibInputStream($response->getBody(), $encoding);
 
+            $response->getRequest()->setAttribute(self::CONTENT_ENCODING_ATTR, $response->getHeader('content-encoding'));
             $response->setBody(new SizeLimitingInputStream($decompressedBody, $sizeLimit));
             $response->removeHeader('content-encoding');
         }
