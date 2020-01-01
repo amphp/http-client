@@ -33,6 +33,12 @@ final class HttpClientBuilder
     private $retryInterceptor;
     /** @var FollowRedirects|null */
     private $followRedirectsInterceptor;
+    /** @var SetRequestHeaderIfUnset|null */
+    private $defaultUserAgentInterceptor;
+    /** @var SetRequestHeaderIfUnset|null */
+    private $defaultAcceptInterceptor;
+    /** @var NetworkInterceptor|null */
+    private $defaultCompressionHandler;
     /** @var ApplicationInterceptor[] */
     private $applicationInterceptors = [];
     /** @var NetworkInterceptor[] */
@@ -46,6 +52,9 @@ final class HttpClientBuilder
         $this->forbidUriUserInfo = new ForbidUriUserInfo;
         $this->followRedirectsInterceptor = new FollowRedirects(10);
         $this->retryInterceptor = new RetryRequests(2);
+        $this->defaultAcceptInterceptor = new SetRequestHeaderIfUnset('accept', '*/*');
+        $this->defaultUserAgentInterceptor = new SetRequestHeaderIfUnset('user-agent', 'amphp/http-client @ v4.x');
+        $this->defaultCompressionHandler = new DecompressResponse;
     }
 
     public function build(): HttpClient
@@ -57,9 +66,17 @@ final class HttpClientBuilder
             $client = $client->intercept($interceptor);
         }
 
-        $client = $client->intercept(new SetRequestHeaderIfUnset('accept', '*/*'));
-        $client = $client->intercept(new SetRequestHeaderIfUnset('user-agent', 'amphp/http-client @ v4.x'));
-        $client = $client->intercept(new DecompressResponse);
+        if ($this->defaultAcceptInterceptor) {
+            $client = $client->intercept($this->defaultAcceptInterceptor);
+        }
+
+        if ($this->defaultUserAgentInterceptor) {
+            $client = $client->intercept($this->defaultUserAgentInterceptor);
+        }
+
+        if ($this->defaultCompressionHandler) {
+            $client = $client->intercept($this->defaultCompressionHandler);
+        }
 
         $applicationInterceptors = $this->applicationInterceptors;
 
@@ -179,6 +196,45 @@ final class HttpClientBuilder
     {
         $builder = clone $this;
         $builder->forbidUriUserInfo = null;
+
+        return $builder;
+    }
+
+    /**
+     * Doesn't automatically set an 'accept' header.
+     *
+     * @return self
+     */
+    public function skipDefaultAcceptHeader(): self
+    {
+        $builder = clone $this;
+        $builder->defaultAcceptInterceptor = null;
+
+        return $builder;
+    }
+
+    /**
+     * Doesn't automatically set a 'user-agent' header.
+     *
+     * @return self
+     */
+    public function skipDefaultUserAgent(): self
+    {
+        $builder = clone $this;
+        $builder->defaultUserAgentInterceptor = null;
+
+        return $builder;
+    }
+
+    /**
+     * Doesn't automatically set an 'accept-encoding' header and decompress the response.
+     *
+     * @return self
+     */
+    public function skipAutomaticCompression(): self
+    {
+        $builder = clone $this;
+        $builder->defaultCompressionHandler = null;
 
         return $builder;
     }
