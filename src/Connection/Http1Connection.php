@@ -489,26 +489,28 @@ final class Http1Connection implements Connection
         $deferred = new Deferred;
         $newPromise = $deferred->promise();
 
-        $promise->onResolve(static function ($error, $value) use (&$deferred) {
+        $promise->onResolve(static function ($error, $value) use (&$deferred): void {
             if ($deferred) {
+                $temp = $deferred;
+                $deferred = null;
+
                 if ($error) {
-                    $deferred->fail($error);
-                    $deferred = null;
+                    $temp->fail($error);
                 } else {
-                    $deferred->resolve($value);
-                    $deferred = null;
+                    $temp->resolve($value);
                 }
             }
         });
 
-        $cancellationSubscription = $cancellationToken->subscribe(static function ($e) use (&$deferred) {
+        $cancellationSubscription = $cancellationToken->subscribe(static function ($e) use (&$deferred): void {
             if ($deferred) {
-                $deferred->fail($e);
+                $temp = $deferred;
                 $deferred = null;
+                $temp->fail($e);
             }
         });
 
-        $newPromise->onResolve(static function () use ($cancellationToken, $cancellationSubscription) {
+        $newPromise->onResolve(static function () use ($cancellationToken, $cancellationSubscription): void {
             $cancellationToken->unsubscribe($cancellationSubscription);
         });
 
