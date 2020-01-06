@@ -4,10 +4,10 @@ namespace Amp\Http\Client\Connection;
 
 use Amp\CancellationToken;
 use Amp\Http\Client\Connection\Internal\Http2ConnectionProcessor;
-use Amp\Http\Client\Connection\Internal\Http2Processor;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
+use Amp\Http\Http2\Http2Processor;
 use Amp\Promise;
 use Amp\Socket\EncryptableSocket;
 use Amp\Socket\SocketAddress;
