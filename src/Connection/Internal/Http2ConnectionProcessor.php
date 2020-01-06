@@ -591,17 +591,20 @@ final class Http2ConnectionProcessor implements Http2Processor
                 $this->releaseStream($streamId, $exception);
             });
 
+            $promise = $stream->pendingResponse->promise();
+            $promise->onResolve(function () use ($cancellationToken, $cancellationId): void {
+                $cancellationToken->unsubscribe($cancellationId);
+            });
+
             $onPush = $stream->request->getPushHandler();
 
             try {
-                yield call($onPush, $stream->request, $stream->pendingResponse->promise());
+                yield call($onPush, $stream->request, $promise, $tokenSource);
             } catch (HttpException | StreamException | CancelledException $exception) {
                 $tokenSource->cancel($exception);
             } catch (\Throwable $exception) {
                 $tokenSource->cancel($exception);
                 throw $exception;
-            } finally {
-                $cancellationToken->unsubscribe($cancellationId);
             }
         });
     }
