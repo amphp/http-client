@@ -20,6 +20,9 @@ final class UnlimitedConnectionPool implements ConnectionPool
     /** @var Promise[][] */
     private $connections = [];
 
+    /** @var bool[] */
+    private $waitForPriorConnection = [];
+
     /** @var int */
     private $totalConnectionAttempts = 0;
 
@@ -76,15 +79,15 @@ final class UnlimitedConnectionPool implements ConnectionPool
             }
 
             $authority = $host . ':' . $port;
-            $key = $scheme . '://' . $authority;
+            $uri = $scheme . '://' . $authority;
 
-            $connections = $this->connections[$key] ?? new \ArrayObject;
+            $connections = $this->connections[$uri] ?? new \ArrayObject;
 
             foreach ($connections as $connectionPromise) {
                 \assert($connectionPromise instanceof Promise);
 
                 try {
-                    if ($isHttps) {
+                    if ($isHttps && ($this->waitForPriorConnection[$uri] ?? true)) {
                         // Wait for first successful connection if using a secure connection (maybe we can use HTTP/2).
                         $connection = yield $connectionPromise;
                     } else {
@@ -117,8 +120,8 @@ final class UnlimitedConnectionPool implements ConnectionPool
             $connectionPromise = $this->connectionFactory->create($request, $cancellation);
 
             $hash = \spl_object_hash($connectionPromise);
-            $this->connections[$key] = $this->connections[$key] ?? new \ArrayObject;
-            $this->connections[$key][$hash] = $connectionPromise;
+            $this->connections[$uri] = $this->connections[$uri] ?? new \ArrayObject;
+            $this->connections[$uri][$hash] = $connectionPromise;
 
             try {
                 $connection = yield $connectionPromise;
@@ -126,14 +129,18 @@ final class UnlimitedConnectionPool implements ConnectionPool
 
                 \assert($connection instanceof Connection);
             } catch (\Throwable $exception) {
-                $this->dropConnection($key, $hash);
+                $this->dropConnection($uri, $hash);
 
                 throw $exception;
             }
 
-            $connection->onClose(function () use ($key, $hash): void {
+            if ($isHttps) {
+                $this->waitForPriorConnection[$uri] = \in_array('2', $connection->getProtocolVersions());
+            }
+
+            $connection->onClose(function () use ($uri, $hash): void {
                 $this->openConnectionCount--;
-                $this->dropConnection($key, $hash);
+                $this->dropConnection($uri, $hash);
             });
 
             $stream = yield $connection->getStream($request);
@@ -149,7 +156,7 @@ final class UnlimitedConnectionPool implements ConnectionPool
         unset($this->connections[$uri][$connectionHash]);
 
         if (empty($this->connections[$uri])) {
-            unset($this->connections[$uri]);
+            unset($this->connections[$uri], $this->waitForPriorConnection[$uri]);
         }
     }
 }
