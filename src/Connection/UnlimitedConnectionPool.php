@@ -78,13 +78,13 @@ final class UnlimitedConnectionPool implements ConnectionPool
             $authority = $host . ':' . $port;
             $key = $scheme . '://' . $authority;
 
-            $connections = $this->connections[$key] ?? [];
+            $connections = $this->connections[$key] ?? new \ArrayObject;
 
             foreach ($connections as $connectionPromise) {
                 \assert($connectionPromise instanceof Promise);
 
                 try {
-                    if ($isHttps && \count($connections) === 1) {
+                    if ($isHttps) {
                         // Wait for first successful connection if using a secure connection (maybe we can use HTTP/2).
                         $connection = yield $connectionPromise;
                     } else {
@@ -117,7 +117,7 @@ final class UnlimitedConnectionPool implements ConnectionPool
             $connectionPromise = $this->connectionFactory->create($request, $cancellation);
 
             $hash = \spl_object_hash($connectionPromise);
-            $this->connections[$key] = $this->connections[$key] ?? [];
+            $this->connections[$key] = $this->connections[$key] ?? new \ArrayObject;
             $this->connections[$key][$hash] = $connectionPromise;
 
             try {
