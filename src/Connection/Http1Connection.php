@@ -657,7 +657,7 @@ final class Http1Connection implements Connection
         $header = $method . ' ' . $requestUri . ' HTTP/' . $protocolVersion . "\r\n";
 
         try {
-            $header .= Rfc7230::formatHeaders($request->getHeaders());
+            $header .= Rfc7230::formatRawHeaders($request->getRawHeaders());
         } catch (InvalidHeaderException $e) {
             throw new HttpException($e->getMessage());
         }
