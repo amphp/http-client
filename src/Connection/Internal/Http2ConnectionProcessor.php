@@ -15,6 +15,8 @@ use Amp\Failure;
 use Amp\Http\Client\Connection\HttpStream;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\Connection\UnprocessedRequestException;
+use Amp\Http\Client\Connection\Http2ConnectionException as ClientHttp2ConnectionException;
+use Amp\Http\Client\Connection\Http2StreamException as ClientHttp2StreamException;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Internal\ResponseBodyStream;
 use Amp\Http\Client\Request;
@@ -632,7 +634,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         $id = $exception->getStreamId();
         $code = $exception->getCode();
 
-        $exception = new HttpException($exception->getMessage(), 0, $exception);
+        $exception = new ClientHttp2StreamException($exception->getMessage(), $id, 0, $exception);
 
         if ($code === Http2Parser::REFUSED_STREAM) {
             $exception = new UnprocessedRequestException($exception);
@@ -647,7 +649,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     public function handleConnectionException(Http2ConnectionException $exception): void
     {
-        $this->shutdown(null, new HttpException($exception->getMessage(), 0, $exception));
+        $this->shutdown(null, new ClientHttp2ConnectionException($exception->getMessage(), 0, $exception));
     }
 
     public function handleData(int $streamId, string $data): void
