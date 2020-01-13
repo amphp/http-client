@@ -199,7 +199,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             $error
         );
 
-        $this->shutdown($lastId, new Http2ConnectionException($message, $error));
+        $this->shutdown($lastId, new HttpException($message, $error));
     }
 
     public function handleStreamWindowIncrement(int $streamId, int $windowSize): void
@@ -632,12 +632,10 @@ final class Http2ConnectionProcessor implements Http2Processor
         $id = $exception->getStreamId();
         $code = $exception->getCode();
 
+        $exception = new HttpException($exception->getMessage(), 0, $exception);
+
         if ($code === Http2Parser::REFUSED_STREAM) {
-            $exception = new UnprocessedRequestException(new HttpException(
-                $exception->getMessage(),
-                0,
-                $exception
-            ));
+            $exception = new UnprocessedRequestException($exception);
         }
 
         $this->writeFrame(Http2Parser::RST_STREAM, Http2Parser::NO_FLAG, $id, \pack("N", $code));
@@ -649,7 +647,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     public function handleConnectionException(Http2ConnectionException $exception): void
     {
-        $this->shutdown(null, $exception);
+        $this->shutdown(null, new HttpException($exception->getMessage(), 0, $exception));
     }
 
     public function handleData(int $streamId, string $data): void
@@ -994,9 +992,9 @@ final class Http2ConnectionProcessor implements Http2Processor
                 \assert($return === null);
             }
 
-            $this->shutdown(null);
+            $this->shutdown();
         } catch (\Throwable $exception) {
-            $this->shutdown(null, $exception);
+            $this->shutdown(null, new HttpException("The HTTP/2 connection closed unexpectedly", 0, $exception));
         }
     }
 
@@ -1167,13 +1165,13 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         $stream = $this->streams[$streamId];
 
-        $exception = $exception ?? new Http2StreamException(
-            "Stream closed unexpectedly",
-            $streamId,
-            Http2Parser::INTERNAL_ERROR
-        );
-
         if ($stream->responsePending || $stream->body || $stream->trailers) {
+            $exception = $exception ?? new HttpException(\sprintf("Stream %d closed unexpectedly", $streamId));
+
+            if (!$exception instanceof HttpException && !$exception instanceof CancelledException) {
+                $exception = new HttpException($exception->getMessage(), 0, $exception);
+            }
+
             /** @var Deferred[]|Emitter[] $deferredAndEmitter */
             $deferredAndEmitter = [];
 
@@ -1287,13 +1285,13 @@ final class Http2ConnectionProcessor implements Http2Processor
     }
 
     /**
-     * @param int|null        $lastId ID of last processed frame. Null to use the last opened frame ID or 0 if no
-     *                        streams have been opened.
-     * @param \Throwable|null $reason
+     * @param int|null           $lastId ID of last processed frame. Null to use the last opened frame ID or 0 if no
+     *                                   streams have been opened.
+     * @param HttpException|null $reason
      *
      * @return Promise
      */
-    private function shutdown(?int $lastId = null, ?\Throwable $reason = null): Promise
+    private function shutdown(?int $lastId = null, ?HttpException $reason = null): Promise
     {
         if ($this->onClose === null) {
             return new Success;

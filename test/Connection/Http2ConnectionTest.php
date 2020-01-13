@@ -2,11 +2,11 @@
 
 namespace Amp\Http\Client\Connection;
 
+use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\Trailers;
 use Amp\Http\HPack;
-use Amp\Http\Http2\Http2ConnectionException;
 use Amp\Http\Http2\Http2Parser;
 use Amp\Http\Status;
 use Amp\NullCancellationToken;
@@ -78,7 +78,7 @@ class Http2ConnectionTest extends AsyncTestCase
             ["date", formatDateHeader()],
         ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS, 1));
 
-        $this->expectException(Http2ConnectionException::class);
+        $this->expectException(HttpException::class);
         $this->expectExceptionMessage('Switching Protocols (101) is not part of HTTP/2');
 
         yield $stream->request($request, new NullCancellationToken);
