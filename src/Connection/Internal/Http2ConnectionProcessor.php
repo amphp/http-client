@@ -201,7 +201,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             $error
         );
 
-        $this->shutdown($lastId, new HttpException($message, $error));
+        $this->shutdown($lastId, new ClientHttp2ConnectionException($message, $error));
     }
 
     public function handleStreamWindowIncrement(int $streamId, int $windowSize): void
@@ -996,7 +996,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
             $this->shutdown();
         } catch (\Throwable $exception) {
-            $this->shutdown(null, new HttpException("The HTTP/2 connection closed unexpectedly", 0, $exception));
+            $this->shutdown(null, new ClientHttp2ConnectionException("The HTTP/2 connection closed unexpectedly", 0, $exception));
         }
     }
 
