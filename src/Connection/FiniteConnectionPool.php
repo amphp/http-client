@@ -5,7 +5,6 @@ namespace Amp\Http\Client\Connection;
 use Amp\CancellationToken;
 use Amp\Deferred;
 use Amp\Http\Client\Internal\ForbidSerialization;
-use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Promise;
