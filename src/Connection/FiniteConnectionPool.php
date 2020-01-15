@@ -54,7 +54,7 @@ final class FiniteConnectionPool implements ConnectionPool
      */
     public static function byAuthority(int $maxConnections, ?ConnectionFactory $connectionFactory = null): self
     {
-        return new self($maxConnections, function (Request $request): string {
+        return new self($maxConnections, static function (Request $request): string {
             $uri = $request->getUri();
             $scheme = $uri->getScheme();
 
@@ -69,10 +69,35 @@ final class FiniteConnectionPool implements ConnectionPool
         }, $connectionFactory);
     }
 
+    public static function byHost(int $maxConnections, ?ConnectionFactory $connectionFactory = null): self
+    {
+        return new self($maxConnections, static function (Request $request): string {
+            return $request->getUri()->getHost();
+        }, $connectionFactory);
+    }
+
+    public static function byStaticKey(
+        int $maxConnections,
+        string $key = '',
+        ?ConnectionFactory $connectionFactory = null
+    ): self {
+        return new self($maxConnections, static function () use ($key): string {
+            return $key;
+        }, $connectionFactory);
+    }
+
+    public static function byCustomKey(
+        callable $requestToKeyMapper,
+        int $maxConnections,
+        ?ConnectionFactory $connectionFactory = null
+    ): self {
+        return new self($maxConnections, $requestToKeyMapper, $connectionFactory);
+    }
+
     private function __construct(int $maxConnections, callable $requestToKeyMapper, ?ConnectionFactory $connectionFactory = null)
     {
         if ($maxConnections < 1) {
-            throw new \Error('The number of max connections per authority must be greater than 0');
+            throw new \Error('The number of max connections per key must be greater than 0');
         }
 
         $this->maxConnections = $maxConnections;
