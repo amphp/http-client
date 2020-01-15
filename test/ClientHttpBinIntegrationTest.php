@@ -16,12 +16,14 @@ use Amp\Http\Client\Interceptor\SetRequestHeaderIfUnset;
 use Amp\Http\Client\Interceptor\TooManyRedirectsException;
 use Amp\Http\Cookie\RequestCookie;
 use Amp\Http\Cookie\ResponseCookie;
+use Amp\Http\Rfc7230;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Promise;
 use Amp\Socket;
 use Amp\Success;
 use function Amp\asyncCall;
 use function Amp\call;
+use function Amp\coroutine;
 use function Amp\delay;
 use function Amp\Iterator\fromIterable;
 
@@ -176,6 +178,46 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $result = \json_decode($body, true);
 
         $this->assertSame('amphp/http-client', $result['user-agent']);
+    }
+
+    public function testHeaderCase(): \Generator
+    {
+        $this->responseCallback = coroutine(static function (Socket\Socket $socket) {
+            $buffer = '';
+
+            while (null !== $chunk = yield $socket->read()) {
+                $buffer .= $chunk;
+
+                if (\strpos($buffer, "\r\n\r\n") !== false) {
+                    break;
+                }
+            }
+
+            $headers = \explode("\r\n", \trim($buffer));
+            \array_shift($headers);
+
+            $buffer = \json_encode(Rfc7230::parseRawHeaders(\implode("\r\n", $headers) . "\r\n"));
+
+            return $socket->write("HTTP/1.0 200 OK\r\n\r\n$buffer");
+        });
+
+        /** @var Response $response */
+        $request = $this->createRequest();
+        $request->setHeader('tEst', 'test');
+
+        /** @var Response $response */
+        $response = yield $this->executeRequest($request);
+
+        $body = yield $response->getBody()->buffer();
+        $result = \json_decode($body, true);
+
+        $this->assertSame([
+            ['tEst', 'test'],
+            ['accept', '*/*'],
+            ['user-agent', 'amphp/http-client @ v4.x'],
+            ['Accept-Encoding', 'gzip, deflate, identity'],
+            ['host', (string) $this->socket->getAddress()]
+        ], $result);
     }
 
     public function testHttp2Push(): \Generator

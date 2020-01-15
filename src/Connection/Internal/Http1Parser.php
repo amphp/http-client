@@ -180,7 +180,12 @@ final class Http1Parser
                 $this->complete = true;
             }
 
-            return new Response($this->protocol, $this->statusCode, $this->statusReason, $this->headers, new InMemoryStream, $this->request);
+            $response = new Response($this->protocol, $this->statusCode, $this->statusReason, [], new InMemoryStream, $this->request);
+            foreach ($this->headers as [$key, $value]) {
+                $response->addHeader($key, $value);
+            }
+
+            return $response;
         }
 
         body_identity:
@@ -305,21 +310,26 @@ final class Http1Parser
         }
 
         try {
-            $headers = Rfc7230::parseHeaders($rawHeaders);
+            $headers = Rfc7230::parseRawHeaders($rawHeaders);
+
+            $headerMap = [];
+            foreach ($headers as [$key, $value]) {
+                $headerMap[\strtolower($key)][] = $value;
+            }
         } catch (InvalidHeaderException $e) {
             throw new ParseException('Invalid headers', Status::BAD_REQUEST, $e);
         }
 
-        if (isset($headers['transfer-encoding'])) {
-            $transferEncodings = \explode(',', \strtolower(\implode(',', $headers['transfer-encoding'])));
+        if (isset($headerMap['transfer-encoding'])) {
+            $transferEncodings = \explode(',', \strtolower(\implode(',', $headerMap['transfer-encoding'])));
             $transferEncodings = \array_map('trim', $transferEncodings);
             $this->chunkedEncoding = \in_array('chunked', $transferEncodings, true);
-        } elseif (isset($headers['content-length'])) {
-            if (\count($headers['content-length']) > 1) {
+        } elseif (isset($headerMap['content-length'])) {
+            if (\count($headerMap['content-length']) > 1) {
                 throw new ParseException('Can\'t determine body length, because multiple content-length headers present in the response', Status::BAD_REQUEST);
             }
 
-            $contentLength = $headers['content-length'][0];
+            $contentLength = $headerMap['content-length'][0];
 
             if (!\preg_match('/^(0|[1-9][0-9]*)$/', $contentLength)) {
                 throw new ParseException('Can\'t determine body length, because the content-length header value is invalid', Status::BAD_REQUEST);
