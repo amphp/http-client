@@ -41,10 +41,23 @@ final class FiniteConnectionPool implements ConnectionPool
     /** @var int */
     private $openConnectionCount = 0;
 
-    public function __construct(int $maxConnections, ?ConnectionFactory $connectionFactory = null)
+    /**
+     * Create a connection pool that limits the number of connections per authority to $maxConnections.
+     *
+     * @param int                    $maxConnections
+     * @param ConnectionFactory|null $connectionFactory
+     *
+     * @return self
+     */
+    public static function perAuthority(int $maxConnections, ?ConnectionFactory $connectionFactory = null): self
+    {
+        return new self($maxConnections, $connectionFactory);
+    }
+
+    private function __construct(int $maxConnections, ?ConnectionFactory $connectionFactory = null)
     {
         if ($maxConnections < 1) {
-            throw new \Error('The number of max connections must be greater than 0');
+            throw new \Error('The number of max connections per authority must be greater than 0');
         }
 
         $this->maxConnections = $maxConnections;
