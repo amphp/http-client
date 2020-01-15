@@ -11,7 +11,7 @@ class FiniteConnectionPoolTest extends AsyncTestCase
     public function testSingleConnection(): \Generator
     {
         $client = (new HttpClientBuilder)
-            ->usingPool(FiniteConnectionPool::perAuthority(1))
+            ->usingPool(FiniteConnectionPool::byAuthority(1))
             ->build();
 
         $this->setTimeout(10000);
@@ -26,7 +26,7 @@ class FiniteConnectionPoolTest extends AsyncTestCase
     public function testTwoConnections(): \Generator
     {
         $client = (new HttpClientBuilder)
-            ->usingPool(FiniteConnectionPool::perAuthority(2))
+            ->usingPool(FiniteConnectionPool::byAuthority(2))
             ->build();
 
         $this->setTimeout(4000);
