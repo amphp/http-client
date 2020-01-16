@@ -256,6 +256,15 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     public function handleHeaders(int $streamId, array $pseudo, array $headers, bool $streamEnded): void
     {
+        foreach ($pseudo as $name => $value) {
+            if (!isset(Http2Parser::KNOWN_RESPONSE_PSEUDO_HEADERS[$name])) {
+                throw new Http2ConnectionException(
+                    "Invalid pseudo header",
+                    Http2Parser::PROTOCOL_ERROR
+                );
+            }
+        }
+
         if (!isset($this->streams[$streamId])) {
             return;
         }
@@ -466,6 +475,15 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     public function handlePushPromise(int $parentId, int $streamId, array $pseudo, array $headers): void
     {
+        foreach ($pseudo as $name => $value) {
+            if (!isset(Http2Parser::KNOWN_REQUEST_PSEUDO_HEADERS[$name])) {
+                throw new Http2ConnectionException(
+                    "Invalid pseudo header",
+                    Http2Parser::PROTOCOL_ERROR
+                );
+            }
+        }
+
         if (!isset($pseudo[":method"], $pseudo[":path"], $pseudo[":scheme"], $pseudo[":authority"])
             || isset($headers["connection"])
             || $pseudo[":path"] === ''
