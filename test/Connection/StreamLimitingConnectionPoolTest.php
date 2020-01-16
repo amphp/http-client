@@ -7,12 +7,12 @@ use Amp\Http\Client\Request;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Sync\LocalKeyedMutex;
 
-class LimitedConnectionPoolTest extends AsyncTestCase
+class StreamLimitingConnectionPoolTest extends AsyncTestCase
 {
     public function testByHost(): \Generator
     {
         $client = (new HttpClientBuilder)
-            ->usingPool(LimitedConnectionPool::byHost(new UnlimitedConnectionPool, new LocalKeyedMutex))
+            ->usingPool(StreamLimitingConnectionPool::byHost(new UnlimitedConnectionPool, new LocalKeyedMutex))
             ->build();
 
         $this->setTimeout(30000);
