@@ -279,18 +279,9 @@ final class Http1Connection implements Connection
         $parser = new Http1Parser($request, $bodyCallback, $trailersCallback);
 
         $start = getCurrentTime();
-        $firstRead = true;
 
         try {
             while (null !== $chunk = yield $this->socket->read()) {
-                if ($firstRead) {
-                    foreach ($request->getEventListeners() as $eventListener) {
-                        yield $eventListener->startReceivingResponse($request, $stream);
-                    }
-
-                    $firstRead = false;
-                }
-
                 parseChunk:
                 $response = $parser->parse($chunk);
                 if ($response === null) {
@@ -332,6 +323,10 @@ final class Http1Connection implements Connection
                     $chunk = $parser->getBuffer();
                     $parser = new Http1Parser($request, $bodyCallback, $trailersCallback);
                     goto parseChunk;
+                }
+
+                foreach ($request->getEventListeners() as $eventListener) {
+                    yield $eventListener->startReceivingResponse($request, $stream);
                 }
 
                 if ($status >= 200 && $status < 300 && $request->getMethod() === 'CONNECT') {

@@ -373,22 +373,6 @@ final class Http2ConnectionProcessor implements Http2Processor
             return;
         }
 
-        if ($stream->preResponseResolution === null) {
-            $stream->preResponseResolution = call(function () use ($stream, $streamId) {
-                try {
-                    foreach ($stream->request->getEventListeners() as $eventListener) {
-                        yield $eventListener->startReceivingResponse($stream->request, $stream->stream);
-                    }
-                } catch (\Throwable $e) {
-                    $this->handleStreamException(new Http2StreamException(
-                        "Event listener error",
-                        $streamId,
-                        Http2Parser::CANCEL
-                    ));
-                }
-            });
-        }
-
         $response = new Response(
             '2',
             $status,
@@ -416,7 +400,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                         $this->handleStreamException(new Http2StreamException(
                             'Informational response handler threw an exception',
                             $streamId,
-                            self::CANCEL
+                            Http2Parser::CANCEL
                         ));
                     }
                 });
@@ -424,6 +408,22 @@ final class Http2ConnectionProcessor implements Http2Processor
 
             return;
         }
+
+        \assert($stream->preResponseResolution);
+
+        $stream->preResponseResolution = call(function () use ($stream, $streamId) {
+            try {
+                foreach ($stream->request->getEventListeners() as $eventListener) {
+                    yield $eventListener->startReceivingResponse($stream->request, $stream->stream);
+                }
+            } catch (\Throwable $e) {
+                $this->handleStreamException(new Http2StreamException(
+                    "Event listener error",
+                    $streamId,
+                    Http2Parser::CANCEL
+                ));
+            }
+        });
 
         $stream->body = new Emitter;
         $stream->trailers = new Deferred;
