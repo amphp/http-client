@@ -409,7 +409,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             return;
         }
 
-        \assert($stream->preResponseResolution);
+        \assert($stream->preResponseResolution === null);
 
         $stream->preResponseResolution = call(function () use ($stream, $streamId) {
             try {
