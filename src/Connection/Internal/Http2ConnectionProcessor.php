@@ -373,7 +373,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             return;
         }
 
-        asyncCall(function () use ($stream, $streamId) {
+        $stream->preResponseResolution = call(function () use ($stream, $streamId) {
             try {
                 foreach ($stream->request->getEventListeners() as $eventListener) {
                     yield $eventListener->startReceivingResponse($stream->request, $stream->stream);
@@ -396,7 +396,9 @@ final class Http2ConnectionProcessor implements Http2Processor
             $onInformationalResponse = $stream->request->getInformationalResponseHandler();
 
             if ($onInformationalResponse !== null) {
-                asyncCall(function () use ($onInformationalResponse, $response, $streamId) {
+                $stream->preResponseResolution = call(function () use ($onInformationalResponse, $response, $stream, $streamId) {
+                    yield $stream->preResponseResolution;
+
                     try {
                         yield call($onInformationalResponse, $response);
                     } catch (\Throwable $e) {
@@ -428,6 +430,9 @@ final class Http2ConnectionProcessor implements Http2Processor
         $stream->responsePending = false;
         $stream->pendingResponse->resolve(call(static function () use ($response, $stream) {
             yield $stream->requestBodyCompletion->promise();
+
+            yield $stream->preResponseResolution;
+            $stream->preResponseResolution = null;
 
             $stream->pendingResponse = null;
 
