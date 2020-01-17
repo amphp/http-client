@@ -669,7 +669,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         $id = $exception->getStreamId();
         $code = $exception->getCode();
 
-        $exception = new ClientHttp2StreamException($exception->getMessage(), $id, 0, $exception);
+        $exception = new ClientHttp2StreamException($exception->getMessage(), $id, $code, $exception);
 
         if ($code === Http2Parser::REFUSED_STREAM) {
             $exception = new UnprocessedRequestException($exception);
@@ -684,7 +684,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     public function handleConnectionException(Http2ConnectionException $exception): void
     {
-        $this->shutdown(null, new ClientHttp2ConnectionException($exception->getMessage(), 0, $exception));
+        $this->shutdown(null, new ClientHttp2ConnectionException($exception->getMessage(), $exception->getCode(), $exception));
     }
 
     public function handleData(int $streamId, string $data): void
@@ -1031,7 +1031,11 @@ final class Http2ConnectionProcessor implements Http2Processor
 
             $this->shutdown();
         } catch (\Throwable $exception) {
-            $this->shutdown(null, new ClientHttp2ConnectionException("The HTTP/2 connection closed unexpectedly", 0, $exception));
+            $this->shutdown(null, new ClientHttp2ConnectionException(
+                "The HTTP/2 connection closed unexpectedly",
+                Http2Parser::INTERNAL_ERROR,
+                $exception
+            ));
         }
     }
 
@@ -1203,7 +1207,11 @@ final class Http2ConnectionProcessor implements Http2Processor
         $stream = $this->streams[$streamId];
 
         if ($stream->responsePending || $stream->body || $stream->trailers) {
-            $exception = $exception ?? new HttpException(\sprintf("Stream %d closed unexpectedly", $streamId));
+            $exception = $exception ?? new ClientHttp2StreamException(
+                \sprintf("Stream %d closed unexpectedly", $streamId),
+                $streamId,
+                Http2Parser::INTERNAL_ERROR
+            );
 
             if (!$exception instanceof HttpException && !$exception instanceof CancelledException) {
                 $exception = new HttpException($exception->getMessage(), 0, $exception);
