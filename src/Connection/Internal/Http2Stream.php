@@ -10,6 +10,7 @@ use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
+use Amp\Promise;
 use Amp\Struct;
 
 /**
@@ -32,8 +33,11 @@ final class Http2Stream
     /** @var Response|null */
     public $response;
 
-    /** @var Deferred */
+    /** @var Deferred|null */
     public $pendingResponse;
+
+    /** @var Promise|null */
+    public $preResponseResolution;
 
     /** @var bool */
     public $responsePending = true;
