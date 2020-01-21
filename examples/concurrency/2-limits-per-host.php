@@ -1,8 +1,8 @@
 <?php
 
 use Amp\CancellationToken;
-use Amp\Http\Client\Connection\LimitedConnectionPool;
 use Amp\Http\Client\Connection\Stream;
+use Amp\Http\Client\Connection\StreamLimitingConnectionPool;
 use Amp\Http\Client\Connection\UnlimitedConnectionPool;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
@@ -19,7 +19,7 @@ require __DIR__ . '/../.helper/functions.php';
 Loop::run(static function () {
     try {
         // Limit to one concurrent request per host
-        $pool = LimitedConnectionPool::byHost(new UnlimitedConnectionPool, new LocalKeyedSemaphore(1));
+        $pool = StreamLimitingConnectionPool::byHost(new UnlimitedConnectionPool, new LocalKeyedSemaphore(1));
 
         $logger = new class implements NetworkInterceptor {
             public function requestViaNetwork(
