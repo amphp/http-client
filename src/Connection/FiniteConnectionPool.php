@@ -49,8 +49,8 @@ final class FiniteConnectionPool implements ConnectionPool
     /**
      * Create a connection pool that limits the number of connections per authority.
      *
-     * @param int                    $maxHttp1Connections Maximum number of HTTP/2 connections allowed to a single authority.
-     * @param int                    $maxHttp2Connections Maximum number of HTTP/1.x connections allowed to a single authority.
+     * @param int                    $maxHttp1Connections Maximum number of HTTP/1.x connections allowed to a single authority.
+     * @param int                    $maxHttp2Connections Maximum number of HTTP/2 connections allowed to a single authority.
      * @param ConnectionFactory|null $connectionFactory
      *
      * @return self
@@ -78,8 +78,8 @@ final class FiniteConnectionPool implements ConnectionPool
     /**
      * Create a connection pool that limits the number of connections per host.
      *
-     * @param int                    $maxHttp1Connections Maximum number of HTTP/2 connections allowed to a single host.
-     * @param int                    $maxHttp2Connections Maximum number of HTTP/1.x connections allowed to a single host.
+     * @param int                    $maxHttp1Connections Maximum number of HTTP/1.x connections allowed to a single host.
+     * @param int                    $maxHttp2Connections Maximum number of HTTP/2 connections allowed to a single host.
      * @param ConnectionFactory|null $connectionFactory
      *
      * @return self
@@ -97,8 +97,8 @@ final class FiniteConnectionPool implements ConnectionPool
     /**
      * Create a connection pool that limits the number of connections based on a static key.
      *
-     * @param int                    $maxHttp1Connections Maximum number of HTTP/2 connections allowed.
-     * @param int                    $maxHttp2Connections Maximum number of HTTP/1.x connections allowed.
+     * @param int                    $maxHttp1Connections Maximum number of HTTP/1.x connections allowed.
+     * @param int                    $maxHttp2Connections Maximum number of HTTP/2 connections allowed.
      * @param string                 $key
      * @param ConnectionFactory|null $connectionFactory
      *
@@ -119,8 +119,8 @@ final class FiniteConnectionPool implements ConnectionPool
      * Create a connection pool that limits the number of connections using a custom key provided by the callback.
      *
      * @param callable               $requestToKeyMapper Function accepting a Request object and returning a string.
-     * @param int                    $maxHttp1Connections Maximum number of HTTP/2 connections allowed to a single authority.
-     * @param int                    $maxHttp2Connections Maximum number of HTTP/1.x connections allowed to a single authority.
+     * @param int                    $maxHttp1Connections Maximum number of HTTP/1.x connections allowed to a single authority.
+     * @param int                    $maxHttp2Connections Maximum number of HTTP/2 connections allowed to a single authority.
      * @param ConnectionFactory|null $connectionFactory
      *
      * @return self
@@ -144,7 +144,7 @@ final class FiniteConnectionPool implements ConnectionPool
             throw new \Error('The number of max HTTP/1.x connections per key must be greater than 0');
         }
 
-        if ($maxHttp1Connections < 1) {
+        if ($maxHttp2Connections < 1) {
             throw new \Error('The number of max HTTP/2 connections per key must be greater than 0');
         }
 
