@@ -273,7 +273,5 @@ final class FiniteConnectionPool implements ConnectionPool
         if (empty($this->connections[$uri])) {
             unset($this->connections[$uri], $this->waitForPriorConnection[$uri]);
         }
-
-        $this->release($uri);
     }
 }
