@@ -43,9 +43,6 @@ final class FiniteConnectionPool implements ConnectionPool
     /** @var int */
     private $openConnectionCount = 0;
 
-    /** @var callable */
-    private $requestToKeyMapper;
-
     /**
      * Create a connection pool that limits the number of connections per authority.
      *
@@ -60,82 +57,29 @@ final class FiniteConnectionPool implements ConnectionPool
         int $maxHttp2Connections = 1,
         ?ConnectionFactory $connectionFactory = null
     ): self {
-        return new self(static function (Request $request): string {
-            $uri = $request->getUri();
-            $scheme = $uri->getScheme();
-
-            $isHttps = $scheme === 'https';
-            $defaultPort = $isHttps ? 443 : 80;
-
-            $host = $uri->getHost();
-            $port = $uri->getPort() ?? $defaultPort;
-
-            $authority = $host . ':' . $port;
-            return $scheme . '://' . $authority;
-        }, $maxHttp1Connections, $maxHttp2Connections, $connectionFactory);
+        return new self(
+            $maxHttp1Connections,
+            $maxHttp2Connections,
+            $connectionFactory
+        );
     }
 
-    /**
-     * Create a connection pool that limits the number of connections per host.
-     *
-     * @param int                    $maxHttp1Connections Maximum number of HTTP/1.x connections allowed to a single host.
-     * @param int                    $maxHttp2Connections Maximum number of HTTP/2 connections allowed to a single host.
-     * @param ConnectionFactory|null $connectionFactory
-     *
-     * @return self
-     */
-    public static function byHost(
-        int $maxHttp1Connections = 6,
-        int $maxHttp2Connections = 1,
-        ?ConnectionFactory $connectionFactory = null
-    ): self {
-        return new self(static function (Request $request): string {
-            return $request->getUri()->getHost();
-        }, $maxHttp1Connections, $maxHttp2Connections, $connectionFactory);
-    }
+    private static function formatUri(Request $request): string
+    {
+        $uri = $request->getUri();
+        $scheme = $uri->getScheme();
 
-    /**
-     * Create a connection pool that limits the number of connections based on a static key.
-     *
-     * @param int                    $maxHttp1Connections Maximum number of HTTP/1.x connections allowed.
-     * @param int                    $maxHttp2Connections Maximum number of HTTP/2 connections allowed.
-     * @param string                 $key
-     * @param ConnectionFactory|null $connectionFactory
-     *
-     * @return self
-     */
-    public static function byStaticKey(
-        int $maxHttp1Connections = 6,
-        int $maxHttp2Connections = 1,
-        string $key = '',
-        ?ConnectionFactory $connectionFactory = null
-    ): self {
-        return new self(static function () use ($key): string {
-            return $key;
-        }, $maxHttp1Connections, $maxHttp2Connections, $connectionFactory);
-    }
+        $isHttps = $scheme === 'https';
+        $defaultPort = $isHttps ? 443 : 80;
 
-    /**
-     * Create a connection pool that limits the number of connections using a custom key provided by the callback.
-     *
-     * @param callable               $requestToKeyMapper Function accepting a Request object and returning a string.
-     * @param int                    $maxHttp1Connections Maximum number of HTTP/1.x connections allowed to a single authority.
-     * @param int                    $maxHttp2Connections Maximum number of HTTP/2 connections allowed to a single authority.
-     * @param ConnectionFactory|null $connectionFactory
-     *
-     * @return self
-     */
-    public static function byCustomKey(
-        callable $requestToKeyMapper,
-        int $maxHttp1Connections = 6,
-        int $maxHttp2Connections = 1,
-        ?ConnectionFactory $connectionFactory = null
-    ): self {
-        return new self($requestToKeyMapper, $maxHttp1Connections, $maxHttp2Connections, $connectionFactory);
+        $host = $uri->getHost();
+        $port = $uri->getPort() ?? $defaultPort;
+
+        $authority = $host . ':' . $port;
+        return $scheme . '://' . $authority;
     }
 
     private function __construct(
-        callable $requestToKeyMapper,
         int $maxHttp1Connections,
         int $maxHttp2Connections,
         ?ConnectionFactory $connectionFactory = null
@@ -150,7 +94,6 @@ final class FiniteConnectionPool implements ConnectionPool
 
         $this->maxHttp1Connections = $maxHttp1Connections;
         $this->maxHttp2Connections = $maxHttp2Connections;
-        $this->requestToKeyMapper = $requestToKeyMapper;
         $this->connectionFactory = $connectionFactory ?? new DefaultConnectionFactory;
     }
 
@@ -180,53 +123,53 @@ final class FiniteConnectionPool implements ConnectionPool
     public function getStream(Request $request, CancellationToken $cancellation): Promise
     {
         return call(function () use ($request, $cancellation) {
-            $key = ($this->requestToKeyMapper)($request);
+            $uri = self::formatUri($request);
 
             /** @var Stream $stream */
-            $stream = yield from $this->fetchStream($key, $request, $cancellation);
+            $stream = yield from $this->fetchStream($uri, $request, $cancellation);
 
             return HttpStream::fromStream(
                 $stream,
                 coroutine(function (Request $request, CancellationToken $cancellationToken) use (
                     $stream,
-                    $key
+                    $uri
                 ) {
                     try {
                         /** @var Response $response */
                         $response = yield $stream->request($request, $cancellationToken);
-
-                        // await response being completely received
-                        $response->getTrailers()->onResolve(function () use ($key): void {
-                            $this->release($key);
-                        });
                     } catch (\Throwable $e) {
-                        $this->release($key);
+                        $this->release($uri);
                         throw $e;
                     }
 
+                    // await response being completely received
+                    $response->getTrailers()->onResolve(function () use ($uri): void {
+                        $this->release($uri);
+                    });
+
                     return $response;
                 }),
-                function () use ($key): void {
-                    $this->release($key);
+                function () use ($uri): void {
+                    $this->release($uri);
                 }
             );
         });
     }
 
-    private function fetchStream(string $key, Request $request, CancellationToken $cancellation): \Generator
+    private function fetchStream(string $uri, Request $request, CancellationToken $cancellation): \Generator
     {
         $this->totalStreamRequests++;
 
         $isHttps = $request->getUri()->getScheme() === 'https';
 
-        $connections = $this->connections[$key] ?? new \ArrayObject;
+        $connections = $this->connections[$uri] ?? new \ArrayObject;
 
         do {
             foreach ($connections as $connectionPromise) {
                 \assert($connectionPromise instanceof Promise);
 
                 try {
-                    if ($isHttps && ($this->waitForPriorConnection[$key] ?? true)) {
+                    if ($isHttps && ($this->waitForPriorConnection[$uri] ?? true)) {
                         // Wait for first successful connection if using a secure connection (maybe we can use HTTP/2).
                         $connection = yield $connectionPromise;
                     } else {
@@ -254,11 +197,11 @@ final class FiniteConnectionPool implements ConnectionPool
                 return $stream;
             }
 
-            if ($this->shouldMakeNewConnection($key)) {
+            if ($this->shouldMakeNewConnection($uri)) {
                 break;
             }
 
-            $this->waiting[$key][] = $deferred = new Deferred;
+            $this->waiting[$uri][] = $deferred = new Deferred;
             yield $deferred->promise();
         } while (true);
 
@@ -267,8 +210,8 @@ final class FiniteConnectionPool implements ConnectionPool
         $connectionPromise = $this->connectionFactory->create($request, $cancellation);
 
         $hash = \spl_object_hash($connectionPromise);
-        $this->connections[$key] = $this->connections[$key] ?? new \ArrayObject;
-        $this->connections[$key][$hash] = $connectionPromise;
+        $this->connections[$uri] = $this->connections[$uri] ?? new \ArrayObject;
+        $this->connections[$uri][$hash] = $connectionPromise;
 
         try {
             $connection = yield $connectionPromise;
@@ -276,18 +219,18 @@ final class FiniteConnectionPool implements ConnectionPool
 
             \assert($connection instanceof Connection);
         } catch (\Throwable $exception) {
-            $this->dropConnection($key, $hash);
+            $this->dropConnection($uri, $hash);
 
             throw $exception;
         }
 
         if ($isHttps) {
-            $this->waitForPriorConnection[$key] = \in_array('2', $connection->getProtocolVersions());
+            $this->waitForPriorConnection[$uri] = \in_array('2', $connection->getProtocolVersions());
         }
 
-        $connection->onClose(function () use ($key, $hash): void {
+        $connection->onClose(function () use ($uri, $hash): void {
             $this->openConnectionCount--;
-            $this->dropConnection($key, $hash);
+            $this->dropConnection($uri, $hash);
         });
 
         $stream = yield $connection->getStream($request);
@@ -297,40 +240,40 @@ final class FiniteConnectionPool implements ConnectionPool
         return $stream;
     }
 
-    private function shouldMakeNewConnection(string $key): bool
+    private function shouldMakeNewConnection(string $uri): bool
     {
-        $count = \count($this->connections[$key] ?? []);
+        $count = \count($this->connections[$uri] ?? []);
 
-        if ($this->waitForPriorConnection[$key] ?? false) {
+        if ($this->waitForPriorConnection[$uri] ?? false) {
             return $count < $this->maxHttp2Connections;
         }
 
         return $count < $this->maxHttp1Connections;
     }
 
-    private function release(string $key): void
+    private function release(string $uri): void
     {
-        if (!isset($this->waiting[$key])) {
+        if (!isset($this->waiting[$uri])) {
             return;
         }
 
-        $deferred = \array_shift($this->waiting[$key]);
+        $deferred = \array_shift($this->waiting[$uri]);
 
-        if (empty($this->waiting[$key])) {
-            unset($this->waiting[$key]);
+        if (empty($this->waiting[$uri])) {
+            unset($this->waiting[$uri]);
         }
 
         $deferred->resolve();
     }
 
-    private function dropConnection(string $key, string $connectionHash): void
+    private function dropConnection(string $uri, string $connectionHash): void
     {
-        unset($this->connections[$key][$connectionHash]);
+        unset($this->connections[$uri][$connectionHash]);
 
-        if (empty($this->connections[$key])) {
-            unset($this->connections[$key], $this->waitForPriorConnection[$key]);
+        if (empty($this->connections[$uri])) {
+            unset($this->connections[$uri], $this->waitForPriorConnection[$uri]);
         }
 
-        $this->release($key);
+        $this->release($uri);
     }
 }
