@@ -197,11 +197,12 @@ final class FiniteConnectionPool implements ConnectionPool
                 return $stream;
             }
 
+            $this->waiting[$uri][] = $deferred = new Deferred;
+
             if ($this->shouldMakeNewConnection($uri)) {
                 break;
             }
 
-            $this->waiting[$uri][] = $deferred = new Deferred;
             yield $deferred->promise();
         } while (true);
 
@@ -213,25 +214,52 @@ final class FiniteConnectionPool implements ConnectionPool
         $this->connections[$uri] = $this->connections[$uri] ?? new \ArrayObject;
         $this->connections[$uri][$hash] = $connectionPromise;
 
-        try {
-            $connection = yield $connectionPromise;
+        $connectionPromise->onResolve(function (?\Throwable $exception, ?Connection $connection) use (&$deferred, $uri, $hash, $isHttps): void {
+            if ($exception) {
+                $this->dropConnection($uri, $hash);
+
+                // Fail Deferred if it still exists so Promise\first() below fails.
+                if ($deferred !== null) {
+                    \array_shift($this->waiting[$uri]);
+                    if (empty($this->waiting[$uri])) {
+                        unset($this->waiting[$uri]);
+                    }
+
+                    $temp = $deferred;
+                    $deferred = null;
+                    $temp->fail($exception);
+                }
+
+                return;
+            }
+
             $this->openConnectionCount++;
 
-            \assert($connection instanceof Connection);
-        } catch (\Throwable $exception) {
-            $this->dropConnection($uri, $hash);
+            if ($isHttps) {
+                $this->waitForPriorConnection[$uri] = \in_array('2', $connection->getProtocolVersions());
+            }
 
-            throw $exception;
-        }
-
-        if ($isHttps) {
-            $this->waitForPriorConnection[$uri] = \in_array('2', $connection->getProtocolVersions());
-        }
-
-        $connection->onClose(function () use ($uri, $hash): void {
-            $this->openConnectionCount--;
-            $this->dropConnection($uri, $hash);
+            $connection->onClose(function () use ($uri, $hash): void {
+                $this->openConnectionCount--;
+                $this->dropConnection($uri, $hash);
+            });
         });
+
+        $connection = yield Promise\first([$connectionPromise, $deferred->promise()]);
+
+        if ($connection === null) { // Deferred resolved before $connectionPromise.
+            return yield from $this->fetchStream($uri, $request, $cancellation);
+        }
+
+        $deferred = null; // Null Deferred from Closure reference above.
+
+        // Remove Deferred added above in do...while loop that is no longer needed.
+        \array_shift($this->waiting[$uri]);
+        if (empty($this->waiting[$uri])) {
+            unset($this->waiting[$uri]);
+        }
+
+        \assert($connection instanceof Connection);
 
         $stream = yield $connection->getStream($request);
 
