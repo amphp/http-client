@@ -18,8 +18,8 @@ class FiniteConnectionPoolTest extends AsyncTestCase
         $this->setMinimumRuntime(6000);
 
         yield [
-            $client->request(new Request('https://httpbin.org/delay/3')),
-            $client->request(new Request('https://httpbin.org/delay/3')),
+            $client->request(new Request('http://httpbin.org/delay/3')),
+            $client->request(new Request('http://httpbin.org/delay/3')),
         ];
     }
 
@@ -33,8 +33,8 @@ class FiniteConnectionPoolTest extends AsyncTestCase
         $this->setMinimumRuntime(3000);
 
         yield [
-            $client->request(new Request('https://httpbin.org/delay/3')),
-            $client->request(new Request('https://httpbin.org/delay/3')),
+            $client->request(new Request('http://httpbin.org/delay/3')),
+            $client->request(new Request('http://httpbin.org/delay/3')),
         ];
     }
 }
