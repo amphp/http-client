@@ -119,9 +119,9 @@ final class UnlimitedConnectionPool implements ConnectionPool
 
             $connectionPromise = $this->connectionFactory->create($request, $cancellation);
 
-            $hash = \spl_object_hash($connectionPromise);
+            $id = \spl_object_id($connectionPromise);
             $this->connections[$uri] = $this->connections[$uri] ?? new \ArrayObject;
-            $this->connections[$uri][$hash] = $connectionPromise;
+            $this->connections[$uri][$id] = $connectionPromise;
 
             try {
                 $connection = yield $connectionPromise;
@@ -129,18 +129,18 @@ final class UnlimitedConnectionPool implements ConnectionPool
 
                 \assert($connection instanceof Connection);
             } catch (\Throwable $exception) {
-                $this->dropConnection($uri, $hash);
+                $this->dropConnection($uri, $id);
 
                 throw $exception;
             }
 
             if ($isHttps) {
-                $this->waitForPriorConnection[$uri] = \in_array('2', $connection->getProtocolVersions());
+                $this->waitForPriorConnection[$uri] = \in_array('2', $connection->getProtocolVersions(), true);
             }
 
-            $connection->onClose(function () use ($uri, $hash): void {
+            $connection->onClose(function () use ($uri, $id): void {
                 $this->openConnectionCount--;
-                $this->dropConnection($uri, $hash);
+                $this->dropConnection($uri, $id);
             });
 
             $stream = yield $connection->getStream($request);
@@ -151,9 +151,9 @@ final class UnlimitedConnectionPool implements ConnectionPool
         });
     }
 
-    private function dropConnection(string $uri, string $connectionHash): void
+    private function dropConnection(string $uri, int $connectionId): void
     {
-        unset($this->connections[$uri][$connectionHash]);
+        unset($this->connections[$uri][$connectionId]);
 
         if (empty($this->connections[$uri])) {
             unset($this->connections[$uri], $this->waitForPriorConnection[$uri]);
