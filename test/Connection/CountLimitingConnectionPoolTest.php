@@ -6,12 +6,12 @@ use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\Request;
 use Amp\PHPUnit\AsyncTestCase;
 
-class FiniteConnectionPoolTest extends AsyncTestCase
+class CountLimitingConnectionPoolTest extends AsyncTestCase
 {
     public function testSingleConnection(): \Generator
     {
         $client = (new HttpClientBuilder)
-            ->usingPool(FiniteConnectionPool::byAuthority(1))
+            ->usingPool(CountLimitingConnectionPool::byAuthority(1))
             ->build();
 
         $this->setTimeout(10000);
@@ -26,7 +26,7 @@ class FiniteConnectionPoolTest extends AsyncTestCase
     public function testTwoConnections(): \Generator
     {
         $client = (new HttpClientBuilder)
-            ->usingPool(FiniteConnectionPool::byAuthority(2))
+            ->usingPool(CountLimitingConnectionPool::byAuthority(2))
             ->build();
 
         $this->setTimeout(4000);
