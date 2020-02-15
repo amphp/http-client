@@ -14,12 +14,12 @@ class CountLimitingConnectionPoolTest extends AsyncTestCase
             ->usingPool(CountLimitingConnectionPool::byAuthority(1))
             ->build();
 
-        $this->setTimeout(10000);
-        $this->setMinimumRuntime(6000);
+        $this->setTimeout(5000);
+        $this->setMinimumRuntime(2000);
 
         yield [
-            $client->request(new Request('http://httpbin.org/delay/3')),
-            $client->request(new Request('http://httpbin.org/delay/3')),
+            $client->request(new Request('http://httpbin.org/delay/1')),
+            $client->request(new Request('http://httpbin.org/delay/1')),
         ];
     }
 
@@ -29,12 +29,12 @@ class CountLimitingConnectionPoolTest extends AsyncTestCase
             ->usingPool(CountLimitingConnectionPool::byAuthority(2))
             ->build();
 
-        $this->setTimeout(4000);
-        $this->setMinimumRuntime(3000);
+        $this->setTimeout(2000);
+        $this->setMinimumRuntime(1000);
 
         yield [
-            $client->request(new Request('http://httpbin.org/delay/3')),
-            $client->request(new Request('http://httpbin.org/delay/3')),
+            $client->request(new Request('http://httpbin.org/delay/1')),
+            $client->request(new Request('http://httpbin.org/delay/1')),
         ];
     }
 }

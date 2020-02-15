@@ -16,7 +16,7 @@ final class UnlimitedConnectionPool implements ConnectionPool
 
     public function __construct(?ConnectionFactory $connectionFactory = null)
     {
-        $this->pool = CountLimitingConnectionPool::byAuthority(\PHP_INT_MAX, \PHP_INT_MAX, $connectionFactory);
+        $this->pool = CountLimitingConnectionPool::byAuthority(\PHP_INT_MAX, $connectionFactory);
     }
 
     public function __clone()

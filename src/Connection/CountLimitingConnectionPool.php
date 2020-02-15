@@ -17,10 +17,7 @@ final class CountLimitingConnectionPool implements ConnectionPool
     use ForbidSerialization;
 
     /** @var int */
-    private $maxHttp1Connections;
-
-    /** @var int */
-    private $maxHttp2Connections;
+    private $connectionLimit;
 
     /** @var ConnectionFactory */
     private $connectionFactory;
@@ -46,22 +43,14 @@ final class CountLimitingConnectionPool implements ConnectionPool
     /**
      * Create a connection pool that limits the number of connections per authority.
      *
-     * @param int                    $maxHttp1Connections Maximum number of HTTP/1.x connections allowed to a single authority.
-     * @param int                    $maxHttp2Connections Maximum number of HTTP/2 connections allowed to a single authority.
+     * @param int                    $connectionLimit Maximum number of connections allowed to a single authority.
      * @param ConnectionFactory|null $connectionFactory
      *
      * @return self
      */
-    public static function byAuthority(
-        int $maxHttp1Connections = 6,
-        int $maxHttp2Connections = 1,
-        ?ConnectionFactory $connectionFactory = null
-    ): self {
-        return new self(
-            $maxHttp1Connections,
-            $maxHttp2Connections,
-            $connectionFactory
-        );
+    public static function byAuthority(int $connectionLimit, ?ConnectionFactory $connectionFactory = null): self
+    {
+        return new self($connectionLimit, $connectionFactory);
     }
 
     private static function formatUri(Request $request): string
@@ -79,21 +68,13 @@ final class CountLimitingConnectionPool implements ConnectionPool
         return $scheme . '://' . $authority;
     }
 
-    private function __construct(
-        int $maxHttp1Connections,
-        int $maxHttp2Connections,
-        ?ConnectionFactory $connectionFactory = null
-    ) {
-        if ($maxHttp1Connections < 1) {
-            throw new \Error('The number of max HTTP/1.x connections per key must be greater than 0');
+    private function __construct(int $connectionLimit, ?ConnectionFactory $connectionFactory = null)
+    {
+        if ($connectionLimit < 1) {
+            throw new \Error('The connection limit must be greater than 0');
         }
 
-        if ($maxHttp2Connections < 1) {
-            throw new \Error('The number of max HTTP/2 connections per key must be greater than 0');
-        }
-
-        $this->maxHttp1Connections = $maxHttp1Connections;
-        $this->maxHttp2Connections = $maxHttp2Connections;
+        $this->connectionLimit = $connectionLimit;
         $this->connectionFactory = $connectionFactory ?? new DefaultConnectionFactory;
     }
 
@@ -273,13 +254,7 @@ final class CountLimitingConnectionPool implements ConnectionPool
 
     private function shouldMakeNewConnection(string $uri): bool
     {
-        $count = \count($this->connections[$uri] ?? []);
-
-        if ($this->waitForPriorConnection[$uri] ?? false) {
-            return $count < $this->maxHttp2Connections;
-        }
-
-        return $count < $this->maxHttp1Connections;
+        return \count($this->connections[$uri] ?? []) < $this->connectionLimit;
     }
 
     private function release(Connection $connection, string $uri): void

@@ -15,12 +15,12 @@ class StreamLimitingConnectionPoolTest extends AsyncTestCase
             ->usingPool(StreamLimitingConnectionPool::byHost(new UnlimitedConnectionPool, new LocalKeyedMutex))
             ->build();
 
-        $this->setTimeout(30000);
-        $this->setMinimumRuntime(6000);
+        $this->setTimeout(5000);
+        $this->setMinimumRuntime(2000);
 
         yield [
-            $client->request(new Request('https://httpbin.org/delay/3')),
-            $client->request(new Request('https://httpbin.org/delay/3')),
+            $client->request(new Request('https://httpbin.org/delay/1')),
+            $client->request(new Request('https://httpbin.org/delay/1')),
         ];
     }
 }
