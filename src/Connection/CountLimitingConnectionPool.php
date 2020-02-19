@@ -7,6 +7,7 @@ use Amp\Deferred;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
+use Amp\MultiReasonException;
 use Amp\Promise;
 use Amp\Success;
 use function Amp\call;
@@ -233,7 +234,12 @@ final class CountLimitingConnectionPool implements ConnectionPool
                 });
             });
 
-            $connection = yield Promise\first([$connectionPromise, $deferredPromise]);
+            try {
+                $connection = yield Promise\first([$connectionPromise, $deferredPromise]);
+            } catch (MultiReasonException $exception) {
+                [$exception] = $exception->getReasons(); // The first reason is why the connection failed.
+                throw $exception;
+            }
 
             $deferred = null; // Null reference so connection promise handler does not double-resolve the Deferred.
             unset($this->waiting[$uri][$deferredId]); // Deferred no longer needed for this request.
