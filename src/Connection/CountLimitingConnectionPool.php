@@ -123,19 +123,19 @@ final class CountLimitingConnectionPool implements ConnectionPool
                         /** @var Response $response */
                         $response = yield $stream->request($request, $cancellationToken);
                     } catch (\Throwable $e) {
-                        $this->release($connection, $uri);
+                        $this->onReadyConnection($connection, $uri);
                         throw $e;
                     }
 
                     // await response being completely received
                     $response->getTrailers()->onResolve(function () use ($connection, $uri): void {
-                        $this->release($connection, $uri);
+                        $this->onReadyConnection($connection, $uri);
                     });
 
                     return $response;
                 }),
                 function () use ($connection, $uri): void {
-                    $this->release($connection, $uri);
+                    $this->onReadyConnection($connection, $uri);
                 }
             );
         });
@@ -279,7 +279,7 @@ final class CountLimitingConnectionPool implements ConnectionPool
         return \count($this->connections[$uri] ?? []) < $this->connectionLimit;
     }
 
-    private function release(Connection $connection, string $uri): void
+    private function onReadyConnection(Connection $connection, string $uri): void
     {
         if (empty($this->waiting[$uri])) {
             return;
