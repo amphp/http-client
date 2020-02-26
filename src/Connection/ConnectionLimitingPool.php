@@ -13,7 +13,7 @@ use Amp\Success;
 use function Amp\call;
 use function Amp\coroutine;
 
-final class CountLimitingConnectionPool implements ConnectionPool
+final class ConnectionLimitingPool implements ConnectionPool
 {
     use ForbidSerialization;
 

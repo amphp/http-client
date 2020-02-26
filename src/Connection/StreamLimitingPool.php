@@ -13,7 +13,7 @@ use Amp\Sync\Lock;
 use function Amp\call;
 use function Amp\coroutine;
 
-final class StreamLimitingConnectionPool implements ConnectionPool
+final class StreamLimitingPool implements ConnectionPool
 {
     use ForbidCloning;
     use ForbidSerialization;

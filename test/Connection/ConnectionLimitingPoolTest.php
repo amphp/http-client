@@ -13,12 +13,12 @@ use Amp\Promise;
 use Amp\Socket\SocketAddress;
 use Amp\Success;
 
-class CountLimitingConnectionPoolTest extends AsyncTestCase
+class ConnectionLimitingPoolTest extends AsyncTestCase
 {
     public function testSingleConnection(): \Generator
     {
         $client = (new HttpClientBuilder)
-            ->usingPool(CountLimitingConnectionPool::byAuthority(1))
+            ->usingPool(ConnectionLimitingPool::byAuthority(1))
             ->build();
 
         $this->setTimeout(5000);
@@ -33,7 +33,7 @@ class CountLimitingConnectionPoolTest extends AsyncTestCase
     public function testTwoConnections(): \Generator
     {
         $client = (new HttpClientBuilder)
-            ->usingPool(CountLimitingConnectionPool::byAuthority(2))
+            ->usingPool(ConnectionLimitingPool::byAuthority(2))
             ->build();
 
         $this->setTimeout(2000);
@@ -77,7 +77,7 @@ class CountLimitingConnectionPoolTest extends AsyncTestCase
             ->method('create')
             ->willReturn(new Success($connection));
 
-        $pool = CountLimitingConnectionPool::byAuthority(1, $factory);
+        $pool = ConnectionLimitingPool::byAuthority(1, $factory);
 
         $client = (new HttpClientBuilder)
             ->usingPool($pool)
@@ -101,7 +101,7 @@ class CountLimitingConnectionPoolTest extends AsyncTestCase
                 return new Delayed(500, $connection);
             });
 
-        $pool = CountLimitingConnectionPool::byAuthority(2, $factory);
+        $pool = ConnectionLimitingPool::byAuthority(2, $factory);
 
         $client = (new HttpClientBuilder)
             ->usingPool($pool)

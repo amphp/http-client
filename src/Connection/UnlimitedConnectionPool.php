@@ -11,12 +11,12 @@ final class UnlimitedConnectionPool implements ConnectionPool
 {
     use ForbidSerialization;
 
-    /** @var CountLimitingConnectionPool */
+    /** @var ConnectionLimitingPool */
     private $pool;
 
     public function __construct(?ConnectionFactory $connectionFactory = null)
     {
-        $this->pool = CountLimitingConnectionPool::byAuthority(\PHP_INT_MAX, $connectionFactory);
+        $this->pool = ConnectionLimitingPool::byAuthority(\PHP_INT_MAX, $connectionFactory);
     }
 
     public function __clone()
