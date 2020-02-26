@@ -167,7 +167,7 @@ final class CountLimitingConnectionPool implements ConnectionPool
 
                 \assert($connection instanceof Connection);
 
-                $stream = yield $this->getStreamFrom($connection, $request);
+                $stream = yield $this->getStreamFromConnection($connection, $request);
 
                 if ($stream === null) {
                     continue; // No stream available for the given request.
@@ -185,7 +185,7 @@ final class CountLimitingConnectionPool implements ConnectionPool
                 $this->removeWaiting($uri, $deferredId);
             });
 
-            if ($this->shouldMakeNewConnection($uri)) {
+            if ($this->isAdditionalConnectionAllowed($uri)) {
                 break;
             }
 
@@ -193,7 +193,7 @@ final class CountLimitingConnectionPool implements ConnectionPool
 
             \assert($connection instanceof Connection);
 
-            $stream = yield $this->getStreamFrom($connection, $request);
+            $stream = yield $this->getStreamFromConnection($connection, $request);
 
             if ($stream === null) {
                 continue; // Wait for a different connection to become available.
@@ -248,22 +248,24 @@ final class CountLimitingConnectionPool implements ConnectionPool
 
         \assert($connection instanceof Connection);
 
-        $stream = yield $this->getStreamFrom($connection, $request);
+        $stream = yield $this->getStreamFromConnection($connection, $request);
 
         if ($stream === null) {
             // Reused connection did not have an available stream for the given request.
             $connection = yield $connectionPromise; // Wait for new connection request instead.
 
-            $stream = yield $this->getStreamFrom($connection, $request);
+            $stream = yield $this->getStreamFromConnection($connection, $request);
 
-            // New connection should always return a stream for the request.
-            \assert($stream instanceof Stream);
+            if ($stream === null) {
+                // Other requests used the new connection first, so we need to go around again.
+                return yield from $this->getStreamFor($uri, $request, $cancellation);
+            }
         }
 
         return [$connection, $stream];
     }
 
-    private function getStreamFrom(Connection $connection, Request $request): Promise
+    private function getStreamFromConnection(Connection $connection, Request $request): Promise
     {
         if (!\array_intersect($request->getProtocolVersions(), $connection->getProtocolVersions())) {
             return new Success; // Connection does not support any of the requested protocol versions.
@@ -272,7 +274,7 @@ final class CountLimitingConnectionPool implements ConnectionPool
         return $connection->getStream($request);
     }
 
-    private function shouldMakeNewConnection(string $uri): bool
+    private function isAdditionalConnectionAllowed(string $uri): bool
     {
         return \count($this->connections[$uri] ?? []) < $this->connectionLimit;
     }
