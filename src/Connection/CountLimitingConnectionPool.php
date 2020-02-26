@@ -110,7 +110,7 @@ final class CountLimitingConnectionPool implements ConnectionPool
             $uri = self::formatUri($request);
 
             /** @var Stream $stream */
-            [$connection, $stream] = yield from $this->fetchStream($uri, $request, $cancellation);
+            [$connection, $stream] = yield from $this->getStreamFor($uri, $request, $cancellation);
 
             return HttpStream::fromStream(
                 $stream,
@@ -141,121 +141,135 @@ final class CountLimitingConnectionPool implements ConnectionPool
         });
     }
 
-    private function fetchStream(string $uri, Request $request, CancellationToken $cancellation): \Generator
+    private function getStreamFor(string $uri, Request $request, CancellationToken $cancellation): \Generator
     {
         $isHttps = $request->getUri()->getScheme() === 'https';
 
+        $connections = $this->connections[$uri] ?? new \ArrayObject;
+
         do {
-            $connections = $this->connections[$uri] ?? new \ArrayObject;
+            foreach ($connections as $connectionPromise) {
+                \assert($connectionPromise instanceof Promise);
 
-            do {
-                foreach ($connections as $connectionPromise) {
-                    \assert($connectionPromise instanceof Promise);
-
-                    try {
-                        if ($isHttps && ($this->waitForPriorConnection[$uri] ?? true)) {
-                            // Wait for first successful connection if using a secure connection (maybe we can use HTTP/2).
-                            $connection = yield $connectionPromise;
-                        } else {
-                            $connection = yield Promise\first([$connectionPromise, new Success]);
-                            if ($connection === null) {
-                                continue;
-                            }
+                try {
+                    if ($isHttps && ($this->waitForPriorConnection[$uri] ?? true)) {
+                        // Wait for first successful connection if using a secure connection (maybe we can use HTTP/2).
+                        $connection = yield $connectionPromise;
+                    } else {
+                        $connection = yield Promise\first([$connectionPromise, new Success]);
+                        if ($connection === null) {
+                            continue;
                         }
-                    } catch (\Exception $exception) {
-                        continue; // Ignore cancellations and errors of other requests.
                     }
-
-                    \assert($connection instanceof Connection);
-
-                    if (!\array_intersect($request->getProtocolVersions(), $connection->getProtocolVersions())) {
-                        continue; // Connection does not support any of the requested protocol versions.
-                    }
-
-                    $stream = yield $connection->getStream($request);
-
-                    if ($stream === null) {
-                        continue; // No stream available for the given request.
-                    }
-
-                    return [$connection, $stream];
+                } catch (\Exception $exception) {
+                    continue; // Ignore cancellations and errors of other requests.
                 }
 
-                $deferred = new Deferred;
-                $deferredId = \spl_object_id($deferred);
+                \assert($connection instanceof Connection);
 
-                $this->waiting[$uri][$deferredId] = $deferred;
-                $deferredPromise = $deferred->promise();
-                $deferredPromise->onResolve(function () use ($uri, $deferredId): void {
-                    unset($this->waiting[$uri][$deferredId]);
-                    if (empty($this->waiting[$uri])) {
-                        unset($this->waiting[$uri]);
-                    }
-                });
+                $stream = yield $this->getStreamFrom($connection, $request);
 
-                if ($this->shouldMakeNewConnection($uri)) {
-                    break;
+                if ($stream === null) {
+                    continue; // No stream available for the given request.
                 }
 
-                yield $deferredPromise;
-            } while (true);
-
-            $this->totalConnectionAttempts++;
-
-            $connectionPromise = $this->connectionFactory->create($request, $cancellation);
-
-            $connectionId = \spl_object_id($connectionPromise);
-            $this->connections[$uri] = $this->connections[$uri] ?? new \ArrayObject;
-            $this->connections[$uri][$connectionId] = $connectionPromise;
-
-            $connectionPromise->onResolve(function (?\Throwable $exception, ?Connection $connection) use (
-                &$deferred,
-                $uri,
-                $connectionId,
-                $isHttps
-            ): void {
-                if ($exception) {
-                    $this->dropConnection($uri, $connectionId);
-                    if ($deferred !== null) {
-                        $deferred->fail($exception); // Fail Deferred so Promise\first() below fails.
-                    }
-                    return;
-                }
-
-                $this->openConnectionCount++;
-
-                if ($isHttps) {
-                    $this->waitForPriorConnection[$uri] = \in_array('2', $connection->getProtocolVersions(), true);
-                }
-
-                $connection->onClose(function () use ($uri, $connectionId): void {
-                    $this->openConnectionCount--;
-                    $this->dropConnection($uri, $connectionId);
-                });
-            });
-
-            try {
-                $connection = yield Promise\first([$connectionPromise, $deferredPromise]);
-            } catch (MultiReasonException $exception) {
-                [$exception] = $exception->getReasons(); // The first reason is why the connection failed.
-                throw $exception;
+                return [$connection, $stream];
             }
 
-            $deferred = null; // Null reference so connection promise handler does not double-resolve the Deferred.
-            unset($this->waiting[$uri][$deferredId]); // Deferred no longer needed for this request.
+            $deferred = new Deferred;
+            $deferredId = \spl_object_id($deferred);
+
+            $this->waiting[$uri][$deferredId] = $deferred;
+            $deferredPromise = $deferred->promise();
+            $deferredPromise->onResolve(function () use ($uri, $deferredId): void {
+                $this->removeWaiting($uri, $deferredId);
+            });
+
+            if ($this->shouldMakeNewConnection($uri)) {
+                break;
+            }
+
+            $connection = yield $deferredPromise;
 
             \assert($connection instanceof Connection);
 
-            $stream = yield $connection->getStream($request);
+            $stream = yield $this->getStreamFrom($connection, $request);
 
             if ($stream === null) {
-                continue; // Reused connection did not have a stream.
+                continue; // Wait for a different connection to become available.
             }
-
-            \assert($stream instanceof Stream);
 
             return [$connection, $stream];
         } while (true);
+
+        $this->totalConnectionAttempts++;
+
+        $connectionPromise = $this->connectionFactory->create($request, $cancellation);
+
+        $connectionId = \spl_object_id($connectionPromise);
+        $this->connections[$uri] = $this->connections[$uri] ?? new \ArrayObject;
+        $this->connections[$uri][$connectionId] = $connectionPromise;
+
+        $connectionPromise->onResolve(function (?\Throwable $exception, ?Connection $connection) use (
+            &$deferred,
+            $uri,
+            $connectionId,
+            $isHttps
+        ): void {
+            if ($exception) {
+                $this->dropConnection($uri, $connectionId);
+                if ($deferred !== null) {
+                    $deferred->fail($exception); // Fail Deferred so Promise\first() below fails.
+                }
+                return;
+            }
+
+            $this->openConnectionCount++;
+
+            if ($isHttps) {
+                $this->waitForPriorConnection[$uri] = \in_array('2', $connection->getProtocolVersions(), true);
+            }
+
+            $connection->onClose(function () use ($uri, $connectionId): void {
+                $this->openConnectionCount--;
+                $this->dropConnection($uri, $connectionId);
+            });
+        });
+
+        try {
+            $connection = yield Promise\first([$connectionPromise, $deferredPromise]);
+        } catch (MultiReasonException $exception) {
+            [$exception] = $exception->getReasons(); // The first reason is why the connection failed.
+            throw $exception;
+        }
+
+        $deferred = null; // Null reference so connection promise handler does not double-resolve the Deferred.
+        $this->removeWaiting($uri, $deferredId); // Deferred no longer needed for this request.
+
+        \assert($connection instanceof Connection);
+
+        $stream = yield $this->getStreamFrom($connection, $request);
+
+        if ($stream === null) {
+            // Reused connection did not have an available stream for the given request.
+            $connection = yield $connectionPromise; // Wait for new connection request instead.
+
+            $stream = yield $this->getStreamFrom($connection, $request);
+
+            // New connection should always return a stream for the request.
+            \assert($stream instanceof Stream);
+        }
+
+        return [$connection, $stream];
+    }
+
+    private function getStreamFrom(Connection $connection, Request $request): Promise
+    {
+        if (!\array_intersect($request->getProtocolVersions(), $connection->getProtocolVersions())) {
+            return new Success; // Connection does not support any of the requested protocol versions.
+        }
+
+        return $connection->getStream($request);
     }
 
     private function shouldMakeNewConnection(string $uri): bool
@@ -271,6 +285,14 @@ final class CountLimitingConnectionPool implements ConnectionPool
 
         $deferred = \array_shift($this->waiting[$uri]);
         $deferred->resolve($connection);
+    }
+
+    private function removeWaiting(string $uri, int $deferredId): void
+    {
+        unset($this->waiting[$uri][$deferredId]);
+        if (empty($this->waiting[$uri])) {
+            unset($this->waiting[$uri]);
+        }
     }
 
     private function dropConnection(string $uri, int $connectionId): void
