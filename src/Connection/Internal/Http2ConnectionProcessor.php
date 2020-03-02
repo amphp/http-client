@@ -213,7 +213,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         $stream = $this->streams[$streamId];
 
-        if ($stream->clientWindow + $windowSize > (2 << 30) - 1) {
+        if ($stream->clientWindow + $windowSize > 2147483647) {
             $this->handleStreamException(new Http2StreamException(
                 "Current window size plus new window exceeds maximum size",
                 $streamId,
@@ -230,7 +230,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     public function handleConnectionWindowIncrement(int $windowSize): void
     {
-        if ($this->clientWindow + $windowSize > (2 << 30) - 1) {
+        if ($this->clientWindow + $windowSize > 2147483647) {
             $this->handleConnectionException(new Http2ConnectionException(
                 "Current window size plus new window exceeds maximum size",
                 Http2Parser::FLOW_CONTROL_ERROR
