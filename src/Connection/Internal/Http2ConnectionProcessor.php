@@ -1110,7 +1110,7 @@ final class Http2ConnectionProcessor implements Http2Processor
     {
         switch ($setting) {
             case Http2Parser::INITIAL_WINDOW_SIZE:
-                if ($value >= 1 << 31) {
+                if ($value > 2147483647) { // (1 << 31) - 1
                     $this->handleConnectionException(new Http2ConnectionException(
                         "Invalid window size: {$value}",
                         Http2Parser::FLOW_CONTROL_ERROR
