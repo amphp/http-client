@@ -1160,7 +1160,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                 return;
 
             case Http2Parser::MAX_CONCURRENT_STREAMS:
-                if ($value >= 1 << 31) {
+                if ($value > 2147483647) { // (1 << 31) - 1
                     $this->handleConnectionException(new Http2ConnectionException(
                         "Invalid concurrent streams value: {$value}",
                         Http2Parser::PROTOCOL_ERROR
