@@ -73,9 +73,6 @@ final class Http1Connection implements Connection
     /** @var int */
     private $estimatedClose;
 
-    /** @var bool */
-    private $explicitTimeout = false;
-
     /** @var SocketAddress */
     private $localAddress;
 
@@ -177,12 +174,19 @@ final class Http1Connection implements Connection
 
     private function hasStreamFor(Request $request): bool
     {
-        $connectionUnlikelyToClose = $this->explicitTimeout && $this->getRemainingTime() > $this->timeoutGracePeriod;
+        if ($this->busy) {
+            return false;
+        }
 
-        return !$this->busy
-            && $this->socket
-            && !$this->socket->isClosed()
-            && ($connectionUnlikelyToClose || $request->isIdempotent());
+        $connectionUnlikelyToClose = $this->getRemainingTime() > $this->timeoutGracePeriod;
+
+        if ($this->socket && !$this->socket->isClosed() && ($connectionUnlikelyToClose || $request->isIdempotent())) {
+            return true;
+        }
+
+        $this->close();
+
+        return false;
     }
 
     /** @inheritdoc */
@@ -540,9 +544,6 @@ final class Http1Connection implements Connection
         $params = Http\createFieldValueComponentMap(Http\parseFieldValueComponents($response, 'keep-alive'));
 
         $timeout = (int) ($params['timeout'] ?? $this->priorTimeout);
-        if (isset($params['timeout'])) {
-            $this->explicitTimeout = true;
-        }
 
         return $this->priorTimeout = \min(\max(0, $timeout), self::MAX_KEEP_ALIVE_TIMEOUT);
     }
