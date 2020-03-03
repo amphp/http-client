@@ -285,7 +285,9 @@ final class ConnectionLimitingPool implements ConnectionPool
             return;
         }
 
-        $deferred = \array_shift($this->waiting[$uri]);
+        $deferred = \reset($this->waiting[$uri]);
+        $this->removeWaiting($uri, \key($this->waiting[$uri]));
+
         $deferred->resolve($connection);
     }
 
