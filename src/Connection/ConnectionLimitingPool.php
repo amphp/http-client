@@ -286,8 +286,7 @@ final class ConnectionLimitingPool implements ConnectionPool
         }
 
         $deferred = \reset($this->waiting[$uri]);
-        $this->removeWaiting($uri, \key($this->waiting[$uri]));
-
+        // Deferred is removed from waiting list in onResolve callback attached above.
         $deferred->resolve($connection);
     }
 
