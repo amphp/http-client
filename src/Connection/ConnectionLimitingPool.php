@@ -176,8 +176,9 @@ final class ConnectionLimitingPool implements ConnectionPool
                 $stream = yield $this->getStreamFromConnection($connection, $request);
 
                 if ($stream === null) {
+                    $connectionId = \spl_object_id($connection);
                     if (!$this->isAdditionalConnectionAllowed($uri)
-                        && $this->activeRequestCounts[\spl_object_id($connection)] === 0
+                        && ($this->activeRequestCounts[$connectionId] ?? 0) === 0
                     ) {
                         // No additional connections allowed, but this connection is idle and unsuited for this request.
                         $connection->close();

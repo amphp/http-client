@@ -61,8 +61,8 @@ final class Http1Connection implements Connection
     /** @var string|null Keep alive timeout watcher ID. */
     private $timeoutWatcher;
 
-    /** @var int Keep-Alive timeout from last response, initially the timeout grace period. */
-    private $priorTimeout;
+    /** @var int Keep-Alive timeout from last response. */
+    private $priorTimeout = self::MAX_KEEP_ALIVE_TIMEOUT;
 
     /** @var callable[]|null */
     private $onClose = [];
@@ -71,7 +71,10 @@ final class Http1Connection implements Connection
     private $timeoutGracePeriod;
 
     /** @var int */
-    private $estimatedClose;
+    private $lastUsedAt;
+
+    /** @var bool */
+    private $explicitTimeout = false;
 
     /** @var SocketAddress */
     private $localAddress;
@@ -88,8 +91,8 @@ final class Http1Connection implements Connection
         $this->localAddress = $socket->getLocalAddress();
         $this->remoteAddress = $socket->getRemoteAddress();
         $this->tlsInfo = $socket->getTlsInfo();
-        $this->priorTimeout = $this->timeoutGracePeriod = $timeoutGracePeriod;
-        $this->estimatedClose = getCurrentTime() + self::MAX_KEEP_ALIVE_TIMEOUT * 1000;
+        $this->timeoutGracePeriod = $timeoutGracePeriod;
+        $this->lastUsedAt = getCurrentTime();
     }
 
     public function __destruct()
@@ -154,7 +157,7 @@ final class Http1Connection implements Connection
     private function free(): Promise
     {
         $this->socket = null;
-        $this->estimatedClose = 0;
+        $this->lastUsedAt = 0;
 
         if ($this->timeoutWatcher !== null) {
             Loop::cancel($this->timeoutWatcher);
@@ -403,7 +406,6 @@ final class Http1Connection implements Connection
                         if ($timeout > 0 && $parser->getState() !== Http1Parser::BODY_IDENTITY_EOF) {
                             $this->timeoutWatcher = Loop::delay($timeout * 1000, [$this, 'close']);
                             Loop::unreference($this->timeoutWatcher);
-                            $this->estimatedClose = getCurrentTime() + $timeout * 1000;
                         } else {
                             $this->close();
                         }
@@ -479,7 +481,9 @@ final class Http1Connection implements Connection
      */
     private function getRemainingTime(): int
     {
-        return \max(0, $this->estimatedClose - getCurrentTime());
+        $timestamp = $this->lastUsedAt + $this->explicitTimeout ? $this->priorTimeout : $this->timeoutGracePeriod;
+
+        return \max(0, $timestamp - getCurrentTime());
     }
 
     private function withCancellation(Promise $promise, CancellationToken $cancellationToken): Promise
@@ -537,6 +541,9 @@ final class Http1Connection implements Connection
         $params = Http\createFieldValueComponentMap(Http\parseFieldValueComponents($response, 'keep-alive'));
 
         $timeout = (int) ($params['timeout'] ?? $this->priorTimeout);
+        if (isset($params['timeout'])) {
+            $this->explicitTimeout = true;
+        }
 
         return $this->priorTimeout = \min(\max(0, $timeout), self::MAX_KEEP_ALIVE_TIMEOUT);
     }
