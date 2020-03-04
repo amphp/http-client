@@ -26,6 +26,9 @@ final class ConnectionLimitingPool implements ConnectionPool
     /** @var Promise[][] */
     private $connections = [];
 
+    /** @var int[] */
+    private $activeRequestCounts = [];
+
     /** @var Deferred[][] */
     private $waiting = [];
 
@@ -112,6 +115,9 @@ final class ConnectionLimitingPool implements ConnectionPool
             /** @var Stream $stream */
             [$connection, $stream] = yield from $this->getStreamFor($uri, $request, $cancellation);
 
+            $connectionId = \spl_object_id($connection);
+            $this->activeRequestCounts[$connectionId] = ($this->activeRequestCounts[$connectionId] ?? 0) + 1;
+
             return HttpStream::fromStream(
                 $stream,
                 coroutine(function (Request $request, CancellationToken $cancellationToken) use (
@@ -170,6 +176,14 @@ final class ConnectionLimitingPool implements ConnectionPool
                 $stream = yield $this->getStreamFromConnection($connection, $request);
 
                 if ($stream === null) {
+                    if (!$this->isAdditionalConnectionAllowed($uri)
+                        && $this->activeRequestCounts[\spl_object_id($connection)] === 0
+                    ) {
+                        // No additional connections allowed, but this connection is idle and unsuited for this request.
+                        $connection->close();
+                        break;
+                    }
+
                     continue; // No stream available for the given request.
                 }
 
@@ -281,6 +295,11 @@ final class ConnectionLimitingPool implements ConnectionPool
 
     private function onReadyConnection(Connection $connection, string $uri): void
     {
+        $connectionId = \spl_object_id($connection);
+        if (isset($this->activeRequestCounts[$connectionId])) {
+            $this->activeRequestCounts[$connectionId]--;
+        }
+
         if (empty($this->waiting[$uri])) {
             return;
         }
@@ -300,7 +319,7 @@ final class ConnectionLimitingPool implements ConnectionPool
 
     private function dropConnection(string $uri, int $connectionId): void
     {
-        unset($this->connections[$uri][$connectionId]);
+        unset($this->connections[$uri][$connectionId], $this->activeRequestCounts[$connectionId]);
 
         if (empty($this->connections[$uri])) {
             unset($this->connections[$uri], $this->waitForPriorConnection[$uri]);
