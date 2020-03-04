@@ -177,6 +177,12 @@ final class ConnectionLimitingPool implements ConnectionPool
 
                 if ($stream === null) {
                     $connectionId = \spl_object_id($connection);
+
+                    \assert(
+                        !isset($this->activeRequestCounts[$connectionId])
+                        || $this->activeRequestCounts[$connectionId] >= 0
+                    );
+
                     if (!$this->isAdditionalConnectionAllowed($uri)
                         && ($this->activeRequestCounts[$connectionId] ?? 0) === 0
                     ) {
