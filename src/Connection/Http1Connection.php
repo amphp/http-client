@@ -177,12 +177,10 @@ final class Http1Connection implements Connection
 
     private function hasStreamFor(Request $request): bool
     {
-        $connectionUnlikelyToClose = $this->getRemainingTime() > $this->timeoutGracePeriod;
-
         return !$this->busy
             && $this->socket
             && !$this->socket->isClosed()
-            && ($connectionUnlikelyToClose || $request->isIdempotent());
+            && ($this->getRemainingTime() > 0 || $request->isIdempotent());
     }
 
     /** @inheritdoc */
@@ -481,8 +479,7 @@ final class Http1Connection implements Connection
      */
     private function getRemainingTime(): int
     {
-        $timestamp = $this->lastUsedAt + $this->explicitTimeout ? $this->priorTimeout : $this->timeoutGracePeriod;
-
+        $timestamp = $this->lastUsedAt + $this->explicitTimeout ? $this->priorTimeout * 1000 : $this->timeoutGracePeriod;
         return \max(0, $timestamp - getCurrentTime());
     }
 
