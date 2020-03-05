@@ -37,6 +37,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     private $builder;
     /** @var callable */
     private $responseCallback;
+    /** @var Socket\Socket[] */
+    private $clients = [];
 
     public function testHttp10Response(): \Generator
     {
@@ -721,7 +723,10 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
             /** @var Socket\EncryptableSocket $client */
             $client = yield $this->socket->accept();
             $client->unreference();
+
             yield ($this->responseCallback)($client);
+
+            $this->clients[] = $client;
         });
     }
 
