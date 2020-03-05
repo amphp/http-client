@@ -37,8 +37,6 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     private $builder;
     /** @var callable */
     private $responseCallback;
-    /** @var Socket\Socket[] */
-    private $clients = [];
 
     public function testHttp10Response(): \Generator
     {
@@ -725,16 +723,25 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
             $client->unreference();
 
             yield ($this->responseCallback)($client);
-
-            $this->clients[] = $client;
         });
     }
 
     private function givenRawServerResponse(string $response): void
     {
-        $this->responseCallback = static function (Socket\Socket $socket) use ($response) {
+        $this->responseCallback = coroutine(static function (Socket\Socket $socket) use ($response) {
+            $buffer = '';
+
+            // Await request before sending response
+            while (null !== $chunk = yield $socket->read()) {
+                $buffer .= $chunk;
+
+                if (\strpos($buffer, "\r\n\r\n") !== false) {
+                    break;
+                }
+            }
+
             return $socket->write($response);
-        };
+        });
     }
 
     private function givenSlowRawServerResponse(int $delay, string ...$chunks): void
