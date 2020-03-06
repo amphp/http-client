@@ -176,17 +176,7 @@ final class ConnectionLimitingPool implements ConnectionPool
                 $stream = yield $this->getStreamFromConnection($connection, $request);
 
                 if ($stream === null) {
-                    $connectionId = \spl_object_id($connection);
-
-                    \assert(
-                        !isset($this->activeRequestCounts[$connectionId])
-                        || $this->activeRequestCounts[$connectionId] >= 0
-                    );
-
-                    if (!$this->isAdditionalConnectionAllowed($uri)
-                        && ($this->activeRequestCounts[$connectionId] ?? 0) === 0
-                    ) {
-                        // No additional connections allowed, but this connection is idle and unsuited for this request.
+                    if (!$this->isAdditionalConnectionAllowed($uri) && $this->isConnectionIdle($connection)) {
                         $connection->close();
                         break;
                     }
@@ -314,6 +304,18 @@ final class ConnectionLimitingPool implements ConnectionPool
         $deferred = \reset($this->waiting[$uri]);
         // Deferred is removed from waiting list in onResolve callback attached above.
         $deferred->resolve($connection);
+    }
+
+    private function isConnectionIdle(Connection $connection): bool
+    {
+        $connectionId = \spl_object_id($connection);
+
+        \assert(
+            !isset($this->activeRequestCounts[$connectionId])
+            || $this->activeRequestCounts[$connectionId] >= 0
+        );
+
+        return ($this->activeRequestCounts[$connectionId] ?? 0) === 0;
     }
 
     private function removeWaiting(string $uri, int $deferredId): void
