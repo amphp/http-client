@@ -1307,10 +1307,10 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         if ($stream->responsePending || $stream->body || $stream->trailers) {
             $exception = $exception ?? new ClientHttp2StreamException(
-                    \sprintf("Stream %d closed unexpectedly", $streamId),
-                    $streamId,
-                    Http2Parser::INTERNAL_ERROR
-                );
+                \sprintf("Stream %d closed unexpectedly", $streamId),
+                $streamId,
+                Http2Parser::INTERNAL_ERROR
+            );
 
             if (!$exception instanceof HttpException && !$exception instanceof CancelledException) {
                 $exception = new HttpException($exception->getMessage(), 0, $exception);
