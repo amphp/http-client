@@ -49,6 +49,9 @@ final class Http2Stream
     public $trailers;
 
     /** @var CancellationToken */
+    public $originalCancellation;
+
+    /** @var CancellationToken */
     public $cancellationToken;
 
     /** @var int Bytes received on the stream. */
@@ -89,6 +92,7 @@ final class Http2Stream
         Request $request,
         Stream $stream,
         CancellationToken $cancellationToken,
+        CancellationToken $originalCancellation,
         int $serverSize,
         int $clientSize
     ) {
@@ -96,6 +100,7 @@ final class Http2Stream
         $this->request = $request;
         $this->stream = $stream;
         $this->cancellationToken = $cancellationToken;
+        $this->originalCancellation = $originalCancellation;
         $this->serverWindow = $serverSize;
         $this->clientWindow = $clientSize;
         $this->pendingResponse = new Deferred;

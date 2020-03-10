@@ -5,6 +5,7 @@ namespace Amp\Http\Client\Connection;
 use Amp\CancelledException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
+use Amp\Http\Client\TimeoutException;
 use Amp\Http\Client\Trailers;
 use Amp\Http\HPack;
 use Amp\Http\Http2\Http2Parser;
@@ -215,6 +216,57 @@ class Http2ConnectionTest extends AsyncTestCase
             $this->assertSame('test', yield $response->getBody()->buffer());
             $this->fail("The request body should have been cancelled");
         } catch (CancelledException $exception) {
+            $buffer = yield $server->read();
+            $expected = self::packFrame(\pack("N", Http2Parser::CANCEL), Http2Parser::RST_STREAM, Http2Parser::NO_FLAG, 1);
+            $this->assertStringEndsWith($expected, $buffer);
+        }
+    }
+
+    public function testTimeoutWhileStreamingBody(): \Generator
+    {
+        $hpack = new HPack;
+
+        [$server, $client] = Socket\createPair();
+
+        $connection = new Http2Connection($client);
+
+        $server->write(self::packFrame('', Http2Parser::SETTINGS, 0, 0));
+
+        yield $connection->initialize();
+
+        $request = new Request('http://localhost/');
+        $request->setTransferTimeout(500);
+
+        /** @var Stream $stream */
+        $stream = yield $connection->getStream($request);
+
+        asyncCall(static function () use ($server, $hpack) {
+            yield delay(100);
+
+            $server->write(self::packFrame($hpack->encode([
+                [":status", Status::OK],
+                ["content-length", "8"],
+                ["date", formatDateHeader()],
+            ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS, 1));
+
+            yield delay(100);
+
+            $server->write(self::packFrame('test', Http2Parser::DATA, Http2Parser::NO_FLAG, 1));
+
+            yield delay(1000);
+
+            $server->write(self::packFrame('test', Http2Parser::DATA, Http2Parser::END_STREAM, 1));
+        });
+
+        /** @var Response $response */
+        $response = yield $stream->request($request, new NullCancellationToken);
+
+        $this->assertSame(200, $response->getStatus());
+
+        try {
+            $this->assertSame('test', yield $response->getBody()->buffer());
+            $this->fail("The request body should have been cancelled");
+        } catch (TimeoutException $exception) {
             $buffer = yield $server->read();
             $expected = self::packFrame(\pack("N", Http2Parser::CANCEL), Http2Parser::RST_STREAM, Http2Parser::NO_FLAG, 1);
             $this->assertStringEndsWith($expected, $buffer);
