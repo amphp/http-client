@@ -23,6 +23,7 @@ use Amp\Http\Client\Internal\ResponseBodyStream;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\SocketException;
+use Amp\Http\Client\TimeoutException;
 use Amp\Http\Client\Trailers;
 use Amp\Http\HPack;
 use Amp\Http\Http2\Http2ConnectionException;
@@ -493,6 +494,17 @@ final class Http2ConnectionProcessor implements Http2Processor
                 $streamId,
                 \pack("N", Http2Parser::CANCEL)
             );
+
+            if (!$this->streams[$streamId]->originalCancellation->isRequested()) {
+                $transferTimeout = $this->streams[$streamId]->request->getTransferTimeout();
+
+                $exception = new TimeoutException(
+                    'Allowed transfer timeout exceeded, took longer than ' . $transferTimeout . ' ms',
+                    0,
+                    $exception
+                );
+            }
+
             $this->releaseStream($streamId, $exception);
         });
 
@@ -623,6 +635,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                 }
             ),
             $parentStream->cancellationToken,
+            $parentStream->originalCancellation,
             self::DEFAULT_WINDOW_SIZE,
             0
         );
@@ -905,6 +918,14 @@ final class Http2ConnectionProcessor implements Http2Processor
                 throw $exception;
             }
 
+            $originalCancellation = $cancellationToken;
+            if ($request->getTransferTimeout() > 0) {
+                $cancellationToken = new CombinedCancellationToken(
+                    $cancellationToken,
+                    new TimeoutCancellationToken($request->getTransferTimeout())
+                );
+            }
+
             $streamId = $this->streamId += 2; // Client streams should be odd-numbered, starting at 1.
 
             $this->streams[$streamId] = $http2stream = new Http2Stream(
@@ -912,22 +933,19 @@ final class Http2ConnectionProcessor implements Http2Processor
                 $request,
                 $stream,
                 $cancellationToken,
+                $originalCancellation,
                 self::DEFAULT_WINDOW_SIZE,
                 $this->initialWindowSize
             );
 
-            if ($request->getTransferTimeout() > 0) {
-                // Cancellation token combined with timeout token should not be stored in $stream->cancellationToken,
-                // otherwise the timeout applies to the body transfer and pushes.
-                $cancellationToken = new CombinedCancellationToken(
-                    $cancellationToken,
-                    new TimeoutCancellationToken($request->getTransferTimeout())
-                );
-            }
-
             $this->socket->reference();
 
-            $onCancel = function (CancelledException $exception) use ($streamId): void {
+            $transferTimeout = $request->getTransferTimeout();
+            $cancellationId = $cancellationToken->subscribe(function (CancelledException $exception) use (
+                $streamId,
+                $originalCancellation,
+                $transferTimeout
+            ): void {
                 if (!isset($this->streams[$streamId])) {
                     return;
                 }
@@ -938,10 +956,17 @@ final class Http2ConnectionProcessor implements Http2Processor
                     $streamId,
                     \pack("N", Http2Parser::CANCEL)
                 );
-                $this->releaseStream($streamId, $exception);
-            };
 
-            $cancellationId = $cancellationToken->subscribe($onCancel);
+                if (!$originalCancellation->isRequested()) {
+                    $exception = new TimeoutException(
+                        'Allowed transfer timeout exceeded, took longer than ' . $transferTimeout . ' ms',
+                        0,
+                        $exception
+                    );
+                }
+
+                $this->releaseStream($streamId, $exception);
+            });
 
             try {
                 $headers = $this->generateHeaders($request);
@@ -1404,7 +1429,7 @@ final class Http2ConnectionProcessor implements Http2Processor
     }
 
     /**
-     * @param int|null $lastId ID of last processed frame. Null to use the last opened frame ID or 0 if no
+     * @param int|null           $lastId ID of last processed frame. Null to use the last opened frame ID or 0 if no
      *                                   streams have been opened.
      * @param HttpException|null $reason
      *
