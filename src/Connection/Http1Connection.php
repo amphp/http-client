@@ -32,9 +32,9 @@ use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
 use Amp\Success;
 use Amp\TimeoutCancellationToken;
+use Amp\TimeoutException as PromiseTimeoutException;
 use function Amp\asyncCall;
 use function Amp\call;
-use function Amp\getCurrentTime;
 
 /**
  * Socket client implementation.
@@ -92,7 +92,7 @@ final class Http1Connection implements Connection
         $this->remoteAddress = $socket->getRemoteAddress();
         $this->tlsInfo = $socket->getTlsInfo();
         $this->timeoutGracePeriod = $timeoutGracePeriod;
-        $this->lastUsedAt = getCurrentTime();
+        $this->lastUsedAt = Loop::now();
     }
 
     public function __destruct()
@@ -279,14 +279,20 @@ final class Http1Connection implements Connection
         $parser = new Http1Parser($request, $bodyCallback, $trailersCallback);
 
         $start = getCurrentTime();
+        $timeout = $request->getInactivityTimeout();
+        if ($timeout <= 0) {
+            $timeout = self::MAX_KEEP_ALIVE_TIMEOUT * 1000;
+        }
 
         try {
-            while (null !== $chunk = yield $this->socket->read()) {
+            while (null !== $chunk = yield Promise\timeout($this->socket->read(), $timeout)) {
                 parseChunk:
                 $response = $parser->parse($chunk);
                 if ($response === null) {
                     continue;
                 }
+
+                $this->lastUsedAt = Loop::now();
 
                 $status = $response->getStatus();
 
@@ -362,6 +368,7 @@ final class Http1Connection implements Connection
                     $readingCancellation,
                     $bodyCancellationToken,
                     $stream,
+                    $timeout,
                     &$backpressure,
                     &$trailers
                 ) {
@@ -374,24 +381,25 @@ final class Http1Connection implements Connection
                             // to resolve promise with headers.
                             $chunk = null;
 
-                            /** @psalm-suppress PossiblyNullReference */
-                            do {
-                                /** @noinspection CallableParameterUseCaseInTypeContextInspection */
-                                $parser->parse($chunk);
-                                /** @noinspection NotOptimalIfConditionsInspection */
-                                if ($parser->isComplete()) {
-                                    break;
-                                }
+                            try {
+                                /** @psalm-suppress PossiblyNullReference */
+                                do {
+                                    /** @noinspection CallableParameterUseCaseInTypeContextInspection */
+                                    $parser->parse($chunk);
+                                    /** @noinspection NotOptimalIfConditionsInspection */
+                                    if ($parser->isComplete()) {
+                                        break;
+                                    }
 
-                                if (!$backpressure instanceof Success) {
-                                    yield $this->withCancellation($backpressure, $bodyCancellationToken);
-                                }
-
-                                /** @psalm-suppress TypeDoesNotContainNull */
-                                if ($this->socket === null) {
-                                    throw new SocketException('Socket closed prior to response completion');
-                                }
-                            } while (null !== $chunk = yield $this->socket->read());
+                                    /** @psalm-suppress TypeDoesNotContainNull */
+                                    if (!$backpressure instanceof Success) {
+                                        yield $this->withCancellation($backpressure, $bodyCancellationToken);
+                                    }
+                                } while (null !== $chunk = yield Promise\timeout($this->socket->read(), $timeout));
+                            } catch (PromiseTimeoutException $e) {
+                                $this->close();
+                                throw new TimeoutException('Receiving the response timed out due to inactivity', 0, $e);
+                            }
 
                             $originalCancellation->throwIfRequested();
 
@@ -453,8 +461,12 @@ final class Http1Connection implements Connection
                 \strlen($parser->getBuffer()),
                 getCurrentTime() - $start
             ));
-        } catch (StreamException $e) {
-            throw new SocketException('Receiving the response headers failed: ' . $e->getMessage());
+        } catch (PromiseTimeoutException $e) {
+            $this->close();
+            throw new TimeoutException('Receiving the response timed out due to inactivity', 0, $e);
+        } catch (\Throwable $e) {
+            $this->close();
+            throw new SocketException('Receiving the response headers failed: ' . $e->getMessage(), 0, $e);
         }
     }
 

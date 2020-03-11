@@ -58,7 +58,10 @@ final class Request extends Message
     private $tlsHandshakeTimeout = 10000;
 
     /** @var int */
-    private $transferTimeout = 10000;
+    private $transferTimeout = 60000;
+
+    /** @var int */
+    private $inactivityTimeout = 5000;
 
     /** @var int */
     private $bodySizeLimit = self::DEFAULT_BODY_SIZE_LIMIT;
@@ -389,6 +392,19 @@ final class Request extends Message
     public function setTransferTimeout(int $transferTimeout): void
     {
         $this->transferTimeout = $transferTimeout;
+    }
+
+    /**
+     * @return int Timeout in milliseconds since the last data was received before the request fails due to inactivity.
+     */
+    public function getInactivityTimeout(): int
+    {
+        return $this->inactivityTimeout;
+    }
+
+    public function setInactivityTimeout(int $inactivityTimeout): void
+    {
+        $this->inactivityTimeout = $inactivityTimeout;
     }
 
     public function getHeaderSizeLimit(): int

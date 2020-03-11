@@ -10,6 +10,7 @@ use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
+use Amp\Loop;
 use Amp\Promise;
 use Amp\Struct;
 
@@ -87,12 +88,19 @@ final class Http2Stream
     /** @var Deferred|null */
     public $windowSizeIncrease;
 
+    /** @var string|null */
+    public $watcher;
+
+    /** @var int */
+    public $lastActivityAt;
+
     public function __construct(
         int $id,
         Request $request,
         Stream $stream,
         CancellationToken $cancellationToken,
         CancellationToken $originalCancellation,
+        ?string $watcher,
         int $serverSize,
         int $clientSize
     ) {
@@ -101,9 +109,19 @@ final class Http2Stream
         $this->stream = $stream;
         $this->cancellationToken = $cancellationToken;
         $this->originalCancellation = $originalCancellation;
+        $this->watcher = $watcher;
         $this->serverWindow = $serverSize;
         $this->clientWindow = $clientSize;
         $this->pendingResponse = new Deferred;
         $this->requestBodyCompletion = new Deferred;
+
+        $this->lastActivityAt = Loop::now();
+    }
+
+    public function __destruct()
+    {
+        if ($this->watcher !== null) {
+            Loop::cancel($this->watcher);
+        }
     }
 }
