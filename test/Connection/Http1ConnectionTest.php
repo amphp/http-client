@@ -181,7 +181,7 @@ class Http1ConnectionTest extends AsyncTestCase
             yield $response->getBody()->buffer();
             $this->fail("The request should have timed out");
         } catch (TimeoutException $exception) {
-            $this->assertStringContainsString('inactivity', $exception->getMessage());
+            $this->assertStringContainsString('Inactivity timeout', $exception->getMessage());
         }
     }
 

@@ -217,7 +217,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         }
 
         $stream = $this->streams[$streamId];
-        $stream->lastActivityAt = Loop::now();
+        $stream->resetInactivityWatcher();
 
         if ($stream->clientWindow + $windowSize > 2147483647) {
             $this->handleStreamException(new Http2StreamException(
@@ -277,7 +277,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         }
 
         $stream = $this->streams[$streamId];
-        $stream->lastActivityAt = Loop::now();
+        $stream->resetInactivityWatcher();
 
         if ($stream->trailers) {
             if ($stream->expectedLength && $stream->received !== $stream->expectedLength) {
@@ -583,7 +583,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         }
 
         $parentStream = $this->streams[$parentId];
-        $parentStream->lastActivityAt = Loop::now();
+        $parentStream->resetInactivityWatcher();
 
         if (\strcasecmp($host, $parentStream->request->getUri()->getHost()) !== 0) {
             $this->handleStreamException(new Http2StreamException(
@@ -630,8 +630,6 @@ final class Http2ConnectionProcessor implements Http2Processor
         $request->setInactivityTimeout($parentStream->request->getInactivityTimeout());
         $request->setTransferTimeout($parentStream->request->getTransferTimeout());
 
-        $watcher = $this->createStreamInactivityWatcher($streamId, $request->getInactivityTimeout());
-
         $stream = new Http2Stream(
             $streamId,
             $request,
@@ -646,7 +644,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             ),
             $parentStream->cancellationToken,
             $parentStream->originalCancellation,
-            $watcher,
+            $this->createStreamInactivityWatcher($streamId, $request->getInactivityTimeout()),
             self::DEFAULT_WINDOW_SIZE,
             0
         );
@@ -716,7 +714,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         }
 
         $stream = $this->streams[$streamId];
-        $stream->lastActivityAt = Loop::now();
+        $stream->resetInactivityWatcher();
 
         $stream->dependency = $parentId;
         $stream->weight = $weight;
@@ -774,7 +772,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         }
 
         $stream = $this->streams[$streamId];
-        $stream->lastActivityAt = Loop::now();
+        $stream->resetInactivityWatcher();
 
         if (!$stream->body) {
             $this->handleStreamException(new Http2StreamException(
@@ -960,15 +958,13 @@ final class Http2ConnectionProcessor implements Http2Processor
 
             $streamId = $this->streamId += 2; // Client streams should be odd-numbered, starting at 1.
 
-            $watcher = $this->createStreamInactivityWatcher($streamId, $request->getInactivityTimeout());
-
             $this->streams[$streamId] = $http2stream = new Http2Stream(
                 $streamId,
                 $request,
                 $stream,
                 $cancellationToken,
                 $originalCancellation,
-                $watcher,
+                $this->createStreamInactivityWatcher($streamId, $request->getInactivityTimeout()),
                 self::DEFAULT_WINDOW_SIZE,
                 $this->initialWindowSize
             );
@@ -1302,6 +1298,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             }
 
             $stream->requestBodyBuffer = "";
+            $stream->resetInactivityWatcher();
 
             return $promise;
         }
@@ -1337,6 +1334,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             );
 
             $stream->requestBodyBuffer = \substr($data, $windowSize);
+            $stream->resetInactivityWatcher();
 
             return $promise;
         }
@@ -1620,36 +1618,25 @@ final class Http2ConnectionProcessor implements Http2Processor
         }
     }
 
-    private function createStreamInactivityWatcher(int $streamId, int $timeout, ?int $delay = null): ?string
+    private function createStreamInactivityWatcher(int $streamId, int $timeout): ?string
     {
         if ($timeout <= 0) {
             return null;
         }
 
-        $watcher = Loop::delay($delay ?? $timeout, function () use ($streamId, $timeout): void {
+        $watcher = Loop::delay($timeout, function () use ($streamId, $timeout): void {
             if (!isset($this->streams[$streamId])) {
                 return;
             }
 
-            $stream = $this->streams[$streamId];
+            $this->writeFrame(
+                Http2Parser::RST_STREAM,
+                Http2Parser::NO_FLAG,
+                $streamId,
+                \pack("N", Http2Parser::CANCEL)
+            );
 
-            $now = Loop::now();
-
-            if ($stream->lastActivityAt < $now - $timeout) {
-                $this->writeFrame(
-                    Http2Parser::RST_STREAM,
-                    Http2Parser::NO_FLAG,
-                    $streamId,
-                    \pack("N", Http2Parser::CANCEL)
-                );
-
-                $this->releaseStream($streamId, new TimeoutException('The request timed out due to inactivity'));
-                return;
-            }
-
-            $delay = $timeout - ($now - $stream->lastActivityAt);
-
-            $stream->watcher = $this->createStreamInactivityWatcher($streamId, $timeout, $delay);
+            $this->releaseStream($streamId, new TimeoutException('Inactivity timeout exceeded, took longer than ' . $timeout . ' ms'));
         });
 
         Loop::unreference($watcher);

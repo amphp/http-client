@@ -58,10 +58,10 @@ final class Request extends Message
     private $tlsHandshakeTimeout = 10000;
 
     /** @var int */
-    private $transferTimeout = 60000;
+    private $transferTimeout = 10000;
 
     /** @var int */
-    private $inactivityTimeout = 5000;
+    private $inactivityTimeout = 10000;
 
     /** @var int */
     private $bodySizeLimit = self::DEFAULT_BODY_SIZE_LIMIT;

@@ -89,10 +89,7 @@ final class Http2Stream
     public $windowSizeIncrease;
 
     /** @var string|null */
-    public $watcher;
-
-    /** @var int */
-    public $lastActivityAt;
+    private $watcher;
 
     public function __construct(
         int $id,
@@ -114,8 +111,6 @@ final class Http2Stream
         $this->clientWindow = $clientSize;
         $this->pendingResponse = new Deferred;
         $this->requestBodyCompletion = new Deferred;
-
-        $this->lastActivityAt = Loop::now();
     }
 
     public function __destruct()
@@ -123,5 +118,15 @@ final class Http2Stream
         if ($this->watcher !== null) {
             Loop::cancel($this->watcher);
         }
+    }
+
+    public function resetInactivityWatcher(): void
+    {
+        if ($this->watcher === null) {
+            return;
+        }
+
+        Loop::disable($this->watcher);
+        Loop::enable($this->watcher);
     }
 }
