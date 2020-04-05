@@ -10,7 +10,6 @@ php:
 
 matrix:
   allow_failures:
-    - php: 7.4
     - php: nightly
   fast_finish: true
 
@@ -36,10 +35,9 @@ install:
 
 script:
   - vendor/bin/phpunit --coverage-text --verbose --coverage-clover build/logs/clover.xml;
-
   - php composer-require-checker.phar check composer.json --config-file $PWD/composer-require-check.json
-
   - PHP_CS_FIXER_IGNORE_ENV=1 php vendor/bin/php-cs-fixer --diff --dry-run -v fix
+  - vendor/bin/psalm
 
 after_script:
   - travis_retry php php-coveralls.phar -v

@@ -10,6 +10,7 @@ use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request;
+use Amp\Http\Client\Response;
 use Amp\Promise;
 use function Amp\call;
 
@@ -18,22 +19,33 @@ class ModifyRequest implements NetworkInterceptor, ApplicationInterceptor
     use ForbidCloning;
     use ForbidSerialization;
 
-    /** @var callable */
+    /** @var callable(Request):(\Generator<mixed, mixed, mixed, Request|null>|Promise<Request>|Request|null) */
     private $mapper;
 
+    /**
+     * @psalm-param callable(Request):(\Generator<mixed, mixed, mixed, Request|null>|Promise<Request>|Request|null) $mapper
+     */
     public function __construct(callable $mapper)
     {
         $this->mapper = $mapper;
     }
 
+    /**
+     * @param Request           $request
+     * @param CancellationToken $cancellation
+     * @param Stream            $stream
+     *
+     * @return Promise<Response>
+     */
     final public function requestViaNetwork(
         Request $request,
         CancellationToken $cancellation,
         Stream $stream
     ): Promise {
         return call(function () use ($request, $cancellation, $stream) {
-            $request = (yield call($this->mapper, $request)) ?? $request;
-            return $stream->request($request, $cancellation);
+            $mappedRequest = yield call($this->mapper, $request);
+
+            return yield $stream->request($mappedRequest ?? $request, $cancellation);
         });
     }
 
@@ -43,8 +55,9 @@ class ModifyRequest implements NetworkInterceptor, ApplicationInterceptor
         DelegateHttpClient $httpClient
     ): Promise {
         return call(function () use ($request, $cancellation, $httpClient) {
-            $request = (yield call($this->mapper, $request)) ?? $request;
-            return $httpClient->request($request, $cancellation);
+            $mappedRequest = yield call($this->mapper, $request);
+
+            return $httpClient->request($mappedRequest ?? $request, $cancellation);
         });
     }
 }

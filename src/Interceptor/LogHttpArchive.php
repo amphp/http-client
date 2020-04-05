@@ -218,6 +218,8 @@ final class LogHttpArchive implements ApplicationInterceptor
 
                     yield $this->fileHandle->write($header);
                 } else {
+                    \assert($this->fileHandle !== null);
+
                     yield $this->fileHandle->seek(-3, \SEEK_CUR);
                 }
 

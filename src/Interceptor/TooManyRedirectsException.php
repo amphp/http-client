@@ -7,6 +7,7 @@ use Amp\Http\Client\Response;
 
 class TooManyRedirectsException extends HttpException
 {
+    /** @var Response */
     private $response;
 
     public function __construct(Response $response)

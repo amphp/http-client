@@ -23,7 +23,7 @@ final class ConnectionLimitingPool implements ConnectionPool
     /** @var ConnectionFactory */
     private $connectionFactory;
 
-    /** @var Promise[][] */
+    /** @var array<string, \ArrayObject<int, Promise<Connection>>> */
     private $connections = [];
 
     /** @var int[] */
@@ -235,6 +235,8 @@ final class ConnectionLimitingPool implements ConnectionPool
                 return;
             }
 
+            \assert($connection !== null);
+
             $this->openConnectionCount++;
 
             if ($isHttps) {
@@ -330,7 +332,7 @@ final class ConnectionLimitingPool implements ConnectionPool
     {
         unset($this->connections[$uri][$connectionId], $this->activeRequestCounts[$connectionId]);
 
-        if (empty($this->connections[$uri])) {
+        if ($this->connections[$uri]->count() === 0) {
             unset($this->connections[$uri], $this->waitForPriorConnection[$uri]);
         }
     }

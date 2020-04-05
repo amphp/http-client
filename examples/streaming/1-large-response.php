@@ -12,7 +12,7 @@ use function Amp\getCurrentTime;
 require __DIR__ . '/../.helper/functions.php';
 
 // https://stackoverflow.com/a/2510540/2373138
-function formatBytes(int $size, int $precision = 2)
+function formatBytes(int $size, int $precision = 2): string
 {
     $base = \log($size, 1024);
     $suffixes = ['bytes', 'kB', 'MB', 'GB', 'TB'];
@@ -20,7 +20,7 @@ function formatBytes(int $size, int $precision = 2)
     return \round(1024 ** ($base - \floor($base)), $precision) . ' ' . $suffixes[(int) $base];
 }
 
-Loop::run(static function () {
+Loop::run(static function (): \Generator {
     try {
         $start = getCurrentTime();
 
@@ -47,7 +47,7 @@ Loop::run(static function () {
             $response->getProtocolVersion(),
             $response->getStatus(),
             $response->getReason(),
-            $response->getRequest()->getUri()
+            (string) $response->getRequest()->getUri()
         );
 
         foreach ($response->getHeaders() as $field => $values) {

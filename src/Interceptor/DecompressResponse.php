@@ -19,6 +19,7 @@ final class DecompressResponse implements NetworkInterceptor
     use ForbidCloning;
     use ForbidSerialization;
 
+    /** @var bool */
     private $hasZlib;
 
     public function __construct()
@@ -31,12 +32,12 @@ final class DecompressResponse implements NetworkInterceptor
         CancellationToken $cancellation,
         Stream $stream
     ): Promise {
-        return call(function () use ($request, $cancellation, $stream) {
-            // If a header is manually set, we won't interfere
-            if ($request->hasHeader('accept-encoding')) {
-                return $stream->request($request, $cancellation);
-            }
+        // If a header is manually set, we won't interfere
+        if ($request->hasHeader('accept-encoding')) {
+            return $stream->request($request, $cancellation);
+        }
 
+        return call(function () use ($request, $cancellation, $stream) {
             $this->addAcceptEncodingHeader($request);
 
             $request->interceptPush(function (Response $response) {
@@ -57,8 +58,8 @@ final class DecompressResponse implements NetworkInterceptor
     private function decompressResponse(Response $response): Response
     {
         if (($encoding = $this->determineCompressionEncoding($response))) {
-            /** @noinspection PhpUnhandledExceptionInspection */
             $sizeLimit = $response->getRequest()->getBodySizeLimit();
+            /** @noinspection PhpUnhandledExceptionInspection */
             $decompressedBody = new ZlibInputStream($response->getBody(), $encoding);
 
             $response->setBody(new SizeLimitingInputStream($decompressedBody, $sizeLimit));
@@ -78,7 +79,11 @@ final class DecompressResponse implements NetworkInterceptor
             return 0;
         }
 
-        $contentEncodingHeader = \trim($response->getHeader("content-encoding"));
+        $contentEncoding = $response->getHeader("content-encoding");
+
+        \assert($contentEncoding !== null);
+
+        $contentEncodingHeader = \trim($contentEncoding);
 
         if (\strcasecmp($contentEncodingHeader, 'gzip') === 0) {
             return \ZLIB_ENCODING_GZIP;

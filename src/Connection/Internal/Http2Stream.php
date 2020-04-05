@@ -84,7 +84,7 @@ final class Http2Stream
     /** @var Stream */
     public $stream;
 
-    /**@var Deferred|null */
+    /** @var Deferred|null */
     public $windowSizeIncrease;
 
     public function __construct(

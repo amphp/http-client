@@ -11,7 +11,7 @@ function dumpRequestTrace(Request $request): void
     \printf(
         "%s %s HTTP/%s\r\n",
         $request->getMethod(),
-        $request->getUri(),
+        (string) $request->getUri(),
         \implode('+', $request->getProtocolVersions())
     );
 

@@ -8,7 +8,7 @@ use Amp\Loop;
 
 require __DIR__ . '/../.helper/functions.php';
 
-Loop::run(static function () use ($argv) {
+Loop::run(static function () use ($argv): \Generator {
     $uris = [
         "https://google.com/",
         "https://github.com/",
@@ -18,7 +18,7 @@ Loop::run(static function () use ($argv) {
     // Instantiate the HTTP client
     $client = HttpClientBuilder::buildDefault();
 
-    $requestHandler = static function (string $uri) use ($client) {
+    $requestHandler = static function (string $uri) use ($client): \Generator {
         /** @var Response $response */
         $response = yield $client->request(new Request($uri));
 

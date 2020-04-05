@@ -24,7 +24,7 @@ final class Http2Connection implements Connection
     /** @var EncryptableSocket */
     private $socket;
 
-    /** @var Http2Processor */
+    /** @var Http2ConnectionProcessor */
     private $processor;
 
     /** @var int */

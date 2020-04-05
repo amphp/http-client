@@ -20,6 +20,15 @@ final class Request extends Message
     public const DEFAULT_HEADER_SIZE_LIMIT = 2 * 8192;
     public const DEFAULT_BODY_SIZE_LIMIT = 10485760;
 
+    /**
+     * @template TValue
+     *
+     * @param mixed $value
+     * @psalm-param TValue $value
+     *
+     * @return mixed
+     * @psalm-return TValue
+     */
     private static function clone($value)
     {
         if ($value === null || \is_scalar($value)) {
@@ -289,8 +298,9 @@ final class Request extends Message
         }
 
         $onPush = $this->onPush;
+        /** @psalm-suppress MissingClosureReturnType */
         $this->onPush = static function (Request $request, Promise $response) use ($onPush, $interceptor) {
-            $response = call(static function () use ($response, $interceptor) {
+            $response = call(static function () use ($response, $interceptor): \Generator {
                 return (yield call($interceptor, yield $response)) ?? $response;
             });
 

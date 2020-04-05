@@ -64,7 +64,7 @@ final class Http1Parser
     /** @var bool */
     private $complete = false;
 
-    /** @var string */
+    /** @var Request */
     private $request;
 
     /** @var int */
@@ -147,6 +147,9 @@ final class Http1Parser
             }
 
             $startLineEndPos = \strpos($startLineAndHeaders, "\r\n");
+
+            \assert($startLineEndPos !== false);
+
             $startLine = \substr($startLineAndHeaders, 0, $startLineEndPos);
             $rawHeaders = \substr($startLineAndHeaders, $startLineEndPos + 2);
 

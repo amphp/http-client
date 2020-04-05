@@ -6,6 +6,7 @@ use Amp\CancellationToken;
 use Amp\Http\Client\DelegateHttpClient;
 use Amp\Http\Client\EventListener;
 use Amp\Http\Client\Request;
+use Amp\Http\Client\Response;
 use Amp\Promise;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
@@ -26,7 +27,7 @@ interface Stream extends DelegateHttpClient
      * @param Request           $request
      * @param CancellationToken $token
      *
-     * @return Promise
+     * @return Promise<Response>
      *
      * @throws \Error Thrown if this method is called more than once.
      */

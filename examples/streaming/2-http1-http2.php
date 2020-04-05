@@ -13,7 +13,7 @@ use function Amp\getCurrentTime;
 require __DIR__ . '/../.helper/functions.php';
 
 // https://stackoverflow.com/a/2510540/2373138
-function formatBytes(int $size, int $precision = 2)
+function formatBytes(int $size, int $precision = 2): string
 {
     $base = \log($size, 1024);
     $suffixes = ['bytes', 'kB', 'MB', 'GB', 'TB'];

@@ -13,12 +13,18 @@ use function Amp\call;
 
 final class FormBody implements RequestBody
 {
+    /** @var (array{0: string, 1: string, 2: string, 3: null}|array{0: string, 1: FileBody, 2: string, 3: string})[] */
     private $fields = [];
+    /** @var string */
     private $boundary;
+    /** @var bool */
     private $isMultipart = false;
 
+    /** @var string|null */
     private $cachedBody;
+    /** @var Promise<int>|null */
     private $cachedLength;
+    /** @var list<string|FileBody>|null */
     private $cachedFields;
 
     /**
@@ -123,7 +129,11 @@ final class FormBody implements RequestBody
         foreach ($this->fields as $fieldArr) {
             [$name, $field, $contentType, $fileName] = $fieldArr;
 
+            \assert($field instanceof FileBody ? ($fileName !== null) : ($fileName === null));
+
             $fields[] = "--{$this->boundary}\r\n";
+
+            /** @psalm-suppress PossiblyNullArgument */
             $fields[] = $field instanceof FileBody
                 ? $this->generateMultipartFileHeader($name, $fileName, $contentType)
                 : $this->generateMultipartFieldHeader($name, $contentType);
@@ -217,7 +227,8 @@ final class FormBody implements RequestBody
             return $this->cachedLength = new Success(\strlen($this->getFormEncodedBodyString()));
         }
 
-        return $this->cachedLength = call(function () {
+        /** @var Promise<int> $lengthPromise */
+        $lengthPromise = call(function (): \Generator {
             $fields = $this->getMultipartFieldArray();
             $length = 0;
 
@@ -231,5 +242,7 @@ final class FormBody implements RequestBody
 
             return $length;
         });
+
+        return $this->cachedLength = $lengthPromise;
     }
 }

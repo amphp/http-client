@@ -14,10 +14,13 @@ final class SizeLimitingInputStream implements InputStream
     use ForbidSerialization;
     use ForbidCloning;
 
-    /** @var InputStream */
+    /** @var InputStream|null */
     private $source;
+    /** @var int */
     private $bytesRead = 0;
+    /** @var int */
     private $sizeLimit;
+    /** @var \Throwable|null */
     private $exception;
 
     public function __construct(
@@ -33,6 +36,8 @@ final class SizeLimitingInputStream implements InputStream
         if ($this->exception) {
             return new Failure($this->exception);
         }
+
+        \assert($this->source !== null);
 
         $promise = $this->source->read();
         $promise->onResolve(function ($error, $value) {

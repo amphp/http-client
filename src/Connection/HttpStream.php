@@ -47,7 +47,7 @@ final class HttpStream implements Stream
     /** @var SocketAddress */
     private $remoteAddress;
 
-    /** @var TlsInfo */
+    /** @var TlsInfo|null */
     private $tlsInfo;
 
     /** @var callable */

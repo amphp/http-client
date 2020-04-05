@@ -33,10 +33,10 @@ final class FileBody implements RequestBody
         $handlePromise = open($this->path, "r");
 
         return new class($handlePromise) implements InputStream {
-            /** @var Promise */
+            /** @var Promise<InputStream> */
             private $promise;
 
-            /** @var InputStream */
+            /** @var InputStream|null */
             private $stream;
 
             public function __construct(Promise $promise)

@@ -32,6 +32,8 @@ Loop::run(static function () use ($argv) {
                 ?ConnectContext $context = null,
                 ?CancellationToken $token = null
             ): Promise {
+                $context = $context ?? (new ConnectContext);
+
                 return call(static function () use ($uri, $context) {
                     $options = $context->toStreamContextArray();
 
@@ -53,12 +55,15 @@ Loop::run(static function () use ($argv) {
 
                     /** @var Connection $connection */
                     $connection = yield $connector->connect($records[0]->getValue() . ':' . $socketAddress->getPort());
+                    /** @psalm-suppress InternalMethod */
                     $connection->pause();
 
                     if ($context->getTlsContext()) {
+                        /** @psalm-suppress InternalProperty */
                         \stream_context_set_option($connection->stream, $options);
                     }
 
+                    /** @psalm-suppress InternalProperty */
                     return ResourceSocket::fromClientSocket($connection->stream);
                 });
             }

@@ -20,12 +20,19 @@ final class Response extends Message
     use ForbidSerialization;
     use ForbidCloning;
 
+    /** @var string */
     private $protocolVersion;
+    /** @var int */
     private $status;
+    /** @var string */
     private $reason;
+    /** @var Request */
     private $request;
+    /** @var Payload */
     private $body;
+    /** @var Promise<Trailers> */
     private $trailers;
+    /** @var Response|null */
     private $previousResponse;
 
     public function __construct(
@@ -218,6 +225,9 @@ final class Response extends Message
         return $this->body;
     }
 
+    /**
+     * @param Payload|InputStream|string|int|float|bool $body
+     */
     public function setBody($body): void
     {
         if ($body instanceof Payload) {

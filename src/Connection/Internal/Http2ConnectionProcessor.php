@@ -199,10 +199,14 @@ final class Http2ConnectionProcessor implements Http2Processor
     {
         $message = \sprintf(
             "Received GOAWAY frame from %s with error code %d",
-            $this->socket->getRemoteAddress(),
+            (string) $this->socket->getRemoteAddress(),
             $error
         );
 
+        /**
+         * @psalm-suppress DeprecatedClass
+         * @noinspection PhpDeprecationInspection
+         */
         $this->shutdown($lastId, new ClientHttp2ConnectionException($message, $error));
     }
 
@@ -442,6 +446,8 @@ final class Http2ConnectionProcessor implements Http2Processor
             )
         );
         $response->setTrailers($stream->trailers->promise());
+
+        \assert($stream->pendingResponse !== null);
 
         $stream->responsePending = false;
         $stream->pendingResponse->resolve(call(static function () use ($response, $stream) {
@@ -683,6 +689,9 @@ final class Http2ConnectionProcessor implements Http2Processor
             $onPush = $stream->request->getPushHandler();
 
             try {
+                \assert($onPush !== null);
+                \assert($stream->pendingResponse !== null);
+
                 yield call($onPush, $stream->request, $stream->pendingResponse->promise());
             } catch (HttpException | StreamException | CancelledException $exception) {
                 $tokenSource->cancel($exception);
@@ -721,6 +730,11 @@ final class Http2ConnectionProcessor implements Http2Processor
         $id = $exception->getStreamId();
         $code = $exception->getCode();
 
+        /**
+         * @psalm-suppress DeprecatedClass
+         * @psalm-suppress InvalidScalarArgument
+         * @noinspection PhpDeprecationInspection
+         */
         $exception = new ClientHttp2StreamException($exception->getMessage(), $id, $code, $exception);
 
         if ($code === Http2Parser::REFUSED_STREAM) {
@@ -736,6 +750,11 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     public function handleConnectionException(Http2ConnectionException $exception): void
     {
+        /**
+         * @psalm-suppress DeprecatedClass
+         * @psalm-suppress InvalidScalarArgument
+         * @noinspection PhpDeprecationInspection
+         */
         $this->shutdown(
             null,
             new ClientHttp2ConnectionException($exception->getMessage(), $exception->getCode(), $exception)
@@ -834,10 +853,16 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         $body = $stream->body;
         $stream->body = null;
+
+        \assert($body !== null);
+
         $body->complete();
 
         $trailers = $stream->trailers;
         $stream->trailers = null;
+
+        \assert($trailers !== null);
+
         $trailers->resolve(call(function () use ($stream, $streamId) {
             try {
                 foreach ($stream->request->getEventListeners() as $eventListener) {
@@ -907,7 +932,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                 $exception = new UnprocessedRequestException(
                     new SocketException(\sprintf(
                         "Socket to '%s' closed before the request could be sent",
-                        $this->socket->getRemoteAddress()
+                        (string) $this->socket->getRemoteAddress()
                     ))
                 );
 
@@ -984,6 +1009,8 @@ final class Http2ConnectionProcessor implements Http2Processor
                         yield $eventListener->completeSendingRequest($request, $stream);
                     }
 
+                    \assert($http2stream->pendingResponse !== null);
+
                     return yield $http2stream->pendingResponse->promise();
                 }
 
@@ -1016,6 +1043,8 @@ final class Http2ConnectionProcessor implements Http2Processor
                     $http2stream->requestBodyComplete = true;
                     $http2stream->requestBodyCompletion->resolve();
 
+                    \assert($http2stream->pendingResponse !== null);
+
                     return yield $http2stream->pendingResponse->promise();
                 }
 
@@ -1025,6 +1054,8 @@ final class Http2ConnectionProcessor implements Http2Processor
                         foreach ($request->getEventListeners() as $eventListener) {
                             yield $eventListener->completeSendingRequest($request, $stream);
                         }
+
+                        \assert($http2stream->pendingResponse !== null);
 
                         return yield $http2stream->pendingResponse->promise();
                     }
@@ -1039,8 +1070,12 @@ final class Http2ConnectionProcessor implements Http2Processor
                         yield $eventListener->completeSendingRequest($request, $stream);
                     }
 
+                    \assert($http2stream->pendingResponse !== null);
+
                     return yield $http2stream->pendingResponse->promise();
                 }
+
+                \assert($http2stream->pendingResponse !== null);
 
                 $responsePromise = $http2stream->pendingResponse->promise();
 
@@ -1111,6 +1146,10 @@ final class Http2ConnectionProcessor implements Http2Processor
 
             $this->shutdown();
         } catch (\Throwable $exception) {
+            /**
+             * @psalm-suppress DeprecatedClass
+             * @noinspection PhpDeprecationInspection
+             */
             $this->shutdown(null, new ClientHttp2ConnectionException(
                 "The HTTP/2 connection closed unexpectedly",
                 Http2Parser::INTERNAL_ERROR,
@@ -1306,6 +1345,10 @@ final class Http2ConnectionProcessor implements Http2Processor
         $stream = $this->streams[$streamId];
 
         if ($stream->responsePending || $stream->body || $stream->trailers) {
+            /**
+             * @psalm-suppress DeprecatedClass
+             * @noinspection PhpDeprecationInspection
+             */
             $exception = $exception ?? new ClientHttp2StreamException(
                 \sprintf("Stream %d closed unexpectedly", $streamId),
                 $streamId,
@@ -1316,7 +1359,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                 $exception = new HttpException($exception->getMessage(), 0, $exception);
             }
 
-            /** @var Deferred[]|Emitter[] $deferredAndEmitter */
+            /** @var (Deferred|Emitter)[] $deferredAndEmitter */
             $deferredAndEmitter = [];
 
             if ($stream->responsePending) {
@@ -1343,6 +1386,8 @@ final class Http2ConnectionProcessor implements Http2Processor
                     }
                 } finally {
                     foreach ($deferredAndEmitter as $deferredOrEmitter) {
+                        \assert($deferredOrEmitter !== null); // TODO Find out why psalm reports this as nullable
+
                         $deferredOrEmitter->fail($exception);
                     }
                 }

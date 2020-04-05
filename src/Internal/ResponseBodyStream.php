@@ -12,8 +12,11 @@ final class ResponseBodyStream implements InputStream
     use ForbidSerialization;
     use ForbidCloning;
 
+    /** @var InputStream */
     private $body;
+    /** @var CancellationTokenSource */
     private $bodyCancellation;
+    /** @var bool */
     private $successfulEnd = false;
 
     public function __construct(InputStream $body, CancellationTokenSource $bodyCancellation)
