@@ -9,6 +9,7 @@ use Amp\Http\Client\RequestBody;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\TimeoutException;
 use Amp\Iterator;
+use Amp\Loop;
 use Amp\NullCancellationToken;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Promise;
@@ -158,7 +159,7 @@ class Http1ConnectionTest extends AsyncTestCase
     public function testInactivityTimeout(): \Generator
     {
         $this->setMinimumRuntime(500);
-        $this->setTimeout(600);
+        $this->setTimeout(1000);
 
         [$server, $client] = Socket\createPair();
 
@@ -170,7 +171,15 @@ class Http1ConnectionTest extends AsyncTestCase
         /** @var Stream $stream */
         $stream = yield $connection->getStream($request);
 
-        $server->write("HTTP/1.1 200 Continue\r\nConnection: keep-alive\r\nContent-Length: 8\r\n\r\ntest");
+        $server->write("HTTP/1.1 200 Continue\r\nConnection: keep-alive\r\nContent-Length: 8\r\n\r\n");
+
+        Loop::unreference(Loop::delay(400, function () use ($server) {
+            $server->write("test"); // Still missing 4 bytes from the body
+        }));
+
+        Loop::unreference(Loop::delay(1000, function () use ($server) {
+            $server->write("test"); // Request should timeout before this is called
+        }));
 
         /** @var Response $response */
         $response = yield $stream->request($request, new NullCancellationToken);
