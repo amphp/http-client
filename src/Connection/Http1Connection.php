@@ -392,7 +392,6 @@ final class Http1Connection implements Connection
                                         break;
                                     }
 
-                                    /** @psalm-suppress TypeDoesNotContainNull */
                                     if (!$backpressure instanceof Success) {
                                         yield $this->withCancellation($backpressure, $bodyCancellationToken);
                                     }
