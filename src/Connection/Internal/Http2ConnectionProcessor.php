@@ -276,6 +276,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         }
 
         $stream = $this->streams[$streamId];
+        $stream->resetInactivityWatcher();
 
         if ($stream->trailers) {
             if ($stream->expectedLength && $stream->received !== $stream->expectedLength) {
@@ -513,8 +514,6 @@ final class Http2ConnectionProcessor implements Http2Processor
 
             $this->releaseStream($streamId, $exception);
         });
-
-        unset($bodyCancellation, $cancellationToken); // Remove reference to cancellation token.
     }
 
     public function handlePushPromise(int $parentId, int $streamId, array $pseudo, array $headers): void
@@ -582,8 +581,8 @@ final class Http2ConnectionProcessor implements Http2Processor
             return;
         }
 
-        /** @var Http2Stream $parentStream */
         $parentStream = $this->streams[$parentId];
+        $parentStream->resetInactivityWatcher();
 
         if (\strcasecmp($host, $parentStream->request->getUri()->getHost()) !== 0) {
             $this->handleStreamException(new Http2StreamException(
@@ -627,6 +626,8 @@ final class Http2ConnectionProcessor implements Http2Processor
         $request->setPushHandler($parentStream->request->getPushHandler());
         $request->setHeaderSizeLimit($parentStream->request->getHeaderSizeLimit());
         $request->setBodySizeLimit($parentStream->request->getBodySizeLimit());
+        $request->setInactivityTimeout($parentStream->request->getInactivityTimeout());
+        $request->setTransferTimeout($parentStream->request->getTransferTimeout());
 
         $stream = new Http2Stream(
             $streamId,
@@ -642,6 +643,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             ),
             $parentStream->cancellationToken,
             $parentStream->originalCancellation,
+            $this->createStreamInactivityWatcher($streamId, $request->getInactivityTimeout()),
             self::DEFAULT_WINDOW_SIZE,
             0
         );
@@ -768,6 +770,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         }
 
         $stream = $this->streams[$streamId];
+        $stream->resetInactivityWatcher();
 
         if (!$stream->body) {
             $this->handleStreamException(new Http2StreamException(
@@ -959,6 +962,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                 $stream,
                 $cancellationToken,
                 $originalCancellation,
+                $this->createStreamInactivityWatcher($streamId, $request->getInactivityTimeout()),
                 self::DEFAULT_WINDOW_SIZE,
                 $this->initialWindowSize
             );
@@ -1292,6 +1296,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             }
 
             $stream->requestBodyBuffer = "";
+            $stream->resetInactivityWatcher();
 
             return $promise;
         }
@@ -1327,6 +1332,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             );
 
             $stream->requestBodyBuffer = \substr($data, $windowSize);
+            $stream->resetInactivityWatcher();
 
             return $promise;
         }
@@ -1608,5 +1614,35 @@ final class Http2ConnectionProcessor implements Http2Processor
                 \pack("N", self::WINDOW_INCREMENT)
             );
         }
+    }
+
+    private function createStreamInactivityWatcher(int $streamId, int $timeout): ?string
+    {
+        if ($timeout <= 0) {
+            return null;
+        }
+
+        $watcher = Loop::delay($timeout, function () use ($streamId, $timeout): void {
+            if (!isset($this->streams[$streamId])) {
+                return;
+            }
+
+            $this->writeFrame(
+                Http2Parser::RST_STREAM,
+                Http2Parser::NO_FLAG,
+                $streamId,
+                \pack("N", Http2Parser::CANCEL)
+            );
+
+            $this->releaseStream(
+                $streamId,
+                new TimeoutException('Inactivity timeout exceeded, more than '
+                    . $timeout . ' ms elapsed from last data received')
+            );
+        });
+
+        Loop::unreference($watcher);
+
+        return $watcher;
     }
 }

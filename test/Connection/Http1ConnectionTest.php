@@ -7,7 +7,9 @@ use Amp\ByteStream\IteratorStream;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\RequestBody;
 use Amp\Http\Client\Response;
+use Amp\Http\Client\TimeoutException;
 use Amp\Iterator;
+use Amp\Loop;
 use Amp\NullCancellationToken;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Promise;
@@ -122,6 +124,74 @@ class Http1ConnectionTest extends AsyncTestCase
         $this->assertSame(101, $response->getStatus());
         $this->assertSame('Switching Protocols', $response->getReason());
         $this->assertSame([], (yield $response->getTrailers())->getHeaders());
+    }
+
+    public function testTransferTimeout(): \Generator
+    {
+        $this->setMinimumRuntime(500);
+        $this->setTimeout(600);
+
+        [$server, $client] = Socket\createPair();
+
+        $connection = new Http1Connection($client);
+
+        $request = new Request('http://localhost');
+        $request->setTransferTimeout(500);
+
+        /** @var Stream $stream */
+        $stream = yield $connection->getStream($request);
+
+        $server->write("HTTP/1.1 200 Continue\r\nConnection: keep-alive\r\nContent-Length: 8\r\n\r\ntest");
+
+        /** @var Response $response */
+        $response = yield $stream->request($request, new NullCancellationToken);
+
+        $this->assertSame(200, $response->getStatus());
+
+        try {
+            yield $response->getBody()->buffer();
+            $this->fail("The request should have timed out");
+        } catch (TimeoutException $exception) {
+            $this->assertStringContainsString('transfer timeout', $exception->getMessage());
+        }
+    }
+
+    public function testInactivityTimeout(): \Generator
+    {
+        $this->setMinimumRuntime(500);
+        $this->setTimeout(1000);
+
+        [$server, $client] = Socket\createPair();
+
+        $connection = new Http1Connection($client);
+
+        $request = new Request('http://localhost');
+        $request->setInactivityTimeout(500);
+
+        /** @var Stream $stream */
+        $stream = yield $connection->getStream($request);
+
+        $server->write("HTTP/1.1 200 Continue\r\nConnection: keep-alive\r\nContent-Length: 8\r\n\r\n");
+
+        Loop::unreference(Loop::delay(400, function () use ($server) {
+            $server->write("test"); // Still missing 4 bytes from the body
+        }));
+
+        Loop::unreference(Loop::delay(1000, function () use ($server) {
+            $server->write("test"); // Request should timeout before this is called
+        }));
+
+        /** @var Response $response */
+        $response = yield $stream->request($request, new NullCancellationToken);
+
+        $this->assertSame(200, $response->getStatus());
+
+        try {
+            yield $response->getBody()->buffer();
+            $this->fail("The request should have timed out");
+        } catch (TimeoutException $exception) {
+            $this->assertStringContainsString('Inactivity timeout', $exception->getMessage());
+        }
     }
 
     private function createSlowBody()
