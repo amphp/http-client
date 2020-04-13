@@ -113,7 +113,10 @@ final class Http1Connection implements Connection
 
     public function close(): Promise
     {
-        $this->socket->close();
+        if ($this->socket) {
+            $this->socket->close();
+        }
+
         return $this->free();
     }
 
@@ -154,6 +157,8 @@ final class Http1Connection implements Connection
 
     private function free(): Promise
     {
+        $this->socket = null;
+
         $this->lastUsedAt = 0;
 
         if ($this->timeoutWatcher !== null) {
