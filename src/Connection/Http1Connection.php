@@ -35,6 +35,7 @@ use Amp\TimeoutCancellationToken;
 use Amp\TimeoutException as PromiseTimeoutException;
 use function Amp\asyncCall;
 use function Amp\call;
+use function Amp\getCurrentTime;
 
 /**
  * Socket client implementation.
@@ -92,7 +93,7 @@ final class Http1Connection implements Connection
         $this->remoteAddress = $socket->getRemoteAddress();
         $this->tlsInfo = $socket->getTlsInfo();
         $this->timeoutGracePeriod = $timeoutGracePeriod;
-        $this->lastUsedAt = Loop::now();
+        $this->lastUsedAt = getCurrentTime();
     }
 
     public function __destruct()
@@ -287,7 +288,7 @@ final class Http1Connection implements Connection
                     continue;
                 }
 
-                $this->lastUsedAt = Loop::now();
+                $this->lastUsedAt = getCurrentTime();
 
                 $status = $response->getStatus();
 
