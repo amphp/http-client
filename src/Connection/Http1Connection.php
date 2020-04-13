@@ -397,7 +397,7 @@ final class Http1Connection implements Connection
                                 );
                             } catch (PromiseTimeoutException $e) {
                                 $this->close();
-                                throw new TimeoutException('Inactivity timeout exceeded, took longer than ' . $timeout . ' ms', 0, $e);
+                                throw new TimeoutException('Inactivity timeout exceeded, more than ' . $timeout . ' ms elapsed from last data received', 0, $e);
                             }
 
                             $originalCancellation->throwIfRequested();
@@ -465,7 +465,7 @@ final class Http1Connection implements Connection
             throw $e;
         } catch (PromiseTimeoutException $e) {
             $this->close();
-            throw new TimeoutException('Receiving the response timed out due to inactivity', 0, $e);
+            throw new TimeoutException('Inactivity timeout exceeded, more than ' . $timeout . ' ms elapsed from last data received', 0, $e);
         } catch (\Throwable $e) {
             $this->close();
             throw new SocketException('Receiving the response headers failed: ' . $e->getMessage(), 0, $e);
