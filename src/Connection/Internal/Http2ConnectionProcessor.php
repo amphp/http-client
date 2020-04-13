@@ -1636,7 +1636,11 @@ final class Http2ConnectionProcessor implements Http2Processor
                 \pack("N", Http2Parser::CANCEL)
             );
 
-            $this->releaseStream($streamId, new TimeoutException('Inactivity timeout exceeded, took longer than ' . $timeout . ' ms'));
+            $this->releaseStream(
+                $streamId,
+                new TimeoutException('Inactivity timeout exceeded, more than '
+                    . $timeout . ' ms elapsed from last data received')
+            );
         });
 
         Loop::unreference($watcher);
