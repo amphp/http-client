@@ -217,7 +217,6 @@ final class Http2ConnectionProcessor implements Http2Processor
         }
 
         $stream = $this->streams[$streamId];
-        $stream->resetInactivityWatcher();
 
         if ($stream->clientWindow + $windowSize > 2147483647) {
             $this->handleStreamException(new Http2StreamException(
@@ -714,7 +713,6 @@ final class Http2ConnectionProcessor implements Http2Processor
         }
 
         $stream = $this->streams[$streamId];
-        $stream->resetInactivityWatcher();
 
         $stream->dependency = $parentId;
         $stream->weight = $weight;
