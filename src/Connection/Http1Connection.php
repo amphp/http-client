@@ -396,6 +396,11 @@ final class Http1Connection implements Connection
                                     if (!$backpressure instanceof Success) {
                                         yield $this->withCancellation($backpressure, $bodyCancellationToken);
                                     }
+
+                                    /** @psalm-suppress TypeDoesNotContainNull */
+                                    if ($this->socket === null) {
+                                        throw new SocketException('Socket closed prior to response completion');
+                                    }
                                 } while (null !== $chunk = yield $timeout > 0
                                     ? Promise\timeout($this->socket->read(), $timeout)
                                     : $this->socket->read()
