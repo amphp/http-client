@@ -284,12 +284,20 @@ final class Http1Connection implements Connection
         $timeout = $request->getInactivityTimeout();
 
         try {
+            if ($this->socket === null) {
+                throw new SocketException('Socket closed prior to response completion');
+            }
+
             while (null !== $chunk = yield $timeout > 0
                     ? Promise\timeout($this->socket->read(), $timeout)
                     : $this->socket->read()
             ) {
                 parseChunk: $response = $parser->parse($chunk);
                 if ($response === null) {
+                    if ($this->socket === null) {
+                        throw new SocketException('Socket closed prior to response completion');
+                    }
+
                     continue;
                 }
 
