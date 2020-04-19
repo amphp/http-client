@@ -19,11 +19,11 @@ class ModifyRequest implements NetworkInterceptor, ApplicationInterceptor
     use ForbidCloning;
     use ForbidSerialization;
 
-    /** @var callable(Request):(\Generator<mixed, mixed, mixed, Request|null>|Promise<Request>|Request|null) */
+    /** @var callable(Request):(\Generator<mixed, mixed, mixed, Promise<Request|null>|Request|null>|Promise<Request|null>|Request|null) */
     private $mapper;
 
     /**
-     * @psalm-param callable(Request):(\Generator<mixed, mixed, mixed, Request|null>|Promise<Request>|Request|null) $mapper
+     * @psalm-param callable(Request):(\Generator<mixed, mixed, mixed, Promise<Request|null>|Request|null>|Promise<Request|null>|Request|null) $mapper
      */
     public function __construct(callable $mapper)
     {
@@ -45,6 +45,8 @@ class ModifyRequest implements NetworkInterceptor, ApplicationInterceptor
         return call(function () use ($request, $cancellation, $stream) {
             $mappedRequest = yield call($this->mapper, $request);
 
+            \assert($mappedRequest instanceof Request || $mappedRequest === null);
+
             return yield $stream->request($mappedRequest ?? $request, $cancellation);
         });
     }
@@ -56,6 +58,8 @@ class ModifyRequest implements NetworkInterceptor, ApplicationInterceptor
     ): Promise {
         return call(function () use ($request, $cancellation, $httpClient) {
             $mappedRequest = yield call($this->mapper, $request);
+
+            \assert($mappedRequest instanceof Request || $mappedRequest === null);
 
             return $httpClient->request($mappedRequest ?? $request, $cancellation);
         });

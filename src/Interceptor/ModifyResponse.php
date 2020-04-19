@@ -36,9 +36,10 @@ class ModifyResponse implements NetworkInterceptor, ApplicationInterceptor
         Stream $stream
     ): Promise {
         return call(function () use ($request, $cancellation, $stream) {
-            /** @var Response $response */
             $response = yield $stream->request($request, $cancellation);
             $mappedResponse = yield call($this->mapper, $response);
+
+            \assert($mappedResponse instanceof Response || $mappedResponse === null);
 
             return $mappedResponse ?? $response;
         });
@@ -52,9 +53,10 @@ class ModifyResponse implements NetworkInterceptor, ApplicationInterceptor
         return call(function () use ($request, $cancellation, $httpClient) {
             $request->interceptPush($this->mapper);
 
-            /** @var Response $response */
             $response = yield $httpClient->request($request, $cancellation);
             $mappedResponse = yield call($this->mapper, $response);
+
+            \assert($mappedResponse instanceof Response || $mappedResponse === null);
 
             return $mappedResponse ?? $response;
         });

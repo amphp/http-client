@@ -29,7 +29,7 @@ interface ApplicationInterceptor
      * @param CancellationToken  $cancellation
      * @param DelegateHttpClient $httpClient
      *
-     * @return Promise
+     * @return Promise<Response>
      */
     public function request(
         Request $request,
