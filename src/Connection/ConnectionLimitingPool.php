@@ -17,33 +17,6 @@ final class ConnectionLimitingPool implements ConnectionPool
 {
     use ForbidSerialization;
 
-    /** @var int */
-    private $connectionLimit;
-
-    /** @var ConnectionFactory */
-    private $connectionFactory;
-
-    /** @var array<string, \ArrayObject<int, Promise<Connection>>> */
-    private $connections = [];
-
-    /** @var int[] */
-    private $activeRequestCounts = [];
-
-    /** @var Deferred[][] */
-    private $waiting = [];
-
-    /** @var bool[] */
-    private $waitForPriorConnection = [];
-
-    /** @var int */
-    private $totalConnectionAttempts = 0;
-
-    /** @var int */
-    private $totalStreamRequests = 0;
-
-    /** @var int */
-    private $openConnectionCount = 0;
-
     /**
      * Create a connection pool that limits the number of connections per authority.
      *
@@ -69,8 +42,39 @@ final class ConnectionLimitingPool implements ConnectionPool
         $port = $uri->getPort() ?? $defaultPort;
 
         $authority = $host . ':' . $port;
+
         return $scheme . '://' . $authority;
     }
+
+    /** @var int */
+    private $connectionLimit;
+
+    /** @var ConnectionFactory */
+    private $connectionFactory;
+
+    /** @var array<string, \ArrayObject<int, Promise<Connection>>> */
+    private $connections = [];
+
+    /** @var Connection[] */
+    private $idleConnections = [];
+
+    /** @var int[] */
+    private $activeRequestCounts = [];
+
+    /** @var Deferred[][] */
+    private $waiting = [];
+
+    /** @var bool[] */
+    private $waitForPriorConnection = [];
+
+    /** @var int */
+    private $totalConnectionAttempts = 0;
+
+    /** @var int */
+    private $totalStreamRequests = 0;
+
+    /** @var int */
+    private $openConnectionCount = 0;
 
     private function __construct(int $connectionLimit, ?ConnectionFactory $connectionFactory = null)
     {
@@ -117,6 +121,7 @@ final class ConnectionLimitingPool implements ConnectionPool
 
             $connectionId = \spl_object_id($connection);
             $this->activeRequestCounts[$connectionId] = ($this->activeRequestCounts[$connectionId] ?? 0) + 1;
+            unset($this->idleConnections[$connectionId]);
 
             return HttpStream::fromStream(
                 $stream,
@@ -297,6 +302,15 @@ final class ConnectionLimitingPool implements ConnectionPool
         $connectionId = \spl_object_id($connection);
         if (isset($this->activeRequestCounts[$connectionId])) {
             $this->activeRequestCounts[$connectionId]--;
+
+            if ($this->activeRequestCounts[$connectionId] === 0) {
+                while (\count($this->idleConnections) > 64) { // not customizable for now
+                    $idleConnection = \array_shift($this->idleConnections);
+                    $idleConnection->close();
+                }
+
+                $this->idleConnections[$connectionId] = $connection;
+            }
         }
 
         if (empty($this->waiting[$uri])) {
@@ -330,7 +344,7 @@ final class ConnectionLimitingPool implements ConnectionPool
 
     private function dropConnection(string $uri, int $connectionId): void
     {
-        unset($this->connections[$uri][$connectionId], $this->activeRequestCounts[$connectionId]);
+        unset($this->connections[$uri][$connectionId], $this->activeRequestCounts[$connectionId], $this->idleConnections[$connectionId]);
 
         if ($this->connections[$uri]->count() === 0) {
             unset($this->connections[$uri], $this->waitForPriorConnection[$uri]);
