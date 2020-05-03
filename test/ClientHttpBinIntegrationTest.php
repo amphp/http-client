@@ -680,16 +680,17 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     public function testConcurrentSlowNetworkInterceptor(): \Generator
     {
         $this->givenNetworkInterceptor(new ModifyRequest(static function (Request $request) {
-            yield delay(5000);
+            yield delay(3000);
 
             return $request;
         }));
 
         /** @var Response $response1 */
-        $response1 = yield $this->client->request(new Request('https://http2.pro/api/v1'));
-
         /** @var Response $response2 */
-        $response2 = yield $this->client->request(new Request('https://http2.pro/api/v1'));
+        [$response1, $response2] = yield [
+            $this->client->request(new Request('https://http2.pro/api/v1')),
+            $this->client->request(new Request('https://http2.pro/api/v1')),
+        ];
 
         $body1 = yield $response1->getBody()->buffer();
         $body2 = yield $response2->getBody()->buffer();
