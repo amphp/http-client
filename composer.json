@@ -64,7 +64,7 @@
         }
     },
     "conflict": {
-        "amphp/file": "<0.2 || >=2"
+        "amphp/file": "<0.2"
     },
     "scripts": {
         "check": [
