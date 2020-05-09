@@ -174,6 +174,10 @@ class Http2ConnectionTest extends AsyncTestCase
 
     public function testCancellingWhileStreamingBody(): \Generator
     {
+        if (\PHP_VERSION_ID < 70400) {
+            $this->markTestSkipped('Causes segfaults on PHP < 7.4');
+        }
+
         $hpack = new HPack;
 
         [$server, $client] = Socket\createPair();
@@ -224,6 +228,10 @@ class Http2ConnectionTest extends AsyncTestCase
 
     public function testTimeoutWhileStreamingBody(): \Generator
     {
+        if (\PHP_VERSION_ID < 70400) {
+            $this->markTestSkipped('Causes segfaults on PHP < 7.4');
+        }
+
         $hpack = new HPack;
 
         [$server, $client] = Socket\createPair();
@@ -275,6 +283,10 @@ class Http2ConnectionTest extends AsyncTestCase
 
     public function testCancellingPushPromiseBody(): \Generator
     {
+        if (\PHP_VERSION_ID < 70400) {
+            $this->markTestSkipped('Causes segfaults on PHP < 7.4');
+        }
+
         $hpack = new HPack;
 
         [$server, $client] = Socket\createPair();
@@ -349,6 +361,10 @@ class Http2ConnectionTest extends AsyncTestCase
 
     public function testInactivityWhileStreamingBody(): \Generator
     {
+        if (\PHP_VERSION_ID < 70400) {
+            $this->markTestSkipped('Causes segfaults on PHP < 7.4');
+        }
+
         $hpack = new HPack;
 
         [$server, $client] = Socket\createPair();
