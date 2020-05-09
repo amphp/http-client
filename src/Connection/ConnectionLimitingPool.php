@@ -119,7 +119,10 @@ final class ConnectionLimitingPool implements ConnectionPool
 
             // Using new Coroutine avoids a bug on PHP < 7.4, see #265
 
-            /** @var Stream $stream */
+            /**
+             * @var Stream $stream
+             * @psalm-suppress all
+             */
             [$connection, $stream] = yield new Coroutine($this->getStreamFor($uri, $request, $cancellation));
 
             $connectionId = \spl_object_id($connection);
