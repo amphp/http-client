@@ -693,7 +693,7 @@ final class Http1Connection implements Connection
     {
         $uri = $request->getUri();
         $path = $uri->getPath();
-        if (isset($path[0]) && '/' != $path[0]) {
+        if (($path[0] ?? '/') !== '/') {
             throw new InvalidRequestException(
                 $request,
                 'Relative path (' . $path . ') is not allowed in the request URI: ' . $uri
