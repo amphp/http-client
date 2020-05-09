@@ -7,7 +7,7 @@ The HTTP client allows making multiple requests concurrently. It leverages non-b
 Instead of sending one request, waiting for the response, then doing something different like sending another request, we can use the time we're usually waiting for the server to respond to send a second request to another (or the same) server.
 
 {:.table-no-border .table-full-width .table-text-center}
-| ![sequential requests]({{ site.baseurl }}/images/requests-sequential.svg)<br>*Sequential Requests* | ![parallel requests]({{ site.baseurl }}/images/requests-parallel.svg)<br>*Parallel Requests* |
+| ![sequential requests]({{ site.baseurl }}/images/requests-sequential.svg)<br>*Sequential Requests* | ![concurrent requests]({{ site.baseurl }}/images/requests-parallel.svg)<br>*Concurrent Requests* |
 
 As you can see in the sequence diagrams, we save some time there. We only have to wait for the maximum response delay of both requests instead of the sum of both. With more requests this speedup is even more interesting.
 
@@ -33,3 +33,5 @@ foreach ($urls as $url) {
 
 $responses = Amp\Promise\wait(Amp\Promise\all($promises));
 ```
+
+If you need to perform a large set of requests, have a look at [concurrent iterators](https://amphp.org/sync/concurrent-iterator).
