@@ -1,5 +1,5 @@
-sudo: false
-
+dist: xenial
+os: linux
 language: php
 
 php:
@@ -8,7 +8,7 @@ php:
   - 7.4
   - nightly
 
-matrix:
+jobs:
   allow_failures:
     - php: nightly
   fast_finish: true
@@ -27,8 +27,8 @@ install:
       composer update -n --prefer-dist;
     fi
 
-  - wget https://github.com/php-coveralls/php-coveralls/releases/download/v2.1.0/php-coveralls.phar
-  - wget https://github.com/maglnet/ComposerRequireChecker/releases/download/2.0.0/composer-require-checker.phar
+  - wget https://github.com/php-coveralls/php-coveralls/releases/download/v2.2.0/php-coveralls.phar
+  - wget https://github.com/maglnet/ComposerRequireChecker/releases/download/2.1.0/composer-require-checker.phar
 
   - composer show
   - cd test/tls && ./regenerate.sh && cd -

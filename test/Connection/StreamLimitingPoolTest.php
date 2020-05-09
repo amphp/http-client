@@ -11,6 +11,10 @@ class StreamLimitingPoolTest extends AsyncTestCase
 {
     public function testByHost(): \Generator
     {
+        if (\PHP_VERSION_ID < 70400) {
+            $this->markTestSkipped('Causes segfaults on PHP < 7.4');
+        }
+
         $client = (new HttpClientBuilder)
             ->usingPool(StreamLimitingPool::byHost(new UnlimitedConnectionPool, new LocalKeyedMutex))
             ->build();
