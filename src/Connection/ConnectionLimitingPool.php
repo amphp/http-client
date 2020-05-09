@@ -3,6 +3,7 @@
 namespace Amp\Http\Client\Connection;
 
 use Amp\CancellationToken;
+use Amp\Coroutine;
 use Amp\Deferred;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
@@ -116,8 +117,10 @@ final class ConnectionLimitingPool implements ConnectionPool
 
             $uri = self::formatUri($request);
 
+            // Using new Coroutine avoids a bug on PHP < 7.4, see #265
+
             /** @var Stream $stream */
-            [$connection, $stream] = yield from $this->getStreamFor($uri, $request, $cancellation);
+            [$connection, $stream] = yield new Coroutine($this->getStreamFor($uri, $request, $cancellation));
 
             $connectionId = \spl_object_id($connection);
             $this->activeRequestCounts[$connectionId] = ($this->activeRequestCounts[$connectionId] ?? 0) + 1;
@@ -276,7 +279,8 @@ final class ConnectionLimitingPool implements ConnectionPool
 
             if ($stream === null) {
                 // Other requests used the new connection first, so we need to go around again.
-                return yield from $this->getStreamFor($uri, $request, $cancellation);
+                // Using new Coroutine avoids a bug on PHP < 7.4, see #265
+                return yield new Coroutine($this->getStreamFor($uri, $request, $cancellation));
             }
         }
 
