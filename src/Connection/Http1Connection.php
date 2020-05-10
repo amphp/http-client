@@ -36,6 +36,7 @@ use Amp\TimeoutException as PromiseTimeoutException;
 use function Amp\asyncCall;
 use function Amp\call;
 use function Amp\getCurrentTime;
+use function Amp\Http\Client\Internal\normalizeRequestPathWithQuery;
 
 /**
  * Socket client implementation.
@@ -292,7 +293,8 @@ final class Http1Connection implements Connection
                     ? Promise\timeout($this->socket->read(), $timeout)
                     : $this->socket->read()
             ) {
-                parseChunk: $response = $parser->parse($chunk);
+                parseChunk:
+                $response = $parser->parse($chunk);
                 if ($response === null) {
                     if ($this->socket === null) {
                         throw new SocketException('Socket closed prior to response completion');
@@ -414,7 +416,11 @@ final class Http1Connection implements Connection
                                 );
                             } catch (PromiseTimeoutException $e) {
                                 $this->close();
-                                throw new TimeoutException('Inactivity timeout exceeded, more than ' . $timeout . ' ms elapsed from last data received', 0, $e);
+                                throw new TimeoutException(
+                                    'Inactivity timeout exceeded, more than ' . $timeout . ' ms elapsed from last data received',
+                                    0,
+                                    $e
+                                );
                             }
 
                             $originalCancellation->throwIfRequested();
@@ -482,7 +488,11 @@ final class Http1Connection implements Connection
             throw $e;
         } catch (PromiseTimeoutException $e) {
             $this->close();
-            throw new TimeoutException('Inactivity timeout exceeded, more than ' . $timeout . ' ms elapsed from last data received', 0, $e);
+            throw new TimeoutException(
+                'Inactivity timeout exceeded, more than ' . $timeout . ' ms elapsed from last data received',
+                0,
+                $e
+            );
         } catch (\Throwable $e) {
             $this->close();
             throw new SocketException('Receiving the response headers failed: ' . $e->getMessage(), 0, $e);
@@ -692,18 +702,7 @@ final class Http1Connection implements Connection
     private function generateRawHeader(Request $request, string $protocolVersion): string
     {
         $uri = $request->getUri();
-        $path = $uri->getPath();
-        if (($path[0] ?? '/') !== '/') {
-            throw new InvalidRequestException(
-                $request,
-                'Relative path (' . $path . ') is not allowed in the request URI: ' . $uri
-            );
-        }
-        $requestUri = $path ?: '/';
-
-        if ('' !== $query = $uri->getQuery()) {
-            $requestUri .= '?' . $query;
-        }
+        $requestUri = normalizeRequestPathWithQuery($request);
 
         $method = $request->getMethod();
 

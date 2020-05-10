@@ -17,9 +17,9 @@ use Amp\PHPUnit\AsyncTestCase;
 use Amp\Promise;
 use Amp\Socket;
 use Amp\TimeoutCancellationToken;
+use Laminas\Diactoros\Uri as LaminasUri;
 use League\Uri;
 
-use Psr\Http\Message\UriInterface;
 use function Amp\asyncCall;
 use function Amp\delay;
 use function Amp\Http\formatDateHeader;
@@ -427,34 +427,15 @@ class Http2ConnectionTest extends AsyncTestCase
         $server->write($frame = self::packFrame('', Http2Parser::SETTINGS, 0, 0));
         yield $connection->initialize();
 
-        $uri = $this->createMock(UriInterface::class);
-        $uri->method('getScheme')->willReturn('http');
-        $uri->method('getAuthority')->willReturn('');
-        $uri->method('getUserInfo')->willReturn('');
-        $uri->method('getHost')->willReturn('localhost');
-        $uri->method('getQuery')->willReturn('');
-        $uri->method('getFragment')->willReturn('');
-        $uri->method('withScheme')->willReturnSelf();
-        $uri->method('withUserInfo')->willReturnSelf();
-        $uri->method('withHost')->willReturnSelf();
-        $uri->method('withPort')->willReturnSelf();
-        $uri->method('withQuery')->willReturnSelf();
-        $uri->method('withFragment')->willReturnSelf();
-        $uri->method('__toString')->willReturn('http://localhost/foo');
-
-        $uri
-            ->expects(self::never()) // ensure that path is left untouched
-            ->method('withPath')
-            ->willReturnSelf();
-        $uri->method('getPath')->willReturn('foo');
-        $request = new Request($uri);
+        $request = new Request(new LaminasUri('foo'));
         $request->setInactivityTimeout(500);
 
         /** @var Stream $stream */
         $stream = yield $connection->getStream($request);
 
         $this->expectException(InvalidRequestException::class);
-        $this->expectExceptionMessage('Relative path (foo) is not allowed in the request URI: http://localhost/foo');
+        $this->expectExceptionMessage('Relative path (foo) is not allowed in the request URI');
+
         yield $stream->request($request, new NullCancellationToken());
     }
 

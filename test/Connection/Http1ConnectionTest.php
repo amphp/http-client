@@ -16,9 +16,8 @@ use Amp\PHPUnit\AsyncTestCase;
 use Amp\Promise;
 use Amp\Socket;
 use Amp\Success;
+use Laminas\Diactoros\Uri as LaminasUri;
 use League\Uri;
-use Psr\Http\Message\UriInterface;
-
 use function Amp\delay;
 
 class Http1ConnectionTest extends AsyncTestCase
@@ -106,7 +105,10 @@ class Http1ConnectionTest extends AsyncTestCase
         $socketData = "Data that should be sent after the upgrade response";
 
         $invoked = false;
-        $callback = function (Socket\EncryptableSocket $socket, Request $request, Response $response) use (&$invoked, $socketData) {
+        $callback = function (Socket\EncryptableSocket $socket, Request $request, Response $response) use (
+            &$invoked,
+            $socketData
+        ) {
             $invoked = true;
             $this->assertSame(101, $response->getStatus());
             $this->assertSame($socketData, yield $socket->read());
@@ -203,38 +205,22 @@ class Http1ConnectionTest extends AsyncTestCase
         [$client] = Socket\createPair();
 
         $connection = new Http1Connection($client, 5000);
-        $uri = $this->createMock(UriInterface::class);
-        $uri->method('getScheme')->willReturn('http');
-        $uri->method('getAuthority')->willReturn('');
-        $uri->method('getUserInfo')->willReturn('');
-        $uri->method('getHost')->willReturn('localhost');
-        $uri->method('getQuery')->willReturn('');
-        $uri->method('getFragment')->willReturn('');
-        $uri->method('withScheme')->willReturnSelf();
-        $uri->method('withUserInfo')->willReturnSelf();
-        $uri->method('withHost')->willReturnSelf();
-        $uri->method('withPort')->willReturnSelf();
-        $uri->method('withQuery')->willReturnSelf();
-        $uri->method('withFragment')->willReturnSelf();
-        $uri->method('__toString')->willReturn('http://localhost/foo');
 
-        $uri
-            ->expects(self::never()) // ensure that path is left untouched
-            ->method('withPath')
-            ->willReturnSelf();
-        $uri->method('getPath')->willReturn('foo');
-        $request = new Request($uri);
+        $request = new Request(new LaminasUri('foo'));
+
         /** @var Stream $stream */
         $stream = yield $connection->getStream($request);
 
         $this->expectException(InvalidRequestException::class);
-        $this->expectExceptionMessage('Relative path (foo) is not allowed in the request URI: http://localhost/foo');
+        $this->expectExceptionMessage('Relative path (foo) is not allowed in the request URI');
+
         yield $stream->request($request, new NullCancellationToken);
     }
 
     /**
      * @param string $requestPath
      * @param string $expectedPath
+     *
      * @return \Generator
      * @throws Socket\SocketException
      * @dataProvider providerValidUriPaths

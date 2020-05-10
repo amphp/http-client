@@ -41,6 +41,7 @@ use Amp\TimeoutCancellationToken;
 use League\Uri;
 use function Amp\asyncCall;
 use function Amp\call;
+use function Amp\Http\Client\Internal\normalizeRequestPathWithQuery;
 
 /** @internal */
 final class Http2ConnectionProcessor implements Http2Processor
@@ -1543,28 +1544,14 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     /**
      * @param Request $request
+     *
      * @return array
      * @throws InvalidRequestException
      */
     private function generateHeaders(Request $request): array
     {
         $uri = $request->getUri();
-
-        $path = $uri->getPath();
-        if (($path[0] ?? '/') !== '/') {
-            throw new InvalidRequestException(
-                $request,
-                'Relative path (' . $path . ') is not allowed in the request URI: ' . $uri
-            );
-        }
-        if ($path === '') {
-            $path = '/';
-        }
-
-        $query = $uri->getQuery();
-        if ($query !== '') {
-            $path .= '?' . $query;
-        }
+        $path = normalizeRequestPathWithQuery($request);
 
         $authority = $uri->getHost();
         if ($port = $uri->getPort()) {

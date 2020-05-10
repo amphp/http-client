@@ -42,11 +42,12 @@
         "amphp/phpunit-util": "^1.1",
         "amphp/php-cs-fixer-config": "dev-master",
         "phpunit/phpunit": "^7 || ^8 || ^9",
-        "amphp/http-server": "^2-rc4",
+        "amphp/http-server": "^2",
         "kelunik/link-header-rfc5988": "^1.0",
         "clue/socks-react": "^1.0",
         "amphp/react-adapter": "^2.1",
-        "vimeo/psalm": "^3.9@dev"
+        "vimeo/psalm": "^3.9@dev",
+        "laminas/laminas-diactoros": "^2.3"
     },
     "suggest": {
         "ext-zlib": "Allows using compression for response bodies.",
@@ -56,7 +57,10 @@
     "autoload": {
         "psr-4": {
             "Amp\\Http\\Client\\": "src"
-        }
+        },
+        "files": [
+            "src/Internal/functions.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
