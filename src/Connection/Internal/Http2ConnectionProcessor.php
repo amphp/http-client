@@ -20,6 +20,7 @@ use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\Connection\UnprocessedRequestException;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Internal\ResponseBodyStream;
+use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\SocketException;
@@ -1540,11 +1541,22 @@ final class Http2ConnectionProcessor implements Http2Processor
         });
     }
 
+    /**
+     * @param Request $request
+     * @return array
+     * @throws InvalidRequestException
+     */
     private function generateHeaders(Request $request): array
     {
         $uri = $request->getUri();
 
         $path = $uri->getPath();
+        if (($path[0] ?? '/') !== '/') {
+            throw new InvalidRequestException(
+                $request,
+                'Relative path (' . $path . ') is not allowed in the request URI: ' . $uri
+            );
+        }
         if ($path === '') {
             $path = '/';
         }

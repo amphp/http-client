@@ -3,18 +3,23 @@
 namespace Amp\Http\Client\Connection;
 
 use Amp\CancelledException;
+use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\TimeoutException;
 use Amp\Http\Client\Trailers;
 use Amp\Http\HPack;
 use Amp\Http\Http2\Http2Parser;
+use Amp\Http\Http2\Http2Processor;
 use Amp\Http\Status;
 use Amp\NullCancellationToken;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Promise;
 use Amp\Socket;
 use Amp\TimeoutCancellationToken;
+use League\Uri;
+
+use Psr\Http\Message\UriInterface;
 use function Amp\asyncCall;
 use function Amp\delay;
 use function Amp\Http\formatDateHeader;
@@ -412,5 +417,96 @@ class Http2ConnectionTest extends AsyncTestCase
             $expected = self::packFrame(\pack("N", Http2Parser::CANCEL), Http2Parser::RST_STREAM, Http2Parser::NO_FLAG, 1);
             $this->assertStringEndsWith($expected, $buffer);
         }
+    }
+
+    public function testWritingRequestWithRelativeUriPathFails(): \Generator
+    {
+        [$server, $client] = Socket\createPair();
+
+        $connection = new Http2Connection($client);
+        $server->write($frame = self::packFrame('', Http2Parser::SETTINGS, 0, 0));
+        yield $connection->initialize();
+
+        $uri = $this->createMock(UriInterface::class);
+        $uri->method('getScheme')->willReturn('http');
+        $uri->method('getAuthority')->willReturn('');
+        $uri->method('getUserInfo')->willReturn('');
+        $uri->method('getHost')->willReturn('localhost');
+        $uri->method('getQuery')->willReturn('');
+        $uri->method('getFragment')->willReturn('');
+        $uri->method('withScheme')->willReturnSelf();
+        $uri->method('withUserInfo')->willReturnSelf();
+        $uri->method('withHost')->willReturnSelf();
+        $uri->method('withPort')->willReturnSelf();
+        $uri->method('withQuery')->willReturnSelf();
+        $uri->method('withFragment')->willReturnSelf();
+        $uri->method('__toString')->willReturn('http://localhost/foo');
+
+        $uri
+            ->expects(self::never()) // ensure that path is left untouched
+            ->method('withPath')
+            ->willReturnSelf();
+        $uri->method('getPath')->willReturn('foo');
+        $request = new Request($uri);
+        $request->setInactivityTimeout(500);
+
+        /** @var Stream $stream */
+        $stream = yield $connection->getStream($request);
+
+        $this->expectException(InvalidRequestException::class);
+        $this->expectExceptionMessage('Relative path (foo) is not allowed in the request URI: http://localhost/foo');
+        yield $stream->request($request, new NullCancellationToken());
+    }
+
+    /**
+     * @param string $requestPath
+     * @param string $expectedPath
+     * @return \Generator
+     * @throws Socket\SocketException
+     * @throws \Amp\ByteStream\ClosedException
+     * @throws \Amp\ByteStream\StreamException
+     * @throws \Amp\Http\Http2\Http2ConnectionException
+     * @dataProvider providerValidUriPaths
+     */
+    public function testWritingRequestWithValidUriPathProceedsWithMatchingUriPath(
+        string $requestPath,
+        string $expectedPath
+    ): \Generator {
+        [$server, $client] = Socket\createPair();
+
+        $connection = new Http2Connection($client);
+        $server->write($frame = self::packFrame('', Http2Parser::SETTINGS, 0, 0));
+        yield $connection->initialize();
+
+        $uri = Uri\Http::createFromString('http://localhost')->withPath($requestPath);
+        $request = new Request($uri);
+        $request->setInactivityTimeout(500);
+
+        /** @var Stream $stream */
+        $stream = yield $connection->getStream($request);
+
+        $stream->request($request, new NullCancellationToken());
+        $data = \substr(yield $server->read(), 24); // cut off the HTTP/2 preface
+        $processor = $this->createMock(Http2Processor::class);
+        $expectedPseudo = [
+            ':authority' => 'localhost',
+            ':path' => $expectedPath,
+            ':scheme' => 'http',
+            ':method' => 'GET',
+        ];
+        $processor
+            ->expects(self::once())
+            ->method('handleHeaders')
+            ->with(self::anything(), self::identicalTo($expectedPseudo), self::anything(), self::anything());
+        $parser = (new Http2Parser($processor))->parse();
+        $parser->send($data);
+    }
+
+    public function providerValidUriPaths(): array
+    {
+        return [
+            'Empty path is replaced with slash' => ['', '/'],
+            'Absolute path is passed as is' => ['/foo', '/foo'],
+        ];
     }
 }

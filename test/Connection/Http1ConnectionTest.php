@@ -4,6 +4,7 @@ namespace Amp\Http\Client\Connection;
 
 use Amp\ByteStream\InputStream;
 use Amp\ByteStream\IteratorStream;
+use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\RequestBody;
 use Amp\Http\Client\Response;
@@ -15,6 +16,9 @@ use Amp\PHPUnit\AsyncTestCase;
 use Amp\Promise;
 use Amp\Socket;
 use Amp\Success;
+use League\Uri;
+use Psr\Http\Message\UriInterface;
+
 use function Amp\delay;
 
 class Http1ConnectionTest extends AsyncTestCase
@@ -192,6 +196,74 @@ class Http1ConnectionTest extends AsyncTestCase
         } catch (TimeoutException $exception) {
             $this->assertStringContainsString('Inactivity timeout', $exception->getMessage());
         }
+    }
+
+    public function testWritingRequestWithRelativeUriPathFails(): \Generator
+    {
+        [$client] = Socket\createPair();
+
+        $connection = new Http1Connection($client, 5000);
+        $uri = $this->createMock(UriInterface::class);
+        $uri->method('getScheme')->willReturn('http');
+        $uri->method('getAuthority')->willReturn('');
+        $uri->method('getUserInfo')->willReturn('');
+        $uri->method('getHost')->willReturn('localhost');
+        $uri->method('getQuery')->willReturn('');
+        $uri->method('getFragment')->willReturn('');
+        $uri->method('withScheme')->willReturnSelf();
+        $uri->method('withUserInfo')->willReturnSelf();
+        $uri->method('withHost')->willReturnSelf();
+        $uri->method('withPort')->willReturnSelf();
+        $uri->method('withQuery')->willReturnSelf();
+        $uri->method('withFragment')->willReturnSelf();
+        $uri->method('__toString')->willReturn('http://localhost/foo');
+
+        $uri
+            ->expects(self::never()) // ensure that path is left untouched
+            ->method('withPath')
+            ->willReturnSelf();
+        $uri->method('getPath')->willReturn('foo');
+        $request = new Request($uri);
+        /** @var Stream $stream */
+        $stream = yield $connection->getStream($request);
+
+        $this->expectException(InvalidRequestException::class);
+        $this->expectExceptionMessage('Relative path (foo) is not allowed in the request URI: http://localhost/foo');
+        yield $stream->request($request, new NullCancellationToken);
+    }
+
+    /**
+     * @param string $requestPath
+     * @param string $expectedPath
+     * @return \Generator
+     * @throws Socket\SocketException
+     * @dataProvider providerValidUriPaths
+     */
+    public function testWritingRequestWithValidUriPathProceedsWithMatchingUriPath(
+        string $requestPath,
+        string $expectedPath
+    ): \Generator {
+        [$server, $client] = Socket\createPair();
+
+        $connection = new Http1Connection($client, 5000);
+        $uri = Uri\Http::createFromString('http://localhost')->withPath($requestPath);
+        $request = new Request($uri);
+        $request->setInactivityTimeout(500);
+
+        /** @var Stream $stream */
+        $stream = yield $connection->getStream($request);
+
+        $stream->request($request, new NullCancellationToken);
+        $startLine = \explode("\r\n", yield $server->read())[0] ?? null;
+        self::assertSame("GET {$expectedPath} HTTP/1.1", $startLine);
+    }
+
+    public function providerValidUriPaths(): array
+    {
+        return [
+            'Empty path is replaced with slash' => ['', '/'],
+            'Absolute path is passed as is' => ['/foo', '/foo'],
+        ];
     }
 
     private function createSlowBody()

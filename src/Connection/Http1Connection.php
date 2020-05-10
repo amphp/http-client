@@ -692,7 +692,14 @@ final class Http1Connection implements Connection
     private function generateRawHeader(Request $request, string $protocolVersion): string
     {
         $uri = $request->getUri();
-        $requestUri = $uri->getPath() ?: '/';
+        $path = $uri->getPath();
+        if (($path[0] ?? '/') !== '/') {
+            throw new InvalidRequestException(
+                $request,
+                'Relative path (' . $path . ') is not allowed in the request URI: ' . $uri
+            );
+        }
+        $requestUri = $path ?: '/';
 
         if ('' !== $query = $uri->getQuery()) {
             $requestUri .= '?' . $query;

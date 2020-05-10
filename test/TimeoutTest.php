@@ -109,7 +109,11 @@ class TimeoutTest extends AsyncTestCase
             $uri = "https://" . $server->getAddress() . "/";
 
             $this->expectException(TimeoutException::class);
-            $this->expectExceptionMessageRegExp("(TLS handshake with '127.0.0.1:\d+' @ '127.0.0.1:\d+' timed out, took longer than 100 ms)");
+            if (\method_exists($this, 'expectExceptionMessageMatches')) {
+                $this->expectExceptionMessageMatches("(TLS handshake with '127.0.0.1:\d+' @ '127.0.0.1:\d+' timed out, took longer than 100 ms)");
+            } else {
+                $this->expectExceptionMessageRegExp("(TLS handshake with '127.0.0.1:\d+' @ '127.0.0.1:\d+' timed out, took longer than 100 ms)");
+            }
 
             $request = new Request($uri);
             $request->setTlsHandshakeTimeout(100);
@@ -240,7 +244,11 @@ class TimeoutTest extends AsyncTestCase
             $uri = "https://" . $server->getAddress() . "/";
 
             $this->expectException(TimeoutException::class);
-            $this->expectExceptionMessageRegExp("(TLS handshake with '127.0.0.1:\d+' @ '127.0.0.1:\d+' timed out, took longer than 100 ms)");
+            if (\method_exists($this, 'expectExceptionMessageMatches')) {
+                $this->expectExceptionMessageMatches("(TLS handshake with '127.0.0.1:\d+' @ '127.0.0.1:\d+' timed out, took longer than 100 ms)");
+            } else {
+                $this->expectExceptionMessageRegExp("(TLS handshake with '127.0.0.1:\d+' @ '127.0.0.1:\d+' timed out, took longer than 100 ms)");
+            }
 
             $request = new Request($uri);
             $request->setTlsHandshakeTimeout(100);
