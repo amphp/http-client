@@ -47,11 +47,11 @@ Everything in an `Internal` namespace or marked as `@internal` is not public API
 
 ##### 4.x
 
-Under development.
+Stable and recommended version.
 
 ##### [3.x](https://github.com/amphp/artax/tree/master)
 
-Use [`amphp/artax`](https://github.com/amphp/artax) as package name instead.
+Legacy version. Use [`amphp/artax`](https://github.com/amphp/artax) as package name instead.
 
 ##### [2.x](https://github.com/amphp/artax/tree/2.x)
 
