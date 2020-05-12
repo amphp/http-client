@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Amp\Http\Client\Internal;
 
 use Amp\PHPUnit\AsyncTestCase;
@@ -13,6 +11,14 @@ use Psr\Http\Message\StreamInterface;
  */
 class PsrInputStreamTest extends AsyncTestCase
 {
+    public function testConstructThrowsErrorOnInvalidChunkSize(): void
+    {
+        $stream = $this->createMock(StreamInterface::class);
+        $this->expectException(\Error::class);
+        $this->expectExceptionMessage('Invalid chunk size: 0');
+        new PsrInputStream($stream, 0);
+    }
+
     public function testReadFromNonReadableStreamReturnsNull(): \Generator
     {
         $stream = $this->createMock(StreamInterface::class);

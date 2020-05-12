@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Amp\Http\Client\Body;
 
 use Amp\ByteStream\InputStream;
@@ -13,7 +11,6 @@ use Psr\Http\Message\StreamInterface;
 
 final class PsrStreamBody implements RequestBody
 {
-
     /**
      * @var StreamInterface
      */

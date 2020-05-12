@@ -1,23 +1,23 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Amp\Http\Client\Internal;
 
 use Amp\ByteStream\InMemoryStream;
 use Amp\ByteStream\InputStream;
+use Amp\ByteStream\IteratorStream;
+use Amp\Emitter;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Success;
 
 /**
- * @covers \Amp\Http\Client\Internal\PsrRequestStream
+ * @covers \Amp\Http\Client\Internal\PsrMessageStream
  */
-class PsrRequestStreamTest extends AsyncTestCase
+class PsrMessageStreamTest extends AsyncTestCase
 {
     public function testToStringReturnsContentFromStream(): void
     {
         $inputStream = new InMemoryStream('abcd');
-        $requestStream = new PsrRequestStream($inputStream);
+        $requestStream = new PsrMessageStream($inputStream);
         self::assertSame('abcd', (string) $requestStream);
     }
 
@@ -27,14 +27,14 @@ class PsrRequestStreamTest extends AsyncTestCase
         $inputStream
             ->method('read')
             ->willThrowException(new \Exception());
-        $requestStream = new PsrRequestStream($inputStream);
+        $requestStream = new PsrMessageStream($inputStream);
         self::assertSame('', (string) $requestStream);
     }
 
     public function testReadAfterCloseThrowsException(): void
     {
         $inputStream = new InMemoryStream('a');
-        $requestStream = new PsrRequestStream($inputStream);
+        $requestStream = new PsrMessageStream($inputStream);
         $requestStream->close();
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Stream is closed');
@@ -44,7 +44,7 @@ class PsrRequestStreamTest extends AsyncTestCase
     public function testReadAfterDetachThrowsException(): void
     {
         $inputStream = new InMemoryStream('a');
-        $requestStream = new PsrRequestStream($inputStream);
+        $requestStream = new PsrMessageStream($inputStream);
         $requestStream->detach();
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Stream is closed');
@@ -54,14 +54,14 @@ class PsrRequestStreamTest extends AsyncTestCase
     public function testEofBeforeReadReturnsFalse(): void
     {
         $inputStream = new InMemoryStream('');
-        $requestStream = new PsrRequestStream($inputStream);
+        $requestStream = new PsrMessageStream($inputStream);
         self::assertFalse($requestStream->eof());
     }
 
     public function testEofAfterPartialReadReturnsFalse(): void
     {
         $inputStream = new InMemoryStream('ab');
-        $requestStream = new PsrRequestStream($inputStream);
+        $requestStream = new PsrMessageStream($inputStream);
         $requestStream->read(1);
         self::assertFalse($requestStream->eof());
     }
@@ -69,7 +69,7 @@ class PsrRequestStreamTest extends AsyncTestCase
     public function testEofAfterFullReadReturnsTrue(): void
     {
         $inputStream = new InMemoryStream('a');
-        $requestStream = new PsrRequestStream($inputStream);
+        $requestStream = new PsrMessageStream($inputStream);
         $requestStream->read(2);
         self::assertTrue($requestStream->eof());
     }
@@ -77,7 +77,7 @@ class PsrRequestStreamTest extends AsyncTestCase
     public function testTellThrowsException(): void
     {
         $inputStream = new InMemoryStream('a');
-        $requestStream = new PsrRequestStream($inputStream);
+        $requestStream = new PsrMessageStream($inputStream);
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Source stream is not seekable');
         $requestStream->tell();
@@ -86,7 +86,7 @@ class PsrRequestStreamTest extends AsyncTestCase
     public function testRewindThrowsException(): void
     {
         $inputStream = new InMemoryStream('a');
-        $requestStream = new PsrRequestStream($inputStream);
+        $requestStream = new PsrMessageStream($inputStream);
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Source stream is not seekable');
         $requestStream->rewind();
@@ -95,7 +95,7 @@ class PsrRequestStreamTest extends AsyncTestCase
     public function testSeekThrowsException(): void
     {
         $inputStream = new InMemoryStream('a');
-        $requestStream = new PsrRequestStream($inputStream);
+        $requestStream = new PsrMessageStream($inputStream);
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Source stream is not seekable');
         $requestStream->seek(0);
@@ -104,28 +104,28 @@ class PsrRequestStreamTest extends AsyncTestCase
     public function testGetSizeReturnsNull(): void
     {
         $inputStream = new InMemoryStream('a');
-        $requestStream = new PsrRequestStream($inputStream);
+        $requestStream = new PsrMessageStream($inputStream);
         self::assertNull($requestStream->getSize());
     }
 
     public function testIsSeekableReturnsFalse(): void
     {
         $inputStream = new InMemoryStream('a');
-        $requestStream = new PsrRequestStream($inputStream);
+        $requestStream = new PsrMessageStream($inputStream);
         self::assertFalse($requestStream->isSeekable());
     }
 
     public function testIsWritableReturnsFalse(): void
     {
         $inputStream = new InMemoryStream('a');
-        $requestStream = new PsrRequestStream($inputStream);
+        $requestStream = new PsrMessageStream($inputStream);
         self::assertFalse($requestStream->isWritable());
     }
 
     public function testWriteThrowsException(): void
     {
         $inputStream = new InMemoryStream('a');
-        $requestStream = new PsrRequestStream($inputStream);
+        $requestStream = new PsrMessageStream($inputStream);
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Source stream is not writable');
         $requestStream->write('a');
@@ -134,14 +134,14 @@ class PsrRequestStreamTest extends AsyncTestCase
     public function testIsReadableAfterConstructionReturnsTrue(): void
     {
         $inputStream = new InMemoryStream('a');
-        $requestStream = new PsrRequestStream($inputStream);
+        $requestStream = new PsrMessageStream($inputStream);
         self::assertTrue($requestStream->isReadable());
     }
 
     public function testIsReadableAfterCloseReturnsFalse(): void
     {
         $inputStream = new InMemoryStream('a');
-        $requestStream = new PsrRequestStream($inputStream);
+        $requestStream = new PsrMessageStream($inputStream);
         $requestStream->close();
         self::assertFalse($requestStream->isReadable());
     }
@@ -149,7 +149,7 @@ class PsrRequestStreamTest extends AsyncTestCase
     public function testIsReadableAfterDetachReturnsFalse(): void
     {
         $inputStream = new InMemoryStream('a');
-        $requestStream = new PsrRequestStream($inputStream);
+        $requestStream = new PsrMessageStream($inputStream);
         $requestStream->detach();
         self::assertFalse($requestStream->isReadable());
     }
@@ -157,28 +157,28 @@ class PsrRequestStreamTest extends AsyncTestCase
     public function testGetContentsReadsAllDataFromStream(): void
     {
         $inputStream = new InMemoryStream('abcd');
-        $requestStream = new PsrRequestStream($inputStream);
+        $requestStream = new PsrMessageStream($inputStream);
         self::assertSame('abcd', $requestStream->getContents());
     }
 
     public function testGetMetadataReturnsNullWithKey(): void
     {
         $inputStream = new InMemoryStream('a');
-        $requestStream = new PsrRequestStream($inputStream);
+        $requestStream = new PsrMessageStream($inputStream);
         self::assertNull($requestStream->getMetadata('b'));
     }
 
     public function testGetMetadataReturnsEmptyArrayWithoutKey(): void
     {
         $inputStream = new InMemoryStream('a');
-        $requestStream = new PsrRequestStream($inputStream);
+        $requestStream = new PsrMessageStream($inputStream);
         self::assertSame([], $requestStream->getMetadata());
     }
 
     public function testReadThrowsExceptionOnInvalidDataFromStream(): void
     {
         $inputStream = $this->createMock(InputStream::class);
-        $requestStream = new PsrRequestStream($inputStream);
+        $requestStream = new PsrMessageStream($inputStream);
         $inputStream->method('read')->willReturn(new Success(1));
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Invalid data received from stream');
@@ -202,9 +202,11 @@ class PsrRequestStreamTest extends AsyncTestCase
         string $expectedFirstResult,
         string $expectedSecondResult
     ): void {
-        $inputStream = $this->createMock(InputStream::class);
-        $inputStream->method('read')->willReturn(new Success($firstChunk), new Success($secondChunk));
-        $requestStream = new PsrRequestStream($inputStream);
+        $emitter = new Emitter();
+        $emitter->emit($firstChunk);
+        $emitter->emit($secondChunk);
+        $inputStream = new IteratorStream($emitter->iterate());
+        $requestStream = new PsrMessageStream($inputStream);
         self::assertSame($expectedFirstResult, $requestStream->read($firstChunkSize));
         self::assertSame($expectedSecondResult, $requestStream->read($secondChunkSize));
     }

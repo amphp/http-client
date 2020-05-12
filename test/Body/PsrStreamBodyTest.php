@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Amp\Http\Client\Body;
 
 use Amp\ByteStream\InputStream;
@@ -17,7 +15,6 @@ use function Amp\call;
  */
 class PsrStreamBodyTest extends AsyncTestCase
 {
-
     /**
      * @param int|null $size
      * @param int      $expectedSize

@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Amp\Http\Client\Internal;
 
 use Amp\ByteStream\InputStream;
@@ -13,7 +11,7 @@ use function Amp\Promise\wait;
 /**
  * @internal
  */
-final class PsrRequestStream implements StreamInterface
+final class PsrMessageStream implements StreamInterface
 {
     private const DEFAULT_TIMEOUT = 5000;
 

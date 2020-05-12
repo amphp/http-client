@@ -1,14 +1,18 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Amp\Http\Client;
 
+use Amp\ByteStream\InMemoryStream;
+use Amp\Http\Status;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Promise;
 use Laminas\Diactoros\Request as PsrRequest;
-
 use Laminas\Diactoros\RequestFactory;
+use Laminas\Diactoros\Response as PsrResponse;
+use Laminas\Diactoros\ResponseFactory;
+use Psr\Http\Message\RequestInterface;
+
+use Psr\Http\Message\ResponseInterface;
 use function Amp\call;
 
 /**
@@ -16,45 +20,50 @@ use function Amp\call;
  */
 class PsrAdapterTest extends AsyncTestCase
 {
-    public function testFromPsrRequestReturnsRequestWithEqualUri(): void
+    public function testFromPsrRequestReturnsRequestWithEqualUri(): \Generator
     {
-        $adapter = new PsrAdapter(new RequestFactory());
+        $adapter = new PsrAdapter();
         $source = new PsrRequest('https://user:password@localhost/foo?a=b#c');
-        $target = $adapter->fromPsrRequest($source);
+        /** @var Request $target */
+        $target = yield $adapter->fromPsrRequest($source);
         self::assertSame('https://user:password@localhost/foo?a=b#c', (string) $target->getUri());
     }
 
-    public function testFromPsrRequestReturnsRequestWithEqualMethod(): void
+    public function testFromPsrRequestReturnsRequestWithEqualMethod(): \Generator
     {
-        $adapter = new PsrAdapter(new RequestFactory());
+        $adapter = new PsrAdapter();
         $source = new PsrRequest(null, 'POST');
-        $target = $adapter->fromPsrRequest($source);
+        /** @var Request $target */
+        $target = yield $adapter->fromPsrRequest($source);
         self::assertSame('POST', $target->getMethod());
     }
 
-    public function testFromPsrRequestReturnsRequestWithAllAddedHeaders(): void
+    public function testFromPsrRequestReturnsRequestWithAllAddedHeaders(): \Generator
     {
-        $adapter = new PsrAdapter(new RequestFactory());
+        $adapter = new PsrAdapter();
         $source = new PsrRequest(null, null, 'php://memory', ['a' => 'b', 'c' => ['d', 'e']]);
-        $target = $adapter->fromPsrRequest($source);
+        /** @var Request $target */
+        $target = yield $adapter->fromPsrRequest($source);
         $actualHeaders = \array_map([$target, 'getHeaderArray'], ['a', 'c']);
         self::assertSame([['b'], ['d', 'e']], $actualHeaders);
     }
 
-    public function testFromPsrRequestReturnsRequestWithSameProtocolVersion(): void
+    public function testFromPsrRequestReturnsRequestWithSameProtocolVersion(): \Generator
     {
-        $adapter = new PsrAdapter(new RequestFactory());
+        $adapter = new PsrAdapter();
         $source = (new PsrRequest())->withProtocolVersion('2');
-        $target = $adapter->fromPsrRequest($source);
+        /** @var Request $target */
+        $target = yield $adapter->fromPsrRequest($source);
         self::assertSame(['2'], $target->getProtocolVersions());
     }
 
     public function testFromPsrRequestReturnsRequestWithMatchingBody(): \Generator
     {
-        $adapter = new PsrAdapter(new RequestFactory());
+        $adapter = new PsrAdapter();
         $source = new PsrRequest();
         $source->getBody()->write('body_content');
-        $target = $adapter->fromPsrRequest($source);
+        /** @var Request $target */
+        $target = yield $adapter->fromPsrRequest($source);
 
         self::assertSame('body_content', yield $this->readBody($target->getBody()));
     }
@@ -79,28 +88,31 @@ class PsrAdapterTest extends AsyncTestCase
         );
     }
 
-    public function testToPsrRequestReturnsRequestWithEqualUri(): void
+    public function testToPsrRequestReturnsRequestWithEqualUri(): \Generator
     {
-        $adapter = new PsrAdapter(new RequestFactory());
+        $adapter = new PsrAdapter();
         $source = new Request('https://user:password@localhost/foo?a=b#c');
-        $target = $adapter->toPsrRequest($source);
+        /** @var RequestInterface $target */
+        $target = yield $adapter->toPsrRequest(new RequestFactory(), $source);
         self::assertSame('https://user:password@localhost/foo?a=b#c', (string) $target->getUri());
     }
 
-    public function testToPsrRequestReturnsRequestWithEqualMethod(): void
+    public function testToPsrRequestReturnsRequestWithEqualMethod(): \Generator
     {
-        $adapter = new PsrAdapter(new RequestFactory());
+        $adapter = new PsrAdapter();
         $source = new Request('', 'POST');
-        $target = $adapter->toPsrRequest($source);
+        /** @var RequestInterface $target */
+        $target = yield $adapter->toPsrRequest(new RequestFactory(), $source);
         self::assertSame('POST', $target->getMethod());
     }
 
-    public function testToPsrRequestReturnsRequestWithAllAddedHeaders(): void
+    public function testToPsrRequestReturnsRequestWithAllAddedHeaders(): \Generator
     {
-        $adapter = new PsrAdapter(new RequestFactory());
+        $adapter = new PsrAdapter();
         $source = new Request('');
         $source->setHeaders(['a' => 'b', 'c' => ['d', 'e']]);
-        $target = $adapter->toPsrRequest($source);
+        /** @var RequestInterface $target */
+        $target = yield $adapter->toPsrRequest(new RequestFactory(), $source);
         $actualHeaders = \array_map([$target, 'getHeader'], ['a', 'c']);
         self::assertSame([['b'], ['d', 'e']], $actualHeaders);
     }
@@ -110,16 +122,18 @@ class PsrAdapterTest extends AsyncTestCase
      * @param string|null $selectedVersion
      * @param string      $targetVersion
      * @dataProvider providerSuccessfulProtocolVersions
+     * @return \Generator
      */
     public function testToPsrRequestReturnsRequestWithMatchingProtocolVersion(
         array $sourceVersions,
         ?string $selectedVersion,
         string $targetVersion
-    ): void {
-        $adapter = new PsrAdapter(new RequestFactory());
+    ): \Generator {
+        $adapter = new PsrAdapter();
         $source = new Request('');
         $source->setProtocolVersions($sourceVersions);
-        $target = $adapter->toPsrRequest($source, $selectedVersion);
+        /** @var RequestInterface $target */
+        $target = yield $adapter->toPsrRequest(new RequestFactory(), $source, $selectedVersion);
         self::assertSame($targetVersion, $target->getProtocolVersion());
     }
 
@@ -132,23 +146,186 @@ class PsrAdapterTest extends AsyncTestCase
         ];
     }
 
-    public function testToPsrRequestThrowsExceptionIfProvidedVersionNotInSource(): void
+    public function testToPsrRequestThrowsExceptionIfProvidedVersionNotInSource(): \Generator
     {
-        $adapter = new PsrAdapter(new RequestFactory());
+        $adapter = new PsrAdapter();
         $source = new Request('');
         $source->setProtocolVersions(['2']);
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Source request doesn\'t support provided HTTP protocol version: 1.1');
-        $adapter->toPsrRequest($source, '1.1');
+        yield $adapter->toPsrRequest(new RequestFactory(), $source, '1.1');
     }
 
-    public function testToPsrRequestThrowsExceptionIfDefaultVersionNotInSource(): void
+    public function testToPsrRequestThrowsExceptionIfDefaultVersionNotInSource(): \Generator
     {
-        $adapter = new PsrAdapter(new RequestFactory());
+        $adapter = new PsrAdapter();
         $source = new Request('');
         $source->setProtocolVersions(['1.0', '2']);
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Can\'t choose HTTP protocol version automatically');
-        $adapter->toPsrRequest($source);
+        yield $adapter->toPsrRequest(new RequestFactory(), $source);
+    }
+
+    public function testToPsrResponseReturnsResponseWithEqualProtocolVersion(): \Generator
+    {
+        $adapter = new PsrAdapter();
+        $source = new Response(
+            '2',
+            Status::OK,
+            null,
+            [],
+            new InMemoryStream(''),
+            new Request('')
+        );
+        /** @var ResponseInterface $target */
+        $target = yield $adapter->toPsrResponse(new ResponseFactory(), $source);
+        self::assertSame('2', $target->getProtocolVersion());
+    }
+
+    public function testToPsrResponseReturnsResponseWithEqualStatusCode(): \Generator
+    {
+        $adapter = new PsrAdapter();
+        $source = new Response(
+            '1.1',
+            Status::NOT_FOUND,
+            null,
+            [],
+            new InMemoryStream(''),
+            new Request('')
+        );
+        /** @var ResponseInterface $target */
+        $target = yield $adapter->toPsrResponse(new ResponseFactory(), $source);
+        self::assertSame(Status::NOT_FOUND, $target->getStatusCode());
+    }
+
+    public function testToPsrResponseReturnsResponseWithEqualReason(): \Generator
+    {
+        $adapter = new PsrAdapter();
+        $source = new Response(
+            '1.1',
+            Status::OK,
+            'a',
+            [],
+            new InMemoryStream(''),
+            new Request('')
+        );
+        /** @var ResponseInterface $target */
+        $target = yield $adapter->toPsrResponse(new ResponseFactory(), $source);
+        self::assertSame('a', $target->getReasonPhrase());
+    }
+
+    public function testToPsrResponseReturnsResponseWithEqualHeaders(): \Generator
+    {
+        $adapter = new PsrAdapter();
+        $source = new Response(
+            '1.1',
+            Status::OK,
+            null,
+            ['a' => 'b', 'c' => ['d', 'e']],
+            new InMemoryStream(''),
+            new Request('')
+        );
+        /** @var ResponseInterface $target */
+        $target = yield $adapter->toPsrResponse(new ResponseFactory(), $source);
+        self::assertSame(['a' => ['b'], 'c' => ['d', 'e']], $target->getHeaders());
+    }
+
+    public function testToPsrResponseReturnsResponseWithEqualBody(): \Generator
+    {
+        $adapter = new PsrAdapter();
+        $source = new Response(
+            '1.1',
+            Status::OK,
+            null,
+            [],
+            new InMemoryStream('body_content'),
+            new Request('')
+        );
+        /** @var ResponseInterface $target */
+        $target = yield $adapter->toPsrResponse(new ResponseFactory(), $source);
+        self::assertSame('body_content', (string) $target->getBody());
+    }
+
+    public function testFromPsrResponseWithRequestReturnsResultWithSameRequest(): \Generator
+    {
+        $adapter = new PsrAdapter();
+        $source = new PsrResponse();
+        $request = new Request('');
+        /** @var Response $target */
+        $target = yield $adapter->fromPsrResponse($source, $request);
+        self::assertSame($request, $target->getRequest());
+    }
+
+    public function testFromPsrResponseWithoutPreviousResponseReturnsResponseWithoutPreviousResponse(): \Generator
+    {
+        $adapter = new PsrAdapter();
+        $source = new PsrResponse();
+        $request = new Request('');
+        /** @var Response $target */
+        $target = yield $adapter->fromPsrResponse($source, $request);
+        self::assertNull($target->getPreviousResponse());
+    }
+
+    public function testFromPsrResponseWithPreviousResponseReturnsResponseWithSamePreviousResponse(): \Generator
+    {
+        $adapter = new PsrAdapter();
+        $previousResponse = new Response(
+            '1.1',
+            Status::OK,
+            null,
+            [],
+            new InMemoryStream(''),
+            new Request('')
+        );
+        $source = new PsrResponse();
+        $request = new Request('');
+        /** @var Response $target */
+        $target = yield $adapter->fromPsrResponse($source, $request, $previousResponse);
+        self::assertSame($previousResponse, $target->getPreviousResponse());
+    }
+
+    public function testFromPsrResponseReturnsResultWithEqualProtocolVersion(): \Generator
+    {
+        $adapter = new PsrAdapter();
+        $source = (new PsrResponse())->withProtocolVersion('2');
+        $request = new Request('');
+        /** @var Response $target */
+        $target = yield $adapter->fromPsrResponse($source, $request);
+        self::assertSame('2', $target->getProtocolVersion());
+    }
+
+    public function testFromPsrResponseReturnsResultWithEqualStatus(): \Generator
+    {
+        $adapter = new PsrAdapter();
+        $source = (new PsrResponse())->withStatus(Status::NOT_FOUND);
+        $request = new Request('');
+        /** @var Response $target */
+        $target = yield $adapter->fromPsrResponse($source, $request);
+        self::assertSame(Status::NOT_FOUND, $target->getStatus());
+    }
+
+    public function testFromPsrResponseReturnsResultWithEqualHeaders(): \Generator
+    {
+        $adapter = new PsrAdapter();
+        $source = new PsrResponse(
+            'php://memory',
+            Status::OK,
+            ['a' => 'b', 'c' => ['d', 'e']]
+        );
+        $request = new Request('');
+        /** @var Response $target */
+        $target = yield $adapter->fromPsrResponse($source, $request);
+        self::assertSame(['a' => ['b'], 'c' => ['d', 'e']], $target->getHeaders());
+    }
+
+    public function testFromPsrResponseReturnsResultWithEqualBody(): \Generator
+    {
+        $adapter = new PsrAdapter();
+        $source = new PsrResponse();
+        $source->getBody()->write('body_content');
+        $request = new Request('');
+        /** @var Response $target */
+        $target = yield $adapter->fromPsrResponse($source, $request);
+        self::assertSame('body_content', yield $target->getBody()->buffer());
     }
 }
