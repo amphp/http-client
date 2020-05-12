@@ -69,7 +69,8 @@
         }
     },
     "conflict": {
-        "amphp/file": "<0.2"
+        "amphp/file": "<0.2",
+        "psr/http-factory": "<1 || >=2"
     },
     "scripts": {
         "check": [
