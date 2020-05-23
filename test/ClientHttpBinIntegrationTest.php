@@ -10,6 +10,7 @@ use Amp\CancellationTokenSource;
 use Amp\CancelledException;
 use Amp\Http\Client\Body\FileBody;
 use Amp\Http\Client\Body\FormBody;
+use Amp\Http\Client\Connection\UnprocessedRequestException;
 use Amp\Http\Client\Interceptor\DecompressResponse;
 use Amp\Http\Client\Interceptor\ModifyRequest;
 use Amp\Http\Client\Interceptor\SetRequestHeaderIfUnset;
@@ -700,6 +701,48 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $this->assertSame(1, $json1['http2']);
         $this->assertSame(1, $json2['http2']);
+    }
+
+    public function testHttp2UpgradeResponse(): \Generator
+    {
+        $request = new Request('http://nghttp2.org/');
+        $request->setHeader('connection', 'upgrade, http2-settings');
+        $request->setHeader('upgrade', 'h2c');
+        $request->setHeader('http2-settings', 'AAMAAABkAARAAAAAAAIAAAAA');
+
+        $this->expectException(HttpException::class);
+        $this->expectExceptionMessage('CONNECT or upgrade request made without upgrade handler callback');
+
+        /** @var Response $response */
+        yield $this->executeRequest($request);
+    }
+
+    public function testHttp2PriorKnowledge(): \Generator
+    {
+        $request = new Request('http://nghttp2.org/');
+        $request->setProtocolVersions(['2']);
+
+        /** @var Response $response */
+        $response = yield $this->executeRequest($request);
+
+        $this->assertSame(200, $response->getStatus());
+        $this->assertSame('2', $response->getProtocolVersion());
+    }
+
+    public function testHttp2PriorKnowledgeUnsupported(): \Generator
+    {
+        $request = new Request('http://github.com/');
+        $request->setProtocolVersions(['2']);
+
+        $this->expectException(SocketException::class);
+        $this->expectExceptionMessage('Connection closed before HTTP/2 settings could be received');
+
+        try {
+            /** @var Response $response */
+            yield $this->executeRequest($request);
+        } catch (UnprocessedRequestException $e) {
+            throw $e->getPrevious();
+        }
     }
 
     protected function setUp(): void

@@ -190,15 +190,27 @@ final class DefaultConnectionFactory implements ConnectionFactory
                 }
 
                 if ($tlsInfo->getApplicationLayerProtocol() === 'h2') {
-                    $connection = new Http2Connection($socket);
-                    yield $connection->initialize();
+                    $http2Connection = new Http2Connection($socket);
+                    yield $http2Connection->initialize();
 
                     foreach ($request->getEventListeners() as $eventListener) {
                         yield $eventListener->completeConnectionCreation($request);
                     }
 
-                    return $connection;
+                    return $http2Connection;
                 }
+            }
+
+            // Treat the presence of only HTTP/2 as prior knowledge, see https://http2.github.io/http2-spec/#known-http
+            if ($request->getProtocolVersions() === ['2']) {
+                $http2Connection = new Http2Connection($socket);
+                yield $http2Connection->initialize();
+
+                foreach ($request->getEventListeners() as $eventListener) {
+                    yield $eventListener->completeConnectionCreation($request);
+                }
+
+                return $http2Connection;
             }
 
             if (!\array_intersect($request->getProtocolVersions(), ['1.0', '1.1'])) {
