@@ -66,40 +66,6 @@ class FormBodyTest extends AsyncTestCase
         $this->assertSame('lorem.txt', $fileName);
 
         $content = yield buffer($body->createBodyStream());
-        $this->assertEquals("--ea4ba2aa9af22673bc01ae7a64c95440\r
-Content-Disposition: form-data; name=\"a\"\r
-Content-Type: application/json\r
-\r
-a\r
---ea4ba2aa9af22673bc01ae7a64c95440\r
-Content-Disposition: form-data; name=\"b\"\r
-Content-Type: application/json\r
-\r
-b\r
---ea4ba2aa9af22673bc01ae7a64c95440\r
-Content-Disposition: form-data; name=\"c\"\r
-\r
-c\r
---ea4ba2aa9af22673bc01ae7a64c95440\r
-Content-Disposition: form-data; name=\"d\"\r
-Content-Type: text/plain\r
-\r
-d\r
---ea4ba2aa9af22673bc01ae7a64c95440\r
-Content-Disposition: form-data; name=\"e\"\r
-\r
-e\r
---ea4ba2aa9af22673bc01ae7a64c95440\r
-Content-Disposition: form-data; name=\"f\"\r
-Content-Type: text/plain\r
-\r
-f\r
---ea4ba2aa9af22673bc01ae7a64c95440\r
-Content-Disposition: form-data; name=\"file\"; filename=\"lorem.txt\"\r
-Content-Type: application/octet-stream\r
-Content-Transfer-Encoding: binary\r
-\r
-Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.\r
---ea4ba2aa9af22673bc01ae7a64c95440--\r\n", $content);
+        $this->assertEquals("--ea4ba2aa9af22673bc01ae7a64c95440\r\nContent-Disposition: form-data; name=\"a\"\r\nContent-Type: application/json\r\n\r\na\r\n--ea4ba2aa9af22673bc01ae7a64c95440\r\nContent-Disposition: form-data; name=\"b\"\r\nContent-Type: application/json\r\n\r\nb\r\n--ea4ba2aa9af22673bc01ae7a64c95440\r\nContent-Disposition: form-data; name=\"c\"\r\n\r\nc\r\n--ea4ba2aa9af22673bc01ae7a64c95440\r\nContent-Disposition: form-data; name=\"d\"\r\nContent-Type: text/plain\r\n\r\nd\r\n--ea4ba2aa9af22673bc01ae7a64c95440\r\nContent-Disposition: form-data; name=\"e\"\r\n\r\ne\r\n--ea4ba2aa9af22673bc01ae7a64c95440\r\nContent-Disposition: form-data; name=\"f\"\r\nContent-Type: text/plain\r\n\r\nf\r\n--ea4ba2aa9af22673bc01ae7a64c95440\r\nContent-Disposition: form-data; name=\"file\"; filename=\"lorem.txt\"\r\nContent-Type: application/octet-stream\r\nContent-Transfer-Encoding: binary\r\n\r\nLorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.\r\n--ea4ba2aa9af22673bc01ae7a64c95440--\r\n", $content);
     }
 }
