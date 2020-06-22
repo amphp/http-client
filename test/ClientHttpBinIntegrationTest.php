@@ -18,10 +18,15 @@ use Amp\Http\Client\Interceptor\TooManyRedirectsException;
 use Amp\Http\Cookie\RequestCookie;
 use Amp\Http\Cookie\ResponseCookie;
 use Amp\Http\Rfc7230;
+use Amp\Http\Server\Request as ServerRequest;
+use Amp\Http\Server\RequestHandler\CallableRequestHandler;
+use Amp\Http\Server\Response as ServerResponse;
+use Amp\Http\Server\Server;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Promise;
 use Amp\Socket;
 use Amp\Success;
+use Psr\Log\NullLogger;
 use function Amp\asyncCall;
 use function Amp\call;
 use function Amp\coroutine;
@@ -38,6 +43,18 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     private $builder;
     /** @var callable */
     private $responseCallback;
+    /** @var Server */
+    private $httpServer;
+
+    protected function tearDownAsync()
+    {
+        if (!$this->httpServer) {
+            return;
+        }
+
+        $this->httpServer->stop();
+        $this->httpServer = null;
+    }
 
     public function testHttp10Response(): \Generator
     {
@@ -215,7 +232,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
             ['accept', '*/*'],
             ['user-agent', 'amphp/http-client @ v4.x'],
             ['Accept-Encoding', 'gzip, deflate, identity'],
-            ['host', (string) $this->socket->getAddress()]
+            ['host', (string) $this->socket->getAddress()],
         ], $result);
     }
 
@@ -354,42 +371,34 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testRedirect(): \Generator
     {
-        $statusCode = 299;
-        $redirectTo = "/status/{$statusCode}";
-        $uri = "http://httpbin.org/redirect-to?url=" . \rawurlencode($redirectTo);
-
         $this->client = $this->builder->followRedirects(0)->build();
 
+        $this->givenServer(static function () {
+            return new ServerResponse(302, ['location' => 'https://example.org/']);
+        });
+
         /** @var Response $response */
-        $response = yield $this->executeRequest(new Request($uri));
+        $response = yield $this->executeRequest($this->createRequest());
 
         $this->assertInstanceOf(Response::class, $response);
-        $this->assertEquals(302, $response->getStatus());
-
-        $originalUri = $response->getOriginalRequest()->getUri();
+        $this->assertSame(302, $response->getStatus());
         $this->assertSame($response, $response->getOriginalResponse());
-
-        $this->assertSame($uri, (string) $originalUri);
     }
 
     public function testRedirectWithFollow(): \Generator
     {
-        $statusCode = 299;
-        $redirectTo = "/status/{$statusCode}";
-        $uri = "http://httpbin.org/redirect-to?url=" . \rawurlencode($redirectTo);
-
         $this->client = $this->builder->followRedirects()->build();
 
+        $this->givenServer(static function () {
+            return new ServerResponse(302, ['location' => 'https://example.org/']);
+        });
+
         /** @var Response $response */
-        $response = yield $this->executeRequest(new Request($uri));
+        $response = yield $this->executeRequest($this->createRequest());
 
         $this->assertInstanceOf(Response::class, $response);
-        $this->assertEquals($statusCode, $response->getStatus());
-
-        $originalUri = $response->getOriginalRequest()->getUri();
+        $this->assertSame(200, $response->getStatus());
         $this->assertSame(302, $response->getOriginalResponse()->getStatus());
-
-        $this->assertSame($uri, (string) $originalUri);
     }
 
     public function testClientAddsZeroContentLengthHeaderForEmptyBodiesOnPost(): \Generator
@@ -520,9 +529,21 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     {
         $this->builder->followRedirects(10);
 
+        $request = $this->createRequest();
+        $request->setUri($request->getUri()->withPath('/redirect/11'));
+
+        $this->givenServer(static function (ServerRequest $request) {
+            \preg_match('(/redirect/(\d+))', $request->getUri()->getPath(), $matches);
+            if ($matches[1] ?? '') {
+                return new ServerResponse(302, ['location' => '/redirect/' . ($matches[1] - 1)]);
+            }
+
+            return new ServerResponse(200);
+        });
+
         $this->expectException(TooManyRedirectsException::class);
 
-        yield $this->executeRequest(new Request("http://httpbin.org/redirect/11"));
+        yield $this->executeRequest($request);
     }
 
     public function testRequestCancellation(): \Generator
@@ -756,16 +777,33 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
             $this->socket->close();
         }
 
+        if ($this->httpServer) {
+            $this->httpServer->stop();
+            $this->httpServer = null;
+        }
+
         $this->socket = Socket\Server::listen('127.0.0.1:0');
         $this->socket->unreference();
 
         asyncCall(function () {
+            yield delay(0);
+
+            if ($this->httpServer) {
+                return;
+            }
+
             /** @var Socket\EncryptableSocket $client */
             $client = yield $this->socket->accept();
             $client->unreference();
 
             yield ($this->responseCallback)($client);
         });
+    }
+
+    private function givenServer(callable $requestHandler): void
+    {
+        $this->httpServer = new Server([$this->socket], new CallableRequestHandler($requestHandler), new NullLogger);
+        $this->httpServer->start();
     }
 
     private function givenRawServerResponse(string $response): void
