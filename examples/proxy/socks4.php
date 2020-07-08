@@ -38,9 +38,6 @@ Loop::run(static function () use ($argv) {
                     $options = $context->toStreamContextArray();
 
                     $socketAddress = SocketAddress::fromSocketName(\str_replace(['tcp://', 'udp://'], '', $uri));
-                    if ($socketAddress === null) {
-                        throw new SocketException('Connection is not possible with invalid address: ' . $uri);
-                    }
 
                     /** @var Record[] $records */
                     $records = yield resolve($socketAddress->getHost(), Record::A);
