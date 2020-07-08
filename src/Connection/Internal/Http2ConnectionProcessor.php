@@ -520,6 +520,15 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     public function handlePushPromise(int $parentId, int $streamId, array $pseudo, array $headers): void
     {
+        if ($streamId % 2 === 1) {
+            $this->handleConnectionException(new Http2ConnectionException(
+                "Invalid server initiated stream",
+                Http2Parser::PROTOCOL_ERROR
+            ));
+
+            return;
+        }
+
         foreach ($pseudo as $name => $value) {
             if (!isset(Http2Parser::KNOWN_REQUEST_PSEUDO_HEADERS[$name])) {
                 throw new Http2StreamException(

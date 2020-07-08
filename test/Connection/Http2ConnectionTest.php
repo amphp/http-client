@@ -439,6 +439,49 @@ class Http2ConnectionTest extends AsyncTestCase
         yield $stream->request($request, new NullCancellationToken());
     }
 
+    public function testServerPushingOddStream(): \Generator
+    {
+        [$server, $client] = Socket\createPair();
+
+        $hpack = new HPack;
+
+        $connection = new Http2Connection($client);
+        $server->write(self::packFrame('', Http2Parser::SETTINGS, 0, 0));
+        yield $connection->initialize();
+
+        $request = new Request('http://localhost/');
+        $request->setInactivityTimeout(500);
+        $request->setPushHandler($this->createCallback(0));
+
+        /** @var Stream $stream */
+        $stream = yield $connection->getStream($request);
+
+        $promise = $stream->request($request, new NullCancellationToken());
+
+        $server->write(self::packFrame($hpack->encode([
+            [":status", Status::OK],
+            ["date", formatDateHeader()],
+        ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS, 1));
+        $server->write(self::packFrame(\pack("N", 3) . $hpack->encode([
+            [":method", 'GET'],
+            [":authority", 'localhost'],
+            [":scheme", 'http'],
+            [":path", '/static'],
+        ]), Http2Parser::PUSH_PROMISE, Http2Parser::END_HEADERS, 3));
+        $server->write(self::packFrame($hpack->encode([
+            [":status", Status::OK],
+            ["date", formatDateHeader()],
+        ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS, 3));
+
+        /** @var Response $response */
+        $response = yield $promise;
+
+        $this->expectException(Http2ConnectionException::class);
+        $this->expectExceptionMessage('Invalid server initiated stream');
+
+        yield $response->getBody()->buffer();
+    }
+
     /**
      * @param string $requestPath
      * @param string $expectedPath
