@@ -15,7 +15,6 @@ use Amp\Socket\ConnectContext;
 use Amp\Socket\Connector;
 use Amp\Socket\ResourceSocket;
 use Amp\Socket\SocketAddress;
-use Amp\Socket\SocketException;
 use Clue\React\Socks\Client;
 use React\Socket\Connection;
 use React\Socket\Connector as ReactConnector;
