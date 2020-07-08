@@ -321,7 +321,7 @@ class Http2ConnectionTest extends AsyncTestCase
                 ["date", formatDateHeader()],
             ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS, 1));
 
-            $server->write(self::packFrame(\pack("N", 3) . $hpack->encode([
+            $server->write(self::packFrame(\pack("N", 2) . $hpack->encode([
                 [":method", 'GET'],
                 [":authority", 'localhost'],
                 [":scheme", 'https'],
@@ -332,7 +332,7 @@ class Http2ConnectionTest extends AsyncTestCase
                 [":status", Status::OK],
                 ["content-length", "4"],
                 ["date", formatDateHeader()],
-            ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS, 3));
+            ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS, 2));
 
             yield delay(100);
 
@@ -340,7 +340,7 @@ class Http2ConnectionTest extends AsyncTestCase
 
             yield delay(1000);
 
-            $server->write(self::packFrame('test', Http2Parser::DATA, Http2Parser::END_STREAM, 3));
+            $server->write(self::packFrame('test', Http2Parser::DATA, Http2Parser::END_STREAM, 2));
         });
 
         /** @var Response $response */
@@ -359,7 +359,7 @@ class Http2ConnectionTest extends AsyncTestCase
             $this->fail("The push promise body should have been cancelled");
         } catch (CancelledException $exception) {
             $buffer = yield $server->read();
-            $expected = self::packFrame(\pack("N", Http2Parser::CANCEL), Http2Parser::RST_STREAM, Http2Parser::NO_FLAG, 3);
+            $expected = self::packFrame(\pack("N", Http2Parser::CANCEL), Http2Parser::RST_STREAM, Http2Parser::NO_FLAG, 2);
             $this->assertStringEndsWith($expected, $buffer);
         }
     }
@@ -467,11 +467,7 @@ class Http2ConnectionTest extends AsyncTestCase
             [":authority", 'localhost'],
             [":scheme", 'http'],
             [":path", '/static'],
-        ]), Http2Parser::PUSH_PROMISE, Http2Parser::END_HEADERS, 3));
-        $server->write(self::packFrame($hpack->encode([
-            [":status", Status::OK],
-            ["date", formatDateHeader()],
-        ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS, 3));
+        ]), Http2Parser::PUSH_PROMISE, Http2Parser::END_HEADERS, 1));
 
         /** @var Response $response */
         $response = yield $promise;
