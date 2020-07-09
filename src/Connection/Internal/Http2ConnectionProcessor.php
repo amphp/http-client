@@ -908,6 +908,8 @@ final class Http2ConnectionProcessor implements Http2Processor
     public function unreserveStream(): void
     {
         ++$this->remainingStreams;
+
+        \assert($this->remainingStreams <= $this->concurrentStreamLimit);
     }
 
     public function getRemainingStreams(): int
@@ -1189,7 +1191,7 @@ final class Http2ConnectionProcessor implements Http2Processor
     {
         switch ($setting) {
             case Http2Parser::INITIAL_WINDOW_SIZE:
-                if ($value > 2147483647) { // (1 << 31) - 1
+                if ($value < 0 || $value > 2147483647) { // (1 << 31) - 1
                     $this->handleConnectionException(new Http2ConnectionException(
                         "Invalid window size: {$value}",
                         Http2Parser::FLOW_CONTROL_ERROR
@@ -1239,7 +1241,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                 return;
 
             case Http2Parser::MAX_CONCURRENT_STREAMS:
-                if ($value > 2147483647) { // (1 << 31) - 1
+                if ($value < 0 || $value > 2147483647) { // (1 << 31) - 1
                     $this->handleConnectionException(new Http2ConnectionException(
                         "Invalid concurrent streams value: {$value}",
                         Http2Parser::PROTOCOL_ERROR
@@ -1252,6 +1254,9 @@ final class Http2ConnectionProcessor implements Http2Processor
 
                 $this->concurrentStreamLimit = $value;
                 $this->remainingStreams = $this->concurrentStreamLimit - $priorUsedStreams;
+
+                \assert($this->remainingStreams <= $this->concurrentStreamLimit);
+
                 return;
 
             case Http2Parser::HEADER_TABLE_SIZE: // TODO Respect this setting from the server
@@ -1361,6 +1366,14 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         $stream = $this->streams[$streamId];
 
+        unset($this->streams[$streamId]);
+
+        if ($streamId & 1) { // Client-initiated stream.
+            $this->remainingStreams++;
+
+            \assert($this->remainingStreams <= $this->concurrentStreamLimit);
+        }
+
         if ($stream->responsePending || $stream->body || $stream->trailers) {
             /**
              * @psalm-suppress DeprecatedClass
@@ -1409,12 +1422,6 @@ final class Http2ConnectionProcessor implements Http2Processor
                     }
                 }
             });
-        }
-
-        unset($this->streams[$streamId]);
-
-        if ($streamId & 1) { // Client-initiated stream.
-            $this->remainingStreams++;
         }
 
         if (!$this->streams && !$this->socket->isClosed()) {
