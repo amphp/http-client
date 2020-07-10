@@ -81,10 +81,10 @@ final class Http2ConnectionProcessor implements Http2Processor
     private $streamId = -1;
 
     /** @var int Maximum number of streams that may be opened. Initially unlimited. */
-    private $concurrentStreamLimit = \PHP_INT_MAX;
+    private $concurrentStreamLimit = 2147483647;
 
     /** @var int Currently open or reserved streams. Initially unlimited. */
-    private $remainingStreams = \PHP_INT_MAX;
+    private $remainingStreams = 2147483647;
 
     /** @var HPack */
     private $hpack;
