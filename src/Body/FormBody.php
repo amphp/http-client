@@ -91,6 +91,21 @@ final class FormBody implements RequestBody
     }
 
     /**
+     * Add a file field to the form from a string.
+     * 
+     * @param string $name
+     * @param string $fileContent
+     * @param string $fileName
+     * @param string $contentType
+     */
+    public function addFileFromString(string $name, string $fileContent, string $fileName, string $contentType = 'application/octet-stream'): void
+    {
+        $this->fields[] = [$name, $fileContent, $contentType, $fileName];
+        $this->isMultipart = true;
+        $this->resetCache();
+    }
+
+    /**
      * Returns an array of fields, each being an array of [name, value, content-type, file-name|null].
      * Both fields and files are returned in the array. Files use a FileBody object as the value. The file-name is
      * always null for fields.
