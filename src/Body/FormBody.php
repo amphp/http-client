@@ -149,7 +149,11 @@ final class FormBody implements RequestBody
             $fields[] = "--{$this->boundary}\r\n";
 
             /** @psalm-suppress PossiblyNullArgument */
+<<<<<<< HEAD
             $fields[] = $fileName !== null
+=======
+            $fields[] = $field instanceof FileBody
+>>>>>>> parent of 9899cbd... Add Content-Length header and make some improvements.
                 ? $this->generateMultipartFileHeader($name, $fileName, $contentType)
                 : $this->generateMultipartFieldHeader($name, $contentType);
 
@@ -165,7 +169,12 @@ final class FormBody implements RequestBody
     private function generateMultipartFileHeader(string $name, string $fileName, string $contentType): string
     {
         $header = "Content-Disposition: form-data; name=\"{$name}\"; filename=\"{$fileName}\"\r\n";
+<<<<<<< HEAD
         $header .= "Content-Type: {$contentType}\r\n\r\n";
+=======
+        $header .= "Content-Type: {$contentType}\r\n";
+        $header .= "Content-Transfer-Encoding: binary\r\n\r\n";
+>>>>>>> parent of 9899cbd... Add Content-Length header and make some improvements.
 
         return $header;
     }
@@ -174,9 +183,14 @@ final class FormBody implements RequestBody
     {
         $header = "Content-Disposition: form-data; name=\"{$name}\"\r\n";
         if ($contentType !== "") {
-            $header .= "Content-Type: {$contentType}\r\n";
+            $header .= "Content-Type: {$contentType}\r\n\r\n";
+        } else {
+            $header .= "\r\n";
         }
+<<<<<<< HEAD
         $header .= "\r\n";
+=======
+>>>>>>> parent of 9899cbd... Add Content-Length header and make some improvements.
 
         return $header;
     }
