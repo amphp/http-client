@@ -149,9 +149,9 @@ final class FormBody implements RequestBody
             $fields[] = "--{$this->boundary}\r\n";
 
             /** @psalm-suppress PossiblyNullArgument */
-            $fields[] = $field instanceof FileBody
-                ? $this->generateMultipartFileHeader($name, $fileName, $field, $contentType)
-                : $this->generateMultipartFieldHeader($name, $field, $contentType);
+            $fields[] = $fileName !== null
+                ? $this->generateMultipartFileHeader($name, $fileName, $contentType)
+                : $this->generateMultipartFieldHeader($name, $contentType);
 
             $fields[] = $field;
             $fields[] = "\r\n";
@@ -162,23 +162,21 @@ final class FormBody implements RequestBody
         return $this->cachedFields = $fields;
     }
 
-    private function generateMultipartFileHeader(string $name, string $fileName, FileBody $field, string $contentType): string
+    private function generateMultipartFileHeader(string $name, string $fileName, string $contentType): string
     {
         $header = "Content-Disposition: form-data; name=\"{$name}\"; filename=\"{$fileName}\"\r\n";
-        $header .= "Content-Type: {$contentType}\r\n";
-        $header .= "Content-Length: " . \Amp\Promise\wait($field->getBodyLength()) . "\r\n";
-        $header .= "Content-Transfer-Encoding: binary\r\n\r\n";
+        $header .= "Content-Type: {$contentType}\r\n\r\n";
 
         return $header;
     }
 
-    private function generateMultipartFieldHeader(string $name, string $content, string $contentType): string
+    private function generateMultipartFieldHeader(string $name, string $contentType): string
     {
         $header = "Content-Disposition: form-data; name=\"{$name}\"\r\n";
         if ($contentType !== "") {
             $header .= "Content-Type: {$contentType}\r\n";
         }
-        $header .= "Content-Length: " . strlen($content) . "\r\n\r\n";
+        $header .= "\r\n";
 
         return $header;
     }
