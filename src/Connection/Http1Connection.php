@@ -397,7 +397,7 @@ final class Http1Connection implements Connection
                                 do {
                                     /** @noinspection CallableParameterUseCaseInTypeContextInspection */
                                     $parser->parse($chunk);
-                                    /** @noinspection NotOptimalIfConditionsInspection */
+                                    /** @noinspection NotOptimalIfConditionsInspection,TypeDoesNotContainType */
                                     if ($parser->isComplete()) {
                                         break;
                                     }
