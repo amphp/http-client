@@ -36,12 +36,12 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
             ->usingPool(ConnectionLimitingPool::byAuthority(2))
             ->build();
 
-        $this->setTimeout(2000);
-        $this->setMinimumRuntime(1000);
+        $this->setTimeout(4000);
+        $this->setMinimumRuntime(2000);
 
         yield [
-            $client->request(new Request('http://httpbin.org/delay/1')),
-            $client->request(new Request('http://httpbin.org/delay/1')),
+            $client->request(new Request('http://httpbin.org/delay/2')),
+            $client->request(new Request('http://httpbin.org/delay/2')),
         ];
     }
 
