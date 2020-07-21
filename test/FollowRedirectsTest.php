@@ -86,7 +86,7 @@ class FollowRedirectsTest extends AsyncTestCase
             ["http://a/b/c/d;p?q", "./g", "http://a/b/c/g"],
             ["http://a/b/c/d;p?q", "g/", "http://a/b/c/g/"],
             ["http://a/b/c/d;p?q", "/g", "http://a/g"],
-            ["http://a/b/c/d;p?q", "//g", "//g"],
+            ["http://a/b/c/d;p?q", "//g", "http://g"],
             ["http://a/b/c/d;p?q", "?y", "http://a/b/c/d;p?y"],
             ["http://a/b/c/d;p?q", "g?y", "http://a/b/c/g?y"],
             ["http://a/b/c/d;p?q", "#s", "http://a/b/c/d;p#s"],
@@ -104,6 +104,7 @@ class FollowRedirectsTest extends AsyncTestCase
             ["http://a/b/c/d;p?q", "../..", "http://a/"],
             ["http://a/b/c/d;p?q", "../../", "http://a/"],
             ["http://a/b/c/d;p?q", "../../g", "http://a/g"],
+            ["https://telegram.me/", "//telegram.org/", "https://telegram.org/"],
         ];
     }
 }

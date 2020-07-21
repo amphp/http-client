@@ -38,7 +38,13 @@ final class FollowRedirects implements ApplicationInterceptor
         }
 
         if ($locationUri->getScheme() !== '' || $locationUri->getHost() !== '') {
-            return $locationUri->withPath(self::removeDotSegments($locationUri->getPath()));
+            $resultUri = $locationUri->withPath(self::removeDotSegments($locationUri->getPath()));
+
+            if ($locationUri->getScheme() === '') {
+                $resultUri = $resultUri->withScheme($baseUri->getScheme());
+            }
+
+            return $resultUri;
         }
 
         $baseUri = $baseUri->withQuery($locationUri->getQuery());
