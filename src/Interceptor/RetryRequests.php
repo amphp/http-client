@@ -9,17 +9,15 @@ use Amp\Http\Client\DelegateHttpClient;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
+use Amp\Http\Client\Response;
 use Amp\Http\Client\SocketException;
-use Amp\Promise;
-use function Amp\call;
 
 final class RetryRequests implements ApplicationInterceptor
 {
     use ForbidCloning;
     use ForbidSerialization;
 
-    /** @var int */
-    private $retryLimit;
+    private int $retryLimit;
 
     public function __construct(int $retryLimit)
     {
@@ -30,25 +28,23 @@ final class RetryRequests implements ApplicationInterceptor
         Request $request,
         CancellationToken $cancellation,
         DelegateHttpClient $httpClient
-    ): Promise {
-        return call(function () use ($request, $cancellation, $httpClient) {
-            $attempt = 1;
+    ): Response {
+        $attempt = 1;
 
-            do {
-                try {
-                    return yield $httpClient->request(clone $request, $cancellation);
-                } catch (UnprocessedRequestException $exception) {
-                    // Request was deemed retryable by connection, so carry on.
-                } catch (SocketException $exception) {
-                    if (!$request->isIdempotent()) {
-                        throw $exception;
-                    }
-
-                    // Request can safely be retried.
+        do {
+            try {
+                return $httpClient->request(clone $request, $cancellation);
+            } catch (UnprocessedRequestException $exception) {
+                // Request was deemed retryable by connection, so carry on.
+            } catch (SocketException $exception) {
+                if (!$request->isIdempotent()) {
+                    throw $exception;
                 }
-            } while ($attempt++ <= $this->retryLimit);
 
-            throw $exception;
-        });
+                // Request can safely be retried.
+            }
+        } while ($attempt++ <= $this->retryLimit);
+
+        throw $exception;
     }
 }

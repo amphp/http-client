@@ -6,24 +6,24 @@ use Amp\Http\Client\Request;
 
 class ModifyRequestTest extends InterceptorTest
 {
-    public function testNetworkInterceptor(): \Generator
+    public function testNetworkInterceptor(): void
     {
         $this->givenNetworkInterceptor(new ModifyRequest(static function (Request $request) {
             $request->setHeader('foo', 'bar');
         }));
 
-        yield $this->whenRequestIsExecuted();
+        $this->whenRequestIsExecuted();
 
         $this->thenRequestHasHeader('foo', 'bar');
     }
 
-    public function testApplicationInterceptor(): \Generator
+    public function testApplicationInterceptor(): void
     {
         $this->givenApplicationInterceptor(new ModifyRequest(static function (Request $request) {
             $request->setHeader('foo', 'bar');
         }));
 
-        yield $this->whenRequestIsExecuted();
+        $this->whenRequestIsExecuted();
 
         $this->thenRequestHasHeader('foo', 'bar');
     }

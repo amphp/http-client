@@ -3,76 +3,39 @@
 namespace Amp\Http\Client\Body;
 
 use Amp\ByteStream\InputStream;
-use Amp\File\Driver;
+use Amp\File;
+use Amp\File\Filesystem;
 use Amp\Http\Client\RequestBody;
-use Amp\Promise;
-use Amp\Success;
-use function Amp\call;
-use function Amp\File\open;
-use function Amp\File\size;
 
 final class FileBody implements RequestBody
 {
     /** @var string */
-    private $path;
+    private string $path;
+
+    private Filesystem $filesystem;
 
     /**
      * @param string $path The filesystem path for the file we wish to send
+     * @param Filesystem|null $filesystem Use the global filesystem returned by Amp\File\filesystem() if null.
      */
-    public function __construct(string $path)
+    public function __construct(string $path, ?Filesystem $filesystem = null)
     {
-        if (!\interface_exists(Driver::class)) {
-            throw new \Error("File request bodies require amphp/file to be installed");
-        }
-
         $this->path = $path;
+        $this->filesystem = $filesystem ?? File\filesystem();
     }
 
     public function createBodyStream(): InputStream
     {
-        $handlePromise = open($this->path, "r");
-
-        return new class($handlePromise) implements InputStream {
-            /** @var Promise<InputStream> */
-            private $promise;
-
-            /** @var InputStream|null */
-            private $stream;
-
-            public function __construct(Promise $promise)
-            {
-                $this->promise = $promise;
-                $this->promise->onResolve(function ($error, $stream) {
-                    if ($error) {
-                        return;
-                    }
-
-                    $this->stream = $stream;
-                });
-            }
-
-            public function read(): Promise
-            {
-                if (!$this->stream) {
-                    return call(function () {
-                        /** @var InputStream $stream */
-                        $stream = yield $this->promise;
-                        return $stream->read();
-                    });
-                }
-
-                return $this->stream->read();
-            }
-        };
+        return $this->filesystem->openFile($this->path, "r");
     }
 
-    public function getHeaders(): Promise
+    public function getHeaders(): array
     {
-        return new Success([]);
+        return [];
     }
 
-    public function getBodyLength(): Promise
+    public function getBodyLength(): int
     {
-        return size($this->path);
+        return $this->filesystem->getSize($this->path);
     }
 }

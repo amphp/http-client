@@ -3,7 +3,6 @@
 namespace Amp\Http\Client\Connection;
 
 use Amp\CancellationToken;
-use Amp\Coroutine;
 use Amp\Deferred;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
@@ -11,8 +10,8 @@ use Amp\Http\Client\Response;
 use Amp\MultiReasonException;
 use Amp\Promise;
 use Amp\Success;
-use function Amp\call;
-use function Amp\coroutine;
+use function Amp\async;
+use function Amp\await;
 
 final class ConnectionLimitingPool implements ConnectionPool
 {
@@ -47,35 +46,30 @@ final class ConnectionLimitingPool implements ConnectionPool
         return $scheme . '://' . $authority;
     }
 
-    /** @var int */
-    private $connectionLimit;
+    private int $connectionLimit;
 
-    /** @var ConnectionFactory */
-    private $connectionFactory;
+    private ConnectionFactory $connectionFactory;
 
     /** @var array<string, \ArrayObject<int, Promise<Connection>>> */
-    private $connections = [];
+    private array $connections = [];
 
     /** @var Connection[] */
-    private $idleConnections = [];
+    private array $idleConnections = [];
 
     /** @var int[] */
-    private $activeRequestCounts = [];
+    private array $activeRequestCounts = [];
 
     /** @var Deferred[][] */
-    private $waiting = [];
+    private array $waiting = [];
 
     /** @var bool[] */
-    private $waitForPriorConnection = [];
+    private array $waitForPriorConnection = [];
 
-    /** @var int */
-    private $totalConnectionAttempts = 0;
+    private int $totalConnectionAttempts = 0;
 
-    /** @var int */
-    private $totalStreamRequests = 0;
+    private int $totalStreamRequests = 0;
 
-    /** @var int */
-    private $openConnectionCount = 0;
+    private int $openConnectionCount = 0;
 
     private function __construct(int $connectionLimit, ?ConnectionFactory $connectionFactory = null)
     {
@@ -110,55 +104,50 @@ final class ConnectionLimitingPool implements ConnectionPool
         return $this->openConnectionCount;
     }
 
-    public function getStream(Request $request, CancellationToken $cancellation): Promise
+    public function getStream(Request $request, CancellationToken $cancellation): Stream
     {
-        return call(function () use ($request, $cancellation) {
-            $this->totalStreamRequests++;
+        $this->totalStreamRequests++;
 
-            $uri = self::formatUri($request);
+        $uri = self::formatUri($request);
 
-            // Using new Coroutine avoids a bug on PHP < 7.4, see #265
+        /**
+         * @var Stream $stream
+         * @psalm-suppress all
+         */
+        [$connection, $stream] = $this->getStreamFor($uri, $request, $cancellation);
 
-            /**
-             * @var Stream $stream
-             * @psalm-suppress all
-             */
-            [$connection, $stream] = yield new Coroutine($this->getStreamFor($uri, $request, $cancellation));
+        $connectionId = \spl_object_id($connection);
+        $this->activeRequestCounts[$connectionId] = ($this->activeRequestCounts[$connectionId] ?? 0) + 1;
+        unset($this->idleConnections[$connectionId]);
 
-            $connectionId = \spl_object_id($connection);
-            $this->activeRequestCounts[$connectionId] = ($this->activeRequestCounts[$connectionId] ?? 0) + 1;
-            unset($this->idleConnections[$connectionId]);
-
-            return HttpStream::fromStream(
+        return HttpStream::fromStream(
+            $stream,
+            function (Request $request, CancellationToken $cancellationToken) use (
+                $connection,
                 $stream,
-                coroutine(function (Request $request, CancellationToken $cancellationToken) use (
-                    $connection,
-                    $stream,
-                    $uri
-                ) {
-                    try {
-                        /** @var Response $response */
-                        $response = yield $stream->request($request, $cancellationToken);
-                    } catch (\Throwable $e) {
-                        $this->onReadyConnection($connection, $uri);
-                        throw $e;
-                    }
-
-                    // await response being completely received
-                    $response->getTrailers()->onResolve(function () use ($connection, $uri): void {
-                        $this->onReadyConnection($connection, $uri);
-                    });
-
-                    return $response;
-                }),
-                function () use ($connection, $uri): void {
+                $uri
+            ): Response {
+                try {
+                    $response = $stream->request($request, $cancellationToken);
+                } catch (\Throwable $e) {
                     $this->onReadyConnection($connection, $uri);
+                    throw $e;
                 }
-            );
-        });
+
+                // await response being completely received
+                $response->getTrailers()->onResolve(function () use ($connection, $uri): void {
+                    $this->onReadyConnection($connection, $uri);
+                });
+
+                return $response;
+            },
+            function () use ($connection, $uri): void {
+                $this->onReadyConnection($connection, $uri);
+            }
+        );
     }
 
-    private function getStreamFor(string $uri, Request $request, CancellationToken $cancellation): \Generator
+    private function getStreamFor(string $uri, Request $request, CancellationToken $cancellation): array
     {
         $isHttps = $request->getUri()->getScheme() === 'https';
 
@@ -171,9 +160,9 @@ final class ConnectionLimitingPool implements ConnectionPool
                 try {
                     if ($isHttps && ($this->waitForPriorConnection[$uri] ?? true)) {
                         // Wait for first successful connection if using a secure connection (maybe we can use HTTP/2).
-                        $connection = yield $connectionPromise;
+                        $connection = await($connectionPromise);
                     } else {
-                        $connection = yield Promise\first([$connectionPromise, new Success]);
+                        $connection = await(Promise\first([$connectionPromise, new Success]));
                         if ($connection === null) {
                             continue;
                         }
@@ -184,7 +173,7 @@ final class ConnectionLimitingPool implements ConnectionPool
 
                 \assert($connection instanceof Connection);
 
-                $stream = yield $this->getStreamFromConnection($connection, $request);
+                $stream = $this->getStreamFromConnection($connection, $request);
 
                 if ($stream === null) {
                     if (!$this->isAdditionalConnectionAllowed($uri) && $this->isConnectionIdle($connection)) {
@@ -211,11 +200,11 @@ final class ConnectionLimitingPool implements ConnectionPool
                 break;
             }
 
-            $connection = yield $deferredPromise;
+            $connection = await($deferredPromise);
 
             \assert($connection instanceof Connection);
 
-            $stream = yield $this->getStreamFromConnection($connection, $request);
+            $stream = $this->getStreamFromConnection($connection, $request);
 
             if ($stream === null) {
                 continue; // Wait for a different connection to become available.
@@ -226,7 +215,7 @@ final class ConnectionLimitingPool implements ConnectionPool
 
         $this->totalConnectionAttempts++;
 
-        $connectionPromise = $this->connectionFactory->create($request, $cancellation);
+        $connectionPromise = async(fn() => $this->connectionFactory->create($request, $cancellation));
 
         $connectionId = \spl_object_id($connectionPromise);
         $this->connections[$uri] = $this->connections[$uri] ?? new \ArrayObject;
@@ -261,7 +250,7 @@ final class ConnectionLimitingPool implements ConnectionPool
         });
 
         try {
-            $connection = yield Promise\first([$connectionPromise, $deferredPromise]);
+            $connection = await(Promise\first([$connectionPromise, $deferredPromise]));
         } catch (MultiReasonException $exception) {
             [$exception] = $exception->getReasons(); // The first reason is why the connection failed.
             throw $exception;
@@ -272,28 +261,28 @@ final class ConnectionLimitingPool implements ConnectionPool
 
         \assert($connection instanceof Connection);
 
-        $stream = yield $this->getStreamFromConnection($connection, $request);
+        $stream = $this->getStreamFromConnection($connection, $request);
 
         if ($stream === null) {
             // Reused connection did not have an available stream for the given request.
-            $connection = yield $connectionPromise; // Wait for new connection request instead.
+            $connection = await($connectionPromise); // Wait for new connection request instead.
 
-            $stream = yield $this->getStreamFromConnection($connection, $request);
+            $stream = $this->getStreamFromConnection($connection, $request);
 
             if ($stream === null) {
                 // Other requests used the new connection first, so we need to go around again.
                 // Using new Coroutine avoids a bug on PHP < 7.4, see #265
-                return yield new Coroutine($this->getStreamFor($uri, $request, $cancellation));
+                return $this->getStreamFor($uri, $request, $cancellation);
             }
         }
 
         return [$connection, $stream];
     }
 
-    private function getStreamFromConnection(Connection $connection, Request $request): Promise
+    private function getStreamFromConnection(Connection $connection, Request $request): ?Stream
     {
         if (!\array_intersect($request->getProtocolVersions(), $connection->getProtocolVersions())) {
-            return new Success; // Connection does not support any of the requested protocol versions.
+            return null; // Connection does not support any of the requested protocol versions.
         }
 
         return $connection->getStream($request);

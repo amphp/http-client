@@ -6,16 +6,15 @@ use Amp\CancellationToken;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request;
-use Amp\Promise;
+use Amp\Http\Client\Response;
 use PHPUnit\Framework\TestCase;
 
 class NetworkInterceptorTest extends InterceptorTest
 {
-    public function testGetters(): \Generator
+    public function testGetters(): void
     {
         $this->givenNetworkInterceptor(new class($this) implements NetworkInterceptor {
-            /** @var NetworkInterceptorTest */
-            private $testCase;
+            private NetworkInterceptorTest $testCase;
 
             public function __construct(NetworkInterceptorTest $testCase)
             {
@@ -26,7 +25,7 @@ class NetworkInterceptorTest extends InterceptorTest
                 Request $request,
                 CancellationToken $cancellation,
                 Stream $stream
-            ): Promise {
+            ): Response {
                 TestCase::assertNull($stream->getTlsInfo());
                 TestCase::assertSame(
                     $this->testCase->getServerAddress()->toString(),
@@ -45,7 +44,7 @@ class NetworkInterceptorTest extends InterceptorTest
         // dummy interceptor to have nested network interceptors
         $this->givenNetworkInterceptor(new SetResponseHeader('foo', 'bar'));
 
-        yield $this->whenRequestIsExecuted();
+        $this->whenRequestIsExecuted();
 
         $this->assertTrue(true); // No exception in interceptor
     }

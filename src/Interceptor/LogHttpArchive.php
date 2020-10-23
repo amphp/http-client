@@ -4,7 +4,7 @@ namespace Amp\Http\Client\Interceptor;
 
 use Amp\CancellationToken;
 use Amp\File;
-use Amp\File\Driver;
+use Amp\File\Filesystem;
 use Amp\Http\Client\ApplicationInterceptor;
 use Amp\Http\Client\DelegateHttpClient;
 use Amp\Http\Client\EventListener;
@@ -16,11 +16,9 @@ use Amp\Http\Client\Internal\HarAttributes;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Message;
-use Amp\Promise;
 use Amp\Sync\LocalMutex;
-use Amp\Sync\Lock;
-use function Amp\call;
-use function Amp\Promise\rethrow;
+use function Amp\await;
+use function Amp\defer;
 
 final class LogHttpArchive implements ApplicationInterceptor
 {
@@ -133,108 +131,97 @@ final class LogHttpArchive implements ApplicationInterceptor
         return $data;
     }
 
-    /** @var LocalMutex */
-    private $fileMutex;
-    /** @var File\File|null */
-    private $fileHandle;
-    /** @var string */
-    private $filePath;
-    /** @var \Throwable|null */
-    private $error;
-    /** @var EventListener */
-    private $eventListener;
+    private LocalMutex $fileMutex;
 
-    public function __construct(string $filePath)
+    private Filesystem $filesystem;
+
+    private ?File\File $fileHandle = null;
+
+    private string $filePath;
+
+    private ?\Throwable $error = null;
+
+    private EventListener $eventListener;
+
+    public function __construct(string $filePath, ?Filesystem $filesystem = null)
     {
         $this->filePath = $filePath;
         $this->fileMutex = new LocalMutex;
         $this->eventListener = new RecordHarAttributes;
-
-        if (!\interface_exists(Driver::class)) {
-            throw new \Error(__CLASS__ . ' requires amphp/file to be installed');
-        }
+        $this->filesystem = $filesystem ?? File\filesystem();
     }
 
     public function request(
         Request $request,
         CancellationToken $cancellation,
         DelegateHttpClient $httpClient
-    ): Promise {
-        return call(function () use ($request, $cancellation, $httpClient) {
-            if ($this->error) {
-                throw $this->error;
+    ): Response {
+        if ($this->error) {
+            throw $this->error;
+        }
+
+        $this->ensureEventListenerIsRegistered($request);
+
+        $response = $httpClient->request($request, $cancellation);
+
+        defer(fn() => $this->writeLog($response));
+
+        return $response;
+    }
+
+    public function reset(): void
+    {
+        $this->rotate($this->filePath);
+    }
+
+    public function rotate(string $filePath): void
+    {
+        $lock = $this->fileMutex->acquire();
+
+        // Will automatically reopen and reset the file
+        $this->fileHandle = null;
+        $this->filePath = $filePath;
+        $this->error = null;
+
+        $lock->release();
+    }
+
+    private function writeLog(Response $response): void
+    {
+        try {
+            await($response->getTrailers());
+        } catch (\Throwable $e) {
+            // ignore, still log the remaining response times
+        }
+
+        try {
+            $lock = $this->fileMutex->acquire();
+
+            $firstEntry = $this->fileHandle === null;
+
+            if ($firstEntry) {
+                $this->fileHandle = File\openFile($this->filePath, 'w');
+
+                $header = '{"log":{"version":"1.2","creator":{"name":"amphp/http-client","version":"4.x"},"pages":[],"entries":[';
+
+                $this->fileHandle->write($header);
+            } else {
+                \assert($this->fileHandle !== null);
+
+                $this->fileHandle->seek(-3, \SEEK_CUR);
             }
 
-            $this->ensureEventListenerIsRegistered($request);
+            /** @noinspection PhpComposerExtensionStubsInspection */
+            $json = \json_encode(self::formatEntry($response));
 
-            /** @var Response $response */
-            $response = yield $httpClient->request($request, $cancellation);
-
-            rethrow($this->writeLog($response));
-
-            return $response;
-        });
-    }
-
-    public function reset(): Promise
-    {
-        return $this->rotate($this->filePath);
-    }
-
-    public function rotate(string $filePath): Promise
-    {
-        return call(function () use ($filePath) {
-            /** @var Lock $lock */
-            $lock = yield $this->fileMutex->acquire();
-
-            // Will automatically reopen and reset the file
-            $this->fileHandle = null;
-            $this->filePath = $filePath;
-            $this->error = null;
+            $this->fileHandle->write(($firstEntry ? '' : ',') . $json . ']}}');
 
             $lock->release();
-        });
-    }
-
-    private function writeLog(Response $response): Promise
-    {
-        return call(function () use ($response) {
-            try {
-                yield $response->getTrailers();
-            } catch (\Throwable $e) {
-                // ignore, still log the remaining response times
-            }
-
-            try {
-                /** @var Lock $lock */
-                $lock = yield $this->fileMutex->acquire();
-
-                $firstEntry = $this->fileHandle === null;
-
-                if ($firstEntry) {
-                    $this->fileHandle = yield File\open($this->filePath, 'w');
-
-                    $header = '{"log":{"version":"1.2","creator":{"name":"amphp/http-client","version":"4.x"},"pages":[],"entries":[';
-
-                    yield $this->fileHandle->write($header);
-                } else {
-                    \assert($this->fileHandle !== null);
-
-                    yield $this->fileHandle->seek(-3, \SEEK_CUR);
-                }
-
-                /** @noinspection PhpComposerExtensionStubsInspection */
-                $json = \json_encode(self::formatEntry($response));
-
-                yield $this->fileHandle->write(($firstEntry ? '' : ',') . $json . ']}}');
-
-                $lock->release();
-            } catch (HttpException $e) {
-                $this->error = $e;
-            } catch (\Throwable $e) {
-                $this->error = new HttpException('Writing HTTP archive log failed', 0, $e);
-            }
-        });
+        } catch (HttpException $e) {
+            $this->error = $e;
+        } catch (\Throwable $e) {
+            $this->error = new HttpException('Writing HTTP archive log failed', 0, $e);
+        }
     }
 
     private function ensureEventListenerIsRegistered(Request $request): void

@@ -31,21 +31,19 @@ final class DecompressResponse implements NetworkInterceptor
         Request $request,
         CancellationToken $cancellation,
         Stream $stream
-    ): Promise {
+    ): Response {
         // If a header is manually set, we won't interfere
         if ($request->hasHeader('accept-encoding')) {
             return $stream->request($request, $cancellation);
         }
 
-        return call(function () use ($request, $cancellation, $stream) {
-            $this->addAcceptEncodingHeader($request);
+        $this->addAcceptEncodingHeader($request);
 
-            $request->interceptPush(function (Response $response) {
-                return $this->decompressResponse($response);
-            });
-
-            return $this->decompressResponse(yield $stream->request($request, $cancellation));
+        $request->interceptPush(function (Response $response): Response {
+            return $this->decompressResponse($response);
         });
+
+        return $this->decompressResponse($stream->request($request, $cancellation));
     }
 
     private function addAcceptEncodingHeader(Request $request): void

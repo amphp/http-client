@@ -3,43 +3,64 @@
 namespace Amp\Http\Client\Connection;
 
 use Amp\ByteStream\InputStream;
-use Amp\ByteStream\IteratorStream;
+use Amp\ByteStream\PipelineStream;
+use Amp\Http\Client\HttpException;
 use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\RequestBody;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\TimeoutException;
-use Amp\Iterator;
 use Amp\Loop;
 use Amp\NullCancellationToken;
 use Amp\PHPUnit\AsyncTestCase;
-use Amp\Promise;
+use Amp\Pipeline;
 use Amp\Socket;
-use Amp\Success;
 use Laminas\Diactoros\Uri as LaminasUri;
 use League\Uri;
+use function Amp\async;
+use function Amp\await;
 use function Amp\delay;
 
 class Http1ConnectionTest extends AsyncTestCase
 {
-    public function testConnectionBusyAfterRequestIsIssued(): \Generator
+    public function setUp(): void
     {
-        [$client] = Socket\createPair();
+        parent::setUp();
+        $this->ignoreLoopWatchers();
+    }
+
+    public function testConnectionBusyAfterRequestIsIssued(): void
+    {
+        [$client, $server] = Socket\createPair();
 
         $connection = new Http1Connection($client, 5000);
 
         $request = new Request('http://localhost');
         $request->setBody($this->createSlowBody());
 
-        /** @var Stream $stream */
-        $stream = yield $connection->getStream($request);
-        $stream->request($request, new NullCancellationToken);
+        $stream = $connection->getStream($request);
+        async(fn() => $stream->request($request, new NullCancellationToken));
         $stream = null; // gc instance
 
-        $this->assertNull(yield $connection->getStream($request));
+        $this->assertNull($connection->getStream($request));
     }
 
-    public function testConnectionBusyWithoutRequestButNotGarbageCollected(): \Generator
+    public function testConnectionBusyWithoutRequestButNotGarbageCollected(): void
+    {
+        [$client, $server] = Socket\createPair();
+
+        $connection = new Http1Connection($client, 5000);
+
+        $request = new Request('http://localhost');
+        $request->setBody($this->createSlowBody());
+
+        /** @noinspection PhpUnusedLocalVariableInspection */
+        $stream = $connection->getStream($request);
+
+        $this->assertNull($connection->getStream($request));
+    }
+
+    public function testConnectionNotBusyWithoutRequestGarbageCollected(): void
     {
         [$client] = Socket\createPair();
 
@@ -48,34 +69,17 @@ class Http1ConnectionTest extends AsyncTestCase
         $request = new Request('http://localhost');
         $request->setBody($this->createSlowBody());
 
-        /** @var Stream $stream */
         /** @noinspection PhpUnusedLocalVariableInspection */
-        $stream = yield $connection->getStream($request);
-
-        $this->assertNull(yield $connection->getStream($request));
-    }
-
-    public function testConnectionNotBusyWithoutRequestGarbageCollected(): \Generator
-    {
-        [$client] = Socket\createPair();
-
-        $connection = new Http1Connection($client, 5000);
-
-        $request = new Request('http://localhost');
-        $request->setBody($this->createSlowBody());
-
-        /** @var Stream $stream */
-        /** @noinspection PhpUnusedLocalVariableInspection */
-        $stream = yield $connection->getStream($request);
+        $stream = $connection->getStream($request);
         /** @noinspection SuspiciousAssignmentsInspection */
         $stream = null; // gc instance
 
-        yield delay(0); // required to clear instance in coroutine :-(
+        delay(0); // required to clear instance in coroutine :-(
 
-        $this->assertNotNull(yield $connection->getStream($request));
+        $this->assertNotNull($connection->getStream($request));
     }
 
-    public function test100Continue(): \Generator
+    public function test100Continue(): void
     {
         [$server, $client] = Socket\createPair();
 
@@ -84,19 +88,21 @@ class Http1ConnectionTest extends AsyncTestCase
         $request = new Request('http://httpbin.org/post', 'POST');
         $request->setHeader('expect', '100-continue');
 
-        /** @var Stream $stream */
-        $stream = yield $connection->getStream($request);
+        $stream = $connection->getStream($request);
 
         $server->write("HTTP/1.1 100 Continue\r\nFoo: Bar\r\n\r\nHTTP/1.1 204 Nothing to send\r\n\r\n");
 
-        /** @var Response $response */
-        $response = yield $stream->request($request, new NullCancellationToken);
+        $response = $stream->request($request, new NullCancellationToken);
 
         $this->assertSame(204, $response->getStatus());
         $this->assertSame('Nothing to send', $response->getReason());
+
+        $connection->close();
+        $server->close();
+        $client->close();
     }
 
-    public function testUpgrade(): \Generator
+    public function testUpgrade(): void
     {
         [$server, $client] = Socket\createPair();
 
@@ -111,28 +117,28 @@ class Http1ConnectionTest extends AsyncTestCase
         ) {
             $invoked = true;
             $this->assertSame(101, $response->getStatus());
-            $this->assertSame($socketData, yield $socket->read());
+            $this->assertSame($socketData, $socket->read());
         };
 
         $request = new Request('http://httpbin.org/upgrade', 'GET');
         $request->setHeader('connection', 'upgrade');
         $request->setUpgradeHandler($callback);
 
-        /** @var Stream $stream */
-        $stream = yield $connection->getStream($request);
+        $stream = $connection->getStream($request);
 
         $server->write("HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: test\r\n\r\n" . $socketData);
 
-        /** @var Response $response */
-        $response = yield $stream->request($request, new NullCancellationToken);
+        $response = $stream->request($request, new NullCancellationToken);
+
+        delay(0);
 
         $this->assertTrue($invoked);
         $this->assertSame(101, $response->getStatus());
         $this->assertSame('Switching Protocols', $response->getReason());
-        $this->assertSame([], (yield $response->getTrailers())->getHeaders());
+        $this->assertSame([], await($response->getTrailers())->getHeaders());
     }
 
-    public function testTransferTimeout(): \Generator
+    public function testTransferTimeout(): void
     {
         $this->setMinimumRuntime(500);
         $this->setTimeout(600);
@@ -144,25 +150,23 @@ class Http1ConnectionTest extends AsyncTestCase
         $request = new Request('http://localhost');
         $request->setTransferTimeout(500);
 
-        /** @var Stream $stream */
-        $stream = yield $connection->getStream($request);
+        $stream = $connection->getStream($request);
 
         $server->write("HTTP/1.1 200 Continue\r\nConnection: keep-alive\r\nContent-Length: 8\r\n\r\ntest");
 
-        /** @var Response $response */
-        $response = yield $stream->request($request, new NullCancellationToken);
+        $response = $stream->request($request, new NullCancellationToken);
 
         $this->assertSame(200, $response->getStatus());
 
         try {
-            yield $response->getBody()->buffer();
+            $response->getBody()->buffer();
             $this->fail("The request should have timed out");
         } catch (TimeoutException $exception) {
             $this->assertStringContainsString('transfer timeout', $exception->getMessage());
         }
     }
 
-    public function testInactivityTimeout(): \Generator
+    public function testInactivityTimeout(): void
     {
         $this->setMinimumRuntime(500);
         $this->setTimeout(1000);
@@ -174,8 +178,7 @@ class Http1ConnectionTest extends AsyncTestCase
         $request = new Request('http://localhost');
         $request->setInactivityTimeout(500);
 
-        /** @var Stream $stream */
-        $stream = yield $connection->getStream($request);
+        $stream = $connection->getStream($request);
 
         $server->write("HTTP/1.1 200 Continue\r\nConnection: keep-alive\r\nContent-Length: 8\r\n\r\n");
 
@@ -187,20 +190,19 @@ class Http1ConnectionTest extends AsyncTestCase
             $server->write("test"); // Request should timeout before this is called
         }));
 
-        /** @var Response $response */
-        $response = yield $stream->request($request, new NullCancellationToken);
+        $response = $stream->request($request, new NullCancellationToken);
 
         $this->assertSame(200, $response->getStatus());
 
         try {
-            yield $response->getBody()->buffer();
+            $response->getBody()->buffer();
             $this->fail("The request should have timed out");
         } catch (TimeoutException $exception) {
             $this->assertStringContainsString('Inactivity timeout', $exception->getMessage());
         }
     }
 
-    public function testWritingRequestWithRelativeUriPathFails(): \Generator
+    public function testWritingRequestWithRelativeUriPathFails(): void
     {
         [$client] = Socket\createPair();
 
@@ -208,27 +210,25 @@ class Http1ConnectionTest extends AsyncTestCase
 
         $request = new Request(new LaminasUri('foo'));
 
-        /** @var Stream $stream */
-        $stream = yield $connection->getStream($request);
+        $stream = $connection->getStream($request);
 
         $this->expectException(InvalidRequestException::class);
         $this->expectExceptionMessage('Relative path (foo) is not allowed in the request URI');
 
-        yield $stream->request($request, new NullCancellationToken);
+        $stream->request($request, new NullCancellationToken);
     }
 
     /**
      * @param string $requestPath
      * @param string $expectedPath
      *
-     * @return \Generator
      * @throws Socket\SocketException
      * @dataProvider providerValidUriPaths
      */
     public function testWritingRequestWithValidUriPathProceedsWithMatchingUriPath(
         string $requestPath,
         string $expectedPath
-    ): \Generator {
+    ): void {
         [$server, $client] = Socket\createPair();
 
         $connection = new Http1Connection($client, 5000);
@@ -236,12 +236,17 @@ class Http1ConnectionTest extends AsyncTestCase
         $request = new Request($uri);
         $request->setInactivityTimeout(500);
 
-        /** @var Stream $stream */
-        $stream = yield $connection->getStream($request);
+        $stream = $connection->getStream($request);
 
-        $stream->request($request, new NullCancellationToken);
-        $startLine = \explode("\r\n", yield $server->read())[0] ?? null;
+        $promise = async(fn() => $stream->request($request, new NullCancellationToken));
+        $startLine = \explode("\r\n", $server->read())[0] ?? null;
         self::assertSame("GET {$expectedPath} HTTP/1.1", $startLine);
+
+        try {
+            await($promise);
+        } catch (HttpException $exception) {
+            $connection->close();
+        }
     }
 
     public function providerValidUriPaths(): array
@@ -255,19 +260,19 @@ class Http1ConnectionTest extends AsyncTestCase
     private function createSlowBody()
     {
         return new class implements RequestBody {
-            public function getHeaders(): Promise
+            public function getHeaders(): array
             {
-                return new Success([]);
+                return [];
             }
 
             public function createBodyStream(): InputStream
             {
-                return new IteratorStream(Iterator\fromIterable(\array_fill(0, 100, '.'), 1000));
+                return new PipelineStream(Pipeline\fromIterable(\array_fill(0, 100, '.'), 100));
             }
 
-            public function getBodyLength(): Promise
+            public function getBodyLength(): ?int
             {
-                return new Success(-1);
+                return null;
             }
         };
     }

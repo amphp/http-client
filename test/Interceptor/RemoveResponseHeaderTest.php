@@ -6,7 +6,7 @@ use Amp\Http\Client\Request;
 
 class RemoveResponseHeaderTest extends InterceptorTest
 {
-    public function testNetworkInterceptor(): \Generator
+    public function testNetworkInterceptor(): void
     {
         // execution order is reversed
         $this->givenNetworkInterceptor(new RemoveResponseHeader('foo'));
@@ -14,13 +14,13 @@ class RemoveResponseHeaderTest extends InterceptorTest
 
         $request = new Request('http://example.org/');
 
-        yield $this->whenRequestIsExecuted($request);
+        $this->whenRequestIsExecuted($request);
 
         $this->thenRequestDoesNotHaveHeader('foo');
         $this->thenResponseDoesNotHaveHeader('foo');
     }
 
-    public function testApplicationInterceptor(): \Generator
+    public function testApplicationInterceptor(): void
     {
         // execution order is reversed
         $this->givenApplicationInterceptor(new RemoveResponseHeader('foo'));
@@ -28,7 +28,7 @@ class RemoveResponseHeaderTest extends InterceptorTest
 
         $request = new Request('http://example.org/');
 
-        yield $this->whenRequestIsExecuted($request);
+        $this->whenRequestIsExecuted($request);
 
         $this->thenRequestDoesNotHaveHeader('foo');
         $this->thenResponseDoesNotHaveHeader('foo');

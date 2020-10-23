@@ -4,8 +4,7 @@ namespace Amp\Http\Client;
 
 final class InvalidRequestException extends HttpException
 {
-    /** @var Request */
-    private $request;
+    private Request $request;
 
     public function __construct(Request $request, string $message, int $code = 0, \Throwable $previous = null)
     {

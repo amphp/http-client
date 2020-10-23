@@ -8,14 +8,14 @@ use function Amp\ByteStream\buffer;
 
 class JsonBodyTest extends AsyncTestCase
 {
-    public function testSuccess(): \Generator
+    public function testSuccess(): void
     {
         $body = new JsonBody(['foo' => 'bar']);
         $payload = '{"foo":"bar"}';
 
-        $this->assertSame(['content-type' => 'application/json; charset=utf-8'], yield $body->getHeaders());
-        $this->assertSame($payload, yield buffer($body->createBodyStream()));
-        $this->assertSame(\strlen($payload), yield $body->getBodyLength());
+        $this->assertSame(['content-type' => 'application/json; charset=utf-8'], $body->getHeaders());
+        $this->assertSame($payload, buffer($body->createBodyStream()));
+        $this->assertSame(\strlen($payload), $body->getBodyLength());
     }
 
     public function testFailure(): void

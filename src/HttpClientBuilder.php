@@ -27,24 +27,25 @@ final class HttpClientBuilder
         return (new self)->build();
     }
 
-    /** @var ForbidUriUserInfo|null */
-    private $forbidUriUserInfo;
-    /** @var RetryRequests|null */
-    private $retryInterceptor;
-    /** @var FollowRedirects|null */
-    private $followRedirectsInterceptor;
-    /** @var SetRequestHeaderIfUnset|null */
-    private $defaultUserAgentInterceptor;
-    /** @var SetRequestHeaderIfUnset|null */
-    private $defaultAcceptInterceptor;
-    /** @var NetworkInterceptor|null */
-    private $defaultCompressionHandler;
+    private ?ForbidUriUserInfo $forbidUriUserInfo;
+
+    private ?RetryRequests $retryInterceptor;
+
+    private ?FollowRedirects $followRedirectsInterceptor;
+
+    private ?SetRequestHeaderIfUnset $defaultUserAgentInterceptor;
+
+    private ?SetRequestHeaderIfUnset$defaultAcceptInterceptor;
+
+    private ?DecompressResponse $defaultCompressionHandler;
+
     /** @var ApplicationInterceptor[] */
-    private $applicationInterceptors = [];
+    private array $applicationInterceptors = [];
+
     /** @var NetworkInterceptor[] */
-    private $networkInterceptors = [];
-    /** @var ConnectionPool */
-    private $pool;
+    private array $networkInterceptors = [];
+
+    private ConnectionPool $pool;
 
     public function __construct()
     {

@@ -4,7 +4,6 @@ namespace Amp\Http\Client;
 
 use Amp\CancellationToken;
 use Amp\NullCancellationToken;
-use Amp\Promise;
 
 /**
  * Convenient HTTP client for use in applications and libraries, providing a default for the cancellation token and
@@ -12,7 +11,7 @@ use Amp\Promise;
  */
 final class HttpClient implements DelegateHttpClient
 {
-    private $httpClient;
+    private DelegateHttpClient $httpClient;
 
     public function __construct(DelegateHttpClient $httpClient)
     {
@@ -25,9 +24,9 @@ final class HttpClient implements DelegateHttpClient
      * @param Request           $request
      * @param CancellationToken $cancellation
      *
-     * @return Promise<Response>
+     * @return Response
      */
-    public function request(Request $request, ?CancellationToken $cancellation = null): Promise
+    public function request(Request $request, ?CancellationToken $cancellation = null): Response
     {
         return $this->httpClient->request(clone $request, $cancellation ?? new NullCancellationToken);
     }

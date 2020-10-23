@@ -6,10 +6,9 @@ use Amp\CancellationToken;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
-use Amp\Promise;
+use Amp\Http\Client\Response;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
-use function Amp\call;
 
 final class HttpStream implements Stream
 {
@@ -41,14 +40,11 @@ final class HttpStream implements Stream
         );
     }
 
-    /** @var SocketAddress */
-    private $localAddress;
+    private SocketAddress $localAddress;
 
-    /** @var SocketAddress */
-    private $remoteAddress;
+    private SocketAddress $remoteAddress;
 
-    /** @var TlsInfo|null */
-    private $tlsInfo;
+    private ?TlsInfo $tlsInfo;
 
     /** @var callable */
     private $requestCallback;
@@ -77,7 +73,7 @@ final class HttpStream implements Stream
         }
     }
 
-    public function request(Request $request, CancellationToken $token): Promise
+    public function request(Request $request, CancellationToken $token): Response
     {
         if ($this->releaseCallback === null) {
             throw new \Error('A stream may only be used for a single request');
@@ -85,13 +81,11 @@ final class HttpStream implements Stream
 
         $this->releaseCallback = null;
 
-        return call(function () use ($request, $token) {
-            foreach ($request->getEventListeners() as $eventListener) {
-                yield $eventListener->startRequest($request);
-            }
+        foreach ($request->getEventListeners() as $eventListener) {
+            $eventListener->startRequest($request);
+        }
 
-            return call($this->requestCallback, $request, $token, $this);
-        });
+        return ($this->requestCallback)($request, $token, $this);
     }
 
     public function getLocalAddress(): SocketAddress

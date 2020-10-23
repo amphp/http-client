@@ -5,22 +5,18 @@ namespace Amp\Http\Client\Connection;
 use Amp\CancellationToken;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
-use Amp\Promise;
 use Amp\Socket\EncryptableSocket;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
-use Amp\Success;
 
 final class UpgradedSocket implements EncryptableSocket
 {
     use ForbidCloning;
     use ForbidSerialization;
 
-    /** @var EncryptableSocket */
-    private $socket;
+    private EncryptableSocket $socket;
 
-    /** @var string|null */
-    private $buffer;
+    private ?string $buffer;
 
     /**
      * @param EncryptableSocket $socket
@@ -32,12 +28,12 @@ final class UpgradedSocket implements EncryptableSocket
         $this->buffer = $buffer !== '' ? $buffer : null;
     }
 
-    public function read(): Promise
+    public function read(): ?string
     {
         if ($this->buffer !== null) {
             $buffer = $this->buffer;
             $this->buffer = null;
-            return new Success($buffer);
+            return $buffer;
         }
 
         return $this->socket->read();
@@ -53,14 +49,14 @@ final class UpgradedSocket implements EncryptableSocket
         $this->close();
     }
 
-    public function write(string $data): Promise
+    public function write(string $data): void
     {
-        return $this->socket->write($data);
+        $this->socket->write($data);
     }
 
-    public function end(string $finalData = ""): Promise
+    public function end(string $finalData = ""): void
     {
-        return $this->socket->end($finalData);
+        $this->socket->end($finalData);
     }
 
     public function reference(): void
@@ -88,14 +84,14 @@ final class UpgradedSocket implements EncryptableSocket
         return $this->socket->getRemoteAddress();
     }
 
-    public function setupTls(?CancellationToken $token = null): Promise
+    public function setupTls(?CancellationToken $token = null): void
     {
-        return $this->socket->setupTls($token);
+        $this->socket->setupTls($token);
     }
 
-    public function shutdownTls(?CancellationToken $token = null): Promise
+    public function shutdownTls(?CancellationToken $token = null): void
     {
-        return $this->socket->shutdownTls();
+        $this->socket->shutdownTls();
     }
 
     public function getTlsState(): int

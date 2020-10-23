@@ -6,37 +6,35 @@ use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\EventListener;
 use Amp\Http\Client\Internal\HarAttributes;
 use Amp\Http\Client\Request;
-use Amp\Promise;
-use Amp\Success;
 use function Amp\getCurrentTime;
 
 final class RecordHarAttributes implements EventListener
 {
-    public function startRequest(Request $request): Promise
+    public function startRequest(Request $request): void
     {
         if (!$request->hasAttribute(HarAttributes::STARTED_DATE_TIME)) {
             $request->setAttribute(HarAttributes::STARTED_DATE_TIME, new \DateTimeImmutable);
         }
 
-        return $this->addTiming(HarAttributes::TIME_START, $request);
+        $this->addTiming(HarAttributes::TIME_START, $request);
     }
 
-    public function startDnsResolution(Request $request): Promise
+    public function startDnsResolution(Request $request): void
     {
-        return new Success; // not implemented
+        // not implemented
     }
 
-    public function startConnectionCreation(Request $request): Promise
+    public function startConnectionCreation(Request $request): void
     {
-        return $this->addTiming(HarAttributes::TIME_CONNECT, $request);
+        $this->addTiming(HarAttributes::TIME_CONNECT, $request);
     }
 
-    public function startTlsNegotiation(Request $request): Promise
+    public function startTlsNegotiation(Request $request): void
     {
-        return $this->addTiming(HarAttributes::TIME_SSL, $request);
+        $this->addTiming(HarAttributes::TIME_SSL, $request);
     }
 
-    public function startSendingRequest(Request $request, Stream $stream): Promise
+    public function startSendingRequest(Request $request, Stream $stream): void
     {
         $host = $stream->getRemoteAddress()->getHost();
         if (\strrpos($host, ':')) {
@@ -45,50 +43,48 @@ final class RecordHarAttributes implements EventListener
 
         $request->setAttribute(HarAttributes::SERVER_IP_ADDRESS, $host);
 
-        return $this->addTiming(HarAttributes::TIME_SEND, $request);
+        $this->addTiming(HarAttributes::TIME_SEND, $request);
     }
 
-    public function completeSendingRequest(Request $request, Stream $stream): Promise
+    public function completeSendingRequest(Request $request, Stream $stream): void
     {
-        return $this->addTiming(HarAttributes::TIME_WAIT, $request);
+        $this->addTiming(HarAttributes::TIME_WAIT, $request);
     }
 
-    public function startReceivingResponse(Request $request, Stream $stream): Promise
+    public function startReceivingResponse(Request $request, Stream $stream): void
     {
-        return $this->addTiming(HarAttributes::TIME_RECEIVE, $request);
+        $this->addTiming(HarAttributes::TIME_RECEIVE, $request);
     }
 
-    public function completeReceivingResponse(Request $request, Stream $stream): Promise
+    public function completeReceivingResponse(Request $request, Stream $stream): void
     {
-        return $this->addTiming(HarAttributes::TIME_COMPLETE, $request);
+        $this->addTiming(HarAttributes::TIME_COMPLETE, $request);
     }
 
-    public function completeDnsResolution(Request $request): Promise
+    public function completeDnsResolution(Request $request): void
     {
-        return new Success; // not implemented
+        // not implemented
     }
 
-    public function completeConnectionCreation(Request $request): Promise
+    public function completeConnectionCreation(Request $request): void
     {
-        return new Success; // not implemented
+        // not implemented
     }
 
-    public function completeTlsNegotiation(Request $request): Promise
+    public function completeTlsNegotiation(Request $request): void
     {
-        return new Success; // not implemented
+        // not implemented
     }
 
-    private function addTiming(string $key, Request $request): Promise
+    private function addTiming(string $key, Request $request): void
     {
         if (!$request->hasAttribute($key)) {
             $request->setAttribute($key, getCurrentTime());
         }
-
-        return new Success;
     }
 
-    public function abort(Request $request, \Throwable $cause): Promise
+    public function abort(Request $request, \Throwable $cause): void
     {
-        return new Success;
+        // nothing to do
     }
 }

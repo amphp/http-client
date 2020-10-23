@@ -21,7 +21,7 @@ interface EventListener
      *
      * @return Promise Should resolve successfully, otherwise aborts the request.
      */
-    public function startRequest(Request $request): Promise;
+    public function startRequest(Request $request): void;
 
     /**
      * Optionally called by {@see ConnectionPool::getStream()} before DNS resolution is started.
@@ -30,7 +30,7 @@ interface EventListener
      *
      * @return Promise Should resolve successfully, otherwise aborts the request.
      */
-    public function startDnsResolution(Request $request): Promise;
+    public function startDnsResolution(Request $request): void;
 
     /**
      * Optionally called by {@see ConnectionPool::getStream()} after DNS resolution is completed.
@@ -39,7 +39,7 @@ interface EventListener
      *
      * @return Promise Should resolve successfully, otherwise aborts the request.
      */
-    public function completeDnsResolution(Request $request): Promise;
+    public function completeDnsResolution(Request $request): void;
 
     /**
      * Called by {@see ConnectionPool::getStream()} before a new connection is initiated.
@@ -48,7 +48,7 @@ interface EventListener
      *
      * @return Promise Should resolve successfully, otherwise aborts the request.
      */
-    public function startConnectionCreation(Request $request): Promise;
+    public function startConnectionCreation(Request $request): void;
 
     /**
      * Called by {@see ConnectionPool::getStream()} after a new connection is established and TLS negotiated.
@@ -57,7 +57,7 @@ interface EventListener
      *
      * @return Promise Should resolve successfully, otherwise aborts the request.
      */
-    public function completeConnectionCreation(Request $request): Promise;
+    public function completeConnectionCreation(Request $request): void;
 
     /**
      * Called by {@see ConnectionPool::getStream()} before TLS negotiation is started (only if HTTPS is used).
@@ -66,7 +66,7 @@ interface EventListener
      *
      * @return Promise Should resolve successfully, otherwise aborts the request.
      */
-    public function startTlsNegotiation(Request $request): Promise;
+    public function startTlsNegotiation(Request $request): void;
 
     /**
      * Called by {@see ConnectionPool::getStream()} after TLS negotiation is successful (only if HTTPS is used).
@@ -75,7 +75,7 @@ interface EventListener
      *
      * @return Promise Should resolve successfully, otherwise aborts the request.
      */
-    public function completeTlsNegotiation(Request $request): Promise;
+    public function completeTlsNegotiation(Request $request): void;
 
     /**
      * Called by {@see Stream::request()} before the request is sent.
@@ -85,7 +85,7 @@ interface EventListener
      *
      * @return Promise Should resolve successfully, otherwise aborts the request.
      */
-    public function startSendingRequest(Request $request, Stream $stream): Promise;
+    public function startSendingRequest(Request $request, Stream $stream): void;
 
     /**
      * Called by {@see Stream::request()} after the request is sent.
@@ -95,7 +95,7 @@ interface EventListener
      *
      * @return Promise Should resolve successfully, otherwise aborts the request.
      */
-    public function completeSendingRequest(Request $request, Stream $stream): Promise;
+    public function completeSendingRequest(Request $request, Stream $stream): void;
 
     /**
      * Called by {@see Stream::request()} after the first response byte is received.
@@ -105,7 +105,7 @@ interface EventListener
      *
      * @return Promise Should resolve successfully, otherwise aborts the request.
      */
-    public function startReceivingResponse(Request $request, Stream $stream): Promise;
+    public function startReceivingResponse(Request $request, Stream $stream): void;
 
     /**
      * Called by {@see Stream::request()} after the request is complete.
@@ -115,7 +115,7 @@ interface EventListener
      *
      * @return Promise Should resolve successfully, otherwise aborts the request.
      */
-    public function completeReceivingResponse(Request $request, Stream $stream): Promise;
+    public function completeReceivingResponse(Request $request, Stream $stream): void;
 
     /**
      * Called if the request is aborted.
@@ -125,5 +125,5 @@ interface EventListener
      *
      * @return Promise Should resolve successfully.
      */
-    public function abort(Request $request, \Throwable $cause): Promise;
+    public function abort(Request $request, \Throwable $cause): void;
 }

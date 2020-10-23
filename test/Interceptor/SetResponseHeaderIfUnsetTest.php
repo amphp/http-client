@@ -4,45 +4,45 @@ namespace Amp\Http\Client\Interceptor;
 
 class SetResponseHeaderIfUnsetTest extends InterceptorTest
 {
-    public function testNetworkInterceptorIfSet(): \Generator
+    public function testNetworkInterceptorIfSet(): void
     {
         // execution order is reversed
         $this->givenNetworkInterceptor(new SetResponseHeaderIfUnset('foo', 'bar'));
         $this->givenNetworkInterceptor(new SetResponseHeader('foo', 'baz'));
 
-        yield $this->whenRequestIsExecuted();
+        $this->whenRequestIsExecuted();
 
         $this->thenRequestDoesNotHaveHeader('foo');
         $this->thenResponseHasHeader('foo', 'baz');
     }
 
-    public function testApplicationInterceptorIfSet(): \Generator
+    public function testApplicationInterceptorIfSet(): void
     {
         // execution order is reversed
         $this->givenApplicationInterceptor(new SetResponseHeaderIfUnset('foo', 'bar'));
         $this->givenApplicationInterceptor(new SetResponseHeader('foo', 'baz'));
 
-        yield $this->whenRequestIsExecuted();
+        $this->whenRequestIsExecuted();
 
         $this->thenRequestDoesNotHaveHeader('foo');
         $this->thenResponseHasHeader('foo', 'baz');
     }
 
-    public function testNetworkInterceptorIfUnset(): \Generator
+    public function testNetworkInterceptorIfUnset(): void
     {
         $this->givenNetworkInterceptor(new SetResponseHeaderIfUnset('foo', 'bar'));
 
-        yield $this->whenRequestIsExecuted();
+        $this->whenRequestIsExecuted();
 
         $this->thenRequestDoesNotHaveHeader('foo');
         $this->thenResponseHasHeader('foo', 'bar');
     }
 
-    public function testApplicationInterceptorIfUnset(): \Generator
+    public function testApplicationInterceptorIfUnset(): void
     {
         $this->givenApplicationInterceptor(new SetResponseHeaderIfUnset('foo', 'bar'));
 
-        yield $this->whenRequestIsExecuted();
+        $this->whenRequestIsExecuted();
 
         $this->thenRequestDoesNotHaveHeader('foo');
         $this->thenResponseHasHeader('foo', 'bar');

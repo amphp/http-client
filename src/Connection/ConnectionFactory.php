@@ -4,7 +4,6 @@ namespace Amp\Http\Client\Connection;
 
 use Amp\CancellationToken;
 use Amp\Http\Client\Request;
-use Amp\Promise;
 
 interface ConnectionFactory
 {
@@ -21,7 +20,7 @@ interface ConnectionFactory
      * @param Request           $request
      * @param CancellationToken $cancellationToken
      *
-     * @return Promise
+     * @return Connection
      */
-    public function create(Request $request, CancellationToken $cancellationToken): Promise;
+    public function create(Request $request, CancellationToken $cancellationToken): Connection;
 }

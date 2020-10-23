@@ -5,12 +5,10 @@ namespace Amp\Http\Client\Body;
 use Amp\ByteStream\InMemoryStream;
 use Amp\ByteStream\InputStream;
 use Amp\Http\Client\RequestBody;
-use Amp\Promise;
-use Amp\Success;
 
 final class StringBody implements RequestBody
 {
-    private $body;
+    private string $body;
 
     public function __construct(string $body)
     {
@@ -22,13 +20,13 @@ final class StringBody implements RequestBody
         return new InMemoryStream($this->body !== '' ? $this->body : null);
     }
 
-    public function getHeaders(): Promise
+    public function getHeaders(): array
     {
-        return new Success([]);
+        return [];
     }
 
-    public function getBodyLength(): Promise
+    public function getBodyLength(): int
     {
-        return new Success(\strlen($this->body));
+        return \strlen($this->body);
     }
 }

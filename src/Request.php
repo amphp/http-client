@@ -8,7 +8,8 @@ use Amp\Http\Message;
 use Amp\Promise;
 use League\Uri;
 use Psr\Http\Message\UriInterface;
-use function Amp\call;
+use function Amp\async;
+use function Amp\await;
 
 /**
  * An HTTP request.
@@ -248,7 +249,7 @@ final class Request extends Message
      *
      * @param mixed $body
      */
-    public function setBody($body): void
+    public function setBody(string|int|float|RequestBody|null $body): void
     {
         if ($body === null) {
             $this->body = new StringBody("");
@@ -303,10 +304,10 @@ final class Request extends Message
         $onPush = $this->onPush;
         /** @psalm-suppress MissingClosureReturnType */
         $this->onPush = static function (Request $request, Promise $response) use ($onPush, $interceptor) {
-            $response = call(static function () use ($response, $interceptor): \Generator {
-                return (yield call($interceptor, yield $response)) ?? $response;
+            $response = async(function () use ($interceptor, $response): Response {
+                $response = await($response);
+                return $interceptor($response) ?? $response;
             });
-
             return $onPush($request, $response);
         };
     }

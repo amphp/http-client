@@ -4,7 +4,6 @@ namespace Amp\Http\Client\Connection;
 
 use Amp\CancellationToken;
 use Amp\Http\Client\Request;
-use Amp\Promise;
 
 interface ConnectionPool
 {
@@ -14,7 +13,7 @@ interface ConnectionPool
      * @param Request           $request
      * @param CancellationToken $token
      *
-     * @return Promise<Stream>
+     * @return Stream
      */
-    public function getStream(Request $request, CancellationToken $token): Promise;
+    public function getStream(Request $request, CancellationToken $token): Stream;
 }

@@ -7,14 +7,14 @@ use Amp\Http\Client\Request;
 
 class ForbidUriUserInfoTest extends InterceptorTest
 {
-    public function test(): \Generator
+    public function test(): void
     {
         $this->givenApplicationInterceptor(new ForbidUriUserInfo);
 
         $request = new Request('https://user@localhost:13242/');
 
         try {
-            yield $this->whenRequestIsExecuted($request);
+            $this->whenRequestIsExecuted($request);
 
             $this->fail('Exception expected');
         } catch (InvalidRequestException $e) {

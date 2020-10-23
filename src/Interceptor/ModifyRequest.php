@@ -11,8 +11,6 @@ use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
-use Amp\Promise;
-use function Amp\call;
 
 class ModifyRequest implements NetworkInterceptor, ApplicationInterceptor
 {
@@ -35,33 +33,29 @@ class ModifyRequest implements NetworkInterceptor, ApplicationInterceptor
      * @param CancellationToken $cancellation
      * @param Stream            $stream
      *
-     * @return Promise<Response>
+     * @return Response
      */
     final public function requestViaNetwork(
         Request $request,
         CancellationToken $cancellation,
         Stream $stream
-    ): Promise {
-        return call(function () use ($request, $cancellation, $stream) {
-            $mappedRequest = yield call($this->mapper, $request);
+    ): Response {
+        $mappedRequest = ($this->mapper)($request);
 
-            \assert($mappedRequest instanceof Request || $mappedRequest === null);
+        \assert($mappedRequest instanceof Request || $mappedRequest === null);
 
-            return yield $stream->request($mappedRequest ?? $request, $cancellation);
-        });
+        return $stream->request($mappedRequest ?? $request, $cancellation);
     }
 
     public function request(
         Request $request,
         CancellationToken $cancellation,
         DelegateHttpClient $httpClient
-    ): Promise {
-        return call(function () use ($request, $cancellation, $httpClient) {
-            $mappedRequest = yield call($this->mapper, $request);
+    ): Response {
+        $mappedRequest = ($this->mapper)($request);
 
-            \assert($mappedRequest instanceof Request || $mappedRequest === null);
+        \assert($mappedRequest instanceof Request || $mappedRequest === null);
 
-            return $httpClient->request($mappedRequest ?? $request, $cancellation);
-        });
+        return $httpClient->request($mappedRequest ?? $request, $cancellation);
     }
 }

@@ -7,20 +7,18 @@ use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request;
-use Amp\Promise;
+use Amp\Http\Client\Response;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
-use function Amp\call;
 
 final class InterceptedStream implements Stream
 {
     use ForbidCloning;
     use ForbidSerialization;
 
-    /** @var Stream */
-    private $stream;
-    /** @var NetworkInterceptor|null */
-    private $interceptor;
+    private Stream $stream;
+
+    private ?NetworkInterceptor $interceptor;
 
     public function __construct(Stream $stream, NetworkInterceptor $interceptor)
     {
@@ -28,7 +26,7 @@ final class InterceptedStream implements Stream
         $this->interceptor = $interceptor;
     }
 
-    public function request(Request $request, CancellationToken $cancellation): Promise
+    public function request(Request $request, CancellationToken $cancellation): Response
     {
         if (!$this->interceptor) {
             throw new \Error(__METHOD__ . ' may only be invoked once per instance. '
@@ -38,13 +36,11 @@ final class InterceptedStream implements Stream
         $interceptor = $this->interceptor;
         $this->interceptor = null;
 
-        return call(function () use ($interceptor, $request, $cancellation) {
-            foreach ($request->getEventListeners() as $eventListener) {
-                yield $eventListener->startRequest($request);
-            }
+        foreach ($request->getEventListeners() as $eventListener) {
+            $eventListener->startRequest($request);
+        }
 
-            return $interceptor->requestViaNetwork($request, $cancellation, $this->stream);
-        });
+        return $interceptor->requestViaNetwork($request, $cancellation, $this->stream);
     }
 
     public function getLocalAddress(): SocketAddress

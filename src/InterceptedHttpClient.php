@@ -25,14 +25,12 @@ final class InterceptedHttpClient implements DelegateHttpClient
         $this->interceptor = $interceptor;
     }
 
-    public function request(Request $request, CancellationToken $cancellation): Promise
+    public function request(Request $request, CancellationToken $cancellation): Response
     {
-        return call(function () use ($request, $cancellation) {
-            foreach ($request->getEventListeners() as $eventListener) {
-                yield $eventListener->startRequest($request);
-            }
+        foreach ($request->getEventListeners() as $eventListener) {
+            $eventListener->startRequest($request);
+        }
 
-            return $this->interceptor->request($request, $cancellation, $this->httpClient);
-        });
+        return $this->interceptor->request($request, $cancellation, $this->httpClient);
     }
 }

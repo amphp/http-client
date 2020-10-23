@@ -5,46 +5,38 @@ namespace Amp\Http\Client;
 use Amp\CancellationToken;
 use Amp\Http\Client\Connection\ConnectionPool;
 use Amp\Http\Client\Connection\InterceptedStream;
-use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\Connection\UnlimitedConnectionPool;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
-use Amp\Promise;
-use function Amp\call;
 
 final class PooledHttpClient implements DelegateHttpClient
 {
     use ForbidCloning;
     use ForbidSerialization;
 
-    /** @var ConnectionPool */
-    private $connectionPool;
+    private ConnectionPool $connectionPool;
 
     /** @var NetworkInterceptor[] */
-    private $networkInterceptors = [];
+    private array $networkInterceptors = [];
 
     public function __construct(?ConnectionPool $connectionPool = null)
     {
         $this->connectionPool = $connectionPool ?? new UnlimitedConnectionPool;
     }
 
-    public function request(Request $request, CancellationToken $cancellation): Promise
+    public function request(Request $request, CancellationToken $cancellation): Response
     {
-        return call(function () use ($request, $cancellation) {
-            foreach ($request->getEventListeners() as $eventListener) {
-                yield $eventListener->startRequest($request);
-            }
+        foreach ($request->getEventListeners() as $eventListener) {
+            $eventListener->startRequest($request);
+        }
 
-            $stream = yield $this->connectionPool->getStream($request, $cancellation);
+        $stream = $this->connectionPool->getStream($request, $cancellation);
 
-            \assert($stream instanceof Stream);
+        foreach (\array_reverse($this->networkInterceptors) as $interceptor) {
+            $stream = new InterceptedStream($stream, $interceptor);
+        }
 
-            foreach (\array_reverse($this->networkInterceptors) as $interceptor) {
-                $stream = new InterceptedStream($stream, $interceptor);
-            }
-
-            return yield $stream->request($request, $cancellation);
-        });
+        return $stream->request($request, $cancellation);
     }
 
     /**

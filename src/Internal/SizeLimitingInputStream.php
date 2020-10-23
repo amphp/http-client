@@ -14,14 +14,13 @@ final class SizeLimitingInputStream implements InputStream
     use ForbidSerialization;
     use ForbidCloning;
 
-    /** @var InputStream|null */
-    private $source;
-    /** @var int */
-    private $bytesRead = 0;
-    /** @var int */
-    private $sizeLimit;
-    /** @var \Throwable|null */
-    private $exception;
+    private ?InputStream $source;
+
+    private int $bytesRead = 0;
+
+    private int $sizeLimit;
+
+    private ?\Throwable $exception = null;
 
     public function __construct(
         InputStream $source,
@@ -31,7 +30,7 @@ final class SizeLimitingInputStream implements InputStream
         $this->sizeLimit = $sizeLimit;
     }
 
-    public function read(): Promise
+    public function read(): ?string
     {
         if ($this->exception) {
             return new Failure($this->exception);
@@ -39,21 +38,20 @@ final class SizeLimitingInputStream implements InputStream
 
         \assert($this->source !== null);
 
-        $promise = $this->source->read();
-        $promise->onResolve(function ($error, $value) {
-            if ($value !== null) {
-                $this->bytesRead += \strlen($value);
-                if ($this->bytesRead > $this->sizeLimit) {
-                    $this->exception = new ParseException(
-                        "Configured body size exceeded: {$this->bytesRead} bytes received, while the configured limit is {$this->sizeLimit} bytes",
-                        Status::PAYLOAD_TOO_LARGE
-                    );
+        $chunk = $this->source->read();
 
-                    $this->source = null;
-                }
+        if ($chunk !== null) {
+            $this->bytesRead += \strlen($chunk);
+            if ($this->bytesRead > $this->sizeLimit) {
+                $this->exception = new ParseException(
+                    "Configured body size exceeded: {$this->bytesRead} bytes received, while the configured limit is {$this->sizeLimit} bytes",
+                    Status::PAYLOAD_TOO_LARGE
+                );
+
+                $this->source = null;
             }
-        });
+        }
 
-        return $promise;
+        return $chunk;
     }
 }

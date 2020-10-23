@@ -11,10 +11,8 @@ use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
-use Amp\Promise;
 use League\Uri;
 use Psr\Http\Message\UriInterface as PsrUri;
-use function Amp\call;
 
 final class FollowRedirects implements ApplicationInterceptor
 {
@@ -121,10 +119,9 @@ final class FollowRedirects implements ApplicationInterceptor
         return self::removeDotSegments(\implode('/', $parts));
     }
 
-    /** @var int */
-    private $maxRedirects;
-    /** @var bool */
-    private $autoReferrer;
+    private int $maxRedirects;
+
+    private bool $autoReferrer;
 
     public function __construct(int $limit, bool $autoReferrer = true)
     {
@@ -141,16 +138,13 @@ final class FollowRedirects implements ApplicationInterceptor
         Request $request,
         CancellationToken $cancellation,
         DelegateHttpClient $httpClient
-    ): Promise {
+    ): Response {
         // Don't follow redirects on pushes, just store the redirect in cache (if an interceptor is configured)
 
-        return call(function () use ($request, $cancellation, $httpClient) {
-            /** @var Response $response */
-            $response = yield $httpClient->request(clone $request, $cancellation);
-            $response = yield from $this->followRedirects($request, $response, $httpClient, $cancellation);
+        $response = $httpClient->request(clone $request, $cancellation);
+        $response = $this->followRedirects($request, $response, $httpClient, $cancellation);
 
-            return $response;
-        });
+        return $response;
     }
 
     private function followRedirects(
@@ -158,20 +152,19 @@ final class FollowRedirects implements ApplicationInterceptor
         Response $response,
         DelegateHttpClient $client,
         CancellationToken $cancellationToken
-    ): \Generator {
+    ): Response {
         $previousResponse = null;
 
         $maxRedirects = $this->maxRedirects;
         $requestNr = 2;
 
         do {
-            $request = yield from $this->createRedirectRequest($request, $response);
+            $request = $this->createRedirectRequest($request, $response);
             if ($request === null) {
                 return $response;
             }
 
-            /** @var Response $redirectResponse */
-            $redirectResponse = yield $client->request(clone $request, $cancellationToken);
+            $redirectResponse = $client->request(clone $request, $cancellationToken);
             $redirectResponse->setPreviousResponse($response);
 
             $response = $redirectResponse;
@@ -184,7 +177,7 @@ final class FollowRedirects implements ApplicationInterceptor
         return $response;
     }
 
-    private function createRedirectRequest(Request $originalRequest, Response $response): \Generator
+    private function createRedirectRequest(Request $originalRequest, Response $response): ?Request
     {
         $redirectUri = $this->getRedirectUri($response);
         if ($redirectUri === null) {
@@ -215,7 +208,7 @@ final class FollowRedirects implements ApplicationInterceptor
             $this->assignRedirectRefererHeader($request, $originalUri, $redirectUri);
         }
 
-        yield from $this->discardResponseBody($response);
+        $this->discardResponseBody($response);
 
         return $request;
     }
@@ -276,7 +269,7 @@ final class FollowRedirects implements ApplicationInterceptor
         return self::resolve($request->getUri(), $locationUri);
     }
 
-    private function discardResponseBody(Response $response): \Generator
+    private function discardResponseBody(Response $response): void
     {
         // Discard response body of redirect responses
         $body = $response->getBody();
@@ -285,7 +278,7 @@ final class FollowRedirects implements ApplicationInterceptor
             /** @noinspection PhpStatementHasEmptyBodyInspection */
             /** @noinspection LoopWhichDoesNotLoopInspection */
             /** @noinspection MissingOrEmptyGroupStatementInspection */
-            while (null !== yield $body->read()) {
+            while (null !== $body->read()) {
                 // discard
             }
         } catch (HttpException | StreamException $e) {

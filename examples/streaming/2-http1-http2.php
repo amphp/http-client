@@ -1,13 +1,8 @@
 <?php
 
-
-use Amp\File\File;
-use Amp\File\StatCache;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
-use Amp\Http\Client\Response;
-use Amp\Loop;
 use function Amp\getCurrentTime;
 
 require __DIR__ . '/../.helper/functions.php';
@@ -21,7 +16,7 @@ function formatBytes(int $size, int $precision = 2): string
     return \round(1024 ** ($base - \floor($base)), $precision) . ' ' . $suffixes[(int) $base];
 }
 
-function fetch(string $uri, array $protocolVersions): \Generator
+function fetch(string $uri, array $protocolVersions): void
 {
     try {
         $start = getCurrentTime();
@@ -34,26 +29,24 @@ function fetch(string $uri, array $protocolVersions): \Generator
         $request->setBodySizeLimit(16 * 1024 * 1024); // 128 MB
         $request->setTransferTimeout(120 * 1000); // 120 seconds
 
-        /** @var Response $response */
-        $response = yield $client->request($request);
+        $response = $client->request($request);
 
         print "\n";
 
         $path = \tempnam(\sys_get_temp_dir(), "artax-streaming-");
 
-        /** @var File $file */
-        $file = yield Amp\File\open($path, "w");
+        $file = Amp\File\openFile($path, "w");
 
         $bytes = 0;
 
-        while (null !== $chunk = yield $response->getBody()->read()) {
-            yield $file->write($chunk);
+        while (null !== $chunk = $response->getBody()->read()) {
+            $file->write($chunk);
             $bytes += \strlen($chunk);
 
             print "\r" . formatBytes($bytes) . '    '; // blanks to remove previous output
         }
 
-        yield $file->close();
+        $file->close();
 
         print \sprintf(
             "\rDone in %.2f seconds with peak memory usage of %.2fMB.\n",
@@ -61,9 +54,7 @@ function fetch(string $uri, array $protocolVersions): \Generator
             (float) \memory_get_peak_usage(true) / 1024 / 1024
         );
 
-        // We need to clear the stat cache, as we have just written to the file
-        StatCache::clear($path);
-        $size = yield Amp\File\size($path);
+        $size = Amp\File\getSize($path);
 
         print \sprintf("%s has a size of %.2fMB\r\n", $path, (float) $size / 1024 / 1024);
     } catch (HttpException $error) {
@@ -73,7 +64,5 @@ function fetch(string $uri, array $protocolVersions): \Generator
     }
 }
 
-Loop::run(static function () {
-    yield from fetch('http://1153288396.rsc.cdn77.org//img/cdn77-test-14mb.jpg', ['1.1']);
-    yield from fetch('https://1906714720.rsc.cdn77.org/img/cdn77-test-14mb.jpg', ['2']);
-});
+fetch('http://1153288396.rsc.cdn77.org/img/cdn77-test-14mb.jpg', ['1.1']);
+fetch('https://1906714720.rsc.cdn77.org/img/cdn77-test-14mb.jpg', ['2']);

@@ -11,8 +11,6 @@ use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
-use Amp\Promise;
-use function Amp\call;
 
 class ModifyResponse implements NetworkInterceptor, ApplicationInterceptor
 {
@@ -34,31 +32,27 @@ class ModifyResponse implements NetworkInterceptor, ApplicationInterceptor
         Request $request,
         CancellationToken $cancellation,
         Stream $stream
-    ): Promise {
-        return call(function () use ($request, $cancellation, $stream) {
-            $response = yield $stream->request($request, $cancellation);
-            $mappedResponse = yield call($this->mapper, $response);
+    ): Response {
+        $response = $stream->request($request, $cancellation);
+        $mappedResponse = ($this->mapper)($response);
 
-            \assert($mappedResponse instanceof Response || $mappedResponse === null);
+        \assert($mappedResponse instanceof Response || $mappedResponse === null);
 
-            return $mappedResponse ?? $response;
-        });
+        return $mappedResponse ?? $response;
     }
 
     public function request(
         Request $request,
         CancellationToken $cancellation,
         DelegateHttpClient $httpClient
-    ): Promise {
-        return call(function () use ($request, $cancellation, $httpClient) {
-            $request->interceptPush($this->mapper);
+    ): Response {
+        $request->interceptPush($this->mapper);
 
-            $response = yield $httpClient->request($request, $cancellation);
-            $mappedResponse = yield call($this->mapper, $response);
+        $response = $httpClient->request($request, $cancellation);
+        $mappedResponse = ($this->mapper)($response);
 
-            \assert($mappedResponse instanceof Response || $mappedResponse === null);
+        \assert($mappedResponse instanceof Response || $mappedResponse === null);
 
-            return $mappedResponse ?? $response;
-        });
+        return $mappedResponse ?? $response;
     }
 }

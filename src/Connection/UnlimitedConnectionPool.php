@@ -5,14 +5,12 @@ namespace Amp\Http\Client\Connection;
 use Amp\CancellationToken;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
-use Amp\Promise;
 
 final class UnlimitedConnectionPool implements ConnectionPool
 {
     use ForbidSerialization;
 
-    /** @var ConnectionLimitingPool */
-    private $pool;
+    private ConnectionLimitingPool $pool;
 
     public function __construct(?ConnectionFactory $connectionFactory = null)
     {
@@ -39,7 +37,7 @@ final class UnlimitedConnectionPool implements ConnectionPool
         return $this->pool->getOpenConnectionCount();
     }
 
-    public function getStream(Request $request, CancellationToken $cancellation): Promise
+    public function getStream(Request $request, CancellationToken $cancellation): Stream
     {
         return $this->pool->getStream($request, $cancellation);
     }

@@ -3,34 +3,28 @@
 namespace Amp\Http\Client\Connection\Internal;
 
 use Amp\Http\Client\Request;
-use Amp\Http\Client\RequestBody;
-use Amp\Promise;
-use function Amp\call;
 
 /** @internal */
 final class RequestNormalizer
 {
-    public static function normalizeRequest(Request $request): Promise
+    public static function normalizeRequest(Request $request): Request
     {
-        return call(static function () use ($request) {
-            /** @var array $headers */
-            $headers = yield $request->getBody()->getHeaders();
-            foreach ($headers as $name => $header) {
-                if (!$request->hasHeader($name)) {
-                    $request->setHeaders([$name => $header]);
-                }
+        $headers = $request->getBody()->getHeaders();
+        foreach ($headers as $name => $header) {
+            if (!$request->hasHeader($name)) {
+                $request->setHeaders([$name => $header]);
             }
+        }
 
-            yield from self::normalizeRequestBodyHeaders($request);
+        self::normalizeRequestBodyHeaders($request);
 
-            // Always normalize this as last item, because we need to strip sensitive headers
-            self::normalizeTraceRequest($request);
+        // Always normalize this as last item, because we need to strip sensitive headers
+        self::normalizeTraceRequest($request);
 
-            return $request;
-        });
+        return $request;
     }
 
-    private static function normalizeRequestBodyHeaders(Request $request): \Generator
+    private static function normalizeRequestBodyHeaders(Request $request): void
     {
         if (!$request->hasHeader('host')) {
             // Though servers are supposed to be able to handle standard port names on the end of the
@@ -49,9 +43,8 @@ final class RequestNormalizer
             return;
         }
 
-        /** @var RequestBody $body */
         $body = $request->getBody();
-        $bodyLength = yield $body->getBodyLength();
+        $bodyLength = $body->getBodyLength();
 
         if ($bodyLength === 0) {
             if (\in_array($request->getMethod(), ['HEAD', 'GET', 'CONNECT'], true)) {

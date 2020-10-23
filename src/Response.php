@@ -20,20 +20,20 @@ final class Response extends Message
     use ForbidSerialization;
     use ForbidCloning;
 
-    /** @var string */
-    private $protocolVersion;
-    /** @var int */
-    private $status;
-    /** @var string */
-    private $reason;
-    /** @var Request */
-    private $request;
-    /** @var Payload */
-    private $body;
+    private string $protocolVersion;
+
+    private int $status;
+
+    private string $reason;
+
+    private Request $request;
+
+    private Payload $body;
+
     /** @var Promise<Trailers> */
-    private $trailers;
-    /** @var Response|null */
-    private $previousResponse;
+    private Promise $trailers;
+
+    private ?Response $previousResponse;
 
     public function __construct(
         string $protocolVersion,

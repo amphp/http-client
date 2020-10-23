@@ -78,25 +78,24 @@ class ResponseTest extends AsyncTestCase
         );
     }
 
-    public function testBody(): \Generator
+    public function testBody(): void
     {
-        /** @var Response $response */
         $response = new Response('2', 200, null, [], new InMemoryStream, new Request('https://google.com/'));
 
         $response->setBody(null);
-        $this->assertSame('', yield $response->getBody()->buffer());
+        $this->assertSame('', $response->getBody()->buffer());
 
         $response->setBody("foobar");
-        $this->assertSame('foobar', yield $response->getBody()->buffer());
+        $this->assertSame('foobar', $response->getBody()->buffer());
 
         $response->setBody($response->getBody());
-        $this->assertSame('foobar', yield $response->getBody()->buffer());
+        $this->assertSame('foobar', $response->getBody()->buffer());
 
         $response->setBody(new InMemoryStream('foobar2'));
-        $this->assertSame('foobar2', yield $response->getBody()->buffer());
+        $this->assertSame('foobar2', $response->getBody()->buffer());
 
         $response->setBody(143);
-        $this->assertSame('143', yield $response->getBody()->buffer());
+        $this->assertSame('143', $response->getBody()->buffer());
 
         $this->expectException(\TypeError::class);
         $response->setBody(new \stdClass);

@@ -7,11 +7,7 @@ use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
-use Amp\Promise;
 use Amp\Sync\KeyedSemaphore;
-use Amp\Sync\Lock;
-use function Amp\call;
-use function Amp\coroutine;
 
 final class StreamLimitingPool implements ConnectionPool
 {
@@ -43,11 +39,9 @@ final class StreamLimitingPool implements ConnectionPool
         return new self($delegate, $semaphore, $requestToKeyMapper);
     }
 
-    /** @var ConnectionPool */
-    private $delegate;
+    private ConnectionPool $delegate;
 
-    /** @var KeyedSemaphore */
-    private $semaphore;
+    private KeyedSemaphore $semaphore;
 
     /** @var callable */
     private $requestToKeyMapper;
@@ -59,41 +53,36 @@ final class StreamLimitingPool implements ConnectionPool
         $this->requestToKeyMapper = $requestToKeyMapper;
     }
 
-    public function getStream(Request $request, CancellationToken $token): Promise
+    public function getStream(Request $request, CancellationToken $token): Stream
     {
-        return call(function () use ($request, $token) {
-            /** @var Lock $lock */
-            $lock = yield $this->semaphore->acquire(($this->requestToKeyMapper)($request));
+        $lock = $this->semaphore->acquire(($this->requestToKeyMapper)($request));
 
-            /** @var Stream $stream */
-            $stream = yield $this->delegate->getStream($request, $token);
+        $stream = $this->delegate->getStream($request, $token);
 
-            return HttpStream::fromStream(
+        return HttpStream::fromStream(
+            $stream,
+            static function (Request $request, CancellationToken $cancellationToken) use (
                 $stream,
-                coroutine(static function (Request $request, CancellationToken $cancellationToken) use (
-                    $stream,
-                    $lock
-                ) {
-                    try {
-                        /** @var Response $response */
-                        $response = yield $stream->request($request, $cancellationToken);
+                $lock
+            ): Response {
+                try {
+                    $response = $stream->request($request, $cancellationToken);
 
-                        // await response being completely received
-                        $response->getTrailers()->onResolve(static function () use ($lock) {
-                            $lock->release();
-                        });
-                    } catch (\Throwable $e) {
+                    // await response being completely received
+                    $response->getTrailers()->onResolve(static function () use ($lock): void {
                         $lock->release();
-
-                        throw $e;
-                    }
-
-                    return $response;
-                }),
-                static function () use ($lock) {
+                    });
+                } catch (\Throwable $e) {
                     $lock->release();
+
+                    throw $e;
                 }
-            );
-        });
+
+                return $response;
+            },
+            static function () use ($lock) {
+                $lock->release();
+            }
+        );
     }
 }

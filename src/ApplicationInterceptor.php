@@ -4,7 +4,6 @@ namespace Amp\Http\Client;
 
 use Amp\CancellationToken;
 use Amp\Http\Client\Interceptor\DecompressResponse;
-use Amp\Promise;
 
 /**
  * Allows intercepting an application request to an HTTP resource.
@@ -29,11 +28,11 @@ interface ApplicationInterceptor
      * @param CancellationToken  $cancellation
      * @param DelegateHttpClient $httpClient
      *
-     * @return Promise<Response>
+     * @return Response
      */
     public function request(
         Request $request,
         CancellationToken $cancellation,
         DelegateHttpClient $httpClient
-    ): Promise;
+    ): Response;
 }

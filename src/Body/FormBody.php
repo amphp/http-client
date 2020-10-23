@@ -2,30 +2,32 @@
 
 namespace Amp\Http\Client\Body;
 
+use Amp\AsyncGenerator;
 use Amp\ByteStream\InMemoryStream;
 use Amp\ByteStream\InputStream;
-use Amp\ByteStream\IteratorStream;
+use Amp\ByteStream\PipelineStream;
 use Amp\Http\Client\RequestBody;
-use Amp\Producer;
 use Amp\Promise;
 use Amp\Success;
-use function Amp\call;
+use function Amp\async;
+use function Amp\await;
 
 final class FormBody implements RequestBody
 {
     /** @var (array{0: string, 1: string, 2: string, 3: null}|array{0: string, 1: FileBody, 2: string, 3: string})[] */
-    private $fields = [];
-    /** @var string */
-    private $boundary;
-    /** @var bool */
-    private $isMultipart = false;
+    private array  $fields = [];
 
-    /** @var string|null */
-    private $cachedBody;
+    private string $boundary;
+
+    private bool$isMultipart = false;
+
+    private ?string $cachedBody = null;
+
     /** @var Promise<int>|null */
-    private $cachedLength;
+    private ?Promise $cachedLength = null;
+
     /** @var list<string|FileBody>|null */
-    private $cachedFields;
+    private ?array $cachedFields;
 
     /**
      * @param string $boundary An optional multipart boundary string
@@ -187,10 +189,10 @@ final class FormBody implements RequestBody
             $fields[$key] = $field instanceof FileBody ? $field->createBodyStream() : new InMemoryStream($field);
         }
 
-        return new IteratorStream(new Producer(static function (callable $emit) use ($fields) {
+        return new PipelineStream(new AsyncGenerator(static function () use ($fields) {
             foreach ($fields as $key => $stream) {
-                while (($chunk = yield $stream->read()) !== null) {
-                    yield $emit($chunk);
+                while (($chunk = $stream->read()) !== null) {
+                    yield $chunk;
                 }
             }
         }));
@@ -216,11 +218,11 @@ final class FormBody implements RequestBody
         return $this->cachedBody = \http_build_query($fields);
     }
 
-    public function getHeaders(): Promise
+    public function getHeaders(): array
     {
-        return new Success([
+        return [
             'Content-Type' => $this->determineContentType(),
-        ]);
+        ];
     }
 
     private function determineContentType(): string
@@ -230,18 +232,17 @@ final class FormBody implements RequestBody
             : 'application/x-www-form-urlencoded';
     }
 
-    public function getBodyLength(): Promise
+    public function getBodyLength(): int
     {
         if ($this->cachedLength) {
-            return $this->cachedLength;
+            return await($this->cachedLength);
         }
 
         if (!$this->isMultipart) {
-            return $this->cachedLength = new Success(\strlen($this->getFormEncodedBodyString()));
+            return await($this->cachedLength = new Success(\strlen($this->getFormEncodedBodyString())));
         }
 
-        /** @var Promise<int> $lengthPromise */
-        $lengthPromise = call(function (): \Generator {
+        $lengthPromise = async(function (): int {
             $fields = $this->getMultipartFieldArray();
             $length = 0;
 
@@ -249,13 +250,13 @@ final class FormBody implements RequestBody
                 if (\is_string($field)) {
                     $length += \strlen($field);
                 } else {
-                    $length += yield $field->getBodyLength();
+                    $length += $field->getBodyLength();
                 }
             }
 
             return $length;
         });
 
-        return $this->cachedLength = $lengthPromise;
+        return await($this->cachedLength = $lengthPromise);
     }
 }

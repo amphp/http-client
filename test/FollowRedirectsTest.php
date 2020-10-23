@@ -9,8 +9,6 @@ use Amp\Http\Client\Interceptor\FollowRedirects;
 use Amp\Http\Status;
 use Amp\NullCancellationToken;
 use Amp\PHPUnit\AsyncTestCase;
-use Amp\Promise;
-use Amp\Success;
 
 class FollowRedirectsTest extends AsyncTestCase
 {
@@ -21,43 +19,43 @@ class FollowRedirectsTest extends AsyncTestCase
      * @param string $toResolve
      * @param string $expectedResult
      */
-    public function testResolve(string $baseUri, string $toResolve, string $expectedResult): \Generator
+    public function testResolve(string $baseUri, string $toResolve, string $expectedResult): void
     {
         $redirect = new FollowRedirects(10);
         $request = new Request($baseUri);
 
         $stream1 = $this->createMock(Stream::class);
         $stream1->method('request')
-            ->willReturn(new Success(new Response(
+            ->willReturn(new Response(
                 '1.1',
                 Status::MOVED_PERMANENTLY,
                 Status::getReason(Status::MOVED_PERMANENTLY),
                 ['location' => [$toResolve]],
                 new InMemoryStream,
                 $request
-            )));
+            ));
 
         $stream2 = $this->createMock(Stream::class);
         $stream2->method('request')
-            ->willReturnCallback(function (Request $redirected) use ($request, $expectedResult): Promise {
+            ->willReturnCallback(function (Request $redirected) use ($request, $expectedResult): Response {
                 $this->assertSame($expectedResult, (string) $redirected->getUri());
-                return new Success(new Response(
+                return new Response(
                     '1.1',
                     Status::OK,
                     Status::getReason(Status::OK),
                     [],
                     new InMemoryStream,
                     $request
-                ));
+                );
             });
 
         $pool = $this->createMock(ConnectionPool::class);
         $pool->method('getStream')
-            ->willReturnOnConsecutiveCalls(new Success($stream1), new Success($stream2));
+            ->willReturnOnConsecutiveCalls($stream1, $stream2);
 
         $client = new PooledHttpClient($pool);
 
-        yield $redirect->request($request, new NullCancellationToken, $client);
+        $redirect->request($request, new NullCancellationToken, $client);
     }
 
     public function provideResolvables(): array

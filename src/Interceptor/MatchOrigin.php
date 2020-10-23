@@ -9,7 +9,7 @@ use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
-use Amp\Promise;
+use Amp\Http\Client\Response;
 use League\Uri\Http;
 use Psr\Http\Message\UriInterface;
 
@@ -19,14 +19,13 @@ final class MatchOrigin implements ApplicationInterceptor
     use ForbidSerialization;
 
     /** @var ApplicationInterceptor[] */
-    private $originMap = [];
+    private array $originMap = [];
 
-    /** @var ApplicationInterceptor|null */
-    private $default;
+    private ?ApplicationInterceptor $default;
 
     /**
-     * @param ApplicationInterceptor[] $originMap
-     * @param ApplicationInterceptor   $default
+     * @param ApplicationInterceptor[]    $originMap
+     * @param ApplicationInterceptor|null $default
      *
      * @throws HttpException
      */
@@ -48,7 +47,7 @@ final class MatchOrigin implements ApplicationInterceptor
         Request $request,
         CancellationToken $cancellation,
         DelegateHttpClient $httpClient
-    ): Promise {
+    ): Response {
         $interceptor = $this->originMap[$this->normalizeOrigin($request->getUri())] ?? $this->default;
 
         if (!$interceptor) {

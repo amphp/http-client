@@ -4,7 +4,6 @@ namespace Amp\Http\Client;
 
 use Amp\CancellationToken;
 use Amp\Http\Client\Connection\Stream;
-use Amp\Promise;
 
 /**
  * Allows intercepting an HTTP request after the connection to the remote server has been established.
@@ -25,7 +24,7 @@ interface NetworkInterceptor
      * @param CancellationToken $cancellation
      * @param Stream            $stream
      *
-     * @return Promise<Response>
+     * @return Response
      */
-    public function requestViaNetwork(Request $request, CancellationToken $cancellation, Stream $stream): Promise;
+    public function requestViaNetwork(Request $request, CancellationToken $cancellation, Stream $stream): Response;
 }

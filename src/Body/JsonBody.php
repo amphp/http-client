@@ -6,13 +6,10 @@ use Amp\ByteStream\InMemoryStream;
 use Amp\ByteStream\InputStream;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\RequestBody;
-use Amp\Promise;
-use Amp\Success;
 
 final class JsonBody implements RequestBody
 {
-    /** @var string */
-    private $json;
+    private string $json;
 
     /**
      * JsonBody constructor.
@@ -32,9 +29,9 @@ final class JsonBody implements RequestBody
         }
     }
 
-    public function getHeaders(): Promise
+    public function getHeaders(): array
     {
-        return new Success(['content-type' => 'application/json; charset=utf-8']);
+        return ['content-type' => 'application/json; charset=utf-8'];
     }
 
     public function createBodyStream(): InputStream
@@ -42,8 +39,8 @@ final class JsonBody implements RequestBody
         return new InMemoryStream($this->json);
     }
 
-    public function getBodyLength(): Promise
+    public function getBodyLength(): int
     {
-        return new Success(\strlen($this->json));
+        return \strlen($this->json);
     }
 }

@@ -4,13 +4,13 @@ namespace Amp\Http\Client\Connection\Internal;
 
 use Amp\CancellationToken;
 use Amp\Deferred;
-use Amp\Emitter;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Loop;
+use Amp\PipelineSource;
 use Amp\Promise;
 use Amp\Struct;
 
@@ -25,71 +25,51 @@ final class Http2Stream
     use ForbidSerialization;
     use ForbidCloning;
 
-    /** @var int */
-    public $id;
+    public int $id;
 
-    /** @var Request */
-    public $request;
+    public Request $request;
 
-    /** @var Response|null */
-    public $response;
+    public ?Response $response = null;
 
-    /** @var Deferred|null */
-    public $pendingResponse;
+    public ?Deferred $pendingResponse;
 
-    /** @var Promise|null */
-    public $preResponseResolution;
+    public ?Promise $preResponseResolution = null;
 
-    /** @var bool */
-    public $responsePending = true;
+    public bool $responsePending = true;
 
-    /** @var Emitter|null */
-    public $body;
+    public ?PipelineSource $body = null;
 
-    /** @var Deferred|null */
-    public $trailers;
+    public ?Deferred $trailers = null;
 
-    /** @var CancellationToken */
-    public $originalCancellation;
+    public CancellationToken $originalCancellation;
 
-    /** @var CancellationToken */
-    public $cancellationToken;
+    public CancellationToken $cancellationToken;
 
     /** @var int Bytes received on the stream. */
-    public $received = 0;
+    public int $received = 0;
 
-    /** @var int */
-    public $serverWindow;
+    public int $serverWindow;
 
-    /** @var int */
-    public $clientWindow;
+    public int $clientWindow;
 
-    /** @var string */
-    public $requestBodyBuffer = '';
+    public string $requestBodyBuffer = '';
 
-    /** @var bool */
-    public $requestBodyComplete = false;
+    public bool $requestBodyComplete = false;
 
-    /** @var Deferred */
-    public $requestBodyCompletion;
+    public Deferred $requestBodyCompletion;
 
     /** @var int Integer between 1 and 256 */
-    public $weight = 16;
+    public int $weight = 16;
 
-    /** @var int */
-    public $dependency = 0;
+    public int $dependency = 0;
 
-    /** @var int|null */
-    public $expectedLength;
+    public ?int $expectedLength = null;
 
-    /** @var Stream */
-    public $stream;
+    public Stream $stream;
 
-    /** @var Deferred|null */
-    public $windowSizeIncrease;
+    public ?Deferred $windowSizeIncrease = null;
 
-    /** @var string|null */
-    private $watcher;
+    private ?string $watcher;
 
     public function __construct(
         int $id,

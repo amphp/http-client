@@ -7,7 +7,7 @@ use Amp\Http\Client\Body\StringBody;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Promise;
 use Amp\Success;
-use function Amp\call;
+use function Amp\await;
 
 class RequestTest extends AsyncTestCase
 {
@@ -127,7 +127,6 @@ class RequestTest extends AsyncTestCase
 
     public function testBody(): void
     {
-        /** @var Request $request */
         $request = new Request("http://127.0.0.1/");
         $this->assertInstanceOf(StringBody::class, $request->getBody());
 
@@ -144,7 +143,7 @@ class RequestTest extends AsyncTestCase
         $request->setBody(new \stdClass);
     }
 
-    public function testPushHandler(): \Generator
+    public function testPushHandler(): void
     {
         $request = new Request('https://amphp.org/');
         $invocationCount = 0;
@@ -158,7 +157,7 @@ class RequestTest extends AsyncTestCase
 
         $this->assertSame($pushHandler, $request->getPushHandler());
 
-        yield call($request->getPushHandler());
+        $request->getPushHandler()();
 
         $this->assertSame(1, $invocationCount);
     }
@@ -178,7 +177,7 @@ class RequestTest extends AsyncTestCase
         $this->assertNull($request->getPushHandler());
     }
 
-    public function testPushHandlerInterceptNullReturn(): \Generator
+    public function testPushHandlerInterceptNullReturn(): void
     {
         $request = new Request('https://amphp.org/');
         $invocationCount = 0;
@@ -192,18 +191,16 @@ class RequestTest extends AsyncTestCase
         };
 
         $request->setPushHandler($pushHandler);
-        $request->interceptPush(static function (Response $response) {
+        $request->interceptPush(static function (Response $response): void {
             $response->setStatus(512);
         });
 
-        yield call(
-            $request->getPushHandler(),
+        $request->getPushHandler()(
             new Request('https://amphp.org/'),
             new Success(new Response('2', 200, null, [], new InMemoryStream, $request))
         );
 
-        /** @var Response $response */
-        $response = yield $responsePromise;
+        $response = await($responsePromise);
 
         $this->assertSame(512, $response->getStatus());
     }
@@ -218,7 +215,7 @@ class RequestTest extends AsyncTestCase
     }
 
 
-    public function testPushHandlerInterceptNewReturn(): \Generator
+    public function testPushHandlerInterceptNewReturn(): void
     {
         $request = new Request('https://amphp.org/');
         $invocationCount = 0;
@@ -236,14 +233,12 @@ class RequestTest extends AsyncTestCase
             return new Response('2', 523, null, [], new InMemoryStream, $response->getRequest());
         });
 
-        yield call(
-            $request->getPushHandler(),
+        $request->getPushHandler()(
             new Request('https://amphp.org/'),
             new Success(new Response('2', 200, null, [], new InMemoryStream, $request))
         );
 
-        /** @var Response $response */
-        $response = yield $responsePromise;
+        $response = await($responsePromise);
 
         $this->assertSame(523, $response->getStatus());
     }

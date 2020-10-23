@@ -4,23 +4,23 @@ namespace Amp\Http\Client\Interceptor;
 
 class SetRequestHeaderTest extends InterceptorTest
 {
-    public function testNetworkInterceptor(): \Generator
+    public function testNetworkInterceptor(): void
     {
         $this->givenNetworkInterceptor(new AddRequestHeader('foo', 'baz'));
         $this->givenNetworkInterceptor(new SetRequestHeader('foo', 'bar'));
 
-        yield $this->whenRequestIsExecuted();
+        $this->whenRequestIsExecuted();
 
         $this->thenRequestHasHeader('foo', 'bar');
         $this->thenResponseDoesNotHaveHeader('foo');
     }
 
-    public function testApplicationInterceptor(): \Generator
+    public function testApplicationInterceptor(): void
     {
         $this->givenApplicationInterceptor(new AddRequestHeader('foo', 'baz'));
         $this->givenApplicationInterceptor(new SetRequestHeader('foo', 'bar'));
 
-        yield $this->whenRequestIsExecuted();
+        $this->whenRequestIsExecuted();
 
         $this->thenRequestHasHeader('foo', 'bar');
         $this->thenResponseDoesNotHaveHeader('foo');

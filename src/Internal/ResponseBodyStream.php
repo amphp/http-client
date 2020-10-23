@@ -4,7 +4,6 @@ namespace Amp\Http\Client\Internal;
 
 use Amp\ByteStream\InputStream;
 use Amp\CancellationTokenSource;
-use Amp\Promise;
 
 /** @internal */
 final class ResponseBodyStream implements InputStream
@@ -12,12 +11,11 @@ final class ResponseBodyStream implements InputStream
     use ForbidSerialization;
     use ForbidCloning;
 
-    /** @var InputStream */
-    private $body;
-    /** @var CancellationTokenSource */
-    private $bodyCancellation;
-    /** @var bool */
-    private $successfulEnd = false;
+    private InputStream $body;
+
+    private CancellationTokenSource $bodyCancellation;
+
+    private bool $successfulEnd = false;
 
     public function __construct(InputStream $body, CancellationTokenSource $bodyCancellation)
     {
@@ -25,16 +23,15 @@ final class ResponseBodyStream implements InputStream
         $this->bodyCancellation = $bodyCancellation;
     }
 
-    public function read(): Promise
+    public function read(): ?string
     {
-        $promise = $this->body->read();
-        $promise->onResolve(function ($error, $value) {
-            if ($value === null && $error === null) {
-                $this->successfulEnd = true;
-            }
-        });
+        $chunk = $this->body->read();
 
-        return $promise;
+        if ($chunk === null) {
+            $this->successfulEnd = true;
+        }
+
+        return $chunk;
     }
 
     public function __destruct()

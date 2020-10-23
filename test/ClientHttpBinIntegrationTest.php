@@ -4,10 +4,11 @@ namespace Amp\Http\Client;
 
 use Amp\ByteStream\InMemoryStream;
 use Amp\ByteStream\InputStream;
-use Amp\ByteStream\IteratorStream;
+use Amp\ByteStream\PipelineStream;
 use Amp\CancellationToken;
 use Amp\CancellationTokenSource;
 use Amp\CancelledException;
+use Amp\Delayed;
 use Amp\Http\Client\Body\FileBody;
 use Amp\Http\Client\Body\FormBody;
 use Amp\Http\Client\Connection\UnprocessedRequestException;
@@ -25,183 +26,163 @@ use Amp\Http\Server\Server;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Promise;
 use Amp\Socket;
-use Amp\Success;
 use Psr\Log\NullLogger;
-use function Amp\asyncCall;
-use function Amp\call;
-use function Amp\coroutine;
+use function Amp\async;
+use function Amp\await;
+use function Amp\defer;
 use function Amp\delay;
-use function Amp\Iterator\fromIterable;
+use function Amp\Pipeline\fromIterable;
 
 class ClientHttpBinIntegrationTest extends AsyncTestCase
 {
-    /** @var Socket\Server */
-    private $socket;
-    /** @var HttpClient */
-    private $client;
-    /** @var HttpClientBuilder */
-    private $builder;
+    private Socket\Server $socket;
+
+    private HttpClient $client;
+
+    private HttpClientBuilder $builder;
+
     /** @var callable */
     private $responseCallback;
-    /** @var Server */
-    private $httpServer;
 
-    protected function tearDownAsync()
-    {
-        if (!$this->httpServer) {
-            return;
-        }
+    private Server $httpServer;
 
-        $this->httpServer->stop();
-        $this->httpServer = null;
-    }
-
-    public function testHttp10Response(): \Generator
+    public function testHttp10Response(): void
     {
         $this->givenRawServerResponse("HTTP/1.0 200 OK\r\n\r\n");
 
-        /** @var Response $response */
         $request = $this->createRequest();
         $request->setProtocolVersions(["1.0"]);
-        $response = yield $this->executeRequest($request);
+        $response = $this->executeRequest($request);
 
-        $this->assertInstanceOf(Response::class, $response);
-        $this->assertSame("", yield $response->getBody()->buffer());
+        $this->assertSame("", $response->getBody()->buffer());
     }
 
-    public function testCloseAfterConnect(): \Generator
+    public function testCloseAfterConnect(): void
     {
         $this->givenRawServerResponse("");
 
         $this->expectException(SocketException::class);
         $this->expectExceptionMessageMatches("(Receiving the response headers for '.*' failed, because the socket to '.*' @ '.*' closed early)");
 
-        /** @var Response $response */
         $request = $this->createRequest();
         $request->setProtocolVersions(["1.0"]);
-        yield $this->executeRequest($request);
+        $this->executeRequest($request);
     }
 
-    public function testIncompleteHttpResponseWithContentLength(): \Generator
+    public function testIncompleteHttpResponseWithContentLength(): void
     {
         $this->givenRawServerResponse("HTTP/1.0 200 OK\r\nContent-Length: 2\r\n\r\n.");
 
         $this->expectException(SocketException::class);
         $this->expectExceptionMessage("Socket disconnected prior to response completion");
 
-        /** @var Response $response */
         $request = $this->createRequest();
         $request->setProtocolVersions(["1.0"]);
 
-        $response = yield $this->executeRequest($request);
-        yield $response->getBody()->buffer();
+        $response = $this->executeRequest($request);
+        $response->getBody()->buffer();
     }
 
-    public function testIncompleteHttpResponseWithChunkedEncoding(): \Generator
+    public function testIncompleteHttpResponseWithChunkedEncoding(): void
     {
         $this->givenRawServerResponse("HTTP/1.0 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n0\r"); // missing \n
 
         $this->expectException(SocketException::class);
         $this->expectExceptionMessage("Socket disconnected prior to response completion");
 
-        /** @var Response $response */
         $request = $this->createRequest();
         $request->setProtocolVersions(["1.0"]);
 
-        $response = yield $this->executeRequest($request);
-        yield $response->getBody()->buffer();
+        $response = $this->executeRequest($request);
+        $response->getBody()->buffer();
     }
 
-    public function testIncompleteHttpResponseWithoutChunkedEncodingAndWithoutContentLength(): \Generator
+    public function testIncompleteHttpResponseWithoutChunkedEncodingAndWithoutContentLength(): void
     {
         $this->givenRawServerResponse("HTTP/1.1 200 OK\r\n\r\n00000000000");
 
-        /** @var Response $response */
         $request = $this->createRequest();
         $request->setProtocolVersions(["1.0"]);
 
-        $response = yield $this->executeRequest($request);
-        $body = yield $response->getBody()->buffer();
+        $response = $this->executeRequest($request);
+        $body = $response->getBody()->buffer();
 
         self::assertSame('00000000000', $body);
     }
 
-    public function testDuplicateContentLengthHeader(): \Generator
+    public function testDuplicateContentLengthHeader(): void
     {
         $this->givenRawServerResponse("HTTP/1.1 200 OK\r\ncontent-length: 1\r\ncontent-length: 2\r\n\r\n\r\n\r\n\r\n");
 
         $this->expectException(ParseException::class);
 
-        yield $this->executeRequest($this->createRequest());
+        $this->executeRequest($this->createRequest());
     }
 
-    public function testInvalidContentLengthHeader(): \Generator
+    public function testInvalidContentLengthHeader(): void
     {
         $this->givenRawServerResponse("HTTP/1.1 200 OK\r\ncontent-length: foobar\r\n\r\n\r\n\r\n\r\n");
 
         $this->expectException(ParseException::class);
 
-        yield $this->executeRequest($this->createRequest());
+        $this->executeRequest($this->createRequest());
     }
 
-    public function testFoldedHeader(): \Generator
+    public function testFoldedHeader(): void
     {
         $this->givenRawServerResponse("HTTP/1.1 200 OK\r\ncontent-length: 0\r\nfoo: hello\r\n world\r\n\r\n");
 
-        /** @var Response $response */
-        $response = yield $this->executeRequest($this->createRequest());
-        yield $response->getBody()->buffer();
+        $response = $this->executeRequest($this->createRequest());
+        $response->getBody()->buffer();
 
         $this->assertSame(['hello world'], $response->getHeaderArray('foo'));
     }
 
-    public function testInvalidHeaders(): \Generator
+    public function testInvalidHeaders(): void
     {
         $this->givenRawServerResponse("HTTP/1.1 200 OK\r\ncontent-length: 0\r\nfoo\x2f: bar\r\n\r\n");
 
         $this->expectException(ParseException::class);
 
-        yield $this->executeRequest($this->createRequest());
+        $this->executeRequest($this->createRequest());
     }
 
-    public function testDefaultUserAgentSent(): \Generator
+    public function testDefaultUserAgentSent(): void
     {
         $uri = 'http://httpbin.org/user-agent';
 
-        /** @var Response $response */
-        $response = yield $this->executeRequest(new Request($uri));
+        $response = $this->executeRequest(new Request($uri));
 
         $this->assertInstanceOf(Response::class, $response);
 
-        $body = yield $response->getBody()->buffer();
+        $body = $response->getBody()->buffer();
         $result = \json_decode($body, true);
 
         $this->assertSame('amphp/http-client @ v4.x', $result['user-agent']);
     }
 
-    public function testDefaultUserAgentCanBeChanged(): \Generator
+    public function testDefaultUserAgentCanBeChanged(): void
     {
         $uri = 'http://httpbin.org/user-agent';
 
         $this->givenNetworkInterceptor(new SetRequestHeaderIfUnset('user-agent', 'amphp/http-client'));
 
-        /** @var Response $response */
-        $response = yield $this->executeRequest(new Request($uri));
+        $response = $this->executeRequest(new Request($uri));
 
         $this->assertInstanceOf(Response::class, $response);
 
-        $body = yield $response->getBody()->buffer();
+        $body = $response->getBody()->buffer();
         $result = \json_decode($body, true);
 
         $this->assertSame('amphp/http-client', $result['user-agent']);
     }
 
-    public function testHeaderCase(): \Generator
+    public function testHeaderCase(): void
     {
-        $this->responseCallback = coroutine(static function (Socket\Socket $socket) {
+        $this->responseCallback = static function (Socket\Socket $socket): void {
             $buffer = '';
 
-            while (null !== $chunk = yield $socket->read()) {
+            while (null !== $chunk = $socket->read()) {
                 $buffer .= $chunk;
 
                 if (\strpos($buffer, "\r\n\r\n") !== false) {
@@ -214,17 +195,15 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
             $buffer = \json_encode(Rfc7230::parseRawHeaders(\implode("\r\n", $headers) . "\r\n"));
 
-            return $socket->write("HTTP/1.0 200 OK\r\n\r\n$buffer");
-        });
+            $socket->write("HTTP/1.0 200 OK\r\n\r\n$buffer");
+        };
 
-        /** @var Response $response */
         $request = $this->createRequest();
         $request->setHeader('tEst', 'test');
 
-        /** @var Response $response */
-        $response = yield $this->executeRequest($request);
+        $response = $this->executeRequest($request);
 
-        $body = yield $response->getBody()->buffer();
+        $body = $response->getBody()->buffer();
         $result = \json_decode($body, true);
 
         $this->assertSame([
@@ -236,45 +215,39 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         ], $result);
     }
 
-    public function testHttp2Push(): \Generator
+    public function testHttp2Push(): void
     {
         $request = new Request('https://http2-server-push-demo.keksi.io/');
-        $request->setPushHandler(static function (Request $request, Promise $response) {
+        $request->setPushHandler(static function (Request $request, Promise $response): void {
             self::assertSame('/image.jpg', $request->getUri()->getPath());
-            self::assertSame('image/jpeg', (yield $response)->getHeader('content-type'));
+            self::assertSame('image/jpeg', await($response)->getHeader('content-type'));
         });
 
-        yield $this->executeRequest($request);
+        $this->executeRequest($request);
     }
 
-    public function testGzipBomb(): \Generator
+    public function testGzipBomb(): void
     {
         $this->markTestSkipped('Run this manually');
 
-        /** @var Response $response */
-        $response = yield $this->client->request(new Request('https://blog.haschek.at/tools/bomb.php'));
+        $response = $this->client->request(new Request('https://blog.haschek.at/tools/bomb.php'));
 
         $sessionCookie = ResponseCookie::fromHeader($response->getHeader('set-cookie'));
-        $body = yield $response->getBody()->buffer();
+        $body = $response->getBody()->buffer();
         \preg_match('(bombme=[a-f0-9]+)', $body, $match);
 
         $request = new Request('https://blog.haschek.at/tools/bomb.php?' . $match[0]);
         $request->setHeader('cookie', new RequestCookie($sessionCookie->getName(), $sessionCookie->getValue()));
-        $response = yield $this->client->request($request);
+        $response = $this->client->request($request);
 
         $this->expectException(ParseException::class);
 
-        if (\method_exists($this, 'expectExceptionMessageMatches')) {
-            $this->expectExceptionMessageMatches('(Configured body size exceeded: \d+ bytes received, while the configured limit is 10485760 bytes)');
-        } else {
-            /** @noinspection PhpDeprecationInspection */
-            $this->expectExceptionMessageRegExp('(Configured body size exceeded: \d+ bytes received, while the configured limit is 10485760 bytes)');
-        }
+        $this->expectExceptionMessageMatches('(Configured body size exceeded: \d+ bytes received, while the configured limit is 10485760 bytes)');
 
-        yield $response->getBody()->buffer();
+        $response->getBody()->buffer();
     }
 
-    public function testCustomUserAgentSentIfAssigned(): \Generator
+    public function testCustomUserAgentSentIfAssigned(): void
     {
         $uri = 'http://httpbin.org/user-agent';
         $customUserAgent = 'test-user-agent';
@@ -283,35 +256,33 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $request->setHeader('User-Agent', $customUserAgent);
         $request->setHeader('Connection', 'keep-alive');
 
-        /** @var Response $response */
-        $response = yield $this->executeRequest($request);
+        $response = $this->executeRequest($request);
 
         $this->assertInstanceOf(Response::class, $response);
 
-        $body = yield $response->getBody()->buffer();
+        $body = $response->getBody()->buffer();
         $result = \json_decode($body, true);
 
         $this->assertSame($customUserAgent, $result['user-agent']);
     }
 
-    public function testPostStringBody(): \Generator
+    public function testPostStringBody(): void
     {
         $body = 'zanzibar';
         $request = new Request('http://httpbin.org/post');
         $request->setMethod('POST');
         $request->setBody($body);
 
-        /** @var Response $response */
-        $response = yield $this->executeRequest($request);
+        $response = $this->executeRequest($request);
 
         $this->assertInstanceOf(Response::class, $response);
 
-        $result = \json_decode(yield $response->getBody()->buffer(), true);
+        $result = \json_decode($response->getBody()->buffer(), true);
 
         $this->assertEquals($body, $result['data']);
     }
 
-    public function testPutStringBody(): \Generator
+    public function testPutStringBody(): void
     {
         $uri = 'http://httpbin.org/put';
 
@@ -319,12 +290,11 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $request = new Request($uri, "PUT");
         $request->setBody($body);
 
-        /** @var Response $response */
-        $response = yield $this->executeRequest($request);
+        $response = $this->executeRequest($request);
 
         $this->assertInstanceOf(Response::class, $response);
 
-        $result = \json_decode(yield $response->getBody()->buffer(), true);
+        $result = \json_decode($response->getBody()->buffer(), true);
 
         $this->assertEquals($body, $result['data']);
     }
@@ -334,13 +304,11 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
      *
      * @param $statusCode
      *
-     * @return \Generator
      * @throws \Throwable
      */
-    public function testStatusCodeResponses($statusCode): \Generator
+    public function testStatusCodeResponses($statusCode): void
     {
-        /** @var Response $response */
-        $response = yield $this->executeRequest(new Request("http://httpbin.org/status/{$statusCode}"));
+        $response = $this->executeRequest(new Request("http://httpbin.org/status/{$statusCode}"));
 
         $this->assertInstanceOf(Response::class, $response);
         $this->assertEquals($statusCode, $response->getStatus());
@@ -356,10 +324,9 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         ];
     }
 
-    public function testReason(): \Generator
+    public function testReason(): void
     {
-        /** @var Response $response */
-        $response = yield $this->executeRequest(new Request("http://httpbin.org/status/418"));
+        $response = $this->executeRequest(new Request("http://httpbin.org/status/418"));
 
         $this->assertInstanceOf(Response::class, $response);
 
@@ -369,7 +336,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->assertSame($expectedReason, $actualReason);
     }
 
-    public function testRedirect(): \Generator
+    public function testRedirect(): void
     {
         $this->client = $this->builder->followRedirects(0)->build();
 
@@ -377,15 +344,16 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
             return new ServerResponse(302, ['location' => 'https://example.org/']);
         });
 
-        /** @var Response $response */
-        $response = yield $this->executeRequest($this->createRequest());
+        $this->givenRawServerResponse("HTTP/1.1 302 OK\r\nLocation: https://example.org/\r\n\r\n.");
+
+        $response = $this->executeRequest($this->createRequest());
 
         $this->assertInstanceOf(Response::class, $response);
         $this->assertSame(302, $response->getStatus());
         $this->assertSame($response, $response->getOriginalResponse());
     }
 
-    public function testRedirectWithFollow(): \Generator
+    public function testRedirectWithFollow(): void
     {
         $this->client = $this->builder->followRedirects()->build();
 
@@ -393,33 +361,33 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
             return new ServerResponse(302, ['location' => 'https://example.org/']);
         });
 
-        /** @var Response $response */
-        $response = yield $this->executeRequest($this->createRequest());
+        $this->givenRawServerResponse("HTTP/1.1 302 OK\r\nLocation: https://example.org/\r\n\r\n.");
+
+        $response = $this->executeRequest($this->createRequest());
 
         $this->assertInstanceOf(Response::class, $response);
         $this->assertSame(200, $response->getStatus());
         $this->assertSame(302, $response->getOriginalResponse()->getStatus());
     }
 
-    public function testClientAddsZeroContentLengthHeaderForEmptyBodiesOnPost(): \Generator
+    public function testClientAddsZeroContentLengthHeaderForEmptyBodiesOnPost(): void
     {
         $uri = 'http://httpbin.org/post';
 
         $request = new Request($uri);
         $request->setMethod('POST');
 
-        /** @var Response $response */
-        $response = yield $this->executeRequest($request);
+        $response = $this->executeRequest($request);
 
         $this->assertInstanceOf(Response::class, $response);
 
-        $body = yield $response->getBody()->buffer();
+        $body = $response->getBody()->buffer();
         $result = \json_decode($body, true);
 
         $this->assertEquals('0', $result['headers']['Content-Length']);
     }
 
-    public function testFormEncodedBodyRequest(): \Generator
+    public function testFormEncodedBodyRequest(): void
     {
         $body = new FormBody;
         $field1 = 'test val';
@@ -430,19 +398,18 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $request = new Request('http://httpbin.org/post', "POST");
         $request->setBody($body);
 
-        /** @var Response $response */
-        $response = yield $this->executeRequest($request);
+        $response = $this->executeRequest($request);
 
         $this->assertInstanceOf(Response::class, $response);
 
-        $result = \json_decode(yield $response->getBody()->buffer(), true);
+        $result = \json_decode($response->getBody()->buffer(), true);
 
         $this->assertEquals($field1, $result['form']['field1']);
         $this->assertEquals($field2, $result['form']['field2']);
         $this->assertEquals('application/x-www-form-urlencoded', $result['headers']['Content-Type']);
     }
 
-    public function testFileBodyRequest(): \Generator
+    public function testFileBodyRequest(): void
     {
         $uri = 'http://httpbin.org/post';
 
@@ -452,17 +419,16 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $request = new Request($uri, "POST");
         $request->setBody($body);
 
-        /** @var Response $response */
-        $response = yield $this->executeRequest($request);
+        $response = $this->executeRequest($request);
 
         $this->assertInstanceOf(Response::class, $response);
 
-        $result = \json_decode(yield $response->getBody()->buffer(), true);
+        $result = \json_decode($response->getBody()->buffer(), true);
 
         $this->assertStringEqualsFile($bodyPath, $result['data']);
     }
 
-    public function testMultipartBodyRequest(): \Generator
+    public function testMultipartBodyRequest(): void
     {
         $field1 = 'test val';
         $file1 = __DIR__ . '/fixture/lorem.txt';
@@ -477,12 +443,11 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $request = new Request('http://httpbin.org/post', "POST");
         $request->setBody($body);
 
-        /** @var Response $response */
-        $response = yield $this->executeRequest($request);
+        $response = $this->executeRequest($request);
 
         $this->assertEquals(200, $response->getStatus());
 
-        $result = \json_decode(yield $response->getBody()->buffer(), true);
+        $result = \json_decode($response->getBody()->buffer(), true);
 
         $this->assertEquals($field1, $result['form']['field1']);
         $this->assertStringEqualsFile($file1, $result['files']['file1']);
@@ -493,16 +458,15 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     /**
      * @requires extension zlib
      */
-    public function testGzipResponse(): \Generator
+    public function testGzipResponse(): void
     {
         $this->givenNetworkInterceptor(new DecompressResponse);
 
-        /** @var Response $response */
-        $response = yield $this->executeRequest(new Request('http://httpbin.org/gzip'));
+        $response = $this->executeRequest(new Request('http://httpbin.org/gzip'));
 
         $this->assertEquals(200, $response->getStatus());
 
-        $result = \json_decode(yield $response->getBody()->buffer(), true);
+        $result = \json_decode($response->getBody()->buffer(), true);
 
         $this->assertTrue($result['gzipped']);
         $this->assertFalse($response->hasHeader('content-encoding'));
@@ -511,21 +475,20 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     /**
      * @requires extension zlib
      */
-    public function testDeflateResponse(): \Generator
+    public function testDeflateResponse(): void
     {
         $this->givenNetworkInterceptor(new DecompressResponse);
 
-        /** @var Response $response */
-        $response = yield $this->executeRequest(new Request('http://httpbin.org/deflate'));
+        $response = $this->executeRequest(new Request('http://httpbin.org/deflate'));
 
         $this->assertEquals(200, $response->getStatus());
 
-        $result = \json_decode(yield $response->getBody()->buffer(), true);
+        $result = \json_decode($response->getBody()->buffer(), true);
 
         $this->assertTrue($result['deflated']);
     }
 
-    public function testInfiniteRedirect(): \Generator
+    public function testInfiniteRedirect(): void
     {
         $this->builder->followRedirects(10);
 
@@ -541,12 +504,14 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
             return new ServerResponse(200);
         });
 
+        $this->givenRawServerResponse("HTTP/1.1 302 OK\r\nLocation: /redirect/11\r\n\r\n.");
+
         $this->expectException(TooManyRedirectsException::class);
 
-        yield $this->executeRequest($request);
+        $this->executeRequest($request);
     }
 
-    public function testRequestCancellation(): \Generator
+    public function testRequestCancellation(): void
     {
         $this->givenSlowRawServerResponse(
             100,
@@ -555,24 +520,23 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         );
 
         $cancellationTokenSource = new CancellationTokenSource;
-        /** @var Response $response */
-        $response = yield $this->executeRequest($this->createRequest(), $cancellationTokenSource->getToken());
+        $response = $this->executeRequest($this->createRequest(), $cancellationTokenSource->getToken());
         $cancellationTokenSource->cancel();
         $this->expectException(CancelledException::class);
 
-        yield $response->getBody()->buffer();
+        $response->getBody()->buffer();
     }
 
-    public function testContentLengthBodyMismatchWithTooManyBytesSimple(): \Generator
+    public function testContentLengthBodyMismatchWithTooManyBytesSimple(): void
     {
         $this->expectException(InvalidRequestException::class);
         $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
 
         $request = new Request("http://httpbin.org/post", "POST");
         $request->setBody(new class implements RequestBody {
-            public function getHeaders(): Promise
+            public function getHeaders(): array
             {
-                return new Success([]);
+                return [];
             }
 
             public function createBodyStream(): InputStream
@@ -580,51 +544,51 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
                 return new InMemoryStream("foo");
             }
 
-            public function getBodyLength(): Promise
+            public function getBodyLength(): int
             {
-                return new Success(1);
+                return 1;
             }
         });
 
-        yield $this->executeRequest($request);
+        $this->executeRequest($request);
     }
 
-    public function testContentLengthBodyMismatchWithTooManyBytesWith3ByteChunksAndLength2(): \Generator
+    public function testContentLengthBodyMismatchWithTooManyBytesWith3ByteChunksAndLength2(): void
     {
         $this->expectException(InvalidRequestException::class);
         $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
 
         $request = new Request("http://httpbin.org/post", "POST");
         $request->setBody(new class implements RequestBody {
-            public function getHeaders(): Promise
+            public function getHeaders(): array
             {
-                return new Success([]);
+                return [];
             }
 
             public function createBodyStream(): InputStream
             {
-                return new IteratorStream(fromIterable(["a", "b", "c"], 500));
+                return new PipelineStream(fromIterable(["a", "b", "c"], 500));
             }
 
-            public function getBodyLength(): Promise
+            public function getBodyLength(): int
             {
-                return new Success(2);
+                return 2;
             }
         });
 
-        yield $this->executeRequest($request);
+        $this->executeRequest($request);
     }
 
-    public function testContentLengthBodyMismatchWithTooFewBytes(): \Generator
+    public function testContentLengthBodyMismatchWithTooFewBytes(): void
     {
         $this->expectException(InvalidRequestException::class);
         $this->expectExceptionMessage("Body contained fewer bytes than specified in Content-Length, aborting request");
 
         $request = new Request("http://httpbin.org/post", "POST");
         $request->setBody(new class implements RequestBody {
-            public function getHeaders(): Promise
+            public function getHeaders(): array
             {
-                return new Success([]);
+                return [];
             }
 
             public function createBodyStream(): InputStream
@@ -632,20 +596,19 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
                 return new InMemoryStream("foo");
             }
 
-            public function getBodyLength(): Promise
+            public function getBodyLength(): int
             {
-                return new Success(42);
+                return 42;
             }
         });
 
-        yield $this->executeRequest($request);
+        $this->executeRequest($request);
     }
 
-    public function testHttp2Support(): \Generator
+    public function testHttp2Support(): void
     {
-        /** @var Response $response */
-        $response = yield $this->client->request(new Request('https://http2.pro/api/v1'));
-        $body = yield $response->getBody()->buffer();
+        $response = $this->client->request(new Request('https://http2.pro/api/v1'));
+        $body = $response->getBody()->buffer();
         $json = \json_decode($body, true);
 
         $this->assertSame(1, $json['http2']);
@@ -654,14 +617,13 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->assertSame('2', $response->getProtocolVersion());
     }
 
-    public function testHttp2SupportBody(): \Generator
+    public function testHttp2SupportBody(): void
     {
         $request = new Request('https://http2.pro/api/v1', 'POST');
         $request->setBody('foobar');
 
-        /** @var Response $response */
-        $response = yield $this->client->request($request);
-        $body = yield $response->getBody()->buffer();
+        $response = $this->client->request($request);
+        $body = $response->getBody()->buffer();
         $json = \json_decode($body, true);
 
         $this->assertSame(1, $json['http2']);
@@ -670,14 +632,13 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->assertSame('2', $response->getProtocolVersion());
     }
 
-    public function testHttp2SupportLargeBody(): \Generator
+    public function testHttp2SupportLargeBody(): void
     {
         $request = new Request('https://http2.pro/api/v1', 'POST');
         $request->setBody(\str_repeat(',', 256 * 1024)); // larger than initial stream window
 
-        /** @var Response $response */
-        $response = yield $this->client->request($request);
-        $body = yield $response->getBody()->buffer();
+        $response = $this->client->request($request);
+        $body = $response->getBody()->buffer();
         $json = \json_decode($body, true);
 
         $this->assertSame(1, $json['http2']);
@@ -686,36 +647,32 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->assertSame('2', $response->getProtocolVersion());
     }
 
-    public function testHttp2SupportLargeResponseBody(): \Generator
+    public function testHttp2SupportLargeResponseBody(): void
     {
         $request = new Request('https://1906714720.rsc.cdn77.org/img/cdn77-test-3mb.jpg', 'GET');
         $request->setTransferTimeout(100000);
         $request->setBodySizeLimit(10000000000);
 
-        /** @var Response $response */
-        $response = yield $this->client->request($request);
-        yield $response->getBody()->buffer();
+        $response = $this->client->request($request);
+        $response->getBody()->buffer();
 
         $this->assertSame(200, $response->getStatus());
     }
 
-    public function testConcurrentSlowNetworkInterceptor(): \Generator
+    public function testConcurrentSlowNetworkInterceptor(): void
     {
-        $this->givenNetworkInterceptor(new ModifyRequest(static function (Request $request) {
-            yield delay(3000);
-
+        $this->givenNetworkInterceptor(new ModifyRequest(static function (Request $request): Request {
+            delay(3000);
             return $request;
         }));
 
-        /** @var Response $response1 */
-        /** @var Response $response2 */
-        [$response1, $response2] = yield [
-            $this->client->request(new Request('https://http2.pro/api/v1')),
-            $this->client->request(new Request('https://http2.pro/api/v1')),
-        ];
+        [$response1, $response2] = await([
+            async(fn() => $this->client->request(new Request('https://http2.pro/api/v1'))),
+            async(fn() => $this->client->request(new Request('https://http2.pro/api/v1'))),
+        ]);
 
-        $body1 = yield $response1->getBody()->buffer();
-        $body2 = yield $response2->getBody()->buffer();
+        $body1 = $response1->getBody()->buffer();
+        $body2 = $response2->getBody()->buffer();
 
         $json1 = \json_decode($body1, true);
         $json2 = \json_decode($body2, true);
@@ -724,7 +681,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->assertSame(1, $json2['http2']);
     }
 
-    public function testHttp2UpgradeResponse(): \Generator
+    public function testHttp2UpgradeResponse(): void
     {
         $request = new Request('http://nghttp2.org/');
         $request->setHeader('connection', 'upgrade, http2-settings');
@@ -734,23 +691,21 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectException(HttpException::class);
         $this->expectExceptionMessage('CONNECT or upgrade request made without upgrade handler callback');
 
-        /** @var Response $response */
-        yield $this->executeRequest($request);
+        $this->executeRequest($request);
     }
 
-    public function testHttp2PriorKnowledge(): \Generator
+    public function testHttp2PriorKnowledge(): void
     {
         $request = new Request('http://nghttp2.org/');
         $request->setProtocolVersions(['2']);
 
-        /** @var Response $response */
-        $response = yield $this->executeRequest($request);
+        $response = $this->executeRequest($request);
 
         $this->assertSame(200, $response->getStatus());
         $this->assertSame('2', $response->getProtocolVersion());
     }
 
-    public function testHttp2PriorKnowledgeUnsupported(): \Generator
+    public function testHttp2PriorKnowledgeUnsupported(): void
     {
         $request = new Request('http://github.com/');
         $request->setProtocolVersions(['2']);
@@ -759,8 +714,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectExceptionMessage('Connection closed before HTTP/2 settings could be received');
 
         try {
-            /** @var Response $response */
-            yield $this->executeRequest($request);
+            $this->executeRequest($request);
         } catch (UnprocessedRequestException $e) {
             throw $e->getPrevious();
         }
@@ -770,34 +724,40 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     {
         parent::setUp();
 
+        $this->ignoreLoopWatchers();
+
         $this->builder = (new HttpClientBuilder)->retry(0);
         $this->client = $this->builder->build();
-
-        if ($this->socket) {
-            $this->socket->close();
-        }
-
-        if ($this->httpServer) {
-            $this->httpServer->stop();
-            $this->httpServer = null;
-        }
 
         $this->socket = Socket\Server::listen('127.0.0.1:0');
         $this->socket->unreference();
 
-        asyncCall(function () {
-            yield delay(0);
+        defer(function () {
+            $client = $this->socket->accept();
 
-            if ($this->httpServer) {
+            if ($client === null) {
                 return;
             }
 
-            /** @var Socket\EncryptableSocket $client */
-            $client = yield $this->socket->accept();
             $client->unreference();
 
-            yield ($this->responseCallback)($client);
+            if (!$this->responseCallback) {
+                $this->fail("No response callback set");
+            }
+
+            ($this->responseCallback)($client);
         });
+    }
+
+    public function tearDown(): void
+    {
+        parent::tearDown();
+
+        if (!isset($this->httpServer)) {
+            return;
+        }
+
+        $this->httpServer->stop();
     }
 
     private function givenServer(callable $requestHandler): void
@@ -808,11 +768,11 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     private function givenRawServerResponse(string $response): void
     {
-        $this->responseCallback = coroutine(static function (Socket\Socket $socket) use ($response) {
+        $this->responseCallback = static function (Socket\Socket $socket) use ($response): void {
             $buffer = '';
 
             // Await request before sending response
-            while (null !== $chunk = yield $socket->read()) {
+            while (null !== $chunk = $socket->read()) {
                 $buffer .= $chunk;
 
                 if (\strpos($buffer, "\r\n\r\n") !== false) {
@@ -820,25 +780,23 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
                 }
             }
 
-            return $socket->write($response);
-        });
+            $socket->write($response);
+        };
     }
 
     private function givenSlowRawServerResponse(int $delay, string ...$chunks): void
     {
-        $this->responseCallback = static function (Socket\Socket $socket) use ($delay, $chunks) {
-            return call(static function () use ($socket, $delay, $chunks) {
-                foreach ($chunks as $chunk) {
-                    $socket->write($chunk);
-                    $delay = delay($delay);
-                    $delay->unreference();
-                    yield $delay;
-                }
-            });
+        $this->responseCallback = static function (Socket\Socket $socket) use ($delay, $chunks): void {
+            foreach ($chunks as $chunk) {
+                $socket->write($chunk);
+                $delay = new Delayed($delay);
+                $delay->unreference();
+                await($delay);
+            };
         };
     }
 
-    private function executeRequest(Request $request, ?CancellationToken $cancellationToken = null): Promise
+    private function executeRequest(Request $request, ?CancellationToken $cancellationToken = null): Response
     {
         return $this->client->request($request, $cancellationToken);
     }

@@ -7,7 +7,6 @@ use Amp\Http\Client\DelegateHttpClient;
 use Amp\Http\Client\EventListener;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
-use Amp\Promise;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
 
@@ -27,11 +26,11 @@ interface Stream extends DelegateHttpClient
      * @param Request           $request
      * @param CancellationToken $token
      *
-     * @return Promise<Response>
+     * @return Response
      *
      * @throws \Error Thrown if this method is called more than once.
      */
-    public function request(Request $request, CancellationToken $token): Promise;
+    public function request(Request $request, CancellationToken $token): Response;
 
     public function getLocalAddress(): SocketAddress;
 
