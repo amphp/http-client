@@ -20,6 +20,10 @@ final class FileBody implements RequestBody
      */
     public function __construct(string $path, ?Filesystem $filesystem = null)
     {
+        if (!\class_exists(Filesystem::class)) {
+            throw new \Error("File request bodies require amphp/file to be installed");
+        }
+
         $this->path = $path;
         $this->filesystem = $filesystem ?? File\filesystem();
     }

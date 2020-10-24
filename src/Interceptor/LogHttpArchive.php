@@ -145,6 +145,10 @@ final class LogHttpArchive implements ApplicationInterceptor
 
     public function __construct(string $filePath, ?Filesystem $filesystem = null)
     {
+        if (!\class_exists(Filesystem::class)) {
+            throw new \Error("File request bodies require amphp/file to be installed");
+        }
+
         $this->filePath = $filePath;
         $this->fileMutex = new LocalMutex;
         $this->eventListener = new RecordHarAttributes;
