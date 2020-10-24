@@ -4,6 +4,7 @@ namespace Amp\Http\Client\Interceptor;
 
 use Amp\CancellationToken;
 use Amp\Http\Client\ApplicationInterceptor;
+use Amp\Http\Client\Connection\Http2ConnectionException;
 use Amp\Http\Client\Connection\UnprocessedRequestException;
 use Amp\Http\Client\DelegateHttpClient;
 use Amp\Http\Client\Internal\ForbidCloning;
@@ -39,7 +40,7 @@ final class RetryRequests implements ApplicationInterceptor
                     return yield $httpClient->request(clone $request, $cancellation);
                 } catch (UnprocessedRequestException $exception) {
                     // Request was deemed retryable by connection, so carry on.
-                } catch (SocketException $exception) {
+                } catch (SocketException | Http2ConnectionException $exception) {
                     if (!$request->isIdempotent()) {
                         throw $exception;
                     }
