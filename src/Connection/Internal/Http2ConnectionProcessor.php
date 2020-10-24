@@ -1520,6 +1520,15 @@ final class Http2ConnectionProcessor implements Http2Processor
                 \pack("NN", $lastId, $code)
             );
 
+            if ($this->onClose !== null) {
+                $onClose = $this->onClose;
+                $this->onClose = null;
+
+                foreach ($onClose as $callback) {
+                    asyncCall($callback, $this);
+                }
+            }
+
             if ($this->settings !== null) {
                 $settings = $this->settings;
                 $this->settings = null;
@@ -1544,15 +1553,6 @@ final class Http2ConnectionProcessor implements Http2Processor
             }
 
             $this->cancelIdleWatcher();
-
-            if ($this->onClose !== null) {
-                $onClose = $this->onClose;
-                $this->onClose = null;
-
-                foreach ($onClose as $callback) {
-                    asyncCall($callback, $this);
-                }
-            }
 
             yield $goawayPromise;
 
