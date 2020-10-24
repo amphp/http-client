@@ -1020,12 +1020,10 @@ final class Http2ConnectionProcessor implements Http2Processor
                 $firstChunk = \array_shift($split);
                 $lastChunk = \array_pop($split);
 
-                // no yield, because there must not be other frames in between
-                async(fn() => $this->writeFrame(Http2Parser::HEADERS, Http2Parser::NO_FLAG, $streamId, $firstChunk));
+                $this->writeFrame(Http2Parser::HEADERS, Http2Parser::NO_FLAG, $streamId, $firstChunk);
 
                 foreach ($split as $headerChunk) {
-                    // no yield, because there must not be other frames in between
-                    async(fn() => $this->writeFrame(Http2Parser::CONTINUATION, Http2Parser::NO_FLAG, $streamId, $headerChunk));
+                    $this->writeFrame(Http2Parser::CONTINUATION, Http2Parser::NO_FLAG, $streamId, $headerChunk);
                 }
 
                 $this->writeFrame(Http2Parser::CONTINUATION, $flag, $streamId, $lastChunk);
