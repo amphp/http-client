@@ -77,7 +77,7 @@ final class HttpStream implements Stream
         }
     }
 
-    public function request(Request $request, CancellationToken $token): Promise
+    public function request(Request $request, CancellationToken $cancellation): Promise
     {
         if ($this->releaseCallback === null) {
             throw new \Error('A stream may only be used for a single request');
@@ -85,12 +85,12 @@ final class HttpStream implements Stream
 
         $this->releaseCallback = null;
 
-        return call(function () use ($request, $token) {
+        return call(function () use ($request, $cancellation) {
             foreach ($request->getEventListeners() as $eventListener) {
                 yield $eventListener->startRequest($request);
             }
 
-            return call($this->requestCallback, $request, $token, $this);
+            return call($this->requestCallback, $request, $cancellation, $this);
         });
     }
 

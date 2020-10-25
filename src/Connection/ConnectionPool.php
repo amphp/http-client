@@ -12,9 +12,9 @@ interface ConnectionPool
      * Reserve a stream for a particular request.
      *
      * @param Request           $request
-     * @param CancellationToken $token
+     * @param CancellationToken $cancellation
      *
      * @return Promise<Stream>
      */
-    public function getStream(Request $request, CancellationToken $token): Promise;
+    public function getStream(Request $request, CancellationToken $cancellation): Promise;
 }
