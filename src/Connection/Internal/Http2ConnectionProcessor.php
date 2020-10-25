@@ -1602,7 +1602,8 @@ final class Http2ConnectionProcessor implements Http2Processor
                 $settings = $this->settings;
                 $this->settings = null;
 
-                $settings->fail(new UnprocessedRequestException($reason));
+                $message = "Connection closed before HTTP/2 settings could be received";
+                $settings->fail(new UnprocessedRequestException(new SocketException($message, 0, $reason)));
             }
 
             if ($this->streams) {
