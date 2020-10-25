@@ -53,11 +53,11 @@ final class StreamLimitingPool implements ConnectionPool
         $this->requestToKeyMapper = $requestToKeyMapper;
     }
 
-    public function getStream(Request $request, CancellationToken $token): Stream
+    public function getStream(Request $request, CancellationToken $cancellation): Stream
     {
         $lock = $this->semaphore->acquire(($this->requestToKeyMapper)($request));
 
-        $stream = $this->delegate->getStream($request, $token);
+        $stream = $this->delegate->getStream($request, $cancellation);
 
         return HttpStream::fromStream(
             $stream,
