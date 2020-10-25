@@ -523,6 +523,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
             if (!$this->streams[$streamId]->originalCancellation->isRequested()) {
                 $this->hasTimeout = true;
+                $this->ping(); // async ping, if other requests occur, they wait for it
 
                 $transferTimeout = $this->streams[$streamId]->request->getTransferTimeout();
 
@@ -1044,6 +1045,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
                 if (!$originalCancellation->isRequested()) {
                     $this->hasTimeout = true;
+                    $this->ping(); // async ping, if other requests occur, they wait for it
 
                     $exception = new TimeoutException(
                         'Allowed transfer timeout exceeded, took longer than ' . $transferTimeout . ' ms',
@@ -1218,7 +1220,7 @@ final class Http2ConnectionProcessor implements Http2Processor
              * @noinspection PhpDeprecationInspection
              */
             $this->shutdown(new ClientHttp2ConnectionException(
-                "The HTTP/2 connection closed unexpectedly",
+                "The HTTP/2 connection closed unexpectedly: " . $exception->getMessage(),
                 Http2Parser::INTERNAL_ERROR,
                 $exception
             ));
@@ -1562,8 +1564,8 @@ final class Http2ConnectionProcessor implements Http2Processor
             $this->pongDeferred = null;
             $deferred->resolve(false);
 
-            $this->shutdown(new HttpException('PONG timeout of ' . self::PONG_TIMEOUT . 'ms reached'));
-            $this->close();
+            // Shutdown connection to stop new requests, but keep it open, as other responses might still arrive
+            $this->shutdown(new HttpException('PONG timeout of ' . self::PONG_TIMEOUT . 'ms reached'), \max(0, $this->streamId));
         });
 
         $this->writeFrame(Http2Parser::PING, 0, 0, $this->counter++);
