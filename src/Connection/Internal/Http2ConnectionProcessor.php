@@ -113,7 +113,7 @@ final class Http2ConnectionProcessor implements Http2Processor
     /** @var callable[]|null */
     private $onClose = [];
 
-    /** @var int */
+    /** @var bool */
     private $hasTimeout = false;
 
     /** @var bool */
@@ -538,9 +538,9 @@ final class Http2ConnectionProcessor implements Http2Processor
         });
     }
 
-    public function handlePushPromise(int $parentId, int $streamId, array $pseudo, array $headers): void
+    public function handlePushPromise(int $streamId, int $pushId, array $pseudo, array $headers): void
     {
-        if ($streamId % 2 === 1) {
+        if ($pushId % 2 === 1) {
             $this->handleConnectionException(new Http2ConnectionException(
                 "Invalid server initiated stream",
                 Http2Parser::PROTOCOL_ERROR
@@ -553,7 +553,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             if (!isset(Http2Parser::KNOWN_REQUEST_PSEUDO_HEADERS[$name])) {
                 throw new Http2StreamException(
                     "Invalid pseudo header",
-                    $streamId,
+                    $pushId,
                     Http2Parser::PROTOCOL_ERROR
                 );
             }
@@ -566,7 +566,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         ) {
             $this->handleStreamException(new Http2StreamException(
                 "Invalid header values",
-                $streamId,
+                $pushId,
                 Http2Parser::PROTOCOL_ERROR
             ));
 
@@ -582,7 +582,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         if ($method !== 'GET' && $method !== 'HEAD') {
             $this->handleStreamException(new Http2StreamException(
                 "Pushed request method must be a safe method",
-                $streamId,
+                $pushId,
                 Http2Parser::PROTOCOL_ERROR
             ));
 
@@ -592,7 +592,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         if (!\preg_match("#^([A-Z\d.\-]+|\[[\d:]+])(?::([1-9]\d*))?$#i", $host, $matches)) {
             $this->handleStreamException(new Http2StreamException(
                 "Invalid pushed authority (host) name",
-                $streamId,
+                $pushId,
                 Http2Parser::PROTOCOL_ERROR
             ));
 
@@ -602,23 +602,23 @@ final class Http2ConnectionProcessor implements Http2Processor
         $host = $matches[1];
         $port = isset($matches[2]) ? (int) $matches[2] : $this->socket->getRemoteAddress()->getPort();
 
-        if (!isset($this->streams[$parentId])) {
+        if (!isset($this->streams[$streamId])) {
             $this->handleStreamException(new Http2StreamException(
-                "Parent stream {$parentId} is no longer open",
-                $streamId,
+                "Parent stream {$streamId} is no longer open",
+                $pushId,
                 Http2Parser::PROTOCOL_ERROR
             ));
 
             return;
         }
 
-        $parentStream = $this->streams[$parentId];
+        $parentStream = $this->streams[$streamId];
         $parentStream->resetInactivityWatcher();
 
         if (\strcasecmp($host, $parentStream->request->getUri()->getHost()) !== 0) {
             $this->handleStreamException(new Http2StreamException(
                 "Authority does not match original request authority",
-                $streamId,
+                $pushId,
                 Http2Parser::PROTOCOL_ERROR
             ));
 
@@ -661,7 +661,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         $request->setTransferTimeout($parentStream->request->getTransferTimeout());
 
         $stream = new Http2Stream(
-            $streamId,
+            $pushId,
             $request,
             HttpStream::fromStream(
                 $parentStream->stream,
@@ -674,14 +674,14 @@ final class Http2ConnectionProcessor implements Http2Processor
             ),
             $parentStream->cancellationToken,
             $parentStream->originalCancellation,
-            $this->createStreamInactivityWatcher($streamId, $request->getInactivityTimeout()),
+            $this->createStreamInactivityWatcher($pushId, $request->getInactivityTimeout()),
             self::DEFAULT_WINDOW_SIZE,
             0
         );
 
-        $stream->dependency = $parentId;
+        $stream->dependency = $streamId;
 
-        $this->streams[$streamId] = $stream;
+        $this->streams[$pushId] = $stream;
 
         $stream->requestBodyComplete = true;
         $stream->requestBodyCompletion->resolve();
@@ -689,14 +689,14 @@ final class Http2ConnectionProcessor implements Http2Processor
         if ($parentStream->request->getPushHandler() === null) {
             $this->handleStreamException(new Http2StreamException(
                 "Push promise refused",
-                $streamId,
+                $pushId,
                 Http2Parser::CANCEL
             ));
 
             return;
         }
 
-        asyncCall(function () use ($streamId, $stream): \Generator {
+        asyncCall(function () use ($pushId, $stream): \Generator {
             $tokenSource = new CancellationTokenSource;
             $cancellationToken = new CombinedCancellationToken(
                 $stream->cancellationToken,
@@ -705,19 +705,19 @@ final class Http2ConnectionProcessor implements Http2Processor
 
             $cancellationId = $cancellationToken->subscribe(function (
                 CancelledException $exception
-            ) use ($streamId): void {
-                if (!isset($this->streams[$streamId])) {
+            ) use ($pushId): void {
+                if (!isset($this->streams[$pushId])) {
                     return;
                 }
 
                 $this->writeFrame(
                     Http2Parser::RST_STREAM,
                     Http2Parser::NO_FLAG,
-                    $streamId,
+                    $pushId,
                     \pack("N", Http2Parser::CANCEL)
                 );
 
-                $this->releaseStream($streamId, $exception);
+                $this->releaseStream($pushId, $exception);
             });
 
             $onPush = $stream->request->getPushHandler();
@@ -921,7 +921,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         $this->setupPingIfIdle();
 
         // Stream might be cancelled right after body completion
-        if (isset($this->streamId[$streamId])) {
+        if (isset($this->streams[$streamId])) {
             $this->releaseStream($streamId);
         }
     }
@@ -1213,9 +1213,13 @@ final class Http2ConnectionProcessor implements Http2Processor
                 \assert($return === null);
             }
 
+            /**
+             * @psalm-suppress DeprecatedClass
+             * @noinspection PhpDeprecationInspection
+             */
             $this->shutdown(new ClientHttp2ConnectionException(
                 "The HTTP/2 connection closed" . ($this->shutdown !== null ? ' unexpectedly' : ''),
-                $this->shutdown ?? Http2Parser::GRACEFUL_SHUTDOWN,
+                $this->shutdown ?? Http2Parser::GRACEFUL_SHUTDOWN
             ));
 
             $this->close();
@@ -1567,6 +1571,9 @@ final class Http2ConnectionProcessor implements Http2Processor
 
             $deferred = $this->pongDeferred;
             $this->pongDeferred = null;
+
+            \assert($deferred !== null);
+
             $deferred->resolve(false);
 
             // Shutdown connection to stop new requests, but keep it open, as other responses might still arrive
@@ -1579,24 +1586,23 @@ final class Http2ConnectionProcessor implements Http2Processor
     }
 
     /**
-     * @param int|null           $lastId ID of last processed frame. Null to use the last opened frame ID or 0 if no
-     *                                   streams have been opened.
-     * @param HttpException|null $reason
+     * @param HttpException $reason Shutdown reason.
+     * @param int|null      $lastId ID of last processed frame. Null to use the last opened frame ID or 0 if no
+     *                              streams have been opened.
      *
      * @return Promise
      */
     private function shutdown(HttpException $reason, ?int $lastId = null): Promise
     {
         return call(function () use ($lastId, $reason) {
-            $code = $reason ? $reason->getCode() : null;
-            $this->shutdown = $code ?? -1;
+            $code = (int) $reason->getCode();
+            $this->shutdown = $code;
 
             if ($this->settings !== null) {
                 $settings = $this->settings;
                 $this->settings = null;
 
-                $message = "Connection closed before HTTP/2 settings could be received";
-                $settings->fail($reason ?? new UnprocessedRequestException(new SocketException($message)));
+                $settings->fail(new UnprocessedRequestException($reason));
             }
 
             if ($this->streams) {
