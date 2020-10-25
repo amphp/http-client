@@ -1020,13 +1020,15 @@ final class Http2ConnectionProcessor implements Http2Processor
                 $firstChunk = \array_shift($split);
                 $lastChunk = \array_pop($split);
 
-                $this->writeFrame(Http2Parser::HEADERS, Http2Parser::NO_FLAG, $streamId, $firstChunk);
+                // Use async for each write to ensure no other frames are written to the connection.
+                async(fn() => $this->writeFrame(Http2Parser::HEADERS, Http2Parser::NO_FLAG, $streamId, $firstChunk));
 
                 foreach ($split as $headerChunk) {
-                    $this->writeFrame(Http2Parser::CONTINUATION, Http2Parser::NO_FLAG, $streamId, $headerChunk);
+                    async(fn() => $this->writeFrame(Http2Parser::CONTINUATION, Http2Parser::NO_FLAG, $streamId, $headerChunk));
                 }
 
-                $this->writeFrame(Http2Parser::CONTINUATION, $flag, $streamId, $lastChunk);
+                // Use async for last write to keep ordering, but await completion of write.
+                await(async(fn() => $this->writeFrame(Http2Parser::CONTINUATION, $flag, $streamId, $lastChunk)));
             } else {
                 $this->writeFrame(Http2Parser::HEADERS, $flag, $streamId, $headers);
             }
@@ -1134,9 +1136,9 @@ final class Http2ConnectionProcessor implements Http2Processor
             $parser = (new Http2Parser($this))->parse();
 
             while (null !== $chunk = $this->socket->read()) {
-                $return = $parser->send($chunk);
+                $yielded = $parser->send($chunk);
 
-                \assert($return === null);
+                \assert($yielded === null);
             }
 
             $this->shutdown();
