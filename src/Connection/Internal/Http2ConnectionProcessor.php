@@ -716,6 +716,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                     $streamId,
                     \pack("N", Http2Parser::CANCEL)
                 );
+
                 $this->releaseStream($streamId, $exception);
             });
 
@@ -891,12 +892,13 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         \assert($body !== null);
 
-        $body->complete();
 
         $trailers = $stream->trailers;
         $stream->trailers = null;
 
         \assert($trailers !== null);
+
+        $body->complete();
 
         $trailers->resolve(call(function () use ($stream, $streamId) {
             try {
@@ -918,7 +920,10 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         $this->setupPingIfIdle();
 
-        $this->releaseStream($streamId);
+        // Stream might be cancelled right after body completion
+        if (isset($this->streamId[$streamId])) {
+            $this->releaseStream($streamId);
+        }
     }
 
     public function reserveStream(): void
@@ -1700,8 +1705,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
             $this->releaseStream(
                 $streamId,
-                new TimeoutException('Inactivity timeout exceeded, more than '
-                    . $timeout . ' ms elapsed from last data received')
+                new TimeoutException("Inactivity timeout exceeded, more than {$timeout} ms elapsed from last data received")
             );
         });
 
