@@ -188,13 +188,9 @@ final class ConnectionLimitingPool implements ConnectionPool
             }
 
             $deferred = new Deferred;
-            $deferredId = \spl_object_id($deferred);
-
-            $this->waiting[$uri][$deferredId] = $deferred;
             $deferredPromise = $deferred->promise();
-            $deferredPromise->onResolve(function () use ($uri, $deferredId): void {
-                $this->removeWaiting($uri, $deferredId);
-            });
+
+            $this->waiting[$uri][\spl_object_id($deferred)] = $deferred;
 
             if ($this->isAdditionalConnectionAllowed($uri)) {
                 break;
@@ -256,8 +252,8 @@ final class ConnectionLimitingPool implements ConnectionPool
             throw $exception;
         }
 
+        $this->removeWaiting($uri, \spl_object_id($deferred)); // Deferred no longer needed for this request.
         $deferred = null; // Null reference so connection promise handler does not double-resolve the Deferred.
-        $this->removeWaiting($uri, $deferredId); // Deferred no longer needed for this request.
 
         \assert($connection instanceof Connection);
 
@@ -314,7 +310,7 @@ final class ConnectionLimitingPool implements ConnectionPool
         }
 
         $deferred = \reset($this->waiting[$uri]);
-        // Deferred is removed from waiting list in onResolve callback attached above.
+        $this->removeWaiting($uri, \spl_object_id($deferred));
         $deferred->resolve($connection);
     }
 
