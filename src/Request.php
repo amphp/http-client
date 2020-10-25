@@ -192,31 +192,31 @@ final class Request extends Message
     /**
      * Assign a value for the specified header field by replacing any existing values for that field.
      *
-     * @param string          $field Header name.
+     * @param string          $name Header name.
      * @param string|string[] $value Header value.
      */
-    public function setHeader(string $field, $value): void
+    public function setHeader(string $name, $value): void
     {
-        if (($field[0] ?? ":") === ":") {
+        if (($name[0] ?? ":") === ":") {
             throw new \Error("Header name cannot be empty or start with a colon (:)");
         }
 
-        parent::setHeader($field, $value);
+        parent::setHeader($name, $value);
     }
 
     /**
      * Assign a value for the specified header field by adding an additional header line.
      *
-     * @param string          $field Header name.
+     * @param string          $name Header name.
      * @param string|string[] $value Header value.
      */
-    public function addHeader(string $field, $value): void
+    public function addHeader(string $name, $value): void
     {
-        if (($field[0] ?? ":") === ":") {
+        if (($name[0] ?? ":") === ":") {
             throw new \Error("Header name cannot be empty or start with a colon (:)");
         }
 
-        parent::addHeader($field, $value);
+        parent::addHeader($name, $value);
     }
 
     public function setHeaders(array $headers): void
