@@ -282,7 +282,7 @@ class Http2ConnectionTest extends AsyncTestCase
         } catch (TimeoutException $exception) {
             $buffer = yield $server->read();
             $expected = self::packFrame(\pack("N", Http2Parser::CANCEL), Http2Parser::RST_STREAM, Http2Parser::NO_FLAG, 1);
-            $this->assertStringEndsWith($expected, $buffer);
+            $this->assertStringContainsString($expected, $buffer);
         }
     }
 
