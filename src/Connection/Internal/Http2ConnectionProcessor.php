@@ -31,6 +31,7 @@ use Amp\Http\Http2\Http2StreamException;
 use Amp\Http\InvalidHeaderException;
 use Amp\Http\Status;
 use Amp\Loop;
+use Amp\Pipeline;
 use Amp\PipelineSource;
 use Amp\Promise;
 use Amp\Socket\EncryptableSocket;
@@ -104,10 +105,15 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     private int|null $shutdown = null;
 
+    private PipelineSource $frameQueueSource;
+    private Pipeline $frameQueue;
+
     public function __construct(EncryptableSocket $socket)
     {
         $this->socket = $socket;
         $this->hpack = new HPack;
+        $this->frameQueueSource = new PipelineSource;
+        $this->frameQueue = $this->frameQueueSource->pipe();
     }
 
     public function isInitialized(): bool
@@ -1070,14 +1076,13 @@ final class Http2ConnectionProcessor implements Http2Processor
                 $lastChunk = \array_pop($split);
 
                 // Use async for each write to ensure no other frames are written to the connection.
-                async(fn() => $this->writeFrame(Http2Parser::HEADERS, Http2Parser::NO_FLAG, $streamId, $firstChunk));
+                $this->writeFrame(Http2Parser::HEADERS, Http2Parser::NO_FLAG, $streamId, $firstChunk);
 
                 foreach ($split as $headerChunk) {
-                    async(fn() => $this->writeFrame(Http2Parser::CONTINUATION, Http2Parser::NO_FLAG, $streamId, $headerChunk));
+                    $this->writeFrame(Http2Parser::CONTINUATION, Http2Parser::NO_FLAG, $streamId, $headerChunk);
                 }
 
-                // Use async for last write to keep ordering, but await completion of write.
-                await(async(fn() => $this->writeFrame(Http2Parser::CONTINUATION, $flag, $streamId, $lastChunk)));
+                $this->writeFrame(Http2Parser::CONTINUATION, $flag, $streamId, $lastChunk);
             } else {
                 $this->writeFrame(Http2Parser::HEADERS, $flag, $streamId, $headers);
             }
@@ -1181,6 +1186,23 @@ final class Http2ConnectionProcessor implements Http2Processor
                     self::DEFAULT_MAX_FRAME_SIZE
                 )
             );
+        } catch (\Throwable $e) {
+            /**
+             * @psalm-suppress DeprecatedClass
+             * @noinspection PhpDeprecationInspection
+             */
+            $this->shutdown(new ClientHttp2ConnectionException(
+                "The HTTP/2 connection closed" . ($this->shutdown !== null ? ' unexpectedly' : ''),
+                $this->shutdown ?? Http2Parser::GRACEFUL_SHUTDOWN
+            ), 0);
+
+            $this->close();
+
+            return;
+        }
+
+        try {
+            defer(fn() => $this->runWriteThread());
 
             $parser = (new Http2Parser($this))->parse();
 
@@ -1221,15 +1243,13 @@ final class Http2ConnectionProcessor implements Http2Processor
         int $stream = 0,
         string $data = ''
     ): void {
+        if ($this->hasWriteError) {
+            return;
+        }
+
         \assert(Http2Parser::logDebugFrame('send', $type, $flags, $stream, \strlen($data)));
 
-        try {
-            $this->socket->write(\substr(\pack("NccN", \strlen($data), $type, $flags, $stream), 1) . $data);
-        } catch (\Throwable $e) {
-            $this->hasWriteError = true;
-
-            throw $e;
-        }
+        $this->frameQueueSource->emit(\substr(\pack("NccN", \strlen($data), $type, $flags, $stream), 1) . $data);
     }
 
     private function applySetting(int $setting, int $value): void
@@ -1268,7 +1288,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                             try {
                                 $this->writeBufferedData($stream);
                             } catch (\Throwable $exception) {
-                                $this->close();
+                                $this->shutdown(new SocketException('Failed to write to socket'));
                             }
                         }
                     });
@@ -1700,5 +1720,26 @@ final class Http2ConnectionProcessor implements Http2Processor
         Loop::unreference($watcher);
 
         return $watcher;
+    }
+
+    private function runWriteThread(): void
+    {
+        try {
+            while (null !== $frame = $this->frameQueue->continue()) {
+                $this->socket->write($frame);
+            }
+        } catch (\Throwable $exception) {
+            $this->hasWriteError = true;
+
+            /**
+             * @psalm-suppress DeprecatedClass
+             * @noinspection PhpDeprecationInspection
+             */
+            $this->shutdown(new ClientHttp2ConnectionException(
+                "The HTTP/2 connection closed unexpectedly: " . $exception->getMessage(),
+                Http2Parser::INTERNAL_ERROR,
+                $exception
+            ), \max(0, $this->streamId));
+        }
     }
 }
