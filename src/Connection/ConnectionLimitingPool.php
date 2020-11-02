@@ -354,7 +354,10 @@ final class ConnectionLimitingPool implements ConnectionPool
 
     private function dropConnection(string $uri, ?int $connectionId, int $promiseId): void
     {
-        unset($this->connections[$uri][$promiseId], $this->activeRequestCounts[$connectionId], $this->idleConnections[$connectionId]);
+        unset($this->connections[$uri][$promiseId]);
+        if ($connectionId !== null) {
+            unset($this->activeRequestCounts[$connectionId], $this->idleConnections[$connectionId]);
+        }
 
         if ($this->connections[$uri]->count() === 0) {
             unset($this->connections[$uri], $this->waitForPriorConnection[$uri]);

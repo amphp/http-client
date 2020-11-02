@@ -149,8 +149,9 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
             ->method('close')
             ->willReturnCallback(static function () use (&$content, &$closeHandlers, $connection) {
                 $content = 'closed';
-                foreach ($closeHandlers as $closeHandler)
+                foreach ($closeHandlers as $closeHandler) {
                     asyncCall($closeHandler, $connection);
+                }
                 return new Success;
             });
         $connection->method('onClose')
