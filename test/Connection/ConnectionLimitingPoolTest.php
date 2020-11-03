@@ -12,6 +12,8 @@ use Amp\PHPUnit\AsyncTestCase;
 use Amp\Promise;
 use Amp\Socket\SocketAddress;
 use Amp\Success;
+use function Amp\asyncCall;
+use function Amp\call;
 
 class ConnectionLimitingPoolTest extends AsyncTestCase
 {
@@ -110,5 +112,89 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         $this->setTimeout(750);
 
         yield [$client->request($request), $client->request($request)];
+    }
+
+    private function createMockClosableConnection(Request $request): Promise
+    {
+        $content = 'open';
+        $busy = false;
+        $closeHandlers = [];
+
+        $stream = $this->createMock(Stream::class);
+        $stream->method('request')
+            ->willReturnCallback(static function () use (&$content, $request, &$busy) {
+                return call(static function () use (&$content, $request, &$busy) {
+                    // simulate a request taking some time
+                    yield new Delayed(500);
+                    $busy = false;
+                    // we can't pass this as the value to Delayed because we need to capture $content after the delay completes
+                    return new Response('1.1', 200, null, [], new InMemoryStream($content), $request, new Success(new Trailers([])));
+                });
+            });
+        $stream->method('getLocalAddress')
+            ->willReturn(new SocketAddress('127.0.0.1'));
+        $stream->method('getRemoteAddress')
+            ->willReturn(new SocketAddress('127.0.0.1'));
+
+        $connection = $this->createMock(Connection::class);
+        $connection->method('getStream')
+            ->willReturnCallback(static function () use (&$content, $stream, &$busy) {
+                $result = new Delayed(1, $busy ? null : $stream);
+                $busy = true;
+                return $result;
+            });
+        $connection->method('getProtocolVersions')
+            ->willReturn(['1.1', '1.0']);
+        $connection->expects($this->atMost(1))
+            ->method('close')
+            ->willReturnCallback(static function () use (&$content, &$closeHandlers, $connection) {
+                $content = 'closed';
+                foreach ($closeHandlers as $closeHandler) {
+                    asyncCall($closeHandler, $connection);
+                }
+                return new Success;
+            });
+        $connection->method('onClose')
+            ->willReturnCallback(static function (callable $callback) use (&$closeHandlers) {
+                $closeHandlers[] = $callback;
+            });
+
+        return new Delayed(1, $connection);
+    }
+
+    public function testConnectionNotClosedWhileInUse(): \Generator
+    {
+        $request = new Request('http://localhost');
+
+        $factory = $this->createMock(ConnectionFactory::class);
+        $factory->method('create')
+            ->willReturnCallback(function () use ($request) {
+                return $this->createMockClosableConnection($request);
+            });
+
+        $client = (new HttpClientBuilder)
+            ->usingPool(new UnlimitedConnectionPool($factory))
+            ->build();
+
+        // perform some number of requests. because of the delay in creating the connection and the delay in executing
+        // the request, the pool will have to open a new connection for each request.
+        $numRequests = 66;
+        $promises = [];
+        for ($i = 0; $i < $numRequests; $i++) {
+            $promises[] = $client->request($request);
+        }
+        yield $promises;
+
+        // all requests have completed and all connections are now idle. run through the connections again.
+        $promises = [];
+        for ($i = 0; $i < $numRequests; $i++) {
+            $promises[] = $client->request($request);
+        }
+        $responses = yield $promises;
+        foreach ($responses as $response) {
+            $data = yield $response->getBody()->buffer();
+            // if $data === 'closed', the connection was closed before the request completed
+            $this->assertNotSame('closed', $data);
+        }
     }
 }
