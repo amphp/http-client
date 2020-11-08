@@ -798,6 +798,12 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     public function handleData(int $streamId, string $data): void
     {
+        $length = \strlen($data);
+
+        $this->serverWindow -= $length;
+
+        $this->increaseConnectionWindow();
+
         if (!isset($this->streams[$streamId])) {
             return;
         }
@@ -815,9 +821,6 @@ final class Http2ConnectionProcessor implements Http2Processor
             return;
         }
 
-        $length = \strlen($data);
-
-        $this->serverWindow -= $length;
         $stream->serverWindow -= $length;
         $stream->received += $length;
 
@@ -840,8 +843,6 @@ final class Http2ConnectionProcessor implements Http2Processor
 
             return;
         }
-
-        $this->increaseConnectionWindow();
 
         $promise = $stream->body->emit($data);
         $promise->onResolve(function (?\Throwable $exception) use ($streamId): void {
