@@ -859,7 +859,14 @@ final class Http2ConnectionProcessor implements Http2Processor
                 return;
             }
 
-            $this->increaseStreamWindow($this->streams[$streamId]);
+            // Defer prevents sending increments for already closed streams
+            Loop::defer(function () use ($streamId) {
+                if (!isset($this->streams[$streamId])) {
+                    return;
+                }
+
+                $this->increaseStreamWindow($this->streams[$streamId]);
+            });
         });
     }
 
