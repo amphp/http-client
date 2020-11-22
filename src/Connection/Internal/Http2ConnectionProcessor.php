@@ -181,7 +181,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     public function close(): Promise
     {
-        $this->shutdown(new SocketException('Socket to ' . $this->socket->getRemoteAddress() . ' closed'));
+        $this->shutdown(new SocketException('Socket from \'' . $this->socket->getLocalAddress() . '\' to \'' . $this->socket->getRemoteAddress() . '\' closed'));
 
         $this->socket->close();
 
@@ -223,7 +223,8 @@ final class Http2ConnectionProcessor implements Http2Processor
     public function handleShutdown(int $lastId, int $error): void
     {
         $message = \sprintf(
-            "Received GOAWAY frame from %s with error code %d",
+            "Received GOAWAY frame on '%s' from '%s' with error code %d",
+            (string) $this->socket->getLocalAddress(),
             (string) $this->socket->getRemoteAddress(),
             $error
         );
@@ -901,7 +902,6 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         \assert($body !== null);
 
-
         $trailers = $stream->trailers;
         $stream->trailers = null;
 
@@ -963,6 +963,20 @@ final class Http2ConnectionProcessor implements Http2Processor
     public function request(Request $request, CancellationToken $cancellationToken, Stream $stream): Promise
     {
         return call(function () use ($request, $cancellationToken, $stream): \Generator {
+            if ($this->shutdown !== null) {
+                $exception = new UnprocessedRequestException(new SocketException(\sprintf(
+                    "Connection from '%s' to '%s' has already been shut down",
+                    (string) $this->socket->getLocalAddress(),
+                    (string) $this->socket->getRemoteAddress()
+                )));
+
+                foreach ($request->getEventListeners() as $eventListener) {
+                    yield $eventListener->abort($request, $exception);
+                }
+
+                throw $exception;
+            }
+
             if ($this->hasTimeout && !yield $this->ping()) {
                 $exception = new UnprocessedRequestException(
                     new SocketException(\sprintf(
@@ -1229,8 +1243,8 @@ final class Http2ConnectionProcessor implements Http2Processor
              * @noinspection PhpDeprecationInspection
              */
             $this->shutdown(new ClientHttp2ConnectionException(
-                "The HTTP/2 connection closed" . ($this->shutdown !== null ? ' unexpectedly' : ''),
-                $this->shutdown ?? Http2Parser::GRACEFUL_SHUTDOWN
+                "The HTTP/2 connection from '" . $this->socket->getLocalAddress() . "' to '" . $this->socket->getRemoteAddress() . "' closed" . ($this->shutdown === null ? ' unexpectedly' : ''),
+                $this->shutdown ?? Http2Parser::INTERNAL_ERROR
             ));
 
             $this->close();
@@ -1240,7 +1254,7 @@ final class Http2ConnectionProcessor implements Http2Processor
              * @noinspection PhpDeprecationInspection
              */
             $this->shutdown(new ClientHttp2ConnectionException(
-                "The HTTP/2 connection closed unexpectedly: " . $exception->getMessage(),
+                "The HTTP/2 connection from '" . $this->socket->getLocalAddress() . "' to '" . $this->socket->getRemoteAddress() . "' closed unexpectedly: " . $exception->getMessage(),
                 Http2Parser::INTERNAL_ERROR,
                 $exception
             ));
