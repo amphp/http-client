@@ -1201,7 +1201,9 @@ final class Http2ConnectionProcessor implements Http2Processor
                 }
 
                 if ($exception instanceof StreamException) {
-                    $exception = new SocketException('Failed to write request (stream ' . $streamId . ') to socket: ' . $exception->getMessage(), 0, $exception);
+                    $message = 'Failed to write request (stream ' . ($streamId ?? 'not assigned') . ') to socket: ' . $exception->getMessage();
+
+                    $exception = new SocketException($message, 0, $exception);
                 }
 
                 throw $exception;
@@ -1242,6 +1244,10 @@ final class Http2ConnectionProcessor implements Http2Processor
                 )
             );
         } catch (\Throwable $e) {
+            /**
+             * @psalm-suppress DeprecatedClass
+             * @noinspection PhpDeprecationInspection
+             */
             $this->shutdown(new ClientHttp2ConnectionException(
                 'The HTTP/2 connection closed' . ($this->shutdown !== null ? ' unexpectedly' : ''),
                 $this->shutdown ?? Http2Parser::INTERNAL_ERROR
