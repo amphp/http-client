@@ -122,10 +122,18 @@ final class Http2ConnectionProcessor implements Http2Processor
     /** @var int|null */
     private $shutdown;
 
+    /** @var Emitter */
+    private $frameQueueEmitter;
+
+    /** @var Iterator */
+    private $frameQueue;
+
     public function __construct(EncryptableSocket $socket)
     {
         $this->socket = $socket;
         $this->hpack = new HPack;
+        $this->frameQueueEmitter = new Emitter;
+        $this->frameQueue = $this->frameQueueEmitter->iterate();
     }
 
     public function isInitialized(): bool
@@ -1189,6 +1197,8 @@ final class Http2ConnectionProcessor implements Http2Processor
         try {
             yield $this->socket->write(Http2Parser::PREFACE);
 
+            Promise\rethrow(new Coroutine($this->runWriteThread()));
+
             yield $this->writeFrame(
                 Http2Parser::SETTINGS,
                 0,
@@ -1247,15 +1257,7 @@ final class Http2ConnectionProcessor implements Http2Processor
     ): Promise {
         \assert(Http2Parser::logDebugFrame('send', $type, $flags, $stream, \strlen($data)));
 
-        /** @noinspection PhpUnhandledExceptionInspection */
-        $promise = $this->socket->write(\substr(\pack("NccN", \strlen($data), $type, $flags, $stream), 1) . $data);
-        $promise->onResolve(function ($error) {
-            if ($error) {
-                $this->hasWriteError = true;
-            }
-        });
-
-        return $promise;
+        return $this->frameQueueEmitter->emit(\substr(\pack("NccN", \strlen($data), $type, $flags, $stream), 1) . $data);
     }
 
     private function applySetting(int $setting, int $value): void
@@ -1720,5 +1722,26 @@ final class Http2ConnectionProcessor implements Http2Processor
         Loop::unreference($watcher);
 
         return $watcher;
+    }
+
+    private function runWriteThread(): \Generator
+    {
+        try {
+            while (yield $this->frameQueue->advance()) {
+                yield $this->socket->write($this->frameQueue->getCurrent());
+            }
+        } catch (\Throwable $exception) {
+            $this->hasWriteError = true;
+
+            /**
+             * @psalm-suppress DeprecatedClass
+             * @noinspection PhpDeprecationInspection
+             */
+            $this->shutdown(new ClientHttp2ConnectionException(
+                "The HTTP/2 connection closed unexpectedly: " . $exception->getMessage(),
+                Http2Parser::INTERNAL_ERROR,
+                $exception
+            ), \max(0, $this->streamId));
+        }
     }
 }
