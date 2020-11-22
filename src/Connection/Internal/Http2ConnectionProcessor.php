@@ -33,6 +33,7 @@ use Amp\Http\Http2\Http2Processor;
 use Amp\Http\Http2\Http2StreamException;
 use Amp\Http\InvalidHeaderException;
 use Amp\Http\Status;
+use Amp\Iterator;
 use Amp\Loop;
 use Amp\Promise;
 use Amp\Socket\EncryptableSocket;
@@ -1189,7 +1190,9 @@ final class Http2ConnectionProcessor implements Http2Processor
 
                 return yield $responsePromise;
             } catch (\Throwable $exception) {
-                if (isset($this->streams[$streamId])) {
+                if (isset($streamId) && isset($this->streams[$streamId])) {
+                    \assert(isset($http2stream));
+
                     if (!$http2stream->requestBodyComplete) {
                         $http2stream->requestBodyCompletion->fail($exception);
                     }
@@ -1203,7 +1206,9 @@ final class Http2ConnectionProcessor implements Http2Processor
 
                 throw $exception;
             } finally {
-                $cancellationToken->unsubscribe($cancellationId);
+                if (isset($cancellationId)) {
+                    $cancellationToken->unsubscribe($cancellationId);
+                }
             }
         });
     }
