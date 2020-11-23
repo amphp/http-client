@@ -213,18 +213,18 @@ final class ConnectionLimitingPool implements ConnectionPool
 
         $connectionPromise = async(fn() => $this->connectionFactory->create($request, $cancellation));
 
-        $connectionId = \spl_object_id($connectionPromise);
+        $promiseId = \spl_object_id($connectionPromise);
         $this->connections[$uri] = $this->connections[$uri] ?? new \ArrayObject;
-        $this->connections[$uri][$connectionId] = $connectionPromise;
+        $this->connections[$uri][$promiseId] = $connectionPromise;
 
         $connectionPromise->onResolve(function (?\Throwable $exception, ?Connection $connection) use (
             &$deferred,
             $uri,
-            $connectionId,
+            $promiseId,
             $isHttps
         ): void {
             if ($exception) {
-                $this->dropConnection($uri, $connectionId);
+                $this->dropConnection($uri, null, $promiseId);
                 if ($deferred !== null) {
                     $deferred->fail($exception); // Fail Deferred so Promise\first() below fails.
                 }
@@ -233,15 +233,16 @@ final class ConnectionLimitingPool implements ConnectionPool
 
             \assert($connection !== null);
 
+            $connectionId = \spl_object_id($connection);
             $this->openConnectionCount++;
 
             if ($isHttps) {
                 $this->waitForPriorConnection[$uri] = \in_array('2', $connection->getProtocolVersions(), true);
             }
 
-            $connection->onClose(function () use ($uri, $connectionId): void {
+            $connection->onClose(function () use ($uri, $connectionId, $promiseId): void {
                 $this->openConnectionCount--;
-                $this->dropConnection($uri, $connectionId);
+                $this->dropConnection($uri, $connectionId, $promiseId);
             });
         });
 
@@ -297,7 +298,9 @@ final class ConnectionLimitingPool implements ConnectionPool
 
             if ($this->activeRequestCounts[$connectionId] === 0) {
                 while (\count($this->idleConnections) > 64) { // not customizable for now
-                    $idleConnection = \array_shift($this->idleConnections);
+                    $idleConnection = \reset($this->idleConnections);
+                    $key = \key($this->idleConnections);
+                    unset($this->idleConnections[$key]);
                     $idleConnection->close();
                 }
 
@@ -334,9 +337,12 @@ final class ConnectionLimitingPool implements ConnectionPool
         }
     }
 
-    private function dropConnection(string $uri, int $connectionId): void
+    private function dropConnection(string $uri, ?int $connectionId, int $promiseId): void
     {
-        unset($this->connections[$uri][$connectionId], $this->activeRequestCounts[$connectionId], $this->idleConnections[$connectionId]);
+        unset($this->connections[$uri][$promiseId]);
+        if ($connectionId !== null) {
+            unset($this->activeRequestCounts[$connectionId], $this->idleConnections[$connectionId]);
+        }
 
         if ($this->connections[$uri]->count() === 0) {
             unset($this->connections[$uri], $this->waitForPriorConnection[$uri]);

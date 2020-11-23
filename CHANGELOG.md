@@ -1,5 +1,9 @@
 # Changelog
 
+### 4.5.2
+
+ - Fixed `ConnectionLimitingPool` closing non-idle connections (#278)
+
 ### 4.5.1
 
  - Retry idempotent requests on `Http2ConnectionException`

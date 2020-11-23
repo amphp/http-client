@@ -437,6 +437,9 @@ class Http2ConnectionTest extends AsyncTestCase
             [":status", Status::OK],
             ["date", formatDateHeader()],
         ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS, 1));
+
+        delay(10);
+
         $server->write(self::packFrame(\pack("N", 3) . $hpack->encode([
             [":method", 'GET'],
             [":authority", 'localhost'],
@@ -444,12 +447,11 @@ class Http2ConnectionTest extends AsyncTestCase
             [":path", '/static'],
         ]), Http2Parser::PUSH_PROMISE, Http2Parser::END_HEADERS, 1));
 
-        /** @var Response $response */
-        $response = await($promise);
-
         $this->expectException(Http2ConnectionException::class);
         $this->expectExceptionMessage('Invalid server initiated stream');
 
+        /** @var Response $response */
+        $response = await($promise);
         $response->getBody()->buffer();
     }
 
@@ -480,7 +482,8 @@ class Http2ConnectionTest extends AsyncTestCase
         $stream = $connection->getStream($request);
 
         $promise = async(fn() => $stream->request($request, new NullCancellationToken));
-        $data = \substr($server->read(), 24); // cut off the HTTP/2 preface
+        $data = \substr($server->read(), \strlen(Http2Parser::PREFACE)); // cut off the HTTP/2 preface
+        $data .= $server->read(); // Second read for header frame.
         $processor = $this->createMock(Http2Processor::class);
         $expectedPseudo = [
             ':authority' => 'localhost',

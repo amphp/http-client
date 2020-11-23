@@ -9,8 +9,7 @@ use Amp\Http\Client\HttpException;
  */
 final class Http2StreamException extends HttpException
 {
-    /** @var int */
-    private $streamId;
+    private int $streamId;
 
     public function __construct(string $message, int $streamId, int $code, ?\Throwable $previous = null)
     {
