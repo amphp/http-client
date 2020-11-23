@@ -1060,17 +1060,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                     return;
                 }
 
-                $this->writeFrame(
-                    Http2Parser::RST_STREAM,
-                    Http2Parser::NO_FLAG,
-                    $streamId,
-                    \pack("N", Http2Parser::CANCEL)
-                );
-
                 if (!$originalCancellation->isRequested()) {
-                    $this->hasTimeout = true;
-                    $this->ping(); // async ping, if other requests occur, they wait for it
-
                     $exception = new TimeoutException(
                         'Allowed transfer timeout exceeded, took longer than ' . $transferTimeout . ' ms',
                         0,
@@ -1079,6 +1069,18 @@ final class Http2ConnectionProcessor implements Http2Processor
                 }
 
                 $this->releaseStream($streamId, $exception);
+
+                if (!$originalCancellation->isRequested()) {
+                    $this->writeFrame(
+                        Http2Parser::RST_STREAM,
+                        Http2Parser::NO_FLAG,
+                        $streamId,
+                        \pack("N", Http2Parser::CANCEL)
+                    );
+
+                    $this->hasTimeout = true;
+                    $this->ping(); // async ping, if other requests occur, they wait for it
+                }
             });
 
             if (!isset($this->streams[$streamId])) {
