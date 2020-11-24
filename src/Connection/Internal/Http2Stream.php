@@ -52,6 +52,8 @@ final class Http2Stream
 
     public int $clientWindow;
 
+    public int $bufferSize;
+
     public string $requestBodyBuffer = '';
 
     public bool $requestBodyComplete = false;
@@ -91,6 +93,7 @@ final class Http2Stream
         $this->clientWindow = $clientSize;
         $this->pendingResponse = new Deferred;
         $this->requestBodyCompletion = new Deferred;
+        $this->bufferSize = 0;
     }
 
     public function __destruct()
@@ -100,7 +103,16 @@ final class Http2Stream
         }
     }
 
-    public function resetInactivityWatcher(): void
+    public function disableInactivityWatcher(): void
+    {
+        if ($this->watcher === null) {
+            return;
+        }
+
+        Loop::disable($this->watcher);
+    }
+
+    public function enableInactivityWatcher(): void
     {
         if ($this->watcher === null) {
             return;
