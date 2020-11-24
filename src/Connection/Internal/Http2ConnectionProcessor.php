@@ -833,6 +833,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         $stream->serverWindow -= $length;
         $stream->received += $length;
+        $stream->bufferSize += $length;
 
         if ($stream->received >= $stream->request->getBodySizeLimit()) {
             $this->handleStreamException(new Http2StreamException(
@@ -855,16 +856,18 @@ final class Http2ConnectionProcessor implements Http2Processor
         }
 
         $promise = $stream->body->emit($data);
-        $promise->onResolve(function (?\Throwable $exception) use ($streamId): void {
+        $promise->onResolve(function (?\Throwable $exception) use ($streamId, $length): void {
             if ($exception || !isset($this->streams[$streamId])) {
                 return;
             }
 
             // Defer prevents sending increments for already closed streams
-            Loop::defer(function () use ($streamId) {
+            Loop::defer(function () use ($streamId, $length) {
                 if (!isset($this->streams[$streamId])) {
                     return;
                 }
+
+                $this->streams[$streamId]->bufferSize -= $length;
 
                 $this->increaseStreamWindow($this->streams[$streamId]);
             });
@@ -1723,7 +1726,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         $minWindow = \min($stream->request->getBodySizeLimit(), self::MINIMUM_WINDOW);
         $increase = 0;
 
-        while ($stream->serverWindow <= $minWindow) {
+        while (($stream->serverWindow + $stream->bufferSize) <= $minWindow) {
             $stream->serverWindow += self::WINDOW_INCREMENT;
             $increase += self::WINDOW_INCREMENT;
         }
