@@ -124,7 +124,16 @@ final class Http2Stream
         }
     }
 
-    public function resetInactivityWatcher(): void
+    public function disableInactivityWatcher(): void
+    {
+        if ($this->watcher === null) {
+            return;
+        }
+
+        Loop::disable($this->watcher);
+    }
+
+    public function enableInactivityWatcher(): void
     {
         if ($this->watcher === null) {
             return;

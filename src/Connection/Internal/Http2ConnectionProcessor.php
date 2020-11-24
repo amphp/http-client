@@ -303,7 +303,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         }
 
         $stream = $this->streams[$streamId];
-        $stream->resetInactivityWatcher();
+        $stream->enableInactivityWatcher();
 
         $this->hasTimeout = false;
 
@@ -623,7 +623,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         }
 
         $parentStream = $this->streams[$streamId];
-        $parentStream->resetInactivityWatcher();
+        $parentStream->enableInactivityWatcher();
 
         if (\strcasecmp($host, $parentStream->request->getUri()->getHost()) !== 0) {
             $this->handleStreamException(new Http2StreamException(
@@ -819,7 +819,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         }
 
         $stream = $this->streams[$streamId];
-        $stream->resetInactivityWatcher();
+        $stream->disableInactivityWatcher();
 
         if (!$stream->body) {
             $this->handleStreamException(new Http2StreamException(
@@ -868,6 +868,9 @@ final class Http2ConnectionProcessor implements Http2Processor
                 }
 
                 $this->streams[$streamId]->bufferSize -= $length;
+                if ($this->streams[$streamId]->bufferSize === 0) {
+                    $this->streams[$streamId]->enableInactivityWatcher();
+                }
 
                 $this->increaseStreamWindow($this->streams[$streamId]);
             });
@@ -1431,7 +1434,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             }
 
             $stream->requestBodyBuffer = "";
-            $stream->resetInactivityWatcher();
+            $stream->enableInactivityWatcher();
 
             return $promise;
         }
@@ -1467,7 +1470,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             );
 
             $stream->requestBodyBuffer = \substr($data, $windowSize);
-            $stream->resetInactivityWatcher();
+            $stream->enableInactivityWatcher();
 
             return $promise;
         }
