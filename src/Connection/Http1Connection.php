@@ -163,6 +163,7 @@ final class Http1Connection implements Connection
     private function free(): Promise
     {
         $this->socket = null;
+        $this->idleRead = null;
 
         $this->lastUsedAt = 0;
 
