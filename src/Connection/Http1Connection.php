@@ -87,6 +87,9 @@ final class Http1Connection implements Connection
     /** @var TlsInfo|null */
     private $tlsInfo;
 
+    /** @var Promise|null */
+    private $idleRead;
+
     public function __construct(EncryptableSocket $socket, int $timeoutGracePeriod = 2000)
     {
         $this->socket = $socket;
@@ -290,9 +293,11 @@ final class Http1Connection implements Connection
             }
 
             while (null !== $chunk = yield $timeout > 0
-                    ? Promise\timeout($this->socket->read(), $timeout)
-                    : $this->socket->read()
+                    ? Promise\timeout($this->idleRead ?: $this->socket->read(), $timeout)
+                    : ($this->idleRead ?: $this->socket->read())
             ) {
+                $this->idleRead = null;
+
                 parseChunk:
                 $response = $parser->parse($chunk);
                 if ($response === null) {
@@ -445,6 +450,13 @@ final class Http1Connection implements Connection
                         if ($timeout > 0 && $parser->getState() !== Http1Parser::BODY_IDENTITY_EOF) {
                             $this->timeoutWatcher = Loop::delay($timeout * 1000, [$this, 'close']);
                             Loop::unreference($this->timeoutWatcher);
+
+                            $this->idleRead = $this->socket->read();
+                            $this->idleRead->onResolve(function ($error, $chunk) {
+                                if ($error || $chunk === null) {
+                                    $this->close();
+                                }
+                            });
                         } else {
                             $this->close();
                         }
