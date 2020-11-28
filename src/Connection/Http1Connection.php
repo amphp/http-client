@@ -739,6 +739,10 @@ final class Http1Connection implements Connection
 
     private function watchIdleConnection(): void
     {
+        if ($this->socket === null || $this->socket->isClosed()) {
+            return;
+        }
+
         $this->socket->unreference();
 
         $this->idleRead = $this->socket->read();
