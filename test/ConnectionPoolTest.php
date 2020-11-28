@@ -22,7 +22,7 @@ class ConnectionPoolTest extends AsyncTestCase
         $response = yield $this->executeRequest($this->createRequest());
         self::assertSame("hello", yield $response->getBody()->buffer());
 
-        yield delay(2000);
+        yield delay(1000);
 
         /** @var Response $response */
         $response = yield $this->executeRequest($this->createRequest());
@@ -40,30 +40,27 @@ class ConnectionPoolTest extends AsyncTestCase
         }
 
         $this->socket = Socket\Server::listen('127.0.0.1:0');
-        $this->socket->unreference();
 
         asyncCall(function () {
-            yield delay(10);
-
             /** @var Socket\EncryptableSocket $client */
             $client = yield $this->socket->accept();
-            $client->unreference();
 
             yield $client->write("HTTP/1.1 200 OK\r\nconnection: keep-alive\r\ncontent-length: 5\r\n\r\nhello");
+
+            yield delay(500);
+
+            $client->close();
 
             yield delay(1000);
 
-            $client->close();
-
-            yield delay(2000);
-
             /** @var Socket\EncryptableSocket $client */
             $client = yield $this->socket->accept();
-            $client->unreference();
 
             yield $client->write("HTTP/1.1 200 OK\r\nconnection: keep-alive\r\ncontent-length: 5\r\n\r\nhello");
 
             $client->close();
+
+            $this->socket->close();
         });
     }
 
