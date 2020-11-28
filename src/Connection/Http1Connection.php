@@ -98,6 +98,7 @@ final class Http1Connection implements Connection
         $this->tlsInfo = $socket->getTlsInfo();
         $this->timeoutGracePeriod = $timeoutGracePeriod;
         $this->lastUsedAt = getCurrentTime();
+        $this->watchIdleConnection();
     }
 
     public function __destruct()
@@ -451,12 +452,7 @@ final class Http1Connection implements Connection
                             $this->timeoutWatcher = Loop::delay($timeout * 1000, [$this, 'close']);
                             Loop::unreference($this->timeoutWatcher);
 
-                            $this->idleRead = $this->socket->read();
-                            $this->idleRead->onResolve(function ($error, $chunk) {
-                                if ($error || $chunk === null) {
-                                    $this->close();
-                                }
-                            });
+                            $this->watchIdleConnection();
                         } else {
                             $this->close();
                         }
@@ -735,5 +731,15 @@ final class Http1Connection implements Connection
         }
 
         return $header . "\r\n";
+    }
+
+    private function watchIdleConnection(): void
+    {
+        $this->idleRead = $this->socket->read();
+        $this->idleRead->onResolve(function ($error, $chunk) {
+            if ($error || $chunk === null) {
+                $this->close();
+            }
+        });
     }
 }
