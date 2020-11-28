@@ -55,6 +55,8 @@ class ConnectionPoolTest extends AsyncTestCase
 
             $client->close();
 
+            yield delay(2000);
+
             /** @var Socket\EncryptableSocket $client */
             $client = yield $this->socket->accept();
             $client->unreference();

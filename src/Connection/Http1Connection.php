@@ -196,6 +196,10 @@ final class Http1Connection implements Connection
         return call(function () use ($request, $cancellation, $stream) {
             ++$this->requestCounter;
 
+            if ($this->socket !== null && !$this->socket->isClosed()) {
+                $this->socket->reference();
+            }
+
             if ($this->timeoutWatcher !== null) {
                 Loop::cancel($this->timeoutWatcher);
                 $this->timeoutWatcher = null;
@@ -735,6 +739,8 @@ final class Http1Connection implements Connection
 
     private function watchIdleConnection(): void
     {
+        $this->socket->unreference();
+
         $this->idleRead = $this->socket->read();
         $this->idleRead->onResolve(function ($error, $chunk) {
             if ($error || $chunk === null) {
