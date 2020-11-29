@@ -19,13 +19,13 @@ class ConnectionPoolTest extends AsyncTestCase
     public function testConnectionCloseWhileIdle(): \Generator
     {
         /** @var Response $response */
-        $response = yield $this->executeRequest($this->createRequest());
+        $response = yield $this->executeRequest($this->createRequest(1));
         self::assertSame("hello", yield $response->getBody()->buffer());
 
         yield delay(1000);
 
         /** @var Response $response */
-        $response = yield $this->executeRequest($this->createRequest());
+        $response = yield $this->executeRequest($this->createRequest(2));
         self::assertSame("hello", yield $response->getBody()->buffer());
     }
 
@@ -45,6 +45,7 @@ class ConnectionPoolTest extends AsyncTestCase
             /** @var Socket\EncryptableSocket $client */
             $client = yield $this->socket->accept();
 
+            yield $client->read();
             yield $client->write("HTTP/1.1 200 OK\r\nconnection: keep-alive\r\ncontent-length: 5\r\n\r\nhello");
 
             yield delay(500);
@@ -56,9 +57,8 @@ class ConnectionPoolTest extends AsyncTestCase
             /** @var Socket\EncryptableSocket $client */
             $client = yield $this->socket->accept();
 
-            yield $client->write("HTTP/1.1 200 OK\r\nconnection: keep-alive\r\ncontent-length: 5\r\n\r\nhello");
-
-            $client->close();
+            yield $client->read();
+            yield $client->end("HTTP/1.1 200 OK\r\nconnection: keep-alive\r\ncontent-length: 5\r\n\r\nhello");
 
             $this->socket->close();
         });
@@ -69,8 +69,8 @@ class ConnectionPoolTest extends AsyncTestCase
         return $this->client->request($request, $cancellationToken);
     }
 
-    private function createRequest(): Request
+    private function createRequest(int $num): Request
     {
-        return new Request('http://' . $this->socket->getAddress());
+        return new Request('http://' . $this->socket->getAddress() . '/' . $num);
     }
 }
