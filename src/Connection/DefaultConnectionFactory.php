@@ -91,13 +91,12 @@ final class DefaultConnectionFactory implements ConnectionFactory
                 }
 
                 $tlsContext = ($connectContext->getTlsContext() ?? new ClientTlsContext(''))
-                    ->withApplicationLayerProtocols($protocols)
                     ->withPeerCapturing();
 
-                if ($protocols === ['http/1.1']) {
-                    // If we only have HTTP/1.1 available, don't set application layer protocols.
-                    // There are misbehaving sites like n11.com, see https://github.com/amphp/http-client/issues/255
-                    $tlsContext = $tlsContext->withApplicationLayerProtocols([]);
+                // If we only have HTTP/1.1 available, don't set application layer protocols.
+                // There are misbehaving sites like n11.com, see https://github.com/amphp/http-client/issues/255
+                if ($protocols !== ['http/1.1'] && Socket\hasTlsAlpnSupport()) {
+                    $tlsContext = $tlsContext->withApplicationLayerProtocols($protocols);
                 }
 
                 if ($tlsContext->getPeerName() === '') {
