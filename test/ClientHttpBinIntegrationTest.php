@@ -790,7 +790,6 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
             foreach ($chunks as $chunk) {
                 $socket->write($chunk);
                 $delay = asyncValue($delay);
-                $delay->unreference();
                 await($delay);
             };
         };
