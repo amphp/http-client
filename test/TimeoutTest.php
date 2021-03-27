@@ -7,11 +7,11 @@ use Amp\Http\Client\Connection\DefaultConnectionFactory;
 use Amp\Http\Client\Connection\UnlimitedConnectionPool;
 use Amp\Http\Client\Connection\UnprocessedRequestException;
 use Amp\Http\Client\Interceptor\SetRequestTimeout;
-use Amp\Loop;
 use Amp\NullCancellationToken;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Socket;
-use function Amp\defer;
+use Revolt\EventLoop\Loop;
+use function Revolt\EventLoop\defer;
 
 class TimeoutTest extends AsyncTestCase
 {
@@ -143,9 +143,9 @@ class TimeoutTest extends AsyncTestCase
 
             $this->client->request($request);
 
-            $this->fail('No exception thrown');
+            self::fail('No exception thrown');
         } catch (UnprocessedRequestException $e) {
-            $this->assertStringStartsWith('TLS handshake with \'127.0.0.1:', $e->getPrevious()->getMessage());
+            self::assertStringStartsWith('TLS handshake with \'127.0.0.1:', $e->getPrevious()->getMessage());
         } finally {
             $server->close();
         }

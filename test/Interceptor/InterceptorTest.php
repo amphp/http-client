@@ -14,7 +14,6 @@ use Amp\Http\Server\RequestHandler\CallableRequestHandler;
 use Amp\Http\Server\Response;
 use Amp\Http\Server\Server;
 use Amp\Http\Status;
-use Amp\NullCancellationToken;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Socket\Server as SocketServer;
 use Amp\Socket\SocketAddress;

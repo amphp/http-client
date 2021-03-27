@@ -24,7 +24,6 @@ use Amp\Http\Client\SocketException;
 use Amp\Http\Client\TimeoutException;
 use Amp\Http\InvalidHeaderException;
 use Amp\Http\Rfc7230;
-use Amp\Loop;
 use Amp\PipelineSource;
 use Amp\Promise;
 use Amp\Socket\EncryptableSocket;
@@ -33,11 +32,12 @@ use Amp\Socket\TlsInfo;
 use Amp\Success;
 use Amp\TimeoutCancellationToken;
 use Amp\TimeoutException as PromiseTimeoutException;
+use Revolt\EventLoop\Loop;
 use function Amp\async;
 use function Amp\await;
-use function Amp\defer;
-use function Amp\getCurrentTime;
 use function Amp\Http\Client\Internal\normalizeRequestPathWithQuery;
+use function Revolt\EventLoop\defer;
+use function Revolt\EventLoop\getCurrentTime;
 
 /**
  * Socket client implementation.
@@ -279,7 +279,7 @@ final class Http1Connection implements Connection
             }
 
             while (null !== $chunk = $timeout > 0
-                    ? await(Promise\timeout(async(fn() => $this->socket->read()), $timeout))
+                    ? await(Promise\timeout(async(fn () => $this->socket->read()), $timeout))
                     : $this->socket->read()
             ) {
                 parseChunk:
@@ -403,7 +403,7 @@ final class Http1Connection implements Connection
                                         throw new SocketException('Socket closed prior to response completion');
                                     }
                                 } while (null !== $chunk = $timeout > 0
-                                    ? await(Promise\timeout(async(fn() => $this->socket->read()), $timeout))
+                                    ? await(Promise\timeout(async(fn () => $this->socket->read()), $timeout))
                                     : $this->socket->read()
                                 );
                             } catch (PromiseTimeoutException $e) {

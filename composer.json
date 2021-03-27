@@ -27,22 +27,22 @@
     ],
     "require": {
         "php": ">=8",
-        "amphp/amp": "^3-dev",
-        "amphp/byte-stream": "^2-dev",
+        "amphp/amp": "dev-v3-revolt",
+        "amphp/byte-stream": "dev-v2-revolt",
         "amphp/hpack": "^3",
         "amphp/http": "^1.6",
-        "amphp/socket": "^2-dev",
-        "amphp/sync": "^2-dev",
+        "amphp/socket": "dev-v2-revolt",
+        "amphp/sync": "dev-v2-revolt",
         "league/uri": "^6",
         "psr/http-message": "^1"
     },
     "require-dev": {
         "ext-json": "*",
-        "amphp/file": "^3-dev",
-        "amphp/phpunit-util": "^2-dev",
+        "amphp/file": "dev-v3-revolt",
+        "amphp/phpunit-util": "dev-v2-revolt",
         "amphp/php-cs-fixer-config": "dev-master",
         "phpunit/phpunit": "^9",
-        "amphp/http-server": "^3-dev",
+        "amphp/http-server": "dev-v3-revolt",
         "kelunik/link-header-rfc5988": "^1.0",
         "psalm/phar": "^3.9@dev",
         "laminas/laminas-diactoros": "^2.3"
@@ -54,6 +54,12 @@
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "git@github.com:revolt-php/event-loop.git"
+        }
+    ],
     "autoload": {
         "psr-4": {
             "Amp\\Http\\Client\\": "src"

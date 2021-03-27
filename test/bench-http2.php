@@ -1,10 +1,8 @@
 <?php /** @noinspection PhpUnhandledExceptionInspection */
 
-use Amp\Http\Client\Connection\Http2ConnectionException;
-use Amp\Http\Client\Connection\Http2StreamException;
-use Amp\Http\Client\Connection\Internal\Http2Parser;
-use Amp\Http\Client\Connection\Internal\Http2Processor;
-use function Amp\getCurrentTime;
+use Amp\Http\Http2\Http2Parser;
+use Amp\Http\Http2\Http2Processor;
+use function Revolt\EventLoop\getCurrentTime;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -36,7 +34,7 @@ $processor = new class implements Http2Processor {
         // empty stub
     }
 
-    public function handleHeaders(int $streamId, array $pseudo, array $headers): void
+    public function handleHeaders(int $streamId, array $pseudo, array $headers, bool $streamEnded): void
     {
         // empty stub
     }
@@ -56,12 +54,12 @@ $processor = new class implements Http2Processor {
         // empty stub
     }
 
-    public function handleStreamException(Http2StreamException $exception): void
+    public function handleStreamException(\Amp\Http\Http2\Http2StreamException $exception): void
     {
         // empty stub
     }
 
-    public function handleConnectionException(Http2ConnectionException $exception): void
+    public function handleConnectionException(\Amp\Http\Http2\Http2ConnectionException $exception): void
     {
         // empty stub
     }

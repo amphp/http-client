@@ -18,7 +18,7 @@ use Amp\Http\Client\Response;
 use Amp\Http\Message;
 use Amp\Sync\LocalMutex;
 use function Amp\await;
-use function Amp\defer;
+use function Revolt\EventLoop\defer;
 
 final class LogHttpArchive implements ApplicationInterceptor
 {
@@ -168,7 +168,7 @@ final class LogHttpArchive implements ApplicationInterceptor
 
         $response = $httpClient->request($request, $cancellation);
 
-        defer(fn() => $this->writeLog($response));
+        defer(fn () => $this->writeLog($response));
 
         return $response;
     }
@@ -194,7 +194,7 @@ final class LogHttpArchive implements ApplicationInterceptor
     {
         try {
             await($response->getTrailers());
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             // ignore, still log the remaining response times
         }
 
@@ -215,7 +215,6 @@ final class LogHttpArchive implements ApplicationInterceptor
                 $this->fileHandle->seek(-3, \SEEK_CUR);
             }
 
-            /** @noinspection PhpComposerExtensionStubsInspection */
             $json = \json_encode(self::formatEntry($response));
 
             $this->fileHandle->write(($firstEntry ? '' : ',') . $json . ']}}');

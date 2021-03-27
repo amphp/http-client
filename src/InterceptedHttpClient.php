@@ -5,8 +5,6 @@ namespace Amp\Http\Client;
 use Amp\CancellationToken;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
-use Amp\Promise;
-use function Amp\call;
 
 final class InterceptedHttpClient implements DelegateHttpClient
 {
@@ -14,10 +12,10 @@ final class InterceptedHttpClient implements DelegateHttpClient
     use ForbidSerialization;
 
     /** @var DelegateHttpClient */
-    private $httpClient;
+    private DelegateHttpClient $httpClient;
 
     /** @var ApplicationInterceptor */
-    private $interceptor;
+    private ApplicationInterceptor $interceptor;
 
     public function __construct(DelegateHttpClient $httpClient, ApplicationInterceptor $interceptor)
     {

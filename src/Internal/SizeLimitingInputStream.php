@@ -6,7 +6,6 @@ use Amp\ByteStream\InputStream;
 use Amp\Failure;
 use Amp\Http\Client\ParseException;
 use Amp\Http\Status;
-use Amp\Promise;
 
 /** @internal */
 final class SizeLimitingInputStream implements InputStream

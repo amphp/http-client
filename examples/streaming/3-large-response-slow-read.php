@@ -61,8 +61,11 @@ try {
 
         delay(100);
 
-        printf("\33[2K\r%s with peak memory usage of %.2fMB.", formatBytes($bytes),
-            (float) \memory_get_peak_usage(true) / 1024 / 1024);
+        \printf(
+            "\33[2K\r%s with peak memory usage of %.2fMB.",
+            formatBytes($bytes),
+            (float) \memory_get_peak_usage(true) / 1024 / 1024
+        );
     }
 
     $file->close();

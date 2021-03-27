@@ -8,7 +8,6 @@ use Amp\ByteStream\PipelineStream;
 use Amp\CancellationToken;
 use Amp\CancellationTokenSource;
 use Amp\CancelledException;
-use Amp\Delayed;
 use Amp\Http\Client\Body\FileBody;
 use Amp\Http\Client\Body\FormBody;
 use Amp\Http\Client\Connection\UnprocessedRequestException;
@@ -28,10 +27,11 @@ use Amp\Promise;
 use Amp\Socket;
 use Psr\Log\NullLogger;
 use function Amp\async;
+use function Amp\asyncValue;
 use function Amp\await;
-use function Amp\defer;
-use function Amp\delay;
 use function Amp\Pipeline\fromIterable;
+use function Revolt\EventLoop\defer;
+use function Revolt\EventLoop\delay;
 
 class ClientHttpBinIntegrationTest extends AsyncTestCase
 {
@@ -54,7 +54,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $request->setProtocolVersions(["1.0"]);
         $response = $this->executeRequest($request);
 
-        $this->assertSame("", $response->getBody()->buffer());
+        self::assertSame("", $response->getBody()->buffer());
     }
 
     public function testCloseAfterConnect(): void
@@ -135,7 +135,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $response = $this->executeRequest($this->createRequest());
         $response->getBody()->buffer();
 
-        $this->assertSame(['hello world'], $response->getHeaderArray('foo'));
+        self::assertSame(['hello world'], $response->getHeaderArray('foo'));
     }
 
     public function testInvalidHeaders(): void
@@ -153,12 +153,12 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $response = $this->executeRequest(new Request($uri));
 
-        $this->assertInstanceOf(Response::class, $response);
+        self::assertInstanceOf(Response::class, $response);
 
         $body = $response->getBody()->buffer();
         $result = \json_decode($body, true);
 
-        $this->assertSame('amphp/http-client @ v4.x', $result['user-agent']);
+        self::assertSame('amphp/http-client @ v4.x', $result['user-agent']);
     }
 
     public function testDefaultUserAgentCanBeChanged(): void
@@ -169,12 +169,12 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $response = $this->executeRequest(new Request($uri));
 
-        $this->assertInstanceOf(Response::class, $response);
+        self::assertInstanceOf(Response::class, $response);
 
         $body = $response->getBody()->buffer();
         $result = \json_decode($body, true);
 
-        $this->assertSame('amphp/http-client', $result['user-agent']);
+        self::assertSame('amphp/http-client', $result['user-agent']);
     }
 
     public function testHeaderCase(): void
@@ -206,7 +206,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $body = $response->getBody()->buffer();
         $result = \json_decode($body, true);
 
-        $this->assertSame([
+        self::assertSame([
             ['tEst', 'test'],
             ['accept', '*/*'],
             ['user-agent', 'amphp/http-client @ v4.x'],
@@ -228,7 +228,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testGzipBomb(): void
     {
-        $this->markTestSkipped('Run this manually');
+        self::markTestSkipped('Run this manually');
 
         $response = $this->client->request(new Request('https://blog.haschek.at/tools/bomb.php'));
 
@@ -258,12 +258,12 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $response = $this->executeRequest($request);
 
-        $this->assertInstanceOf(Response::class, $response);
+        self::assertInstanceOf(Response::class, $response);
 
         $body = $response->getBody()->buffer();
         $result = \json_decode($body, true);
 
-        $this->assertSame($customUserAgent, $result['user-agent']);
+        self::assertSame($customUserAgent, $result['user-agent']);
     }
 
     public function testPostStringBody(): void
@@ -275,11 +275,11 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $response = $this->executeRequest($request);
 
-        $this->assertInstanceOf(Response::class, $response);
+        self::assertInstanceOf(Response::class, $response);
 
         $result = \json_decode($response->getBody()->buffer(), true);
 
-        $this->assertEquals($body, $result['data']);
+        self::assertEquals($body, $result['data']);
     }
 
     public function testPutStringBody(): void
@@ -292,11 +292,11 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $response = $this->executeRequest($request);
 
-        $this->assertInstanceOf(Response::class, $response);
+        self::assertInstanceOf(Response::class, $response);
 
         $result = \json_decode($response->getBody()->buffer(), true);
 
-        $this->assertEquals($body, $result['data']);
+        self::assertEquals($body, $result['data']);
     }
 
     /**
@@ -310,8 +310,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     {
         $response = $this->executeRequest(new Request("http://httpbin.org/status/{$statusCode}"));
 
-        $this->assertInstanceOf(Response::class, $response);
-        $this->assertEquals($statusCode, $response->getStatus());
+        self::assertInstanceOf(Response::class, $response);
+        self::assertEquals($statusCode, $response->getStatus());
     }
 
     public function provideStatusCodes(): array
@@ -328,12 +328,12 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     {
         $response = $this->executeRequest(new Request("http://httpbin.org/status/418"));
 
-        $this->assertInstanceOf(Response::class, $response);
+        self::assertInstanceOf(Response::class, $response);
 
         $expectedReason = "I'M A TEAPOT";
         $actualReason = $response->getReason();
 
-        $this->assertSame($expectedReason, $actualReason);
+        self::assertSame($expectedReason, $actualReason);
     }
 
     public function testRedirect(): void
@@ -348,9 +348,9 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $response = $this->executeRequest($this->createRequest());
 
-        $this->assertInstanceOf(Response::class, $response);
-        $this->assertSame(302, $response->getStatus());
-        $this->assertSame($response, $response->getOriginalResponse());
+        self::assertInstanceOf(Response::class, $response);
+        self::assertSame(302, $response->getStatus());
+        self::assertSame($response, $response->getOriginalResponse());
     }
 
     public function testRedirectWithFollow(): void
@@ -365,9 +365,9 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $response = $this->executeRequest($this->createRequest());
 
-        $this->assertInstanceOf(Response::class, $response);
-        $this->assertSame(200, $response->getStatus());
-        $this->assertSame(302, $response->getOriginalResponse()->getStatus());
+        self::assertInstanceOf(Response::class, $response);
+        self::assertSame(200, $response->getStatus());
+        self::assertSame(302, $response->getOriginalResponse()->getStatus());
     }
 
     public function testClientAddsZeroContentLengthHeaderForEmptyBodiesOnPost(): void
@@ -379,12 +379,12 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $response = $this->executeRequest($request);
 
-        $this->assertInstanceOf(Response::class, $response);
+        self::assertInstanceOf(Response::class, $response);
 
         $body = $response->getBody()->buffer();
         $result = \json_decode($body, true);
 
-        $this->assertEquals('0', $result['headers']['Content-Length']);
+        self::assertEquals('0', $result['headers']['Content-Length']);
     }
 
     public function testFormEncodedBodyRequest(): void
@@ -400,13 +400,13 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $response = $this->executeRequest($request);
 
-        $this->assertInstanceOf(Response::class, $response);
+        self::assertInstanceOf(Response::class, $response);
 
         $result = \json_decode($response->getBody()->buffer(), true);
 
-        $this->assertEquals($field1, $result['form']['field1']);
-        $this->assertEquals($field2, $result['form']['field2']);
-        $this->assertEquals('application/x-www-form-urlencoded', $result['headers']['Content-Type']);
+        self::assertEquals($field1, $result['form']['field1']);
+        self::assertEquals($field2, $result['form']['field2']);
+        self::assertEquals('application/x-www-form-urlencoded', $result['headers']['Content-Type']);
     }
 
     public function testFileBodyRequest(): void
@@ -421,11 +421,11 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $response = $this->executeRequest($request);
 
-        $this->assertInstanceOf(Response::class, $response);
+        self::assertInstanceOf(Response::class, $response);
 
         $result = \json_decode($response->getBody()->buffer(), true);
 
-        $this->assertStringEqualsFile($bodyPath, $result['data']);
+        self::assertStringEqualsFile($bodyPath, $result['data']);
     }
 
     public function testMultipartBodyRequest(): void
@@ -445,14 +445,14 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $response = $this->executeRequest($request);
 
-        $this->assertEquals(200, $response->getStatus());
+        self::assertEquals(200, $response->getStatus());
 
         $result = \json_decode($response->getBody()->buffer(), true);
 
-        $this->assertEquals($field1, $result['form']['field1']);
-        $this->assertStringEqualsFile($file1, $result['files']['file1']);
-        $this->assertStringEqualsFile($file2, $result['files']['file2']);
-        $this->assertEquals('multipart/form-data; boundary=' . $boundary, $result['headers']['Content-Type']);
+        self::assertEquals($field1, $result['form']['field1']);
+        self::assertStringEqualsFile($file1, $result['files']['file1']);
+        self::assertStringEqualsFile($file2, $result['files']['file2']);
+        self::assertEquals('multipart/form-data; boundary=' . $boundary, $result['headers']['Content-Type']);
     }
 
     /**
@@ -464,12 +464,12 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $response = $this->executeRequest(new Request('http://httpbin.org/gzip'));
 
-        $this->assertEquals(200, $response->getStatus());
+        self::assertEquals(200, $response->getStatus());
 
         $result = \json_decode($response->getBody()->buffer(), true);
 
-        $this->assertTrue($result['gzipped']);
-        $this->assertFalse($response->hasHeader('content-encoding'));
+        self::assertTrue($result['gzipped']);
+        self::assertFalse($response->hasHeader('content-encoding'));
     }
 
     /**
@@ -481,11 +481,11 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $response = $this->executeRequest(new Request('http://httpbin.org/deflate'));
 
-        $this->assertEquals(200, $response->getStatus());
+        self::assertEquals(200, $response->getStatus());
 
         $result = \json_decode($response->getBody()->buffer(), true);
 
-        $this->assertTrue($result['deflated']);
+        self::assertTrue($result['deflated']);
     }
 
     public function testInfiniteRedirect(): void
@@ -611,10 +611,10 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $body = $response->getBody()->buffer();
         $json = \json_decode($body, true);
 
-        $this->assertSame(1, $json['http2']);
-        $this->assertSame('HTTP/2.0', $json['protocol']);
-        $this->assertSame(1, $json['push']);
-        $this->assertSame('2', $response->getProtocolVersion());
+        self::assertSame(1, $json['http2']);
+        self::assertSame('HTTP/2.0', $json['protocol']);
+        self::assertSame(1, $json['push']);
+        self::assertSame('2', $response->getProtocolVersion());
     }
 
     public function testHttp2SupportBody(): void
@@ -626,10 +626,10 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $body = $response->getBody()->buffer();
         $json = \json_decode($body, true);
 
-        $this->assertSame(1, $json['http2']);
-        $this->assertSame('HTTP/2.0', $json['protocol']);
-        $this->assertSame(1, $json['push']);
-        $this->assertSame('2', $response->getProtocolVersion());
+        self::assertSame(1, $json['http2']);
+        self::assertSame('HTTP/2.0', $json['protocol']);
+        self::assertSame(1, $json['push']);
+        self::assertSame('2', $response->getProtocolVersion());
     }
 
     public function testHttp2SupportLargeBody(): void
@@ -641,10 +641,10 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $body = $response->getBody()->buffer();
         $json = \json_decode($body, true);
 
-        $this->assertSame(1, $json['http2']);
-        $this->assertSame('HTTP/2.0', $json['protocol']);
-        $this->assertSame(1, $json['push']);
-        $this->assertSame('2', $response->getProtocolVersion());
+        self::assertSame(1, $json['http2']);
+        self::assertSame('HTTP/2.0', $json['protocol']);
+        self::assertSame(1, $json['push']);
+        self::assertSame('2', $response->getProtocolVersion());
     }
 
     public function testHttp2SupportLargeResponseBody(): void
@@ -656,7 +656,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $response = $this->client->request($request);
         $response->getBody()->buffer();
 
-        $this->assertSame(200, $response->getStatus());
+        self::assertSame(200, $response->getStatus());
     }
 
     public function testConcurrentSlowNetworkInterceptor(): void
@@ -667,8 +667,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         }));
 
         [$response1, $response2] = await([
-            async(fn() => $this->client->request(new Request('https://http2.pro/api/v1'))),
-            async(fn() => $this->client->request(new Request('https://http2.pro/api/v1'))),
+            async(fn () => $this->client->request(new Request('https://http2.pro/api/v1'))),
+            async(fn () => $this->client->request(new Request('https://http2.pro/api/v1'))),
         ]);
 
         $body1 = $response1->getBody()->buffer();
@@ -677,8 +677,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $json1 = \json_decode($body1, true);
         $json2 = \json_decode($body2, true);
 
-        $this->assertSame(1, $json1['http2']);
-        $this->assertSame(1, $json2['http2']);
+        self::assertSame(1, $json1['http2']);
+        self::assertSame(1, $json2['http2']);
     }
 
     public function testHttp2UpgradeResponse(): void
@@ -701,8 +701,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $response = $this->executeRequest($request);
 
-        $this->assertSame(200, $response->getStatus());
-        $this->assertSame('2', $response->getProtocolVersion());
+        self::assertSame(200, $response->getStatus());
+        self::assertSame('2', $response->getProtocolVersion());
     }
 
     public function testHttp2PriorKnowledgeUnsupported(): void
@@ -718,6 +718,17 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         } catch (UnprocessedRequestException $e) {
             throw $e->getPrevious();
         }
+    }
+
+    public function tearDown(): void
+    {
+        parent::tearDown();
+
+        if (!isset($this->httpServer)) {
+            return;
+        }
+
+        $this->httpServer->stop();
     }
 
     protected function setUp(): void
@@ -749,17 +760,6 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         });
     }
 
-    public function tearDown(): void
-    {
-        parent::tearDown();
-
-        if (!isset($this->httpServer)) {
-            return;
-        }
-
-        $this->httpServer->stop();
-    }
-
     private function givenServer(callable $requestHandler): void
     {
         $this->httpServer = new Server([$this->socket], new CallableRequestHandler($requestHandler), new NullLogger);
@@ -789,7 +789,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->responseCallback = static function (Socket\Socket $socket) use ($delay, $chunks): void {
             foreach ($chunks as $chunk) {
                 $socket->write($chunk);
-                $delay = new Delayed($delay);
+                $delay = asyncValue($delay);
                 $delay->unreference();
                 await($delay);
             };

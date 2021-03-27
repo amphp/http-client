@@ -15,7 +15,6 @@ use Amp\Socket\EncryptableSocket;
 use Amp\Socket\ResourceSocket;
 use Amp\Socket\SocketAddress;
 use Clue\React\Socks\Client;
-use React\Socket\Connection;
 use React\Socket\Connector as ReactConnector;
 use function Amp\await;
 use function Amp\Dns\resolve;

@@ -211,7 +211,7 @@ final class ConnectionLimitingPool implements ConnectionPool
 
         $this->totalConnectionAttempts++;
 
-        $connectionPromise = async(fn() => $this->connectionFactory->create($request, $cancellation));
+        $connectionPromise = async(fn () => $this->connectionFactory->create($request, $cancellation));
 
         $promiseId = \spl_object_id($connectionPromise);
         $this->connections[$uri] = $this->connections[$uri] ?? new \ArrayObject;

@@ -30,7 +30,6 @@ use Amp\Http\Http2\Http2Processor;
 use Amp\Http\Http2\Http2StreamException;
 use Amp\Http\InvalidHeaderException;
 use Amp\Http\Status;
-use Amp\Loop;
 use Amp\Pipeline;
 use Amp\PipelineSource;
 use Amp\Promise;
@@ -38,10 +37,11 @@ use Amp\Socket\EncryptableSocket;
 use Amp\Success;
 use Amp\TimeoutCancellationToken;
 use League\Uri;
+use Revolt\EventLoop\Loop;
 use function Amp\async;
 use function Amp\await;
-use function Amp\defer;
 use function Amp\Http\Client\Internal\normalizeRequestPathWithQuery;
+use function Revolt\EventLoop\defer;
 
 /** @internal */
 final class Http2ConnectionProcessor implements Http2Processor
@@ -144,7 +144,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         $this->settings = new Deferred;
         $promise = $this->settings->promise();
 
-        defer(fn() => $this->run());
+        defer(fn () => $this->run());
 
         await($promise);
     }
@@ -512,7 +512,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
             if (!$this->streams[$streamId]->originalCancellation->isRequested()) {
                 $this->hasTimeout = true;
-                async(fn() => $this->ping()); // async ping, if other requests occur, they wait for it
+                async(fn () => $this->ping()); // async ping, if other requests occur, they wait for it
 
                 $transferTimeout = $this->streams[$streamId]->request->getTransferTimeout();
 
@@ -1208,7 +1208,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         try {
             $this->socket->write(Http2Parser::PREFACE);
 
-            defer(fn() => $this->runWriteThread());
+            defer(fn () => $this->runWriteThread());
 
             $this->writeFrame(
                 Http2Parser::SETTINGS,

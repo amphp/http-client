@@ -9,10 +9,10 @@ use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
-use Amp\Loop;
 use Amp\PipelineSource;
 use Amp\Promise;
-use Amp\Struct;
+use Revolt\EventLoop\Internal\Struct;
+use Revolt\EventLoop\Loop;
 
 /**
  * Used in Http2Connection.

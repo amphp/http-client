@@ -22,9 +22,9 @@ use Laminas\Diactoros\Uri as LaminasUri;
 use League\Uri;
 use function Amp\async;
 use function Amp\await;
-use function Amp\defer;
-use function Amp\delay;
 use function Amp\Http\formatDateHeader;
+use function Revolt\EventLoop\defer;
+use function Revolt\EventLoop\delay;
 
 class Http2ConnectionTest extends AsyncTestCase
 {
@@ -67,7 +67,7 @@ class Http2ConnectionTest extends AsyncTestCase
 
         $response = $stream->request($request, new NullCancellationToken);
 
-        $this->assertSame(204, $response->getStatus());
+        self::assertSame(204, $response->getStatus());
     }
 
     public function testSwitchingProtocols(): void
@@ -137,12 +137,12 @@ class Http2ConnectionTest extends AsyncTestCase
 
         $response = $stream->request($request, new NullCancellationToken);
 
-        $this->assertSame(200, $response->getStatus());
+        self::assertSame(200, $response->getStatus());
 
         /** @var Trailers $trailers */
         $trailers = await($response->getTrailers());
 
-        $this->assertSame('bar', $trailers->getHeader('foo'));
+        self::assertSame('bar', $trailers->getHeader('foo'));
     }
 
     public function testTrailersWithoutTrailers(): void
@@ -171,11 +171,11 @@ class Http2ConnectionTest extends AsyncTestCase
 
         $response = $stream->request($request, new NullCancellationToken);
 
-        $this->assertSame(200, $response->getStatus());
+        self::assertSame(200, $response->getStatus());
 
         $trailers = await($response->getTrailers());
 
-        $this->assertSame([], $trailers->getHeaders());
+        self::assertSame([], $trailers->getHeaders());
     }
 
     public function testCancellingWhileStreamingBody(): void
@@ -214,15 +214,15 @@ class Http2ConnectionTest extends AsyncTestCase
 
         $response = $stream->request($request, new TimeoutCancellationToken(500));
 
-        $this->assertSame(200, $response->getStatus());
+        self::assertSame(200, $response->getStatus());
 
         try {
             $response->getBody()->buffer();
-            $this->fail("The request body should have been cancelled");
+            self::fail("The request body should have been cancelled");
         } catch (CancelledException $exception) {
             $buffer = $server->read();
             $expected = self::packFrame(\pack("N", Http2Parser::CANCEL), Http2Parser::RST_STREAM, Http2Parser::NO_FLAG, 1);
-            $this->assertStringEndsWith($expected, $buffer);
+            self::assertStringEndsWith($expected, $buffer);
         }
     }
 
@@ -263,15 +263,15 @@ class Http2ConnectionTest extends AsyncTestCase
 
         $response = $stream->request($request, new NullCancellationToken);
 
-        $this->assertSame(200, $response->getStatus());
+        self::assertSame(200, $response->getStatus());
 
         try {
             $response->getBody()->buffer();
-            $this->fail("The request body should have been cancelled");
+            self::fail("The request body should have been cancelled");
         } catch (TimeoutException $exception) {
             $buffer = $server->read();
             $expected = self::packFrame(\pack("N", Http2Parser::CANCEL), Http2Parser::RST_STREAM, Http2Parser::NO_FLAG, 1);
-            $this->assertStringContainsString($expected, $buffer);
+            self::assertStringContainsString($expected, $buffer);
         }
     }
 
@@ -329,21 +329,21 @@ class Http2ConnectionTest extends AsyncTestCase
 
         $response = $stream->request($request, new TimeoutCancellationToken(500));
 
-        $this->assertSame(200, $response->getStatus());
+        self::assertSame(200, $response->getStatus());
 
-        $this->assertSame('test', $response->getBody()->buffer());
+        self::assertSame('test', $response->getBody()->buffer());
 
-        $this->assertInstanceOf(Promise::class, $pushPromise);
+        self::assertInstanceOf(Promise::class, $pushPromise);
 
         try {
             $response = await($pushPromise);
             \assert($response instanceof Response);
             $response->getBody()->buffer();
-            $this->fail("The push promise body should have been cancelled");
+            self::fail("The push promise body should have been cancelled");
         } catch (CancelledException $exception) {
             $buffer = $server->read();
             $expected = self::packFrame(\pack("N", Http2Parser::CANCEL), Http2Parser::RST_STREAM, Http2Parser::NO_FLAG, 2);
-            $this->assertStringEndsWith($expected, $buffer);
+            self::assertStringEndsWith($expected, $buffer);
         }
     }
 
@@ -384,15 +384,15 @@ class Http2ConnectionTest extends AsyncTestCase
 
         $response = $stream->request($request, new NullCancellationToken);
 
-        $this->assertSame(200, $response->getStatus());
+        self::assertSame(200, $response->getStatus());
 
         try {
             $response->getBody()->buffer();
-            $this->fail("The request body should have been cancelled");
+            self::fail("The request body should have been cancelled");
         } catch (TimeoutException $exception) {
             $buffer = $server->read();
             $expected = self::packFrame(\pack("N", Http2Parser::CANCEL), Http2Parser::RST_STREAM, Http2Parser::NO_FLAG, 1);
-            $this->assertStringEndsWith($expected, $buffer);
+            self::assertStringEndsWith($expected, $buffer);
         }
     }
 
@@ -431,7 +431,7 @@ class Http2ConnectionTest extends AsyncTestCase
 
         $stream = $connection->getStream($request);
 
-        $promise = async(fn() => $stream->request($request, new NullCancellationToken));
+        $promise = async(fn () => $stream->request($request, new NullCancellationToken));
 
         $server->write(self::packFrame($hpack->encode([
             [":status", Status::OK],
@@ -481,7 +481,7 @@ class Http2ConnectionTest extends AsyncTestCase
 
         $stream = $connection->getStream($request);
 
-        $promise = async(fn() => $stream->request($request, new NullCancellationToken));
+        $promise = async(fn () => $stream->request($request, new NullCancellationToken));
         $data = \substr($server->read(), \strlen(Http2Parser::PREFACE)); // cut off the HTTP/2 preface
         $data .= $server->read(); // Second read for header frame.
         $processor = $this->createMock(Http2Processor::class);

@@ -11,8 +11,6 @@ use Amp\Http\Client\Internal\SizeLimitingInputStream;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
-use Amp\Promise;
-use function Amp\call;
 
 final class DecompressResponse implements NetworkInterceptor
 {

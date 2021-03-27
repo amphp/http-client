@@ -10,16 +10,16 @@ use Amp\Http\Client\Request;
 use Amp\Http\Client\RequestBody;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\TimeoutException;
-use Amp\Loop;
 use Amp\NullCancellationToken;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Pipeline;
 use Amp\Socket;
 use Laminas\Diactoros\Uri as LaminasUri;
 use League\Uri;
+use Revolt\EventLoop\Loop;
 use function Amp\async;
 use function Amp\await;
-use function Amp\delay;
+use function Revolt\EventLoop\delay;
 
 class Http1ConnectionTest extends AsyncTestCase
 {
@@ -39,10 +39,10 @@ class Http1ConnectionTest extends AsyncTestCase
         $request->setBody($this->createSlowBody());
 
         $stream = $connection->getStream($request);
-        async(fn() => $stream->request($request, new NullCancellationToken));
+        async(fn () => $stream->request($request, new NullCancellationToken));
         $stream = null; // gc instance
 
-        $this->assertNull($connection->getStream($request));
+        self::assertNull($connection->getStream($request));
     }
 
     public function testConnectionBusyWithoutRequestButNotGarbageCollected(): void
@@ -57,7 +57,7 @@ class Http1ConnectionTest extends AsyncTestCase
         /** @noinspection PhpUnusedLocalVariableInspection */
         $stream = $connection->getStream($request);
 
-        $this->assertNull($connection->getStream($request));
+        self::assertNull($connection->getStream($request));
     }
 
     public function testConnectionNotBusyWithoutRequestGarbageCollected(): void
@@ -76,7 +76,7 @@ class Http1ConnectionTest extends AsyncTestCase
 
         delay(0); // required to clear instance in coroutine :-(
 
-        $this->assertNotNull($connection->getStream($request));
+        self::assertNotNull($connection->getStream($request));
     }
 
     public function test100Continue(): void
@@ -94,8 +94,8 @@ class Http1ConnectionTest extends AsyncTestCase
 
         $response = $stream->request($request, new NullCancellationToken);
 
-        $this->assertSame(204, $response->getStatus());
-        $this->assertSame('Nothing to send', $response->getReason());
+        self::assertSame(204, $response->getStatus());
+        self::assertSame('Nothing to send', $response->getReason());
 
         $connection->close();
         $server->close();
@@ -132,10 +132,10 @@ class Http1ConnectionTest extends AsyncTestCase
 
         delay(0);
 
-        $this->assertTrue($invoked);
-        $this->assertSame(101, $response->getStatus());
-        $this->assertSame('Switching Protocols', $response->getReason());
-        $this->assertSame([], await($response->getTrailers())->getHeaders());
+        self::assertTrue($invoked);
+        self::assertSame(101, $response->getStatus());
+        self::assertSame('Switching Protocols', $response->getReason());
+        self::assertSame([], await($response->getTrailers())->getHeaders());
     }
 
     public function testTransferTimeout(): void
@@ -156,13 +156,13 @@ class Http1ConnectionTest extends AsyncTestCase
 
         $response = $stream->request($request, new NullCancellationToken);
 
-        $this->assertSame(200, $response->getStatus());
+        self::assertSame(200, $response->getStatus());
 
         try {
             $response->getBody()->buffer();
-            $this->fail("The request should have timed out");
+            self::fail("The request should have timed out");
         } catch (TimeoutException $exception) {
-            $this->assertStringContainsString('transfer timeout', $exception->getMessage());
+            self::assertStringContainsString('transfer timeout', $exception->getMessage());
         }
     }
 
@@ -192,13 +192,13 @@ class Http1ConnectionTest extends AsyncTestCase
 
         $response = $stream->request($request, new NullCancellationToken);
 
-        $this->assertSame(200, $response->getStatus());
+        self::assertSame(200, $response->getStatus());
 
         try {
             $response->getBody()->buffer();
-            $this->fail("The request should have timed out");
+            self::fail("The request should have timed out");
         } catch (TimeoutException $exception) {
-            $this->assertStringContainsString('Inactivity timeout', $exception->getMessage());
+            self::assertStringContainsString('Inactivity timeout', $exception->getMessage());
         }
     }
 
@@ -238,7 +238,7 @@ class Http1ConnectionTest extends AsyncTestCase
 
         $stream = $connection->getStream($request);
 
-        $promise = async(fn() => $stream->request($request, new NullCancellationToken));
+        $promise = async(fn () => $stream->request($request, new NullCancellationToken));
         $startLine = \explode("\r\n", $server->read())[0] ?? null;
         self::assertSame("GET {$expectedPath} HTTP/1.1", $startLine);
 
