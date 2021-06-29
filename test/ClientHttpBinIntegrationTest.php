@@ -702,7 +702,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     public function testConcurrentSlowNetworkInterceptor(): \Generator
     {
         $this->givenNetworkInterceptor(new ModifyRequest(static function (Request $request) {
-            yield delay(3000);
+            yield delay(2000);
 
             return $request;
         }));
