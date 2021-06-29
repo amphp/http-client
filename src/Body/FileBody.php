@@ -8,8 +8,10 @@ use Amp\Http\Client\RequestBody;
 use Amp\Promise;
 use Amp\Success;
 use function Amp\call;
+use function Amp\File\open;
 use function Amp\File\openFile;
 use function Amp\File\getSize;
+use function Amp\File\size;
 
 final class FileBody implements RequestBody
 {
@@ -30,7 +32,9 @@ final class FileBody implements RequestBody
 
     public function createBodyStream(): InputStream
     {
-        $handlePromise = openFile($this->path, "r");
+        $handlePromise = \function_exists('Amp\File\openFile')
+            ? openFile($this->path, "r")
+            : open($this->path, "r");
 
         return new class($handlePromise) implements InputStream {
             /** @var Promise<InputStream> */
@@ -73,6 +77,8 @@ final class FileBody implements RequestBody
 
     public function getBodyLength(): Promise
     {
-        return getSize($this->path);
+        return \function_exists('Amp\File\getSize')
+            ? getSize($this->path)
+            : size($this->path);
     }
 }

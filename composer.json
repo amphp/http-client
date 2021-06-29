@@ -38,7 +38,7 @@
     },
     "require-dev": {
         "ext-json": "*",
-        "amphp/file": "^2",
+        "amphp/file": "^0.2 || ^0.3 || ^1 || ^2",
         "amphp/phpunit-util": "^1.1",
         "amphp/php-cs-fixer-config": "dev-master",
         "phpunit/phpunit": "^7 || ^8 || ^9",
@@ -68,7 +68,7 @@
         }
     },
     "conflict": {
-        "amphp/file": "<2 || >=3"
+        "amphp/file": "<0.2 || >=3"
     },
     "scripts": {
         "check": [
