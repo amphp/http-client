@@ -1,7 +1,6 @@
 <?php
 
 use Amp\File\File;
-use Amp\File\StatCache;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
@@ -62,7 +61,7 @@ Loop::run(static function (): \Generator {
         $path = \tempnam(\sys_get_temp_dir(), "artax-streaming-");
 
         /** @var File $file */
-        $file = yield Amp\File\open($path, "w");
+        $file = yield Amp\File\openFile($path, "w");
 
         $bytes = 0;
 
@@ -85,9 +84,7 @@ Loop::run(static function (): \Generator {
             (float) \memory_get_peak_usage(true) / 1024 / 1024
         );
 
-        // We need to clear the stat cache, as we have just written to the file
-        StatCache::clear($path);
-        $size = yield Amp\File\size($path);
+        $size = yield Amp\File\getSize($path);
 
         print \sprintf("%s has a size of %.2fMB\r\n", $path, (float) $size / 1024 / 1024);
     } catch (HttpException $error) {

@@ -212,7 +212,9 @@ final class LogHttpArchive implements ApplicationInterceptor
                 $firstEntry = $this->fileHandle === null;
 
                 if ($firstEntry) {
-                    $this->fileHandle = yield File\open($this->filePath, 'w');
+                    $this->fileHandle = yield \function_exists('Amp\File\openFile')
+                        ? File\openFile($this->filePath, 'w')
+                        : File\open($this->filePath, 'w');
 
                     $header = '{"log":{"version":"1.2","creator":{"name":"amphp/http-client","version":"4.x"},"pages":[],"entries":[';
 
