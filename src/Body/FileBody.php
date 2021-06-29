@@ -8,9 +8,9 @@ use Amp\Http\Client\RequestBody;
 use Amp\Promise;
 use Amp\Success;
 use function Amp\call;
+use function Amp\File\getSize;
 use function Amp\File\open;
 use function Amp\File\openFile;
-use function Amp\File\getSize;
 use function Amp\File\size;
 
 final class FileBody implements RequestBody
