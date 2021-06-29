@@ -1123,6 +1123,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
                 $headers = $this->hpack->encode($headers);
                 if (\strlen($headers) > $this->frameSizeLimit) {
+                    /** @var string[] $split */
                     $split = \str_split($headers, $this->frameSizeLimit);
 
                     $firstChunk = \array_shift($split);
@@ -1409,6 +1410,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             $stream->clientWindow -= $length;
 
             if ($length > $this->frameSizeLimit) {
+                /** @var string[] $chunks */
                 $chunks = \str_split($stream->requestBodyBuffer, $this->frameSizeLimit);
                 $stream->requestBodyBuffer = \array_pop($chunks);
 

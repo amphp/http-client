@@ -88,12 +88,12 @@ final class UpgradedSocket implements EncryptableSocket
         return $this->socket->getRemoteAddress();
     }
 
-    public function setupTls(?CancellationToken $token = null): Promise
+    public function setupTls(?CancellationToken $cancellationToken = null): Promise
     {
-        return $this->socket->setupTls($token);
+        return $this->socket->setupTls($cancellationToken);
     }
 
-    public function shutdownTls(?CancellationToken $token = null): Promise
+    public function shutdownTls(?CancellationToken $cancellationToken = null): Promise
     {
         return $this->socket->shutdownTls();
     }

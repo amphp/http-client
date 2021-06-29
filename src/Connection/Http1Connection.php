@@ -494,7 +494,7 @@ final class Http1Connection implements Connection
             throw new SocketException(\sprintf(
                 "Receiving the response headers for '%s' failed, because the socket to '%s' @ '%s' closed early with %d bytes received within %d milliseconds",
                 (string) $request->getUri()->withUserInfo(''),
-                (string) $request->getUri()->withUserInfo('')->getAuthority(),
+                $request->getUri()->withUserInfo('')->getAuthority(),
                 $this->socket === null ? '???' : (string) $this->socket->getRemoteAddress(),
                 \strlen($parser->getBuffer()),
                 getCurrentTime() - $start

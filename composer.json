@@ -46,7 +46,7 @@
         "kelunik/link-header-rfc5988": "^1.0",
         "clue/socks-react": "^1.0",
         "amphp/react-adapter": "^2.1",
-        "vimeo/psalm": "^3.9@dev",
+        "vimeo/psalm": "^4",
         "laminas/laminas-diactoros": "^2.3"
     },
     "suggest": {

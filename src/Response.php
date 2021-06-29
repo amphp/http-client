@@ -206,11 +206,11 @@ final class Response extends Message
     /**
      * Remove the specified header field from the message.
      *
-     * @param string $field Header name.
+     * @param string $name Header name.
      */
-    public function removeHeader(string $field): void
+    public function removeHeader(string $name): void
     {
-        parent::removeHeader($field);
+        parent::removeHeader($name);
     }
 
     /**
