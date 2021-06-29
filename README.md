@@ -1,9 +1,5 @@
 <h1 align="center"><img src="https://raw.githubusercontent.com/amphp/logo/master/repos/http-client.png?v=05-11-2019" alt="HTTP Client" width="350"></h1>
 
-[![Build Status](https://img.shields.io/travis/amphp/http-client/master.svg?style=flat-square)](https://travis-ci.org/amphp/http-client)
-[![CoverageStatus](https://img.shields.io/coveralls/amphp/http-client/master.svg?style=flat-square)](https://coveralls.io/github/amphp/http-client?branch=master)
-![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)
-
 This package provides an asynchronous HTTP client for PHP based on [Amp](https://github.com/amphp/amp). Its API simplifies standards-compliant HTTP resource traversal and RESTful web service consumption without obscuring the underlying protocol. The library manually implements HTTP over TCP sockets; as such it has no dependency on `ext/curl`.
 
 ## Features
