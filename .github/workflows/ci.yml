@@ -91,7 +91,7 @@ jobs:
         run: vendor/bin/psalm
 
       - name: Install composer-require-checker
-        run: php -r 'file_put_contents("composer-require-checker.phar", file_get_contents("https://github.com/maglnet/ComposerRequireChecker/releases/download/${{ matrix.composer-require-checker-version }}/composer-require-checker.phar"));'
+        run: php -r 'file_put_contents(\'composer-require-checker.phar\', file_get_contents(\'https://github.com/maglnet/ComposerRequireChecker/releases/download/${{ matrix.composer-require-checker-version }}/composer-require-checker.phar\'));'
 
       - name: Run composer-require-checker
         run: php composer-require-checker.phar check composer.json --config-file $PWD/composer-require-check.json
