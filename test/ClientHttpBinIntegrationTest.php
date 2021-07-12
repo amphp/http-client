@@ -18,6 +18,7 @@ use Amp\Http\Client\Interceptor\TooManyRedirectsException;
 use Amp\Http\Cookie\RequestCookie;
 use Amp\Http\Cookie\ResponseCookie;
 use Amp\Http\Rfc7230;
+use Amp\Http\Server\Options;
 use Amp\Http\Server\Request as ServerRequest;
 use Amp\Http\Server\RequestHandler\CallableRequestHandler;
 use Amp\Http\Server\Response as ServerResponse;
@@ -367,6 +368,26 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $actualReason = $response->getReason();
 
         $this->assertSame($expectedReason, $actualReason);
+    }
+
+    public function testHttp2TeHeader(): \Generator
+    {
+        $this->client = $this->builder->followRedirects(0)->build();
+
+        $this->givenServer(static function () {
+            return new ServerResponse(200);
+        });
+
+        $request = $this->createRequest();
+        $request->setProtocolVersions(['2']);
+        $request->setHeader('te', 'gzip');
+
+        /** @var Response $response */
+        $response = yield $this->executeRequest($request);
+
+        $this->assertInstanceOf(Response::class, $response);
+        $this->assertSame(200, $response->getStatus());
+        $this->assertSame($response, $response->getOriginalResponse());
     }
 
     public function testRedirect(): \Generator
@@ -802,7 +823,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     private function givenServer(callable $requestHandler): void
     {
-        $this->httpServer = new Server([$this->socket], new CallableRequestHandler($requestHandler), new NullLogger);
+        $this->httpServer = new Server([$this->socket], new CallableRequestHandler($requestHandler), new NullLogger, (new Options)->withHttp2Upgrade());
         $this->httpServer->start();
     }
 
