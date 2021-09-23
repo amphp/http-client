@@ -44,7 +44,7 @@
         "phpunit/phpunit": "^9",
         "amphp/http-server": "dev-v3-revolt",
         "kelunik/link-header-rfc5988": "^1.0",
-        "psalm/phar": "^3.9@dev",
+        "psalm/phar": "^4.7",
         "laminas/laminas-diactoros": "^2.3"
     },
     "suggest": {
@@ -57,7 +57,7 @@
     "repositories": [
         {
             "type": "vcs",
-            "url": "git@github.com:revolt-php/event-loop.git"
+            "url": "git@github.com:revoltphp/event-loop.git"
         }
     ],
     "autoload": {

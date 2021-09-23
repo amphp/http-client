@@ -1681,6 +1681,10 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         foreach ($request->getHeaders() as $field => $values) {
             foreach ($values as $value) {
+                if ($field === 'te' && $value !== 'trailers') {
+                    continue;
+                }
+
                 $headers[] = [$field, $value];
             }
         }

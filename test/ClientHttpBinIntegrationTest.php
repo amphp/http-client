@@ -336,6 +336,26 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         self::assertSame($expectedReason, $actualReason);
     }
 
+    public function testHttp2TeHeader(): void
+    {
+        $this->client = $this->builder->followRedirects(0)->build();
+
+        $this->givenServer(static function () {
+            return new ServerResponse(200);
+        });
+
+        $request = $this->createRequest();
+        $request->setProtocolVersions(['2']);
+        $request->setHeader('te', 'gzip');
+
+        /** @var Response $response */
+        $response = $this->executeRequest($request);
+
+        $this->assertInstanceOf(Response::class, $response);
+        $this->assertSame(200, $response->getStatus());
+        $this->assertSame($response, $response->getOriginalResponse());
+    }
+
     public function testRedirect(): void
     {
         $this->client = $this->builder->followRedirects(0)->build();
@@ -661,8 +681,9 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testConcurrentSlowNetworkInterceptor(): void
     {
-        $this->givenNetworkInterceptor(new ModifyRequest(static function (Request $request): Request {
-            delay(3000);
+        $this->givenNetworkInterceptor(new ModifyRequest(static function (Request $request) {
+            yield delay(2000);
+
             return $request;
         }));
 
@@ -762,7 +783,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     private function givenServer(callable $requestHandler): void
     {
-        $this->httpServer = new Server([$this->socket], new CallableRequestHandler($requestHandler), new NullLogger);
+        $this->httpServer = new Server([$this->socket], new CallableRequestHandler($requestHandler), new NullLogger, (new Options)->withHttp2Upgrade());
         $this->httpServer->start();
     }
 

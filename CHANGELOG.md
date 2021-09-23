@@ -1,5 +1,29 @@
 # Changelog
 
+## 4.6.0
+
+ - Add support for `amphp/file` v2 (#295)
+ - Fix some parameter names not aligning with parent classes / interfaces.
+
+### 4.5.5
+
+ - Fixed ALPN setting if unsupported (#283)
+
+### 4.5.4
+
+ - Avoid increasing HTTP/2 window size if too many bytes are buffered locally, avoiding exploding buffers if the consumer is slow.
+ - Fix inactivity timeout on HTTP/2 with slow consumers.
+   Slowly reading the response shouldn't result in inactivity timeouts if the server is responsive.
+ - Check for HTTP/1 connection closing while idle (#279)
+
+### 4.5.3
+
+ - Account for server window changes when discarding data frames
+   If streams are cancelled, this might result in hanging connections, because the client thinks the server window is still large enough and doesn't increase it.
+ - Fixed potential state synchronization errors with async event listeners
+ - Write stream window increments asynchronously, avoiding increments for already closed streams
+ - Improved exception messages
+
 ### 4.5.2
 
  - Fixed `ConnectionLimitingPool` closing non-idle connections (#278)

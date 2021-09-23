@@ -20,9 +20,10 @@ $promises = [];
 $urls = ['https://github.com/', 'https://google.com/', 'https://amphp.org/http-client'];
 foreach ($urls as $url) {
     $promises[$url] = Amp\call(static function () use ($client, $url) {
+        $request = new Request($url);
         // "yield" inside a coroutine awaits the resolution of the promise
         // returned from Client::request(). The generator is then continued.
-        $response = yield $client->request($url);
+        $response = yield $client->request($request);
 
         // Same for the body here.
         $body = yield $response->getBody()->buffer();
