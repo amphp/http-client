@@ -1,5 +1,13 @@
 # Changelog
 
+### 4.6.2
+
+ - Fixed `setBodySizeLimit(0)` with HTTP/2 protocol (#297)
+
+### 4.6.1
+
+ - Fixed `te` request header fields being sent via HTTP/2 instead of being stripped (unless the value is `trailers`)
+
 ## 4.6.0
 
  - Add support for `amphp/file` v2 (#295)
