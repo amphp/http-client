@@ -835,7 +835,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         $stream->received += $length;
         $stream->bufferSize += $length;
 
-        if ($stream->received >= $stream->request->getBodySizeLimit()) {
+        if ($stream->request->getBodySizeLimit() > 0 && $stream->received >= $stream->request->getBodySizeLimit()) {
             $this->handleStreamException(new Http2StreamException(
                 "Body size limit exceeded",
                 $streamId,
