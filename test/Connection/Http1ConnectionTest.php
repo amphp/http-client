@@ -165,7 +165,7 @@ class Http1ConnectionTest extends AsyncTestCase
     public function testInactivityTimeout(): \Generator
     {
         $this->setMinimumRuntime(500);
-        $this->setTimeout(1000);
+        $this->setTimeout(1500);
 
         [$server, $client] = Socket\createPair();
 
@@ -183,7 +183,7 @@ class Http1ConnectionTest extends AsyncTestCase
             $server->write("test"); // Still missing 4 bytes from the body
         }));
 
-        Loop::unreference(Loop::delay(1000, function () use ($server) {
+        Loop::unreference(Loop::delay(1250, function () use ($server) {
             $server->write("test"); // Request should timeout before this is called
         }));
 
