@@ -1,12 +1,12 @@
 <?php
 
-use Amp\AsyncGenerator;
+use Amp\Future;
 use Amp\Http\Client\HttpClient;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\Request;
-use Amp\Pipeline;
-use function Amp\async;
-use function Amp\await;
+use Amp\Pipeline\AsyncGenerator;
+use Amp\Pipeline\Pipeline;
+use function Amp\coroutine;
 use function Amp\delay;
 use function Kelunik\LinkHeaderRfc5988\parseLinks;
 
@@ -43,8 +43,8 @@ class GitHubApi
                 $next = $links->getByRel('next');
 
                 if ($next) {
-                    print 'Waiting 1000 ms before next request...' . PHP_EOL;
-                    delay(1000);
+                    print 'Waiting 1 s before next request...' . PHP_EOL;
+                    delay(1);
 
                     $url = $next->getUri();
                 }
@@ -58,9 +58,9 @@ $github = new GitHubApi($httpClient);
 
 $eventBatches = $github->getEvents('amphp');
 while ($events = $eventBatches->continue()) {
-    $promises = [];
+    $futures = [];
     foreach ($events as $event) {
-        $promises[] = async(static function () use ($event): void {
+        $futures[] = coroutine(static function () use ($event): void {
             // do something with $event, we just fake some delay here
             delay(\random_int(1, 100));
 
@@ -68,5 +68,5 @@ while ($events = $eventBatches->continue()) {
         });
     }
 
-    await($promises);
+    Future\all($futures);
 }

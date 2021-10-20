@@ -24,20 +24,16 @@ use Amp\Http\Client\SocketException;
 use Amp\Http\Client\TimeoutException;
 use Amp\Http\InvalidHeaderException;
 use Amp\Http\Rfc7230;
-use Amp\PipelineSource;
-use Amp\Promise;
+use Amp\Pipeline\Subject;
 use Amp\Socket\EncryptableSocket;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
-use Amp\Success;
 use Amp\TimeoutCancellationToken;
 use Amp\TimeoutException as PromiseTimeoutException;
-use Revolt\EventLoop\Loop;
-use function Amp\async;
-use function Amp\await;
+use Revolt\EventLoop;
+use function Amp\coroutine;
 use function Amp\Http\Client\Internal\normalizeRequestPathWithQuery;
-use function Revolt\EventLoop\defer;
-use function Revolt\EventLoop\getCurrentTime;
+use function Revolt\now;
 
 /**
  * Socket client implementation.
@@ -68,9 +64,9 @@ final class Http1Connection implements Connection
     /** @var callable[]|null */
     private ?array $onClose = [];
 
-    private int $timeoutGracePeriod;
+    private float $timeoutGracePeriod;
 
-    private int $lastUsedAt;
+    private float $lastUsedAt;
 
     private bool $explicitTimeout = false;
 
@@ -80,14 +76,14 @@ final class Http1Connection implements Connection
 
     private ?TlsInfo $tlsInfo;
 
-    public function __construct(EncryptableSocket $socket, int $timeoutGracePeriod = 2000)
+    public function __construct(EncryptableSocket $socket, float $timeoutGracePeriod = 2)
     {
         $this->socket = $socket;
         $this->localAddress = $socket->getLocalAddress();
         $this->remoteAddress = $socket->getRemoteAddress();
         $this->tlsInfo = $socket->getTlsInfo();
         $this->timeoutGracePeriod = $timeoutGracePeriod;
-        $this->lastUsedAt = getCurrentTime();
+        $this->lastUsedAt = now();
     }
 
     public function __destruct()
@@ -98,7 +94,7 @@ final class Http1Connection implements Connection
     public function onClose(callable $onClose): void
     {
         if (!$this->socket || $this->socket->isClosed()) {
-            defer($onClose, $this);
+            EventLoop::defer(fn () => $onClose($this));
             return;
         }
 
@@ -156,7 +152,7 @@ final class Http1Connection implements Connection
         $this->lastUsedAt = 0;
 
         if ($this->timeoutWatcher !== null) {
-            Loop::cancel($this->timeoutWatcher);
+            EventLoop::cancel($this->timeoutWatcher);
         }
 
         if ($this->onClose !== null) {
@@ -164,7 +160,7 @@ final class Http1Connection implements Connection
             $this->onClose = null;
 
             foreach ($onClose as $callback) {
-                defer($callback, $this);
+                EventLoop::defer(fn () => $callback($this));
             }
         }
     }
@@ -183,7 +179,7 @@ final class Http1Connection implements Connection
         ++$this->requestCounter;
 
         if ($this->timeoutWatcher !== null) {
-            Loop::cancel($this->timeoutWatcher);
+            EventLoop::cancel($this->timeoutWatcher);
             $this->timeoutWatcher = null;
         }
 
@@ -254,14 +250,11 @@ final class Http1Connection implements Connection
         CancellationToken $readingCancellation,
         Stream $stream
     ): Response {
-        $bodyEmitter = new PipelineSource;
-
-        $backpressure = new Success;
-        $bodyCallback = static function ($data) use ($bodyEmitter, &$backpressure): void {
-            $backpressure = $bodyEmitter->emit($data);
-        };
+        $bodyEmitter = new Subject();
+        $bodyCallback = static fn (string $data) => $bodyEmitter->emit($data)->ignore();
 
         $trailersDeferred = new Deferred;
+        $trailersDeferred->getFuture()->ignore();
 
         $trailers = [];
         $trailersCallback = static function (array $headers) use (&$trailers): void {
@@ -270,7 +263,7 @@ final class Http1Connection implements Connection
 
         $parser = new Http1Parser($request, $bodyCallback, $trailersCallback);
 
-        $start = getCurrentTime();
+        $start = now();
         $timeout = $request->getInactivityTimeout();
 
         try {
@@ -279,7 +272,8 @@ final class Http1Connection implements Connection
             }
 
             while (null !== $chunk = $timeout > 0
-                    ? await(Promise\timeout(async(fn () => $this->socket->read()), $timeout))
+                    ? coroutine(fn () => $this->socket->read())
+                        ->await(new TimeoutCancellationToken($timeout))
                     : $this->socket->read()
             ) {
                 parseChunk:
@@ -292,7 +286,7 @@ final class Http1Connection implements Connection
                     continue;
                 }
 
-                $this->lastUsedAt = getCurrentTime();
+                $this->lastUsedAt = now();
 
                 $status = $response->getStatus();
 
@@ -314,7 +308,7 @@ final class Http1Connection implements Connection
                         $eventListener->completeReceivingResponse($request, $stream);
                     }
 
-                    $trailersDeferred->resolve($trailers);
+                    $trailersDeferred->complete($trailers);
 
                     return $this->handleUpgradeResponse($request, $response, $parser->getBuffer());
                 }
@@ -335,12 +329,12 @@ final class Http1Connection implements Connection
                     $eventListener->startReceivingResponse($request, $stream);
                 }
 
-                if ($status >= 200 && $status < 300 && $request->getMethod() === 'CONNECT') {
+                if ($status < 300 && $request->getMethod() === 'CONNECT') {
                     foreach ($request->getEventListeners() as $eventListener) {
                         $eventListener->completeReceivingResponse($request, $stream);
                     }
 
-                    $trailersDeferred->resolve($trailers);
+                    $trailersDeferred->complete($trailers);
 
                     return $this->handleUpgradeResponse($request, $response, $parser->getBuffer());
                 }
@@ -351,14 +345,14 @@ final class Http1Connection implements Connection
                     $bodyCancellationSource->getToken()
                 );
 
-                $response->setTrailers($trailersDeferred->promise());
+                $response->setTrailers($trailersDeferred->getFuture());
                 $response->setBody(new ResponseBodyStream(
-                    new PipelineStream($bodyEmitter->pipe()),
+                    new PipelineStream($bodyEmitter->asPipeline()),
                     $bodyCancellationSource
                 ));
 
                 // Read body async
-                defer(function () use (
+                EventLoop::queue(function () use (
                     $parser,
                     $request,
                     $response,
@@ -369,10 +363,9 @@ final class Http1Connection implements Connection
                     $bodyCancellationToken,
                     $stream,
                     $timeout,
-                    &$backpressure,
                     &$trailers
                 ) {
-                    $id = $bodyCancellationToken->subscribe([$this, 'close']);
+                    $closeId = $bodyCancellationToken->subscribe([$this, 'close']);
 
                     try {
                         // Required, otherwise responses without body hang
@@ -394,20 +387,19 @@ final class Http1Connection implements Connection
                                         break;
                                     }
 
-                                    if (!$backpressure instanceof Success) {
-                                        $this->withCancellation($backpressure, $bodyCancellationToken);
-                                    }
-
                                     /** @psalm-suppress TypeDoesNotContainNull */
                                     if ($this->socket === null) {
                                         throw new SocketException('Socket closed prior to response completion');
                                     }
                                 } while (null !== $chunk = $timeout > 0
-                                    ? await(Promise\timeout(async(fn () => $this->socket->read()), $timeout))
+                                    ? coroutine(fn () => $this->socket->read())
+                                        ->await(new TimeoutCancellationToken($timeout))
                                     : $this->socket->read()
                                 );
-                            } catch (PromiseTimeoutException $e) {
+                            } catch (CancelledException $e) {
                                 $this->close();
+                                $originalCancellation->throwIfRequested();
+
                                 throw new TimeoutException(
                                     'Inactivity timeout exceeded, more than ' . $timeout . ' ms elapsed from last data received',
                                     0,
@@ -432,8 +424,8 @@ final class Http1Connection implements Connection
                         $timeout = $this->determineKeepAliveTimeout($response);
 
                         if ($timeout > 0 && $parser->getState() !== Http1Parser::BODY_IDENTITY_EOF) {
-                            $this->timeoutWatcher = Loop::delay($timeout * 1000, [$this, 'close']);
-                            Loop::unreference($this->timeoutWatcher);
+                            $this->timeoutWatcher = EventLoop::delay($timeout, [$this, 'close']);
+                            EventLoop::unreference($this->timeoutWatcher);
                         } else {
                             $this->close();
                         }
@@ -445,7 +437,7 @@ final class Http1Connection implements Connection
                         }
 
                         $bodyEmitter->complete();
-                        $trailersDeferred->resolve($trailers);
+                        $trailersDeferred->complete($trailers);
                     } catch (\Throwable $e) {
                         $this->close();
 
@@ -454,11 +446,11 @@ final class Http1Connection implements Connection
                                 $eventListener->abort($request, $e);
                             }
                         } finally {
-                            $bodyEmitter->fail($e);
-                            $trailersDeferred->fail($e);
+                            $bodyEmitter->error($e);
+                            $trailersDeferred->error($e);
                         }
                     } finally {
-                        $bodyCancellationToken->unsubscribe($id);
+                        $bodyCancellationToken->unsubscribe($closeId);
                     }
                 });
 
@@ -468,18 +460,22 @@ final class Http1Connection implements Connection
             $originalCancellation->throwIfRequested();
 
             throw new SocketException(\sprintf(
-                "Receiving the response headers for '%s' failed, because the socket to '%s' @ '%s' closed early with %d bytes received within %d milliseconds",
-                (string) $request->getUri()->withUserInfo(''),
-                (string) $request->getUri()->withUserInfo('')->getAuthority(),
-                $this->socket === null ? '???' : (string) $this->socket->getRemoteAddress(),
+                "Receiving the response headers for '%s' failed, because the socket to '%s' @ '%s' closed early with %d bytes received within %0.3f seconds",
+                $request->getUri()->withUserInfo(''),
+                $request->getUri()->withUserInfo('')->getAuthority(),
+                $this->socket === null ? '???' : $this->socket->getRemoteAddress(),
                 \strlen($parser->getBuffer()),
-                getCurrentTime() - $start
+                now() - $start
             ));
         } catch (HttpException $e) {
             $this->close();
             throw $e;
-        } catch (PromiseTimeoutException $e) {
+        } catch (CancelledException $e) {
             $this->close();
+
+            // Throw original cancellation if it was requested.
+            $originalCancellation->throwIfRequested();
+
             throw new TimeoutException(
                 'Inactivity timeout exceeded, more than ' . $timeout . ' ms elapsed from last data received',
                 0,
@@ -518,45 +514,12 @@ final class Http1Connection implements Connection
     }
 
     /**
-     * @return int Approximate number of milliseconds remaining until the connection is closed.
+     * @return float Approximate number of milliseconds remaining until the connection is closed.
      */
-    private function getRemainingTime(): int
+    private function getRemainingTime(): float
     {
         $timestamp = $this->lastUsedAt + ($this->explicitTimeout ? $this->priorTimeout * 1000 : $this->timeoutGracePeriod);
-        return \max(0, $timestamp - getCurrentTime());
-    }
-
-    private function withCancellation(Promise $promise, CancellationToken $cancellationToken): Promise
-    {
-        $deferred = new Deferred;
-        $newPromise = $deferred->promise();
-
-        $promise->onResolve(static function ($error, $value) use (&$deferred): void {
-            if ($deferred) {
-                $temp = $deferred;
-                $deferred = null;
-
-                if ($error) {
-                    $temp->fail($error);
-                } else {
-                    $temp->resolve($value);
-                }
-            }
-        });
-
-        $cancellationSubscription = $cancellationToken->subscribe(static function ($e) use (&$deferred): void {
-            if ($deferred) {
-                $temp = $deferred;
-                $deferred = null;
-                $temp->fail($e);
-            }
-        });
-
-        $newPromise->onResolve(static function () use ($cancellationToken, $cancellationSubscription): void {
-            $cancellationToken->unsubscribe($cancellationSubscription);
-        });
-
-        return $newPromise;
+        return \max(0, $timestamp - now());
     }
 
     private function determineKeepAliveTimeout(Response $response): int
@@ -618,7 +581,7 @@ final class Http1Connection implements Connection
                 throw new UnprocessedRequestException(new SocketException('Socket closed before request started'));
             }
 
-            $this->socket->write($rawHeaders);
+            $this->socket->write($rawHeaders)->await();
 
             if ($request->getMethod() === 'CONNECT') {
                 return;
@@ -659,17 +622,17 @@ final class Http1Connection implements Connection
                     }
                 }
 
-                $this->socket->write($buffer);
+                $this->socket->write($buffer)->await();
                 $buffer = $chunk;
             }
 
             $cancellation->throwIfRequested();
 
             // Flush last buffered chunk.
-            $this->socket->write($buffer);
+            $this->socket->write($buffer)->await();
 
             if ($chunking) {
-                $this->socket->write("0\r\n\r\n");
+                $this->socket->write("0\r\n\r\n")->await();
             } elseif ($remainingBytes !== null && $remainingBytes > 0) {
                 throw new InvalidRequestException(
                     $request,

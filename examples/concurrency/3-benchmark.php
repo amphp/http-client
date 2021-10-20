@@ -5,15 +5,15 @@
 // Infinite (10 x 100    requests): php examples/concurrency/3-benchmark.php 0
 // Custom   (10 x $count requests): php examples/concurrency/3-benchmark.php $count
 
+use Amp\Future;
 use Amp\Http\Client\Connection\DefaultConnectionFactory;
 use Amp\Http\Client\Connection\UnlimitedConnectionPool;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\Request;
 use Amp\Socket\ClientTlsContext;
 use Amp\Socket\ConnectContext;
-use function Amp\asyncCallable;
-use function Amp\await;
-use function Amp\getCurrentTime;
+use function Amp\coroutine;
+use function Revolt\EventLoop\now;
 
 require __DIR__ . '/../.helper/functions.php';
 
@@ -30,7 +30,7 @@ $client = (new HttpClientBuilder)
     ->usingPool(new UnlimitedConnectionPool(new DefaultConnectionFactory(null, $connectContext)))
     ->build();
 
-$handler = asyncCallable(static function (int $count) use ($client, $argv): void {
+$handler = fn (int $count) => coroutine(static function () use ($count, $client, $argv): void {
     for ($i = 0; $i < $count; $i++) {
         $request = new Request($argv[2] ?? 'https://localhost:1338/');
         $request->setTcpConnectTimeout(1000);
@@ -43,19 +43,19 @@ $handler = asyncCallable(static function (int $count) use ($client, $argv): void
 });
 
 do {
-    $start = getCurrentTime();
+    $start = now();
 
-    $promises = [];
+    $futures = [];
     for ($i = 0; $i < 10; $i++) {
-        $promises[] = $handler($count === 0 ? 100 : $count);
+        $futures[] = $handler($count === 0 ? 100 : $count);
     }
-    await($promises);
+    Future\all($futures);
 
-    $duration = getCurrentTime() - $start;
-    print "Took {$duration} ms for " . (($count === 0 ? 100 : $count) * 10) . " requests" . PHP_EOL;
+    $duration = now() - $start;
+    print "Took {$duration} seconds for " . (($count === 0 ? 100 : $count) * 10) . " requests" . PHP_EOL;
 
     \gc_collect_cycles();
     \gc_mem_caches();
 
-    print "Memory: " . (\memory_get_usage(true) / 1000) . PHP_EOL;
+    print "Memory: " . (\memory_get_usage(true) / 1000) . " kb" . PHP_EOL;
 } while ($count === 0);

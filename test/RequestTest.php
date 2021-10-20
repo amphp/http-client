@@ -3,11 +3,9 @@
 namespace Amp\Http\Client;
 
 use Amp\ByteStream\InMemoryStream;
+use Amp\Future;
 use Amp\Http\Client\Body\StringBody;
 use Amp\PHPUnit\AsyncTestCase;
-use Amp\Promise;
-use Amp\Success;
-use function Amp\await;
 
 class RequestTest extends AsyncTestCase
 {
@@ -181,13 +179,13 @@ class RequestTest extends AsyncTestCase
     {
         $request = new Request('https://amphp.org/');
         $invocationCount = 0;
-        $responsePromise = null;
-        $pushHandler = static function (Request $request, Promise $response) use (
+        $responseFuture = null;
+        $pushHandler = static function (Request $request, Future $response) use (
             &$invocationCount,
-            &$responsePromise
+            &$responseFuture
         ) {
             $invocationCount++;
-            $responsePromise = $response;
+            $responseFuture = $response;
         };
 
         $request->setPushHandler($pushHandler);
@@ -197,10 +195,10 @@ class RequestTest extends AsyncTestCase
 
         $request->getPushHandler()(
             new Request('https://amphp.org/'),
-            new Success(new Response('2', 200, null, [], new InMemoryStream, $request))
+            Future::complete(new Response('2', 200, null, [], new InMemoryStream, $request))
         );
 
-        $response = await($responsePromise);
+        $response = $responseFuture->await();
 
         $this->assertSame(512, $response->getStatus());
     }
@@ -219,13 +217,13 @@ class RequestTest extends AsyncTestCase
     {
         $request = new Request('https://amphp.org/');
         $invocationCount = 0;
-        $responsePromise = null;
+        $responseFuture = null;
         $pushHandler = static function (Request $request, Promise $response) use (
             &$invocationCount,
-            &$responsePromise
+            &$responseFuture
         ) {
             $invocationCount++;
-            $responsePromise = $response;
+            $responseFuture = $response;
         };
 
         $request->setPushHandler($pushHandler);
@@ -235,10 +233,10 @@ class RequestTest extends AsyncTestCase
 
         $request->getPushHandler()(
             new Request('https://amphp.org/'),
-            new Success(new Response('2', 200, null, [], new InMemoryStream, $request))
+            Future::complete(new Response('2', 200, null, [], new InMemoryStream, $request))
         );
 
-        $response = await($responsePromise);
+        $response = $responseFuture->await();
 
         $this->assertSame(523, $response->getStatus());
     }

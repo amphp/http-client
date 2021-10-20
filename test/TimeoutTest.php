@@ -10,8 +10,7 @@ use Amp\Http\Client\Interceptor\SetRequestTimeout;
 use Amp\NullCancellationToken;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Socket;
-use Revolt\EventLoop\Loop;
-use function Revolt\EventLoop\defer;
+use Revolt\EventLoop;
 
 class TimeoutTest extends AsyncTestCase
 {
@@ -28,23 +27,23 @@ class TimeoutTest extends AsyncTestCase
     {
         $server = Socket\Server::listen("tcp://127.0.0.1:0");
 
-        defer(static function () use ($server): void {
+        EventLoop::queue(static function () use ($server): void {
             while ($client = $server->accept()) {
                 $client->write("HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n.");
 
-                Loop::unreference(Loop::delay(3000, static function () use ($client) {
+                EventLoop::unreference(EventLoop::delay(3, static function () use ($client) {
                     $client->close();
                 }));
             }
         });
 
-        $this->setTimeout(2000);
+        $this->setTimeout(2);
 
         try {
             $uri = "http://" . $server->getAddress() . "/";
 
             $request = new Request($uri);
-            $request->setTransferTimeout(1000);
+            $request->setTransferTimeout(1);
 
             $response = $this->client->request($request);
 
@@ -59,7 +58,7 @@ class TimeoutTest extends AsyncTestCase
 
     public function testTimeoutDuringConnect(): void
     {
-        $this->setTimeout(600);
+        $this->setTimeout(0.6);
 
         $connector = $this->createMock(Socket\Connector::class);
         $connector->method('connect')
@@ -68,7 +67,7 @@ class TimeoutTest extends AsyncTestCase
                 ?Socket\ConnectContext $connectContext = null,
                 ?CancellationToken $token = null
             ): Socket\EncryptableSocket {
-                $this->assertSame(1, $connectContext->getConnectTimeout());
+                $this->assertSame(0.001, $connectContext->getConnectTimeout());
                 throw new TimeoutException;
             });
 
@@ -77,7 +76,7 @@ class TimeoutTest extends AsyncTestCase
         $this->expectException(TimeoutException::class);
 
         $request = new Request('http://localhost:1337/');
-        $request->setTcpConnectTimeout(1);
+        $request->setTcpConnectTimeout(0.001);
 
         $this->client->request($request, new NullCancellationToken);
     }
@@ -89,15 +88,15 @@ class TimeoutTest extends AsyncTestCase
 
         $server = Socket\Server::listen("tcp://127.0.0.1:0", (new Socket\BindContext)->withTlsContext($tlsContext));
 
-        defer(static function () use ($server): void {
+        EventLoop::queue(static function () use ($server): void {
             while ($client = $server->accept()) {
-                Loop::unreference(Loop::delay(3000, static function () use ($client): void {
+                EventLoop::unreference(EventLoop::delay(3, static function () use ($client): void {
                     $client->close();
                 }));
             }
         });
 
-        $this->setTimeout(600);
+        $this->setTimeout(0.6);
 
         try {
             $uri = "https://" . $server->getAddress() . "/";
@@ -106,7 +105,7 @@ class TimeoutTest extends AsyncTestCase
             $this->expectExceptionMessageMatches("(TLS handshake with '127.0.0.1:\d+' @ '127.0.0.1:\d+' timed out, took longer than 100 ms)");
 
             $request = new Request($uri);
-            $request->setTlsHandshakeTimeout(100);
+            $request->setTlsHandshakeTimeout(0.1);
 
             try {
                 $this->client->request($request);
@@ -125,21 +124,21 @@ class TimeoutTest extends AsyncTestCase
 
         $server = Socket\Server::listen("tcp://127.0.0.1:0", (new Socket\BindContext)->withTlsContext($tlsContext));
 
-        defer(static function () use ($server): void {
+        EventLoop::queue(static function () use ($server): void {
             while ($client = $server->accept()) {
-                Loop::unreference(Loop::delay(3000, static function () use ($client): void {
+                EventLoop::unreference(EventLoop::delay(3, static function () use ($client): void {
                     $client->close();
                 }));
             }
         });
 
-        $this->setTimeout(600);
+        $this->setTimeout(0.6);
 
         try {
             $uri = "https://" . $server->getAddress() . "/";
 
             $request = new Request($uri);
-            $request->setTlsHandshakeTimeout(100);
+            $request->setTlsHandshakeTimeout(0.1);
 
             $this->client->request($request);
 
@@ -155,24 +154,24 @@ class TimeoutTest extends AsyncTestCase
     {
         $server = Socket\Server::listen("tcp://127.0.0.1:0");
 
-        defer(static function () use ($server): void {
+        EventLoop::queue(static function () use ($server): void {
             while ($client = $server->accept()) {
                 $client->write("HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n.");
 
-                Loop::unreference(Loop::delay(3000, static function () use ($client): void {
+                EventLoop::unreference(EventLoop::delay(3, static function () use ($client): void {
                     $client->close();
                 }));
             }
         });
 
-        $this->setTimeout(2000);
+        $this->setTimeout(2);
 
         try {
             $uri = "http://" . $server->getAddress() . "/";
 
             $request = new Request($uri);
 
-            $client = new InterceptedHttpClient(new PooledHttpClient, new SetRequestTimeout(10000, 10000, 1000));
+            $client = new InterceptedHttpClient(new PooledHttpClient, new SetRequestTimeout(10, 10, 1));
             $response = $client->request($request, new NullCancellationToken);
 
             $this->expectException(TimeoutException::class);
@@ -186,7 +185,7 @@ class TimeoutTest extends AsyncTestCase
 
     public function testTimeoutDuringConnectInterceptor(): void
     {
-        $this->setTimeout(600);
+        $this->setTimeout(0.6);
 
         $connector = $this->createMock(Socket\Connector::class);
         $connector->method('connect')
@@ -200,7 +199,7 @@ class TimeoutTest extends AsyncTestCase
             });
 
         $client = new PooledHttpClient(new UnlimitedConnectionPool(new DefaultConnectionFactory($connector)));
-        $client = new InterceptedHttpClient($client, new SetRequestTimeout(1));
+        $client = new InterceptedHttpClient($client, new SetRequestTimeout(0.001));
 
         $this->expectException(TimeoutException::class);
 
@@ -216,15 +215,15 @@ class TimeoutTest extends AsyncTestCase
 
         $server = Socket\Server::listen("tcp://127.0.0.1:0", (new Socket\BindContext)->withTlsContext($tlsContext));
 
-        defer(static function () use ($server): void {
+        EventLoop::queue(static function () use ($server): void {
             while ($client = $server->accept()) {
-                Loop::unreference(Loop::delay(3000, static function () use ($client) {
+                EventLoop::unreference(EventLoop::delay(3, static function () use ($client) {
                     $client->close();
                 }));
             }
         });
 
-        $this->setTimeout(600);
+        $this->setTimeout(0.6);
 
         try {
             $uri = "https://" . $server->getAddress() . "/";
@@ -233,10 +232,10 @@ class TimeoutTest extends AsyncTestCase
             $this->expectExceptionMessageMatches("(TLS handshake with '127.0.0.1:\d+' @ '127.0.0.1:\d+' timed out, took longer than 100 ms)");
 
             $request = new Request($uri);
-            $request->setTlsHandshakeTimeout(100);
+            $request->setTlsHandshakeTimeout(0.1);
 
             $client = new PooledHttpClient();
-            $client = new InterceptedHttpClient($client, new SetRequestTimeout(10000, 100));
+            $client = new InterceptedHttpClient($client, new SetRequestTimeout(10, 0.1));
 
             try {
                 $client->request($request, new NullCancellationToken);

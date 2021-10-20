@@ -1,12 +1,12 @@
 <?php
 
+use Amp\Future;
 use Amp\CancellationToken;
 use Amp\Http\Client\Connection\ConnectionLimitingPool;
 use Amp\Http\Client\Connection\DefaultConnectionFactory;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
-use Amp\Promise;
 use Amp\ReactAdapter\ReactAdapter;
 use Amp\Socket\ConnectContext;
 use Amp\Socket\Connector;
@@ -15,7 +15,6 @@ use Amp\Socket\ResourceSocket;
 use Clue\React\Socks\Client;
 use React\Socket\Connection;
 use React\Socket\Connector as ReactConnector;
-use function Amp\await;
 
 require __DIR__ . '/../.helper/functions.php';
 
@@ -39,7 +38,7 @@ try {
             );
 
             /** @var Connection $connection */
-            $connection = await(Promise\adapt($connector->connect($uri)));
+            $connection = Future\adapt($connector->connect($uri))->await();
             /** @psalm-suppress InternalMethod */
             $connection->pause();
 

@@ -4,7 +4,7 @@ use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
 use function Amp\delay;
-use function Amp\getCurrentTime;
+use function Revolt\now;
 
 require __DIR__ . '/../.helper/functions.php';
 
@@ -18,14 +18,14 @@ function formatBytes(int $size, int $precision = 2): string
 }
 
 try {
-    $start = getCurrentTime();
+    $start = now();
 
     // Instantiate the HTTP client
     $client = HttpClientBuilder::buildDefault();
 
     $request = new Request('https://1906714720.rsc.cdn77.org/img/cdn77-test-14mb.jpg');
     $request->setBodySizeLimit(128 * 1024 * 1024); // 128 MB
-    $request->setTransferTimeout(120 * 1000); // 120 seconds
+    $request->setTransferTimeout(120); // 120 seconds
 
     // Make an asynchronous HTTP request
     $response = $client->request($request);
@@ -72,7 +72,7 @@ try {
 
     print \sprintf(
         "\rDone in %.2f seconds with peak memory usage of %.2fMB.\n",
-        (getCurrentTime() - $start) / 1000,
+        now() - $start,
         (float) \memory_get_peak_usage(true) / 1024 / 1024
     );
 

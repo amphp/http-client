@@ -4,15 +4,14 @@ namespace Amp\Http\Client\Connection\Internal;
 
 use Amp\CancellationToken;
 use Amp\Deferred;
+use Amp\Future;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
-use Amp\PipelineSource;
-use Amp\Promise;
-use Revolt\EventLoop\Internal\Struct;
-use Revolt\EventLoop\Loop;
+use Amp\Pipeline\Subject;
+use Revolt\EventLoop;
 
 /**
  * Used in Http2Connection.
@@ -21,7 +20,6 @@ use Revolt\EventLoop\Loop;
  */
 final class Http2Stream
 {
-    use Struct;
     use ForbidSerialization;
     use ForbidCloning;
 
@@ -33,11 +31,11 @@ final class Http2Stream
 
     public ?Deferred $pendingResponse;
 
-    public ?Promise $preResponseResolution = null;
+    public ?Future $preResponseResolution = null;
 
     public bool $responsePending = true;
 
-    public ?PipelineSource $body = null;
+    public ?Subject $body = null;
 
     public ?Deferred $trailers = null;
 
@@ -55,8 +53,6 @@ final class Http2Stream
     public int $bufferSize;
 
     public string $requestBodyBuffer = '';
-
-    public bool $requestBodyComplete = false;
 
     public Deferred $requestBodyCompletion;
 
@@ -99,7 +95,7 @@ final class Http2Stream
     public function __destruct()
     {
         if ($this->watcher !== null) {
-            Loop::cancel($this->watcher);
+            EventLoop::cancel($this->watcher);
         }
     }
 
@@ -109,7 +105,7 @@ final class Http2Stream
             return;
         }
 
-        Loop::disable($this->watcher);
+        EventLoop::disable($this->watcher);
     }
 
     public function enableInactivityWatcher(): void
@@ -118,7 +114,7 @@ final class Http2Stream
             return;
         }
 
-        Loop::disable($this->watcher);
-        Loop::enable($this->watcher);
+        EventLoop::disable($this->watcher);
+        EventLoop::enable($this->watcher);
     }
 }

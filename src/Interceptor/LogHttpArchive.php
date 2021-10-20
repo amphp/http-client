@@ -17,8 +17,7 @@ use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Message;
 use Amp\Sync\LocalMutex;
-use function Amp\await;
-use function Revolt\EventLoop\defer;
+use Revolt\EventLoop;
 
 final class LogHttpArchive implements ApplicationInterceptor
 {
@@ -168,7 +167,7 @@ final class LogHttpArchive implements ApplicationInterceptor
 
         $response = $httpClient->request($request, $cancellation);
 
-        defer(fn () => $this->writeLog($response));
+        EventLoop::queue(fn () => $this->writeLog($response));
 
         return $response;
     }
@@ -193,7 +192,7 @@ final class LogHttpArchive implements ApplicationInterceptor
     private function writeLog(Response $response): void
     {
         try {
-            await($response->getTrailers());
+            $response->getTrailers()->await();
         } catch (\Throwable) {
             // ignore, still log the remaining response times
         }

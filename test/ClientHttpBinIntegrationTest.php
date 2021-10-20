@@ -8,6 +8,7 @@ use Amp\ByteStream\PipelineStream;
 use Amp\CancellationToken;
 use Amp\CancellationTokenSource;
 use Amp\CancelledException;
+use Amp\Future;
 use Amp\Http\Client\Body\FileBody;
 use Amp\Http\Client\Body\FormBody;
 use Amp\Http\Client\Connection\UnprocessedRequestException;
@@ -18,20 +19,18 @@ use Amp\Http\Client\Interceptor\TooManyRedirectsException;
 use Amp\Http\Cookie\RequestCookie;
 use Amp\Http\Cookie\ResponseCookie;
 use Amp\Http\Rfc7230;
+use Amp\Http\Server\Options;
 use Amp\Http\Server\Request as ServerRequest;
 use Amp\Http\Server\RequestHandler\CallableRequestHandler;
 use Amp\Http\Server\Response as ServerResponse;
 use Amp\Http\Server\Server;
 use Amp\PHPUnit\AsyncTestCase;
-use Amp\Promise;
 use Amp\Socket;
 use Psr\Log\NullLogger;
-use function Amp\async;
-use function Amp\asyncValue;
-use function Amp\await;
+use Revolt\EventLoop;
+use function Amp\coroutine;
+use function Amp\delay;
 use function Amp\Pipeline\fromIterable;
-use function Revolt\EventLoop\defer;
-use function Revolt\EventLoop\delay;
 
 class ClientHttpBinIntegrationTest extends AsyncTestCase
 {
@@ -218,9 +217,9 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     public function testHttp2Push(): void
     {
         $request = new Request('https://http2-server-push-demo.keksi.io/');
-        $request->setPushHandler(static function (Request $request, Promise $response): void {
+        $request->setPushHandler(static function (Request $request, Future $response): void {
             self::assertSame('/image.jpg', $request->getUri()->getPath());
-            self::assertSame('image/jpeg', await($response)->getHeader('content-type'));
+            self::assertSame('image/jpeg', $response->await()->getHeader('content-type'));
         });
 
         $this->executeRequest($request);
@@ -348,7 +347,6 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $request->setProtocolVersions(['2']);
         $request->setHeader('te', 'gzip');
 
-        /** @var Response $response */
         $response = $this->executeRequest($request);
 
         $this->assertInstanceOf(Response::class, $response);
@@ -534,7 +532,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     public function testRequestCancellation(): void
     {
         $this->givenSlowRawServerResponse(
-            100,
+            0.1,
             "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 1000\r\n\r\n",
             ...\array_fill(0, 1000, '.')
         );
@@ -670,7 +668,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     public function testHttp2SupportLargeResponseBody(): void
     {
         $request = new Request('https://1906714720.rsc.cdn77.org/img/cdn77-test-3mb.jpg', 'GET');
-        $request->setTransferTimeout(100000);
+        $request->setTransferTimeout(1000);
         $request->setBodySizeLimit(10000000000);
 
         $response = $this->client->request($request);
@@ -682,14 +680,13 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     public function testConcurrentSlowNetworkInterceptor(): void
     {
         $this->givenNetworkInterceptor(new ModifyRequest(static function (Request $request) {
-            yield delay(2000);
-
+            delay(2);
             return $request;
         }));
 
-        [$response1, $response2] = await([
-            async(fn () => $this->client->request(new Request('https://http2.pro/api/v1'))),
-            async(fn () => $this->client->request(new Request('https://http2.pro/api/v1'))),
+        [$response1, $response2] = Future\all([
+            coroutine(fn () => $this->client->request(new Request('https://http2.pro/api/v1'))),
+            coroutine(fn () => $this->client->request(new Request('https://http2.pro/api/v1'))),
         ]);
 
         $body1 = $response1->getBody()->buffer();
@@ -756,15 +753,13 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     {
         parent::setUp();
 
-        $this->ignoreLoopWatchers();
-
         $this->builder = (new HttpClientBuilder)->retry(0);
         $this->client = $this->builder->build();
 
         $this->socket = Socket\Server::listen('127.0.0.1:0');
         $this->socket->unreference();
 
-        defer(function () {
+        EventLoop::queue(function () {
             $client = $this->socket->accept();
 
             if ($client === null) {
@@ -805,13 +800,12 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         };
     }
 
-    private function givenSlowRawServerResponse(int $delay, string ...$chunks): void
+    private function givenSlowRawServerResponse(float $delay, string ...$chunks): void
     {
         $this->responseCallback = static function (Socket\Socket $socket) use ($delay, $chunks): void {
             foreach ($chunks as $chunk) {
-                $socket->write($chunk);
-                $delay = asyncValue($delay);
-                await($delay);
+                $socket->write($chunk)->ignore();
+                delay($delay);
             };
         };
     }

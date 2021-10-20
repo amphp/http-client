@@ -16,30 +16,23 @@ use Amp\Pipeline;
 use Amp\Socket;
 use Laminas\Diactoros\Uri as LaminasUri;
 use League\Uri;
-use Revolt\EventLoop\Loop;
-use function Amp\async;
-use function Amp\await;
-use function Revolt\EventLoop\delay;
+use Revolt\EventLoop;
+use function Amp\coroutine;
+use function Amp\delay;
 
 class Http1ConnectionTest extends AsyncTestCase
 {
-    public function setUp(): void
-    {
-        parent::setUp();
-        $this->ignoreLoopWatchers();
-    }
-
     public function testConnectionBusyAfterRequestIsIssued(): void
     {
         [$client, $server] = Socket\createPair();
 
-        $connection = new Http1Connection($client, 5000);
+        $connection = new Http1Connection($client, 5);
 
         $request = new Request('http://localhost');
         $request->setBody($this->createSlowBody());
 
         $stream = $connection->getStream($request);
-        async(fn () => $stream->request($request, new NullCancellationToken));
+        coroutine(fn () => $stream->request($request, new NullCancellationToken))->ignore();
         $stream = null; // gc instance
 
         self::assertNull($connection->getStream($request));
@@ -49,7 +42,7 @@ class Http1ConnectionTest extends AsyncTestCase
     {
         [$client, $server] = Socket\createPair();
 
-        $connection = new Http1Connection($client, 5000);
+        $connection = new Http1Connection($client, 5);
 
         $request = new Request('http://localhost');
         $request->setBody($this->createSlowBody());
@@ -64,7 +57,7 @@ class Http1ConnectionTest extends AsyncTestCase
     {
         [$client] = Socket\createPair();
 
-        $connection = new Http1Connection($client, 5000);
+        $connection = new Http1Connection($client, 5);
 
         $request = new Request('http://localhost');
         $request->setBody($this->createSlowBody());
@@ -83,7 +76,7 @@ class Http1ConnectionTest extends AsyncTestCase
     {
         [$server, $client] = Socket\createPair();
 
-        $connection = new Http1Connection($client, 5000);
+        $connection = new Http1Connection($client, 5);
 
         $request = new Request('http://httpbin.org/post', 'POST');
         $request->setHeader('expect', '100-continue');
@@ -106,7 +99,7 @@ class Http1ConnectionTest extends AsyncTestCase
     {
         [$server, $client] = Socket\createPair();
 
-        $connection = new Http1Connection($client, 5000);
+        $connection = new Http1Connection($client, 5);
 
         $socketData = "Data that should be sent after the upgrade response";
 
@@ -135,20 +128,20 @@ class Http1ConnectionTest extends AsyncTestCase
         self::assertTrue($invoked);
         self::assertSame(101, $response->getStatus());
         self::assertSame('Switching Protocols', $response->getReason());
-        self::assertSame([], await($response->getTrailers())->getHeaders());
+        self::assertSame([], $response->getTrailers()->await()->getHeaders());
     }
 
     public function testTransferTimeout(): void
     {
-        $this->setMinimumRuntime(500);
-        $this->setTimeout(600);
+        $this->setMinimumRuntime(0.5);
+        $this->setTimeout(0.6);
 
         [$server, $client] = Socket\createPair();
 
         $connection = new Http1Connection($client);
 
         $request = new Request('http://localhost');
-        $request->setTransferTimeout(500);
+        $request->setTransferTimeout(0.5);
 
         $stream = $connection->getStream($request);
 
@@ -168,26 +161,26 @@ class Http1ConnectionTest extends AsyncTestCase
 
     public function testInactivityTimeout(): void
     {
-        $this->setMinimumRuntime(500);
-        $this->setTimeout(1000);
+        $this->setMinimumRuntime(0.5);
+        $this->setTimeout(1);
 
         [$server, $client] = Socket\createPair();
 
         $connection = new Http1Connection($client);
 
         $request = new Request('http://localhost');
-        $request->setInactivityTimeout(500);
+        $request->setInactivityTimeout(0.5);
 
         $stream = $connection->getStream($request);
 
         $server->write("HTTP/1.1 200 Continue\r\nConnection: keep-alive\r\nContent-Length: 8\r\n\r\n");
 
-        Loop::unreference(Loop::delay(400, function () use ($server) {
-            $server->write("test"); // Still missing 4 bytes from the body
+        EventLoop::unreference(EventLoop::delay(0.4, function () use ($server) {
+            $server->write("test")->ignore(); // Still missing 4 bytes from the body
         }));
 
-        Loop::unreference(Loop::delay(1000, function () use ($server) {
-            $server->write("test"); // Request should timeout before this is called
+        EventLoop::unreference(EventLoop::delay(1, function () use ($server) {
+            $server->write("test")->ignore(); // Request should timeout before this is called
         }));
 
         $response = $stream->request($request, new NullCancellationToken);
@@ -206,7 +199,7 @@ class Http1ConnectionTest extends AsyncTestCase
     {
         [$client] = Socket\createPair();
 
-        $connection = new Http1Connection($client, 5000);
+        $connection = new Http1Connection($client, 5);
 
         $request = new Request(new LaminasUri('foo'));
 
@@ -231,19 +224,19 @@ class Http1ConnectionTest extends AsyncTestCase
     ): void {
         [$server, $client] = Socket\createPair();
 
-        $connection = new Http1Connection($client, 5000);
+        $connection = new Http1Connection($client, 5);
         $uri = Uri\Http::createFromString('http://localhost')->withPath($requestPath);
         $request = new Request($uri);
-        $request->setInactivityTimeout(500);
+        $request->setInactivityTimeout(0.5);
 
         $stream = $connection->getStream($request);
 
-        $promise = async(fn () => $stream->request($request, new NullCancellationToken));
+        $future = coroutine(fn () => $stream->request($request, new NullCancellationToken));
         $startLine = \explode("\r\n", $server->read())[0] ?? null;
         self::assertSame("GET {$expectedPath} HTTP/1.1", $startLine);
 
         try {
-            await($promise);
+            $future->await();
         } catch (HttpException $exception) {
             $connection->close();
         }
@@ -267,7 +260,9 @@ class Http1ConnectionTest extends AsyncTestCase
 
             public function createBodyStream(): InputStream
             {
-                return new PipelineStream(Pipeline\fromIterable(\array_fill(0, 100, '.'), 100));
+                $pipeline = Pipeline\fromIterable(\array_fill(0, 100, '.'));
+                $pipeline = $pipeline->pipe(Pipeline\delay(0.1));
+                return new PipelineStream($pipeline);
             }
 
             public function getBodyLength(): ?int

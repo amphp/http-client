@@ -3,7 +3,6 @@
 namespace Amp\Http\Client\Internal;
 
 use Amp\ByteStream\InputStream;
-use Amp\Failure;
 use Amp\Http\Client\ParseException;
 use Amp\Http\Status;
 
@@ -32,7 +31,7 @@ final class SizeLimitingInputStream implements InputStream
     public function read(): ?string
     {
         if ($this->exception) {
-            return new Failure($this->exception);
+            throw $this->exception;
         }
 
         \assert($this->source !== null);

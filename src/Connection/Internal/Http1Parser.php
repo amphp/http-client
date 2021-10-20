@@ -31,47 +31,28 @@ final class Http1Parser
     public const TRAILERS_START = 4;
     public const TRAILERS = 5;
 
+    private Request $request;
+
     /** @var int */
-    private $state = self::AWAITING_HEADERS;
+    private int $state = self::AWAITING_HEADERS;
 
     /** @var string */
-    private $buffer = '';
+    private string $buffer = '';
 
-    /** @var string|null */
-    private $protocol;
-
-    /** @var int|null */
-    private $statusCode;
-
-    /** @var string|null */
-    private $statusReason;
-
-    /** @var string[][] */
-    private $headers = [];
-
-    /** @var int|null */
-    private $remainingBodyBytes;
+    private ?int $remainingBodyBytes = null;
 
     /** @var int */
-    private $bodyBytesConsumed = 0;
+    private int $bodyBytesConsumed = 0;
 
-    /** @var bool */
-    private $chunkedEncoding = false;
+    private bool $chunkedEncoding = false;
 
-    /** @var int|null */
-    private $chunkLengthRemaining;
+    private ?int $chunkLengthRemaining = null;
 
-    /** @var bool */
-    private $complete = false;
+    private bool $complete = false;
 
-    /** @var Request */
-    private $request;
+    private int $maxHeaderBytes;
 
-    /** @var int */
-    private $maxHeaderBytes;
-
-    /** @var int */
-    private $maxBodyBytes;
+    private int $maxBodyBytes;
 
     /** @var callable */
     private $bodyDataCallback;
@@ -79,8 +60,11 @@ final class Http1Parser
     /** @var callable */
     private $trailersCallback;
 
-    public function __construct(Request $request, callable $bodyDataCallback, callable $trailersCallback)
-    {
+    public function __construct(
+        Request $request,
+        callable $bodyDataCallback,
+        callable $trailersCallback
+    ) {
         $this->request = $request;
         $this->bodyDataCallback = $bodyDataCallback;
         $this->trailersCallback = $trailersCallback;
@@ -154,21 +138,21 @@ final class Http1Parser
             $rawHeaders = \substr($startLineAndHeaders, $startLineEndPos + 2);
 
             if (\preg_match(self::STATUS_LINE_PATTERN, $startLine, $match)) {
-                $this->protocol = $match['protocol'];
-                $this->statusCode = (int) $match['status'];
-                $this->statusReason = \trim($match['reason']);
+                $protocol = $match['protocol'];
+                $statusCode = (int) $match['status'];
+                $statusReason = \trim($match['reason']);
             } else {
                 throw new ParseException('Invalid status line: ' . $startLine, Status::BAD_REQUEST);
             }
 
             if ($rawHeaders !== '') {
-                $this->headers = $this->parseRawHeaders($rawHeaders);
+                $headers = $this->parseRawHeaders($rawHeaders);
             } else {
-                $this->headers = [];
+                $headers = [];
             }
 
             $requestMethod = $this->request->getMethod();
-            $skipBody = $this->statusCode < Status::OK || $this->statusCode === Status::NOT_MODIFIED || $this->statusCode === Status::NO_CONTENT
+            $skipBody = $statusCode < Status::OK || $statusCode === Status::NOT_MODIFIED || $statusCode === Status::NO_CONTENT
                 || $requestMethod === 'HEAD' || $requestMethod === 'CONNECT';
 
             if ($skipBody) {
@@ -183,8 +167,8 @@ final class Http1Parser
                 $this->complete = true;
             }
 
-            $response = new Response($this->protocol, $this->statusCode, $this->statusReason, [], new InMemoryStream, $this->request);
-            foreach ($this->headers as [$key, $value]) {
+            $response = new Response($protocol, $statusCode, $statusReason, [], new InMemoryStream, $this->request);
+            foreach ($headers as [$key, $value]) {
                 $response->addHeader($key, $value);
             }
 

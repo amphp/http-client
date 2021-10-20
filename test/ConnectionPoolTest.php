@@ -2,31 +2,26 @@
 
 namespace Amp\Http\Client;
 
-use Amp\CancellationToken;
 use Amp\PHPUnit\AsyncTestCase;
-use Amp\Promise;
 use Amp\Socket;
-use function Amp\asyncCall;
+use Revolt\EventLoop;
 use function Amp\delay;
 
 class ConnectionPoolTest extends AsyncTestCase
 {
-    /** @var Socket\Server */
-    private $socket;
-    /** @var HttpClient */
-    private $client;
+    private Socket\Server $socket;
 
-    public function testConnectionCloseWhileIdle(): \Generator
+    private HttpClient $client;
+
+    public function testConnectionCloseWhileIdle(): void
     {
-        /** @var Response $response */
-        $response = yield $this->executeRequest($this->createRequest(1));
-        self::assertSame("hello", yield $response->getBody()->buffer());
+        $response = $this->executeRequest($this->createRequest(1));
+        self::assertSame("hello", $response->getBody()->buffer());
 
-        yield delay(1000);
+        delay(1);
 
-        /** @var Response $response */
-        $response = yield $this->executeRequest($this->createRequest(2));
-        self::assertSame("hello", yield $response->getBody()->buffer());
+        $response = $this->executeRequest($this->createRequest(2));
+        self::assertSame("hello", $response->getBody()->buffer());
     }
 
     protected function setUp(): void
@@ -35,38 +30,28 @@ class ConnectionPoolTest extends AsyncTestCase
 
         $this->client = (new HttpClientBuilder)->retry(0)->build();
 
-        if ($this->socket) {
-            $this->socket->close();
-        }
-
         $this->socket = Socket\Server::listen('127.0.0.1:0');
 
-        asyncCall(function () {
-            /** @var Socket\EncryptableSocket $client */
-            $client = yield $this->socket->accept();
+        EventLoop::queue(function () {
+            $client = $this->socket->accept();
 
-            yield $client->read();
-            yield $client->write("HTTP/1.1 200 OK\r\nconnection: keep-alive\r\ncontent-length: 5\r\n\r\nhello");
-
-            yield delay(500);
+            $client->read();
+            $client->write("HTTP/1.1 200 OK\r\nconnection: keep-alive\r\ncontent-length: 5\r\n\r\nhello");
 
             $client->close();
 
-            yield delay(1000);
+            $client = $this->socket->accept();
 
-            /** @var Socket\EncryptableSocket $client */
-            $client = yield $this->socket->accept();
-
-            yield $client->read();
-            yield $client->end("HTTP/1.1 200 OK\r\nconnection: keep-alive\r\ncontent-length: 5\r\n\r\nhello");
+            $client->read();
+            $client->end("HTTP/1.1 200 OK\r\nconnection: keep-alive\r\ncontent-length: 5\r\n\r\nhello");
 
             $this->socket->close();
         });
     }
 
-    private function executeRequest(Request $request, ?CancellationToken $cancellationToken = null): Promise
+    private function executeRequest(Request $request): Response
     {
-        return $this->client->request($request, $cancellationToken);
+        return $this->client->request($request);
     }
 
     private function createRequest(int $num): Request

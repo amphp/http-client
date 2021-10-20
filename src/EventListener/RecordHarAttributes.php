@@ -6,7 +6,7 @@ use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\EventListener;
 use Amp\Http\Client\Internal\HarAttributes;
 use Amp\Http\Client\Request;
-use function Revolt\EventLoop\getCurrentTime;
+use function Revolt\EventLoop\now;
 
 final class RecordHarAttributes implements EventListener
 {
@@ -79,7 +79,7 @@ final class RecordHarAttributes implements EventListener
     private function addTiming(string $key, Request $request): void
     {
         if (!$request->hasAttribute($key)) {
-            $request->setAttribute($key, getCurrentTime());
+            $request->setAttribute($key, now());
         }
     }
 

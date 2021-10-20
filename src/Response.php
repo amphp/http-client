@@ -5,12 +5,11 @@ namespace Amp\Http\Client;
 use Amp\ByteStream\InMemoryStream;
 use Amp\ByteStream\InputStream;
 use Amp\ByteStream\Payload;
+use Amp\Future;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Message;
 use Amp\Http\Status;
-use Amp\Promise;
-use Amp\Success;
 
 /**
  * An HTTP response.
@@ -30,8 +29,8 @@ final class Response extends Message
 
     private Payload $body;
 
-    /** @var Promise<Trailers> */
-    private Promise $trailers;
+    /** @var Future<Trailers> */
+    private Future $trailers;
 
     private ?Response $previousResponse;
 
@@ -42,7 +41,7 @@ final class Response extends Message
         array $headers,
         InputStream $body,
         Request $request,
-        ?Promise $trailerPromise = null,
+        ?Future $trailerPromise = null,
         ?Response $previousResponse = null
     ) {
         $this->setProtocolVersion($protocolVersion);
@@ -51,7 +50,7 @@ final class Response extends Message
         $this->setBody($body);
         $this->request = $request;
         /** @noinspection PhpUnhandledExceptionInspection */
-        $this->trailers = $trailerPromise ?? new Success(new Trailers([]));
+        $this->trailers = $trailerPromise ?? Future::complete(new Trailers([]));
         $this->previousResponse = $previousResponse;
     }
 
@@ -68,7 +67,6 @@ final class Response extends Message
     public function setProtocolVersion(string $protocolVersion): void
     {
         if (!\in_array($protocolVersion, ["1.0", "1.1", "2"], true)) {
-            /** @noinspection PhpUndefinedClassInspection */
             throw new \Error(
                 "Invalid HTTP protocol version: " . $protocolVersion
             );
@@ -241,24 +239,23 @@ final class Response extends Message
         } elseif ($body instanceof InputStream) {
             $this->body = new Payload($body);
         } else {
-            /** @noinspection PhpUndefinedClassInspection */
             throw new \TypeError("Invalid body type: " . \gettype($body));
         }
     }
 
     /**
-     * @return Promise<Trailers>
+     * @return Future<Trailers>
      */
-    public function getTrailers(): Promise
+    public function getTrailers(): Future
     {
         return $this->trailers;
     }
 
     /**
-     * @param Promise<Trailers> $promise
+     * @param Future<Trailers> $future
      */
-    public function setTrailers(Promise $promise): void
+    public function setTrailers(Future $future): void
     {
-        $this->trailers = $promise;
+        $this->trailers = $future;
     }
 }

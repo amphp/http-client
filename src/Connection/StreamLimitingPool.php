@@ -8,6 +8,7 @@ use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Sync\KeyedSemaphore;
+use function Amp\coroutine;
 
 final class StreamLimitingPool implements ConnectionPool
 {
@@ -67,20 +68,23 @@ final class StreamLimitingPool implements ConnectionPool
             ): Response {
                 try {
                     $response = $stream->request($request, $cancellationToken);
-
-                    // await response being completely received
-                    $response->getTrailers()->onResolve(static function () use ($lock): void {
-                        $lock->release();
-                    });
                 } catch (\Throwable $e) {
                     $lock->release();
-
                     throw $e;
                 }
 
+                // await response being completely received
+                coroutine(static function () use ($response, $lock): void {
+                    try {
+                        $response->getTrailers()->await();
+                    } finally {
+                        $lock->release();
+                    }
+                })->ignore();
+
                 return $response;
             },
-            static function () use ($lock) {
+            static function () use ($lock): void {
                 $lock->release();
             }
         );

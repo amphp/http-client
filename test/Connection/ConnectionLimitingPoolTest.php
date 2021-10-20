@@ -3,17 +3,16 @@
 namespace Amp\Http\Client\Connection;
 
 use Amp\ByteStream\InMemoryStream;
+use Amp\Future;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\Trailers;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Socket\SocketAddress;
-use Amp\Success;
-use function Amp\async;
-use function Amp\await;
-use function Revolt\EventLoop\defer;
-use function Revolt\EventLoop\delay;
+use Revolt\EventLoop;
+use function Amp\coroutine;
+use function Amp\delay;
 
 class ConnectionLimitingPoolTest extends AsyncTestCase
 {
@@ -23,12 +22,12 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
             ->usingPool(ConnectionLimitingPool::byAuthority(1))
             ->build();
 
-        $this->setTimeout(5000);
-        $this->setMinimumRuntime(2000);
+        $this->setTimeout(5);
+        $this->setMinimumRuntime(2);
 
-        await([
-            async(fn () => $client->request(new Request('http://httpbin.org/delay/1'))),
-            async(fn () => $client->request(new Request('http://httpbin.org/delay/1'))),
+        Future\all([
+            coroutine(fn () => $client->request(new Request('http://httpbin.org/delay/1'))),
+            coroutine(fn () => $client->request(new Request('http://httpbin.org/delay/1'))),
         ]);
     }
 
@@ -38,12 +37,12 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
             ->usingPool(ConnectionLimitingPool::byAuthority(2))
             ->build();
 
-        $this->setTimeout(4000);
-        $this->setMinimumRuntime(2000);
+        $this->setTimeout(4);
+        $this->setMinimumRuntime(2);
 
-        await([
-            async(fn () => $client->request(new Request('http://httpbin.org/delay/2'))),
-            async(fn () => $client->request(new Request('http://httpbin.org/delay/2'))),
+        Future\all([
+            coroutine(fn () => $client->request(new Request('http://httpbin.org/delay/2'))),
+            coroutine(fn () => $client->request(new Request('http://httpbin.org/delay/2'))),
         ]);
     }
 
@@ -64,11 +63,11 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
             ->usingPool($pool)
             ->build();
 
-        $this->setTimeout(250);
+        $this->setTimeout(0.25);
 
-        await([
-            async(fn () => $client->request($request)),
-            async(fn () => $client->request($request)),
+        Future\all([
+            coroutine(fn () => $client->request($request)),
+            coroutine(fn () => $client->request($request)),
         ]);
     }
 
@@ -82,7 +81,7 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         $factory->expects(self::exactly(2))
             ->method('create')
             ->willReturnCallback(function () use ($connection): Connection {
-                delay(500);
+                delay(0.5);
                 return $connection;
             });
 
@@ -92,16 +91,18 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
             ->usingPool($pool)
             ->build();
 
-        $this->setTimeout(750);
+        $this->setTimeout(0.75);
 
-        await([
-            async(fn () => $client->request($request)),
-            async(fn () => $client->request($request)),
+        Future\all([
+            coroutine(fn () => $client->request($request)),
+            coroutine(fn () => $client->request($request)),
         ]);
     }
 
     public function testConnectionNotClosedWhileInUse(): void
     {
+        $this->setTimeout(10);
+
         $request = new Request('http://localhost');
 
         $factory = $this->createMock(ConnectionFactory::class);
@@ -119,16 +120,16 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         $numRequests = 66;
         $promises = [];
         for ($i = 0; $i < $numRequests; $i++) {
-            $promises[] = async(fn () => $client->request($request));
+            $promises[] = coroutine(fn () => $client->request($request));
         }
-        await($promises);
+        Future\all($promises);
 
         // all requests have completed and all connections are now idle. run through the connections again.
         $promises = [];
         for ($i = 0; $i < $numRequests; $i++) {
-            $promises[] = async(fn () => $client->request($request));
+            $promises[] = coroutine(fn () => $client->request($request));
         }
-        $responses = await($promises);
+        $responses = Future\all($promises);
         foreach ($responses as $response) {
             $data = $response->getBody()->buffer();
             // if $data === 'closed', the connection was closed before the request completed
@@ -138,12 +139,12 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
 
     private function createMockConnection(Request $request): Connection
     {
-        $response = new Response('1.1', 200, null, [], new InMemoryStream, $request, new Success(new Trailers([])));
+        $response = new Response('1.1', 200, null, [], new InMemoryStream, $request, Future::complete(new Trailers([])));
 
         $stream = $this->createMock(Stream::class);
         $stream->method('request')
             ->willReturnCallback(function () use ($response): Response {
-                delay(100);
+                delay(0.1);
                 return $response;
             });
         $stream->method('getLocalAddress')
@@ -170,7 +171,7 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         $stream->method('request')
             ->willReturnCallback(static function () use (&$content, $request, &$busy): Response {
                 // simulate a request taking some time
-                delay(500);
+                delay(0.5);
                 $busy = false;
                 // we can't pass this as the value to Delayed because we need to capture $content after the delay completes
                 return new Response(
@@ -180,7 +181,7 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
                     [],
                     new InMemoryStream($content),
                     $request,
-                    new Success(new Trailers([]))
+                    Future::complete(new Trailers([]))
                 );
             });
         $stream->method('getLocalAddress')
@@ -191,7 +192,7 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         $connection = $this->createMock(Connection::class);
         $connection->method('getStream')
             ->willReturnCallback(static function () use (&$content, $stream, &$busy): ?Stream {
-                delay(1);
+                delay(0.01);
                 $result = $busy ? null : $stream;
                 $busy = true;
                 return $result;
@@ -203,7 +204,7 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
             ->willReturnCallback(static function () use (&$content, &$closeHandlers, $connection): void {
                 $content = 'closed';
                 foreach ($closeHandlers as $closeHandler) {
-                    defer($closeHandler, $connection);
+                    EventLoop::queue($closeHandler, $connection);
                 }
             });
         $connection->method('onClose')
@@ -211,7 +212,7 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
                 $closeHandlers[] = $callback;
             });
 
-        delay(1);
+        delay(0);
 
         return $connection;
     }

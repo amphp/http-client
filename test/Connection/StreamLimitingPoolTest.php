@@ -2,12 +2,12 @@
 
 namespace Amp\Http\Client\Connection;
 
+use Amp\Future;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\Request;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Sync\LocalKeyedMutex;
-use function Amp\async;
-use function Amp\await;
+use function Amp\coroutine;
 
 class StreamLimitingPoolTest extends AsyncTestCase
 {
@@ -17,12 +17,12 @@ class StreamLimitingPoolTest extends AsyncTestCase
             ->usingPool(StreamLimitingPool::byHost(new UnlimitedConnectionPool, new LocalKeyedMutex))
             ->build();
 
-        $this->setTimeout(5000);
-        $this->setMinimumRuntime(2000);
+        $this->setTimeout(5);
+        $this->setMinimumRuntime(2);
 
-        await([
-            async(fn () => $client->request(new Request('https://httpbin.org/delay/1'))),
-            async(fn () => $client->request(new Request('https://httpbin.org/delay/1'))),
+        Future\all([
+            coroutine(fn () => $client->request(new Request('https://httpbin.org/delay/1'))),
+            coroutine(fn () => $client->request(new Request('https://httpbin.org/delay/1'))),
         ]);
     }
 }

@@ -1,10 +1,10 @@
 <?php
 
-use Amp\AsyncGenerator;
 use Amp\Http\Client\HttpClient;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\Request;
-use Amp\Pipeline;
+use Amp\Pipeline\AsyncGenerator;
+use Amp\Pipeline\Pipeline;
 use function Amp\delay;
 use function Kelunik\LinkHeaderRfc5988\parseLinks;
 
@@ -43,8 +43,8 @@ class GitHubApi
                 $next = $links->getByRel('next');
 
                 if ($next) {
-                    print 'Waiting 1000 ms before next request...' . PHP_EOL;
-                    delay(1000);
+                    print 'Waiting 1 s before next request...' . PHP_EOL;
+                    delay(1);
 
                     $url = $next->getUri();
                 }

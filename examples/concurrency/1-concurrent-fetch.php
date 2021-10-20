@@ -1,10 +1,10 @@
 <?php
 
+use Amp\Future;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
-use function Amp\async;
-use function Amp\await;
+use function Amp\coroutine;
 
 require __DIR__ . '/../.helper/functions.php';
 
@@ -19,18 +19,17 @@ $client = HttpClientBuilder::buildDefault();
 
 $requestHandler = static function (string $uri) use ($client): string {
     $response = $client->request(new Request($uri));
-
     return $response->getBody()->buffer();
 };
 
 try {
-    $promises = [];
+    $futures = [];
 
     foreach ($uris as $uri) {
-        $promises[$uri] = async($requestHandler, $uri);
+        $futures[$uri] = coroutine(fn () => $requestHandler($uri));
     }
 
-    $bodies = await($promises);
+    $bodies = Future\all($futures);
 
     foreach ($bodies as $uri => $body) {
         print $uri . " - " . \strlen($body) . " bytes" . PHP_EOL;

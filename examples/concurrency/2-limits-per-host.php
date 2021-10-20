@@ -1,6 +1,7 @@
 <?php
 
 use Amp\CancellationToken;
+use Amp\Future;
 use Amp\Http\Client\Connection\ConnectionLimitingPool;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\HttpClientBuilder;
@@ -8,8 +9,7 @@ use Amp\Http\Client\HttpException;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
-use function Amp\async;
-use function Amp\await;
+use function Amp\coroutine;
 
 require __DIR__ . '/../.helper/functions.php';
 
@@ -40,15 +40,15 @@ try {
         ->build();
 
     for ($i = 0; $i < 3; $i++) {
-        $promises = [];
+        $futures = [];
         for ($j = 0; $j < 10; $j++) {
-            $promises[] = async(static function () use ($client, $i, $j): void {
+            $futures[] = coroutine(static function () use ($client, $i, $j): void {
                 $response = $client->request(new Request("https://amphp.org/$i.$j"));
                 $response->getBody()->buffer();
             });
         }
 
-        await($promises);
+        Future\all($futures);
     }
 } catch (HttpException $error) {
     echo $error;

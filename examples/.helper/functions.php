@@ -32,14 +32,14 @@ function dumpResponseTrace(Response $response): void
     print Rfc7230::formatHeaders($response->getHeaders()) . "\r\n\r\n";
 }
 
-function dumpResponseBodyPreview(string $body): void
+function dumpResponseBodyPreview(string $body, int $maxLength = 512): void
 {
     $bodyLength = \strlen($body);
 
-    if ($bodyLength < 250) {
+    if ($bodyLength < $maxLength) {
         print $body . "\r\n";
     } else {
-        print \substr($body, 0, 250) . "\r\n\r\n";
-        print($bodyLength - 250) . " more bytes\r\n";
+        print \substr($body, 0, $maxLength) . "\r\n\r\n";
+        print($bodyLength - $maxLength) . " more bytes\r\n";
     }
 }

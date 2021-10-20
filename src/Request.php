@@ -2,14 +2,13 @@
 
 namespace Amp\Http\Client;
 
+use Amp\Future;
 use Amp\Http\Client\Body\StringBody;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Message;
-use Amp\Promise;
 use League\Uri;
 use Psr\Http\Message\UriInterface;
-use function Amp\async;
-use function Amp\await;
+use function Amp\coroutine;
 
 /**
  * An HTTP request.
@@ -41,34 +40,25 @@ final class Request extends Message
     }
 
     /** @var string[] */
-    private $protocolVersions = ['1.1', '2'];
+    private array $protocolVersions = ['1.1', '2'];
 
-    /** @var string */
-    private $method;
+    private string $method;
 
-    /** @var UriInterface */
-    private $uri;
+    private UriInterface $uri;
 
-    /** @var RequestBody */
-    private $body;
+    private RequestBody $body;
 
-    /** @var int */
-    private $tcpConnectTimeout = 10000;
+    private float $tcpConnectTimeout = 10;
 
-    /** @var int */
-    private $tlsHandshakeTimeout = 10000;
+    private float $tlsHandshakeTimeout = 10;
 
-    /** @var int */
-    private $transferTimeout = 10000;
+    private float $transferTimeout = 10;
 
-    /** @var int */
-    private $inactivityTimeout = 10000;
+    private float $inactivityTimeout = 10;
 
-    /** @var int */
-    private $bodySizeLimit = self::DEFAULT_BODY_SIZE_LIMIT;
+    private int $bodySizeLimit = self::DEFAULT_BODY_SIZE_LIMIT;
 
-    /** @var int */
-    private $headerSizeLimit = self::DEFAULT_HEADER_SIZE_LIMIT;
+    private int $headerSizeLimit = self::DEFAULT_HEADER_SIZE_LIMIT;
 
     /** @var callable|null */
     private $onPush;
@@ -79,20 +69,18 @@ final class Request extends Message
     /** @var callable|null */
     private $onInformationalResponse;
 
-    /** @var mixed[] */
-    private $attributes = [];
+    /** @var array<string, mixed> */
+    private array $attributes = [];
 
     /** @var EventListener[] */
-    private $eventListeners = [];
+    private array $eventListeners = [];
 
     /**
-     * Request constructor.
-     *
      * @param string|UriInterface $uri
-     * @param string              $method
-     * @param string              $body
+     * @param string $method
+     * @param string $body
      */
-    public function __construct($uri, string $method = "GET", ?string $body = null)
+    public function __construct(string|UriInterface $uri, string $method = "GET", string $body = '')
     {
         $this->setUri($uri);
         $this->setMethod($method);
@@ -134,13 +122,11 @@ final class Request extends Message
         $versions = \array_unique($versions);
 
         if (empty($versions)) {
-            /** @noinspection PhpUndefinedClassInspection */
             throw new \Error("Empty array of protocol versions provided, must not be empty.");
         }
 
         foreach ($versions as $version) {
             if (!\in_array($version, ["1.0", "1.1", "2"], true)) {
-                /** @noinspection PhpUndefinedClassInspection */
                 throw new \Error(
                     "Invalid HTTP protocol version: " . $version
                 );
@@ -193,7 +179,7 @@ final class Request extends Message
     /**
      * Assign a value for the specified header field by replacing any existing values for that field.
      *
-     * @param string          $name Header name.
+     * @param string $name Header name.
      * @param string|string[] $value Header value.
      */
     public function setHeader(string $name, $value): void
@@ -208,7 +194,7 @@ final class Request extends Message
     /**
      * Assign a value for the specified header field by adding an additional header line.
      *
-     * @param string          $name Header name.
+     * @param string $name Header name.
      * @param string|string[] $value Header value.
      */
     public function addHeader(string $name, $value): void
@@ -247,20 +233,17 @@ final class Request extends Message
     /**
      * Assign the message entity body.
      *
-     * @param mixed $body
+     * @param string|int|float|RequestBody $body
      */
-    public function setBody(string|int|float|RequestBody|null $body): void
+    public function setBody(string|int|float|RequestBody $body): void
     {
-        if ($body === null) {
-            $this->body = new StringBody("");
-        } elseif (\is_string($body)) {
+        if (\is_string($body)) {
             $this->body = new StringBody($body);
         } elseif (\is_scalar($body)) {
             $this->body = new StringBody(\var_export($body, true));
         } elseif ($body instanceof RequestBody) {
             $this->body = $body;
         } else {
-            /** @noinspection PhpUndefinedClassInspection */
             throw new \TypeError("Invalid body type: " . \gettype($body));
         }
     }
@@ -303,12 +286,12 @@ final class Request extends Message
 
         $onPush = $this->onPush;
         /** @psalm-suppress MissingClosureReturnType */
-        $this->onPush = static function (Request $request, Promise $response) use ($onPush, $interceptor) {
-            $response = async(function () use ($interceptor, $response): Response {
-                $response = await($response);
+        $this->onPush = static function (Request $request, Future $future) use ($onPush, $interceptor) {
+            $future = coroutine(function () use ($interceptor, $future): Response {
+                $response = $future->await();
                 return $interceptor($response) ?? $response;
             });
-            return $onPush($request, $response);
+            return $onPush($request, $future);
         };
     }
 
@@ -359,12 +342,12 @@ final class Request extends Message
     /**
      * @return int Timeout in milliseconds for the TCP connection.
      */
-    public function getTcpConnectTimeout(): int
+    public function getTcpConnectTimeout(): float
     {
         return $this->tcpConnectTimeout;
     }
 
-    public function setTcpConnectTimeout(int $tcpConnectTimeout): void
+    public function setTcpConnectTimeout(float $tcpConnectTimeout): void
     {
         $this->tcpConnectTimeout = $tcpConnectTimeout;
     }
@@ -372,12 +355,12 @@ final class Request extends Message
     /**
      * @return int Timeout in milliseconds for the TLS handshake.
      */
-    public function getTlsHandshakeTimeout(): int
+    public function getTlsHandshakeTimeout(): float
     {
         return $this->tlsHandshakeTimeout;
     }
 
-    public function setTlsHandshakeTimeout(int $tlsHandshakeTimeout): void
+    public function setTlsHandshakeTimeout(float $tlsHandshakeTimeout): void
     {
         $this->tlsHandshakeTimeout = $tlsHandshakeTimeout;
     }
@@ -385,12 +368,12 @@ final class Request extends Message
     /**
      * @return int Timeout in milliseconds for the HTTP transfer (not counting TCP connect and TLS handshake)
      */
-    public function getTransferTimeout(): int
+    public function getTransferTimeout(): float
     {
         return $this->transferTimeout;
     }
 
-    public function setTransferTimeout(int $transferTimeout): void
+    public function setTransferTimeout(float $transferTimeout): void
     {
         $this->transferTimeout = $transferTimeout;
     }
@@ -398,12 +381,12 @@ final class Request extends Message
     /**
      * @return int Timeout in milliseconds since the last data was received before the request fails due to inactivity.
      */
-    public function getInactivityTimeout(): int
+    public function getInactivityTimeout(): float
     {
         return $this->inactivityTimeout;
     }
 
-    public function setInactivityTimeout(int $inactivityTimeout): void
+    public function setInactivityTimeout(float $inactivityTimeout): void
     {
         $this->inactivityTimeout = $inactivityTimeout;
     }
@@ -497,7 +480,7 @@ final class Request extends Message
      * ```
      *
      * @param string $name Name of the attribute, should be namespaced with a vendor and package namespace like classes.
-     * @param mixed  $value Value of the attribute, might be any serializable value.
+     * @param mixed $value Value of the attribute, might be any serializable value.
      */
     public function setAttribute(string $name, $value): void
     {

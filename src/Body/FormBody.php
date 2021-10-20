@@ -2,37 +2,36 @@
 
 namespace Amp\Http\Client\Body;
 
-use Amp\AsyncGenerator;
+
 use Amp\ByteStream\InMemoryStream;
 use Amp\ByteStream\InputStream;
 use Amp\ByteStream\PipelineStream;
+use Amp\Future;
 use Amp\Http\Client\RequestBody;
-use Amp\Promise;
-use Amp\Success;
-use function Amp\async;
-use function Amp\await;
+use Amp\Pipeline\AsyncGenerator;
+use function Amp\coroutine;
 
 final class FormBody implements RequestBody
 {
-    /** @var (array{0: string, 1: string, 2: string, 3: null}|array{0: string, 1: FileBody, 2: string, 3: string})[] */
-    private array  $fields = [];
+    /** @var array{string, FileBody|string, string, null}[] */
+    private array $fields = [];
 
     private string $boundary;
 
-    private bool$isMultipart = false;
+    private bool $isMultipart = false;
 
     private ?string $cachedBody = null;
 
-    /** @var Promise<int>|null */
-    private ?Promise $cachedLength = null;
+    /** @var Future<int>|null */
+    private ?Future $cachedLength = null;
 
     /** @var list<string|FileBody>|null */
     private ?array $cachedFields;
 
     /**
-     * @param string $boundary An optional multipart boundary string
+     * @param string|null $boundary An optional multipart boundary string
      */
-    public function __construct(string $boundary = null)
+    public function __construct(?string $boundary = null)
     {
         /** @noinspection PhpUnhandledExceptionInspection */
         $this->boundary = $boundary ?? \bin2hex(\random_bytes(16));
@@ -235,14 +234,14 @@ final class FormBody implements RequestBody
     public function getBodyLength(): int
     {
         if ($this->cachedLength) {
-            return await($this->cachedLength);
+            return $this->cachedLength->await();
         }
 
         if (!$this->isMultipart) {
-            return await($this->cachedLength = new Success(\strlen($this->getFormEncodedBodyString())));
+            return ($this->cachedLength = Future::complete(\strlen($this->getFormEncodedBodyString())))->await();
         }
 
-        $lengthPromise = async(function (): int {
+        $this->cachedLength = coroutine(function (): int {
             $fields = $this->getMultipartFieldArray();
             $length = 0;
 
@@ -257,6 +256,6 @@ final class FormBody implements RequestBody
             return $length;
         });
 
-        return await($this->cachedLength = $lengthPromise);
+        return $this->cachedLength->await();
     }
 }

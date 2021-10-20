@@ -3,15 +3,14 @@
 namespace Amp\Http\Client\Connection;
 
 use Amp\CancellationToken;
+use Amp\CompositeException;
 use Amp\Deferred;
+use Amp\Future;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
-use Amp\MultiReasonException;
-use Amp\Promise;
-use Amp\Success;
-use function Amp\async;
-use function Amp\await;
+use Revolt\EventLoop;
+use function Amp\coroutine;
 
 final class ConnectionLimitingPool implements ConnectionPool
 {
@@ -50,7 +49,7 @@ final class ConnectionLimitingPool implements ConnectionPool
 
     private ConnectionFactory $connectionFactory;
 
-    /** @var array<string, \ArrayObject<int, Promise<Connection>>> */
+    /** @var array<string, \ArrayObject<int, Future<Connection>>> */
     private array $connections = [];
 
     /** @var Connection[] */
@@ -134,10 +133,13 @@ final class ConnectionLimitingPool implements ConnectionPool
                     throw $e;
                 }
 
-                // await response being completely received
-                $response->getTrailers()->onResolve(function () use ($connection, $uri): void {
-                    $this->onReadyConnection($connection, $uri);
-                });
+                coroutine(function () use ($response, $connection, $uri): void {
+                    try {
+                        $response->getTrailers()->await();
+                    } finally {
+                        $this->onReadyConnection($connection, $uri);
+                    }
+                })->ignore();
 
                 return $response;
             },
@@ -154,15 +156,15 @@ final class ConnectionLimitingPool implements ConnectionPool
         $connections = $this->connections[$uri] ?? new \ArrayObject;
 
         do {
-            foreach ($connections as $connectionPromise) {
-                \assert($connectionPromise instanceof Promise);
+            foreach ($connections as $connectionFuture) {
+                \assert($connectionFuture instanceof Future);
 
                 try {
                     if ($isHttps && ($this->waitForPriorConnection[$uri] ?? true)) {
                         // Wait for first successful connection if using a secure connection (maybe we can use HTTP/2).
-                        $connection = await($connectionPromise);
+                        $connection = $connectionFuture->await();
                     } else {
-                        $connection = await(Promise\first([$connectionPromise, new Success]));
+                        $connection = Future\race([$connectionFuture, Future::complete(null)]);
                         if ($connection === null) {
                             continue;
                         }
@@ -188,7 +190,7 @@ final class ConnectionLimitingPool implements ConnectionPool
             }
 
             $deferred = new Deferred;
-            $deferredPromise = $deferred->promise();
+            $deferredFuture = $deferred->getFuture();
 
             $this->waiting[$uri][\spl_object_id($deferred)] = $deferred;
 
@@ -196,7 +198,7 @@ final class ConnectionLimitingPool implements ConnectionPool
                 break;
             }
 
-            $connection = await($deferredPromise);
+            $connection = $deferredFuture->await();
 
             \assert($connection instanceof Connection);
 
@@ -211,22 +213,26 @@ final class ConnectionLimitingPool implements ConnectionPool
 
         $this->totalConnectionAttempts++;
 
-        $connectionPromise = async(fn () => $this->connectionFactory->create($request, $cancellation));
+        $connectionFuture = coroutine(fn () => $this->connectionFactory->create($request, $cancellation));
 
-        $promiseId = \spl_object_id($connectionPromise);
+        $promiseId = \spl_object_id($connectionFuture);
         $this->connections[$uri] = $this->connections[$uri] ?? new \ArrayObject;
-        $this->connections[$uri][$promiseId] = $connectionPromise;
+        $this->connections[$uri][$promiseId] = $connectionFuture;
 
-        $connectionPromise->onResolve(function (?\Throwable $exception, ?Connection $connection) use (
+        EventLoop::queue(function () use (
             &$deferred,
+            $connectionFuture,
             $uri,
             $promiseId,
             $isHttps
         ): void {
-            if ($exception) {
+            try {
+                /** @var Connection $connection */
+                $connection = $connectionFuture->await();
+            } catch (\Throwable $exception) {
                 $this->dropConnection($uri, null, $promiseId);
                 if ($deferred !== null) {
-                    $deferred->fail($exception); // Fail Deferred so Promise\first() below fails.
+                    $deferred->error($exception); // Fail Deferred so Promise\first() below fails.
                 }
                 return;
             }
@@ -247,8 +253,8 @@ final class ConnectionLimitingPool implements ConnectionPool
         });
 
         try {
-            $connection = await(Promise\first([$connectionPromise, $deferredPromise]));
-        } catch (MultiReasonException $exception) {
+            $connection = Future\any([$connectionFuture, $deferredFuture]);
+        } catch (CompositeException $exception) {
             [$exception] = $exception->getReasons(); // The first reason is why the connection failed.
             throw $exception;
         }
@@ -262,7 +268,7 @@ final class ConnectionLimitingPool implements ConnectionPool
 
         if ($stream === null) {
             // Reused connection did not have an available stream for the given request.
-            $connection = await($connectionPromise); // Wait for new connection request instead.
+            $connection = $connectionFuture->await(); // Wait for new connection request instead.
 
             $stream = $this->getStreamFromConnection($connection, $request);
 
@@ -312,9 +318,10 @@ final class ConnectionLimitingPool implements ConnectionPool
             return;
         }
 
+        /** @var Deferred $deferred */
         $deferred = \reset($this->waiting[$uri]);
         $this->removeWaiting($uri, \spl_object_id($deferred));
-        $deferred->resolve($connection);
+        $deferred->complete($connection);
     }
 
     private function isConnectionIdle(Connection $connection): bool

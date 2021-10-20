@@ -2,12 +2,12 @@
 
 use Amp\CancellationToken;
 use Amp\Dns\Record;
+use Amp\Future;
 use Amp\Http\Client\Connection\ConnectionLimitingPool;
 use Amp\Http\Client\Connection\DefaultConnectionFactory;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
-use Amp\Promise;
 use Amp\ReactAdapter\ReactAdapter;
 use Amp\Socket\ConnectContext;
 use Amp\Socket\Connector;
@@ -16,7 +16,6 @@ use Amp\Socket\ResourceSocket;
 use Amp\Socket\SocketAddress;
 use Clue\React\Socks\Client;
 use React\Socket\Connector as ReactConnector;
-use function Amp\await;
 use function Amp\Dns\resolve;
 
 require __DIR__ . '/../.helper/functions.php';
@@ -45,9 +44,9 @@ try {
                 ])
             );
 
-            $connection = await(Promise\adapt(
+            $connection = Future\adapt(
                 $connector->connect($records[0]->getValue() . ':' . $socketAddress->getPort())
-            ));
+            )->await();
             /** @psalm-suppress InternalMethod */
             $connection->pause();
 
