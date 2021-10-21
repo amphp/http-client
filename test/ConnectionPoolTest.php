@@ -18,7 +18,7 @@ class ConnectionPoolTest extends AsyncTestCase
         $response = $this->executeRequest($this->createRequest(1));
         self::assertSame("hello", $response->getBody()->buffer());
 
-        delay(1);
+        delay(0.1);
 
         $response = $this->executeRequest($this->createRequest(2));
         self::assertSame("hello", $response->getBody()->buffer());
@@ -36,14 +36,18 @@ class ConnectionPoolTest extends AsyncTestCase
             $client = $this->socket->accept();
 
             $client->read();
-            $client->write("HTTP/1.1 200 OK\r\nconnection: keep-alive\r\ncontent-length: 5\r\n\r\nhello");
+            $client->write("HTTP/1.1 200 OK\r\nconnection: keep-alive\r\ncontent-length: 5\r\n\r\nhello")->await();
+
+            delay(0.05);
 
             $client->close();
+
+            delay(0.1);
 
             $client = $this->socket->accept();
 
             $client->read();
-            $client->end("HTTP/1.1 200 OK\r\nconnection: keep-alive\r\ncontent-length: 5\r\n\r\nhello");
+            $client->end("HTTP/1.1 200 OK\r\nconnection: keep-alive\r\ncontent-length: 5\r\n\r\nhello")->await();
 
             $this->socket->close();
         });

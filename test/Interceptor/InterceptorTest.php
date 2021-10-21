@@ -19,7 +19,6 @@ use Amp\Socket\Server as SocketServer;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\StaticConnector;
 use Psr\Log\NullLogger;
-use function Amp\await;
 use function Amp\Socket\connector;
 
 abstract class InterceptorTest extends AsyncTestCase
@@ -64,7 +63,7 @@ abstract class InterceptorTest extends AsyncTestCase
             $this->response = $response;
 
             $this->response->getBody()->buffer();
-            await($this->response->getTrailers());
+            $this->response->getTrailers()->await();
         } finally {
             $this->server->stop();
             $this->serverSocket->close();

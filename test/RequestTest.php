@@ -128,7 +128,7 @@ class RequestTest extends AsyncTestCase
         $request = new Request("http://127.0.0.1/");
         $this->assertInstanceOf(StringBody::class, $request->getBody());
 
-        $request->setBody(null);
+        $request->setBody('');
         $this->assertInstanceOf(StringBody::class, $request->getBody());
 
         $request->setBody("foobar");
@@ -218,7 +218,7 @@ class RequestTest extends AsyncTestCase
         $request = new Request('https://amphp.org/');
         $invocationCount = 0;
         $responseFuture = null;
-        $pushHandler = static function (Request $request, Promise $response) use (
+        $pushHandler = static function (Request $request, Future $response) use (
             &$invocationCount,
             &$responseFuture
         ) {

@@ -516,7 +516,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                 $transferTimeout = $this->streams[$streamId]->request->getTransferTimeout();
 
                 $exception = new TimeoutException(
-                    'Allowed transfer timeout exceeded, took longer than ' . $transferTimeout . ' ms',
+                    'Allowed transfer timeout exceeded, took longer than ' . $transferTimeout . ' s',
                     0,
                     $exception
                 );
@@ -1066,7 +1066,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
                 if (!$originalCancellation->isRequested()) {
                     $exception = new TimeoutException(
-                        'Allowed transfer timeout exceeded, took longer than ' . $transferTimeout . ' ms',
+                        'Allowed transfer timeout exceeded, took longer than ' . $transferTimeout . ' s',
                         0,
                         $exception
                     );

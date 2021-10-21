@@ -48,7 +48,7 @@ class TimeoutTest extends AsyncTestCase
             $response = $this->client->request($request);
 
             $this->expectException(TimeoutException::class);
-            $this->expectExceptionMessage("Allowed transfer timeout exceeded, took longer than 1000 ms");
+            $this->expectExceptionMessage("Allowed transfer timeout exceeded, took longer than 1 s");
 
             $response->getBody()->buffer();
         } finally {
@@ -102,7 +102,7 @@ class TimeoutTest extends AsyncTestCase
             $uri = "https://" . $server->getAddress() . "/";
 
             $this->expectException(TimeoutException::class);
-            $this->expectExceptionMessageMatches("(TLS handshake with '127.0.0.1:\d+' @ '127.0.0.1:\d+' timed out, took longer than 100 ms)");
+            $this->expectExceptionMessageMatches("(TLS handshake with '127.0.0.1:\d+' @ '127.0.0.1:\d+' timed out, took longer than 0.1 s)");
 
             $request = new Request($uri);
             $request->setTlsHandshakeTimeout(0.1);
@@ -175,7 +175,7 @@ class TimeoutTest extends AsyncTestCase
             $response = $client->request($request, new NullCancellationToken);
 
             $this->expectException(TimeoutException::class);
-            $this->expectExceptionMessage("Allowed transfer timeout exceeded, took longer than 1000 ms");
+            $this->expectExceptionMessage("Allowed transfer timeout exceeded, took longer than 1 s");
 
             $response->getBody()->buffer();
         } finally {
@@ -194,7 +194,7 @@ class TimeoutTest extends AsyncTestCase
                 ?Socket\ConnectContext $connectContext = null,
                 ?CancellationToken $token = null
             ): Socket\EncryptableSocket {
-                $this->assertSame(1, $connectContext->getConnectTimeout());
+                $this->assertSame(0.001, $connectContext->getConnectTimeout());
                 throw new TimeoutException;
             });
 
@@ -229,7 +229,7 @@ class TimeoutTest extends AsyncTestCase
             $uri = "https://" . $server->getAddress() . "/";
 
             $this->expectException(TimeoutException::class);
-            $this->expectExceptionMessageMatches("(TLS handshake with '127.0.0.1:\d+' @ '127.0.0.1:\d+' timed out, took longer than 100 ms)");
+            $this->expectExceptionMessageMatches("(TLS handshake with '127.0.0.1:\d+' @ '127.0.0.1:\d+' timed out, took longer than 0.1 s)");
 
             $request = new Request($uri);
             $request->setTlsHandshakeTimeout(0.1);

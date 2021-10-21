@@ -194,7 +194,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
             $buffer = \json_encode(Rfc7230::parseRawHeaders(\implode("\r\n", $headers) . "\r\n"));
 
-            $socket->write("HTTP/1.0 200 OK\r\n\r\n$buffer");
+            $socket->write("HTTP/1.0 200 OK\r\n\r\n$buffer")->await();
         };
 
         $request = $this->createRequest();
@@ -796,7 +796,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
                 }
             }
 
-            $socket->write($response);
+            $socket->write($response)->await();
         };
     }
 

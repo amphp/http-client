@@ -118,7 +118,7 @@ final class DefaultConnectionFactory implements ConnectionFactory
 
             // Otherwise we ran into a timeout of our TimeoutCancellationToken
             throw new UnprocessedRequestException(new TimeoutException(\sprintf(
-                "Connection to '%s' timed out, took longer than " . $request->getTcpConnectTimeout() . ' ms',
+                "Connection to '%s' timed out, took longer than " . $request->getTcpConnectTimeout() . ' s',
                 $authority
             ))); // don't pass $e
         }
@@ -166,7 +166,7 @@ final class DefaultConnectionFactory implements ConnectionFactory
 
                 // Otherwise we ran into a timeout of our TimeoutCancellationToken
                 throw new UnprocessedRequestException(new TimeoutException(\sprintf(
-                    "TLS handshake with '%s' @ '%s' timed out, took longer than " . $request->getTlsHandshakeTimeout() . ' ms',
+                    "TLS handshake with '%s' @ '%s' timed out, took longer than " . $request->getTlsHandshakeTimeout() . ' s',
                     $authority,
                     $socket->getRemoteAddress()->toString()
                 ))); // don't pass $e

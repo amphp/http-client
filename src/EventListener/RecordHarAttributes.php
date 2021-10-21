@@ -6,7 +6,7 @@ use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\EventListener;
 use Amp\Http\Client\Internal\HarAttributes;
 use Amp\Http\Client\Request;
-use function Revolt\EventLoop\now;
+use function Revolt\now;
 
 final class RecordHarAttributes implements EventListener
 {

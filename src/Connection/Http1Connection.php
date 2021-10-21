@@ -9,6 +9,7 @@ use Amp\CancellationTokenSource;
 use Amp\CancelledException;
 use Amp\CombinedCancellationToken;
 use Amp\Deferred;
+use Amp\Future;
 use Amp\Http;
 use Amp\Http\Client\Connection\Internal\Http1Parser;
 use Amp\Http\Client\Connection\Internal\RequestNormalizer;
@@ -29,7 +30,6 @@ use Amp\Socket\EncryptableSocket;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
 use Amp\TimeoutCancellationToken;
-use Amp\TimeoutException as PromiseTimeoutException;
 use Revolt\EventLoop;
 use function Amp\coroutine;
 use function Amp\Http\Client\Internal\normalizeRequestPathWithQuery;
@@ -76,6 +76,8 @@ final class Http1Connection implements Connection
 
     private ?TlsInfo $tlsInfo;
 
+    private ?Future $idleRead = null;
+
     public function __construct(EncryptableSocket $socket, float $timeoutGracePeriod = 2)
     {
         $this->socket = $socket;
@@ -84,6 +86,7 @@ final class Http1Connection implements Connection
         $this->tlsInfo = $socket->getTlsInfo();
         $this->timeoutGracePeriod = $timeoutGracePeriod;
         $this->lastUsedAt = now();
+        $this->watchIdleConnection();
     }
 
     public function __destruct()
@@ -148,6 +151,7 @@ final class Http1Connection implements Connection
     private function free(): void
     {
         $this->socket = null;
+        $this->idleRead = null;
 
         $this->lastUsedAt = 0;
 
@@ -177,6 +181,10 @@ final class Http1Connection implements Connection
     private function request(Request $request, CancellationToken $cancellation, Stream $stream): Response
     {
         ++$this->requestCounter;
+
+        if ($this->socket !== null && !$this->socket->isClosed()) {
+            $this->socket->reference();
+        }
 
         if ($this->timeoutWatcher !== null) {
             EventLoop::cancel($this->timeoutWatcher);
@@ -272,7 +280,7 @@ final class Http1Connection implements Connection
             }
 
             while (null !== $chunk = $timeout > 0
-                    ? coroutine(fn () => $this->socket->read())
+                    ? ($this->idleRead ?? coroutine(fn () => $this->socket->read()))
                         ->await(new TimeoutCancellationToken($timeout))
                     : $this->socket->read()
             ) {
@@ -410,7 +418,7 @@ final class Http1Connection implements Connection
                             $originalCancellation->throwIfRequested();
 
                             if ($readingCancellation->isRequested()) {
-                                throw new TimeoutException('Allowed transfer timeout exceeded, took longer than ' . $request->getTransferTimeout() . ' ms');
+                                throw new TimeoutException('Allowed transfer timeout exceeded, took longer than ' . $request->getTransferTimeout() . ' s');
                             }
 
                             $bodyCancellationToken->throwIfRequested();
@@ -426,6 +434,7 @@ final class Http1Connection implements Connection
                         if ($timeout > 0 && $parser->getState() !== Http1Parser::BODY_IDENTITY_EOF) {
                             $this->timeoutWatcher = EventLoop::delay($timeout, [$this, 'close']);
                             EventLoop::unreference($this->timeoutWatcher);
+                            $this->watchIdleConnection();
                         } else {
                             $this->close();
                         }
@@ -673,5 +682,24 @@ final class Http1Connection implements Connection
         }
 
         return $header . "\r\n";
+    }
+
+    private function watchIdleConnection(): void
+    {
+        $this->socket->unreference();
+        $this->idleRead = coroutine(function (): ?string {
+            $chunk = null;
+            try {
+                $chunk = $this->socket->read();
+            } catch (\Throwable) {
+                // Close connection below.
+            }
+
+            if ($chunk === null) {
+                $this->close();
+            }
+
+            return $chunk;
+        });
     }
 }
