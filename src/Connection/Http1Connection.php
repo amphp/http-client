@@ -33,7 +33,7 @@ use Amp\TimeoutCancellationToken;
 use Revolt\EventLoop;
 use function Amp\coroutine;
 use function Amp\Http\Client\Internal\normalizeRequestPathWithQuery;
-use function Revolt\now;
+use function Amp\now;
 
 /**
  * Socket client implementation.
@@ -409,7 +409,7 @@ final class Http1Connection implements Connection
                                 $originalCancellation->throwIfRequested();
 
                                 throw new TimeoutException(
-                                    'Inactivity timeout exceeded, more than ' . $timeout . ' ms elapsed from last data received',
+                                    'Inactivity timeout exceeded, more than ' . $timeout . ' seconds elapsed from last data received',
                                     0,
                                     $e
                                 );
@@ -486,7 +486,7 @@ final class Http1Connection implements Connection
             $originalCancellation->throwIfRequested();
 
             throw new TimeoutException(
-                'Inactivity timeout exceeded, more than ' . $timeout . ' ms elapsed from last data received',
+                'Inactivity timeout exceeded, more than ' . $timeout . ' seconds elapsed from last data received',
                 0,
                 $e
             );

@@ -668,7 +668,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     public function testHttp2SupportLargeResponseBody(): void
     {
         $request = new Request('https://1906714720.rsc.cdn77.org/img/cdn77-test-3mb.jpg', 'GET');
-        $request->setTransferTimeout(1000);
+        $request->setTransferTimeout(100);
         $request->setBodySizeLimit(10000000000);
 
         $response = $this->client->request($request);

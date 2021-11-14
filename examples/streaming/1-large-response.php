@@ -3,7 +3,7 @@
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
-use function Revolt\now;
+use function Amp\now;
 
 require __DIR__ . '/../.helper/functions.php';
 

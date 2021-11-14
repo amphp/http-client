@@ -833,14 +833,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             return;
         }
 
-        $future = $stream->body->emit($data);
-        EventLoop::queue(function () use ($stream, $streamId, $future, $length): void {
-            try {
-                $future->await();
-            } catch (\Throwable) {
-                return;
-            }
-
+        $stream->body->emit($data)->apply(function () use ($stream, $streamId, $length): void {
             // Stream may have closed while waiting for body data to be consumed.
             if (!isset($this->streams[$streamId])) {
                 return;
@@ -852,7 +845,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             }
 
             $this->increaseStreamWindow($stream);
-        });
+        })->ignore();
     }
 
     public function handleSettings(array $settings): void
@@ -1751,7 +1744,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
             $this->releaseStream(
                 $streamId,
-                new TimeoutException("Inactivity timeout exceeded, more than {$timeout} ms elapsed from last data received")
+                new TimeoutException("Inactivity timeout exceeded, more than {$timeout} seconds elapsed from last data received")
             );
         });
 

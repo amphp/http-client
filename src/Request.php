@@ -29,7 +29,7 @@ final class Request extends Message
      * @return mixed
      * @psalm-return TValue
      */
-    private static function clone($value)
+    private static function clone(mixed $value): mixed
     {
         if ($value === null || \is_scalar($value)) {
             return $value;
@@ -101,7 +101,7 @@ final class Request extends Message
     }
 
     /**
-     * Retrieve the requests's acceptable HTTP protocol versions.
+     * Retrieve the request's acceptable HTTP protocol versions.
      *
      * @return string[]
      */
@@ -111,7 +111,7 @@ final class Request extends Message
     }
 
     /**
-     * Assign the requests's acceptable HTTP protocol versions.
+     * Assign the request's acceptable HTTP protocol versions.
      *
      * The HTTP client might choose any of these.
      *
@@ -171,7 +171,7 @@ final class Request extends Message
      *
      * @param string|UriInterface $uri
      */
-    public function setUri($uri): void
+    public function setUri(UriInterface|string $uri): void
     {
         $this->uri = $uri instanceof UriInterface ? $uri : $this->createUriFromString($uri);
     }
@@ -192,7 +192,7 @@ final class Request extends Message
     }
 
     /**
-     * Assign a value for the specified header field by adding an additional header line.
+     * Assign a value for the specified header field by adding a header line.
      *
      * @param string $name Header name.
      * @param string|string[] $value Header value.
@@ -340,7 +340,7 @@ final class Request extends Message
     }
 
     /**
-     * @return int Timeout in milliseconds for the TCP connection.
+     * @return float Timeout in seconds for the TCP connection.
      */
     public function getTcpConnectTimeout(): float
     {
@@ -353,7 +353,7 @@ final class Request extends Message
     }
 
     /**
-     * @return int Timeout in milliseconds for the TLS handshake.
+     * @return float Timeout in seconds for the TLS handshake.
      */
     public function getTlsHandshakeTimeout(): float
     {
@@ -366,7 +366,7 @@ final class Request extends Message
     }
 
     /**
-     * @return int Timeout in milliseconds for the HTTP transfer (not counting TCP connect and TLS handshake)
+     * @return float Timeout in seconds for the HTTP transfer (not counting TCP connect and TLS handshake)
      */
     public function getTransferTimeout(): float
     {
@@ -379,7 +379,7 @@ final class Request extends Message
     }
 
     /**
-     * @return int Timeout in milliseconds since the last data was received before the request fails due to inactivity.
+     * @return float Timeout in seconds since the last data was received before the request fails due to inactivity.
      */
     public function getInactivityTimeout(): float
     {
@@ -415,7 +415,7 @@ final class Request extends Message
      * Note: This method returns a deep clone of the request's attributes, so you can't modify the request attributes
      * by modifying the returned value in any way.
      *
-     * @return mixed[] An array of all request attributes in the request's local storage, indexed by name.
+     * @return array An array of all request attributes in the request's local storage, indexed by name.
      */
     public function getAttributes(): array
     {
@@ -454,7 +454,7 @@ final class Request extends Message
      *
      * @throws MissingAttributeError If an attribute with the given name does not exist.
      */
-    public function getAttribute(string $name)
+    public function getAttribute(string $name): mixed
     {
         if (!$this->hasAttribute($name)) {
             throw new MissingAttributeError("The requested attribute '{$name}' does not exist");
@@ -482,7 +482,7 @@ final class Request extends Message
      * @param string $name Name of the attribute, should be namespaced with a vendor and package namespace like classes.
      * @param mixed $value Value of the attribute, might be any serializable value.
      */
-    public function setAttribute(string $name, $value): void
+    public function setAttribute(string $name, mixed $value): void
     {
         $this->attributes[$name] = self::clone($value);
     }
