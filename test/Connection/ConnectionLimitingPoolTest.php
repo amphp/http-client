@@ -11,8 +11,8 @@ use Amp\Http\Client\Trailers;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Socket\SocketAddress;
 use Revolt\EventLoop;
-use function Amp\coroutine;
 use function Amp\delay;
+use function Amp\launch;
 
 class ConnectionLimitingPoolTest extends AsyncTestCase
 {
@@ -26,8 +26,8 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         $this->setMinimumRuntime(2);
 
         Future\all([
-            coroutine(fn () => $client->request(new Request('http://httpbin.org/delay/1'))),
-            coroutine(fn () => $client->request(new Request('http://httpbin.org/delay/1'))),
+            launch(fn () => $client->request(new Request('http://httpbin.org/delay/1'))),
+            launch(fn () => $client->request(new Request('http://httpbin.org/delay/1'))),
         ]);
     }
 
@@ -41,8 +41,8 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         $this->setMinimumRuntime(2);
 
         Future\all([
-            coroutine(fn () => $client->request(new Request('http://httpbin.org/delay/2'))),
-            coroutine(fn () => $client->request(new Request('http://httpbin.org/delay/2'))),
+            launch(fn () => $client->request(new Request('http://httpbin.org/delay/2'))),
+            launch(fn () => $client->request(new Request('http://httpbin.org/delay/2'))),
         ]);
     }
 
@@ -66,8 +66,8 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         $this->setTimeout(0.25);
 
         Future\all([
-            coroutine(fn () => $client->request($request)),
-            coroutine(fn () => $client->request($request)),
+            launch(fn () => $client->request($request)),
+            launch(fn () => $client->request($request)),
         ]);
     }
 
@@ -94,8 +94,8 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         $this->setTimeout(0.75);
 
         Future\all([
-            coroutine(fn () => $client->request($request)),
-            coroutine(fn () => $client->request($request)),
+            launch(fn () => $client->request($request)),
+            launch(fn () => $client->request($request)),
         ]);
     }
 
@@ -120,14 +120,14 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         $numRequests = 66;
         $promises = [];
         for ($i = 0; $i < $numRequests; $i++) {
-            $promises[] = coroutine(fn () => $client->request($request));
+            $promises[] = launch(fn () => $client->request($request));
         }
         Future\all($promises);
 
         // all requests have completed and all connections are now idle. run through the connections again.
         $promises = [];
         for ($i = 0; $i < $numRequests; $i++) {
-            $promises[] = coroutine(fn () => $client->request($request));
+            $promises[] = launch(fn () => $client->request($request));
         }
         $responses = Future\all($promises);
         foreach ($responses as $response) {

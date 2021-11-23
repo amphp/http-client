@@ -3,6 +3,7 @@
 namespace Amp\Http\Client\Internal;
 
 use Amp\ByteStream\InputStream;
+use Amp\CancellationToken;
 use Amp\CancellationTokenSource;
 
 /** @internal */
@@ -23,9 +24,9 @@ final class ResponseBodyStream implements InputStream
         $this->bodyCancellation = $bodyCancellation;
     }
 
-    public function read(): ?string
+    public function read(?CancellationToken $token = null): ?string
     {
-        $chunk = $this->body->read();
+        $chunk = $this->body->read($token);
 
         if ($chunk === null) {
             $this->successfulEnd = true;

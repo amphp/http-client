@@ -21,9 +21,9 @@ use Amp\TimeoutCancellationToken;
 use Laminas\Diactoros\Uri as LaminasUri;
 use League\Uri;
 use Revolt\EventLoop;
-use function Amp\coroutine;
 use function Amp\delay;
 use function Amp\Http\formatDateHeader;
+use function Amp\launch;
 
 class Http2ConnectionTest extends AsyncTestCase
 {
@@ -424,7 +424,7 @@ class Http2ConnectionTest extends AsyncTestCase
 
         $stream = $connection->getStream($request);
 
-        $promise = coroutine(fn () => $stream->request($request, new NullCancellationToken));
+        $promise = launch(fn () => $stream->request($request, new NullCancellationToken));
 
         $server->write(self::packFrame($hpack->encode([
             [":status", Status::OK],
@@ -474,7 +474,7 @@ class Http2ConnectionTest extends AsyncTestCase
 
         $stream = $connection->getStream($request);
 
-        $promise = coroutine(fn () => $stream->request($request, new NullCancellationToken));
+        $promise = launch(fn () => $stream->request($request, new NullCancellationToken));
         $data = \substr($server->read(), \strlen(Http2Parser::PREFACE)); // cut off the HTTP/2 preface
         $data .= $server->read(); // Second read for header frame.
         $processor = $this->createMock(Http2Processor::class);

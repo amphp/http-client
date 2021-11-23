@@ -8,7 +8,7 @@ use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Sync\KeyedSemaphore;
-use function Amp\coroutine;
+use function Amp\launch;
 
 final class StreamLimitingPool implements ConnectionPool
 {
@@ -74,7 +74,7 @@ final class StreamLimitingPool implements ConnectionPool
                 }
 
                 // await response being completely received
-                coroutine(static function () use ($response, $lock): void {
+                launch(static function () use ($response, $lock): void {
                     try {
                         $response->getTrailers()->await();
                     } finally {

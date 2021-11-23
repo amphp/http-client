@@ -3,6 +3,7 @@
 namespace Amp\Http\Client\Internal;
 
 use Amp\ByteStream\InputStream;
+use Amp\CancellationToken;
 use Amp\Http\Client\ParseException;
 use Amp\Http\Status;
 
@@ -28,7 +29,7 @@ final class SizeLimitingInputStream implements InputStream
         $this->sizeLimit = $sizeLimit;
     }
 
-    public function read(): ?string
+    public function read(?CancellationToken $token = null): ?string
     {
         if ($this->exception) {
             throw $this->exception;
@@ -36,7 +37,7 @@ final class SizeLimitingInputStream implements InputStream
 
         \assert($this->source !== null);
 
-        $chunk = $this->source->read();
+        $chunk = $this->source->read($token);
 
         if ($chunk !== null) {
             $this->bytesRead += \strlen($chunk);

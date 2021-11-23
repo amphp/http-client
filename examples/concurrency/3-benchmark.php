@@ -12,8 +12,8 @@ use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\Request;
 use Amp\Socket\ClientTlsContext;
 use Amp\Socket\ConnectContext;
-use function Amp\coroutine;
-use function Revolt\EventLoop\now;
+use function Amp\launch;
+use function Amp\now;
 
 require __DIR__ . '/../.helper/functions.php';
 
@@ -30,7 +30,7 @@ $client = (new HttpClientBuilder)
     ->usingPool(new UnlimitedConnectionPool(new DefaultConnectionFactory(null, $connectContext)))
     ->build();
 
-$handler = fn (int $count) => coroutine(static function () use ($count, $client, $argv): void {
+$handler = fn (int $count) => launch(static function () use ($count, $client, $argv): void {
     for ($i = 0; $i < $count; $i++) {
         $request = new Request($argv[2] ?? 'https://localhost:1338/');
         $request->setTcpConnectTimeout(1000);

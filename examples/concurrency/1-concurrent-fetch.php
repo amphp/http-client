@@ -4,7 +4,7 @@ use Amp\Future;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
-use function Amp\coroutine;
+use function Amp\launch;
 
 require __DIR__ . '/../.helper/functions.php';
 
@@ -26,7 +26,7 @@ try {
     $futures = [];
 
     foreach ($uris as $uri) {
-        $futures[$uri] = coroutine(fn () => $requestHandler($uri));
+        $futures[$uri] = launch(fn () => $requestHandler($uri));
     }
 
     $bodies = Future\all($futures);

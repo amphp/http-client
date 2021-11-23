@@ -17,8 +17,8 @@ use Amp\Socket;
 use Laminas\Diactoros\Uri as LaminasUri;
 use League\Uri;
 use Revolt\EventLoop;
-use function Amp\coroutine;
 use function Amp\delay;
+use function Amp\launch;
 
 class Http1ConnectionTest extends AsyncTestCase
 {
@@ -32,7 +32,7 @@ class Http1ConnectionTest extends AsyncTestCase
         $request->setBody($this->createSlowBody());
 
         $stream = $connection->getStream($request);
-        coroutine(fn () => $stream->request($request, new NullCancellationToken))->ignore();
+        launch(fn () => $stream->request($request, new NullCancellationToken))->ignore();
         $stream = null; // gc instance
 
         self::assertNull($connection->getStream($request));
@@ -67,7 +67,7 @@ class Http1ConnectionTest extends AsyncTestCase
         /** @noinspection SuspiciousAssignmentsInspection */
         $stream = null; // gc instance
 
-        delay(0); // required to clear instance in coroutine :-(
+        delay(0); // required to clear instance in launch :-(
 
         self::assertNotNull($connection->getStream($request));
     }
@@ -231,7 +231,7 @@ class Http1ConnectionTest extends AsyncTestCase
 
         $stream = $connection->getStream($request);
 
-        $future = coroutine(fn () => $stream->request($request, new NullCancellationToken));
+        $future = launch(fn () => $stream->request($request, new NullCancellationToken));
         $startLine = \explode("\r\n", $server->read())[0] ?? null;
         self::assertSame("GET {$expectedPath} HTTP/1.1", $startLine);
 

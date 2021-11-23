@@ -8,7 +8,7 @@ use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Message;
 use League\Uri;
 use Psr\Http\Message\UriInterface;
-use function Amp\coroutine;
+use function Amp\launch;
 
 /**
  * An HTTP request.
@@ -80,7 +80,7 @@ final class Request extends Message
      * @param string $method
      * @param string $body
      */
-    public function __construct(string|UriInterface $uri, string $method = "GET", string $body = '')
+    public function __construct(string|UriInterface $uri, string $method = "GET", RequestBody|string $body = '')
     {
         $this->setUri($uri);
         $this->setMethod($method);
@@ -287,7 +287,7 @@ final class Request extends Message
         $onPush = $this->onPush;
         /** @psalm-suppress MissingClosureReturnType */
         $this->onPush = static function (Request $request, Future $future) use ($onPush, $interceptor) {
-            $future = coroutine(function () use ($interceptor, $future): Response {
+            $future = launch(function () use ($interceptor, $future): Response {
                 $response = $future->await();
                 return $interceptor($response) ?? $response;
             });

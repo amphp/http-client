@@ -25,14 +25,14 @@ use Amp\Http\Client\SocketException;
 use Amp\Http\Client\TimeoutException;
 use Amp\Http\InvalidHeaderException;
 use Amp\Http\Rfc7230;
-use Amp\Pipeline\Subject;
+use Amp\Pipeline\Emitter;
 use Amp\Socket\EncryptableSocket;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
 use Amp\TimeoutCancellationToken;
 use Revolt\EventLoop;
-use function Amp\coroutine;
 use function Amp\Http\Client\Internal\normalizeRequestPathWithQuery;
+use function Amp\launch;
 use function Amp\now;
 
 /**
@@ -258,7 +258,7 @@ final class Http1Connection implements Connection
         CancellationToken $readingCancellation,
         Stream $stream
     ): Response {
-        $bodyEmitter = new Subject();
+        $bodyEmitter = new Emitter();
         $bodyCallback = static fn (string $data) => $bodyEmitter->emit($data)->ignore();
 
         $trailersDeferred = new Deferred;
@@ -280,7 +280,7 @@ final class Http1Connection implements Connection
             }
 
             while (null !== $chunk = $timeout > 0
-                    ? ($this->idleRead ?? coroutine(fn () => $this->socket->read()))
+                    ? ($this->idleRead ?? launch(fn () => $this->socket->read()))
                         ->await(new TimeoutCancellationToken($timeout))
                     : $this->socket->read()
             ) {
@@ -400,7 +400,7 @@ final class Http1Connection implements Connection
                                         throw new SocketException('Socket closed prior to response completion');
                                     }
                                 } while (null !== $chunk = $timeout > 0
-                                    ? coroutine(fn () => $this->socket->read())
+                                    ? launch(fn () => $this->socket->read())
                                         ->await(new TimeoutCancellationToken($timeout))
                                     : $this->socket->read()
                                 );
@@ -687,7 +687,7 @@ final class Http1Connection implements Connection
     private function watchIdleConnection(): void
     {
         $this->socket->unreference();
-        $this->idleRead = coroutine(function (): ?string {
+        $this->idleRead = launch(function (): ?string {
             $chunk = null;
             try {
                 $chunk = $this->socket->read();

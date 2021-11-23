@@ -10,7 +10,7 @@ use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Revolt\EventLoop;
-use function Amp\coroutine;
+use function Amp\launch;
 
 final class ConnectionLimitingPool implements ConnectionPool
 {
@@ -133,7 +133,7 @@ final class ConnectionLimitingPool implements ConnectionPool
                     throw $e;
                 }
 
-                coroutine(function () use ($response, $connection, $uri): void {
+                launch(function () use ($response, $connection, $uri): void {
                     try {
                         $response->getTrailers()->await();
                     } finally {
@@ -213,7 +213,7 @@ final class ConnectionLimitingPool implements ConnectionPool
 
         $this->totalConnectionAttempts++;
 
-        $connectionFuture = coroutine(fn () => $this->connectionFactory->create($request, $cancellation));
+        $connectionFuture = launch(fn () => $this->connectionFactory->create($request, $cancellation));
 
         $promiseId = \spl_object_id($connectionFuture);
         $this->connections[$uri] = $this->connections[$uri] ?? new \ArrayObject;

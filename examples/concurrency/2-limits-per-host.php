@@ -9,7 +9,7 @@ use Amp\Http\Client\HttpException;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
-use function Amp\coroutine;
+use function Amp\launch;
 
 require __DIR__ . '/../.helper/functions.php';
 
@@ -42,7 +42,7 @@ try {
     for ($i = 0; $i < 3; $i++) {
         $futures = [];
         for ($j = 0; $j < 10; $j++) {
-            $futures[] = coroutine(static function () use ($client, $i, $j): void {
+            $futures[] = launch(static function () use ($client, $i, $j): void {
                 $response = $client->request(new Request("https://amphp.org/$i.$j"));
                 $response->getBody()->buffer();
             });

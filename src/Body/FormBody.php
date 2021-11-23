@@ -2,14 +2,13 @@
 
 namespace Amp\Http\Client\Body;
 
-
 use Amp\ByteStream\InMemoryStream;
 use Amp\ByteStream\InputStream;
 use Amp\ByteStream\PipelineStream;
 use Amp\Future;
 use Amp\Http\Client\RequestBody;
 use Amp\Pipeline\AsyncGenerator;
-use function Amp\coroutine;
+use function Amp\launch;
 
 final class FormBody implements RequestBody
 {
@@ -241,7 +240,7 @@ final class FormBody implements RequestBody
             return ($this->cachedLength = Future::complete(\strlen($this->getFormEncodedBodyString())))->await();
         }
 
-        $this->cachedLength = coroutine(function (): int {
+        $this->cachedLength = launch(function (): int {
             $fields = $this->getMultipartFieldArray();
             $length = 0;
 

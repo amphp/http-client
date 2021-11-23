@@ -31,14 +31,14 @@ use Amp\Http\Http2\Http2Processor;
 use Amp\Http\Http2\Http2StreamException;
 use Amp\Http\InvalidHeaderException;
 use Amp\Http\Status;
+use Amp\Pipeline\Emitter;
 use Amp\Pipeline\Pipeline;
-use Amp\Pipeline\Subject;
 use Amp\Socket\EncryptableSocket;
 use Amp\TimeoutCancellationToken;
 use League\Uri;
 use Revolt\EventLoop;
-use function Amp\coroutine;
 use function Amp\Http\Client\Internal\normalizeRequestPathWithQuery;
+use function Amp\launch;
 
 /** @internal */
 final class Http2ConnectionProcessor implements Http2Processor
@@ -103,7 +103,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     private int|null $shutdown = null;
 
-    private Subject $frameQueueSource;
+    private Emitter $frameQueueSource;
 
     private Pipeline $frameQueue;
 
@@ -111,7 +111,7 @@ final class Http2ConnectionProcessor implements Http2Processor
     {
         $this->socket = $socket;
         $this->hpack = new HPack;
-        $this->frameQueueSource = new Subject();
+        $this->frameQueueSource = new Emitter();
         $this->frameQueue = $this->frameQueueSource->asPipeline();
     }
 
@@ -395,7 +395,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             $onInformationalResponse = $stream->request->getInformationalResponseHandler();
             $preResponseResolution = $stream->preResponseResolution;
             if ($onInformationalResponse !== null) {
-                $stream->preResponseResolution = coroutine(function () use (
+                $stream->preResponseResolution = launch(function () use (
                     $preResponseResolution,
                     $onInformationalResponse,
                     $response,
@@ -421,7 +421,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         \assert($stream->preResponseResolution === null);
 
-        $stream->preResponseResolution = coroutine(function () use ($stream, $streamId): void {
+        $stream->preResponseResolution = launch(function () use ($stream, $streamId): void {
             try {
                 foreach ($stream->request->getEventListeners() as $eventListener) {
                     $eventListener->startReceivingResponse($stream->request, $stream->stream);
@@ -435,7 +435,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             }
         });
 
-        $stream->body = new Subject;
+        $stream->body = new Emitter;
         $stream->trailers = new Deferred;
         $stream->trailers->getFuture()->ignore();
 
@@ -511,7 +511,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
             if (!$this->streams[$streamId]->originalCancellation->isRequested()) {
                 $this->hasTimeout = true;
-                coroutine(fn () => $this->ping())->ignore(); // async ping, if other requests occur, they wait for it
+                launch(fn () => $this->ping())->ignore(); // async ping, if other requests occur, they wait for it
 
                 $transferTimeout = $this->streams[$streamId]->request->getTransferTimeout();
 

@@ -28,8 +28,8 @@ use Amp\PHPUnit\AsyncTestCase;
 use Amp\Socket;
 use Psr\Log\NullLogger;
 use Revolt\EventLoop;
-use function Amp\coroutine;
 use function Amp\delay;
+use function Amp\launch;
 use function Amp\Pipeline\fromIterable;
 
 class ClientHttpBinIntegrationTest extends AsyncTestCase
@@ -685,8 +685,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         }));
 
         [$response1, $response2] = Future\all([
-            coroutine(fn () => $this->client->request(new Request('https://http2.pro/api/v1'))),
-            coroutine(fn () => $this->client->request(new Request('https://http2.pro/api/v1'))),
+            launch(fn () => $this->client->request(new Request('https://http2.pro/api/v1'))),
+            launch(fn () => $this->client->request(new Request('https://http2.pro/api/v1'))),
         ]);
 
         $body1 = $response1->getBody()->buffer();

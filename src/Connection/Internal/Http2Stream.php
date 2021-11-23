@@ -10,7 +10,7 @@ use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
-use Amp\Pipeline\Subject;
+use Amp\Pipeline\Emitter;
 use Revolt\EventLoop;
 
 /**
@@ -35,7 +35,7 @@ final class Http2Stream
 
     public bool $responsePending = true;
 
-    public ?Subject $body = null;
+    public ?Emitter $body = null;
 
     public ?Deferred $trailers = null;
 

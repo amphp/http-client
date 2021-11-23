@@ -7,7 +7,7 @@ use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\Request;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Sync\LocalKeyedMutex;
-use function Amp\coroutine;
+use function Amp\launch;
 
 class StreamLimitingPoolTest extends AsyncTestCase
 {
@@ -21,8 +21,8 @@ class StreamLimitingPoolTest extends AsyncTestCase
         $this->setMinimumRuntime(2);
 
         Future\all([
-            coroutine(fn () => $client->request(new Request('https://httpbin.org/delay/1'))),
-            coroutine(fn () => $client->request(new Request('https://httpbin.org/delay/1'))),
+            launch(fn () => $client->request(new Request('https://httpbin.org/delay/1'))),
+            launch(fn () => $client->request(new Request('https://httpbin.org/delay/1'))),
         ]);
     }
 }
