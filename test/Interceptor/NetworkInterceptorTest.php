@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client\Interceptor;
 
-use Amp\CancellationToken;
+use Amp\Cancellation;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request;
@@ -23,7 +23,7 @@ class NetworkInterceptorTest extends InterceptorTest
 
             public function requestViaNetwork(
                 Request $request,
-                CancellationToken $cancellation,
+                Cancellation $cancellation,
                 Stream $stream
             ): Response {
                 TestCase::assertNull($stream->getTlsInfo());

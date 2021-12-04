@@ -2,18 +2,18 @@
 
 namespace Amp\Http\Client\Internal;
 
-use Amp\ByteStream\InputStream;
-use Amp\CancellationToken;
+use Amp\ByteStream\ReadableStream;
+use Amp\Cancellation;
 use Amp\Http\Client\ParseException;
 use Amp\Http\Status;
 
 /** @internal */
-final class SizeLimitingInputStream implements InputStream
+final class SizeLimitingReadableStream implements ReadableStream
 {
     use ForbidSerialization;
     use ForbidCloning;
 
-    private ?InputStream $source;
+    private ?ReadableStream $source;
 
     private int $bytesRead = 0;
 
@@ -22,14 +22,14 @@ final class SizeLimitingInputStream implements InputStream
     private ?\Throwable $exception = null;
 
     public function __construct(
-        InputStream $source,
+        ReadableStream $source,
         int $sizeLimit
     ) {
         $this->source = $source;
         $this->sizeLimit = $sizeLimit;
     }
 
-    public function read(?CancellationToken $token = null): ?string
+    public function read(?Cancellation $token = null): ?string
     {
         if ($this->exception) {
             throw $this->exception;
@@ -52,5 +52,9 @@ final class SizeLimitingInputStream implements InputStream
         }
 
         return $chunk;
+    }
+
+    public function isReadable(): bool {
+        return $this->source->isReadable();
     }
 }

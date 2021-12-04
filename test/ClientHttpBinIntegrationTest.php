@@ -3,10 +3,10 @@
 namespace Amp\Http\Client;
 
 use Amp\ByteStream\InMemoryStream;
-use Amp\ByteStream\InputStream;
+use Amp\ByteStream\ReadableStream;
 use Amp\ByteStream\PipelineStream;
-use Amp\CancellationToken;
-use Amp\CancellationTokenSource;
+use Amp\Cancellation;
+use Amp\DeferredCancellation;
 use Amp\CancelledException;
 use Amp\Future;
 use Amp\Http\Client\Body\FileBody;
@@ -29,7 +29,7 @@ use Amp\Socket;
 use Psr\Log\NullLogger;
 use Revolt\EventLoop;
 use function Amp\delay;
-use function Amp\launch;
+use function Amp\async;
 use function Amp\Pipeline\fromIterable;
 
 class ClientHttpBinIntegrationTest extends AsyncTestCase
@@ -537,8 +537,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
             ...\array_fill(0, 1000, '.')
         );
 
-        $cancellationTokenSource = new CancellationTokenSource;
-        $response = $this->executeRequest($this->createRequest(), $cancellationTokenSource->getToken());
+        $cancellationTokenSource = new DeferredCancellation;
+        $response = $this->executeRequest($this->createRequest(), $cancellationTokenSource->getCancellation());
         $cancellationTokenSource->cancel();
         $this->expectException(CancelledException::class);
 
@@ -557,7 +557,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
                 return [];
             }
 
-            public function createBodyStream(): InputStream
+            public function createBodyStream(): ReadableStream
             {
                 return new InMemoryStream("foo");
             }
@@ -583,7 +583,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
                 return [];
             }
 
-            public function createBodyStream(): InputStream
+            public function createBodyStream(): ReadableStream
             {
                 return new PipelineStream(fromIterable(["a", "b", "c"], 500));
             }
@@ -609,7 +609,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
                 return [];
             }
 
-            public function createBodyStream(): InputStream
+            public function createBodyStream(): ReadableStream
             {
                 return new InMemoryStream("foo");
             }
@@ -685,8 +685,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         }));
 
         [$response1, $response2] = Future\all([
-            launch(fn () => $this->client->request(new Request('https://http2.pro/api/v1'))),
-            launch(fn () => $this->client->request(new Request('https://http2.pro/api/v1'))),
+            async(fn () => $this->client->request(new Request('https://http2.pro/api/v1'))),
+            async(fn () => $this->client->request(new Request('https://http2.pro/api/v1'))),
         ]);
 
         $body1 = $response1->getBody()->buffer();
@@ -810,7 +810,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         };
     }
 
-    private function executeRequest(Request $request, ?CancellationToken $cancellationToken = null): Response
+    private function executeRequest(Request $request, ?Cancellation $cancellationToken = null): Response
     {
         return $this->client->request($request, $cancellationToken);
     }

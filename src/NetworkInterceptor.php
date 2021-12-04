@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client;
 
-use Amp\CancellationToken;
+use Amp\Cancellation;
 use Amp\Http\Client\Connection\Stream;
 
 /**
@@ -21,10 +21,10 @@ interface NetworkInterceptor
      * unacceptable. If you need short circuits, use an {@see ApplicationInterceptor} instead.
      *
      * @param Request           $request
-     * @param CancellationToken $cancellation
+     * @param Cancellation $cancellation
      * @param Stream            $stream
      *
      * @return Response
      */
-    public function requestViaNetwork(Request $request, CancellationToken $cancellation, Stream $stream): Response;
+    public function requestViaNetwork(Request $request, Cancellation $cancellation, Stream $stream): Response;
 }

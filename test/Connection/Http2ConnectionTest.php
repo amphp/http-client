@@ -14,16 +14,16 @@ use Amp\Http\HPack;
 use Amp\Http\Http2\Http2Parser;
 use Amp\Http\Http2\Http2Processor;
 use Amp\Http\Status;
-use Amp\NullCancellationToken;
+use Amp\NullCancellation;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Socket;
-use Amp\TimeoutCancellationToken;
+use Amp\TimeoutCancellation;
 use Laminas\Diactoros\Uri as LaminasUri;
 use League\Uri;
 use Revolt\EventLoop;
 use function Amp\delay;
 use function Amp\Http\formatDateHeader;
-use function Amp\launch;
+use function Amp\async;
 
 class Http2ConnectionTest extends AsyncTestCase
 {
@@ -58,7 +58,7 @@ class Http2ConnectionTest extends AsyncTestCase
             ["date", formatDateHeader()],
         ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS | Http2Parser::END_STREAM, 1));
 
-        $response = $stream->request($request, new NullCancellationToken);
+        $response = $stream->request($request, new NullCancellation);
 
         self::assertSame(204, $response->getStatus());
     }
@@ -88,7 +88,7 @@ class Http2ConnectionTest extends AsyncTestCase
         $this->expectException(Http2ConnectionException::class);
         $this->expectExceptionMessage('Switching Protocols (101) is not part of HTTP/2');
 
-        $stream->request($request, new NullCancellationToken);
+        $stream->request($request, new NullCancellation);
     }
 
     public function testTrailers(): void
@@ -128,7 +128,7 @@ class Http2ConnectionTest extends AsyncTestCase
             ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS | Http2Parser::END_STREAM, 1));
         });
 
-        $response = $stream->request($request, new NullCancellationToken);
+        $response = $stream->request($request, new NullCancellation);
 
         self::assertSame(200, $response->getStatus());
 
@@ -162,7 +162,7 @@ class Http2ConnectionTest extends AsyncTestCase
 
         $server->write(self::packFrame('test', Http2Parser::DATA, Http2Parser::END_STREAM, 1));
 
-        $response = $stream->request($request, new NullCancellationToken);
+        $response = $stream->request($request, new NullCancellation);
 
         self::assertSame(200, $response->getStatus());
 
@@ -205,7 +205,7 @@ class Http2ConnectionTest extends AsyncTestCase
             $server->write(self::packFrame('test', Http2Parser::DATA, Http2Parser::END_STREAM, 1));
         });
 
-        $response = $stream->request($request, new TimeoutCancellationToken(0.5));
+        $response = $stream->request($request, new TimeoutCancellation(0.5));
 
         self::assertSame(200, $response->getStatus());
 
@@ -254,7 +254,7 @@ class Http2ConnectionTest extends AsyncTestCase
             $server->write(self::packFrame('test', Http2Parser::DATA, Http2Parser::END_STREAM, 1));
         });
 
-        $response = $stream->request($request, new NullCancellationToken);
+        $response = $stream->request($request, new NullCancellation);
 
         self::assertSame(200, $response->getStatus());
 
@@ -320,7 +320,7 @@ class Http2ConnectionTest extends AsyncTestCase
             $server->write(self::packFrame('test', Http2Parser::DATA, Http2Parser::END_STREAM, 2));
         });
 
-        $response = $stream->request($request, new TimeoutCancellationToken(0.5));
+        $response = $stream->request($request, new TimeoutCancellation(0.5));
 
         self::assertSame(200, $response->getStatus());
 
@@ -375,7 +375,7 @@ class Http2ConnectionTest extends AsyncTestCase
             $server->write(self::packFrame('test', Http2Parser::DATA, Http2Parser::END_STREAM, 1));
         });
 
-        $response = $stream->request($request, new NullCancellationToken);
+        $response = $stream->request($request, new NullCancellation);
 
         self::assertSame(200, $response->getStatus());
 
@@ -405,7 +405,7 @@ class Http2ConnectionTest extends AsyncTestCase
         $this->expectException(InvalidRequestException::class);
         $this->expectExceptionMessage('Relative path (foo) is not allowed in the request URI');
 
-        $stream->request($request, new NullCancellationToken);
+        $stream->request($request, new NullCancellation);
     }
 
     public function testServerPushingOddStream(): void
@@ -424,7 +424,7 @@ class Http2ConnectionTest extends AsyncTestCase
 
         $stream = $connection->getStream($request);
 
-        $promise = launch(fn () => $stream->request($request, new NullCancellationToken));
+        $promise = async(fn () => $stream->request($request, new NullCancellation));
 
         $server->write(self::packFrame($hpack->encode([
             [":status", Status::OK],
@@ -474,7 +474,7 @@ class Http2ConnectionTest extends AsyncTestCase
 
         $stream = $connection->getStream($request);
 
-        $promise = launch(fn () => $stream->request($request, new NullCancellationToken));
+        $promise = async(fn () => $stream->request($request, new NullCancellation));
         $data = \substr($server->read(), \strlen(Http2Parser::PREFACE)); // cut off the HTTP/2 preface
         $data .= $server->read(); // Second read for header frame.
         $processor = $this->createMock(Http2Processor::class);

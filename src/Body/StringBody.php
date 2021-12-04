@@ -3,7 +3,7 @@
 namespace Amp\Http\Client\Body;
 
 use Amp\ByteStream\InMemoryStream;
-use Amp\ByteStream\InputStream;
+use Amp\ByteStream\ReadableStream;
 use Amp\Http\Client\RequestBody;
 
 final class StringBody implements RequestBody
@@ -15,7 +15,7 @@ final class StringBody implements RequestBody
         $this->body = $body;
     }
 
-    public function createBodyStream(): InputStream
+    public function createBodyStream(): ReadableStream
     {
         return new InMemoryStream($this->body !== '' ? $this->body : null);
     }

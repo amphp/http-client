@@ -2,8 +2,8 @@
 
 namespace Amp\Http\Client\Connection\Internal;
 
-use Amp\CancellationToken;
-use Amp\Deferred;
+use Amp\Cancellation;
+use Amp\DeferredFuture;
 use Amp\Future;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\Internal\ForbidCloning;
@@ -29,7 +29,7 @@ final class Http2Stream
 
     public ?Response $response = null;
 
-    public ?Deferred $pendingResponse;
+    public ?DeferredFuture $pendingResponse;
 
     public ?Future $preResponseResolution = null;
 
@@ -37,11 +37,11 @@ final class Http2Stream
 
     public ?Emitter $body = null;
 
-    public ?Deferred $trailers = null;
+    public ?DeferredFuture $trailers = null;
 
-    public CancellationToken $originalCancellation;
+    public Cancellation $originalCancellation;
 
-    public CancellationToken $cancellationToken;
+    public Cancellation $cancellationToken;
 
     /** @var int Bytes received on the stream. */
     public int $received = 0;
@@ -54,7 +54,7 @@ final class Http2Stream
 
     public string $requestBodyBuffer = '';
 
-    public Deferred $requestBodyCompletion;
+    public DeferredFuture $requestBodyCompletion;
 
     /** @var int Integer between 1 and 256 */
     public int $weight = 16;
@@ -65,7 +65,7 @@ final class Http2Stream
 
     public Stream $stream;
 
-    public ?Deferred $windowSizeIncrease = null;
+    public ?DeferredFuture $windowSizeIncrease = null;
 
     private ?string $watcher;
 
@@ -73,8 +73,8 @@ final class Http2Stream
         int $id,
         Request $request,
         Stream $stream,
-        CancellationToken $cancellationToken,
-        CancellationToken $originalCancellation,
+        Cancellation $cancellationToken,
+        Cancellation $originalCancellation,
         ?string $watcher,
         int $serverSize,
         int $clientSize
@@ -87,8 +87,8 @@ final class Http2Stream
         $this->watcher = $watcher;
         $this->serverWindow = $serverSize;
         $this->clientWindow = $clientSize;
-        $this->pendingResponse = new Deferred;
-        $this->requestBodyCompletion = new Deferred;
+        $this->pendingResponse = new DeferredFuture;
+        $this->requestBodyCompletion = new DeferredFuture;
         $this->bufferSize = 0;
     }
 

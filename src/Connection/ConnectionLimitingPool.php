@@ -2,15 +2,15 @@
 
 namespace Amp\Http\Client\Connection;
 
-use Amp\CancellationToken;
+use Amp\Cancellation;
 use Amp\CompositeException;
-use Amp\Deferred;
+use Amp\DeferredFuture;
 use Amp\Future;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Revolt\EventLoop;
-use function Amp\launch;
+use function Amp\async;
 
 final class ConnectionLimitingPool implements ConnectionPool
 {
@@ -58,7 +58,7 @@ final class ConnectionLimitingPool implements ConnectionPool
     /** @var int[] */
     private array $activeRequestCounts = [];
 
-    /** @var Deferred[][] */
+    /** @var DeferredFuture[][] */
     private array $waiting = [];
 
     /** @var bool[] */
@@ -103,7 +103,7 @@ final class ConnectionLimitingPool implements ConnectionPool
         return $this->openConnectionCount;
     }
 
-    public function getStream(Request $request, CancellationToken $cancellation): Stream
+    public function getStream(Request $request, Cancellation $cancellation): Stream
     {
         $this->totalStreamRequests++;
 
@@ -121,7 +121,7 @@ final class ConnectionLimitingPool implements ConnectionPool
 
         return HttpStream::fromStream(
             $stream,
-            function (Request $request, CancellationToken $cancellationToken) use (
+            function (Request $request, Cancellation $cancellationToken) use (
                 $connection,
                 $stream,
                 $uri
@@ -133,7 +133,7 @@ final class ConnectionLimitingPool implements ConnectionPool
                     throw $e;
                 }
 
-                launch(function () use ($response, $connection, $uri): void {
+                async(function () use ($response, $connection, $uri): void {
                     try {
                         $response->getTrailers()->await();
                     } finally {
@@ -149,7 +149,7 @@ final class ConnectionLimitingPool implements ConnectionPool
         );
     }
 
-    private function getStreamFor(string $uri, Request $request, CancellationToken $cancellation): array
+    private function getStreamFor(string $uri, Request $request, Cancellation $cancellation): array
     {
         $isHttps = $request->getUri()->getScheme() === 'https';
 
@@ -189,7 +189,7 @@ final class ConnectionLimitingPool implements ConnectionPool
                 return [$connection, $stream];
             }
 
-            $deferred = new Deferred;
+            $deferred = new DeferredFuture;
             $deferredFuture = $deferred->getFuture();
 
             $this->waiting[$uri][\spl_object_id($deferred)] = $deferred;
@@ -213,7 +213,7 @@ final class ConnectionLimitingPool implements ConnectionPool
 
         $this->totalConnectionAttempts++;
 
-        $connectionFuture = launch(fn () => $this->connectionFactory->create($request, $cancellation));
+        $connectionFuture = async(fn () => $this->connectionFactory->create($request, $cancellation));
 
         $promiseId = \spl_object_id($connectionFuture);
         $this->connections[$uri] = $this->connections[$uri] ?? new \ArrayObject;
@@ -232,7 +232,7 @@ final class ConnectionLimitingPool implements ConnectionPool
             } catch (\Throwable $exception) {
                 $this->dropConnection($uri, null, $promiseId);
                 if ($deferred !== null) {
-                    $deferred->error($exception); // Fail Deferred so Promise\first() below fails.
+                    $deferred->error($exception); // Fail DeferredFuture so Promise\first() below fails.
                 }
                 return;
             }
@@ -259,8 +259,8 @@ final class ConnectionLimitingPool implements ConnectionPool
             throw $exception;
         }
 
-        $this->removeWaiting($uri, \spl_object_id($deferred)); // Deferred no longer needed for this request.
-        $deferred = null; // Null reference so connection promise handler does not double-resolve the Deferred.
+        $this->removeWaiting($uri, \spl_object_id($deferred)); // DeferredFuture no longer needed for this request.
+        $deferred = null; // Null reference so connection promise handler does not double-resolve the DeferredFuture.
 
         \assert($connection instanceof Connection);
 
@@ -318,7 +318,7 @@ final class ConnectionLimitingPool implements ConnectionPool
             return;
         }
 
-        /** @var Deferred $deferred */
+        /** @var DeferredFuture $deferred */
         $deferred = \reset($this->waiting[$uri]);
         $this->removeWaiting($uri, \spl_object_id($deferred));
         $deferred->complete($connection);

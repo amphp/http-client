@@ -3,7 +3,7 @@
 namespace Amp\Http\Client\Interceptor;
 
 use Amp\ByteStream\StreamException;
-use Amp\CancellationToken;
+use Amp\Cancellation;
 use Amp\Http\Client\ApplicationInterceptor;
 use Amp\Http\Client\DelegateHttpClient;
 use Amp\Http\Client\HttpException;
@@ -136,7 +136,7 @@ final class FollowRedirects implements ApplicationInterceptor
 
     public function request(
         Request $request,
-        CancellationToken $cancellation,
+        Cancellation $cancellation,
         DelegateHttpClient $httpClient
     ): Response {
         // Don't follow redirects on pushes, just store the redirect in cache (if an interceptor is configured)
@@ -151,7 +151,7 @@ final class FollowRedirects implements ApplicationInterceptor
         Request $request,
         Response $response,
         DelegateHttpClient $client,
-        CancellationToken $cancellationToken
+        Cancellation $cancellationToken
     ): Response {
         $previousResponse = null;
 

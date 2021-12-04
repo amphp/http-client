@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client\Connection;
 
-use Amp\ByteStream\InputStream;
+use Amp\ByteStream\ReadableStream;
 use Amp\ByteStream\PipelineStream;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\InvalidRequestException;
@@ -10,7 +10,7 @@ use Amp\Http\Client\Request;
 use Amp\Http\Client\RequestBody;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\TimeoutException;
-use Amp\NullCancellationToken;
+use Amp\NullCancellation;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Pipeline;
 use Amp\Socket;
@@ -18,7 +18,7 @@ use Laminas\Diactoros\Uri as LaminasUri;
 use League\Uri;
 use Revolt\EventLoop;
 use function Amp\delay;
-use function Amp\launch;
+use function Amp\async;
 
 class Http1ConnectionTest extends AsyncTestCase
 {
@@ -32,7 +32,7 @@ class Http1ConnectionTest extends AsyncTestCase
         $request->setBody($this->createSlowBody());
 
         $stream = $connection->getStream($request);
-        launch(fn () => $stream->request($request, new NullCancellationToken))->ignore();
+        async(fn () => $stream->request($request, new NullCancellation))->ignore();
         $stream = null; // gc instance
 
         self::assertNull($connection->getStream($request));
@@ -67,7 +67,7 @@ class Http1ConnectionTest extends AsyncTestCase
         /** @noinspection SuspiciousAssignmentsInspection */
         $stream = null; // gc instance
 
-        delay(0); // required to clear instance in launch :-(
+        delay(0); // required to clear instance in async :-(
 
         self::assertNotNull($connection->getStream($request));
     }
@@ -85,7 +85,7 @@ class Http1ConnectionTest extends AsyncTestCase
 
         $server->write("HTTP/1.1 100 Continue\r\nFoo: Bar\r\n\r\nHTTP/1.1 204 Nothing to send\r\n\r\n");
 
-        $response = $stream->request($request, new NullCancellationToken);
+        $response = $stream->request($request, new NullCancellation);
 
         self::assertSame(204, $response->getStatus());
         self::assertSame('Nothing to send', $response->getReason());
@@ -121,7 +121,7 @@ class Http1ConnectionTest extends AsyncTestCase
 
         $server->write("HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: test\r\n\r\n" . $socketData);
 
-        $response = $stream->request($request, new NullCancellationToken);
+        $response = $stream->request($request, new NullCancellation);
 
         delay(0);
 
@@ -147,7 +147,7 @@ class Http1ConnectionTest extends AsyncTestCase
 
         $server->write("HTTP/1.1 200 Continue\r\nConnection: keep-alive\r\nContent-Length: 8\r\n\r\ntest");
 
-        $response = $stream->request($request, new NullCancellationToken);
+        $response = $stream->request($request, new NullCancellation);
 
         self::assertSame(200, $response->getStatus());
 
@@ -183,7 +183,7 @@ class Http1ConnectionTest extends AsyncTestCase
             $server->write("test")->ignore(); // Request should timeout before this is called
         }));
 
-        $response = $stream->request($request, new NullCancellationToken);
+        $response = $stream->request($request, new NullCancellation);
 
         self::assertSame(200, $response->getStatus());
 
@@ -208,7 +208,7 @@ class Http1ConnectionTest extends AsyncTestCase
         $this->expectException(InvalidRequestException::class);
         $this->expectExceptionMessage('Relative path (foo) is not allowed in the request URI');
 
-        $stream->request($request, new NullCancellationToken);
+        $stream->request($request, new NullCancellation);
     }
 
     /**
@@ -231,7 +231,7 @@ class Http1ConnectionTest extends AsyncTestCase
 
         $stream = $connection->getStream($request);
 
-        $future = launch(fn () => $stream->request($request, new NullCancellationToken));
+        $future = async(fn () => $stream->request($request, new NullCancellation));
         $startLine = \explode("\r\n", $server->read())[0] ?? null;
         self::assertSame("GET {$expectedPath} HTTP/1.1", $startLine);
 
@@ -258,7 +258,7 @@ class Http1ConnectionTest extends AsyncTestCase
                 return [];
             }
 
-            public function createBodyStream(): InputStream
+            public function createBodyStream(): ReadableStream
             {
                 $pipeline = Pipeline\fromIterable(\array_fill(0, 100, '.'));
                 $pipeline = $pipeline->pipe(Pipeline\delay(0.1));

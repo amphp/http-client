@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client;
 
-use Amp\CancellationToken;
+use Amp\Cancellation;
 use Amp\Http\Client\Interceptor\DecompressResponse;
 
 /**
@@ -25,14 +25,14 @@ interface ApplicationInterceptor
      * or the application itself will care about the decoding.
      *
      * @param Request            $request
-     * @param CancellationToken  $cancellation
+     * @param Cancellation  $cancellation
      * @param DelegateHttpClient $httpClient
      *
      * @return Response
      */
     public function request(
         Request $request,
-        CancellationToken $cancellation,
+        Cancellation $cancellation,
         DelegateHttpClient $httpClient
     ): Response;
 }

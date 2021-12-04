@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client\Connection;
 
-use Amp\CancellationToken;
+use Amp\Cancellation;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
@@ -73,7 +73,7 @@ final class HttpStream implements Stream
         }
     }
 
-    public function request(Request $request, CancellationToken $cancellation): Response
+    public function request(Request $request, Cancellation $cancellation): Response
     {
         if ($this->releaseCallback === null) {
             throw new \Error('A stream may only be used for a single request');

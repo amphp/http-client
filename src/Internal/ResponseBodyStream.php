@@ -2,29 +2,29 @@
 
 namespace Amp\Http\Client\Internal;
 
-use Amp\ByteStream\InputStream;
-use Amp\CancellationToken;
-use Amp\CancellationTokenSource;
+use Amp\ByteStream\ReadableStream;
+use Amp\Cancellation;
+use Amp\DeferredCancellation;
 
 /** @internal */
-final class ResponseBodyStream implements InputStream
+final class ResponseBodyStream implements ReadableStream
 {
     use ForbidSerialization;
     use ForbidCloning;
 
-    private InputStream $body;
+    private ReadableStream $body;
 
-    private CancellationTokenSource $bodyCancellation;
+    private DeferredCancellation $bodyCancellation;
 
     private bool $successfulEnd = false;
 
-    public function __construct(InputStream $body, CancellationTokenSource $bodyCancellation)
+    public function __construct(ReadableStream $body, DeferredCancellation $bodyCancellation)
     {
         $this->body = $body;
         $this->bodyCancellation = $bodyCancellation;
     }
 
-    public function read(?CancellationToken $token = null): ?string
+    public function read(?Cancellation $token = null): ?string
     {
         $chunk = $this->body->read($token);
 
@@ -33,6 +33,10 @@ final class ResponseBodyStream implements InputStream
         }
 
         return $chunk;
+    }
+
+    public function isReadable(): bool {
+        return $this->body->isReadable();
     }
 
     public function __destruct()

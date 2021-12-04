@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client\Connection;
 
-use Amp\CancellationToken;
+use Amp\Cancellation;
 use Amp\Future;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
@@ -29,7 +29,7 @@ final class UpgradedSocket implements EncryptableSocket
         $this->buffer = $buffer !== '' ? $buffer : null;
     }
 
-    public function read(?CancellationToken $token = null): ?string
+    public function read(?Cancellation $token = null): ?string
     {
         if ($this->buffer !== null) {
             $buffer = $this->buffer;
@@ -85,12 +85,12 @@ final class UpgradedSocket implements EncryptableSocket
         return $this->socket->getRemoteAddress();
     }
 
-    public function setupTls(?CancellationToken $token = null): void
+    public function setupTls(?Cancellation $token = null): void
     {
         $this->socket->setupTls($token);
     }
 
-    public function shutdownTls(?CancellationToken $token = null): void
+    public function shutdownTls(?Cancellation $token = null): void
     {
         $this->socket->shutdownTls();
     }
@@ -103,5 +103,13 @@ final class UpgradedSocket implements EncryptableSocket
     public function getTlsInfo(): ?TlsInfo
     {
         return $this->socket->getTlsInfo();
+    }
+
+    public function isReadable(): bool {
+        return $this->socket->isReadable();
+    }
+
+    public function isWritable(): bool {
+        return $this->socket->isWritable();
     }
 }

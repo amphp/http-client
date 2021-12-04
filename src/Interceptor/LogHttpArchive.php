@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client\Interceptor;
 
-use Amp\CancellationToken;
+use Amp\Cancellation;
 use Amp\File;
 use Amp\File\Filesystem;
 use Amp\Http\Client\ApplicationInterceptor;
@@ -156,7 +156,7 @@ final class LogHttpArchive implements ApplicationInterceptor
 
     public function request(
         Request $request,
-        CancellationToken $cancellation,
+        Cancellation $cancellation,
         DelegateHttpClient $httpClient
     ): Response {
         if ($this->error) {

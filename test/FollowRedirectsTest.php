@@ -7,7 +7,7 @@ use Amp\Http\Client\Connection\ConnectionPool;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\Interceptor\FollowRedirects;
 use Amp\Http\Status;
-use Amp\NullCancellationToken;
+use Amp\NullCancellation;
 use Amp\PHPUnit\AsyncTestCase;
 
 class FollowRedirectsTest extends AsyncTestCase
@@ -55,7 +55,7 @@ class FollowRedirectsTest extends AsyncTestCase
 
         $client = new PooledHttpClient($pool);
 
-        $redirect->request($request, new NullCancellationToken, $client);
+        $redirect->request($request, new NullCancellation, $client);
     }
 
     public function provideResolvables(): array

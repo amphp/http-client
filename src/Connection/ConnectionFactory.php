@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client\Connection;
 
-use Amp\CancellationToken;
+use Amp\Cancellation;
 use Amp\Http\Client\Request;
 
 interface ConnectionFactory
@@ -18,9 +18,9 @@ interface ConnectionFactory
      * {@see EventListener::completeDnsResolution()}, but is not required to implement such granular events.
      *
      * @param Request           $request
-     * @param CancellationToken $cancellationToken
+     * @param Cancellation $cancellationToken
      *
      * @return Connection
      */
-    public function create(Request $request, CancellationToken $cancellationToken): Connection;
+    public function create(Request $request, Cancellation $cancellationToken): Connection;
 }

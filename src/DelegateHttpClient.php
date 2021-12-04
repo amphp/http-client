@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client;
 
-use Amp\CancellationToken;
+use Amp\Cancellation;
 
 /**
  * Base HTTP client interface for use in {@see ApplicationInterceptor}.
@@ -23,9 +23,9 @@ interface DelegateHttpClient
      * Request a specific resource from an HTTP server.
      *
      * @param Request           $request
-     * @param CancellationToken $cancellation
+     * @param Cancellation $cancellation
      *
      * @return Response
      */
-    public function request(Request $request, CancellationToken $cancellation): Response;
+    public function request(Request $request, Cancellation $cancellation): Response;
 }

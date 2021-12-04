@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client;
 
-use Amp\CancellationToken;
+use Amp\Cancellation;
 use Amp\Http\Client\Connection\ConnectionPool;
 use Amp\Http\Client\Connection\InterceptedStream;
 use Amp\Http\Client\Connection\UnlimitedConnectionPool;
@@ -24,7 +24,7 @@ final class PooledHttpClient implements DelegateHttpClient
         $this->connectionPool = $connectionPool ?? new UnlimitedConnectionPool;
     }
 
-    public function request(Request $request, CancellationToken $cancellation): Response
+    public function request(Request $request, Cancellation $cancellation): Response
     {
         foreach ($request->getEventListeners() as $eventListener) {
             $eventListener->startRequest($request);

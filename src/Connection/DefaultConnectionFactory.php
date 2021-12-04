@@ -3,9 +3,9 @@
 namespace Amp\Http\Client\Connection;
 
 use Amp\ByteStream\StreamException;
-use Amp\CancellationToken;
+use Amp\Cancellation;
 use Amp\CancelledException;
-use Amp\CombinedCancellationToken;
+use Amp\CompositeCancellation;
 use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\SocketException;
@@ -15,7 +15,7 @@ use Amp\Socket\ClientTlsContext;
 use Amp\Socket\ConnectContext;
 use Amp\Socket\Connector;
 use Amp\Socket\EncryptableSocket;
-use Amp\TimeoutCancellationToken;
+use Amp\TimeoutCancellation;
 use function Amp\Socket\connector;
 
 final class DefaultConnectionFactory implements ConnectionFactory
@@ -32,7 +32,7 @@ final class DefaultConnectionFactory implements ConnectionFactory
 
     public function create(
         Request $request,
-        CancellationToken $cancellationToken
+        Cancellation $cancellationToken
     ): Connection {
         foreach ($request->getEventListeners() as $eventListener) {
             $eventListener->startConnectionCreation($request);
@@ -116,7 +116,7 @@ final class DefaultConnectionFactory implements ConnectionFactory
             // In case of a user cancellation request, throw the expected exception
             $cancellationToken->throwIfRequested();
 
-            // Otherwise we ran into a timeout of our TimeoutCancellationToken
+            // Otherwise we ran into a timeout of our TimeoutCancellation
             throw new UnprocessedRequestException(new TimeoutException(\sprintf(
                 "Connection to '%s' timed out, took longer than " . $request->getTcpConnectTimeout() . ' s',
                 $authority
@@ -140,12 +140,12 @@ final class DefaultConnectionFactory implements ConnectionFactory
                     $eventListener->startTlsNegotiation($request);
                 }
 
-                $tlsCancellationToken = new CombinedCancellationToken(
+                $tlsCancellation = new CompositeCancellation(
                     $cancellationToken,
-                    new TimeoutCancellationToken($request->getTlsHandshakeTimeout())
+                    new TimeoutCancellation($request->getTlsHandshakeTimeout())
                 );
 
-                $socket->setupTls($tlsCancellationToken);
+                $socket->setupTls($tlsCancellation);
 
                 foreach ($request->getEventListeners() as $eventListener) {
                     $eventListener->completeTlsNegotiation($request);
@@ -164,7 +164,7 @@ final class DefaultConnectionFactory implements ConnectionFactory
                 // In case of a user cancellation request, throw the expected exception
                 $cancellationToken->throwIfRequested();
 
-                // Otherwise we ran into a timeout of our TimeoutCancellationToken
+                // Otherwise we ran into a timeout of our TimeoutCancellation
                 throw new UnprocessedRequestException(new TimeoutException(\sprintf(
                     "TLS handshake with '%s' @ '%s' timed out, took longer than " . $request->getTlsHandshakeTimeout() . ' s',
                     $authority,

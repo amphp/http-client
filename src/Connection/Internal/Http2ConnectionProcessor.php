@@ -5,11 +5,11 @@ namespace Amp\Http\Client\Connection\Internal;
 use Amp\ByteStream\InMemoryStream;
 use Amp\ByteStream\PipelineStream;
 use Amp\ByteStream\StreamException;
-use Amp\CancellationToken;
-use Amp\CancellationTokenSource;
+use Amp\Cancellation;
+use Amp\DeferredCancellation;
 use Amp\CancelledException;
-use Amp\CombinedCancellationToken;
-use Amp\Deferred;
+use Amp\CompositeCancellation;
+use Amp\DeferredFuture;
 use Amp\Future;
 use Amp\Http\Client\Connection\Http2ConnectionException as ClientHttp2ConnectionException;
 use Amp\Http\Client\Connection\Http2StreamException as ClientHttp2StreamException;
@@ -34,11 +34,11 @@ use Amp\Http\Status;
 use Amp\Pipeline\Emitter;
 use Amp\Pipeline\Pipeline;
 use Amp\Socket\EncryptableSocket;
-use Amp\TimeoutCancellationToken;
+use Amp\TimeoutCancellation;
 use League\Uri;
 use Revolt\EventLoop;
 use function Amp\Http\Client\Internal\normalizeRequestPathWithQuery;
-use function Amp\launch;
+use function Amp\async;
 
 /** @internal */
 final class Http2ConnectionProcessor implements Http2Processor
@@ -80,7 +80,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     private HPack $hpack;
 
-    private ?Deferred $settings = null;
+    private ?DeferredFuture $settings = null;
 
     private bool $initializeStarted = false;
 
@@ -88,7 +88,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     private ?string $pongWatcher = null;
 
-    private ?Deferred $pongDeferred = null;
+    private ?DeferredFuture $pongDeferred = null;
 
     private ?string $idleWatcher = null;
 
@@ -138,7 +138,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             );
         }
 
-        $this->settings = new Deferred;
+        $this->settings = new DeferredFuture;
         $future = $this->settings->getFuture();
 
         EventLoop::queue(fn () => $this->run());
@@ -395,7 +395,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             $onInformationalResponse = $stream->request->getInformationalResponseHandler();
             $preResponseResolution = $stream->preResponseResolution;
             if ($onInformationalResponse !== null) {
-                $stream->preResponseResolution = launch(function () use (
+                $stream->preResponseResolution = async(function () use (
                     $preResponseResolution,
                     $onInformationalResponse,
                     $response,
@@ -421,7 +421,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         \assert($stream->preResponseResolution === null);
 
-        $stream->preResponseResolution = launch(function () use ($stream, $streamId): void {
+        $stream->preResponseResolution = async(function () use ($stream, $streamId): void {
             try {
                 foreach ($stream->request->getEventListeners() as $eventListener) {
                     $eventListener->startReceivingResponse($stream->request, $stream->stream);
@@ -436,13 +436,13 @@ final class Http2ConnectionProcessor implements Http2Processor
         });
 
         $stream->body = new Emitter;
-        $stream->trailers = new Deferred;
+        $stream->trailers = new DeferredFuture;
         $stream->trailers->getFuture()->ignore();
 
-        $bodyCancellation = new CancellationTokenSource;
-        $cancellationToken = new CombinedCancellationToken(
+        $bodyCancellation = new DeferredCancellation;
+        $cancellationToken = new CompositeCancellation(
             $stream->cancellationToken,
-            $bodyCancellation->getToken()
+            $bodyCancellation->getCancellation()
         );
 
         $response->setBody(
@@ -511,7 +511,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
             if (!$this->streams[$streamId]->originalCancellation->isRequested()) {
                 $this->hasTimeout = true;
-                launch(fn () => $this->ping())->ignore(); // async ping, if other requests occur, they wait for it
+                async(fn () => $this->ping())->ignore(); // async ping, if other requests occur, they wait for it
 
                 $transferTimeout = $this->streams[$streamId]->request->getTransferTimeout();
 
@@ -685,10 +685,10 @@ final class Http2ConnectionProcessor implements Http2Processor
         }
 
         EventLoop::queue(function () use ($pushId, $stream): void {
-            $tokenSource = new CancellationTokenSource;
-            $cancellationToken = new CombinedCancellationToken(
+            $tokenSource = new DeferredCancellation;
+            $cancellationToken = new CompositeCancellation(
                 $stream->cancellationToken,
-                $tokenSource->getToken()
+                $tokenSource->getCancellation()
             );
 
             $cancellationId = $cancellationToken->subscribe(function (
@@ -833,7 +833,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             return;
         }
 
-        $stream->body->emit($data)->apply(function () use ($stream, $streamId, $length): void {
+        $stream->body->emit($data)->map(function () use ($stream, $streamId, $length): void {
             // Stream may have closed while waiting for body data to be consumed.
             if (!isset($this->streams[$streamId])) {
                 return;
@@ -944,7 +944,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         return $this->remainingStreams;
     }
 
-    public function request(Request $request, CancellationToken $cancellationToken, Stream $stream): Response
+    public function request(Request $request, Cancellation $cancellationToken, Stream $stream): Response
     {
         if ($this->shutdown !== null) {
             $exception = new UnprocessedRequestException(new SocketException(\sprintf(
@@ -1016,9 +1016,9 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         $originalCancellation = $cancellationToken;
         if ($request->getTransferTimeout() > 0) {
-            $cancellationToken = new CombinedCancellationToken(
+            $cancellationToken = new CompositeCancellation(
                 $cancellationToken,
-                new TimeoutCancellationToken($request->getTransferTimeout())
+                new TimeoutCancellation($request->getTransferTimeout())
             );
         }
 
@@ -1452,7 +1452,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         }
 
         if ($stream->windowSizeIncrease === null) {
-            $stream->windowSizeIncrease = new Deferred;
+            $stream->windowSizeIncrease = new DeferredFuture;
         }
 
         return $stream->windowSizeIncrease->getFuture();
@@ -1487,7 +1487,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                 $exception = new HttpException($exception->getMessage(), 0, $exception);
             }
 
-            /** @var (Deferred|Emitter)[] $deferredAndEmitter */
+            /** @var (DeferredFuture|Emitter)[] $deferredAndEmitter */
             $deferredAndEmitter = [];
 
             if ($stream->responsePending) {
@@ -1594,7 +1594,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             return $this->pongDeferred->getFuture()->await();
         }
 
-        $this->pongDeferred = new Deferred;
+        $this->pongDeferred = new DeferredFuture;
         $this->idlePings++;
 
         $future = $this->pongDeferred->getFuture();

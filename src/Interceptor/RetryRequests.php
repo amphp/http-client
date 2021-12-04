@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client\Interceptor;
 
-use Amp\CancellationToken;
+use Amp\Cancellation;
 use Amp\Http\Client\ApplicationInterceptor;
 use Amp\Http\Client\Connection\Http2ConnectionException;
 use Amp\Http\Client\Connection\UnprocessedRequestException;
@@ -27,7 +27,7 @@ final class RetryRequests implements ApplicationInterceptor
 
     public function request(
         Request $request,
-        CancellationToken $cancellation,
+        Cancellation $cancellation,
         DelegateHttpClient $httpClient
     ): Response {
         $attempt = 1;

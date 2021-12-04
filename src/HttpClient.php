@@ -2,8 +2,8 @@
 
 namespace Amp\Http\Client;
 
-use Amp\CancellationToken;
-use Amp\NullCancellationToken;
+use Amp\Cancellation;
+use Amp\NullCancellation;
 
 /**
  * Convenient HTTP client for use in applications and libraries, providing a default for the cancellation token and
@@ -22,12 +22,12 @@ final class HttpClient implements DelegateHttpClient
      * Request a specific resource from an HTTP server.
      *
      * @param Request           $request
-     * @param CancellationToken $cancellation
+     * @param Cancellation $cancellation
      *
      * @return Response
      */
-    public function request(Request $request, ?CancellationToken $cancellation = null): Response
+    public function request(Request $request, ?Cancellation $cancellation = null): Response
     {
-        return $this->httpClient->request(clone $request, $cancellation ?? new NullCancellationToken);
+        return $this->httpClient->request(clone $request, $cancellation ?? new NullCancellation);
     }
 }

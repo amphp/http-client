@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client\Connection;
 
-use Amp\CancellationToken;
+use Amp\Cancellation;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\NetworkInterceptor;
@@ -26,7 +26,7 @@ final class InterceptedStream implements Stream
         $this->interceptor = $interceptor;
     }
 
-    public function request(Request $request, CancellationToken $cancellation): Response
+    public function request(Request $request, Cancellation $cancellation): Response
     {
         if (!$this->interceptor) {
             throw new \Error(__METHOD__ . ' may only be invoked once per instance. '

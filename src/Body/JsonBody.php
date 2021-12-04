@@ -3,7 +3,7 @@
 namespace Amp\Http\Client\Body;
 
 use Amp\ByteStream\InMemoryStream;
-use Amp\ByteStream\InputStream;
+use Amp\ByteStream\ReadableStream;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\RequestBody;
 
@@ -34,7 +34,7 @@ final class JsonBody implements RequestBody
         return ['content-type' => 'application/json; charset=utf-8'];
     }
 
-    public function createBodyStream(): InputStream
+    public function createBodyStream(): ReadableStream
     {
         return new InMemoryStream($this->json);
     }

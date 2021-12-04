@@ -1,6 +1,6 @@
 <?php
 
-use Amp\CancellationToken;
+use Amp\Cancellation;
 use Amp\Future;
 use Amp\Http\Client\Connection\ConnectionLimitingPool;
 use Amp\Http\Client\Connection\Stream;
@@ -9,7 +9,7 @@ use Amp\Http\Client\HttpException;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
-use function Amp\launch;
+use function Amp\async;
 
 require __DIR__ . '/../.helper/functions.php';
 
@@ -20,7 +20,7 @@ try {
     $logger = new class implements NetworkInterceptor {
         public function requestViaNetwork(
             Request $request,
-            CancellationToken $cancellation,
+            Cancellation $cancellation,
             Stream $stream
         ): Response {
             print 'Starting request to ' . $request->getUri() . '...' . PHP_EOL;
@@ -42,7 +42,7 @@ try {
     for ($i = 0; $i < 3; $i++) {
         $futures = [];
         for ($j = 0; $j < 10; $j++) {
-            $futures[] = launch(static function () use ($client, $i, $j): void {
+            $futures[] = async(static function () use ($client, $i, $j): void {
                 $response = $client->request(new Request("https://amphp.org/$i.$j"));
                 $response->getBody()->buffer();
             });

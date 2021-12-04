@@ -1,7 +1,7 @@
 <?php
 
 use Amp\Future;
-use Amp\CancellationToken;
+use Amp\Cancellation;
 use Amp\Http\Client\Connection\ConnectionLimitingPool;
 use Amp\Http\Client\Connection\DefaultConnectionFactory;
 use Amp\Http\Client\HttpClientBuilder;
@@ -23,7 +23,7 @@ try {
         public function connect(
             string $uri,
             ?ConnectContext $context = null,
-            ?CancellationToken $token = null
+            ?Cancellation $token = null
         ): EncryptableSocket {
             $context = $context ?? new ConnectContext;
 

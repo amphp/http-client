@@ -2,12 +2,12 @@
 
 namespace Amp\Http\Client\Interceptor;
 
-use Amp\ByteStream\ZlibInputStream;
-use Amp\CancellationToken;
+use Amp\ByteStream\ZlibReadableStream;
+use Amp\Cancellation;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
-use Amp\Http\Client\Internal\SizeLimitingInputStream;
+use Amp\Http\Client\Internal\SizeLimitingReadableStream;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
@@ -27,7 +27,7 @@ final class DecompressResponse implements NetworkInterceptor
 
     public function requestViaNetwork(
         Request $request,
-        CancellationToken $cancellation,
+        Cancellation $cancellation,
         Stream $stream
     ): Response {
         // If a header is manually set, we won't interfere
@@ -56,9 +56,9 @@ final class DecompressResponse implements NetworkInterceptor
         if (($encoding = $this->determineCompressionEncoding($response))) {
             $sizeLimit = $response->getRequest()->getBodySizeLimit();
             /** @noinspection PhpUnhandledExceptionInspection */
-            $decompressedBody = new ZlibInputStream($response->getBody(), $encoding);
+            $decompressedBody = new ZlibReadableStream($response->getBody(), $encoding);
 
-            $response->setBody(new SizeLimitingInputStream($decompressedBody, $sizeLimit));
+            $response->setBody(new SizeLimitingReadableStream($decompressedBody, $sizeLimit));
             $response->removeHeader('content-encoding');
         }
 

@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client;
 
-use Amp\CancellationToken;
+use Amp\Cancellation;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 
@@ -23,7 +23,7 @@ final class InterceptedHttpClient implements DelegateHttpClient
         $this->interceptor = $interceptor;
     }
 
-    public function request(Request $request, CancellationToken $cancellation): Response
+    public function request(Request $request, Cancellation $cancellation): Response
     {
         foreach ($request->getEventListeners() as $eventListener) {
             $eventListener->startRequest($request);

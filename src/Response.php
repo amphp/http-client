@@ -3,7 +3,7 @@
 namespace Amp\Http\Client;
 
 use Amp\ByteStream\InMemoryStream;
-use Amp\ByteStream\InputStream;
+use Amp\ByteStream\ReadableStream;
 use Amp\ByteStream\Payload;
 use Amp\Future;
 use Amp\Http\Client\Internal\ForbidCloning;
@@ -39,7 +39,7 @@ final class Response extends Message
         int $status,
         ?string $reason,
         array $headers,
-        InputStream $body,
+        ReadableStream $body,
         Request $request,
         ?Future $trailerPromise = null,
         ?Response $previousResponse = null
@@ -224,7 +224,7 @@ final class Response extends Message
     }
 
     /**
-     * @param Payload|InputStream|string|int|float|bool $body
+     * @param Payload|ReadableStream|string|int|float|bool $body
      */
     public function setBody($body): void
     {
@@ -236,7 +236,7 @@ final class Response extends Message
             $this->body = new Payload(new InMemoryStream($body));
         } elseif (\is_scalar($body)) {
             $this->body = new Payload(new InMemoryStream(\var_export($body, true)));
-        } elseif ($body instanceof InputStream) {
+        } elseif ($body instanceof ReadableStream) {
             $this->body = new Payload($body);
         } else {
             throw new \TypeError("Invalid body type: " . \gettype($body));

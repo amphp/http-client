@@ -2,13 +2,13 @@
 
 namespace Amp\Http\Client\Connection;
 
-use Amp\CancellationToken;
+use Amp\Cancellation;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Sync\KeyedSemaphore;
-use function Amp\launch;
+use function Amp\async;
 
 final class StreamLimitingPool implements ConnectionPool
 {
@@ -54,7 +54,7 @@ final class StreamLimitingPool implements ConnectionPool
         $this->requestToKeyMapper = $requestToKeyMapper;
     }
 
-    public function getStream(Request $request, CancellationToken $cancellation): Stream
+    public function getStream(Request $request, Cancellation $cancellation): Stream
     {
         $lock = $this->semaphore->acquire(($this->requestToKeyMapper)($request));
 
@@ -62,7 +62,7 @@ final class StreamLimitingPool implements ConnectionPool
 
         return HttpStream::fromStream(
             $stream,
-            static function (Request $request, CancellationToken $cancellationToken) use (
+            static function (Request $request, Cancellation $cancellationToken) use (
                 $stream,
                 $lock
             ): Response {
@@ -74,7 +74,7 @@ final class StreamLimitingPool implements ConnectionPool
                 }
 
                 // await response being completely received
-                launch(static function () use ($response, $lock): void {
+                async(static function () use ($response, $lock): void {
                     try {
                         $response->getTrailers()->await();
                     } finally {

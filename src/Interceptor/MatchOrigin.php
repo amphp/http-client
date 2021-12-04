@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client\Interceptor;
 
-use Amp\CancellationToken;
+use Amp\Cancellation;
 use Amp\Http\Client\ApplicationInterceptor;
 use Amp\Http\Client\DelegateHttpClient;
 use Amp\Http\Client\HttpException;
@@ -45,7 +45,7 @@ final class MatchOrigin implements ApplicationInterceptor
 
     public function request(
         Request $request,
-        CancellationToken $cancellation,
+        Cancellation $cancellation,
         DelegateHttpClient $httpClient
     ): Response {
         $interceptor = $this->originMap[$this->normalizeOrigin($request->getUri())] ?? $this->default;

@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client\Connection;
 
-use Amp\CancellationToken;
+use Amp\Cancellation;
 use Amp\Http\Client\DelegateHttpClient;
 use Amp\Http\Client\EventListener;
 use Amp\Http\Client\Request;
@@ -24,13 +24,13 @@ interface Stream extends DelegateHttpClient
      * the promise returned from the previous one must resolve successfully.
      *
      * @param Request           $request
-     * @param CancellationToken $cancellation
+     * @param Cancellation $cancellation
      *
      * @return Response
      *
      * @throws \Error Thrown if this method is called more than once.
      */
-    public function request(Request $request, CancellationToken $cancellation): Response;
+    public function request(Request $request, Cancellation $cancellation): Response;
 
     public function getLocalAddress(): SocketAddress;
 

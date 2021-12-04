@@ -6,7 +6,7 @@ use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\Request;
 use Amp\Pipeline\AsyncGenerator;
 use Amp\Pipeline\Pipeline;
-use function Amp\launch;
+use function Amp\async;
 use function Amp\delay;
 use function Kelunik\LinkHeaderRfc5988\parseLinks;
 
@@ -60,7 +60,7 @@ $eventBatches = $github->getEvents('amphp');
 while ($events = $eventBatches->continue()) {
     $futures = [];
     foreach ($events as $event) {
-        $futures[] = launch(static function () use ($event): void {
+        $futures[] = async(static function () use ($event): void {
             // do something with $event, we just fake some delay here
             delay(\random_int(1, 100));
 

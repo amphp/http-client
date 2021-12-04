@@ -8,7 +8,7 @@ use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Message;
 use League\Uri;
 use Psr\Http\Message\UriInterface;
-use function Amp\launch;
+use function Amp\async;
 
 /**
  * An HTTP request.
@@ -287,7 +287,7 @@ final class Request extends Message
         $onPush = $this->onPush;
         /** @psalm-suppress MissingClosureReturnType */
         $this->onPush = static function (Request $request, Future $future) use ($onPush, $interceptor) {
-            $future = launch(function () use ($interceptor, $future): Response {
+            $future = async(function () use ($interceptor, $future): Response {
                 $response = $future->await();
                 return $interceptor($response) ?? $response;
             });

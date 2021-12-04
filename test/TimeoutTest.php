@@ -2,12 +2,12 @@
 
 namespace Amp\Http\Client;
 
-use Amp\CancellationToken;
+use Amp\Cancellation;
 use Amp\Http\Client\Connection\DefaultConnectionFactory;
 use Amp\Http\Client\Connection\UnlimitedConnectionPool;
 use Amp\Http\Client\Connection\UnprocessedRequestException;
 use Amp\Http\Client\Interceptor\SetRequestTimeout;
-use Amp\NullCancellationToken;
+use Amp\NullCancellation;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Socket;
 use Revolt\EventLoop;
@@ -65,7 +65,7 @@ class TimeoutTest extends AsyncTestCase
             ->willReturnCallback(function (
                 string $uri,
                 ?Socket\ConnectContext $connectContext = null,
-                ?CancellationToken $token = null
+                ?Cancellation $token = null
             ): Socket\EncryptableSocket {
                 $this->assertSame(0.001, $connectContext->getConnectTimeout());
                 throw new TimeoutException;
@@ -78,7 +78,7 @@ class TimeoutTest extends AsyncTestCase
         $request = new Request('http://localhost:1337/');
         $request->setTcpConnectTimeout(0.001);
 
-        $this->client->request($request, new NullCancellationToken);
+        $this->client->request($request, new NullCancellation);
     }
 
     public function testTimeoutDuringTlsEnable(): void
@@ -172,7 +172,7 @@ class TimeoutTest extends AsyncTestCase
             $request = new Request($uri);
 
             $client = new InterceptedHttpClient(new PooledHttpClient, new SetRequestTimeout(10, 10, 1));
-            $response = $client->request($request, new NullCancellationToken);
+            $response = $client->request($request, new NullCancellation);
 
             $this->expectException(TimeoutException::class);
             $this->expectExceptionMessage("Allowed transfer timeout exceeded, took longer than 1 s");
@@ -192,7 +192,7 @@ class TimeoutTest extends AsyncTestCase
             ->willReturnCallback(function (
                 string $uri,
                 ?Socket\ConnectContext $connectContext = null,
-                ?CancellationToken $token = null
+                ?Cancellation $token = null
             ): Socket\EncryptableSocket {
                 $this->assertSame(0.001, $connectContext->getConnectTimeout());
                 throw new TimeoutException;
@@ -205,7 +205,7 @@ class TimeoutTest extends AsyncTestCase
 
         $request = new Request('http://localhost:1337/');
 
-        $client->request($request, new NullCancellationToken);
+        $client->request($request, new NullCancellation);
     }
 
     public function testTimeoutDuringTlsEnableInterceptor(): void
@@ -238,7 +238,7 @@ class TimeoutTest extends AsyncTestCase
             $client = new InterceptedHttpClient($client, new SetRequestTimeout(10, 0.1));
 
             try {
-                $client->request($request, new NullCancellationToken);
+                $client->request($request, new NullCancellation);
             } catch (UnprocessedRequestException $e) {
                 throw $e->getPrevious();
             }

@@ -3,12 +3,12 @@
 namespace Amp\Http\Client\Body;
 
 use Amp\ByteStream\InMemoryStream;
-use Amp\ByteStream\InputStream;
+use Amp\ByteStream\ReadableStream;
 use Amp\ByteStream\PipelineStream;
 use Amp\Future;
 use Amp\Http\Client\RequestBody;
 use Amp\Pipeline\AsyncGenerator;
-use function Amp\launch;
+use function Amp\async;
 
 final class FormBody implements RequestBody
 {
@@ -124,7 +124,7 @@ final class FormBody implements RequestBody
         $this->cachedFields = null;
     }
 
-    public function createBodyStream(): InputStream
+    public function createBodyStream(): ReadableStream
     {
         if ($this->isMultipart) {
             return $this->generateMultipartStreamFromFields($this->getMultipartFieldArray());
@@ -181,7 +181,7 @@ final class FormBody implements RequestBody
         return $header;
     }
 
-    private function generateMultipartStreamFromFields(array $fields): InputStream
+    private function generateMultipartStreamFromFields(array $fields): ReadableStream
     {
         foreach ($fields as $key => $field) {
             $fields[$key] = $field instanceof FileBody ? $field->createBodyStream() : new InMemoryStream($field);
@@ -240,7 +240,7 @@ final class FormBody implements RequestBody
             return ($this->cachedLength = Future::complete(\strlen($this->getFormEncodedBodyString())))->await();
         }
 
-        $this->cachedLength = launch(function (): int {
+        $this->cachedLength = async(function (): int {
             $fields = $this->getMultipartFieldArray();
             $length = 0;
 

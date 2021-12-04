@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client\Interceptor;
 
-use Amp\CancellationToken;
+use Amp\Cancellation;
 use Amp\Http\Client\ApplicationInterceptor;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\DelegateHttpClient;
@@ -30,7 +30,7 @@ class ModifyResponse implements NetworkInterceptor, ApplicationInterceptor
 
     final public function requestViaNetwork(
         Request $request,
-        CancellationToken $cancellation,
+        Cancellation $cancellation,
         Stream $stream
     ): Response {
         $response = $stream->request($request, $cancellation);
@@ -43,7 +43,7 @@ class ModifyResponse implements NetworkInterceptor, ApplicationInterceptor
 
     public function request(
         Request $request,
-        CancellationToken $cancellation,
+        Cancellation $cancellation,
         DelegateHttpClient $httpClient
     ): Response {
         $request->interceptPush($this->mapper);

@@ -1,6 +1,6 @@
 <?php
 
-use Amp\CancellationToken;
+use Amp\Cancellation;
 use Amp\Dns\Record;
 use Amp\Future;
 use Amp\Http\Client\Connection\ConnectionLimitingPool;
@@ -25,7 +25,7 @@ try {
         public function connect(
             string $uri,
             ?ConnectContext $context = null,
-            ?CancellationToken $token = null
+            ?Cancellation $token = null
         ): EncryptableSocket {
             $context = $context ?? (new ConnectContext);
 

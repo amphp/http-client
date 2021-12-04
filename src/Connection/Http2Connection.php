@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client\Connection;
 
-use Amp\CancellationToken;
+use Amp\Cancellation;
 use Amp\Http\Client\Connection\Internal\Http2ConnectionProcessor;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
@@ -85,7 +85,7 @@ final class Http2Connection implements Connection
         return $this->socket->getTlsInfo();
     }
 
-    private function request(Request $request, CancellationToken $token, Stream $applicationStream): Response
+    private function request(Request $request, Cancellation $token, Stream $applicationStream): Response
     {
         $this->requestCount++;
 

@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client\Body;
 
-use Amp\ByteStream\InputStream;
+use Amp\ByteStream\ReadableStream;
 use Amp\File;
 use Amp\File\Filesystem;
 use Amp\Http\Client\RequestBody;
@@ -28,7 +28,7 @@ final class FileBody implements RequestBody
         $this->filesystem = $filesystem ?? File\filesystem();
     }
 
-    public function createBodyStream(): InputStream
+    public function createBodyStream(): ReadableStream
     {
         return $this->filesystem->openFile($this->path, "r");
     }

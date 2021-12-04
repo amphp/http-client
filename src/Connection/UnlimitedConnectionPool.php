@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client\Connection;
 
-use Amp\CancellationToken;
+use Amp\Cancellation;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Request;
 
@@ -37,7 +37,7 @@ final class UnlimitedConnectionPool implements ConnectionPool
         return $this->pool->getOpenConnectionCount();
     }
 
-    public function getStream(Request $request, CancellationToken $cancellation): Stream
+    public function getStream(Request $request, Cancellation $cancellation): Stream
     {
         return $this->pool->getStream($request, $cancellation);
     }
