@@ -47,6 +47,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     private Server $httpServer;
 
+    private ?string $rawHandler = null;
+
     public function testHttp10Response(): void
     {
         $this->givenRawServerResponse("HTTP/1.0 200 OK\r\n\r\n");
@@ -351,7 +353,6 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $response = $this->executeRequest($request);
 
-        $this->assertInstanceOf(Response::class, $response);
         $this->assertSame(200, $response->getStatus());
         $this->assertSame($response, $response->getOriginalResponse());
     }
@@ -749,6 +750,10 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         }
 
         $this->httpServer->stop();
+
+        if (isset($this->rawHandler)) {
+            EventLoop::cancel($this->rawHandler);
+        }
     }
 
     protected function setUp(): void
@@ -761,7 +766,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->socket = listen('127.0.0.1:0');
         $this->socket->unreference();
 
-        EventLoop::queue(function () {
+        $this->rawHandler = EventLoop::onReadable($this->socket, function () {
             $client = $this->socket->accept();
 
             if ($client === null) {
