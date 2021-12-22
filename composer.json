@@ -1,7 +1,7 @@
 {
     "name": "amphp/http-client",
     "homepage": "https://github.com/amphp/http-client",
-    "description": "Asynchronous concurrent HTTP/2 and HTTP/1.1 client built on the Amp concurrency framework",
+    "description": "Non-blocking concurrent HTTP/2 and HTTP/1.1 client based on Amp and Revolt.",
     "keywords": [
         "http",
         "rest",
@@ -27,23 +27,23 @@
     ],
     "require": {
         "php": ">=8",
-        "amphp/amp": "v3.x-dev",
-        "amphp/byte-stream": "v2.x-dev",
+        "amphp/amp": "^3",
+        "amphp/byte-stream": "^2",
         "amphp/hpack": "^3",
         "amphp/http": "^1.6",
-        "amphp/socket": "v2.x-dev",
-        "amphp/sync": "v2.x-dev",
+        "amphp/socket": "^2",
+        "amphp/sync": "^2",
         "league/uri": "^6",
         "psr/http-message": "^1"
     },
     "require-dev": {
         "ext-json": "*",
-        "amphp/file": "v3.x-dev",
-        "amphp/phpunit-util": "v2.x-dev",
+        "amphp/file": "^3-dev",
+        "amphp/phpunit-util": "^3",
         "amphp/php-cs-fixer-config": "dev-master",
         "phpunit/phpunit": "^9",
-        "amphp/http-server": "v3.x-dev",
-        "kelunik/link-header-rfc5988": "^1.0",
+        "amphp/http-server": "^3",
+        "kelunik/link-header-rfc5988": "^1",
         "psalm/phar": "^4.7",
         "laminas/laminas-diactoros": "^2.3"
     },
