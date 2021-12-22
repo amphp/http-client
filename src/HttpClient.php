@@ -6,7 +6,7 @@ use Amp\Cancellation;
 use Amp\NullCancellation;
 
 /**
- * Convenient HTTP client for use in applications and libraries, providing a default for the cancellation token and
+ * Convenient HTTP client for use in applications and libraries, providing a default for the cancellation and
  * automatically cloning the passed request, so future application requests can re-use the same object again.
  */
 final class HttpClient implements DelegateHttpClient
@@ -21,8 +21,8 @@ final class HttpClient implements DelegateHttpClient
     /**
      * Request a specific resource from an HTTP server.
      *
-     * @param Request           $request
-     * @param Cancellation $cancellation
+     * @param Request $request
+     * @param Cancellation|null $cancellation
      *
      * @return Response
      */

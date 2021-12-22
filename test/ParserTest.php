@@ -21,9 +21,7 @@ class ParserTest extends AsyncTestCase
 
     public function testResponseWithTrailers(): void
     {
-        $callback = $this->createCallback(1);
-        $callback->method('__invoke')
-            ->with(['expires' => ['date']]);
+        $callback = $this->createCallback(1, fn () => ['expires' => ['date']]);
 
         $data = "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nTrailers: Expires\r\n\r\nd\r\nHello, World!\r\n0\r\nExpires: date\r\n\r\n";
         $parser = new Http1Parser(new Request('/', 'GET'), $this->createCallback(1), $callback);

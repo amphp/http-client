@@ -35,7 +35,7 @@ final class HttpClientBuilder
 
     private ?SetRequestHeaderIfUnset $defaultUserAgentInterceptor;
 
-    private ?SetRequestHeaderIfUnset$defaultAcceptInterceptor;
+    private ?SetRequestHeaderIfUnset $defaultAcceptInterceptor;
 
     private ?DecompressResponse $defaultCompressionHandler;
 
@@ -60,7 +60,6 @@ final class HttpClientBuilder
 
     public function build(): HttpClient
     {
-        /** @var PooledHttpClient $client */
         $client = new PooledHttpClient($this->pool);
 
         foreach ($this->networkInterceptors as $interceptor) {

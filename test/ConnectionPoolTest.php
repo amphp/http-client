@@ -4,12 +4,13 @@ namespace Amp\Http\Client;
 
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Socket;
-use Revolt\EventLoop;
+use function Amp\async;
 use function Amp\delay;
+use function Amp\Socket\listen;
 
 class ConnectionPoolTest extends AsyncTestCase
 {
-    private Socket\Server $socket;
+    private Socket\SocketServer $socket;
 
     private HttpClient $client;
 
@@ -30,13 +31,15 @@ class ConnectionPoolTest extends AsyncTestCase
 
         $this->client = (new HttpClientBuilder)->retry(0)->build();
 
-        $this->socket = Socket\Server::listen('127.0.0.1:0');
+        $this->socket = listen('127.0.0.1:0');
 
-        EventLoop::queue(function () {
+        async(function () {
             $client = $this->socket->accept();
 
+            self::assertNotNull($client);
+
             $client->read();
-            $client->write("HTTP/1.1 200 OK\r\nconnection: keep-alive\r\ncontent-length: 5\r\n\r\nhello")->await();
+            $client->write("HTTP/1.1 200 OK\r\nconnection: keep-alive\r\ncontent-length: 5\r\n\r\nhello");
 
             delay(0.05);
 
@@ -47,7 +50,8 @@ class ConnectionPoolTest extends AsyncTestCase
             $client = $this->socket->accept();
 
             $client->read();
-            $client->end("HTTP/1.1 200 OK\r\nconnection: keep-alive\r\ncontent-length: 5\r\n\r\nhello")->await();
+            $client->write("HTTP/1.1 200 OK\r\nconnection: keep-alive\r\ncontent-length: 5\r\n\r\nhello");
+            $client->end();
 
             $this->socket->close();
         });

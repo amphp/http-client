@@ -3,7 +3,6 @@
 namespace Amp\Http\Client\Connection;
 
 use Amp\Cancellation;
-use Amp\Future;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Socket\EncryptableSocket;
@@ -21,7 +20,7 @@ final class UpgradedSocket implements EncryptableSocket
 
     /**
      * @param EncryptableSocket $socket
-     * @param string            $buffer Remaining buffer previously read from the socket.
+     * @param string $buffer Remaining buffer previously read from the socket.
      */
     public function __construct(EncryptableSocket $socket, string $buffer)
     {
@@ -29,15 +28,23 @@ final class UpgradedSocket implements EncryptableSocket
         $this->buffer = $buffer !== '' ? $buffer : null;
     }
 
-    public function read(?Cancellation $token = null): ?string
+    public function read(?Cancellation $cancellation = null, ?int $limit = null): ?string
     {
         if ($this->buffer !== null) {
+            if ($limit !== null && $limit < \strlen($this->buffer)) {
+                $buffer = \substr($this->buffer, 0, $limit);
+                $this->buffer = \substr($this->buffer, $limit);
+
+                return $buffer;
+            }
+
             $buffer = $this->buffer;
             $this->buffer = null;
+
             return $buffer;
         }
 
-        return $this->socket->read($token);
+        return $this->socket->read($cancellation);
     }
 
     public function close(): void
@@ -50,14 +57,14 @@ final class UpgradedSocket implements EncryptableSocket
         $this->close();
     }
 
-    public function write(string $data): Future
+    public function write(string $bytes): void
     {
-        return $this->socket->write($data);
+        $this->socket->write($bytes);
     }
 
-    public function end(string $finalData = ""): Future
+    public function end(): void
     {
-        return $this->socket->end($finalData);
+        $this->socket->end();
     }
 
     public function reference(): void
@@ -85,12 +92,12 @@ final class UpgradedSocket implements EncryptableSocket
         return $this->socket->getRemoteAddress();
     }
 
-    public function setupTls(?Cancellation $token = null): void
+    public function setupTls(?Cancellation $cancellation = null): void
     {
-        $this->socket->setupTls($token);
+        $this->socket->setupTls($cancellation);
     }
 
-    public function shutdownTls(?Cancellation $token = null): void
+    public function shutdownTls(?Cancellation $cancellation = null): void
     {
         $this->socket->shutdownTls();
     }
@@ -105,11 +112,18 @@ final class UpgradedSocket implements EncryptableSocket
         return $this->socket->getTlsInfo();
     }
 
-    public function isReadable(): bool {
+    public function isReadable(): bool
+    {
         return $this->socket->isReadable();
     }
 
-    public function isWritable(): bool {
+    public function isWritable(): bool
+    {
         return $this->socket->isWritable();
+    }
+
+    public function getResource()
+    {
+        return $this->socket->getResource();
     }
 }

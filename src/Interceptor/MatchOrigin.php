@@ -24,7 +24,7 @@ final class MatchOrigin implements ApplicationInterceptor
     private ?ApplicationInterceptor $default;
 
     /**
-     * @param ApplicationInterceptor[]    $originMap
+     * @param ApplicationInterceptor[] $originMap
      * @param ApplicationInterceptor|null $default
      *
      * @throws HttpException
@@ -33,7 +33,7 @@ final class MatchOrigin implements ApplicationInterceptor
     {
         foreach ($originMap as $origin => $interceptor) {
             if (!$interceptor instanceof ApplicationInterceptor) {
-                $type = \is_object($interceptor) ? \get_class($interceptor) : \gettype($interceptor);
+                $type = \get_debug_type($interceptor);
                 throw new HttpException('Origin map must be a map from origin to ApplicationInterceptor, got ' . $type);
             }
 
@@ -57,11 +57,14 @@ final class MatchOrigin implements ApplicationInterceptor
         return $interceptor->request($request, $cancellation, $httpClient);
     }
 
+    /**
+     * @throws HttpException
+     */
     private function checkOrigin(string $origin): string
     {
         try {
             $originUri = Http::createFromString($origin);
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             throw new HttpException("Invalid origin provided: parsing failed: " . $origin);
         }
 

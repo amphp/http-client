@@ -2,13 +2,14 @@
 
 namespace Amp\Http\Client\Body;
 
-use Amp\ByteStream\InMemoryStream;
+use Amp\ByteStream\IterableStream;
+use Amp\ByteStream\ReadableBuffer;
 use Amp\ByteStream\ReadableStream;
-use Amp\ByteStream\PipelineStream;
+use Amp\ByteStream\ReadableStreamChain;
 use Amp\Future;
 use Amp\Http\Client\RequestBody;
-use Amp\Pipeline\AsyncGenerator;
 use function Amp\async;
+use function Amp\Pipeline\fromIterable;
 
 final class FormBody implements RequestBody
 {
@@ -52,7 +53,7 @@ final class FormBody implements RequestBody
     /**
      * Add each element of a associative array as a data field to the form entity body.
      *
-     * @param array  $data
+     * @param array $data
      * @param string $contentType
      */
     public function addFields(array $data, string $contentType = 'text/plain'): void
@@ -78,9 +79,9 @@ final class FormBody implements RequestBody
     }
 
     /**
-     * Add each element of a associative array as a file field to the form entity body.
+     * Add each element of an associative array as a file field to the form entity body.
      *
-     * @param array  $data
+     * @param array $data
      * @param string $contentType
      */
     public function addFiles(array $data, string $contentType = 'application/octet-stream'): void
@@ -98,8 +99,12 @@ final class FormBody implements RequestBody
      * @param string $fileName
      * @param string $contentType
      */
-    public function addFileFromString(string $name, string $fileContent, string $fileName, string $contentType = 'application/octet-stream'): void
-    {
+    public function addFileFromString(
+        string $name,
+        string $fileContent,
+        string $fileName,
+        string $contentType = 'application/octet-stream'
+    ): void {
         $this->fields[] = [$name, $fileContent, $contentType, $fileName];
         $this->isMultipart = true;
         $this->resetCache();
@@ -130,7 +135,7 @@ final class FormBody implements RequestBody
             return $this->generateMultipartStreamFromFields($this->getMultipartFieldArray());
         }
 
-        return new InMemoryStream($this->getFormEncodedBodyString());
+        return new ReadableBuffer($this->getFormEncodedBodyString());
     }
 
     private function getMultipartFieldArray(): array
@@ -184,16 +189,10 @@ final class FormBody implements RequestBody
     private function generateMultipartStreamFromFields(array $fields): ReadableStream
     {
         foreach ($fields as $key => $field) {
-            $fields[$key] = $field instanceof FileBody ? $field->createBodyStream() : new InMemoryStream($field);
+            $fields[$key] = $field instanceof FileBody ? $field->createBodyStream() : new ReadableBuffer($field);
         }
 
-        return new PipelineStream(new AsyncGenerator(static function () use ($fields) {
-            foreach ($fields as $key => $stream) {
-                while (($chunk = $stream->read()) !== null) {
-                    yield $chunk;
-                }
-            }
-        }));
+        return new ReadableStreamChain(...$fields);
     }
 
     private function getFormEncodedBodyString(): string

@@ -21,7 +21,8 @@ class ModifyRequest implements NetworkInterceptor, ApplicationInterceptor
     private $mapper;
 
     /**
-     * @psalm-param callable(Request):(\Generator<mixed, mixed, mixed, Promise<Request|null>|Request|null>|Promise<Request|null>|Request|null) $mapper
+     * @psalm-param callable(Request):(\Generator<mixed, mixed, mixed,
+     *     Promise<Request|null>|Request|null>|Promise<Request|null>|Request|null) $mapper
      */
     public function __construct(callable $mapper)
     {
@@ -29,9 +30,9 @@ class ModifyRequest implements NetworkInterceptor, ApplicationInterceptor
     }
 
     /**
-     * @param Request           $request
+     * @param Request $request
      * @param Cancellation $cancellation
-     * @param Stream            $stream
+     * @param Stream $stream
      *
      * @return Response
      */

@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client\Connection;
 
-use Amp\ByteStream\InMemoryStream;
+use Amp\ByteStream\ReadableBuffer;
 use Amp\Future;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\Request;
@@ -139,7 +139,7 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
 
     private function createMockConnection(Request $request): Connection
     {
-        $response = new Response('1.1', 200, null, [], new InMemoryStream, $request, Future::complete(new Trailers([])));
+        $response = new Response('1.1', 200, null, [], new ReadableBuffer, $request, Future::complete(new Trailers([])));
 
         $stream = $this->createMock(Stream::class);
         $stream->method('request')

@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection ALL */
 
 namespace Amp\Http\Client\Interceptor;
 
@@ -207,7 +207,7 @@ final class LogHttpArchive implements ApplicationInterceptor
 
                 $header = '{"log":{"version":"1.2","creator":{"name":"amphp/http-client","version":"4.x"},"pages":[],"entries":[';
 
-                $this->fileHandle->write($header)->await();
+                $this->fileHandle->write($header);
             } else {
                 \assert($this->fileHandle !== null);
 
@@ -216,7 +216,7 @@ final class LogHttpArchive implements ApplicationInterceptor
 
             $json = \json_encode(self::formatEntry($response));
 
-            $this->fileHandle->write(($firstEntry ? '' : ',') . $json . ']}}')->await();
+            $this->fileHandle->write(($firstEntry ? '' : ',') . $json . ']}}');
 
             $lock->release();
         } catch (HttpException $e) {

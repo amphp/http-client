@@ -20,9 +20,9 @@ interface NetworkInterceptor
      * exactly once. The only exception to this is throwing an exception, e.g. because the TLS settings used are
      * unacceptable. If you need short circuits, use an {@see ApplicationInterceptor} instead.
      *
-     * @param Request           $request
+     * @param Request $request
      * @param Cancellation $cancellation
-     * @param Stream            $stream
+     * @param Stream $stream
      *
      * @return Response
      */

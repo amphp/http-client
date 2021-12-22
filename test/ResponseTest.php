@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client;
 
-use Amp\ByteStream\InMemoryStream;
+use Amp\ByteStream\ReadableBuffer;
 use Amp\PHPUnit\AsyncTestCase;
 
 class ResponseTest extends AsyncTestCase
@@ -27,7 +27,7 @@ class ResponseTest extends AsyncTestCase
     {
         $this->expectException(\Error::class);
         $this->expectExceptionMessage("Invalid HTTP protocol version");
-        (new Response($invalidVersion, 200, null, [], new InMemoryStream, new Request('https://localhost/')));
+        (new Response($invalidVersion, 200, null, [], new ReadableBuffer(), new Request('https://localhost/')));
     }
 
     public function testProtocolVersion(): void
@@ -42,7 +42,7 @@ class ResponseTest extends AsyncTestCase
     {
         $this->expectExceptionMessage('Header name cannot be empty or start with a colon (:)');
 
-        (new Response('2', 200, null, [], new InMemoryStream, new Request('https://google.com/')))->setHeader(
+        (new Response('2', 200, null, [], new ReadableBuffer(), new Request('https://google.com/')))->setHeader(
             ':foobar',
             'foobar'
         );
@@ -52,7 +52,7 @@ class ResponseTest extends AsyncTestCase
     {
         $this->expectExceptionMessage('Header name cannot be empty or start with a colon (:)');
 
-        (new Response('2', 200, null, [], new InMemoryStream, new Request('https://google.com/')))->setHeader(
+        (new Response('2', 200, null, [], new ReadableBuffer(), new Request('https://google.com/')))->setHeader(
             '',
             'foobar'
         );
@@ -62,7 +62,7 @@ class ResponseTest extends AsyncTestCase
     {
         $this->expectExceptionMessage('Header name cannot be empty or start with a colon (:)');
 
-        (new Response('2', 200, null, [], new InMemoryStream, new Request('https://google.com/')))->addHeader(
+        (new Response('2', 200, null, [], new ReadableBuffer(), new Request('https://google.com/')))->addHeader(
             ':foobar',
             'foobar'
         );
@@ -72,7 +72,7 @@ class ResponseTest extends AsyncTestCase
     {
         $this->expectExceptionMessage('Header name cannot be empty or start with a colon (:)');
 
-        (new Response('2', 200, null, [], new InMemoryStream, new Request('https://google.com/')))->addHeader(
+        (new Response('2', 200, null, [], new ReadableBuffer(), new Request('https://google.com/')))->addHeader(
             '',
             'foobar'
         );
@@ -80,7 +80,7 @@ class ResponseTest extends AsyncTestCase
 
     public function testBody(): void
     {
-        $response = new Response('2', 200, null, [], new InMemoryStream, new Request('https://google.com/'));
+        $response = new Response('2', 200, null, [], new ReadableBuffer(), new Request('https://google.com/'));
 
         $response->setBody(null);
         $this->assertSame('', $response->getBody()->buffer());
@@ -91,13 +91,15 @@ class ResponseTest extends AsyncTestCase
         $response->setBody($response->getBody());
         $this->assertSame('foobar', $response->getBody()->buffer());
 
-        $response->setBody(new InMemoryStream('foobar2'));
+        $response->setBody(new ReadableBuffer('foobar2'));
         $this->assertSame('foobar2', $response->getBody()->buffer());
 
         $response->setBody(143);
         $this->assertSame('143', $response->getBody()->buffer());
 
         $this->expectException(\TypeError::class);
+
+        /** @noinspection PhpParamsInspection */
         $response->setBody(new \stdClass);
     }
 
@@ -179,7 +181,7 @@ class ResponseTest extends AsyncTestCase
             200,
             'OK',
             [],
-            new InMemoryStream,
+            new ReadableBuffer(),
             new Request('https://example.com/')
         );
     }

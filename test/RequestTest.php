@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client;
 
-use Amp\ByteStream\InMemoryStream;
+use Amp\ByteStream\ReadableBuffer;
 use Amp\Future;
 use Amp\Http\Client\Body\StringBody;
 use Amp\PHPUnit\AsyncTestCase;
@@ -138,6 +138,8 @@ class RequestTest extends AsyncTestCase
         $this->assertInstanceOf(StringBody::class, $request->getBody());
 
         $this->expectException(\TypeError::class);
+
+        /** @noinspection PhpParamsInspection */
         $request->setBody(new \stdClass);
     }
 
@@ -195,7 +197,7 @@ class RequestTest extends AsyncTestCase
 
         $request->getPushHandler()(
             new Request('https://amphp.org/'),
-            Future::complete(new Response('2', 200, null, [], new InMemoryStream, $request))
+            Future::complete(new Response('2', 200, null, [], new ReadableBuffer(), $request))
         );
 
         $response = $responseFuture->await();
@@ -212,7 +214,6 @@ class RequestTest extends AsyncTestCase
         $request->removeAttribute('foobar');
     }
 
-
     public function testPushHandlerInterceptNewReturn(): void
     {
         $request = new Request('https://amphp.org/');
@@ -228,12 +229,12 @@ class RequestTest extends AsyncTestCase
 
         $request->setPushHandler($pushHandler);
         $request->interceptPush(static function (Response $response) {
-            return new Response('2', 523, null, [], new InMemoryStream, $response->getRequest());
+            return new Response('2', 523, null, [], new ReadableBuffer(), $response->getRequest());
         });
 
         $request->getPushHandler()(
             new Request('https://amphp.org/'),
-            Future::complete(new Response('2', 200, null, [], new InMemoryStream, $request))
+            Future::complete(new Response('2', 200, null, [], new ReadableBuffer(), $request))
         );
 
         $response = $responseFuture->await();

@@ -11,10 +11,8 @@ final class InterceptedHttpClient implements DelegateHttpClient
     use ForbidCloning;
     use ForbidSerialization;
 
-    /** @var DelegateHttpClient */
     private DelegateHttpClient $httpClient;
 
-    /** @var ApplicationInterceptor */
     private ApplicationInterceptor $interceptor;
 
     public function __construct(DelegateHttpClient $httpClient, ApplicationInterceptor $interceptor)

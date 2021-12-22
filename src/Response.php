@@ -2,9 +2,9 @@
 
 namespace Amp\Http\Client;
 
-use Amp\ByteStream\InMemoryStream;
-use Amp\ByteStream\ReadableStream;
 use Amp\ByteStream\Payload;
+use Amp\ByteStream\ReadableBuffer;
+use Amp\ByteStream\ReadableStream;
 use Amp\Future;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
@@ -168,7 +168,7 @@ final class Response extends Message
     /**
      * Assign a value for the specified header field by replacing any existing values for that field.
      *
-     * @param string          $name Header name.
+     * @param string $name Header name.
      * @param string|string[] $value Header value.
      */
     public function setHeader(string $name, $value): void
@@ -183,7 +183,7 @@ final class Response extends Message
     /**
      * Assign a value for the specified header field by adding an additional header line.
      *
-     * @param string          $name Header name.
+     * @param string $name Header name.
      * @param string|string[] $value Header value.
      */
     public function addHeader(string $name, $value): void
@@ -223,19 +223,16 @@ final class Response extends Message
         return $this->body;
     }
 
-    /**
-     * @param Payload|ReadableStream|string|int|float|bool $body
-     */
-    public function setBody($body): void
+    public function setBody(Payload|ReadableStream|string|int|float|bool|null $body): void
     {
         if ($body instanceof Payload) {
             $this->body = $body;
         } elseif ($body === null) {
-            $this->body = new Payload(new InMemoryStream);
+            $this->body = new Payload(new ReadableBuffer());
         } elseif (\is_string($body)) {
-            $this->body = new Payload(new InMemoryStream($body));
+            $this->body = new Payload(new ReadableBuffer($body));
         } elseif (\is_scalar($body)) {
-            $this->body = new Payload(new InMemoryStream(\var_export($body, true)));
+            $this->body = new Payload(new ReadableBuffer(\var_export($body, true)));
         } elseif ($body instanceof ReadableStream) {
             $this->body = new Payload($body);
         } else {

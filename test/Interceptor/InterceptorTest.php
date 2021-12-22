@@ -15,11 +15,12 @@ use Amp\Http\Server\Response;
 use Amp\Http\Server\Server;
 use Amp\Http\Status;
 use Amp\PHPUnit\AsyncTestCase;
-use Amp\Socket\Server as SocketServer;
 use Amp\Socket\SocketAddress;
-use Amp\Socket\StaticConnector;
+use Amp\Socket\SocketServer;
+use Amp\Socket\StaticSocketConnector;
 use Psr\Log\NullLogger;
-use function Amp\Socket\connector;
+use function Amp\Socket\listen;
+use function Amp\Socket\socketConnector;
 
 abstract class InterceptorTest extends AsyncTestCase
 {
@@ -74,7 +75,7 @@ abstract class InterceptorTest extends AsyncTestCase
     {
         parent::setUp();
 
-        $this->serverSocket = SocketServer::listen('tcp://127.0.0.1:0');
+        $this->serverSocket = listen('tcp://127.0.0.1:0');
         $this->server = new Server(
             [$this->serverSocket],
             new CallableRequestHandler(static function () {
@@ -83,7 +84,7 @@ abstract class InterceptorTest extends AsyncTestCase
             new NullLogger
         );
 
-        $staticConnector = new StaticConnector($this->serverSocket->getAddress()->toString(), connector());
+        $staticConnector = new StaticSocketConnector($this->serverSocket->getAddress()->toString(), socketConnector());
         $this->builder = (new HttpClientBuilder)->usingPool(new UnlimitedConnectionPool(new DefaultConnectionFactory($staticConnector)));
         $this->client = $this->builder->build();
     }

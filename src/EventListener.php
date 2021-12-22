@@ -4,7 +4,6 @@ namespace Amp\Http\Client;
 
 use Amp\Http\Client\Connection\ConnectionPool;
 use Amp\Http\Client\Connection\Stream;
-use Amp\Promise;
 
 /**
  * Allows listening to more fine granular events than interceptors are able to achieve.
@@ -18,8 +17,6 @@ interface EventListener
      * Called at the very beginning of {@see DelegateHttpClient::request()}.
      *
      * @param Request $request
-     *
-     * @return Promise Should resolve successfully, otherwise aborts the request.
      */
     public function startRequest(Request $request): void;
 
@@ -27,8 +24,6 @@ interface EventListener
      * Optionally called by {@see ConnectionPool::getStream()} before DNS resolution is started.
      *
      * @param Request $request
-     *
-     * @return Promise Should resolve successfully, otherwise aborts the request.
      */
     public function startDnsResolution(Request $request): void;
 
@@ -36,8 +31,6 @@ interface EventListener
      * Optionally called by {@see ConnectionPool::getStream()} after DNS resolution is completed.
      *
      * @param Request $request
-     *
-     * @return Promise Should resolve successfully, otherwise aborts the request.
      */
     public function completeDnsResolution(Request $request): void;
 
@@ -45,8 +38,6 @@ interface EventListener
      * Called by {@see ConnectionPool::getStream()} before a new connection is initiated.
      *
      * @param Request $request
-     *
-     * @return Promise Should resolve successfully, otherwise aborts the request.
      */
     public function startConnectionCreation(Request $request): void;
 
@@ -54,8 +45,6 @@ interface EventListener
      * Called by {@see ConnectionPool::getStream()} after a new connection is established and TLS negotiated.
      *
      * @param Request $request
-     *
-     * @return Promise Should resolve successfully, otherwise aborts the request.
      */
     public function completeConnectionCreation(Request $request): void;
 
@@ -63,8 +52,6 @@ interface EventListener
      * Called by {@see ConnectionPool::getStream()} before TLS negotiation is started (only if HTTPS is used).
      *
      * @param Request $request
-     *
-     * @return Promise Should resolve successfully, otherwise aborts the request.
      */
     public function startTlsNegotiation(Request $request): void;
 
@@ -72,8 +59,6 @@ interface EventListener
      * Called by {@see ConnectionPool::getStream()} after TLS negotiation is successful (only if HTTPS is used).
      *
      * @param Request $request
-     *
-     * @return Promise Should resolve successfully, otherwise aborts the request.
      */
     public function completeTlsNegotiation(Request $request): void;
 
@@ -82,8 +67,6 @@ interface EventListener
      *
      * @param Request $request
      * @param Stream  $stream
-     *
-     * @return Promise Should resolve successfully, otherwise aborts the request.
      */
     public function startSendingRequest(Request $request, Stream $stream): void;
 
@@ -92,8 +75,6 @@ interface EventListener
      *
      * @param Request $request
      * @param Stream  $stream
-     *
-     * @return Promise Should resolve successfully, otherwise aborts the request.
      */
     public function completeSendingRequest(Request $request, Stream $stream): void;
 
@@ -102,8 +83,6 @@ interface EventListener
      *
      * @param Request $request
      * @param Stream  $stream
-     *
-     * @return Promise Should resolve successfully, otherwise aborts the request.
      */
     public function startReceivingResponse(Request $request, Stream $stream): void;
 
@@ -112,8 +91,6 @@ interface EventListener
      *
      * @param Request $request
      * @param Stream  $stream
-     *
-     * @return Promise Should resolve successfully, otherwise aborts the request.
      */
     public function completeReceivingResponse(Request $request, Stream $stream): void;
 
@@ -122,8 +99,6 @@ interface EventListener
      *
      * @param Request    $request
      * @param \Throwable $cause
-     *
-     * @return Promise Should resolve successfully.
      */
     public function abort(Request $request, \Throwable $cause): void;
 }

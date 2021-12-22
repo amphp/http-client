@@ -2,12 +2,12 @@
 
 namespace Amp\Http\Client;
 
-use Amp\ByteStream\InMemoryStream;
+use Amp\ByteStream\IterableStream;
+use Amp\ByteStream\ReadableBuffer;
 use Amp\ByteStream\ReadableStream;
-use Amp\ByteStream\PipelineStream;
 use Amp\Cancellation;
-use Amp\DeferredCancellation;
 use Amp\CancelledException;
+use Amp\DeferredCancellation;
 use Amp\Future;
 use Amp\Http\Client\Body\FileBody;
 use Amp\Http\Client\Body\FormBody;
@@ -28,13 +28,15 @@ use Amp\PHPUnit\AsyncTestCase;
 use Amp\Socket;
 use Psr\Log\NullLogger;
 use Revolt\EventLoop;
-use function Amp\delay;
 use function Amp\async;
+use function Amp\delay;
 use function Amp\Pipeline\fromIterable;
+use function Amp\Pipeline\postpone;
+use function Amp\Socket\listen;
 
 class ClientHttpBinIntegrationTest extends AsyncTestCase
 {
-    private Socket\Server $socket;
+    private Socket\SocketServer $socket;
 
     private HttpClient $client;
 
@@ -194,7 +196,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
             $buffer = \json_encode(Rfc7230::parseRawHeaders(\implode("\r\n", $headers) . "\r\n"));
 
-            $socket->write("HTTP/1.0 200 OK\r\n\r\n$buffer")->await();
+            $socket->write("HTTP/1.0 200 OK\r\n\r\n$buffer");
         };
 
         $request = $this->createRequest();
@@ -559,7 +561,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
             public function createBodyStream(): ReadableStream
             {
-                return new InMemoryStream("foo");
+                return new ReadableBuffer("foo");
             }
 
             public function getBodyLength(): int
@@ -585,7 +587,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
             public function createBodyStream(): ReadableStream
             {
-                return new PipelineStream(fromIterable(["a", "b", "c"], 500));
+                return new IterableStream(fromIterable(["a", "b", "c"])->pipe(postpone(500)));
             }
 
             public function getBodyLength(): int
@@ -611,7 +613,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
             public function createBodyStream(): ReadableStream
             {
-                return new InMemoryStream("foo");
+                return new ReadableBuffer("foo");
             }
 
             public function getBodyLength(): int
@@ -756,7 +758,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->builder = (new HttpClientBuilder)->retry(0);
         $this->client = $this->builder->build();
 
-        $this->socket = Socket\Server::listen('127.0.0.1:0');
+        $this->socket = listen('127.0.0.1:0');
         $this->socket->unreference();
 
         EventLoop::queue(function () {
@@ -778,7 +780,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     private function givenServer(callable $requestHandler): void
     {
-        $this->httpServer = new Server([$this->socket], new CallableRequestHandler($requestHandler), new NullLogger, (new Options)->withHttp2Upgrade());
+        $this->httpServer = new Server([$this->socket], new CallableRequestHandler($requestHandler), new NullLogger,
+            (new Options)->withHttp2Upgrade());
         $this->httpServer->start();
     }
 
@@ -796,7 +799,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
                 }
             }
 
-            $socket->write($response)->await();
+            $socket->write($response);
         };
     }
 
@@ -804,7 +807,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     {
         $this->responseCallback = static function (Socket\Socket $socket) use ($delay, $chunks): void {
             foreach ($chunks as $chunk) {
-                $socket->write($chunk)->ignore();
+                $socket->write($chunk);
                 delay($delay);
             };
         };

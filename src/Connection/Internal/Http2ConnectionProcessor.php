@@ -2,8 +2,8 @@
 
 namespace Amp\Http\Client\Connection\Internal;
 
-use Amp\ByteStream\InMemoryStream;
-use Amp\ByteStream\PipelineStream;
+use Amp\ByteStream\IterableStream;
+use Amp\ByteStream\ReadableBuffer;
 use Amp\ByteStream\StreamException;
 use Amp\Cancellation;
 use Amp\DeferredCancellation;
@@ -112,7 +112,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         $this->socket = $socket;
         $this->hpack = new HPack;
         $this->frameQueueSource = new Emitter();
-        $this->frameQueue = $this->frameQueueSource->asPipeline();
+        $this->frameQueue = $this->frameQueueSource->pipe();
     }
 
     public function isInitialized(): bool
@@ -387,7 +387,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             $status,
             Status::getReason($status),
             $headers,
-            new InMemoryStream,
+            new ReadableBuffer,
             $stream->request
         );
 
@@ -447,7 +447,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         $response->setBody(
             new ResponseBodyStream(
-                new PipelineStream($stream->body->asPipeline()),
+                new IterableStream($stream->body->pipe()),
                 $bodyCancellation
             )
         );
@@ -1757,7 +1757,7 @@ final class Http2ConnectionProcessor implements Http2Processor
     {
         try {
             while (null !== $frame = $this->frameQueue->continue()) {
-                $this->socket->write($frame)->ignore();
+                $this->socket->write($frame);
             }
         } catch (\Throwable $exception) {
             $this->hasWriteError = true;

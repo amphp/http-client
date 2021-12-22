@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client\Interceptor;
 
-use Amp\ByteStream\ZlibReadableStream;
+use Amp\ByteStream\Compression\DecompressingReadableStream;
 use Amp\Cancellation;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\Internal\ForbidCloning;
@@ -17,8 +17,7 @@ final class DecompressResponse implements NetworkInterceptor
     use ForbidCloning;
     use ForbidSerialization;
 
-    /** @var bool */
-    private $hasZlib;
+    private bool $hasZlib;
 
     public function __construct()
     {
@@ -55,8 +54,7 @@ final class DecompressResponse implements NetworkInterceptor
     {
         if (($encoding = $this->determineCompressionEncoding($response))) {
             $sizeLimit = $response->getRequest()->getBodySizeLimit();
-            /** @noinspection PhpUnhandledExceptionInspection */
-            $decompressedBody = new ZlibReadableStream($response->getBody(), $encoding);
+            $decompressedBody = new DecompressingReadableStream($response->getBody(), $encoding);
 
             $response->setBody(new SizeLimitingReadableStream($decompressedBody, $sizeLimit));
             $response->removeHeader('content-encoding');

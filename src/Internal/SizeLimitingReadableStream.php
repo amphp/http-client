@@ -13,7 +13,7 @@ final class SizeLimitingReadableStream implements ReadableStream
     use ForbidSerialization;
     use ForbidCloning;
 
-    private ?ReadableStream $source;
+    private ReadableStream $source;
 
     private int $bytesRead = 0;
 
@@ -29,15 +29,13 @@ final class SizeLimitingReadableStream implements ReadableStream
         $this->sizeLimit = $sizeLimit;
     }
 
-    public function read(?Cancellation $token = null): ?string
+    public function read(?Cancellation $cancellation = null): ?string
     {
         if ($this->exception) {
             throw $this->exception;
         }
 
-        \assert($this->source !== null);
-
-        $chunk = $this->source->read($token);
+        $chunk = $this->source->read($cancellation);
 
         if ($chunk !== null) {
             $this->bytesRead += \strlen($chunk);
@@ -47,14 +45,25 @@ final class SizeLimitingReadableStream implements ReadableStream
                     Status::PAYLOAD_TOO_LARGE
                 );
 
-                $this->source = null;
+                $this->source->close();
             }
         }
 
         return $chunk;
     }
 
-    public function isReadable(): bool {
+    public function isReadable(): bool
+    {
         return $this->source->isReadable();
+    }
+
+    public function close(): void
+    {
+        $this->source->close();
+    }
+
+    public function isClosed(): bool
+    {
+        return $this->source->isClosed();
     }
 }

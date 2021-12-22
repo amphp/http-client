@@ -12,7 +12,7 @@ interface RequestBody
     /**
      * Retrieve a key-value array of headers to add to the outbound request.
      *
-     * The resolved promise value must be a key-value array mapping header fields to values.
+     * @return array Must be a key-value array mapping header fields to header values.
      *
      * @return array
      */

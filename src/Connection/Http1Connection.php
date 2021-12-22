@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client\Connection;
 
-use Amp\ByteStream\PipelineStream;
+use Amp\ByteStream\IterableStream;
 use Amp\ByteStream\StreamException;
 use Amp\Cancellation;
 use Amp\DeferredCancellation;
@@ -355,7 +355,7 @@ final class Http1Connection implements Connection
 
                 $response->setTrailers($trailersDeferred->getFuture());
                 $response->setBody(new ResponseBodyStream(
-                    new PipelineStream($bodyEmitter->asPipeline()),
+                    new IterableStream($bodyEmitter->pipe()),
                     $bodyDeferredCancellation
                 ));
 
@@ -590,7 +590,7 @@ final class Http1Connection implements Connection
                 throw new UnprocessedRequestException(new SocketException('Socket closed before request started'));
             }
 
-            $this->socket->write($rawHeaders)->await();
+            $this->socket->write($rawHeaders);
 
             if ($request->getMethod() === 'CONNECT') {
                 return;
@@ -631,17 +631,17 @@ final class Http1Connection implements Connection
                     }
                 }
 
-                $this->socket->write($buffer)->await();
+                $this->socket->write($buffer);
                 $buffer = $chunk;
             }
 
             $cancellation->throwIfRequested();
 
             // Flush last buffered chunk.
-            $this->socket->write($buffer)->await();
+            $this->socket->write($buffer);
 
             if ($chunking) {
-                $this->socket->write("0\r\n\r\n")->await();
+                $this->socket->write("0\r\n\r\n");
             } elseif ($remainingBytes !== null && $remainingBytes > 0) {
                 throw new InvalidRequestException(
                     $request,

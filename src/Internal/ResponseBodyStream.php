@@ -24,9 +24,9 @@ final class ResponseBodyStream implements ReadableStream
         $this->bodyCancellation = $bodyCancellation;
     }
 
-    public function read(?Cancellation $token = null): ?string
+    public function read(?Cancellation $cancellation = null): ?string
     {
-        $chunk = $this->body->read($token);
+        $chunk = $this->body->read($cancellation);
 
         if ($chunk === null) {
             $this->successfulEnd = true;
@@ -44,5 +44,15 @@ final class ResponseBodyStream implements ReadableStream
         if (!$this->successfulEnd) {
             $this->bodyCancellation->cancel();
         }
+    }
+
+    public function close(): void
+    {
+        $this->body->close();
+    }
+
+    public function isClosed(): bool
+    {
+        return $this->body->isClosed();
     }
 }

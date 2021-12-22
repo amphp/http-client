@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client\Body;
 
-use Amp\ByteStream\InMemoryStream;
+use Amp\ByteStream\ReadableBuffer;
 use Amp\ByteStream\ReadableStream;
 use Amp\Http\Client\RequestBody;
 
@@ -17,7 +17,7 @@ final class StringBody implements RequestBody
 
     public function createBodyStream(): ReadableStream
     {
-        return new InMemoryStream($this->body !== '' ? $this->body : null);
+        return new ReadableBuffer($this->body !== '' ? $this->body : null);
     }
 
     public function getHeaders(): array

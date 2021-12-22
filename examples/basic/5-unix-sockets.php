@@ -5,14 +5,14 @@ use Amp\Http\Client\Connection\UnlimitedConnectionPool;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
-use Amp\Socket\DnsConnector;
-use Amp\Socket\StaticConnector;
+use Amp\Socket\StaticSocketConnector;
+use function Amp\Socket\socketConnector;
 
 require __DIR__ . '/../.helper/functions.php';
 
 try {
     // Unix sockets require a socket pool that changes all URLs to a fixed one.
-    $connector = new StaticConnector("unix:///var/run/docker.sock", new DnsConnector);
+    $connector = new StaticSocketConnector("unix:///var/run/docker.sock", socketConnector());
 
     $client = (new HttpClientBuilder)
         ->usingPool(new UnlimitedConnectionPool(new DefaultConnectionFactory($connector)))

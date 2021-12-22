@@ -21,7 +21,8 @@ class ModifyResponse implements NetworkInterceptor, ApplicationInterceptor
     private $mapper;
 
     /**
-     * @psalm-param callable(Response):(\Generator<mixed, mixed, mixed, Response|null>|Promise<Response>|Response|null) $mapper
+     * @psalm-param callable(Response):(\Generator<mixed, mixed, mixed, Response|null>|Promise<Response>|Response|null)
+     *     $mapper
      */
     public function __construct(callable $mapper)
     {

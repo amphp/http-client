@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client\Body;
 
-use Amp\ByteStream\InMemoryStream;
+use Amp\ByteStream\ReadableBuffer;
 use Amp\ByteStream\ReadableStream;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\RequestBody;
@@ -15,8 +15,8 @@ final class JsonBody implements RequestBody
      * JsonBody constructor.
      *
      * @param mixed $data
-     * @param int   $options
-     * @param int   $depth
+     * @param int $options
+     * @param int $depth
      *
      * @throws HttpException
      */
@@ -36,7 +36,7 @@ final class JsonBody implements RequestBody
 
     public function createBodyStream(): ReadableStream
     {
-        return new InMemoryStream($this->json);
+        return new ReadableBuffer($this->json);
     }
 
     public function getBodyLength(): int

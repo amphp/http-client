@@ -2,7 +2,7 @@
 
 use Amp\Http\Http2\Http2Parser;
 use Amp\Http\Http2\Http2Processor;
-use function Revolt\EventLoop\getCurrentTime;
+use function Amp\now;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -80,11 +80,11 @@ $processor = new class implements Http2Processor {
     }
 };
 
-$start = getCurrentTime();
+$start = now();
 
 for ($i = 0; $i < 10000; $i++) {
     $parser = (new Http2Parser($processor))->parse();
     $parser->send($data);
 }
 
-print 'Runtime: ' . (getCurrentTime() - $start) . ' milliseconds' . "\r\n";
+print 'Runtime: ' . (now() - $start) . ' seconds' . "\r\n";

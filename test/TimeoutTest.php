@@ -11,6 +11,8 @@ use Amp\NullCancellation;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Socket;
 use Revolt\EventLoop;
+use function Amp\async;
+use function Amp\Socket\listen;
 
 class TimeoutTest extends AsyncTestCase
 {
@@ -25,7 +27,7 @@ class TimeoutTest extends AsyncTestCase
 
     public function testTimeoutDuringBody(): void
     {
-        $server = Socket\Server::listen("tcp://127.0.0.1:0");
+        $server = listen("tcp://127.0.0.1:0");
 
         EventLoop::queue(static function () use ($server): void {
             while ($client = $server->accept()) {
@@ -60,14 +62,15 @@ class TimeoutTest extends AsyncTestCase
     {
         $this->setTimeout(0.6);
 
-        $connector = $this->createMock(Socket\Connector::class);
+        $connector = $this->createMock(Socket\SocketConnector::class);
         $connector->method('connect')
             ->willReturnCallback(function (
                 string $uri,
-                ?Socket\ConnectContext $connectContext = null,
-                ?Cancellation $token = null
+                ?Socket\ConnectContext $connectContext = null
             ): Socket\EncryptableSocket {
+                $this->assertNotNull($connectContext);
                 $this->assertSame(0.001, $connectContext->getConnectTimeout());
+
                 throw new TimeoutException;
             });
 
@@ -86,7 +89,7 @@ class TimeoutTest extends AsyncTestCase
         $tlsContext = (new Socket\ServerTlsContext)
             ->withDefaultCertificate(new Socket\Certificate(__DIR__ . "/tls/amphp.org.pem"));
 
-        $server = Socket\Server::listen("tcp://127.0.0.1:0", (new Socket\BindContext)->withTlsContext($tlsContext));
+        $server = listen("tcp://127.0.0.1:0", (new Socket\BindContext)->withTlsContext($tlsContext));
 
         EventLoop::queue(static function () use ($server): void {
             while ($client = $server->accept()) {
@@ -122,7 +125,7 @@ class TimeoutTest extends AsyncTestCase
         $tlsContext = (new Socket\ServerTlsContext)
             ->withDefaultCertificate(new Socket\Certificate(__DIR__ . "/tls/amphp.org.pem"));
 
-        $server = Socket\Server::listen("tcp://127.0.0.1:0", (new Socket\BindContext)->withTlsContext($tlsContext));
+        $server = listen("tcp://127.0.0.1:0", (new Socket\BindContext)->withTlsContext($tlsContext));
 
         EventLoop::queue(static function () use ($server): void {
             while ($client = $server->accept()) {
@@ -152,7 +155,7 @@ class TimeoutTest extends AsyncTestCase
 
     public function testTimeoutDuringBodyInterceptor(): void
     {
-        $server = Socket\Server::listen("tcp://127.0.0.1:0");
+        $server = listen("tcp://127.0.0.1:0");
 
         EventLoop::queue(static function () use ($server): void {
             while ($client = $server->accept()) {
@@ -187,14 +190,15 @@ class TimeoutTest extends AsyncTestCase
     {
         $this->setTimeout(0.6);
 
-        $connector = $this->createMock(Socket\Connector::class);
+        $connector = $this->createMock(Socket\SocketConnector::class);
         $connector->method('connect')
             ->willReturnCallback(function (
                 string $uri,
-                ?Socket\ConnectContext $connectContext = null,
-                ?Cancellation $token = null
+                ?Socket\ConnectContext $connectContext = null
             ): Socket\EncryptableSocket {
+                $this->assertNotNull($connectContext);
                 $this->assertSame(0.001, $connectContext->getConnectTimeout());
+
                 throw new TimeoutException;
             });
 
@@ -213,9 +217,9 @@ class TimeoutTest extends AsyncTestCase
         $tlsContext = (new Socket\ServerTlsContext)
             ->withDefaultCertificate(new Socket\Certificate(__DIR__ . "/tls/amphp.org.pem"));
 
-        $server = Socket\Server::listen("tcp://127.0.0.1:0", (new Socket\BindContext)->withTlsContext($tlsContext));
+        $server = listen("tcp://127.0.0.1:0", (new Socket\BindContext)->withTlsContext($tlsContext));
 
-        EventLoop::queue(static function () use ($server): void {
+        async(static function () use ($server): void {
             while ($client = $server->accept()) {
                 EventLoop::unreference(EventLoop::delay(3, static function () use ($client) {
                     $client->close();

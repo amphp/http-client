@@ -24,6 +24,7 @@ final class Request extends Message
      * @template TValue
      *
      * @param mixed $value
+     *
      * @psalm-param TValue $value
      *
      * @return mixed
@@ -78,7 +79,7 @@ final class Request extends Message
     /**
      * @param string|UriInterface $uri
      * @param string $method
-     * @param string $body
+     * @param RequestBody|string $body
      */
     public function __construct(string|UriInterface $uri, string $method = "GET", RequestBody|string $body = '')
     {

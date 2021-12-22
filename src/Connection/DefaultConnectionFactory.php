@@ -13,18 +13,16 @@ use Amp\Http\Client\TimeoutException;
 use Amp\Socket;
 use Amp\Socket\ClientTlsContext;
 use Amp\Socket\ConnectContext;
-use Amp\Socket\Connector;
 use Amp\Socket\EncryptableSocket;
 use Amp\TimeoutCancellation;
-use function Amp\Socket\connector;
 
 final class DefaultConnectionFactory implements ConnectionFactory
 {
-    private ?Connector $connector;
+    private ?Socket\SocketConnector $connector;
 
     private ?ConnectContext $connectContext;
 
-    public function __construct(?Connector $connector = null, ?ConnectContext $connectContext = null)
+    public function __construct(?Socket\SocketConnector $connector = null, ?ConnectContext $connectContext = null)
     {
         $this->connector = $connector;
         $this->connectContext = $connectContext;
@@ -38,7 +36,7 @@ final class DefaultConnectionFactory implements ConnectionFactory
             $eventListener->startConnectionCreation($request);
         }
 
-        $connector = $this->connector ?? connector();
+        $connector = $this->connector ?? Socket\socketConnector();
         $connectContext = $this->connectContext ?? new ConnectContext;
 
         $uri = $request->getUri();

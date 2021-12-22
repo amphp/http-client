@@ -126,7 +126,6 @@ final class FollowRedirects implements ApplicationInterceptor
     public function __construct(int $limit, bool $autoReferrer = true)
     {
         if ($limit < 1) {
-            /** @noinspection PhpUndefinedClassInspection */
             throw new \Error("Invalid redirection limit: " . $limit);
         }
 
@@ -218,8 +217,8 @@ final class FollowRedirects implements ApplicationInterceptor
      * resource.
      *
      * @param Request $request
-     * @param PsrUri  $referrerUri
-     * @param PsrUri  $followUri
+     * @param PsrUri $referrerUri
+     * @param PsrUri $followUri
      *
      * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec15.html#sec15.1.3
      */
@@ -281,7 +280,7 @@ final class FollowRedirects implements ApplicationInterceptor
             while (null !== $body->read()) {
                 // discard
             }
-        } catch (HttpException | StreamException $e) {
+        } catch (HttpException|StreamException $e) {
             // ignore streaming errors on previous responses
         } finally {
             unset($body);

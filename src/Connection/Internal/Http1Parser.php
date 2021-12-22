@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client\Connection\Internal;
 
-use Amp\ByteStream\InMemoryStream;
+use Amp\ByteStream\ReadableBuffer;
 use Amp\Http\Client\Internal\ForbidCloning;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\ParseException;
@@ -167,7 +167,7 @@ final class Http1Parser
                 $this->complete = true;
             }
 
-            $response = new Response($protocol, $statusCode, $statusReason, [], new InMemoryStream, $this->request);
+            $response = new Response($protocol, $statusCode, $statusReason, [], new ReadableBuffer, $this->request);
             foreach ($headers as [$key, $value]) {
                 $response->addHeader($key, $value);
             }

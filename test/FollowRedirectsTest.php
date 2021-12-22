@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client;
 
-use Amp\ByteStream\InMemoryStream;
+use Amp\ByteStream\ReadableBuffer;
 use Amp\Http\Client\Connection\ConnectionPool;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\Interceptor\FollowRedirects;
@@ -13,7 +13,7 @@ use Amp\PHPUnit\AsyncTestCase;
 class FollowRedirectsTest extends AsyncTestCase
 {
     /**
-     * @dataProvider provideResolvables
+     * @dataProvider provideUris
      *
      * @param string $baseUri
      * @param string $toResolve
@@ -31,7 +31,7 @@ class FollowRedirectsTest extends AsyncTestCase
                 Status::MOVED_PERMANENTLY,
                 Status::getReason(Status::MOVED_PERMANENTLY),
                 ['location' => [$toResolve]],
-                new InMemoryStream,
+                new ReadableBuffer(),
                 $request
             ));
 
@@ -44,7 +44,7 @@ class FollowRedirectsTest extends AsyncTestCase
                     Status::OK,
                     Status::getReason(Status::OK),
                     [],
-                    new InMemoryStream,
+                    new ReadableBuffer(),
                     $request
                 );
             });
@@ -58,7 +58,7 @@ class FollowRedirectsTest extends AsyncTestCase
         $redirect->request($request, new NullCancellation, $client);
     }
 
-    public function provideResolvables(): array
+    public function provideUris(): array
     {
         return [
             ['http://localhost/1/2/a.php', 'http://google.com/', 'http://google.com/'],

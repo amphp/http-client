@@ -2,8 +2,8 @@
 
 namespace Amp\Http\Client\Connection;
 
+use Amp\ByteStream\IterableStream;
 use Amp\ByteStream\ReadableStream;
-use Amp\ByteStream\PipelineStream;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\Request;
@@ -17,14 +17,14 @@ use Amp\Socket;
 use Laminas\Diactoros\Uri as LaminasUri;
 use League\Uri;
 use Revolt\EventLoop;
-use function Amp\delay;
 use function Amp\async;
+use function Amp\delay;
 
 class Http1ConnectionTest extends AsyncTestCase
 {
     public function testConnectionBusyAfterRequestIsIssued(): void
     {
-        [$client, $server] = Socket\createPair();
+        [$client, $server] = Socket\createSocketPair();
 
         $connection = new Http1Connection($client, 5);
 
@@ -40,7 +40,7 @@ class Http1ConnectionTest extends AsyncTestCase
 
     public function testConnectionBusyWithoutRequestButNotGarbageCollected(): void
     {
-        [$client, $server] = Socket\createPair();
+        [$client, $server] = Socket\createSocketPair();
 
         $connection = new Http1Connection($client, 5);
 
@@ -55,7 +55,7 @@ class Http1ConnectionTest extends AsyncTestCase
 
     public function testConnectionNotBusyWithoutRequestGarbageCollected(): void
     {
-        [$client] = Socket\createPair();
+        [$client] = Socket\createSocketPair();
 
         $connection = new Http1Connection($client, 5);
 
@@ -64,8 +64,7 @@ class Http1ConnectionTest extends AsyncTestCase
 
         /** @noinspection PhpUnusedLocalVariableInspection */
         $stream = $connection->getStream($request);
-        /** @noinspection SuspiciousAssignmentsInspection */
-        $stream = null; // gc instance
+        unset($stream); // gc instance
 
         delay(0); // required to clear instance in async :-(
 
@@ -74,7 +73,7 @@ class Http1ConnectionTest extends AsyncTestCase
 
     public function test100Continue(): void
     {
-        [$server, $client] = Socket\createPair();
+        [$server, $client] = Socket\createSocketPair();
 
         $connection = new Http1Connection($client, 5);
 
@@ -97,7 +96,7 @@ class Http1ConnectionTest extends AsyncTestCase
 
     public function testUpgrade(): void
     {
-        [$server, $client] = Socket\createPair();
+        [$server, $client] = Socket\createSocketPair();
 
         $connection = new Http1Connection($client, 5);
 
@@ -136,7 +135,7 @@ class Http1ConnectionTest extends AsyncTestCase
         $this->setMinimumRuntime(0.5);
         $this->setTimeout(0.6);
 
-        [$server, $client] = Socket\createPair();
+        [$server, $client] = Socket\createSocketPair();
 
         $connection = new Http1Connection($client);
 
@@ -164,7 +163,7 @@ class Http1ConnectionTest extends AsyncTestCase
         $this->setMinimumRuntime(0.5);
         $this->setTimeout(1.5);
 
-        [$server, $client] = Socket\createPair();
+        [$server, $client] = Socket\createSocketPair();
 
         $connection = new Http1Connection($client);
 
@@ -176,11 +175,11 @@ class Http1ConnectionTest extends AsyncTestCase
         $server->write("HTTP/1.1 200 Continue\r\nConnection: keep-alive\r\nContent-Length: 8\r\n\r\n");
 
         EventLoop::unreference(EventLoop::delay(0.4, function () use ($server) {
-            $server->write("test")->ignore(); // Still missing 4 bytes from the body
+            $server->write("test"); // Still missing 4 bytes from the body
         }));
 
         EventLoop::unreference(EventLoop::delay(1.25, function () use ($server) {
-            $server->write("test")->ignore(); // Request should timeout before this is called
+            $server->write("test"); // Request should timeout before this is called
         }));
 
         $response = $stream->request($request, new NullCancellation);
@@ -197,7 +196,7 @@ class Http1ConnectionTest extends AsyncTestCase
 
     public function testWritingRequestWithRelativeUriPathFails(): void
     {
-        [$client] = Socket\createPair();
+        [$client] = Socket\createSocketPair();
 
         $connection = new Http1Connection($client, 5);
 
@@ -222,7 +221,7 @@ class Http1ConnectionTest extends AsyncTestCase
         string $requestPath,
         string $expectedPath
     ): void {
-        [$server, $client] = Socket\createPair();
+        [$server, $client] = Socket\createSocketPair();
 
         $connection = new Http1Connection($client, 5);
         $uri = Uri\Http::createFromString('http://localhost')->withPath($requestPath);
@@ -261,8 +260,9 @@ class Http1ConnectionTest extends AsyncTestCase
             public function createBodyStream(): ReadableStream
             {
                 $pipeline = Pipeline\fromIterable(\array_fill(0, 100, '.'));
-                $pipeline = $pipeline->pipe(Pipeline\delay(0.1));
-                return new PipelineStream($pipeline);
+                $pipeline = $pipeline->pipe(Pipeline\postpone(0.1));
+
+                return new IterableStream($pipeline);
             }
 
             public function getBodyLength(): ?int

@@ -1,25 +1,21 @@
 <?php
 
-use Amp\Future;
 use Amp\Cancellation;
+use Amp\Future;
 use Amp\Http\Client\Connection\ConnectionLimitingPool;
 use Amp\Http\Client\Connection\DefaultConnectionFactory;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
-use Amp\ReactAdapter\ReactAdapter;
 use Amp\Socket\ConnectContext;
-use Amp\Socket\Connector;
 use Amp\Socket\EncryptableSocket;
 use Amp\Socket\ResourceSocket;
-use Clue\React\Socks\Client;
-use React\Socket\Connection;
-use React\Socket\Connector as ReactConnector;
+use Amp\Socket\SocketConnector;
 
 require __DIR__ . '/../.helper/functions.php';
 
 try {
-    $proxy = new class implements Connector {
+    $proxy = new class implements SocketConnector {
         public function connect(
             string $uri,
             ?ConnectContext $context = null,
