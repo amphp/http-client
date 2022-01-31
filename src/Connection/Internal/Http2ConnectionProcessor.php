@@ -31,8 +31,8 @@ use Amp\Http\Http2\Http2Processor;
 use Amp\Http\Http2\Http2StreamException;
 use Amp\Http\InvalidHeaderException;
 use Amp\Http\Status;
-use Amp\Pipeline\Emitter;
 use Amp\Pipeline\Pipeline;
+use Amp\Pipeline\Queue;
 use Amp\Socket\EncryptableSocket;
 use Amp\TimeoutCancellation;
 use League\Uri;
@@ -103,7 +103,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     private int|null $shutdown = null;
 
-    private Emitter $frameQueueSource;
+    private Queue $frameQueueSource;
 
     private Pipeline $frameQueue;
 
@@ -111,7 +111,7 @@ final class Http2ConnectionProcessor implements Http2Processor
     {
         $this->socket = $socket;
         $this->hpack = new HPack;
-        $this->frameQueueSource = new Emitter();
+        $this->frameQueueSource = new Queue();
         $this->frameQueue = $this->frameQueueSource->pipe();
     }
 
@@ -435,7 +435,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             }
         });
 
-        $stream->body = new Emitter;
+        $stream->body = new Queue();
         $stream->trailers = new DeferredFuture;
         $stream->trailers->getFuture()->ignore();
 
@@ -833,7 +833,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             return;
         }
 
-        $stream->body->emit($data)->map(function () use ($stream, $streamId, $length): void {
+        $stream->body->pushAsync($data)->map(function () use ($stream, $streamId, $length): void {
             // Stream may have closed while waiting for body data to be consumed.
             if (!isset($this->streams[$streamId])) {
                 return;
@@ -1274,7 +1274,7 @@ final class Http2ConnectionProcessor implements Http2Processor
     ): Future {
         \assert(Http2Parser::logDebugFrame('send', $type, $flags, $stream, \strlen($data)));
 
-        return $this->frameQueueSource->emit(\substr(\pack("NccN", \strlen($data), $type, $flags, $stream), 1) . $data);
+        return $this->frameQueueSource->pushAsync(\substr(\pack("NccN", \strlen($data), $type, $flags, $stream), 1) . $data);
     }
 
     private function applySetting(int $setting, int $value): void
@@ -1756,9 +1756,7 @@ final class Http2ConnectionProcessor implements Http2Processor
     private function runWriteThread(): void
     {
         try {
-            while (null !== $frame = $this->frameQueue->continue()) {
-                $this->socket->write($frame);
-            }
+            $this->frameQueue->forEach(fn($frame) => $this->socket->write($frame));
         } catch (\Throwable $exception) {
             $this->hasWriteError = true;
 

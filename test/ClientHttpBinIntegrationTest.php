@@ -21,17 +21,18 @@ use Amp\Http\Cookie\ResponseCookie;
 use Amp\Http\Rfc7230;
 use Amp\Http\Server\Options;
 use Amp\Http\Server\Request as ServerRequest;
-use Amp\Http\Server\RequestHandler\CallableRequestHandler;
+use Amp\Http\Server\RequestHandler\ClosureRequestHandler;
 use Amp\Http\Server\Response as ServerResponse;
 use Amp\Http\Server\Server;
 use Amp\PHPUnit\AsyncTestCase;
+use Amp\Pipeline\Pipeline;
 use Amp\Socket;
+use Closure;
 use Psr\Log\NullLogger;
 use Revolt\EventLoop;
+use function _HumbugBoxae3c412aa099\Amp\asyncCall;
 use function Amp\async;
 use function Amp\delay;
-use function Amp\Pipeline\fromIterable;
-use function Amp\Pipeline\postpone;
 use function Amp\Socket\listen;
 
 class ClientHttpBinIntegrationTest extends AsyncTestCase
@@ -588,7 +589,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
             public function createBodyStream(): ReadableStream
             {
-                return new IterableStream(fromIterable(["a", "b", "c"])->pipe(postpone(500)));
+                return new IterableStream(Pipeline::fromIterable(["a", "b", "c"])->map(fn() => delay(500)));
             }
 
             public function getBodyLength(): int
@@ -766,7 +767,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->socket = listen('127.0.0.1:0');
         $this->socket->unreference();
 
-        $this->rawHandler = EventLoop::onReadable($this->socket, function () {
+        $this->rawHandler = EventLoop::onReadable($this->socket->getResource(), function () {
             $client = $this->socket->accept();
 
             if ($client === null) {
@@ -785,14 +786,15 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     private function givenServer(callable $requestHandler): void
     {
-        $this->httpServer = new Server([$this->socket], new CallableRequestHandler($requestHandler), new NullLogger,
+        $this->httpServer = new Server([$this->socket], new ClosureRequestHandler(Closure::fromCallable($requestHandler)), new NullLogger,
             (new Options)->withHttp2Upgrade());
         $this->httpServer->start();
     }
 
     private function givenRawServerResponse(string $response): void
     {
-        $this->responseCallback = static function (Socket\Socket $socket) use ($response): void {
+        $this->responseCallback = static function ($socket) use ($response): void {
+
             $buffer = '';
 
             // Await request before sending response

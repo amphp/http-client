@@ -2,14 +2,12 @@
 
 namespace Amp\Http\Client\Body;
 
-use Amp\ByteStream\IterableStream;
 use Amp\ByteStream\ReadableBuffer;
 use Amp\ByteStream\ReadableStream;
 use Amp\ByteStream\ReadableStreamChain;
 use Amp\Future;
 use Amp\Http\Client\RequestBody;
 use function Amp\async;
-use function Amp\Pipeline\fromIterable;
 
 final class FormBody implements RequestBody
 {

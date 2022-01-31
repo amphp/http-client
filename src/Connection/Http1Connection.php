@@ -25,7 +25,7 @@ use Amp\Http\Client\SocketException;
 use Amp\Http\Client\TimeoutException;
 use Amp\Http\InvalidHeaderException;
 use Amp\Http\Rfc7230;
-use Amp\Pipeline\Emitter;
+use Amp\Pipeline\Queue;
 use Amp\Socket\EncryptableSocket;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
@@ -258,8 +258,8 @@ final class Http1Connection implements Connection
         Cancellation $readingCancellation,
         Stream $stream
     ): Response {
-        $bodyEmitter = new Emitter();
-        $bodyCallback = static fn (string $data) => $bodyEmitter->emit($data)->ignore();
+        $bodyEmitter = new Queue();
+        $bodyCallback = static fn (string $data) => $bodyEmitter->pushAsync($data)->ignore();
 
         $trailersDeferred = new DeferredFuture;
         $trailersDeferred->getFuture()->ignore();
