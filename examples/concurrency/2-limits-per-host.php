@@ -48,7 +48,7 @@ try {
             });
         }
 
-        Future\all($futures);
+        Future\await($futures);
     }
 } catch (HttpException $error) {
     echo $error;

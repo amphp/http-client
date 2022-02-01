@@ -260,7 +260,7 @@ class Http1ConnectionTest extends AsyncTestCase
             public function createBodyStream(): ReadableStream
             {
                 $pipeline = Pipeline::fromIterable(\array_fill(0, 100, '.'));
-                $pipeline = $pipeline->map(fn() => delay(0.1));
+                $pipeline = $pipeline->delay(0.1);
 
                 return new IterableStream($pipeline);
             }

@@ -30,7 +30,6 @@ use Amp\Socket;
 use Closure;
 use Psr\Log\NullLogger;
 use Revolt\EventLoop;
-use function _HumbugBoxae3c412aa099\Amp\asyncCall;
 use function Amp\async;
 use function Amp\delay;
 use function Amp\Socket\listen;
@@ -589,7 +588,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
             public function createBodyStream(): ReadableStream
             {
-                return new IterableStream(Pipeline::fromIterable(["a", "b", "c"])->map(fn() => delay(500)));
+                return new IterableStream(Pipeline::fromIterable(["a", "b", "c"])->delay(500));
             }
 
             public function getBodyLength(): int
