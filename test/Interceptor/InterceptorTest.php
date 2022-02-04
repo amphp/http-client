@@ -10,7 +10,7 @@ use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request as ClientRequest;
 use Amp\Http\Client\Response as ClientResponse;
-use Amp\Http\Server\RequestHandler\CallableRequestHandler;
+use Amp\Http\Server\RequestHandler\ClosureRequestHandler;
 use Amp\Http\Server\Response;
 use Amp\Http\Server\Server;
 use Amp\Http\Status;
@@ -78,7 +78,7 @@ abstract class InterceptorTest extends AsyncTestCase
         $this->serverSocket = listen('tcp://127.0.0.1:0');
         $this->server = new Server(
             [$this->serverSocket],
-            new CallableRequestHandler(static function () {
+            new ClosureRequestHandler(static function () {
                 return new Response(Status::OK, ['content-type' => 'text-plain; charset=utf-8'], 'OK');
             }),
             new NullLogger

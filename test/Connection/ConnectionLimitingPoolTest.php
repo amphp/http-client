@@ -179,7 +179,7 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
                     200,
                     null,
                     [],
-                    new InMemoryStream($content),
+                    new ReadableBuffer($content),
                     $request,
                     Future::complete(new Trailers([]))
                 );
