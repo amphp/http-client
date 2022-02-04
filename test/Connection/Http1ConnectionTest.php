@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client\Connection;
 
-use Amp\ByteStream\IterableStream;
+use Amp\ByteStream\ReadableIterableStream;
 use Amp\ByteStream\ReadableStream;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\InvalidRequestException;
@@ -262,7 +262,7 @@ class Http1ConnectionTest extends AsyncTestCase
                 $pipeline = Pipeline::fromIterable(\array_fill(0, 100, '.'));
                 $pipeline = $pipeline->delay(0.1);
 
-                return new IterableStream($pipeline);
+                return new ReadableIterableStream($pipeline);
             }
 
             public function getBodyLength(): ?int

@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client\Connection;
 
-use Amp\ByteStream\IterableStream;
+use Amp\ByteStream\ReadableIterableStream;
 use Amp\ByteStream\StreamException;
 use Amp\Cancellation;
 use Amp\DeferredCancellation;
@@ -355,7 +355,7 @@ final class Http1Connection implements Connection
 
                 $response->setTrailers($trailersDeferred->getFuture());
                 $response->setBody(new ResponseBodyStream(
-                    new IterableStream($bodyEmitter->pipe()),
+                    new ReadableIterableStream($bodyEmitter->pipe()),
                     $bodyDeferredCancellation
                 ));
 

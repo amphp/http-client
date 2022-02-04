@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client\Connection\Internal;
 
-use Amp\ByteStream\IterableStream;
+use Amp\ByteStream\ReadableIterableStream;
 use Amp\ByteStream\ReadableBuffer;
 use Amp\ByteStream\StreamException;
 use Amp\Cancellation;
@@ -447,7 +447,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         $response->setBody(
             new ResponseBodyStream(
-                new IterableStream($stream->body->pipe()),
+                new ReadableIterableStream($stream->body->pipe()),
                 $bodyCancellation
             )
         );

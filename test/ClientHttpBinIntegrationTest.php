@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client;
 
-use Amp\ByteStream\IterableStream;
+use Amp\ByteStream\ReadableIterableStream;
 use Amp\ByteStream\ReadableBuffer;
 use Amp\ByteStream\ReadableStream;
 use Amp\Cancellation;
@@ -588,7 +588,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
             public function createBodyStream(): ReadableStream
             {
-                return new IterableStream(Pipeline::fromIterable(["a", "b", "c"])->delay(500));
+                return new ReadableIterableStream(Pipeline::fromIterable(["a", "b", "c"])->delay(500));
             }
 
             public function getBodyLength(): int

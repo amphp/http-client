@@ -80,23 +80,5 @@
         "branch-alias": {
             "dev-master": "4.x-dev"
         }
-    },
-  "repositories": [
-    {
-      "type": "git",
-      "url": "https://github.com/iggyvolz/socket"
-    },
-    {
-      "type": "git",
-      "url": "https://github.com/iggyvolz/cache"
-    },
-    {
-      "type": "git",
-      "url": "https://github.com/iggyvolz/process"
-    },
-    {
-      "type": "git",
-      "url": "https://github.com/iggyvolz/dns"
     }
-  ]
 }
