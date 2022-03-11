@@ -11,6 +11,7 @@ use Amp\DeferredCancellation;
 use Amp\Future;
 use Amp\Http\Client\Body\FileBody;
 use Amp\Http\Client\Body\FormBody;
+use Amp\Http\Client\Body\StreamBody;
 use Amp\Http\Client\Connection\UnprocessedRequestException;
 use Amp\Http\Client\Interceptor\DecompressResponse;
 use Amp\Http\Client\Interceptor\ModifyRequest;
@@ -554,22 +555,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
 
         $request = new Request("http://httpbin.org/post", "POST");
-        $request->setBody(new class implements RequestBody {
-            public function getHeaders(): array
-            {
-                return [];
-            }
-
-            public function createBodyStream(): ReadableStream
-            {
-                return new ReadableBuffer("foo");
-            }
-
-            public function getBodyLength(): int
-            {
-                return 1;
-            }
-        });
+        $request->setBody(new StreamBody(new ReadableBuffer("foo"), [], 1));
 
         $this->executeRequest($request);
     }
@@ -580,22 +566,9 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
 
         $request = new Request("http://httpbin.org/post", "POST");
-        $request->setBody(new class implements RequestBody {
-            public function getHeaders(): array
-            {
-                return [];
-            }
-
-            public function createBodyStream(): ReadableStream
-            {
-                return new ReadableIterableStream(Pipeline::fromIterable(["a", "b", "c"])->delay(500));
-            }
-
-            public function getBodyLength(): int
-            {
-                return 2;
-            }
-        });
+        $request->setBody(new StreamBody(new ReadableIterableStream(
+            Pipeline::fromIterable(["a", "b", "c"])->delay(500)
+        ), [], 2));
 
         $this->executeRequest($request);
     }
@@ -606,22 +579,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectExceptionMessage("Body contained fewer bytes than specified in Content-Length, aborting request");
 
         $request = new Request("http://httpbin.org/post", "POST");
-        $request->setBody(new class implements RequestBody {
-            public function getHeaders(): array
-            {
-                return [];
-            }
-
-            public function createBodyStream(): ReadableStream
-            {
-                return new ReadableBuffer("foo");
-            }
-
-            public function getBodyLength(): int
-            {
-                return 42;
-            }
-        });
+        $request->setBody(new StreamBody(new ReadableBuffer("foo"), [], 42));
 
         $this->executeRequest($request);
     }

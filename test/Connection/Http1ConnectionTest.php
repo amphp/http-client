@@ -4,6 +4,7 @@ namespace Amp\Http\Client\Connection;
 
 use Amp\ByteStream\ReadableIterableStream;
 use Amp\ByteStream\ReadableStream;
+use Amp\Http\Client\Body\StreamBody;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\Request;
@@ -249,26 +250,8 @@ class Http1ConnectionTest extends AsyncTestCase
         ];
     }
 
-    private function createSlowBody()
+    private function createSlowBody(): StreamBody
     {
-        return new class implements RequestBody {
-            public function getHeaders(): array
-            {
-                return [];
-            }
-
-            public function createBodyStream(): ReadableStream
-            {
-                $pipeline = Pipeline::fromIterable(\array_fill(0, 100, '.'));
-                $pipeline = $pipeline->delay(0.1);
-
-                return new ReadableIterableStream($pipeline);
-            }
-
-            public function getBodyLength(): ?int
-            {
-                return null;
-            }
-        };
+        return new StreamBody(new ReadableIterableStream(Pipeline::fromIterable(\array_fill(0, 100, '.'))->delay(0.1)));
     }
 }
