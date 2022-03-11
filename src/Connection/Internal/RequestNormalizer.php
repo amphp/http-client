@@ -71,7 +71,7 @@ final class RequestNormalizer
         }
 
         // https://tools.ietf.org/html/rfc7231#section-4.3.8
-        $request->setBody(null);
+        $request->setBody('');
 
         // Remove all body and sensitive headers
         $request->setHeaders([
