@@ -177,7 +177,6 @@ final class Http1Connection implements Connection
             && ($this->getRemainingTime() > 0 || $request->isIdempotent());
     }
 
-    /** @inheritdoc */
     private function request(Request $request, Cancellation $cancellation, Stream $stream): Response
     {
         ++$this->requestCounter;

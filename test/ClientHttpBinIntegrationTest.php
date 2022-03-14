@@ -2,9 +2,9 @@
 
 namespace Amp\Http\Client;
 
-use Amp\ByteStream\ReadableIterableStream;
 use Amp\ByteStream\ReadableBuffer;
-use Amp\ByteStream\ReadableStream;
+use Amp\ByteStream\ReadableIterableStream;
+use Amp\ByteStream\StreamException;
 use Amp\Cancellation;
 use Amp\CancelledException;
 use Amp\DeferredCancellation;
@@ -20,11 +20,12 @@ use Amp\Http\Client\Interceptor\TooManyRedirectsException;
 use Amp\Http\Cookie\RequestCookie;
 use Amp\Http\Cookie\ResponseCookie;
 use Amp\Http\Rfc7230;
+use Amp\Http\Server\HttpServer;
+use Amp\Http\Server\HttpSocketServer;
 use Amp\Http\Server\Options;
 use Amp\Http\Server\Request as ServerRequest;
 use Amp\Http\Server\RequestHandler\ClosureRequestHandler;
 use Amp\Http\Server\Response as ServerResponse;
-use Amp\Http\Server\Server;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Pipeline\Pipeline;
 use Amp\Socket;
@@ -46,7 +47,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     /** @var callable */
     private $responseCallback;
 
-    private Server $httpServer;
+    private HttpServer $httpServer;
 
     private ?string $rawHandler = null;
 
@@ -222,12 +223,24 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     public function testHttp2Push(): void
     {
         $request = new Request('https://http2-server-push-demo.keksi.io/');
-        $request->setPushHandler(static function (Request $request, Future $response): void {
-            self::assertSame('/image.jpg', $request->getUri()->getPath());
-            self::assertSame('image/jpeg', $response->await()->getHeader('content-type'));
+        $request->setPushHandler(static function (Request $request, Future $response) use (
+            &$path,
+            &$contentType,
+            &
+            $future
+        ): void {
+            $future = $response;
+
+            $path = $request->getUri()->getPath();
+            $contentType = $response->await()->getHeader('content-type');
         });
 
         $this->executeRequest($request);
+
+        $future->await();
+
+        self::assertSame('/image.jpg', $path);
+        self::assertSame('image/jpeg', $contentType);
     }
 
     public function testGzipBomb(): void
@@ -567,7 +580,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $request = new Request("http://httpbin.org/post", "POST");
         $request->setBody(new StreamBody(new ReadableIterableStream(
-            Pipeline::fromIterable(["a", "b", "c"])->delay(500)
+            Pipeline::fromIterable(["a", "b", "c"])->delay(0.5)
         ), [], 2));
 
         $this->executeRequest($request);
@@ -743,15 +756,19 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     private function givenServer(callable $requestHandler): void
     {
-        $this->httpServer = new Server([$this->socket], new ClosureRequestHandler(Closure::fromCallable($requestHandler)), new NullLogger,
-            (new Options)->withHttp2Upgrade());
-        $this->httpServer->start();
+        if (isset($this->rawHandler)) {
+            EventLoop::cancel($this->rawHandler);
+            $this->rawHandler = null;
+        }
+
+        $this->httpServer = new HttpSocketServer([$this->socket], new NullLogger, (new Options)->withHttp2Upgrade());
+
+        $this->httpServer->start(new ClosureRequestHandler(Closure::fromCallable($requestHandler)));
     }
 
     private function givenRawServerResponse(string $response): void
     {
         $this->responseCallback = static function ($socket) use ($response): void {
-
             $buffer = '';
 
             // Await request before sending response
@@ -770,10 +787,14 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     private function givenSlowRawServerResponse(float $delay, string ...$chunks): void
     {
         $this->responseCallback = static function (Socket\Socket $socket) use ($delay, $chunks): void {
-            foreach ($chunks as $chunk) {
-                $socket->write($chunk);
-                delay($delay);
-            };
+            try {
+                foreach ($chunks as $chunk) {
+                    $socket->write($chunk);
+                    delay($delay);
+                }
+            } catch (StreamException) {
+                // ignore
+            }
         };
     }
 

@@ -10,9 +10,10 @@ use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request as ClientRequest;
 use Amp\Http\Client\Response as ClientResponse;
+use Amp\Http\Server\HttpServer;
+use Amp\Http\Server\HttpSocketServer;
 use Amp\Http\Server\RequestHandler\ClosureRequestHandler;
 use Amp\Http\Server\Response;
-use Amp\Http\Server\Server;
 use Amp\Http\Status;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Socket\SocketAddress;
@@ -30,7 +31,7 @@ abstract class InterceptorTest extends AsyncTestCase
 
     private SocketServer $serverSocket;
 
-    private Server $server;
+    private HttpServer $server;
 
     private ClientRequest $request;
 
@@ -55,7 +56,9 @@ abstract class InterceptorTest extends AsyncTestCase
 
     final protected function whenRequestIsExecuted(?ClientRequest $request = null): void
     {
-        $this->server->start();
+        $this->server->start(new ClosureRequestHandler(static function () {
+            return new Response(Status::OK, ['content-type' => 'text-plain; charset=utf-8'], 'OK');
+        }));
 
         try {
             $response = $this->client->request($request ?? new ClientRequest('http://example.org/'));
@@ -76,13 +79,7 @@ abstract class InterceptorTest extends AsyncTestCase
         parent::setUp();
 
         $this->serverSocket = listen('tcp://127.0.0.1:0');
-        $this->server = new Server(
-            [$this->serverSocket],
-            new ClosureRequestHandler(static function () {
-                return new Response(Status::OK, ['content-type' => 'text-plain; charset=utf-8'], 'OK');
-            }),
-            new NullLogger
-        );
+        $this->server = new HttpSocketServer([$this->serverSocket], new NullLogger);
 
         $staticConnector = new StaticSocketConnector($this->serverSocket->getAddress()->toString(), socketConnector());
         $this->builder = (new HttpClientBuilder)->usingPool(new UnlimitedConnectionPool(new DefaultConnectionFactory($staticConnector)));

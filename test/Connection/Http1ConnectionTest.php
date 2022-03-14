@@ -4,6 +4,7 @@ namespace Amp\Http\Client\Connection;
 
 use Amp\ByteStream\ReadableIterableStream;
 use Amp\ByteStream\ReadableStream;
+use Amp\ByteStream\StreamException;
 use Amp\Http\Client\Body\StreamBody;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\InvalidRequestException;
@@ -180,7 +181,11 @@ class Http1ConnectionTest extends AsyncTestCase
         }));
 
         EventLoop::unreference(EventLoop::delay(1.25, function () use ($server) {
-            $server->write("test"); // Request should timeout before this is called
+            try {
+                $server->write("test"); // Request should timeout before this is called
+            } catch (StreamException) {
+                // ignore
+            }
         }));
 
         $response = $stream->request($request, new NullCancellation);
