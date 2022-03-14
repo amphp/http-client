@@ -32,7 +32,7 @@ try {
     $bodies = Future\all($futures);
 
     foreach ($bodies as $uri => $body) {
-        print $uri . " - " . \strlen($body) . " bytes" . PHP_EOL;
+        print $uri . " - " . strlen($body) . " bytes" . PHP_EOL;
     }
 } catch (HttpException $error) {
     // If something goes wrong Amp will throw the exception where the promise was yielded.

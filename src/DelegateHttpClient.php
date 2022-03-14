@@ -21,11 +21,6 @@ interface DelegateHttpClient
 {
     /**
      * Request a specific resource from an HTTP server.
-     *
-     * @param Request           $request
-     * @param Cancellation $cancellation
-     *
-     * @return Response
      */
     public function request(Request $request, Cancellation $cancellation): Response;
 }

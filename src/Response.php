@@ -56,8 +56,6 @@ final class Response extends Message
 
     /**
      * Retrieve the requests's HTTP protocol version.
-     *
-     * @return string
      */
     public function getProtocolVersion(): string
     {
@@ -77,8 +75,6 @@ final class Response extends Message
 
     /**
      * Retrieve the response's three-digit HTTP status code.
-     *
-     * @return int
      */
     public function getStatus(): int
     {
@@ -93,8 +89,6 @@ final class Response extends Message
 
     /**
      * Retrieve the response's (possibly empty) reason phrase.
-     *
-     * @return string
      */
     public function getReason(): string
     {
@@ -103,8 +97,6 @@ final class Response extends Message
 
     /**
      * Retrieve the Request instance that resulted in this Response instance.
-     *
-     * @return Request
      */
     public function getRequest(): Request
     {
@@ -121,8 +113,6 @@ final class Response extends Message
      *
      * A given Response may be the result of one or more redirects. This method is a shortcut to
      * access information from the original Request that led to this response.
-     *
-     * @return Request
      */
     public function getOriginalRequest(): Request
     {
@@ -138,8 +128,6 @@ final class Response extends Message
      *
      * A given Response may be the result of one or more redirects. This method is a shortcut to
      * access information from the original Response that led to this response.
-     *
-     * @return Response
      */
     public function getOriginalResponse(): Response
     {
@@ -152,8 +140,6 @@ final class Response extends Message
 
     /**
      * If this Response is the result of a redirect traverse up the redirect history.
-     *
-     * @return Response|null
      */
     public function getPreviousResponse(): ?Response
     {
@@ -215,8 +201,6 @@ final class Response extends Message
      * Retrieve the response body.
      *
      * Note: If you stream a Message, you can't consume the payload twice.
-     *
-     * @return Payload
      */
     public function getBody(): Payload
     {

@@ -37,10 +37,6 @@ final class FormBody implements RequestBody
 
     /**
      * Add a data field to the form entity body.
-     *
-     * @param string $name
-     * @param string $value
-     * @param string $contentType
      */
     public function addField(string $name, string $value, string $contentType = 'text/plain'): void
     {
@@ -50,9 +46,6 @@ final class FormBody implements RequestBody
 
     /**
      * Add each element of a associative array as a data field to the form entity body.
-     *
-     * @param array $data
-     * @param string $contentType
      */
     public function addFields(array $data, string $contentType = 'text/plain'): void
     {
@@ -63,10 +56,6 @@ final class FormBody implements RequestBody
 
     /**
      * Add a file field to the form entity body.
-     *
-     * @param string $name
-     * @param string $filePath
-     * @param string $contentType
      */
     public function addFile(string $name, string $filePath, string $contentType = 'application/octet-stream'): void
     {
@@ -78,9 +67,6 @@ final class FormBody implements RequestBody
 
     /**
      * Add each element of an associative array as a file field to the form entity body.
-     *
-     * @param array $data
-     * @param string $contentType
      */
     public function addFiles(array $data, string $contentType = 'application/octet-stream'): void
     {
@@ -91,11 +77,6 @@ final class FormBody implements RequestBody
 
     /**
      * Add a file field to the form from a string.
-     *
-     * @param string $name
-     * @param string $fileContent
-     * @param string $fileName
-     * @param string $contentType
      */
     public function addFileFromString(
         string $name,
@@ -112,8 +93,6 @@ final class FormBody implements RequestBody
      * Returns an array of fields, each being an array of [name, value, content-type, file-name|null].
      * Both fields and files are returned in the array. Files use a FileBody object as the value. The file-name is
      * always null for fields.
-     *
-     * @return array
      */
     public function getFields(): array
     {

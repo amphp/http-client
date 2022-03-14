@@ -3,13 +3,11 @@
 namespace Amp\Http\Client\Connection;
 
 use Amp\ByteStream\ReadableIterableStream;
-use Amp\ByteStream\ReadableStream;
 use Amp\ByteStream\StreamException;
 use Amp\Http\Client\Body\StreamBody;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\Request;
-use Amp\Http\Client\RequestBody;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\TimeoutException;
 use Amp\NullCancellation;
@@ -217,9 +215,6 @@ class Http1ConnectionTest extends AsyncTestCase
     }
 
     /**
-     * @param string $requestPath
-     * @param string $expectedPath
-     *
      * @throws Socket\SocketException
      * @dataProvider providerValidUriPaths
      */

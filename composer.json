@@ -40,7 +40,7 @@
         "ext-json": "*",
         "amphp/file": "^3-dev",
         "amphp/phpunit-util": "^3",
-        "amphp/php-cs-fixer-config": "dev-master",
+        "amphp/php-cs-fixer-config": "^2-dev",
         "phpunit/phpunit": "^9",
         "amphp/http-server": "^3",
         "kelunik/link-header-rfc5988": "^1",

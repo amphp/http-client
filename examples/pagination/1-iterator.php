@@ -19,7 +19,7 @@ class GitHubApi
 
     public function getEvents(string $organization): iterable
     {
-        $url = 'https://api.github.com/orgs/' . \urlencode($organization) . '/events';
+        $url = 'https://api.github.com/orgs/' . urlencode($organization) . '/events';
 
         do {
             $request = new Request($url);
@@ -31,7 +31,7 @@ class GitHubApi
                 throw new \Exception('Failed to get events from GitHub: ' . $json);
             }
 
-            $events = \json_decode($json);
+            $events = json_decode($json);
             foreach ($events as $event) {
                 yield $event;
             }

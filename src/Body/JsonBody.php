@@ -14,10 +14,6 @@ final class JsonBody implements RequestBody
     /**
      * JsonBody constructor.
      *
-     * @param mixed $data
-     * @param int $options
-     * @param int $depth
-     *
      * @throws HttpException
      */
     public function __construct($data, int $options = 0, int $depth = 512)

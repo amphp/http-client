@@ -28,7 +28,7 @@ try {
 
             $options = $context->toStreamContextArray();
 
-            $socketAddress = SocketAddress::fromSocketName(\str_replace(['tcp://', 'udp://'], '', $uri));
+            $socketAddress = SocketAddress::fromSocketName(str_replace(['tcp://', 'udp://'], '', $uri));
 
             /** @var Record[] $records */
             $records = resolve($socketAddress->getHost(), Record::A);
@@ -49,7 +49,7 @@ try {
 
             if ($context->getTlsContext()) {
                 /** @psalm-suppress InternalProperty */
-                \stream_context_set_option($connection->stream, $options);
+                stream_context_set_option($connection->stream, $options);
             }
 
             /** @psalm-suppress InternalProperty */

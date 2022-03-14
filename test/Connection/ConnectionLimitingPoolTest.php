@@ -11,8 +11,8 @@ use Amp\Http\Client\Trailers;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Socket\SocketAddress;
 use Revolt\EventLoop;
-use function Amp\delay;
 use function Amp\async;
+use function Amp\delay;
 
 class ConnectionLimitingPoolTest extends AsyncTestCase
 {

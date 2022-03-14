@@ -40,7 +40,7 @@ try {
 
             if ($context->getTlsContext()) {
                 /** @psalm-suppress InternalProperty */
-                \stream_context_set_option($connection->stream, $options);
+                stream_context_set_option($connection->stream, $options);
             }
 
             /** @psalm-suppress InternalProperty */

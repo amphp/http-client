@@ -6,7 +6,7 @@ use function Amp\now;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-$data = \file_get_contents(__DIR__ . '/fixture/h2.log');
+$data = file_get_contents(__DIR__ . '/fixture/h2.log');
 
 $processor = new class implements Http2Processor {
     public function handlePong(string $data): void

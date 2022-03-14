@@ -21,7 +21,7 @@ class GitHubApi
 
     public function getEvents(string $organization): iterable
     {
-        $url = 'https://api.github.com/orgs/' . \urlencode($organization) . '/events';
+        $url = 'https://api.github.com/orgs/' . urlencode($organization) . '/events';
 
         do {
             $request = new Request($url);
@@ -33,7 +33,7 @@ class GitHubApi
                 throw new \Exception('Failed to get events from GitHub: ' . $json);
             }
 
-            $events = \json_decode($json);
+            $events = json_decode($json);
             yield $events;
 
             $links = parseLinks($response->getHeader('link'));
@@ -58,7 +58,7 @@ foreach ($eventBatches as $events) {
     foreach ($events as $event) {
         $futures[] = async(static function () use ($event): void {
             // do something with $event, we just fake some delay here
-            delay(\random_int(1, 100));
+            delay(random_int(1, 100));
 
             print $event->type . ': ' . $event->id . PHP_EOL;
         });

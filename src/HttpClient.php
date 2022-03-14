@@ -20,11 +20,6 @@ final class HttpClient implements DelegateHttpClient
 
     /**
      * Request a specific resource from an HTTP server.
-     *
-     * @param Request $request
-     * @param Cancellation|null $cancellation
-     *
-     * @return Response
      */
     public function request(Request $request, ?Cancellation $cancellation = null): Response
     {

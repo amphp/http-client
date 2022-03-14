@@ -19,7 +19,6 @@ final class UpgradedSocket implements EncryptableSocket
     private ?string $buffer;
 
     /**
-     * @param EncryptableSocket $socket
      * @param string $buffer Remaining buffer previously read from the socket.
      */
     public function __construct(EncryptableSocket $socket, string $buffer)

@@ -35,7 +35,8 @@ final class ResponseBodyStream implements ReadableStream
         return $chunk;
     }
 
-    public function isReadable(): bool {
+    public function isReadable(): bool
+    {
         return $this->body->isReadable();
     }
 

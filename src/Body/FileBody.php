@@ -9,7 +9,6 @@ use Amp\Http\Client\RequestBody;
 
 final class FileBody implements RequestBody
 {
-    /** @var string */
     private string $path;
 
     private Filesystem $filesystem;

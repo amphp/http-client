@@ -48,10 +48,6 @@ final class PooledHttpClient implements DelegateHttpClient
      * Whether the given network interceptor will be respected for currently running requests is undefined.
      *
      * Any new requests have to take the new interceptor into account.
-     *
-     * @param NetworkInterceptor $networkInterceptor
-     *
-     * @return self
      */
     public function intercept(NetworkInterceptor $networkInterceptor): self
     {

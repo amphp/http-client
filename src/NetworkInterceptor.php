@@ -19,12 +19,6 @@ interface NetworkInterceptor
      * A NetworkInterceptor SHOULD NOT short-circuit and SHOULD delegate to the `$stream` passed as third argument
      * exactly once. The only exception to this is throwing an exception, e.g. because the TLS settings used are
      * unacceptable. If you need short circuits, use an {@see ApplicationInterceptor} instead.
-     *
-     * @param Request $request
-     * @param Cancellation $cancellation
-     * @param Stream $stream
-     *
-     * @return Response
      */
     public function requestViaNetwork(Request $request, Cancellation $cancellation, Stream $stream): Response;
 }

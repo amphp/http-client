@@ -33,15 +33,12 @@ final class Http1Parser
 
     private Request $request;
 
-    /** @var int */
     private int $state = self::AWAITING_HEADERS;
 
-    /** @var string */
     private string $buffer = '';
 
     private ?int $remainingBodyBytes = null;
 
-    /** @var int */
     private int $bodyBytesConsumed = 0;
 
     private bool $chunkedEncoding = false;
@@ -88,10 +85,6 @@ final class Http1Parser
     }
 
     /**
-     * @param string|null $data
-     *
-     * @return Response|null
-     *
      * @throws ParseException
      */
     public function parse(string $data = null): ?Response
@@ -259,8 +252,6 @@ final class Http1Parser
     }
 
     /**
-     * @return string|null
-     *
      * @throws ParseException
      */
     private function shiftHeadersFromBuffer(): ?string
@@ -283,10 +274,6 @@ final class Http1Parser
     }
 
     /**
-     * @param string $rawHeaders
-     *
-     * @return array
-     *
      * @throws ParseException
      */
     private function parseRawHeaders(string $rawHeaders): array
@@ -397,8 +384,6 @@ final class Http1Parser
     }
 
     /**
-     * @param string $trailers
-     *
      * @throws ParseException
      */
     private function parseTrailers(string $trailers): void
@@ -413,8 +398,6 @@ final class Http1Parser
     }
 
     /**
-     * @param string $data
-     *
      * @throws ParseException
      */
     private function addToBody(string $data): void

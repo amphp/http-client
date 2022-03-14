@@ -23,11 +23,6 @@ final class FollowRedirects implements ApplicationInterceptor
      * Resolves the given path in $locationUri using $baseUri as a base URI. For example, a base URI of
      * http://example.com/example/path and a location path of 'to/resolve' will return a URI of
      * http://example.com/example/to/resolve.
-     *
-     * @param PsrUri $baseUri
-     * @param PsrUri $locationUri
-     *
-     * @return PsrUri
      */
     public static function resolve(PsrUri $baseUri, PsrUri $locationUri): PsrUri
     {
@@ -58,10 +53,6 @@ final class FollowRedirects implements ApplicationInterceptor
     }
 
     /**
-     * @param string $input
-     *
-     * @return string
-     *
      * @link http://www.apps.ietf.org/rfc/rfc3986.html#sec-5.2.4
      */
     private static function removeDotSegments(string $input): string
@@ -95,11 +86,6 @@ final class FollowRedirects implements ApplicationInterceptor
     }
 
     /**
-     * @param string $basePath
-     * @param string $pathToMerge
-     *
-     * @return string
-     *
      * @link http://tools.ietf.org/html/rfc3986#section-5.2.3
      */
     private static function mergePaths(string $basePath, string $pathToMerge): string
@@ -215,10 +201,6 @@ final class FollowRedirects implements ApplicationInterceptor
     /**
      * Clients must not add a Referer header when leaving an unencrypted resource and redirecting to an encrypted
      * resource.
-     *
-     * @param Request $request
-     * @param PsrUri $referrerUri
-     * @param PsrUri $followUri
      *
      * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec15.html#sec15.1.3
      */

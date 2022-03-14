@@ -2,13 +2,13 @@
 
 namespace Amp\Http\Client\Connection\Internal;
 
-use Amp\ByteStream\ReadableIterableStream;
 use Amp\ByteStream\ReadableBuffer;
+use Amp\ByteStream\ReadableIterableStream;
 use Amp\ByteStream\StreamException;
 use Amp\Cancellation;
-use Amp\DeferredCancellation;
 use Amp\CancelledException;
 use Amp\CompositeCancellation;
+use Amp\DeferredCancellation;
 use Amp\DeferredFuture;
 use Amp\Future;
 use Amp\Http\Client\Connection\Http2ConnectionException as ClientHttp2ConnectionException;
@@ -37,8 +37,8 @@ use Amp\Socket\EncryptableSocket;
 use Amp\TimeoutCancellation;
 use League\Uri;
 use Revolt\EventLoop;
-use function Amp\Http\Client\Internal\normalizeRequestPathWithQuery;
 use function Amp\async;
+use function Amp\Http\Client\Internal\normalizeRequestPathWithQuery;
 
 /** @internal */
 final class Http2ConnectionProcessor implements Http2Processor
@@ -1648,9 +1648,6 @@ final class Http2ConnectionProcessor implements Http2Processor
     }
 
     /**
-     * @param Request $request
-     *
-     * @return array
      * @throws InvalidRequestException
      */
     private function generateHeaders(Request $request): array
@@ -1756,7 +1753,7 @@ final class Http2ConnectionProcessor implements Http2Processor
     private function runWriteThread(): void
     {
         try {
-            $this->frameQueue->forEach(fn($frame) => $this->socket->write($frame));
+            $this->frameQueue->forEach(fn ($frame) => $this->socket->write($frame));
         } catch (\Throwable $exception) {
             $this->hasWriteError = true;
 

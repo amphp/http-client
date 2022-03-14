@@ -2,7 +2,6 @@
 
 namespace Amp\Http\Client;
 
-use Amp\Cancellation;
 use Amp\Http\Client\Connection\DefaultConnectionFactory;
 use Amp\Http\Client\Connection\UnlimitedConnectionPool;
 use Amp\Http\Client\Connection\UnprocessedRequestException;

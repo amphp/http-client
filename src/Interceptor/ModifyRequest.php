@@ -29,13 +29,6 @@ class ModifyRequest implements NetworkInterceptor, ApplicationInterceptor
         $this->mapper = $mapper;
     }
 
-    /**
-     * @param Request $request
-     * @param Cancellation $cancellation
-     * @param Stream $stream
-     *
-     * @return Response
-     */
     final public function requestViaNetwork(
         Request $request,
         Cancellation $cancellation,

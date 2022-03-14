@@ -20,9 +20,6 @@ final class ConnectionLimitingPool implements ConnectionPool
      * Create a connection pool that limits the number of connections per authority.
      *
      * @param int                    $connectionLimit Maximum number of connections allowed to a single authority.
-     * @param ConnectionFactory|null $connectionFactory
-     *
-     * @return self
      */
     public static function byAuthority(int $connectionLimit, ?ConnectionFactory $connectionFactory = null): self
     {

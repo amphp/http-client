@@ -23,11 +23,6 @@ interface Stream extends DelegateHttpClient
      * the given request in the order defined by {@see Request::getEventListeners()}. Before calling the next listener,
      * the promise returned from the previous one must resolve successfully.
      *
-     * @param Request           $request
-     * @param Cancellation $cancellation
-     *
-     * @return Response
-     *
      * @throws \Error Thrown if this method is called more than once.
      */
     public function request(Request $request, Cancellation $cancellation): Response;

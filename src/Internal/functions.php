@@ -6,9 +6,6 @@ use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\Request;
 
 /**
- * @param Request $request
- *
- * @return string
  * @throws InvalidRequestException
  *
  * @internal

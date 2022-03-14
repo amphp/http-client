@@ -23,12 +23,6 @@ interface ApplicationInterceptor
      * `accept-encoding` header isn't set manually. If the request isn't cloned, the first attempt will set the header
      * and the second attempt will see the header and won't decode the response, because it thinks another interceptor
      * or the application itself will care about the decoding.
-     *
-     * @param Request            $request
-     * @param Cancellation  $cancellation
-     * @param DelegateHttpClient $httpClient
-     *
-     * @return Response
      */
     public function request(
         Request $request,

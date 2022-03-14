@@ -54,8 +54,8 @@ do {
     $duration = now() - $start;
     print "Took {$duration} seconds for " . (($count === 0 ? 100 : $count) * 10) . " requests" . PHP_EOL;
 
-    \gc_collect_cycles();
-    \gc_mem_caches();
+    gc_collect_cycles();
+    gc_mem_caches();
 
-    print "Memory: " . (\memory_get_usage(true) / 1000) . " kb" . PHP_EOL;
+    print "Memory: " . (memory_get_usage(true) / 1000) . " kb" . PHP_EOL;
 } while ($count === 0);

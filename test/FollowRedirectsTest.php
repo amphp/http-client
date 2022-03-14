@@ -14,10 +14,6 @@ class FollowRedirectsTest extends AsyncTestCase
 {
     /**
      * @dataProvider provideUris
-     *
-     * @param string $baseUri
-     * @param string $toResolve
-     * @param string $expectedResult
      */
     public function testResolve(string $baseUri, string $toResolve, string $expectedResult): void
     {

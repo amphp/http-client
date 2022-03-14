@@ -25,7 +25,6 @@ final class MatchOrigin implements ApplicationInterceptor
 
     /**
      * @param ApplicationInterceptor[] $originMap
-     * @param ApplicationInterceptor|null $default
      *
      * @throws HttpException
      */

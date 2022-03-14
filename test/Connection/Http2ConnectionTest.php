@@ -214,8 +214,12 @@ class Http2ConnectionTest extends AsyncTestCase
             self::fail("The request body should have been cancelled");
         } catch (CancelledException $exception) {
             $buffer = $server->read();
-            $expected = self::packFrame(\pack("N", Http2Parser::CANCEL), Http2Parser::RST_STREAM, Http2Parser::NO_FLAG,
-                1);
+            $expected = self::packFrame(
+                \pack("N", Http2Parser::CANCEL),
+                Http2Parser::RST_STREAM,
+                Http2Parser::NO_FLAG,
+                1
+            );
             self::assertStringEndsWith($expected, $buffer);
         }
     }
@@ -264,8 +268,12 @@ class Http2ConnectionTest extends AsyncTestCase
             self::fail("The request body should have been cancelled");
         } catch (TimeoutException $exception) {
             $buffer = $server->read();
-            $expected = self::packFrame(\pack("N", Http2Parser::CANCEL), Http2Parser::RST_STREAM, Http2Parser::NO_FLAG,
-                1);
+            $expected = self::packFrame(
+                \pack("N", Http2Parser::CANCEL),
+                Http2Parser::RST_STREAM,
+                Http2Parser::NO_FLAG,
+                1
+            );
             self::assertStringContainsString($expected, $buffer);
         }
     }
@@ -337,8 +345,12 @@ class Http2ConnectionTest extends AsyncTestCase
             self::fail("The push promise body should have been cancelled");
         } catch (CancelledException $exception) {
             $buffer = $server->read();
-            $expected = self::packFrame(\pack("N", Http2Parser::CANCEL), Http2Parser::RST_STREAM, Http2Parser::NO_FLAG,
-                2);
+            $expected = self::packFrame(
+                \pack("N", Http2Parser::CANCEL),
+                Http2Parser::RST_STREAM,
+                Http2Parser::NO_FLAG,
+                2
+            );
             self::assertStringEndsWith($expected, $buffer);
         }
     }
@@ -387,8 +399,12 @@ class Http2ConnectionTest extends AsyncTestCase
             self::fail("The request body should have been cancelled");
         } catch (TimeoutException $exception) {
             $buffer = $server->read();
-            $expected = self::packFrame(\pack("N", Http2Parser::CANCEL), Http2Parser::RST_STREAM, Http2Parser::NO_FLAG,
-                1);
+            $expected = self::packFrame(
+                \pack("N", Http2Parser::CANCEL),
+                Http2Parser::RST_STREAM,
+                Http2Parser::NO_FLAG,
+                1
+            );
             self::assertStringEndsWith($expected, $buffer);
         }
     }
@@ -453,10 +469,6 @@ class Http2ConnectionTest extends AsyncTestCase
     }
 
     /**
-     * @param string $requestPath
-     * @param string $expectedPath
-     *
-     * @return void
      * @throws Socket\SocketException
      * @throws \Amp\ByteStream\ClosedException
      * @throws \Amp\ByteStream\StreamException

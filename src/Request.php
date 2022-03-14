@@ -23,11 +23,8 @@ final class Request extends Message
     /**
      * @template TValue
      *
-     * @param mixed $value
-     *
      * @psalm-param TValue $value
      *
-     * @return mixed
      * @psalm-return TValue
      */
     private static function clone(mixed $value): mixed
@@ -76,11 +73,6 @@ final class Request extends Message
     /** @var EventListener[] */
     private array $eventListeners = [];
 
-    /**
-     * @param string|UriInterface $uri
-     * @param string $method
-     * @param RequestBody|string $body
-     */
     public function __construct(string|UriInterface $uri, string $method = "GET", RequestBody|string $body = '')
     {
         $this->setUri($uri);
@@ -139,8 +131,6 @@ final class Request extends Message
 
     /**
      * Retrieve the request's HTTP method verb.
-     *
-     * @return string
      */
     public function getMethod(): string
     {
@@ -149,8 +139,6 @@ final class Request extends Message
 
     /**
      * Specify the request's HTTP method verb.
-     *
-     * @param string $method
      */
     public function setMethod(string $method): void
     {
@@ -159,8 +147,6 @@ final class Request extends Message
 
     /**
      * Retrieve the request's URI.
-     *
-     * @return UriInterface
      */
     public function getUri(): UriInterface
     {
@@ -169,8 +155,6 @@ final class Request extends Message
 
     /**
      * Specify the request's HTTP URI.
-     *
-     * @param string|UriInterface $uri
      */
     public function setUri(UriInterface|string $uri): void
     {
@@ -233,8 +217,6 @@ final class Request extends Message
 
     /**
      * Assign the message entity body.
-     *
-     * @param string|int|float|RequestBody $body
      */
     public function setBody(string|int|float|RequestBody $body): void
     {
@@ -263,8 +245,6 @@ final class Request extends Message
      *     $response = yield $promise; // Wait for resource to arrive.
      *     // Use Response object from resolved promise.
      * }
-     *
-     * @param callable|null $onPush
      */
     public function setPushHandler(?callable $onPush): void
     {
@@ -296,9 +276,6 @@ final class Request extends Message
         };
     }
 
-    /**
-     * @return callable|null
-     */
     public function getPushHandler(): ?callable
     {
         return $this->onPush;
@@ -307,16 +284,12 @@ final class Request extends Message
     /**
      * Registers a callback invoked if a 101 response is returned to the request.
      *
-     * @param callable|null $onUpgrade
      */
     public function setUpgradeHandler(?callable $onUpgrade): void
     {
         $this->onUpgrade = $onUpgrade;
     }
 
-    /**
-     * @return callable|null
-     */
     public function getUpgradeHandler(): ?callable
     {
         return $this->onUpgrade;
@@ -324,17 +297,12 @@ final class Request extends Message
 
     /**
      * Registers a callback invoked when a 1xx response is returned to the request (other than a 101).
-     *
-     * @param callable|null $onInformationalResponse
      */
     public function setInformationalResponseHandler(?callable $onInformationalResponse): void
     {
         $this->onInformationalResponse = $onInformationalResponse;
     }
 
-    /**
-     * @return callable|null
-     */
     public function getInformationalResponseHandler(): ?callable
     {
         return $this->onInformationalResponse;
@@ -431,8 +399,6 @@ final class Request extends Message
      * specific implementations.
      *
      * @param string $name Name of the attribute, should be namespaced with a vendor and package namespace like classes.
-     *
-     * @return bool
      */
     public function hasAttribute(string $name): bool
     {
@@ -450,8 +416,6 @@ final class Request extends Message
      * by modifying the returned value in any way.
      *
      * @param string $name Name of the attribute, should be namespaced with a vendor and package namespace like classes.
-     *
-     * @return mixed
      *
      * @throws MissingAttributeError If an attribute with the given name does not exist.
      */

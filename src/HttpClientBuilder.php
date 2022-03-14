@@ -101,8 +101,6 @@ final class HttpClientBuilder
 
     /**
      * @param ConnectionPool $pool Connection pool to use.
-     *
-     * @return self
      */
     public function usingPool(ConnectionPool $pool): self
     {
@@ -115,8 +113,6 @@ final class HttpClientBuilder
     /**
      * @param ApplicationInterceptor $interceptor This interceptor gets added to the interceptor queue, so interceptors
      *                                            are executed in the order given to this method.
-     *
-     * @return self
      */
     public function intercept(ApplicationInterceptor $interceptor): self
     {
@@ -137,8 +133,6 @@ final class HttpClientBuilder
     /**
      * @param NetworkInterceptor $interceptor This interceptor gets added to the interceptor queue, so interceptors
      *                                        are executed in the order given to this method.
-     *
-     * @return self
      */
     public function interceptNetwork(NetworkInterceptor $interceptor): self
     {
@@ -152,8 +146,6 @@ final class HttpClientBuilder
      * @param int $retryLimit Maximum number of times a request may be retried. Only certain requests will be retried
      *                        automatically (GET, HEAD, PUT, and DELETE requests are automatically retried, or any
      *                        request that was indicated as unprocessed by the connection).
-     *
-     * @return self
      */
     public function retry(int $retryLimit): self
     {
@@ -171,8 +163,6 @@ final class HttpClientBuilder
     /**
      * @param int $limit Maximum number of redirects to follow. The client will automatically request the URI supplied
      *                   by a redirect response (3xx status codes) and returns that response instead.
-     *
-     * @return self
      */
     public function followRedirects(int $limit = 10): self
     {
@@ -189,8 +179,6 @@ final class HttpClientBuilder
 
     /**
      * Removes the default restriction of user:password in request URIs.
-     *
-     * @return self
      */
     public function allowDeprecatedUriUserInfo(): self
     {
@@ -202,8 +190,6 @@ final class HttpClientBuilder
 
     /**
      * Doesn't automatically set an 'accept' header.
-     *
-     * @return self
      */
     public function skipDefaultAcceptHeader(): self
     {
@@ -215,8 +201,6 @@ final class HttpClientBuilder
 
     /**
      * Doesn't automatically set a 'user-agent' header.
-     *
-     * @return self
      */
     public function skipDefaultUserAgent(): self
     {
@@ -228,8 +212,6 @@ final class HttpClientBuilder
 
     /**
      * Doesn't automatically set an 'accept-encoding' header and decompress the response.
-     *
-     * @return self
      */
     public function skipAutomaticCompression(): self
     {

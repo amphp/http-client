@@ -5,9 +5,9 @@ namespace Amp\Http\Client\Connection;
 use Amp\ByteStream\ReadableIterableStream;
 use Amp\ByteStream\StreamException;
 use Amp\Cancellation;
-use Amp\DeferredCancellation;
 use Amp\CancelledException;
 use Amp\CompositeCancellation;
+use Amp\DeferredCancellation;
 use Amp\DeferredFuture;
 use Amp\Future;
 use Amp\Http;
@@ -31,8 +31,8 @@ use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
 use Amp\TimeoutCancellation;
 use Revolt\EventLoop;
-use function Amp\Http\Client\Internal\normalizeRequestPathWithQuery;
 use function Amp\async;
+use function Amp\Http\Client\Internal\normalizeRequestPathWithQuery;
 use function Amp\now;
 
 /**
@@ -239,13 +239,6 @@ final class Http1Connection implements Connection
     }
 
     /**
-     * @param Request           $request
-     * @param Cancellation $originalCancellation
-     * @param Cancellation $readingCancellation
-     *
-     * @param Stream            $stream
-     *
-     * @return Response
      * @throws CancelledException
      * @throws HttpException
      * @throws ParseException
@@ -653,11 +646,6 @@ final class Http1Connection implements Connection
     }
 
     /**
-     * @param Request $request
-     * @param string  $protocolVersion
-     *
-     * @return string
-     *
      * @throws HttpException
      */
     private function generateRawHeader(Request $request, string $protocolVersion): string
