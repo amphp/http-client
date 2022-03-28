@@ -6,6 +6,7 @@ use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\EventListener;
 use Amp\Http\Client\Internal\HarAttributes;
 use Amp\Http\Client\Request;
+use Amp\Socket\InternetAddress;
 use function Amp\now;
 
 final class RecordHarAttributes implements EventListener
@@ -36,7 +37,11 @@ final class RecordHarAttributes implements EventListener
 
     public function startSendingRequest(Request $request, Stream $stream): void
     {
-        $host = $stream->getRemoteAddress()->getHost();
+        $address = $stream->getRemoteAddress();
+        $host = match (true) {
+            $address instanceof InternetAddress => $address->getAddress(),
+            default => $address->toString(),
+        };
         if (\strrpos($host, ':')) {
             $host = '[' . $host . ']';
         }

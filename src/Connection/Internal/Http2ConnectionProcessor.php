@@ -34,6 +34,7 @@ use Amp\Http\Status;
 use Amp\Pipeline\Pipeline;
 use Amp\Pipeline\Queue;
 use Amp\Socket\EncryptableSocket;
+use Amp\Socket\InternetAddress;
 use Amp\TimeoutCancellation;
 use League\Uri;
 use Revolt\EventLoop;
@@ -587,8 +588,13 @@ final class Http2ConnectionProcessor implements Http2Processor
             return;
         }
 
+        $address = $this->socket->getRemoteAddress();
+
         $host = $matches[1];
-        $port = isset($matches[2]) ? (int) $matches[2] : $this->socket->getRemoteAddress()->getPort();
+        $port = isset($matches[2]) ? (int) $matches[2] : match (true) {
+            $address instanceof InternetAddress => $address->getPort(),
+            default => null,
+        };
 
         if (!isset($this->streams[$streamId])) {
             $this->handleStreamException(new Http2StreamException(

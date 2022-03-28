@@ -31,7 +31,7 @@ class NetworkInterceptorTest extends InterceptorTest
                     $this->testCase->getServerAddress()->toString(),
                     $stream->getRemoteAddress()->toString()
                 );
-                TestCase::assertSame('127.0.0.1', $stream->getLocalAddress()->getHost());
+                TestCase::assertSame('127.0.0.1', $stream->getLocalAddress()->getAddress());
                 TestCase::assertNotSame(
                     $this->testCase->getServerAddress()->toString(),
                     $stream->getLocalAddress()->toString()

@@ -56,4 +56,9 @@ final class ResponseBodyStream implements ReadableStream
     {
         return $this->body->isClosed();
     }
+
+    public function onClose(\Closure $onClose): void
+    {
+        $this->body->onClose($onClose);
+    }
 }

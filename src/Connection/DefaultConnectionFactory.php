@@ -13,7 +13,6 @@ use Amp\Http\Client\TimeoutException;
 use Amp\Socket;
 use Amp\Socket\ClientTlsContext;
 use Amp\Socket\ConnectContext;
-use Amp\Socket\EncryptableSocket;
 use Amp\TimeoutCancellation;
 
 final class DefaultConnectionFactory implements ConnectionFactory
@@ -126,7 +125,7 @@ final class DefaultConnectionFactory implements ConnectionFactory
                 $tlsState = $socket->getTlsState();
 
                 // Error if anything enabled TLS on a new connection before we can do it
-                if ($tlsState !== EncryptableSocket::TLS_STATE_DISABLED) {
+                if ($tlsState !== Socket\TlsState::Disabled) {
                     $socket->close();
 
                     throw new UnprocessedRequestException(

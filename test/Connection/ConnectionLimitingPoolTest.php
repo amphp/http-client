@@ -9,7 +9,7 @@ use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\Trailers;
 use Amp\PHPUnit\AsyncTestCase;
-use Amp\Socket\SocketAddress;
+use Amp\Socket\InternetAddress;
 use Revolt\EventLoop;
 use function Amp\async;
 use function Amp\delay;
@@ -148,9 +148,9 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
                 return $response;
             });
         $stream->method('getLocalAddress')
-            ->willReturn(new SocketAddress('127.0.0.1'));
+            ->willReturn(new InternetAddress('127.0.0.1', 80));
         $stream->method('getRemoteAddress')
-            ->willReturn(new SocketAddress('127.0.0.1'));
+            ->willReturn(new InternetAddress('127.0.0.1', 80));
 
         $connection = $this->createMock(Connection::class);
         $connection->method('getStream')
@@ -185,9 +185,9 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
                 );
             });
         $stream->method('getLocalAddress')
-            ->willReturn(new SocketAddress('127.0.0.1'));
+            ->willReturn(new InternetAddress('127.0.0.1', 80));
         $stream->method('getRemoteAddress')
-            ->willReturn(new SocketAddress('127.0.0.1'));
+            ->willReturn(new InternetAddress('127.0.0.1', 80));
 
         $connection = $this->createMock(Connection::class);
         $connection->method('getStream')

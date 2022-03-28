@@ -8,6 +8,7 @@ use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Socket\EncryptableSocket;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
+use Amp\Socket\TlsState;
 
 final class UpgradedSocket implements EncryptableSocket
 {
@@ -81,6 +82,11 @@ final class UpgradedSocket implements EncryptableSocket
         return $this->socket->isClosed();
     }
 
+    public function onClose(\Closure $onClose): void
+    {
+        $this->socket->onClose($onClose);
+    }
+
     public function getLocalAddress(): SocketAddress
     {
         return $this->socket->getLocalAddress();
@@ -101,7 +107,12 @@ final class UpgradedSocket implements EncryptableSocket
         $this->socket->shutdownTls();
     }
 
-    public function getTlsState(): int
+    public function isTlsAvailable(): bool
+    {
+        return $this->socket->isTlsAvailable();
+    }
+
+    public function getTlsState(): TlsState
     {
         return $this->socket->getTlsState();
     }
