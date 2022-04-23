@@ -20,21 +20,12 @@ use Amp\Http\Client\Interceptor\TooManyRedirectsException;
 use Amp\Http\Cookie\RequestCookie;
 use Amp\Http\Cookie\ResponseCookie;
 use Amp\Http\Rfc7230;
-use Amp\Http\Server\HttpServer;
-use Amp\Http\Server\HttpSocketServer;
-use Amp\Http\Server\Options;
-use Amp\Http\Server\Request as ServerRequest;
-use Amp\Http\Server\RequestHandler\ClosureRequestHandler;
-use Amp\Http\Server\Response as ServerResponse;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Pipeline\Pipeline;
 use Amp\Socket;
-use Closure;
-use Psr\Log\NullLogger;
 use Revolt\EventLoop;
 use function Amp\async;
 use function Amp\delay;
-use function Amp\Socket\listen;
 
 class ClientHttpBinIntegrationTest extends AsyncTestCase
 {
@@ -44,10 +35,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     private HttpClientBuilder $builder;
 
-    /** @var callable */
-    private $responseCallback;
-
-    private HttpServer $httpServer;
+    private ?\Closure $responseCallback = null;
 
     private ?string $rawHandler = null;
 
@@ -190,7 +178,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
             while (null !== $chunk = $socket->read()) {
                 $buffer .= $chunk;
 
-                if (\strpos($buffer, "\r\n\r\n") !== false) {
+                if (\str_contains($buffer, "\r\n\r\n")) {
                     break;
                 }
             }
@@ -226,8 +214,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $request->setPushHandler(static function (Request $request, Future $response) use (
             &$path,
             &$contentType,
-            &
-            $future
+            &$future,
         ): void {
             $future = $response;
 
@@ -357,11 +344,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     {
         $this->client = $this->builder->followRedirects(0)->build();
 
-        $this->givenServer(static function () {
-            return new ServerResponse(200);
-        });
-
-        $request = $this->createRequest();
+        $request = new Request('https://http2.pro/api/v1', 'POST');
+        $request->setBody('foobar');
         $request->setProtocolVersions(['2']);
         $request->setHeader('te', 'gzip');
 
@@ -375,10 +359,6 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     {
         $this->client = $this->builder->followRedirects(0)->build();
 
-        $this->givenServer(static function () {
-            return new ServerResponse(302, ['location' => 'https://example.org/']);
-        });
-
         $this->givenRawServerResponse("HTTP/1.1 302 OK\r\nLocation: https://example.org/\r\n\r\n.");
 
         $response = $this->executeRequest($this->createRequest());
@@ -391,10 +371,6 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     public function testRedirectWithFollow(): void
     {
         $this->client = $this->builder->followRedirects()->build();
-
-        $this->givenServer(static function () {
-            return new ServerResponse(302, ['location' => 'https://example.org/']);
-        });
 
         $this->givenRawServerResponse("HTTP/1.1 302 OK\r\nLocation: https://example.org/\r\n\r\n.");
 
@@ -529,15 +505,6 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $request = $this->createRequest();
         $request->setUri($request->getUri()->withPath('/redirect/11'));
-
-        $this->givenServer(static function (ServerRequest $request) {
-            \preg_match('(/redirect/(\d+))', $request->getUri()->getPath(), $matches);
-            if ($matches[1] ?? '') {
-                return new ServerResponse(302, ['location' => '/redirect/' . ($matches[1] - 1)]);
-            }
-
-            return new ServerResponse(200);
-        });
 
         $this->givenRawServerResponse("HTTP/1.1 302 OK\r\nLocation: /redirect/11\r\n\r\n.");
 
@@ -734,7 +701,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->builder = (new HttpClientBuilder)->retry(0);
         $this->client = $this->builder->build();
 
-        $this->socket = listen('127.0.0.1:0');
+        $this->socket = Socket\listen(new Socket\InternetAddress('127.0.0.1', 0));
         $this->socket->unreference();
 
         $this->rawHandler = EventLoop::onReadable($this->socket->getResource(), function () {
@@ -754,18 +721,6 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         });
     }
 
-    private function givenServer(callable $requestHandler): void
-    {
-        if (isset($this->rawHandler)) {
-            EventLoop::cancel($this->rawHandler);
-            $this->rawHandler = null;
-        }
-
-        $this->httpServer = new HttpSocketServer([$this->socket], new NullLogger, (new Options)->withHttp2Upgrade());
-
-        $this->httpServer->start(new ClosureRequestHandler(Closure::fromCallable($requestHandler)));
-    }
-
     private function givenRawServerResponse(string $response): void
     {
         $this->responseCallback = static function ($socket) use ($response): void {
@@ -775,7 +730,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
             while (null !== $chunk = $socket->read()) {
                 $buffer .= $chunk;
 
-                if (\strpos($buffer, "\r\n\r\n") !== false) {
+                if (\str_contains($buffer, "\r\n\r\n")) {
                     break;
                 }
             }
