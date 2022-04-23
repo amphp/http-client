@@ -4,6 +4,7 @@ namespace Amp\Http\Client;
 
 use Amp\Future;
 use Amp\Http\Client\Body\StringBody;
+use Amp\Http\Client\Connection\UpgradedSocket;
 use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Message;
 use League\Uri;
@@ -58,13 +59,13 @@ final class Request extends Message
 
     private int $headerSizeLimit = self::DEFAULT_HEADER_SIZE_LIMIT;
 
-    /** @var callable|null */
-    private $onPush;
+    /** @var null|\Closure(Request, Future): void  */
+    private ?\Closure $onPush = null;
 
-    /** @var callable|null */
-    private $onUpgrade;
+    /** @var null|\Closure(UpgradedSocket, Request, Response): void */
+    private ?\Closure $onUpgrade = null;
 
-    /** @var callable|null */
+    /** @var \Closure|null */
     private $onInformationalResponse;
 
     /** @var array<string, mixed> */
@@ -220,15 +221,12 @@ final class Request extends Message
      */
     public function setBody(string|int|float|RequestBody $body): void
     {
-        if (\is_string($body)) {
-            $this->body = new StringBody($body);
-        } elseif (\is_scalar($body)) {
-            $this->body = new StringBody(\var_export($body, true));
-        } elseif ($body instanceof RequestBody) {
-            $this->body = $body;
-        } else {
-            throw new \TypeError("Invalid body type: " . \gettype($body));
-        }
+        $this->body = match (true) {
+            \is_string($body) => new StringBody($body),
+            \is_scalar($body) => new StringBody(\var_export($body, true)),
+            $body instanceof RequestBody => $body,
+            default => throw new \TypeError("Invalid body type: " . \gettype($body)),
+        };
     }
 
     /**
@@ -237,16 +235,18 @@ final class Request extends Message
      * Response containing the pushed resource. An HttpException, StreamException, or CancelledException can be thrown
      * to refuse the push. If no callback is registered, pushes are automatically rejected.
      *
-     * Interceptors can mostly use {@code interceptPush} instead.
+     * Interceptors can mostly use {@see interceptPush()} instead.
      *
      * Example:
-     * function (Request $request, Promise $response): \Generator {
+     * function (Request $request, Future $future): void {
      *     $uri = $request->getUri(); // URI of pushed resource.
-     *     $response = yield $promise; // Wait for resource to arrive.
+     *     $response = $future->await(); // Wait for resource to arrive.
      *     // Use Response object from resolved promise.
      * }
+     *
+     * @param null|\Closure(Request, Future): void $onPush
      */
-    public function setPushHandler(?callable $onPush): void
+    public function setPushHandler(?\Closure $onPush): void
     {
         $this->onPush = $onPush;
     }
@@ -254,29 +254,33 @@ final class Request extends Message
     /**
      * Allows interceptors to modify also pushed responses.
      *
-     * If no push callable has been set by the application, the interceptor won't be invoked. If you want to enable
-     * push in an interceptor without the application setting a push handler, you need to use {@code setPushHandler}.
+     * If no push closure has been set by the application, the interceptor won't be invoked. If you want to enable
+     * push in an interceptor without the application setting a push handler, you need to use {@see setPushHandler()}.
      *
-     * @param callable $interceptor Receives the response and might modify it or return a new instance.
+     * @param null|\Closure(Response): Response $interceptor Receives the response and might modify it or return a
+     * new instance.
      */
-    public function interceptPush(callable $interceptor): void
+    public function interceptPush(\Closure $interceptor): void
     {
         if ($this->onPush === null) {
             return;
         }
 
         $onPush = $this->onPush;
-        /** @psalm-suppress MissingClosureReturnType */
-        $this->onPush = static function (Request $request, Future $future) use ($onPush, $interceptor) {
-            $future = async(function () use ($interceptor, $future): Response {
+        $this->onPush = static function (Request $request, Future $future) use ($onPush, $interceptor): void {
+            $future = async(function () use ($request, $interceptor, $future): Response {
                 $response = $future->await();
-                return $interceptor($response) ?? $response;
+                return $interceptor($request, $response);
             });
-            return $onPush($request, $future);
+
+            $onPush($request, $future);
         };
     }
 
-    public function getPushHandler(): ?callable
+    /**
+     * @return null|\Closure(Request, Future): void
+     */
+    public function getPushHandler(): ?\Closure
     {
         return $this->onPush;
     }
@@ -284,26 +288,35 @@ final class Request extends Message
     /**
      * Registers a callback invoked if a 101 response is returned to the request.
      *
+     * @param null|\Closure(UpgradedSocket, Request, Response): void $onUpgrade
      */
-    public function setUpgradeHandler(?callable $onUpgrade): void
+    public function setUpgradeHandler(?\Closure $onUpgrade): void
     {
         $this->onUpgrade = $onUpgrade;
     }
 
-    public function getUpgradeHandler(): ?callable
+    /**
+     * @return null|\Closure(UpgradedSocket, Request, Response): void
+     */
+    public function getUpgradeHandler(): ?\Closure
     {
         return $this->onUpgrade;
     }
 
     /**
      * Registers a callback invoked when a 1xx response is returned to the request (other than a 101).
+     *
+     * @param null|\Closure(Response): void $onInformationalResponse
      */
-    public function setInformationalResponseHandler(?callable $onInformationalResponse): void
+    public function setInformationalResponseHandler(?\Closure $onInformationalResponse): void
     {
         $this->onInformationalResponse = $onInformationalResponse;
     }
 
-    public function getInformationalResponseHandler(): ?callable
+    /**
+     * @return null|\Closure(Response): void
+     */
+    public function getInformationalResponseHandler(): ?\Closure
     {
         return $this->onInformationalResponse;
     }

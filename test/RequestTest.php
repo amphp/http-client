@@ -191,8 +191,9 @@ class RequestTest extends AsyncTestCase
         };
 
         $request->setPushHandler($pushHandler);
-        $request->interceptPush(static function (Response $response): void {
+        $request->interceptPush(static function (Request $request, Response $response): Response {
             $response->setStatus(512);
+            return $response;
         });
 
         $request->getPushHandler()(
@@ -228,7 +229,7 @@ class RequestTest extends AsyncTestCase
         };
 
         $request->setPushHandler($pushHandler);
-        $request->interceptPush(static function (Response $response) {
+        $request->interceptPush(static function (Request $request, Response $response) {
             return new Response('2', 523, null, [], new ReadableBuffer(), $response->getRequest());
         });
 
