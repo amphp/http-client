@@ -10,17 +10,18 @@ use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request as ClientRequest;
 use Amp\Http\Client\Response as ClientResponse;
+use Amp\Http\Server\DefaultErrorHandler;
 use Amp\Http\Server\HttpServer;
-use Amp\Http\Server\HttpSocketServer;
 use Amp\Http\Server\RequestHandler\ClosureRequestHandler;
 use Amp\Http\Server\Response;
+use Amp\Http\Server\SocketHttpServer;
 use Amp\Http\Status;
 use Amp\PHPUnit\AsyncTestCase;
+use Amp\Socket\InternetAddress;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\SocketServer;
 use Amp\Socket\StaticSocketConnector;
 use Psr\Log\NullLogger;
-use function Amp\Socket\listen;
 use function Amp\Socket\socketConnector;
 
 abstract class InterceptorTest extends AsyncTestCase
@@ -56,10 +57,6 @@ abstract class InterceptorTest extends AsyncTestCase
 
     final protected function whenRequestIsExecuted(?ClientRequest $request = null): void
     {
-        $this->server->start(new ClosureRequestHandler(static function () {
-            return new Response(Status::OK, ['content-type' => 'text-plain; charset=utf-8'], 'OK');
-        }));
-
         try {
             $response = $this->client->request($request ?? new ClientRequest('http://example.org/'));
 
@@ -78,8 +75,14 @@ abstract class InterceptorTest extends AsyncTestCase
     {
         parent::setUp();
 
-        $this->serverSocket = listen('tcp://127.0.0.1:0');
-        $this->server = new HttpSocketServer([$this->serverSocket], new NullLogger);
+        $this->server = new SocketHttpServer(new NullLogger);
+        $this->server->expose(new InternetAddress('127.0.0.1', 0));
+
+        $this->server->start(new ClosureRequestHandler(static function () {
+            return new Response(Status::OK, ['content-type' => 'text-plain; charset=utf-8'], 'OK');
+        }), new DefaultErrorHandler());
+
+        $this->serverSocket = $this->server->getServers()[0] ?? self::fail('HTTP server did not create any server sockets');
 
         $staticConnector = new StaticSocketConnector($this->serverSocket->getAddress()->toString(), socketConnector());
         $this->builder = (new HttpClientBuilder)->usingPool(new UnlimitedConnectionPool(new DefaultConnectionFactory($staticConnector)));
