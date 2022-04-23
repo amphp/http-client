@@ -871,41 +871,35 @@ final class Http2ConnectionProcessor implements Http2Processor
             return;
         }
 
-        $body = $stream->body;
+        \assert($stream->body !== null);
+
+        $stream->body->complete();
         $stream->body = null;
 
-        \assert($body !== null);
+        // Trailers may have been received in handleHeaders(); if not, resolve with an empty set of trailers.
+        if ($stream->trailers !== null) {
+            $trailers = $stream->trailers;
+            $stream->trailers = null;
+            EventLoop::queue(function () use ($trailers, $stream, $streamId): void {
+                try {
+                    foreach ($stream->request->getEventListeners() as $eventListener) {
+                        $eventListener->completeReceivingResponse($stream->request, $stream->stream);
+                    }
 
-        $trailers = $stream->trailers;
-        $stream->trailers = null;
-
-        \assert($trailers !== null);
-
-        $body->complete();
-
-        EventLoop::queue(function () use ($trailers, $stream, $streamId): void {
-            try {
-                foreach ($stream->request->getEventListeners() as $eventListener) {
-                    $eventListener->completeReceivingResponse($stream->request, $stream->stream);
+                    $trailers->complete(new Trailers([]));
+                } catch (\Throwable $e) {
+                    $trailers->error($e);
+                    $this->handleStreamException(new Http2StreamException(
+                        "Event listener error",
+                        $streamId,
+                        Http2Parser::CANCEL
+                    ));
                 }
-
-                $trailers->complete(new Trailers([]));
-            } catch (\Throwable $e) {
-                $trailers->error($e);
-                $this->handleStreamException(new Http2StreamException(
-                    "Event listener error",
-                    $streamId,
-                    Http2Parser::CANCEL
-                ));
-            }
-        });
+            });
+        }
 
         $this->setupPingIfIdle();
-
-        // Stream might be cancelled right after body completion
-        if (isset($this->streams[$streamId])) {
-            $this->releaseStream($streamId);
-        }
+        $this->releaseStream($streamId);
     }
 
     public function reserveStream(): void
