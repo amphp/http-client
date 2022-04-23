@@ -31,7 +31,6 @@ use Amp\Http\Http2\Http2Processor;
 use Amp\Http\Http2\Http2StreamException;
 use Amp\Http\InvalidHeaderException;
 use Amp\Http\Status;
-use Amp\Pipeline\Pipeline;
 use Amp\Pipeline\Queue;
 use Amp\Socket\EncryptableSocket;
 use Amp\Socket\InternetAddress;
@@ -104,16 +103,13 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     private int|null $shutdown = null;
 
-    private Queue $frameQueueSource;
-
-    private Pipeline $frameQueue;
+    private Queue $frameQueue;
 
     public function __construct(EncryptableSocket $socket)
     {
         $this->socket = $socket;
         $this->hpack = new HPack;
-        $this->frameQueueSource = new Queue();
-        $this->frameQueue = $this->frameQueueSource->pipe();
+        $this->frameQueue = new Queue();
     }
 
     public function isInitialized(): bool
@@ -1188,7 +1184,7 @@ final class Http2ConnectionProcessor implements Http2Processor
     private function runReadFiber(): void
     {
         try {
-            $this->frameQueueSource->pushAsync(Http2Parser::PREFACE)->ignore();
+            $this->frameQueue->pushAsync(Http2Parser::PREFACE)->ignore();
 
             $this->writeFrame(
                 Http2Parser::SETTINGS,
@@ -1267,7 +1263,7 @@ final class Http2ConnectionProcessor implements Http2Processor
     ): Future {
         \assert(Http2Parser::logDebugFrame('send', $type, $flags, $stream, \strlen($data)));
 
-        return $this->frameQueueSource->pushAsync(\pack("NcN", (\strlen($data) << 8) | ($type & 0xff), $flags, $stream) . $data);
+        return $this->frameQueue->pushAsync(\pack("NcN", (\strlen($data) << 8) | ($type & 0xff), $flags, $stream) . $data);
     }
 
     private function applySetting(int $setting, int $value): void
@@ -1738,7 +1734,9 @@ final class Http2ConnectionProcessor implements Http2Processor
     private function runWriteFiber(): void
     {
         try {
-            $this->frameQueue->forEach(fn (string $frame) => $this->socket->write($frame));
+            foreach ($this->frameQueue->iterate() as $frame) {
+                $this->socket->write($frame);
+            }
         } catch (\Throwable $exception) {
             $this->hasWriteError = true;
 
