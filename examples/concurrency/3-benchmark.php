@@ -30,7 +30,7 @@ $client = (new HttpClientBuilder)
     ->usingPool(new UnlimitedConnectionPool(new DefaultConnectionFactory(null, $connectContext)))
     ->build();
 
-$handler = fn (int $count) => async(static function () use ($count, $client, $argv): void {
+$handler = fn (int $count): Future => async(static function () use ($count, $client, $argv): void {
     for ($i = 0; $i < $count; $i++) {
         $request = new Request($argv[2] ?? 'https://localhost:1338/');
         $request->setTcpConnectTimeout(1000);
@@ -49,7 +49,7 @@ do {
     for ($i = 0; $i < 10; $i++) {
         $futures[] = $handler($count === 0 ? 100 : $count);
     }
-    Future\all($futures);
+    Future\await($futures);
 
     $duration = now() - $start;
     print "Took {$duration} seconds for " . (($count === 0 ? 100 : $count) * 10) . " requests" . PHP_EOL;

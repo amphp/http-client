@@ -29,7 +29,7 @@ try {
         $futures[$uri] = async(fn () => $requestHandler($uri));
     }
 
-    $bodies = Future\all($futures);
+    $bodies = Future\await($futures);
 
     foreach ($bodies as $uri => $body) {
         print $uri . " - " . strlen($body) . " bytes" . PHP_EOL;

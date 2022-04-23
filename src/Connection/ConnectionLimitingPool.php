@@ -160,11 +160,10 @@ final class ConnectionLimitingPool implements ConnectionPool
                     if ($isHttps && ($this->waitForPriorConnection[$uri] ?? true)) {
                         // Wait for first successful connection if using a secure connection (maybe we can use HTTP/2).
                         $connection = $connectionFuture->await();
+                    } else if ($connectionFuture->isComplete()) {
+                        $connection = $connectionFuture->await();
                     } else {
-                        $connection = Future\race([$connectionFuture, Future::complete(null)]);
-                        if ($connection === null) {
-                            continue;
-                        }
+                        continue;
                     }
                 } catch (\Exception $exception) {
                     continue; // Ignore cancellations and errors of other requests.

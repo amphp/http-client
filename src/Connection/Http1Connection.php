@@ -97,7 +97,7 @@ final class Http1Connection implements Connection
     public function onClose(\Closure $onClose): void
     {
         if (!$this->socket || $this->socket->isClosed()) {
-            EventLoop::defer(fn () => $onClose($this));
+            EventLoop::queue($onClose);
             return;
         }
 

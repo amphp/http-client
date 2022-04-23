@@ -64,5 +64,5 @@ foreach ($eventBatches as $events) {
         });
     }
 
-    Future\all($futures);
+    Future\await($futures);
 }

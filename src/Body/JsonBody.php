@@ -12,11 +12,9 @@ final class JsonBody implements RequestBody
     private string $json;
 
     /**
-     * JsonBody constructor.
-     *
      * @throws HttpException
      */
-    public function __construct($data, int $options = 0, int $depth = 512)
+    public function __construct(mixed $data, int $options = 0, int $depth = 512)
     {
         $this->json = \json_encode($data, $options, $depth);
 

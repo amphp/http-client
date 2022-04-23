@@ -46,5 +46,11 @@
                 <directory name="src"/>
             </errorLevel>
         </MissingClosureParamType>
+
+        <MissingClosureReturnType>
+            <errorLevel type="suppress">
+                <directory name="src" />
+            </errorLevel>
+        </MissingClosureReturnType>
     </issueHandlers>
 </psalm>

@@ -24,7 +24,7 @@ final class FormBody implements RequestBody
     private ?Future $cachedLength = null;
 
     /** @var list<string|FileBody>|null */
-    private ?array $cachedFields;
+    private ?array $cachedFields = null;
 
     /**
      * @param string|null $boundary An optional multipart boundary string

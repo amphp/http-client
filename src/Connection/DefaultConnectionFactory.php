@@ -129,7 +129,7 @@ final class DefaultConnectionFactory implements ConnectionFactory
                     $socket->close();
 
                     throw new UnprocessedRequestException(
-                        new SocketException('Failed to setup TLS connection, connection was in an unexpected TLS state (' . $tlsState . ')')
+                        new SocketException('Failed to setup TLS connection, connection was in an unexpected TLS state (' . $tlsState->name . ')')
                     );
                 }
 
