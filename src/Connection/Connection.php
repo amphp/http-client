@@ -2,11 +2,12 @@
 
 namespace Amp\Http\Client\Connection;
 
+use Amp\Closable;
 use Amp\Http\Client\Request;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
 
-interface Connection
+interface Connection extends Closable
 {
     /**
      * @return Stream|null Returns a stream for the given request, or null if no stream is available or if
@@ -19,10 +20,6 @@ interface Connection
      * @return string[] Array of supported protocol versions.
      */
     public function getProtocolVersions(): array;
-
-    public function close(): void;
-
-    public function onClose(callable $onClose): void;
 
     public function getLocalAddress(): SocketAddress;
 

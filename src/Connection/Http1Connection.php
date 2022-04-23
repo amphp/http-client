@@ -94,7 +94,7 @@ final class Http1Connection implements Connection
         $this->close();
     }
 
-    public function onClose(callable $onClose): void
+    public function onClose(\Closure $onClose): void
     {
         if (!$this->socket || $this->socket->isClosed()) {
             EventLoop::defer(fn () => $onClose($this));
@@ -106,11 +106,13 @@ final class Http1Connection implements Connection
 
     public function close(): void
     {
-        if ($this->socket) {
-            $this->socket->close();
-        }
-
+        $this->socket?->close();
         $this->free();
+    }
+
+    public function isClosed(): bool
+    {
+        return $this->socket?->isClosed() ?? true;
     }
 
     public function getLocalAddress(): SocketAddress

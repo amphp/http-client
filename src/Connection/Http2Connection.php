@@ -70,6 +70,11 @@ final class Http2Connection implements Connection
         $this->processor->close();
     }
 
+    public function isClosed(): bool
+    {
+        return $this->processor->isClosed();
+    }
+
     public function getLocalAddress(): SocketAddress
     {
         return $this->socket->getLocalAddress();
