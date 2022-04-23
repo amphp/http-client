@@ -36,7 +36,7 @@ final class DecompressResponse implements NetworkInterceptor
 
         $this->addAcceptEncodingHeader($request);
 
-        $request->interceptPush(function (Response $response): Response {
+        $request->interceptPush(function (Request $request, Response $response): Response {
             return $this->decompressResponse($response);
         });
 
