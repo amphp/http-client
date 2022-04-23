@@ -29,7 +29,7 @@ class Http2ConnectionTest extends AsyncTestCase
 {
     public static function packFrame(string $data, int $type, int $flags, int $stream = 0): string
     {
-        return \substr(\pack("NccN", \strlen($data), $type, $flags, $stream), 1) . $data;
+        return \pack("NcN", (\strlen($data) << 8) | ($type & 0xff), $flags, $stream) . $data;
     }
 
     public function test100Continue(): void
@@ -47,6 +47,7 @@ class Http2ConnectionTest extends AsyncTestCase
         $request = new Request('http://localhost/');
 
         $stream = $connection->getStream($request);
+
 
         $server->write(self::packFrame($hpack->encode([
             [":status", Status::CONTINUE],
@@ -213,14 +214,15 @@ class Http2ConnectionTest extends AsyncTestCase
             $response->getBody()->buffer();
             self::fail("The request body should have been cancelled");
         } catch (CancelledException $exception) {
+            delay(0.01); // Allow frame queue to complete writing.
             $buffer = $server->read();
-            $expected = self::packFrame(
+            $expected = \bin2hex(self::packFrame(
                 \pack("N", Http2Parser::CANCEL),
                 Http2Parser::RST_STREAM,
                 Http2Parser::NO_FLAG,
-                1
-            );
-            self::assertStringEndsWith($expected, $buffer);
+                1,
+            ));
+            self::assertStringEndsWith($expected, \bin2hex($buffer));
         }
     }
 
@@ -267,14 +269,15 @@ class Http2ConnectionTest extends AsyncTestCase
             $response->getBody()->buffer();
             self::fail("The request body should have been cancelled");
         } catch (TimeoutException $exception) {
+            delay(0.01); // Allow frame queue to complete writing.
             $buffer = $server->read();
-            $expected = self::packFrame(
+            $expected = \bin2hex(self::packFrame(
                 \pack("N", Http2Parser::CANCEL),
                 Http2Parser::RST_STREAM,
                 Http2Parser::NO_FLAG,
-                1
-            );
-            self::assertStringContainsString($expected, $buffer);
+                1,
+            ));
+            self::assertStringContainsString($expected, \bin2hex($buffer));
         }
     }
 
@@ -292,9 +295,9 @@ class Http2ConnectionTest extends AsyncTestCase
 
         $request = new Request('https://localhost/');
 
-        $request->setPushHandler(function (Request $request, Future $response) use (&$pushPromise): void {
+        $request->setPushHandler(function (Request $request, Future $future) use (&$pushPromise): void {
             $this->assertSame('/static', $request->getUri()->getPath());
-            $pushPromise = $response;
+            $pushPromise = $future;
         });
 
         $stream = $connection->getStream($request);
@@ -330,7 +333,9 @@ class Http2ConnectionTest extends AsyncTestCase
             $server->write(self::packFrame('test', Http2Parser::DATA, Http2Parser::END_STREAM, 2));
         });
 
-        $response = $stream->request($request, new TimeoutCancellation(0.5));
+        $request->setTransferTimeout(0.5);
+
+        $response = $stream->request($request, new NullCancellation());
 
         self::assertSame(200, $response->getStatus());
 
@@ -344,14 +349,15 @@ class Http2ConnectionTest extends AsyncTestCase
             $response->getBody()->buffer();
             self::fail("The push promise body should have been cancelled");
         } catch (CancelledException $exception) {
+            delay(0.01); // Allow frame queue to complete writing.
             $buffer = $server->read();
-            $expected = self::packFrame(
+            $expected = \bin2hex(self::packFrame(
                 \pack("N", Http2Parser::CANCEL),
                 Http2Parser::RST_STREAM,
                 Http2Parser::NO_FLAG,
-                2
-            );
-            self::assertStringEndsWith($expected, $buffer);
+                2,
+            ));
+            self::assertStringEndsWith($expected, \bin2hex($buffer));
         }
     }
 
@@ -398,14 +404,15 @@ class Http2ConnectionTest extends AsyncTestCase
             $response->getBody()->buffer();
             self::fail("The request body should have been cancelled");
         } catch (TimeoutException $exception) {
+            delay(0.01); // Allow frame queue to complete writing.
             $buffer = $server->read();
-            $expected = self::packFrame(
+            $expected = \bin2hex(self::packFrame(
                 \pack("N", Http2Parser::CANCEL),
                 Http2Parser::RST_STREAM,
                 Http2Parser::NO_FLAG,
-                1
-            );
-            self::assertStringEndsWith($expected, $buffer);
+                1,
+            ));
+            self::assertStringEndsWith($expected, \bin2hex($buffer));
         }
     }
 
