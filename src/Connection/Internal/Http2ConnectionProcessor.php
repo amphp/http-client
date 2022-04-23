@@ -142,7 +142,8 @@ final class Http2ConnectionProcessor implements Http2Processor
         $this->settings = new DeferredFuture;
         $future = $this->settings->getFuture();
 
-        EventLoop::queue(fn () => $this->run());
+        EventLoop::queue($this->runReadFiber(...));
+        EventLoop::queue($this->runWriteFiber(...));
 
         $future->await();
     }
@@ -159,8 +160,10 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     public function close(): void
     {
-        $this->shutdown(new SocketException('Socket from \'' . $this->socket->getLocalAddress() . '\' to \'' .
-            $this->socket->getRemoteAddress() . '\' closed'));
+        $exception = new SocketException('Socket from \'' . $this->socket->getLocalAddress() . '\' to \'' .
+            $this->socket->getRemoteAddress() . '\' closed');
+
+        $this->shutdown($exception);
 
         $this->socket->close();
 
@@ -1182,12 +1185,10 @@ final class Http2ConnectionProcessor implements Http2Processor
         return $this->onClose === null;
     }
 
-    private function run(): void
+    private function runReadFiber(): void
     {
         try {
-            $this->socket->write(Http2Parser::PREFACE);
-
-            EventLoop::queue(fn () => $this->runWriteThread());
+            $this->frameQueueSource->pushAsync(Http2Parser::PREFACE)->ignore();
 
             $this->writeFrame(
                 Http2Parser::SETTINGS,
@@ -1220,13 +1221,15 @@ final class Http2ConnectionProcessor implements Http2Processor
             return;
         }
 
+        $parser = (new Http2Parser($this))->parse();
+
         try {
-            $parser = (new Http2Parser($this))->parse();
-
             while (null !== $chunk = $this->socket->read()) {
-                $yielded = $parser->send($chunk);
+                $parser->send($chunk);
 
-                \assert($yielded === null);
+                if (!$parser->valid()) {
+                    break;
+                }
             }
 
             /**
@@ -1721,13 +1724,6 @@ final class Http2ConnectionProcessor implements Http2Processor
                 return;
             }
 
-//            $this->writeFrame(
-//                Http2Parser::RST_STREAM,
-//                Http2Parser::NO_FLAG,
-//                $streamId,
-//                \pack("N", Http2Parser::CANCEL)
-//            )->ignore();
-
             $this->releaseStream(
                 $streamId,
                 new TimeoutException("Inactivity timeout exceeded, more than {$timeout} seconds elapsed from last data received")
@@ -1739,10 +1735,10 @@ final class Http2ConnectionProcessor implements Http2Processor
         return $watcher;
     }
 
-    private function runWriteThread(): void
+    private function runWriteFiber(): void
     {
         try {
-            $this->frameQueue->forEach(fn ($frame) => $this->socket->write($frame));
+            $this->frameQueue->forEach(fn (string $frame) => $this->socket->write($frame));
         } catch (\Throwable $exception) {
             $this->hasWriteError = true;
 

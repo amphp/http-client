@@ -19,7 +19,7 @@ final class ConnectionLimitingPool implements ConnectionPool
     /**
      * Create a connection pool that limits the number of connections per authority.
      *
-     * @param int                    $connectionLimit Maximum number of connections allowed to a single authority.
+     * @param int $connectionLimit Maximum number of connections allowed to a single authority.
      */
     public static function byAuthority(int $connectionLimit, ?ConnectionFactory $connectionFactory = null): self
     {
@@ -46,7 +46,7 @@ final class ConnectionLimitingPool implements ConnectionPool
 
     private ConnectionFactory $connectionFactory;
 
-    /** @var array<string, \ArrayObject<int, Future<Connection>>> */
+    /** @var array<string, array<int, Future<Connection>>> */
     private array $connections = [];
 
     /** @var Connection[] */
@@ -150,7 +150,7 @@ final class ConnectionLimitingPool implements ConnectionPool
     {
         $isHttps = $request->getUri()->getScheme() === 'https';
 
-        $connections = $this->connections[$uri] ?? new \ArrayObject;
+        $connections = $this->connections[$uri] ?? [];
 
         do {
             foreach ($connections as $connectionFuture) {
@@ -213,7 +213,7 @@ final class ConnectionLimitingPool implements ConnectionPool
         $connectionFuture = async(fn () => $this->connectionFactory->create($request, $cancellation));
 
         $promiseId = \spl_object_id($connectionFuture);
-        $this->connections[$uri] = $this->connections[$uri] ?? new \ArrayObject;
+        $this->connections[$uri] ??= [];
         $this->connections[$uri][$promiseId] = $connectionFuture;
 
         EventLoop::queue(function () use (
@@ -250,7 +250,7 @@ final class ConnectionLimitingPool implements ConnectionPool
         });
 
         try {
-            $connection = Future\any([$connectionFuture, $deferredFuture]);
+            $connection = Future\awaitFirst([$connectionFuture, $deferredFuture]);
         } catch (CompositeException $exception) {
             [$exception] = $exception->getReasons(); // The first reason is why the connection failed.
             throw $exception;
@@ -348,7 +348,7 @@ final class ConnectionLimitingPool implements ConnectionPool
             unset($this->activeRequestCounts[$connectionId], $this->idleConnections[$connectionId]);
         }
 
-        if ($this->connections[$uri]->count() === 0) {
+        if (\count($this->connections[$uri]) === 0) {
             unset($this->connections[$uri], $this->waitForPriorConnection[$uri]);
         }
     }
