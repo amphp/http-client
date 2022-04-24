@@ -17,14 +17,13 @@ class ModifyRequest implements NetworkInterceptor, ApplicationInterceptor
     use ForbidCloning;
     use ForbidSerialization;
 
-    /** @var callable(Request):(\Generator<mixed, mixed, mixed, Promise<Request|null>|Request|null>|Promise<Request|null>|Request|null) */
-    private $mapper;
+    /** @var \Closure(Request):(Request|null) */
+    private \Closure $mapper;
 
     /**
-     * @psalm-param callable(Request):(\Generator<mixed, mixed, mixed,
-     *     Promise<Request|null>|Request|null>|Promise<Request|null>|Request|null) $mapper
+     * @param \Closure(Request):(Request|null) $mapper
      */
-    public function __construct(callable $mapper)
+    public function __construct(\Closure $mapper)
     {
         $this->mapper = $mapper;
     }

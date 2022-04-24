@@ -55,7 +55,7 @@ final class RequestNormalizer
 
             $request->removeHeader('transfer-encoding');
         } elseif ($bodyLength > 0) {
-            $request->setHeader("content-length", $bodyLength);
+            $request->setHeader("content-length", (string) $bodyLength);
             $request->removeHeader("transfer-encoding");
         } else {
             $request->setHeader("transfer-encoding", "chunked");

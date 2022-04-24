@@ -17,14 +17,13 @@ class ModifyResponse implements NetworkInterceptor, ApplicationInterceptor
     use ForbidCloning;
     use ForbidSerialization;
 
-    /** @var callable(Response):(\Generator<mixed, mixed, mixed, Response|null>|Promise<Response>|Response|null) */
-    private $mapper;
+    /** @var \Closure(Response):Response */
+    private \Closure $mapper;
 
     /**
-     * @psalm-param callable(Response):(\Generator<mixed, mixed, mixed, Response|null>|Promise<Response>|Response|null)
-     *     $mapper
+     * @param \Closure(Response):Response $mapper
      */
-    public function __construct(callable $mapper)
+    public function __construct(\Closure $mapper)
     {
         $this->mapper = $mapper;
     }
@@ -47,7 +46,7 @@ class ModifyResponse implements NetworkInterceptor, ApplicationInterceptor
         Cancellation $cancellation,
         DelegateHttpClient $httpClient
     ): Response {
-        $request->interceptPush($this->mapper);
+        $request->interceptPush(fn (Request $request, Response $response) => ($this->mapper)($response));
 
         $response = $httpClient->request($request, $cancellation);
         $mappedResponse = ($this->mapper)($response);

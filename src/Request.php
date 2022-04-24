@@ -257,7 +257,7 @@ final class Request extends Message
      * If no push closure has been set by the application, the interceptor won't be invoked. If you want to enable
      * push in an interceptor without the application setting a push handler, you need to use {@see setPushHandler()}.
      *
-     * @param null|\Closure(Request, Response): Response $interceptor Receives the response and might modify it or return a
+     * @param \Closure(Request, Response): Response $interceptor Receives the response and might modify it or return a
      * new instance.
      */
     public function interceptPush(\Closure $interceptor): void

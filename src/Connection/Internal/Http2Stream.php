@@ -114,7 +114,9 @@ final class Http2Stream
             return;
         }
 
-        EventLoop::disable($this->watcher);
-        EventLoop::enable($this->watcher);
+        $watcher = $this->watcher;
+
+        EventLoop::disable($watcher);
+        EventLoop::enable($watcher);
     }
 }

@@ -203,20 +203,22 @@ final class LogHttpArchive implements ApplicationInterceptor
             $firstEntry = $this->fileHandle === null;
 
             if ($firstEntry) {
-                $this->fileHandle = File\openFile($this->filePath, 'w');
+                $this->fileHandle = $fileHandle = File\openFile($this->filePath, 'w');
 
                 $header = '{"log":{"version":"1.2","creator":{"name":"amphp/http-client","version":"4.x"},"pages":[],"entries":[';
 
-                $this->fileHandle->write($header);
+                $fileHandle->write($header);
             } else {
-                \assert($this->fileHandle !== null);
+                $fileHandle = $this->fileHandle;
 
-                $this->fileHandle->seek(-3, \SEEK_CUR);
+                \assert($fileHandle !== null);
+
+                $fileHandle->seek(-3, \SEEK_CUR);
             }
 
             $json = \json_encode(self::formatEntry($response));
 
-            $this->fileHandle->write(($firstEntry ? '' : ',') . $json . ']}}');
+            $fileHandle->write(($firstEntry ? '' : ',') . $json . ']}}');
 
             $lock->release();
         } catch (HttpException $e) {

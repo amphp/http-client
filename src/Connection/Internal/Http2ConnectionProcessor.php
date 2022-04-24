@@ -399,7 +399,6 @@ final class Http2ConnectionProcessor implements Http2Processor
                     $preResponseResolution,
                     $onInformationalResponse,
                     $response,
-                    $stream,
                     $streamId
                 ): void {
                     $preResponseResolution->await();
@@ -435,9 +434,9 @@ final class Http2ConnectionProcessor implements Http2Processor
             }
         });
 
-        $stream->body = new Queue();
-        $stream->trailers = new DeferredFuture;
-        $stream->trailers->getFuture()->ignore();
+        $stream->body = $body = new Queue();
+        $stream->trailers = $trailers = new DeferredFuture;
+        $trailers->getFuture()->ignore();
 
         $bodyCancellation = new DeferredCancellation;
         $cancellationToken = new CompositeCancellation(
@@ -447,11 +446,11 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         $response->setBody(
             new ResponseBodyStream(
-                new ReadableIterableStream($stream->body->pipe()),
+                new ReadableIterableStream($body->pipe()),
                 $bodyCancellation
             )
         );
-        $response->setTrailers($stream->trailers->getFuture());
+        $response->setTrailers($trailers->getFuture());
 
         \assert($stream->pendingResponse !== null);
 
@@ -822,6 +821,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             return;
         }
 
+        \assert($stream->body !== null);
         $stream->body->pushAsync($data)->map(function () use ($stream, $streamId, $length): void {
             // Stream may have closed while waiting for body data to be consumed.
             if (!isset($this->streams[$streamId])) {
@@ -1071,6 +1071,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             $headers = $this->hpack->encode($headers);
             if (\strlen($headers) > $this->frameSizeLimit) {
                 $split = \str_split($headers, $this->frameSizeLimit);
+                \assert($split !== false);
 
                 $firstChunk = \array_shift($split);
                 $lastChunk = \array_pop($split);
@@ -1369,6 +1370,8 @@ final class Http2ConnectionProcessor implements Http2Processor
 
             if ($length > $this->frameSizeLimit) {
                 $chunks = \str_split($stream->requestBodyBuffer, $this->frameSizeLimit);
+                \assert($chunks !== false);
+
                 $stream->requestBodyBuffer = \array_pop($chunks);
 
                 foreach ($chunks as $chunk) {
