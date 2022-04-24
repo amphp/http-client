@@ -19,7 +19,6 @@ use Amp\Http\Client\Interceptor\SetRequestHeaderIfUnset;
  */
 final class HttpClientBuilder
 {
-    use ForbidCloning;
     use ForbidSerialization;
 
     public static function buildDefault(): HttpClient
@@ -219,5 +218,11 @@ final class HttpClientBuilder
         $builder->defaultCompressionHandler = null;
 
         return $builder;
+    }
+
+    final protected function __clone()
+    {
+        // clone is automatically denied to all external calls
+        // final protected instead of private to also force denial for all children
     }
 }
