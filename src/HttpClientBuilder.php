@@ -2,7 +2,6 @@
 
 namespace Amp\Http\Client;
 
-use Amp\ForbidCloning;
 use Amp\ForbidSerialization;
 use Amp\Http\Client\Connection\ConnectionPool;
 use Amp\Http\Client\Connection\UnlimitedConnectionPool;
