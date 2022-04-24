@@ -60,7 +60,7 @@ final class Http2Connection implements Connection
         );
     }
 
-    public function onClose(callable $onClose): void
+    public function onClose(\Closure $onClose): void
     {
         $this->processor->onClose($onClose);
     }
