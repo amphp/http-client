@@ -63,7 +63,7 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
             ->usingPool($pool)
             ->build();
 
-        $this->setTimeout(0.25);
+        $this->setTimeout(0.5);
 
         Future\all([
             async(fn () => $client->request($request)),
