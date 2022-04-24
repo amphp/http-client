@@ -48,7 +48,6 @@ class Http2ConnectionTest extends AsyncTestCase
 
         $stream = $connection->getStream($request);
 
-
         $server->write(self::packFrame($hpack->encode([
             [":status", Status::CONTINUE],
             ["date", formatDateHeader()],
