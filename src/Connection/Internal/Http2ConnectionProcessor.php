@@ -406,7 +406,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                     $response,
                     $streamId
                 ): void {
-                    $preResponseResolution->await();
+                    $preResponseResolution?->await();
 
                     try {
                         $onInformationalResponse($response);

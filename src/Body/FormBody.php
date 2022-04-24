@@ -11,7 +11,7 @@ use function Amp\async;
 
 final class FormBody implements RequestBody
 {
-    /** @var array{string, FileBody|string, string, null}[] */
+    /** @var array{string, FileBody|string, string, string|null}[] */
     private array $fields = [];
 
     private string $boundary;

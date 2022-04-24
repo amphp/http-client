@@ -179,6 +179,19 @@ final class Http1Connection implements Connection
             && ($this->getRemainingTime() > 0 || $request->isIdempotent());
     }
 
+    private function readChunk(float $timeout): ?string
+    {
+        if ($timeout > 0) {
+            if ($this->idleRead) {
+                return $this->idleRead->await(new TimeoutCancellation($timeout));
+            }
+
+            return $this->socket?->read(new TimeoutCancellation($timeout));
+        }
+
+        return $this->socket?->read();
+    }
+
     private function request(Request $request, Cancellation $cancellation, Stream $stream): Response
     {
         ++$this->requestCounter;
@@ -274,11 +287,7 @@ final class Http1Connection implements Connection
                 throw new SocketException('Socket closed prior to response completion');
             }
 
-            while (null !== $chunk = $timeout > 0
-                    ? ($this->idleRead ?? async(fn () => $this->socket->read()))
-                        ->await(new TimeoutCancellation($timeout))
-                    : $this->socket->read()
-            ) {
+            while (null !== $chunk = $this->readChunk($timeout)) {
                 parseChunk:
                 $response = $parser->parse($chunk);
                 if ($response === null) {
@@ -467,7 +476,7 @@ final class Http1Connection implements Connection
                 "Receiving the response headers for '%s' failed, because the socket to '%s' @ '%s' closed early with %d bytes received within %0.3f seconds",
                 (string) $request->getUri()->withUserInfo(''),
                 $request->getUri()->withUserInfo('')->getAuthority(),
-                $this->socket?->getRemoteAddress()->toString() ?? '???',
+                $this->socket?->getRemoteAddress()?->toString() ?? '???',
                 \strlen($parser->getBuffer()),
                 now() - $start
             ));
@@ -581,11 +590,12 @@ final class Http1Connection implements Connection
         try {
             $rawHeaders = $this->generateRawHeader($request, $protocolVersion);
 
-            if ($this->socket === null) {
+            $socket = $this->socket;
+            if ($socket === null) {
                 throw new UnprocessedRequestException(new SocketException('Socket closed before request started'));
             }
 
-            $this->socket->write($rawHeaders);
+            $socket->write($rawHeaders);
 
             if ($request->getMethod() === 'CONNECT') {
                 return;
@@ -626,17 +636,17 @@ final class Http1Connection implements Connection
                     }
                 }
 
-                $this->socket->write($buffer);
+                $socket->write($buffer);
                 $buffer = $chunk;
             }
 
             $cancellation->throwIfRequested();
 
             // Flush last buffered chunk.
-            $this->socket->write($buffer);
+            $socket->write($buffer);
 
             if ($chunking) {
-                $this->socket->write("0\r\n\r\n");
+                $socket->write("0\r\n\r\n");
             } elseif ($remainingBytes !== null && $remainingBytes > 0) {
                 throw new InvalidRequestException(
                     $request,
@@ -676,11 +686,11 @@ final class Http1Connection implements Connection
 
     private function watchIdleConnection(): void
     {
-        $this->socket->unreference();
+        $this->socket?->unreference();
         $this->idleRead = async(function (): ?string {
             $chunk = null;
             try {
-                $chunk = $this->socket->read();
+                $chunk = $this->socket?->read();
             } catch (\Throwable) {
                 // Close connection below.
             }
