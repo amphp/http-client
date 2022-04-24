@@ -4,9 +4,9 @@ namespace Amp\Http\Client\Interceptor;
 
 use Amp\ByteStream\Compression\DecompressingReadableStream;
 use Amp\Cancellation;
+use Amp\ForbidCloning;
+use Amp\ForbidSerialization;
 use Amp\Http\Client\Connection\Stream;
-use Amp\Http\Client\Internal\ForbidCloning;
-use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Client\Internal\SizeLimitingReadableStream;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request;

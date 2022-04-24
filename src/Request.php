@@ -2,10 +2,10 @@
 
 namespace Amp\Http\Client;
 
+use Amp\ForbidSerialization;
 use Amp\Future;
 use Amp\Http\Client\Body\StringBody;
 use Amp\Http\Client\Connection\UpgradedSocket;
-use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Message;
 use League\Uri;
 use Psr\Http\Message\UriInterface;

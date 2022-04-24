@@ -3,7 +3,7 @@
 namespace Amp\Http\Client\Connection;
 
 use Amp\Cancellation;
-use Amp\Http\Client\Internal\ForbidSerialization;
+use Amp\ForbidSerialization;
 use Amp\Http\Client\Request;
 
 final class UnlimitedConnectionPool implements ConnectionPool

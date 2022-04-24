@@ -3,8 +3,8 @@
 namespace Amp\Http\Client\Connection;
 
 use Amp\Cancellation;
-use Amp\Http\Client\Internal\ForbidCloning;
-use Amp\Http\Client\Internal\ForbidSerialization;
+use Amp\ForbidCloning;
+use Amp\ForbidSerialization;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Socket\SocketAddress;

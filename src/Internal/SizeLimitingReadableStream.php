@@ -4,6 +4,8 @@ namespace Amp\Http\Client\Internal;
 
 use Amp\ByteStream\ReadableStream;
 use Amp\Cancellation;
+use Amp\ForbidCloning;
+use Amp\ForbidSerialization;
 use Amp\Http\Client\ParseException;
 use Amp\Http\Status;
 

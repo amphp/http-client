@@ -2,6 +2,8 @@
 
 namespace Amp\Http\Client;
 
+use Amp\ForbidCloning;
+use Amp\ForbidSerialization;
 use Amp\Http\Client\Connection\ConnectionPool;
 use Amp\Http\Client\Connection\UnlimitedConnectionPool;
 use Amp\Http\Client\Interceptor\DecompressResponse;
@@ -9,8 +11,6 @@ use Amp\Http\Client\Interceptor\FollowRedirects;
 use Amp\Http\Client\Interceptor\ForbidUriUserInfo;
 use Amp\Http\Client\Interceptor\RetryRequests;
 use Amp\Http\Client\Interceptor\SetRequestHeaderIfUnset;
-use Amp\Http\Client\Internal\ForbidCloning;
-use Amp\Http\Client\Internal\ForbidSerialization;
 
 /**
  * Allows building an HttpClient instance.

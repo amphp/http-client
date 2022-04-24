@@ -2,7 +2,7 @@
 
 namespace Amp\Http\Client;
 
-use Amp\Http\Client\Internal\ForbidSerialization;
+use Amp\ForbidSerialization;
 use Amp\Http\InvalidHeaderException;
 use Amp\Http\Message;
 

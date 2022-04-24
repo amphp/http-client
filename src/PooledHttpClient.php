@@ -3,11 +3,11 @@
 namespace Amp\Http\Client;
 
 use Amp\Cancellation;
+use Amp\ForbidCloning;
+use Amp\ForbidSerialization;
 use Amp\Http\Client\Connection\ConnectionPool;
 use Amp\Http\Client\Connection\InterceptedStream;
 use Amp\Http\Client\Connection\UnlimitedConnectionPool;
-use Amp\Http\Client\Internal\ForbidCloning;
-use Amp\Http\Client\Internal\ForbidSerialization;
 
 final class PooledHttpClient implements DelegateHttpClient
 {

@@ -5,6 +5,8 @@ namespace Amp\Http\Client\Internal;
 use Amp\ByteStream\ReadableStream;
 use Amp\Cancellation;
 use Amp\DeferredCancellation;
+use Amp\ForbidCloning;
+use Amp\ForbidSerialization;
 
 /** @internal */
 final class ResponseBodyStream implements ReadableStream

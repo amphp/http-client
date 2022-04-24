@@ -2,6 +2,9 @@
 
 namespace Amp\Http\Client\Internal;
 
+use Amp\ForbidCloning;
+use Amp\ForbidSerialization;
+
 /** @internal */
 final class HarAttributes
 {

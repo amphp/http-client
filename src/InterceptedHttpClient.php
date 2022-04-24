@@ -3,8 +3,8 @@
 namespace Amp\Http\Client;
 
 use Amp\Cancellation;
-use Amp\Http\Client\Internal\ForbidCloning;
-use Amp\Http\Client\Internal\ForbidSerialization;
+use Amp\ForbidCloning;
+use Amp\ForbidSerialization;
 
 final class InterceptedHttpClient implements DelegateHttpClient
 {

@@ -5,9 +5,9 @@ namespace Amp\Http\Client;
 use Amp\ByteStream\Payload;
 use Amp\ByteStream\ReadableBuffer;
 use Amp\ByteStream\ReadableStream;
+use Amp\ForbidCloning;
+use Amp\ForbidSerialization;
 use Amp\Future;
-use Amp\Http\Client\Internal\ForbidCloning;
-use Amp\Http\Client\Internal\ForbidSerialization;
 use Amp\Http\Message;
 use Amp\Http\Status;
 
