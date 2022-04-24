@@ -15,6 +15,7 @@
         "callable",
         "void",
         "object",
+        "mixed",
         "ZLIB_ENCODING_GZIP",
         "ZLIB_ENCODING_DEFLATE",
         "json_encode",
@@ -26,7 +27,9 @@
         "Amp\\File\\size",
         "Amp\\File\\getSize",
         "Amp\\Http\\Client\\Connection\\LimitedConnectionPool",
-        "AMP_DEBUG_HTTP2_FRAMES"
+        "AMP_DEBUG_HTTP2_FRAMES",
+        "Amp\\File\\Filesystem",
+        "Amp\\File\\filesystem"
     ],
     "php-core-extensions": [
         "Core",

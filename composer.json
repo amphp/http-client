@@ -34,7 +34,9 @@
         "amphp/socket": "^2",
         "amphp/sync": "^2",
         "league/uri": "^6",
-        "psr/http-message": "^1"
+        "psr/http-message": "^1",
+        "revolt/event-loop": "^0.2.4",
+        "amphp/pipeline": "^1"
     },
     "require-dev": {
         "ext-json": "*",
