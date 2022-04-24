@@ -184,6 +184,7 @@ final class Http1Connection implements Connection
         ++$this->requestCounter;
 
         if ($this->socket !== null && !$this->socket->isClosed()) {
+            /** @psalm-suppress PossiblyNullReference */
             $this->socket->reference();
         }
 
@@ -464,9 +465,9 @@ final class Http1Connection implements Connection
 
             throw new SocketException(\sprintf(
                 "Receiving the response headers for '%s' failed, because the socket to '%s' @ '%s' closed early with %d bytes received within %0.3f seconds",
-                $request->getUri()->withUserInfo(''),
+                (string) $request->getUri()->withUserInfo(''),
                 $request->getUri()->withUserInfo('')->getAuthority(),
-                $this->socket === null ? '???' : $this->socket->getRemoteAddress(),
+                $this->socket?->getRemoteAddress()->toString() ?? '???',
                 \strlen($parser->getBuffer()),
                 now() - $start
             ));

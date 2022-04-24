@@ -188,6 +188,8 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         $deferred = $this->pongDeferred;
         $this->pongDeferred = null;
+
+        \assert($deferred !== null);
         $deferred->complete(true);
     }
 
@@ -320,6 +322,9 @@ final class Http2ConnectionProcessor implements Http2Processor
 
             $trailers = $stream->trailers;
             $stream->trailers = null;
+
+            \assert($trailers !== null);
+
             EventLoop::queue(function () use ($trailers, $stream, $streamId, $parsedTrailers): void {
                 try {
                     foreach ($stream->request->getEventListeners() as $eventListener) {
