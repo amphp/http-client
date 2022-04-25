@@ -5,7 +5,7 @@ namespace Amp\Http\Client\Interceptor\Hsts;
 final class InMemoryHstsJar implements HstsJar
 {
     /**
-     * Array of host to either true (includeSubDomain) or false (no includeSubDomain)
+     * Array of host to either true (includeSubDomain) or false (no includeSubDomain).
      * @var array<string,bool>
      */
     private array $hosts = [];
@@ -14,15 +14,15 @@ final class InMemoryHstsJar implements HstsJar
     {
         if (
             // Host must have been marked HSTS
-            array_key_exists($host, $this->hosts) &&
+            \array_key_exists($host, $this->hosts) &&
             // If "includeSubDomains" is required, it must be marked as such
             (!$requireIncludeSubDomains || $this->hosts[$host])
         ) {
             return true;
         }
-        if (($dotPosition = strpos($host, ".")) !== false) {
+        if (($dotPosition = \strpos($host, ".")) !== false) {
             // Test if a parent domain has been registered with includeSubDomains
-            return $this->test(substr($host, $dotPosition + 1), true);
+            return $this->test(\substr($host, $dotPosition + 1), true);
         }
         return false;
     }

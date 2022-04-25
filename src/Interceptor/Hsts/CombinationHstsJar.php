@@ -25,7 +25,7 @@ class CombinationHstsJar implements HstsJar
     }
 
     /**
-     * Registers into first HSTS jar that is not read-only
+     * Registers into first HSTS jar that is not read-only.
      */
     public function register(string $host, bool $includeSubDomains = false): void
     {
@@ -38,7 +38,7 @@ class CombinationHstsJar implements HstsJar
     }
 
     /**
-     * Unregisters from all HSTS jars
+     * Unregisters from all HSTS jars.
      */
     public function unregister(string $host): void
     {

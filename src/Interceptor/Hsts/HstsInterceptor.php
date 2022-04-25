@@ -21,7 +21,7 @@ final class HstsInterceptor implements ApplicationInterceptor
         }
         $response = $httpClient->request($request, $cancellation);
         if ($strictTransportSecurity = $response->getHeader("Strict-Transport-Security")) {
-            $directives = array_map(trim(...), explode(";", $strictTransportSecurity));
+            $directives = \array_map(trim(...), \explode(";", $strictTransportSecurity));
             $includeSubDomains = false;
             $remove = false;
             foreach ($directives as $directive) {
