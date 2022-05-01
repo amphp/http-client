@@ -143,11 +143,7 @@ final class Http1Connection implements Connection
 
         $this->busy = true;
 
-        return HttpStream::fromConnection(
-            $this,
-            \Closure::fromCallable([$this, 'request']),
-            \Closure::fromCallable([$this, 'release'])
-        );
+        return HttpStream::fromConnection($this, $this->request(...), $this->release(...));
     }
 
     private function free(): void
@@ -181,25 +177,22 @@ final class Http1Connection implements Connection
 
     private function readChunk(float $timeout): ?string
     {
-        if ($timeout > 0) {
-            if ($this->idleRead) {
-                return $this->idleRead->await(new TimeoutCancellation($timeout));
-            }
+        $cancellation = $timeout > 0 ? new TimeoutCancellation($timeout) : null;
 
-            return $this->socket?->read(new TimeoutCancellation($timeout));
+        if ($this->idleRead) {
+            $future = $this->idleRead;
+            $this->idleRead = null;
+            return $future->await($cancellation);
         }
 
-        return $this->socket?->read();
+        return $this->socket?->read($cancellation);
     }
 
     private function request(Request $request, Cancellation $cancellation, Stream $stream): Response
     {
         ++$this->requestCounter;
 
-        if ($this->socket !== null && !$this->socket->isClosed()) {
-            /** @psalm-suppress PossiblyNullReference */
-            $this->socket->reference();
-        }
+        $this->socket?->reference();
 
         if ($this->timeoutWatcher !== null) {
             EventLoop::cancel($this->timeoutWatcher);
@@ -238,9 +231,7 @@ final class Http1Connection implements Connection
                 $eventListener->abort($request, $e);
             }
 
-            if ($this->socket !== null) {
-                $this->socket->close();
-            }
+            $this->socket?->close();
 
             throw $e;
         } finally {
