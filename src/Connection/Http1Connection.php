@@ -212,7 +212,7 @@ final class Http1Connection implements Connection
             $combinedCancellation = $cancellation;
         }
 
-        $id = $combinedCancellation->subscribe(\Closure::fromCallable([$this, 'close']));
+        $id = $combinedCancellation->subscribe($this->close(...));
 
         try {
             foreach ($request->getEventListeners() as $eventListener) {
@@ -368,7 +368,7 @@ final class Http1Connection implements Connection
                     $timeout,
                     &$trailers
                 ) {
-                    $closeId = $bodyCancellation->subscribe(\Closure::fromCallable([$this, 'close']));
+                    $closeId = $bodyCancellation->subscribe($this->close(...));
 
                     try {
                         // Required, otherwise responses without body hang
@@ -427,7 +427,7 @@ final class Http1Connection implements Connection
                         $timeout = $this->determineKeepAliveTimeout($response);
 
                         if ($timeout > 0 && $parser->getState() !== Http1Parser::BODY_IDENTITY_EOF) {
-                            $this->timeoutWatcher = EventLoop::delay($timeout, \Closure::fromCallable([$this, 'close']));
+                            $this->timeoutWatcher = EventLoop::delay($timeout, $this->close(...));
                             EventLoop::unreference($this->timeoutWatcher);
                             $this->watchIdleConnection();
                         } else {

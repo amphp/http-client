@@ -53,11 +53,7 @@ final class Http2Connection implements Connection
 
         $this->processor->reserveStream();
 
-        return HttpStream::fromConnection(
-            $this,
-            \Closure::fromCallable([$this, 'request']),
-            \Closure::fromCallable([$this->processor, 'unreserveStream'])
-        );
+        return HttpStream::fromConnection($this, $this->request(...), $this->processor->unreserveStream(...));
     }
 
     public function onClose(\Closure $onClose): void
