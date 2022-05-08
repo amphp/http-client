@@ -46,7 +46,7 @@ final class ConnectionLimitingPool implements ConnectionPool
 
     private ConnectionFactory $connectionFactory;
 
-    /** @var array<string, array<int, Future<Connection>>> */
+    /** @var array<string, \ArrayObject<int, Future<Connection>>> */
     private array $connections = [];
 
     /** @var Connection[] */
@@ -106,10 +106,6 @@ final class ConnectionLimitingPool implements ConnectionPool
 
         $uri = self::formatUri($request);
 
-        /**
-         * @var Stream $stream
-         * @psalm-suppress all
-         */
         [$connection, $stream] = $this->getStreamFor($uri, $request, $cancellation);
 
         $connectionId = \spl_object_id($connection);
@@ -146,6 +142,9 @@ final class ConnectionLimitingPool implements ConnectionPool
         );
     }
 
+    /**
+     * @return array{Connection, Stream}
+     */
     private function getStreamFor(string $uri, Request $request, Cancellation $cancellation): array
     {
         $isHttps = $request->getUri()->getScheme() === 'https';
@@ -186,7 +185,7 @@ final class ConnectionLimitingPool implements ConnectionPool
             }
 
             $deferred = new DeferredFuture;
-            $deferredFuture = $deferred->getFuture();
+            $futureFromDeferred = $deferred->getFuture();
 
             $this->waiting[$uri][\spl_object_id($deferred)] = $deferred;
 
@@ -194,7 +193,7 @@ final class ConnectionLimitingPool implements ConnectionPool
                 break;
             }
 
-            $connection = $deferredFuture->await();
+            $connection = $futureFromDeferred->await();
 
             \assert($connection instanceof Connection);
 
@@ -209,27 +208,23 @@ final class ConnectionLimitingPool implements ConnectionPool
 
         $this->totalConnectionAttempts++;
 
-        $connectionFuture = async(fn () => $this->connectionFactory->create($request, $cancellation));
+        $connectionFuture = async($this->connectionFactory->create(...), $request, $cancellation);
 
-        $promiseId = \spl_object_id($connectionFuture);
-        $this->connections[$uri] ??= [];
-        $this->connections[$uri][$promiseId] = $connectionFuture;
+        $futureId = \spl_object_id($connectionFuture);
+        $this->connections[$uri] ??= new \ArrayObject();
+        $this->connections[$uri][$futureId] = $connectionFuture;
 
         EventLoop::queue(function () use (
-            &$deferred,
             $connectionFuture,
             $uri,
-            $promiseId,
+            $futureId,
             $isHttps
         ): void {
             try {
                 /** @var Connection $connection */
                 $connection = $connectionFuture->await();
             } catch (\Throwable $exception) {
-                $this->dropConnection($uri, null, $promiseId);
-                if ($deferred !== null) {
-                    $deferred->error($exception); // Fail DeferredFuture so Promise\first() below fails.
-                }
+                $this->dropConnection($uri, null, $futureId);
                 return;
             }
 
@@ -242,35 +237,34 @@ final class ConnectionLimitingPool implements ConnectionPool
                 $this->waitForPriorConnection[$uri] = \in_array('2', $connection->getProtocolVersions(), true);
             }
 
-            $connection->onClose(function () use ($uri, $connectionId, $promiseId): void {
+            $connection->onClose(function () use ($uri, $connectionId, $futureId): void {
                 $this->openConnectionCount--;
-                $this->dropConnection($uri, $connectionId, $promiseId);
+                $this->dropConnection($uri, $connectionId, $futureId);
             });
         });
 
         try {
-            $connection = Future\awaitFirst([$connectionFuture, $deferredFuture]);
+            // Await both new connection future and deferred to reuse an existing connection.
+            $connection = Future\awaitFirst([$connectionFuture, $futureFromDeferred]);
         } catch (CompositeException $exception) {
             [$exception] = $exception->getReasons(); // The first reason is why the connection failed.
             throw $exception;
         }
 
         $this->removeWaiting($uri, \spl_object_id($deferred)); // DeferredFuture no longer needed for this request.
-        $deferred = null; // Null reference so connection promise handler does not double-resolve the DeferredFuture.
 
         \assert($connection instanceof Connection);
 
         $stream = $this->getStreamFromConnection($connection, $request);
 
         if ($stream === null) {
-            // Reused connection did not have an available stream for the given request.
+            // Potentially reused connection did not have an available stream for the given request.
             $connection = $connectionFuture->await(); // Wait for new connection request instead.
 
             $stream = $this->getStreamFromConnection($connection, $request);
 
             if ($stream === null) {
                 // Other requests used the new connection first, so we need to go around again.
-                // Using new Coroutine avoids a bug on PHP < 7.4, see #265
                 return $this->getStreamFor($uri, $request, $cancellation);
             }
         }
@@ -280,6 +274,10 @@ final class ConnectionLimitingPool implements ConnectionPool
 
     private function getStreamFromConnection(Connection $connection, Request $request): ?Stream
     {
+        if ($connection->isClosed()) {
+            return null; // Connection closed during iteration over available connections.
+        }
+
         if (!\array_intersect($request->getProtocolVersions(), $connection->getProtocolVersions())) {
             return null; // Connection does not support any of the requested protocol versions.
         }
@@ -340,9 +338,9 @@ final class ConnectionLimitingPool implements ConnectionPool
         }
     }
 
-    private function dropConnection(string $uri, ?int $connectionId, int $promiseId): void
+    private function dropConnection(string $uri, ?int $connectionId, int $futureId): void
     {
-        unset($this->connections[$uri][$promiseId]);
+        unset($this->connections[$uri][$futureId]);
         if ($connectionId !== null) {
             unset($this->activeRequestCounts[$connectionId], $this->idleConnections[$connectionId]);
         }

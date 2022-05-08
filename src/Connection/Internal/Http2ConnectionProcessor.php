@@ -94,7 +94,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     private int $idlePings = 0;
 
-    /** @var callable[]|null */
+    /** @var list<\Closure():void>|null */
     private ?array $onClose = [];
 
     private bool $hasTimeout = false;
@@ -144,10 +144,13 @@ final class Http2ConnectionProcessor implements Http2Processor
         $future->await();
     }
 
-    public function onClose(callable $onClose): void
+    /**
+     * @param \Closure():void $onClose
+     */
+    public function onClose(\Closure $onClose): void
     {
         if ($this->onClose === null) {
-            EventLoop::defer(fn () => $onClose($this));
+            EventLoop::queue($onClose);
             return;
         }
 
@@ -156,21 +159,17 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     public function close(): void
     {
-        $exception = new SocketException('Socket from \'' . $this->socket->getLocalAddress() . '\' to \'' .
-            $this->socket->getRemoteAddress() . '\' closed');
+        if ($this->shutdown !== null) {
+            return;
+        }
+
+        $exception = new SocketException(\sprintf(
+            "Socket from '%s' to '%s' closed",
+            $this->socket->getLocalAddress()->toString(),
+            $this->socket->getRemoteAddress()->toString(),
+        ));
 
         $this->shutdown($exception);
-
-        $this->socket->close();
-
-        if ($this->onClose !== null) {
-            $onClose = $this->onClose;
-            $this->onClose = null;
-
-            foreach ($onClose as $callback) {
-                EventLoop::defer(fn () => $callback($this));
-            }
-        }
     }
 
     public function handlePong(string $data): void
@@ -508,7 +507,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
             if (!$this->streams[$streamId]->originalCancellation->isRequested()) {
                 $this->hasTimeout = true;
-                async(fn () => $this->ping())->ignore(); // async ping, if other requests occur, they wait for it
+                async($this->ping(...))->ignore(); // async ping, if other requests occur, they wait for it
 
                 $transferTimeout = $this->streams[$streamId]->request->getTransferTimeout();
 
@@ -773,8 +772,6 @@ final class Http2ConnectionProcessor implements Http2Processor
         $this->shutdown(
             new ClientHttp2ConnectionException($exception->getMessage(), $exception->getCode(), $exception)
         );
-
-        $this->close();
     }
 
     public function handleData(int $streamId, string $data): void
@@ -1209,10 +1206,8 @@ final class Http2ConnectionProcessor implements Http2Processor
              */
             $this->shutdown(new ClientHttp2ConnectionException(
                 "The HTTP/2 connection closed" . ($this->shutdown !== null ? ' unexpectedly' : ''),
-                $this->shutdown ?? Http2Parser::GRACEFUL_SHUTDOWN
+                $this->shutdown ?? Http2Parser::GRACEFUL_SHUTDOWN,
             ), 0);
-
-            $this->close();
 
             return;
         }
@@ -1235,10 +1230,8 @@ final class Http2ConnectionProcessor implements Http2Processor
             $this->shutdown(new ClientHttp2ConnectionException(
                 "The HTTP/2 connection from '" . $this->socket->getLocalAddress() . "' to '" . $this->socket->getRemoteAddress() .
                     "' closed" . ($this->shutdown === null ? ' unexpectedly' : ''),
-                $this->shutdown ?? Http2Parser::INTERNAL_ERROR
+                $this->shutdown ?? Http2Parser::INTERNAL_ERROR,
             ));
-
-            $this->close();
         } catch (\Throwable $exception) {
             /**
              * @psalm-suppress DeprecatedClass
@@ -1250,8 +1243,6 @@ final class Http2ConnectionProcessor implements Http2Processor
                 Http2Parser::INTERNAL_ERROR,
                 $exception
             ));
-
-            $this->close();
         }
     }
 
@@ -1515,10 +1506,6 @@ final class Http2ConnectionProcessor implements Http2Processor
         if (!$this->streams && !$this->socket->isClosed()) {
             $this->socket->unreference();
         }
-
-        if (!$this->streams && $this->shutdown !== null) {
-            $this->close();
-        }
     }
 
     private function setupPingIfIdle(): void
@@ -1545,7 +1532,6 @@ final class Http2ConnectionProcessor implements Http2Processor
                     // Connection idle for 10 minutes
                     if ($this->idlePings >= 1) {
                         $this->shutdown(new HttpException('Too many pending pings'));
-                        $this->close();
                         return;
                     }
 
@@ -1553,7 +1539,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                         $this->setupPingIfIdle();
                     }
                 } catch (\Throwable $exception) {
-                    $this->close();
+                    $this->shutdown(new HttpException('Exception when handling pings', 0, $exception));
                 }
             });
 
@@ -1633,6 +1619,17 @@ final class Http2ConnectionProcessor implements Http2Processor
                 }
 
                 $this->releaseStream($id, $reason);
+            }
+        }
+
+        $this->socket->close();
+
+        if ($this->onClose !== null) {
+            $onClose = $this->onClose;
+            $this->onClose = null;
+
+            foreach ($onClose as $callback) {
+                EventLoop::queue($callback);
             }
         }
     }

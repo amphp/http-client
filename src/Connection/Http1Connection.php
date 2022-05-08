@@ -61,7 +61,7 @@ final class Http1Connection implements Connection
     /** @var int Keep-Alive timeout from last response. */
     private int $priorTimeout = self::MAX_KEEP_ALIVE_TIMEOUT;
 
-    /** @var callable[]|null */
+    /** @var list<\Closure():void>|null */
     private ?array $onClose = [];
 
     private float $timeoutGracePeriod;
@@ -162,7 +162,7 @@ final class Http1Connection implements Connection
             $this->onClose = null;
 
             foreach ($onClose as $callback) {
-                EventLoop::defer(fn () => $callback($this));
+                EventLoop::queue($callback);
             }
         }
     }
@@ -394,11 +394,7 @@ final class Http1Connection implements Connection
                                     if ($this->socket === null) {
                                         throw new SocketException('Socket closed prior to response completion');
                                     }
-                                } while (null !== $chunk = $timeout > 0
-                                    ? async(fn () => $this->socket->read())
-                                        ->await(new TimeoutCancellation($timeout))
-                                    : $this->socket->read()
-                                );
+                                } while (null !== $chunk = $this->socket->read($timeout > 0 ? new TimeoutCancellation($timeout) : null));
                             } catch (CancelledException $e) {
                                 $this->close();
                                 $originalCancellation->throwIfRequested();
