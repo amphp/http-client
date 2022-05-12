@@ -17,5 +17,5 @@ interface ConnectionFactory
      * Additionally, the factory may invoke {@see EventListener::startDnsResolution()} and
      * {@see EventListener::completeDnsResolution()}, but is not required to implement such granular events.
      */
-    public function create(Request $request, Cancellation $cancellationToken): Connection;
+    public function create(Request $request, Cancellation $cancellation): Connection;
 }

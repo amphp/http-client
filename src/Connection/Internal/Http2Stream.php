@@ -14,7 +14,7 @@ use Amp\Pipeline\Queue;
 use Revolt\EventLoop;
 
 /**
- * Used in Http2Connection.
+ * Used in Http2ConnectionProcessor.
  *
  * @internal
  */
@@ -22,10 +22,6 @@ final class Http2Stream
 {
     use ForbidSerialization;
     use ForbidCloning;
-
-    public int $id;
-
-    public Request $request;
 
     public ?Response $response = null;
 
@@ -39,22 +35,14 @@ final class Http2Stream
 
     public ?DeferredFuture $trailers = null;
 
-    public Cancellation $originalCancellation;
-
-    public Cancellation $cancellationToken;
-
     /** @var int Bytes received on the stream. */
     public int $received = 0;
-
-    public int $serverWindow;
-
-    public int $clientWindow;
 
     public int $bufferSize;
 
     public string $requestBodyBuffer = '';
 
-    public DeferredFuture $requestBodyCompletion;
+    public readonly DeferredFuture $requestBodyCompletion;
 
     /** @var int Integer between 1 and 256 */
     public int $weight = 16;
@@ -63,30 +51,17 @@ final class Http2Stream
 
     public ?int $expectedLength = null;
 
-    public Stream $stream;
-
     public ?DeferredFuture $windowSizeIncrease = null;
 
-    private ?string $watcher;
-
     public function __construct(
-        int $id,
-        Request $request,
-        Stream $stream,
-        Cancellation $cancellationToken,
-        Cancellation $originalCancellation,
-        ?string $watcher,
-        int $serverSize,
-        int $clientSize
+        public readonly int $id,
+        public readonly Request $request,
+        public readonly Stream $stream,
+        public readonly Cancellation $cancellation,
+        public readonly ?string $watcher,
+        public int $serverWindow,
+        public int $clientWindow,
     ) {
-        $this->id = $id;
-        $this->request = $request;
-        $this->stream = $stream;
-        $this->cancellationToken = $cancellationToken;
-        $this->originalCancellation = $originalCancellation;
-        $this->watcher = $watcher;
-        $this->serverWindow = $serverSize;
-        $this->clientWindow = $clientSize;
         $this->pendingResponse = new DeferredFuture;
         $this->requestBodyCompletion = new DeferredFuture;
         $this->bufferSize = 0;

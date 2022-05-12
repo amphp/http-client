@@ -8,6 +8,7 @@ use Amp\Http\Client\HttpException;
 use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
+use Amp\Http\Client\SocketException;
 use Amp\Http\Client\TimeoutException;
 use Amp\Http\Client\Trailers;
 use Amp\Http\HPack;
@@ -85,7 +86,7 @@ class Http2ConnectionTest extends AsyncTestCase
             ["date", formatDateHeader()],
         ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS, 1));
 
-        $this->expectException(Http2ConnectionException::class);
+        $this->expectException(SocketException::class);
         $this->expectExceptionMessage('Switching Protocols (101) is not part of HTTP/2');
 
         $stream->request($request, new NullCancellation);
@@ -466,7 +467,7 @@ class Http2ConnectionTest extends AsyncTestCase
                 [":path", '/static'],
             ]), Http2Parser::PUSH_PROMISE, Http2Parser::END_HEADERS, 1));
 
-        $this->expectException(Http2ConnectionException::class);
+        $this->expectException(SocketException::class);
         $this->expectExceptionMessage('Invalid server initiated stream');
 
         /** @var Response $response */
@@ -478,7 +479,6 @@ class Http2ConnectionTest extends AsyncTestCase
      * @throws Socket\SocketException
      * @throws \Amp\ByteStream\ClosedException
      * @throws \Amp\ByteStream\StreamException
-     * @throws \Amp\Http\Http2\Http2ConnectionException
      * @dataProvider providerValidUriPaths
      */
     public function testWritingRequestWithValidUriPathProceedsWithMatchingUriPath(

@@ -29,7 +29,7 @@ final class DefaultConnectionFactory implements ConnectionFactory
 
     public function create(
         Request $request,
-        Cancellation $cancellationToken
+        Cancellation $cancellation
     ): Connection {
         foreach ($request->getEventListeners() as $eventListener) {
             $eventListener->startConnectionCreation($request);
@@ -103,7 +103,7 @@ final class DefaultConnectionFactory implements ConnectionFactory
             $socket = $connector->connect(
                 'tcp://' . $authority,
                 $connectContext->withConnectTimeout($request->getTcpConnectTimeout()),
-                $cancellationToken
+                $cancellation
             );
         } catch (Socket\ConnectException $e) {
             throw new UnprocessedRequestException(
@@ -111,7 +111,7 @@ final class DefaultConnectionFactory implements ConnectionFactory
             );
         } catch (CancelledException $e) {
             // In case of a user cancellation request, throw the expected exception
-            $cancellationToken->throwIfRequested();
+            $cancellation->throwIfRequested();
 
             // Otherwise we ran into a timeout of our TimeoutCancellation
             throw new UnprocessedRequestException(new TimeoutException(\sprintf(
@@ -138,7 +138,7 @@ final class DefaultConnectionFactory implements ConnectionFactory
                 }
 
                 $tlsCancellation = new CompositeCancellation(
-                    $cancellationToken,
+                    $cancellation,
                     new TimeoutCancellation($request->getTlsHandshakeTimeout())
                 );
 
@@ -159,7 +159,7 @@ final class DefaultConnectionFactory implements ConnectionFactory
                 $socket->close();
 
                 // In case of a user cancellation request, throw the expected exception
-                $cancellationToken->throwIfRequested();
+                $cancellation->throwIfRequested();
 
                 // Otherwise we ran into a timeout of our TimeoutCancellation
                 throw new UnprocessedRequestException(new TimeoutException(\sprintf(
@@ -182,7 +182,7 @@ final class DefaultConnectionFactory implements ConnectionFactory
 
             if ($tlsInfo->getApplicationLayerProtocol() === 'h2') {
                 $http2Connection = new Http2Connection($socket);
-                $http2Connection->initialize();
+                $http2Connection->initialize($cancellation);
 
                 foreach ($request->getEventListeners() as $eventListener) {
                     $eventListener->completeConnectionCreation($request);
@@ -195,7 +195,7 @@ final class DefaultConnectionFactory implements ConnectionFactory
         // Treat the presence of only HTTP/2 as prior knowledge, see https://http2.github.io/http2-spec/#known-http
         if ($request->getProtocolVersions() === ['2']) {
             $http2Connection = new Http2Connection($socket);
-            $http2Connection->initialize();
+            $http2Connection->initialize($cancellation);
 
             foreach ($request->getEventListeners() as $eventListener) {
                 $eventListener->completeConnectionCreation($request);

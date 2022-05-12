@@ -11,6 +11,7 @@ use Amp\Http\Client\Response;
 use Amp\Socket\EncryptableSocket;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
+use Amp\TimeoutCancellation;
 
 final class Http2Connection implements Connection
 {
@@ -36,9 +37,9 @@ final class Http2Connection implements Connection
         return self::PROTOCOL_VERSIONS;
     }
 
-    public function initialize(): void
+    public function initialize(?Cancellation $cancellation = null): void
     {
-        $this->processor->initialize();
+        $this->processor->initialize($cancellation ?? new TimeoutCancellation(5));
     }
 
     public function getStream(Request $request): ?Stream
