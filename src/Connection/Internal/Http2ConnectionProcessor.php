@@ -200,11 +200,10 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     public function handleStreamWindowIncrement(int $streamId, int $windowSize): void
     {
-        if (!isset($this->streams[$streamId])) {
+        $stream = $this->streams[$streamId] ?? null;
+        if (!$stream) {
             return;
         }
-
-        $stream = $this->streams[$streamId];
 
         if ($stream->clientWindow + $windowSize > 2147483647) {
             $this->handleStreamException(new Http2StreamException(
@@ -259,11 +258,11 @@ final class Http2ConnectionProcessor implements Http2Processor
             }
         }
 
-        if (!isset($this->streams[$streamId])) {
+        $stream = $this->streams[$streamId] ?? null;
+        if (!$stream) {
             return;
         }
 
-        $stream = $this->streams[$streamId];
         $stream->enableInactivityWatcher();
 
         $this->hasTimeout = false;
@@ -695,11 +694,10 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     public function handlePriority(int $streamId, int $parentId, int $weight): void
     {
-        if (!isset($this->streams[$streamId])) {
+        $stream = $this->streams[$streamId] ?? null;
+        if (!$stream) {
             return;
         }
-
-        $stream = $this->streams[$streamId];
 
         $stream->dependency = $parentId;
         $stream->weight = $weight;
@@ -743,11 +741,11 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         $this->increaseConnectionWindow();
 
-        if (!isset($this->streams[$streamId])) {
+        $stream = $this->streams[$streamId] ?? null;
+        if (!$stream) {
             return;
         }
 
-        $stream = $this->streams[$streamId];
         $stream->disableInactivityWatcher();
 
         if (!$stream->body) {
@@ -784,9 +782,10 @@ final class Http2ConnectionProcessor implements Http2Processor
             return;
         }
 
-        $stream->body?->pushAsync($data)->map(function () use ($stream, $streamId, $length): void {
+        $stream->body?->pushAsync($data)->map(function () use ($streamId, $length): void {
+            $stream = $this->streams[$streamId] ?? null;
             // Stream may have closed while waiting for body data to be consumed.
-            if (!isset($this->streams[$streamId])) {
+            if (!$stream) {
                 return;
             }
 
@@ -816,11 +815,10 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     public function handleStreamEnd(int $streamId): void
     {
-        if (!isset($this->streams[$streamId])) {
+        $stream = $this->streams[$streamId] ?? null;
+        if (!$stream) {
             return;
         }
-
-        $stream = $this->streams[$streamId];
 
         if ($stream->expectedLength !== null && $stream->received !== $stream->expectedLength) {
             $this->handleStreamException(new Http2StreamException(
