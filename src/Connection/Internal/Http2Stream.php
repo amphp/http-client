@@ -31,9 +31,9 @@ final class Http2Stream
 
     public bool $responsePending = true;
 
-    public ?Queue $body = null;
+    public ?Queue $body;
 
-    public ?DeferredFuture $trailers = null;
+    public ?DeferredFuture $trailers;
 
     /** @var int Bytes received on the stream. */
     public int $received = 0;
@@ -62,9 +62,14 @@ final class Http2Stream
         public int $serverWindow,
         public int $clientWindow,
     ) {
-        $this->pendingResponse = new DeferredFuture;
-        $this->requestBodyCompletion = new DeferredFuture;
+        $this->pendingResponse = new DeferredFuture();
+        $this->requestBodyCompletion = new DeferredFuture();
+        $this->body = new Queue();
         $this->bufferSize = 0;
+
+        // Trailers future may never be exposed to the user if the request fails, so ignore.
+        $this->trailers = new DeferredFuture();
+        $this->trailers->getFuture()->ignore();
     }
 
     public function __destruct()
@@ -72,6 +77,11 @@ final class Http2Stream
         if ($this->watcher !== null) {
             EventLoop::cancel($this->watcher);
         }
+
+        \assert(
+            $this->pendingResponse === null && $this->trailers === null && $this->body === null,
+            'Stream properties not resolved before destruction',
+        );
     }
 
     public function disableInactivityWatcher(): void
