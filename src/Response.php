@@ -41,7 +41,7 @@ final class Response extends Message
         array $headers,
         ReadableStream $body,
         Request $request,
-        ?Future $trailerPromise = null,
+        ?Future $trailers = null,
         ?Response $previousResponse = null
     ) {
         $this->setProtocolVersion($protocolVersion);
@@ -50,12 +50,12 @@ final class Response extends Message
         $this->setBody($body);
         $this->request = $request;
         /** @noinspection PhpUnhandledExceptionInspection */
-        $this->trailers = $trailerPromise ?? Future::complete(new Trailers([]));
+        $this->trailers = $trailers ?? Future::complete(new Trailers([]));
         $this->previousResponse = $previousResponse;
     }
 
     /**
-     * Retrieve the requests's HTTP protocol version.
+     * Retrieve the HTTP protocol version used for the request.
      */
     public function getProtocolVersion(): string
     {
@@ -199,8 +199,6 @@ final class Response extends Message
 
     /**
      * Retrieve the response body.
-     *
-     * Note: If you stream a Message, you can't consume the payload twice.
      */
     public function getBody(): Payload
     {
