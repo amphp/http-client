@@ -138,8 +138,6 @@ final class FollowRedirects implements ApplicationInterceptor
         DelegateHttpClient $client,
         Cancellation $cancellationToken
     ): Response {
-        $previousResponse = null;
-
         $maxRedirects = $this->maxRedirects;
         $requestNr = 2;
 
