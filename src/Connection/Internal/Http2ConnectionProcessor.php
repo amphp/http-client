@@ -32,7 +32,6 @@ use Amp\Http\Status;
 use Amp\Pipeline\Queue;
 use Amp\Socket\EncryptableSocket;
 use Amp\Socket\InternetAddress;
-use Amp\TimeoutCancellation;
 use League\Uri;
 use Revolt\EventLoop;
 use function Amp\async;
@@ -640,6 +639,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                 }
             ),
             $cancellation,
+            $this->createStreamTransferWatcher($pushId, $request->getTransferTimeout()),
             $this->createStreamInactivityWatcher($pushId, $request->getInactivityTimeout()),
             self::DEFAULT_WINDOW_SIZE,
             0,
@@ -936,33 +936,10 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         $streamId = $this->streamId += 2; // Client streams should be odd-numbered, starting at 1.
 
-        $originalCancellation = $cancellation;
-        $transferTimeout = $request->getTransferTimeout();
-        if ($transferTimeout) {
-            $cancellation = new CompositeCancellation(
-                $cancellation,
-                new TimeoutCancellation($transferTimeout),
-            );
-        }
-
-        $cancellationId = $cancellation->subscribe(function (CancelledException $exception) use (
-            $streamId,
-            $transferTimeout,
-            $originalCancellation,
-        ): void {
-            if (!isset($this->streams[$streamId])) {
-                return;
+        $cancellationId = $cancellation->subscribe(function (CancelledException $exception) use ($streamId): void {
+            if (isset($this->streams[$streamId])) {
+                $this->releaseStream($streamId, $exception);
             }
-
-            if (!$originalCancellation->isRequested()) {
-                $exception = new TimeoutException(
-                    'Allowed transfer timeout exceeded, took longer than ' . $transferTimeout . ' s',
-                    0,
-                    $exception,
-                );
-            }
-
-            $this->releaseStream($streamId, $exception);
         });
 
         $this->streams[$streamId] = $http2stream = new Http2Stream(
@@ -970,6 +947,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             $request,
             $stream,
             $cancellation,
+            $this->createStreamTransferWatcher($streamId, $request->getTransferTimeout()),
             $this->createStreamInactivityWatcher($streamId, $request->getInactivityTimeout()),
             self::DEFAULT_WINDOW_SIZE,
             $this->initialWindowSize,
@@ -1541,17 +1519,31 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     private function createStreamInactivityWatcher(int $streamId, float $timeout): ?string
     {
+        return $this->createStreamTimeoutWatcher(
+            $streamId,
+            $timeout,
+            "Inactivity timeout exceeded, more than {$timeout} seconds elapsed from last data received",
+        );
+    }
+
+    private function createStreamTransferWatcher(int $streamId, float $timeout): ?string
+    {
+        return $this->createStreamTimeoutWatcher(
+            $streamId,
+            $timeout,
+            "Allowed transfer timeout exceeded, took longer than {$timeout} s",
+        );
+    }
+
+    private function createStreamTimeoutWatcher(int $streamId, float $timeout, string $message): ?string
+    {
         if ($timeout <= 0) {
             return null;
         }
 
-        $watcher = EventLoop::delay($timeout, function () use ($streamId, $timeout): void {
-            \assert(isset($this->streams[$streamId]), 'Stream inactivity watcher invoked after stream closed');
-
-            $this->releaseStream(
-                $streamId,
-                new TimeoutException("Inactivity timeout exceeded, more than {$timeout} seconds elapsed from last data received")
-            );
+        $watcher = EventLoop::delay($timeout, function () use ($streamId, $timeout, $message): void {
+            \assert(isset($this->streams[$streamId]), 'Stream watcher invoked after stream closed');
+            $this->releaseStream($streamId, new TimeoutException($message));
         });
 
         EventLoop::unreference($watcher);

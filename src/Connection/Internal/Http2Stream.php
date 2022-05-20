@@ -58,7 +58,8 @@ final class Http2Stream
         public readonly Request $request,
         public readonly Stream $stream,
         public readonly Cancellation $cancellation,
-        public readonly ?string $watcher,
+        public readonly ?string $transferWatcher,
+        public readonly ?string $inactivityWatcher,
         public int $serverWindow,
         public int $clientWindow,
     ) {
@@ -74,8 +75,12 @@ final class Http2Stream
 
     public function __destruct()
     {
-        if ($this->watcher !== null) {
-            EventLoop::cancel($this->watcher);
+        if ($this->transferWatcher !== null) {
+            EventLoop::cancel($this->transferWatcher);
+        }
+
+        if ($this->inactivityWatcher !== null) {
+            EventLoop::cancel($this->inactivityWatcher);
         }
 
         \assert(
@@ -86,20 +91,20 @@ final class Http2Stream
 
     public function disableInactivityWatcher(): void
     {
-        if ($this->watcher === null) {
+        if ($this->inactivityWatcher === null) {
             return;
         }
 
-        EventLoop::disable($this->watcher);
+        EventLoop::disable($this->inactivityWatcher);
     }
 
     public function enableInactivityWatcher(): void
     {
-        if ($this->watcher === null) {
+        if ($this->inactivityWatcher === null) {
             return;
         }
 
-        $watcher = $this->watcher;
+        $watcher = $this->inactivityWatcher;
 
         EventLoop::disable($watcher);
         EventLoop::enable($watcher);
