@@ -83,10 +83,10 @@ final class Http2Stream
             EventLoop::cancel($this->inactivityWatcher);
         }
 
-        \assert(
-            $this->pendingResponse === null && $this->trailers === null && $this->body === null,
-            'Stream properties not resolved before destruction',
-        );
+        // Setting these to null due to PHP's random destruct order on shutdown to avoid errors from double completion.
+        $this->pendingResponse = null;
+        $this->body = null;
+        $this->trailers = null;
     }
 
     public function disableInactivityWatcher(): void
