@@ -25,7 +25,7 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         $this->setTimeout(5);
         $this->setMinimumRuntime(2);
 
-        Future\all([
+        Future\await([
             async(fn () => $client->request(new Request('http://httpbin.org/delay/1'))),
             async(fn () => $client->request(new Request('http://httpbin.org/delay/1'))),
         ]);
@@ -40,7 +40,7 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         $this->setTimeout(4);
         $this->setMinimumRuntime(2);
 
-        Future\all([
+        Future\await([
             async(fn () => $client->request(new Request('http://httpbin.org/delay/2'))),
             async(fn () => $client->request(new Request('http://httpbin.org/delay/2'))),
         ]);
@@ -65,7 +65,7 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
 
         $this->setTimeout(0.5);
 
-        Future\all([
+        Future\await([
             async(fn () => $client->request($request)),
             async(fn () => $client->request($request)),
         ]);
@@ -93,7 +93,7 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
 
         $this->setTimeout(0.75);
 
-        Future\all([
+        Future\await([
             async(fn () => $client->request($request)),
             async(fn () => $client->request($request)),
         ]);
@@ -122,14 +122,14 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         for ($i = 0; $i < $numRequests; $i++) {
             $promises[] = async(fn () => $client->request($request));
         }
-        Future\all($promises);
+        Future\await($promises);
 
         // all requests have completed and all connections are now idle. run through the connections again.
         $promises = [];
         for ($i = 0; $i < $numRequests; $i++) {
             $promises[] = async(fn () => $client->request($request));
         }
-        $responses = Future\all($promises);
+        $responses = Future\await($promises);
         foreach ($responses as $response) {
             $data = $response->getBody()->buffer();
             // if $data === 'closed', the connection was closed before the request completed

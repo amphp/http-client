@@ -625,7 +625,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
             return $request;
         }));
 
-        [$response1, $response2] = Future\all([
+        [$response1, $response2] = Future\await([
             async(fn () => $this->client->request(new Request('https://http2.pro/api/v1'))),
             async(fn () => $this->client->request(new Request('https://http2.pro/api/v1'))),
         ]);
