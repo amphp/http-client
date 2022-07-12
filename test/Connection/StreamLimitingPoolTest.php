@@ -20,7 +20,7 @@ class StreamLimitingPoolTest extends AsyncTestCase
         $this->setTimeout(5);
         $this->setMinimumRuntime(2);
 
-        Future\all([
+        Future\await([
             async(fn () => $client->request(new Request('https://httpbin.org/delay/1'))),
             async(fn () => $client->request(new Request('https://httpbin.org/delay/1'))),
         ]);
