@@ -258,7 +258,7 @@ final class Http1Connection implements Connection
         Stream $stream
     ): Response {
         $bodyEmitter = new Queue();
-        $bodyCallback = static fn (string $data) => $bodyEmitter->pushAsync($data)->ignore();
+        $bodyCallback = static fn (string $data) => $bodyEmitter->push($data);
 
         $trailersDeferred = new DeferredFuture;
         $trailersDeferred->getFuture()->ignore();
