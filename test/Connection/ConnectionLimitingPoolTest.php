@@ -26,8 +26,16 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         $this->setMinimumRuntime(2);
 
         Future\await([
-            async(fn () => $client->request(new Request('http://httpbin.org/delay/1'))),
-            async(fn () => $client->request(new Request('http://httpbin.org/delay/1'))),
+            async(function () use ($client) {
+                $response = $client->request(new Request('http://httpbin.org/delay/1'));
+                $response->getBody()->buffer();
+                return $response;
+            }),
+            async(function () use ($client) {
+                $response = $client->request(new Request('http://httpbin.org/delay/1'));
+                $response->getBody()->buffer();
+                return $response;
+            }),
         ]);
     }
 
