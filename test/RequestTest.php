@@ -196,7 +196,7 @@ class RequestTest extends AsyncTestCase
             return $response;
         });
 
-        $request->getPushHandler()(
+        $pushHandler(
             new Request('https://amphp.org/'),
             Future::complete(new Response('2', 200, null, [], new ReadableBuffer(), $request))
         );
@@ -233,7 +233,7 @@ class RequestTest extends AsyncTestCase
             return new Response('2', 523, null, [], new ReadableBuffer(), $response->getRequest());
         });
 
-        $request->getPushHandler()(
+        $pushHandler(
             new Request('https://amphp.org/'),
             Future::complete(new Response('2', 200, null, [], new ReadableBuffer(), $request))
         );
