@@ -240,7 +240,10 @@ final class FollowRedirects implements ApplicationInterceptor
         }
 
         try {
-            $locationUri = Uri\Http::createFromString($response->getHeader('location'));
+            $header = $response->getHeader('location');
+            \assert($header !== null); // see check above
+
+            $locationUri = Uri\Http::createFromString($header);
         } catch (\Exception $e) {
             return null;
         }
