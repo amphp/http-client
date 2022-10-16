@@ -20,8 +20,6 @@ class ResponseTest extends AsyncTestCase
 
     /**
      * @dataProvider provideInvalidProtocolVersions
-     *
-     * @param $invalidVersion
      */
     public function testProtocolVersionsAcceptsNoInvalidValues($invalidVersion): void
     {

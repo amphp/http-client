@@ -306,8 +306,6 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     /**
      * @dataProvider provideStatusCodes
      *
-     * @param $statusCode
-     *
      * @throws \Throwable
      */
     public function testStatusCodeResponses($statusCode): void

@@ -22,8 +22,6 @@ class RequestTest extends AsyncTestCase
 
     /**
      * @dataProvider provideInvalidProtocolVersions
-     *
-     * @param $invalidVersion
      */
     public function testProtocolVersionsAcceptsNoInvalidValues($invalidVersion): void
     {
