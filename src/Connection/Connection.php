@@ -11,8 +11,7 @@ interface Connection extends Closable
 {
     /**
      * @return Stream|null Returns a stream for the given request, or null if no stream is available or if
-     *                     the connection is not suited for the given request. The first request for a stream
-     *                     on a new connection MUST resolve the promise with a Stream instance.
+     *                     the connection is not suited for the given request.
      */
     public function getStream(Request $request): ?Stream;
 
