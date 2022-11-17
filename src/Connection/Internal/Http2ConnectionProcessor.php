@@ -241,7 +241,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                 continue;
             }
 
-            $this->writeBufferedData($stream);
+            $this->writeBufferedData($stream)->ignore();
         }
     }
 
@@ -1118,6 +1118,10 @@ final class Http2ConnectionProcessor implements Http2Processor
         int $stream = 0,
         string $data = ''
     ): Future {
+        if ($this->frameQueue->isComplete() || $this->frameQueue->isDisposed()) {
+            return Future::complete();
+        }
+
         \assert(Http2Parser::logDebugFrame('send', $type, $flags, $stream, \strlen($data)));
 
         return $this->frameQueue->pushAsync(\pack("NcN", (\strlen($data) << 8) | ($type & 0xff), $flags, $stream) . $data);
@@ -1555,6 +1559,10 @@ final class Http2ConnectionProcessor implements Http2Processor
     {
         try {
             foreach ($this->frameQueue->iterate() as $frame) {
+                if (!$this->socket->isWritable()) {
+                    throw new SocketException('Connection has closed');
+                }
+
                 $this->socket->write($frame);
             }
         } catch (\Throwable $exception) {
