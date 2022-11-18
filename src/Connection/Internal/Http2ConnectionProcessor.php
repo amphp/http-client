@@ -1120,7 +1120,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         int $stream = 0,
         string $data = ''
     ): Future {
-        if ($this->frameQueue->isComplete() || $this->frameQueue->isDisposed()) {
+        if ($this->shutdown !== null) {
             return Future::complete();
         }
 
@@ -1414,24 +1414,20 @@ final class Http2ConnectionProcessor implements Http2Processor
             Http2Parser::INTERNAL_ERROR,
         );
 
-        $this->shutdown = (int) $reason->getCode();
-
         if ($this->settings !== null) {
             $message = "Connection closed before HTTP/2 settings could be received";
             $this->settings->error(new UnprocessedRequestException(new SocketException($message, 0, $reason)));
             $this->settings = null;
         }
 
-        if ($this->streams) {
-            foreach ($this->streams as $id => $stream) {
-                if ($lastId !== null && $id > $lastId) {
-                    $reason = $reason instanceof UnprocessedRequestException
-                        ? $reason
-                        : new UnprocessedRequestException($reason);
-                }
-
-                $this->releaseStream($id, $reason);
+        foreach ($this->streams as $id => $stream) {
+            if ($lastId !== null && $id > $lastId) {
+                $reason = $reason instanceof UnprocessedRequestException
+                    ? $reason
+                    : new UnprocessedRequestException($reason);
             }
+
+            $this->releaseStream($id, $reason);
         }
 
         $this->cancelPongWatcher(false);
@@ -1445,6 +1441,9 @@ final class Http2ConnectionProcessor implements Http2Processor
                 EventLoop::queue($callback);
             }
         }
+
+        $this->shutdown = (int) $reason->getCode();
+        $this->frameQueue->complete();
 
         \assert(empty($this->streams), 'Streams array not empty after shutdown');
     }
