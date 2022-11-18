@@ -489,7 +489,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             }
 
             if ($stream->request->getMethod() !== 'HEAD') {
-                $stream->expectedLength = (int)$contentLength;
+                $stream->expectedLength = (int) $contentLength;
             }
         }
     }
