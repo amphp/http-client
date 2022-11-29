@@ -928,7 +928,26 @@ final class Http2ConnectionProcessor implements Http2Processor
                     ))
                 );
             }
+
+            $headers = $this->generateHeaders($request);
+
+            $body = $request->getBody()->createBodyStream();
+
+            foreach ($request->getEventListeners() as $eventListener) {
+                $eventListener->startSendingRequest($request, $stream);
+            }
+
+            $chunk = $body->read($cancellation);
+
+            $headers = $this->hpack->encode($headers);
+
+            $this->socket->reference();
         } catch (\Throwable $exception) {
+            if (!$exception instanceof HttpException) {
+                $message = 'Request initialization failed: ' . $exception->getMessage();
+                $exception = new HttpException($message, 0, $exception);
+            }
+
             foreach ($request->getEventListeners() as $eventListener) {
                 $eventListener->abort($request, $exception);
             }
@@ -936,6 +955,8 @@ final class Http2ConnectionProcessor implements Http2Processor
             throw $exception;
         }
 
+        // Assign a stream ID just before sending the first frame so another request cannot send a frame with
+        // a higher ID prior to the initial frame of this stream.
         $streamId = $this->streamId += 2; // Client streams should be odd-numbered, starting at 1.
 
         $cancellationId = $cancellation->subscribe(function (CancelledException $exception) use ($streamId): void {
@@ -960,27 +981,9 @@ final class Http2ConnectionProcessor implements Http2Processor
             ->finally(static fn () => $cancellation->unsubscribe($cancellationId))
             ->ignore();
 
+        $flag = Http2Parser::END_HEADERS | ($chunk === null ? Http2Parser::END_STREAM : Http2Parser::NO_FLAG);
+
         try {
-            $headers = $this->generateHeaders($request);
-            $body = $request->getBody()->createBodyStream();
-
-            foreach ($request->getEventListeners() as $eventListener) {
-                $eventListener->startSendingRequest($request, $stream);
-            }
-
-            $chunk = $body->read($cancellation);
-
-            $this->socket->reference();
-
-            if (!isset($this->streams[$streamId])) {
-                throw new UnprocessedRequestException(
-                    new SocketException('Stream closed before sending request headers')
-                );
-            }
-
-            $flag = Http2Parser::END_HEADERS | ($chunk === null ? Http2Parser::END_STREAM : Http2Parser::NO_FLAG);
-
-            $headers = $this->hpack->encode($headers);
             if (\strlen($headers) > $this->frameSizeLimit) {
                 $split = \str_split($headers, $this->frameSizeLimit);
                 \assert($split !== false);
