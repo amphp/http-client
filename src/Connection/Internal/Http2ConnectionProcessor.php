@@ -929,7 +929,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                 );
             }
 
-            $headers = $this->generateHeaders($request);
+            $headers = $this->hpack->encode($this->generateHeaders($request));
 
             $body = $request->getBody()->createBodyStream();
 
@@ -938,12 +938,8 @@ final class Http2ConnectionProcessor implements Http2Processor
             }
 
             $chunk = $body->read($cancellation);
-
-            $headers = $this->hpack->encode($headers);
-
-            $this->socket->reference();
         } catch (\Throwable $exception) {
-            if (!$exception instanceof HttpException) {
+            if (!$exception instanceof HttpException && !$exception instanceof CancelledException) {
                 $message = 'Request initialization failed: ' . $exception->getMessage();
                 $exception = new HttpException($message, 0, $exception);
             }
@@ -955,15 +951,11 @@ final class Http2ConnectionProcessor implements Http2Processor
             throw $exception;
         }
 
+        $this->socket->reference();
+
         // Assign a stream ID just before sending the first frame so another request cannot send a frame with
         // a higher ID prior to the initial frame of this stream.
         $streamId = $this->streamId += 2; // Client streams should be odd-numbered, starting at 1.
-
-        $cancellationId = $cancellation->subscribe(function (CancelledException $exception) use ($streamId): void {
-            if (isset($this->streams[$streamId])) {
-                $this->releaseStream($streamId, $exception);
-            }
-        });
 
         $this->streams[$streamId] = $http2stream = new Http2Stream(
             $streamId,
@@ -975,6 +967,12 @@ final class Http2ConnectionProcessor implements Http2Processor
             self::DEFAULT_WINDOW_SIZE,
             $this->initialWindowSize,
         );
+
+        $cancellationId = $cancellation->subscribe(function (CancelledException $exception) use ($streamId): void {
+            if (isset($this->streams[$streamId])) {
+                $this->releaseStream($streamId, $exception);
+            }
+        });
 
         \assert($http2stream->trailers !== null);
         $http2stream->trailers->getFuture()
@@ -1047,7 +1045,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                 $this->releaseStream($streamId, $exception);
             }
 
-            if (!$exception instanceof HttpException) {
+            if (!$exception instanceof HttpException && !$exception instanceof CancelledException) {
                 $message = 'Failed to write request (stream ' . $streamId . ') to socket: ' .
                     $exception->getMessage();
                 $exception = new SocketException($message, 0, $exception);
