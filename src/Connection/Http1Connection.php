@@ -603,9 +603,7 @@ final class Http1Connection implements Connection
             // We always buffer the last chunk to make sure we don't write $contentLength bytes if the body is too long.
             $buffer = "";
 
-            while (null !== $chunk = $body->read()) {
-                $cancellation->throwIfRequested();
-
+            while (null !== $chunk = $body->read($cancellation)) {
                 if ($chunk === "") {
                     continue;
                 }
@@ -641,7 +639,7 @@ final class Http1Connection implements Connection
                 );
             }
         } catch (StreamException $exception) {
-            throw new SocketException('Socket disconnected prior to response completion');
+            throw new SocketException('Socket disconnected prior to response completion', 0, $exception);
         }
     }
 
