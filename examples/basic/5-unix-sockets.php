@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 use Amp\Http\Client\Connection\DefaultConnectionFactory;
 use Amp\Http\Client\Connection\UnlimitedConnectionPool;

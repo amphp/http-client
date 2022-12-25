@@ -1,4 +1,5 @@
-<?php /** @noinspection PhpUnhandledExceptionInspection */
+<?php declare(strict_types=1);
+/** @noinspection PhpUnhandledExceptionInspection */
 
 use Amp\Http\Http2\Http2Parser;
 use Amp\Http\Http2\Http2Processor;

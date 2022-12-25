@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 // This example is not yet ported to v5.x
 // Please submit a PR or sponsor us to support our development efforts.

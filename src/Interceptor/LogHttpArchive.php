@@ -1,4 +1,5 @@
-<?php /** @noinspection ALL */
+<?php declare(strict_types=1);
+/** @noinspection ALL */
 
 namespace Amp\Http\Client\Interceptor;
 

@@ -1,4 +1,5 @@
-<?php /** @noinspection PhpComposerExtensionStubsInspection */
+<?php declare(strict_types=1);
+/** @noinspection PhpComposerExtensionStubsInspection */
 
 namespace Amp\Http\Client\Body;
 
@@ -16,10 +17,10 @@ final class JsonBody implements RequestBody
      */
     public function __construct(mixed $data, int $options = 0, int $depth = 512)
     {
-        $this->json = \json_encode($data, $options, $depth);
-
-        if (\json_last_error() !== \JSON_ERROR_NONE) {
-            throw new HttpException('Failed to encode data to JSON');
+        try {
+            $this->json = \json_encode($data, $options | \JSON_THROW_ON_ERROR, $depth);
+        } catch (\JsonException $exception) {
+            throw new HttpException('Failed to encode data to JSON', 0, $exception);
         }
     }
 

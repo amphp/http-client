@@ -1,4 +1,5 @@
-<?php /** @noinspection PhpUnusedPrivateFieldInspection */
+<?php declare(strict_types=1);
+/** @noinspection PhpUnusedPrivateFieldInspection */
 
 namespace Amp\Http\Client\Connection\Internal;
 

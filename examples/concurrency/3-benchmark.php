@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 // Usage -----------------------------------------------
 // Default  (10 x 100    requests): php examples/concurrency/3-benchmark.php
