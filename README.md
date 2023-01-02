@@ -33,7 +33,7 @@ Additionally, you might want to install the `nghttp2` library to take advantage 
 ## Usage
 
 The main interaction point with this library is the `HttpClient` class.
-`HttpClient` instances can be built using `HttpClientBuilder` without knowing about the exiting implementations.
+`HttpClient` instances can be built using `HttpClientBuilder` without knowing about the existing implementations.
 
 `HttpClientBuilder` allows to register two kinds of [interceptors](#interceptors), which allows customizing the `HttpClient` behavior in a composable fashion.
 
