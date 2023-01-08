@@ -2,6 +2,7 @@
 
 namespace Amp\Http\Client\Connection;
 
+use Amp\ByteStream\ReadableStreamIteratorAggregate;
 use Amp\Cancellation;
 use Amp\ForbidCloning;
 use Amp\ForbidSerialization;
@@ -10,21 +11,22 @@ use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
 use Amp\Socket\TlsState;
 
-final class UpgradedSocket implements EncryptableSocket
+/**
+ * @implements \IteratorAggregate<int, string>
+ */
+final class UpgradedSocket implements EncryptableSocket, \IteratorAggregate
 {
     use ForbidCloning;
     use ForbidSerialization;
-
-    private EncryptableSocket $socket;
+    use ReadableStreamIteratorAggregate;
 
     private ?string $buffer;
 
     /**
      * @param string $buffer Remaining buffer previously read from the socket.
      */
-    public function __construct(EncryptableSocket $socket, string $buffer)
+    public function __construct(private readonly EncryptableSocket $socket, string $buffer)
     {
-        $this->socket = $socket;
         $this->buffer = $buffer !== '' ? $buffer : null;
     }
 

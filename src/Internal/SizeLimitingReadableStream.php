@@ -3,32 +3,31 @@
 namespace Amp\Http\Client\Internal;
 
 use Amp\ByteStream\ReadableStream;
+use Amp\ByteStream\ReadableStreamIteratorAggregate;
 use Amp\Cancellation;
 use Amp\ForbidCloning;
 use Amp\ForbidSerialization;
 use Amp\Http\Client\ParseException;
 use Amp\Http\Status;
 
-/** @internal */
-final class SizeLimitingReadableStream implements ReadableStream
+/**
+ * @internal
+ * @implements \IteratorAggregate<int, string>
+ */
+final class SizeLimitingReadableStream implements ReadableStream, \IteratorAggregate
 {
     use ForbidSerialization;
     use ForbidCloning;
-
-    private ReadableStream $source;
+    use ReadableStreamIteratorAggregate;
 
     private int $bytesRead = 0;
-
-    private int $sizeLimit;
 
     private ?\Throwable $exception = null;
 
     public function __construct(
-        ReadableStream $source,
-        int $sizeLimit
+        private readonly ReadableStream $source,
+        private readonly int $sizeLimit
     ) {
-        $this->source = $source;
-        $this->sizeLimit = $sizeLimit;
     }
 
     public function read(?Cancellation $cancellation = null): ?string

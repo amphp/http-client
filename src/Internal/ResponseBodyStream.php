@@ -3,27 +3,28 @@
 namespace Amp\Http\Client\Internal;
 
 use Amp\ByteStream\ReadableStream;
+use Amp\ByteStream\ReadableStreamIteratorAggregate;
 use Amp\Cancellation;
 use Amp\DeferredCancellation;
 use Amp\ForbidCloning;
 use Amp\ForbidSerialization;
 
-/** @internal */
-final class ResponseBodyStream implements ReadableStream
+/**
+ * @internal
+ * @implements \IteratorAggregate<int, string>
+ */
+final class ResponseBodyStream implements ReadableStream, \IteratorAggregate
 {
     use ForbidSerialization;
     use ForbidCloning;
-
-    private ReadableStream $body;
-
-    private DeferredCancellation $bodyCancellation;
+    use ReadableStreamIteratorAggregate;
 
     private bool $successfulEnd = false;
 
-    public function __construct(ReadableStream $body, DeferredCancellation $bodyCancellation)
-    {
-        $this->body = $body;
-        $this->bodyCancellation = $bodyCancellation;
+    public function __construct(
+        private readonly ReadableStream $body,
+        private readonly DeferredCancellation $bodyCancellation
+    ) {
     }
 
     public function read(?Cancellation $cancellation = null): ?string
