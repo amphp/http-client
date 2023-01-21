@@ -6,6 +6,9 @@ use Amp\Http\Client\Response;
 
 final class SetResponseHeaderIfUnset extends ModifyResponse
 {
+    /**
+     * @param non-empty-string $headerName
+     */
     public function __construct(string $headerName, string $headerValue, string ...$headerValues)
     {
         \array_unshift($headerValues, $headerValue);

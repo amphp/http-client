@@ -790,7 +790,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             return;
         }
 
-        $stream->body?->pushAsync($data)->map(function () use ($streamId, $length): void {
+        $stream->body->pushAsync($data)->map(function () use ($streamId, $length): void {
             $stream = $this->streams[$streamId] ?? null;
             // Stream may have closed while waiting for body data to be consumed.
             if (!$stream) {

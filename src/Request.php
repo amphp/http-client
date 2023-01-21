@@ -165,10 +165,10 @@ final class Request extends HttpMessage
     /**
      * Assign a value for the specified header field by replacing any existing values for that field.
      *
-     * @param string $name Header name.
+     * @param non-empty-string $name Header name.
      * @param string|string[] $value Header value.
      */
-    public function setHeader(string $name, $value): void
+    public function setHeader(string $name, array|string $value): void
     {
         if (($name[0] ?? ":") === ":") {
             throw new \Error("Header name cannot be empty or start with a colon (:)");
@@ -180,10 +180,10 @@ final class Request extends HttpMessage
     /**
      * Assign a value for the specified header field by adding a header line.
      *
-     * @param string $name Header name.
+     * @param non-empty-string $name Header name.
      * @param string|string[] $value Header value.
      */
-    public function addHeader(string $name, $value): void
+    public function addHeader(string $name, array|string $value): void
     {
         if (($name[0] ?? ":") === ":") {
             throw new \Error("Header name cannot be empty or start with a colon (:)");

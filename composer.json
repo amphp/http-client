@@ -46,7 +46,7 @@
         "phpunit/phpunit": "^9",
         "amphp/http-server": "^3-dev",
         "kelunik/link-header-rfc5988": "^1",
-        "psalm/phar": "^4.7",
+        "psalm/phar": "^5.4",
         "laminas/laminas-diactoros": "^2.3"
     },
     "suggest": {
