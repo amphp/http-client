@@ -3,7 +3,6 @@
 namespace Amp\Http\Client;
 
 use Amp\ByteStream\Payload;
-use Amp\ByteStream\ReadableBuffer;
 use Amp\ByteStream\ReadableStream;
 use Amp\ForbidCloning;
 use Amp\ForbidSerialization;
@@ -39,7 +38,7 @@ final class Response extends Message
         int $status,
         ?string $reason,
         array $headers,
-        ReadableStream $body,
+        ReadableStream|string|null $body,
         Request $request,
         ?Future $trailers = null,
         ?Response $previousResponse = null
@@ -211,21 +210,14 @@ final class Response extends Message
         return $this->body;
     }
 
-    public function setBody(Payload|ReadableStream|string|int|float|bool|null $body): void
+    public function setBody(ReadableStream|string|null $body): void
     {
-        if ($body instanceof Payload) {
-            $this->body = $body;
-        } elseif ($body === null) {
-            $this->body = new Payload(new ReadableBuffer());
-        } elseif (\is_string($body)) {
-            $this->body = new Payload(new ReadableBuffer($body));
-        } elseif (\is_scalar($body)) {
-            $this->body = new Payload(new ReadableBuffer(\var_export($body, true)));
-        } elseif ($body instanceof ReadableStream) {
-            $this->body = new Payload($body);
-        } else {
-            throw new \TypeError("Invalid body type: " . \gettype($body));
-        }
+        $this->body = match (true) {
+            $body instanceof Payload => $body,
+            $body instanceof ReadableStream => new Payload($body),
+            \is_string($body), $body === null => new Payload((string) $body),
+            default => throw new \TypeError("Invalid body type: " . \get_debug_type($body)),
+        };
     }
 
     /**
