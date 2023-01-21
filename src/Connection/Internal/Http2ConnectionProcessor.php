@@ -186,13 +186,14 @@ final class Http2ConnectionProcessor implements Http2Processor
         $this->writeFrame(Http2Parser::PING, Http2Parser::ACK, 0, $data)->ignore();
     }
 
-    public function handleShutdown(int $lastId, int $error): void
+    public function handleShutdown(int $lastId, int $error, string $message): void
     {
         $message = \sprintf(
-            "Received GOAWAY frame on '%s' from '%s' with error code %d",
+            "Received GOAWAY frame on '%s' from '%s' with error code %d and message '%s'",
             (string) $this->socket->getLocalAddress(),
             (string) $this->socket->getRemoteAddress(),
-            $error
+            $error,
+            $message,
         );
 
         $this->shutdown(new SocketException($message, $error), $lastId);
@@ -1089,15 +1090,11 @@ final class Http2ConnectionProcessor implements Http2Processor
             return;
         }
 
+        $parser = new Http2Parser($this, $this->hpack);
+
         try {
-            $parser = (new Http2Parser($this))->parse();
-
             while (null !== $chunk = $this->socket->read()) {
-                $parser->send($chunk);
-
-                if (!$parser->valid()) {
-                    break;
-                }
+                $parser->push($chunk);
             }
         } catch (\Throwable $exception) {
             $this->shutdown(new SocketException(
@@ -1108,6 +1105,8 @@ final class Http2ConnectionProcessor implements Http2Processor
             ));
 
             return;
+        } finally {
+            $parser->cancel();
         }
 
         $this->shutdown();
@@ -1123,9 +1122,10 @@ final class Http2ConnectionProcessor implements Http2Processor
             return Future::complete();
         }
 
-        \assert(Http2Parser::logDebugFrame('send', $type, $flags, $stream, \strlen($data)));
+//        \assert(Http2Parser::logDebugFrame('send', $type, $flags, $stream, \strlen($data)));
 
-        return $this->frameQueue->pushAsync(\pack("NcN", (\strlen($data) << 8) | ($type & 0xff), $flags, $stream) . $data);
+        return $this->frameQueue->pushAsync(Http2Parser::compileFrame($data, $type, $flags, $stream));
+//        return $this->frameQueue->pushAsync(\pack("NcN", (\strlen($data) << 8) | ($type & 0xff), $flags, $stream) . $data);
     }
 
     private function applySetting(int $setting, int $value): void

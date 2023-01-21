@@ -31,7 +31,7 @@ class Http2ConnectionTest extends AsyncTestCase
 {
     public static function packFrame(string $data, int $type, int $flags, int $stream = 0): string
     {
-        return \pack("NcN", (\strlen($data) << 8) | ($type & 0xff), $flags, $stream) . $data;
+        return Http2Parser::compileFrame($data, $type, $flags, $stream);
     }
 
     public function test100Continue(): void
@@ -512,8 +512,8 @@ class Http2ConnectionTest extends AsyncTestCase
             ->expects(self::once())
             ->method('handleHeaders')
             ->with(self::anything(), self::identicalTo($expectedPseudo), self::anything(), self::anything());
-        $parser = (new Http2Parser($processor))->parse();
-        $parser->send($data);
+        $parser = new Http2Parser($processor, new HPack());
+        $parser->push($data);
 
         try {
             $promise->await();

@@ -198,6 +198,12 @@ final class Request extends Message
         parent::setHeaders($headers);
     }
 
+    public function replaceHeaders(array $headers): void
+    {
+        /** @noinspection PhpUnhandledExceptionInspection */
+        parent::replaceHeaders($headers);
+    }
+
     /**
      * Remove the specified header field from the message.
      *

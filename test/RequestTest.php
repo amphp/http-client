@@ -71,7 +71,7 @@ class RequestTest extends AsyncTestCase
             "x-foo" => ["bar"],
         ], $request->getHeaders());
 
-        $request->setHeaders([
+        $request->replaceHeaders([
             "x-hello-world" => "xx",
             "x-goodbye" => ["yy", "zzz"],
         ]);
@@ -83,7 +83,7 @@ class RequestTest extends AsyncTestCase
         ], $request->getHeaders());
 
         // Empty array deletes
-        $request->setHeaders([
+        $request->replaceHeaders([
             "x-hello-world" => [],
         ]);
 
