@@ -8,7 +8,7 @@ use Amp\Cancellation;
 use Amp\ForbidCloning;
 use Amp\ForbidSerialization;
 use Amp\Http\Client\ParseException;
-use Amp\Http\Status;
+use Amp\Http\HttpStatus;
 
 /**
  * @internal
@@ -43,7 +43,7 @@ final class SizeLimitingReadableStream implements ReadableStream, \IteratorAggre
             if ($this->bytesRead > $this->sizeLimit) {
                 $this->exception = new ParseException(
                     "Configured body size exceeded: {$this->bytesRead} bytes received, while the configured limit is {$this->sizeLimit} bytes",
-                    Status::PAYLOAD_TOO_LARGE
+                    HttpStatus::PAYLOAD_TOO_LARGE
                 );
 
                 $this->source->close();

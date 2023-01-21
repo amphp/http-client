@@ -16,7 +16,7 @@ use Amp\Http\Server\HttpServer;
 use Amp\Http\Server\RequestHandler\ClosureRequestHandler;
 use Amp\Http\Server\Response;
 use Amp\Http\Server\SocketHttpServer;
-use Amp\Http\Status;
+use Amp\Http\HttpStatus;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Socket\InternetAddress;
 use Amp\Socket\SocketAddress;
@@ -80,7 +80,7 @@ abstract class InterceptorTest extends AsyncTestCase
         $this->server->expose(new InternetAddress('127.0.0.1', 0));
 
         $this->server->start(new ClosureRequestHandler(static function () {
-            return new Response(Status::OK, ['content-type' => 'text-plain; charset=utf-8'], 'OK');
+            return new Response(HttpStatus::OK, ['content-type' => 'text-plain; charset=utf-8'], 'OK');
         }), new DefaultErrorHandler());
 
         $this->serverSocket = $this->server->getServers()[0] ?? self::fail('HTTP server did not create any server sockets');

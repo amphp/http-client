@@ -293,7 +293,7 @@ final class Http1Connection implements Connection
 
                 $status = $response->getStatus();
 
-                if ($status === Http\Status::SWITCHING_PROTOCOLS) {
+                if ($status === Http\HttpStatus::SWITCHING_PROTOCOLS) {
                     $connection = Http\createFieldValueComponentMap(Http\parseFieldValueComponents(
                         $response,
                         'connection'

@@ -6,7 +6,7 @@ use Amp\ForbidSerialization;
 use Amp\Future;
 use Amp\Http\Client\Body\StringBody;
 use Amp\Http\Client\Connection\UpgradedSocket;
-use Amp\Http\Message;
+use Amp\Http\HttpMessage;
 use League\Uri;
 use Psr\Http\Message\UriInterface;
 use function Amp\async;
@@ -14,7 +14,7 @@ use function Amp\async;
 /**
  * An HTTP request.
  */
-final class Request extends Message
+final class Request extends HttpMessage
 {
     use ForbidSerialization;
 

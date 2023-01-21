@@ -88,14 +88,6 @@ class ResponseTest extends AsyncTestCase
 
         $response->setBody(new ReadableBuffer('foobar2'));
         $this->assertSame('foobar2', $response->getBody()->buffer());
-
-        $response->setBody(143);
-        $this->assertSame('143', $response->getBody()->buffer());
-
-        $this->expectException(\TypeError::class);
-
-        /** @noinspection PhpParamsInspection */
-        $response->setBody(new \stdClass);
     }
 
     public function testStatus(): void

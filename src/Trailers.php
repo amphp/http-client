@@ -4,9 +4,9 @@ namespace Amp\Http\Client;
 
 use Amp\ForbidSerialization;
 use Amp\Http\InvalidHeaderException;
-use Amp\Http\Message;
+use Amp\Http\HttpMessage;
 
-final class Trailers extends Message
+final class Trailers extends HttpMessage
 {
     use ForbidSerialization;
 

@@ -7,13 +7,13 @@ use Amp\ByteStream\ReadableStream;
 use Amp\ForbidCloning;
 use Amp\ForbidSerialization;
 use Amp\Future;
-use Amp\Http\Message;
-use Amp\Http\Status;
+use Amp\Http\HttpMessage;
+use Amp\Http\HttpStatus;
 
 /**
  * An HTTP response.
  */
-final class Response extends Message
+final class Response extends HttpMessage
 {
     use ForbidSerialization;
     use ForbidCloning;
@@ -83,7 +83,7 @@ final class Response extends Message
     public function setStatus(int $status, ?string $reason = null): void
     {
         $this->status = $status;
-        $this->reason = $reason ?? Status::getReason($status);
+        $this->reason = $reason ?? HttpStatus::getReason($status);
     }
 
     /**

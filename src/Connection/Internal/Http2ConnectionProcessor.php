@@ -29,7 +29,7 @@ use Amp\Http\Http2\Http2Parser;
 use Amp\Http\Http2\Http2Processor;
 use Amp\Http\Http2\Http2StreamException;
 use Amp\Http\InvalidHeaderException;
-use Amp\Http\Status;
+use Amp\Http\HttpStatus;
 use Amp\Pipeline\Queue;
 use Amp\Socket\EncryptableSocket;
 use Amp\Socket\InternetAddress;
@@ -364,7 +364,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         $status = (int) $status;
 
-        if ($status === Status::SWITCHING_PROTOCOLS) {
+        if ($status === HttpStatus::SWITCHING_PROTOCOLS) {
             $this->handleConnectionException(new Http2ConnectionException(
                 "Switching Protocols (101) is not part of HTTP/2",
                 Http2Parser::PROTOCOL_ERROR
@@ -391,7 +391,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                         $onInformationalResponse(new Response(
                             '2',
                             $status,
-                            Status::getReason($status),
+                            HttpStatus::getReason($status),
                             $headers,
                             new ReadableBuffer(),
                             $stream->request,
@@ -430,7 +430,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         $response = new Response(
             '2',
             $status,
-            Status::getReason($status),
+            HttpStatus::getReason($status),
             $headers,
             $body,
             $stream->request,

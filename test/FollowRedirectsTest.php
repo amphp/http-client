@@ -7,7 +7,7 @@ use Amp\ByteStream\ReadableBuffer;
 use Amp\Http\Client\Connection\ConnectionPool;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\Interceptor\FollowRedirects;
-use Amp\Http\Status;
+use Amp\Http\HttpStatus;
 use Amp\NullCancellation;
 use Amp\PHPUnit\AsyncTestCase;
 
@@ -25,8 +25,8 @@ class FollowRedirectsTest extends AsyncTestCase
         $stream1->method('request')
             ->willReturn(new Response(
                 '1.1',
-                Status::MOVED_PERMANENTLY,
-                Status::getReason(Status::MOVED_PERMANENTLY),
+                HttpStatus::MOVED_PERMANENTLY,
+                HttpStatus::getReason(HttpStatus::MOVED_PERMANENTLY),
                 ['location' => [$toResolve]],
                 new ReadableBuffer(),
                 $request
@@ -38,8 +38,8 @@ class FollowRedirectsTest extends AsyncTestCase
                 $this->assertSame($expectedResult, (string) $redirected->getUri());
                 return new Response(
                     '1.1',
-                    Status::OK,
-                    Status::getReason(Status::OK),
+                    HttpStatus::OK,
+                    HttpStatus::getReason(HttpStatus::OK),
                     [],
                     new ReadableBuffer(),
                     $request

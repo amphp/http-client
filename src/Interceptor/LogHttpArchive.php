@@ -16,7 +16,7 @@ use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Internal\HarAttributes;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
-use Amp\Http\Message;
+use Amp\Http\HttpMessage;
 use Amp\Sync\LocalMutex;
 use Revolt\EventLoop;
 
@@ -40,7 +40,7 @@ final class LogHttpArchive implements ApplicationInterceptor
         return -1;
     }
 
-    private static function formatHeaders(Message $message): array
+    private static function formatHeaders(HttpMessage $message): array
     {
         $headers = [];
 
