@@ -12,7 +12,7 @@ final class RequestNormalizer
         $headers = $request->getBody()->getHeaders();
         foreach ($headers as $name => $header) {
             if (!$request->hasHeader($name)) {
-                $request->setHeaders([$name => $header]);
+                $request->replaceHeaders([$name => $header]);
             }
         }
 
@@ -74,7 +74,7 @@ final class RequestNormalizer
         $request->setBody('');
 
         // Remove all body and sensitive headers
-        $request->setHeaders([
+        $request->replaceHeaders([
             "transfer-encoding" => [],
             "content-length" => [],
             "authorization" => [],

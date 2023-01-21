@@ -182,9 +182,7 @@ final class FollowRedirects implements ApplicationInterceptor
         if (!$isSameHost) {
             // Remove for security reasons, any interceptor headers will be added again,
             // but application headers will be discarded.
-            foreach ($request->getRawHeaders() as [$field]) {
-                $request->removeHeader($field);
-            }
+            $request->setHeaders([]);
         }
 
         if ($this->autoReferrer) {
