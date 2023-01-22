@@ -81,6 +81,9 @@ final class RecordHarAttributes implements EventListener
         // not implemented
     }
 
+    /**
+     * @param non-empty-string $key
+     */
     private function addTiming(string $key, Request $request): void
     {
         if (!$request->hasAttribute($key)) {

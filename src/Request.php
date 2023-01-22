@@ -68,10 +68,10 @@ final class Request extends HttpMessage
     /** @var null|\Closure(Response): void */
     private ?\Closure $onInformationalResponse = null;
 
-    /** @var array<string, mixed> */
+    /** @var array<non-empty-string, mixed> */
     private array $attributes = [];
 
-    /** @var EventListener[] */
+    /** @var list<EventListener> */
     private array $eventListeners = [];
 
     public function __construct(string|UriInterface $uri, string $method = "GET", RequestBody|string $body = '')
@@ -87,7 +87,7 @@ final class Request extends HttpMessage
     }
 
     /**
-     * @return EventListener[]
+     * @return list<EventListener>
      */
     public function getEventListeners(): array
     {
@@ -403,7 +403,8 @@ final class Request extends HttpMessage
      * Note: This method returns a deep clone of the request's attributes, so you can't modify the request attributes
      * by modifying the returned value in any way.
      *
-     * @return array An array of all request attributes in the request's local storage, indexed by name.
+     * @return array<non-empty-string, mixed> An array of all request attributes in the request's local storage,
+     *      indexed by name.
      */
     public function getAttributes(): array
     {
@@ -417,7 +418,8 @@ final class Request extends HttpMessage
      * Other interceptors which are aware of this data can then access it without the server being tightly coupled to
      * specific implementations.
      *
-     * @param string $name Name of the attribute, should be namespaced with a vendor and package namespace like classes.
+     * @param non-empty-string $name Name of the attribute, should be namespaced with a vendor and package namespace
+     *      like classes.
      */
     public function hasAttribute(string $name): bool
     {
@@ -434,7 +436,8 @@ final class Request extends HttpMessage
      * Note: This method returns a deep clone of the request's attribute, so you can't modify the request attribute
      * by modifying the returned value in any way.
      *
-     * @param string $name Name of the attribute, should be namespaced with a vendor and package namespace like classes.
+     * @param non-empty-string $name Name of the attribute, should be namespaced with a vendor and package namespace
+     *      like classes.
      *
      * @throws MissingAttributeError If an attribute with the given name does not exist.
      */
@@ -463,7 +466,8 @@ final class Request extends HttpMessage
      * $request->setAttribute(Timing::class, $stopWatch);
      * ```
      *
-     * @param string $name Name of the attribute, should be namespaced with a vendor and package namespace like classes.
+     * @param non-empty-string $name Name of the attribute, should be namespaced with a vendor and package namespace
+     *      like classes.
      * @param mixed $value Value of the attribute, might be any serializable value.
      */
     public function setAttribute(string $name, mixed $value): void
@@ -474,7 +478,8 @@ final class Request extends HttpMessage
     /**
      * Remove an attribute from the request's local storage.
      *
-     * @param string $name Name of the attribute, should be namespaced with a vendor and package namespace like classes.
+     * @param non-empty-string $name Name of the attribute, should be namespaced with a vendor and package namespace
+     *      like classes.
      *
      * @throws MissingAttributeError If an attribute with the given name does not exist.
      */

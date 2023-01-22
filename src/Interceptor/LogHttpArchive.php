@@ -25,6 +25,10 @@ final class LogHttpArchive implements ApplicationInterceptor
     use ForbidCloning;
     use ForbidSerialization;
 
+    /**
+     * @param non-empty-string $start
+     * @param non-empty-string ...$ends
+     */
     private static function getTime(Request $request, string $start, string ...$ends): float
     {
         if (!$request->hasAttribute($start)) {
