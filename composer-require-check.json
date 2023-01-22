@@ -18,9 +18,6 @@
         "mixed",
         "ZLIB_ENCODING_GZIP",
         "ZLIB_ENCODING_DEFLATE",
-        "json_encode",
-        "json_last_error",
-        "JSON_ERROR_NONE",
         "Amp\\File\\Driver",
         "Amp\\File\\open",
         "Amp\\File\\openFile",
@@ -38,6 +35,7 @@
         "Phar",
         "Reflection",
         "SPL",
-        "standard"
+        "standard",
+        "json"
     ]
 }
