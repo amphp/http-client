@@ -8,9 +8,9 @@ use Amp\ForbidSerialization;
 use Amp\Http\Client\ParseException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
+use Amp\Http\HttpStatus;
 use Amp\Http\InvalidHeaderException;
 use Amp\Http\Rfc7230;
-use Amp\Http\HttpStatus;
 
 /** @internal */
 final class Http1Parser

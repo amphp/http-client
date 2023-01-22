@@ -3,8 +3,8 @@
 namespace Amp\Http\Client;
 
 use Amp\ForbidSerialization;
-use Amp\Http\InvalidHeaderException;
 use Amp\Http\HttpMessage;
+use Amp\Http\InvalidHeaderException;
 
 final class Trailers extends HttpMessage
 {
