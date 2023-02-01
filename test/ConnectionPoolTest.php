@@ -11,7 +11,7 @@ use function Amp\Socket\listen;
 
 class ConnectionPoolTest extends AsyncTestCase
 {
-    private Socket\SocketServer $socket;
+    private Socket\ServerSocket $socket;
 
     private HttpClient $client;
 

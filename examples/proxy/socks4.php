@@ -12,7 +12,7 @@
 //use Amp\Http\Client\HttpException;
 //use Amp\Http\Client\Request;
 //use Amp\Socket\ConnectContext;
-//use Amp\Socket\EncryptableSocket;
+//use Amp\Socket\Socket;
 //use Amp\Socket\ResourceSocket;
 //use Amp\Socket\SocketAddress;
 //use Amp\Socket\SocketConnector;
@@ -26,7 +26,7 @@
 //            string $uri,
 //            ?ConnectContext $context = null,
 //            ?Cancellation $token = null
-//        ): EncryptableSocket {
+//        ): Socket {
 //            $context = $context ?? (new ConnectContext);
 //
 //            $options = $context->toStreamContextArray();

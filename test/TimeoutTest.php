@@ -67,7 +67,7 @@ class TimeoutTest extends AsyncTestCase
             ->willReturnCallback(function (
                 string $uri,
                 ?Socket\ConnectContext $connectContext = null
-            ): Socket\EncryptableSocket {
+            ): Socket\Socket {
                 $this->assertNotNull($connectContext);
                 $this->assertSame(0.001, $connectContext->getConnectTimeout());
 
@@ -195,7 +195,7 @@ class TimeoutTest extends AsyncTestCase
             ->willReturnCallback(function (
                 string $uri,
                 ?Socket\ConnectContext $connectContext = null
-            ): Socket\EncryptableSocket {
+            ): Socket\Socket {
                 $this->assertNotNull($connectContext);
                 $this->assertSame(0.001, $connectContext->getConnectTimeout());
 

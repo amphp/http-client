@@ -9,7 +9,7 @@ use Amp\ForbidSerialization;
 use Amp\Http\Client\Connection\Internal\Http2ConnectionProcessor;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
-use Amp\Socket\EncryptableSocket;
+use Amp\Socket\Socket;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
 use Amp\TimeoutCancellation;
@@ -21,15 +21,12 @@ final class Http2Connection implements Connection
 
     private const PROTOCOL_VERSIONS = ['2'];
 
-    private EncryptableSocket $socket;
-
-    private Http2ConnectionProcessor $processor;
+    private readonly Http2ConnectionProcessor $processor;
 
     private int $requestCount = 0;
 
-    public function __construct(EncryptableSocket $socket)
+    public function __construct(private readonly Socket $socket)
     {
-        $this->socket = $socket;
         $this->processor = new Http2ConnectionProcessor($socket);
     }
 

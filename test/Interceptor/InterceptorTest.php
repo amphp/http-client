@@ -19,8 +19,8 @@ use Amp\Http\Server\Response;
 use Amp\Http\Server\SocketHttpServer;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Socket\InternetAddress;
+use Amp\Socket\ServerSocket;
 use Amp\Socket\SocketAddress;
-use Amp\Socket\SocketServer;
 use Amp\Socket\StaticSocketConnector;
 use Psr\Log\NullLogger;
 use function Amp\Socket\socketConnector;
@@ -31,7 +31,7 @@ abstract class InterceptorTest extends AsyncTestCase
 
     private HttpClient $client;
 
-    private SocketServer $serverSocket;
+    private ServerSocket $serverSocket;
 
     private HttpServer $server;
 

@@ -3,6 +3,7 @@
 namespace Amp\Http\Client\Connection;
 
 use Amp\ByteStream\ReadableIterableStream;
+use Amp\ByteStream\ResourceStream;
 use Amp\ByteStream\StreamException;
 use Amp\Cancellation;
 use Amp\CancelledException;
@@ -26,7 +27,7 @@ use Amp\Http\Client\TimeoutException;
 use Amp\Http\InvalidHeaderException;
 use Amp\Http\Rfc7230;
 use Amp\Pipeline\Queue;
-use Amp\Socket\EncryptableSocket;
+use Amp\Socket\Socket;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
 use Amp\TimeoutCancellation;
@@ -48,7 +49,7 @@ final class Http1Connection implements Connection
     private const MAX_KEEP_ALIVE_TIMEOUT = 60;
     private const PROTOCOL_VERSIONS = ['1.0', '1.1'];
 
-    private ?EncryptableSocket $socket;
+    private ?Socket $socket;
 
     private bool $busy = false;
 
@@ -78,7 +79,7 @@ final class Http1Connection implements Connection
 
     private ?Future $idleRead = null;
 
-    public function __construct(EncryptableSocket $socket, float $timeoutGracePeriod = 2)
+    public function __construct(Socket $socket, float $timeoutGracePeriod = 2)
     {
         $this->socket = $socket;
         $this->localAddress = $socket->getLocalAddress();
@@ -192,7 +193,9 @@ final class Http1Connection implements Connection
     {
         ++$this->requestCounter;
 
-        $this->socket?->reference();
+        if ($this->socket instanceof ResourceStream) {
+            $this->socket->reference();
+        }
 
         if ($this->timeoutWatcher !== null) {
             EventLoop::cancel($this->timeoutWatcher);
@@ -671,7 +674,10 @@ final class Http1Connection implements Connection
 
     private function watchIdleConnection(): void
     {
-        $this->socket?->unreference();
+        if ($this->socket instanceof ResourceStream) {
+            $this->socket->unreference();
+        }
+
         $this->idleRead = async(function (): ?string {
             $chunk = null;
             try {

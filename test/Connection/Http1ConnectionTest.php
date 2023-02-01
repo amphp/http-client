@@ -104,7 +104,7 @@ class Http1ConnectionTest extends AsyncTestCase
         $socketData = "Data that should be sent after the upgrade response";
 
         $invoked = false;
-        $callback = function (Socket\EncryptableSocket $socket, Request $request, Response $response) use (
+        $callback = function (Socket\Socket $socket, Request $request, Response $response) use (
             &$invoked,
             $socketData
         ) {

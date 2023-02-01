@@ -3,10 +3,11 @@
 namespace Amp\Http\Client\Connection;
 
 use Amp\ByteStream\ReadableStreamIteratorAggregate;
+use Amp\ByteStream\ResourceStream;
 use Amp\Cancellation;
 use Amp\ForbidCloning;
 use Amp\ForbidSerialization;
-use Amp\Socket\EncryptableSocket;
+use Amp\Socket\Socket;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
 use Amp\Socket\TlsState;
@@ -14,7 +15,7 @@ use Amp\Socket\TlsState;
 /**
  * @implements \IteratorAggregate<int, string>
  */
-final class UpgradedSocket implements EncryptableSocket, \IteratorAggregate
+final class UpgradedSocket implements Socket, ResourceStream, \IteratorAggregate
 {
     use ForbidCloning;
     use ForbidSerialization;
@@ -25,7 +26,7 @@ final class UpgradedSocket implements EncryptableSocket, \IteratorAggregate
     /**
      * @param string $buffer Remaining buffer previously read from the socket.
      */
-    public function __construct(private readonly EncryptableSocket $socket, string $buffer)
+    public function __construct(private readonly Socket $socket, string $buffer)
     {
         $this->buffer = $buffer !== '' ? $buffer : null;
     }
@@ -71,12 +72,16 @@ final class UpgradedSocket implements EncryptableSocket, \IteratorAggregate
 
     public function reference(): void
     {
-        $this->socket->reference();
+        if ($this->socket instanceof ResourceStream) {
+            $this->socket->reference();
+        }
     }
 
     public function unreference(): void
     {
-        $this->socket->unreference();
+        if ($this->socket instanceof ResourceStream) {
+            $this->socket->unreference();
+        }
     }
 
     public function isClosed(): bool
@@ -109,9 +114,9 @@ final class UpgradedSocket implements EncryptableSocket, \IteratorAggregate
         $this->socket->shutdownTls();
     }
 
-    public function isTlsAvailable(): bool
+    public function isTlsConfigurationAvailable(): bool
     {
-        return $this->socket->isTlsAvailable();
+        return $this->socket->isTlsConfigurationAvailable();
     }
 
     public function getTlsState(): TlsState
@@ -136,6 +141,8 @@ final class UpgradedSocket implements EncryptableSocket, \IteratorAggregate
 
     public function getResource()
     {
-        return $this->socket->getResource();
+        return $this->socket instanceof ResourceStream
+            ? $this->socket->getResource()
+            : null;
     }
 }

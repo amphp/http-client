@@ -30,7 +30,7 @@ use function Amp\delay;
 
 class ClientHttpBinIntegrationTest extends AsyncTestCase
 {
-    private Socket\SocketServer $socket;
+    private Socket\ServerSocket $socket;
 
     private HttpClient $client;
 

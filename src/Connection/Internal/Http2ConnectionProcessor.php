@@ -5,6 +5,7 @@ namespace Amp\Http\Client\Connection\Internal;
 
 use Amp\ByteStream\ReadableBuffer;
 use Amp\ByteStream\ReadableIterableStream;
+use Amp\ByteStream\ResourceStream;
 use Amp\ByteStream\StreamException;
 use Amp\Cancellation;
 use Amp\CancelledException;
@@ -31,8 +32,8 @@ use Amp\Http\Http2\Http2StreamException;
 use Amp\Http\HttpStatus;
 use Amp\Http\InvalidHeaderException;
 use Amp\Pipeline\Queue;
-use Amp\Socket\EncryptableSocket;
 use Amp\Socket\InternetAddress;
+use Amp\Socket\Socket;
 use League\Uri;
 use Revolt\EventLoop;
 use function Amp\async;
@@ -98,7 +99,7 @@ final class Http2ConnectionProcessor implements Http2Processor
     private readonly Queue $frameQueue;
 
     public function __construct(
-        private readonly EncryptableSocket $socket,
+        private readonly Socket $socket,
     ) {
         $this->hpack = new HPack();
         $this->frameQueue = new Queue();
@@ -956,7 +957,9 @@ final class Http2ConnectionProcessor implements Http2Processor
             throw $exception;
         }
 
-        $this->socket->reference();
+        if ($this->socket instanceof ResourceStream) {
+            $this->socket->reference();
+        }
 
         // Assign a stream ID just before sending the first frame so another request cannot send a frame with
         // a higher ID prior to the initial frame of this stream.
@@ -1357,7 +1360,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             }
         }
 
-        if (!$this->streams && !$this->socket->isClosed()) {
+        if (!$this->streams && !$this->socket->isClosed() && $this->socket instanceof ResourceStream) {
             $this->socket->unreference();
         }
     }
