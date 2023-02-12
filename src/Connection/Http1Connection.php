@@ -554,6 +554,9 @@ final class Http1Connection implements Connection
         return $this->priorTimeout = \min(\max(0, $timeout), self::MAX_KEEP_ALIVE_TIMEOUT);
     }
 
+    /**
+     * @return '1.0'|'1.1'
+     */
     private function determineProtocolVersion(Request $request): string
     {
         $protocolVersions = $request->getProtocolVersions();

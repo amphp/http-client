@@ -138,6 +138,10 @@ final class Http1Parser
                 throw new ParseException('Invalid status line: ' . $startLine, HttpStatus::BAD_REQUEST);
             }
 
+            if (!\in_array($protocol, ['1.0', '1.1'], true)) {
+                throw new ParseException('Invalid protocol version: ' . $protocol, HttpStatus::BAD_REQUEST);
+            }
+
             if ($rawHeaders !== '') {
                 $headers = $this->parseRawHeaders($rawHeaders);
             } else {

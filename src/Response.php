@@ -8,21 +8,22 @@ use Amp\ForbidCloning;
 use Amp\ForbidSerialization;
 use Amp\Future;
 use Amp\Http\HttpMessage;
-use Amp\Http\HttpStatus;
+use Amp\Http\HttpResponse;
 
 /**
  * An HTTP response.
+ *
+ * @psalm-import-type HeaderParamValueType from HttpMessage
+ * @psalm-import-type HeaderParamArrayType from HttpMessage
+ * @psalm-type ProtocolVersion = '1.0'|'1.1'|'2'
  */
-final class Response extends HttpMessage
+final class Response extends HttpResponse
 {
     use ForbidSerialization;
     use ForbidCloning;
 
+    /** @var ProtocolVersion */
     private string $protocolVersion;
-
-    private int $status;
-
-    private string $reason;
 
     private Request $request;
 
@@ -33,6 +34,13 @@ final class Response extends HttpMessage
 
     private ?Response $previousResponse;
 
+    /**
+     * @param ProtocolVersion $protocolVersion
+     * @param HeaderParamArrayType $headers
+     * @param Future<Trailers>|null $trailers
+     *
+     * @throws \Amp\Http\InvalidHeaderException
+     */
     public function __construct(
         string $protocolVersion,
         int $status,
@@ -43,8 +51,9 @@ final class Response extends HttpMessage
         ?Future $trailers = null,
         ?Response $previousResponse = null
     ) {
+        parent::__construct($status, $reason);
+
         $this->setProtocolVersion($protocolVersion);
-        $this->setStatus($status, $reason);
         $this->setHeaders($headers);
         $this->setBody($body);
         $this->request = $request;
@@ -55,12 +64,17 @@ final class Response extends HttpMessage
 
     /**
      * Retrieve the HTTP protocol version used for the request.
+     *
+     * @return ProtocolVersion
      */
     public function getProtocolVersion(): string
     {
         return $this->protocolVersion;
     }
 
+    /**
+     * @param ProtocolVersion $protocolVersion
+     */
     public function setProtocolVersion(string $protocolVersion): void
     {
         if (!\in_array($protocolVersion, ["1.0", "1.1", "2"], true)) {
@@ -72,26 +86,9 @@ final class Response extends HttpMessage
         $this->protocolVersion = $protocolVersion;
     }
 
-    /**
-     * Retrieve the response's three-digit HTTP status code.
-     */
-    public function getStatus(): int
-    {
-        return $this->status;
-    }
-
     public function setStatus(int $status, ?string $reason = null): void
     {
-        $this->status = $status;
-        $this->reason = $reason ?? HttpStatus::getReason($status);
-    }
-
-    /**
-     * Retrieve the response's (possibly empty) reason phrase.
-     */
-    public function getReason(): string
-    {
-        return $this->reason;
+        parent::setStatus($status, $reason);
     }
 
     /**
@@ -154,9 +151,9 @@ final class Response extends HttpMessage
      * Assign a value for the specified header field by replacing any existing values for that field.
      *
      * @param non-empty-string $name Header name.
-     * @param string|string[] $value Header value.
+     * @param HeaderParamValueType $value Header value.
      */
-    public function setHeader(string $name, array|string $value): void
+    public function setHeader(string $name, array|string|int|float $value): void
     {
         if (($name[0] ?? ":") === ":") {
             throw new \Error("Header name cannot be empty or start with a colon (:)");
@@ -169,9 +166,9 @@ final class Response extends HttpMessage
      * Assign a value for the specified header field by adding an additional header line.
      *
      * @param non-empty-string $name Header name.
-     * @param string|string[] $value Header value.
+     * @param HeaderParamValueType $value Header value.
      */
-    public function addHeader(string $name, array|string $value): void
+    public function addHeader(string $name, array|string|int|float $value): void
     {
         if (($name[0] ?? ":") === ":") {
             throw new \Error("Header name cannot be empty or start with a colon (:)");

@@ -7,14 +7,19 @@ use Amp\Future;
 use Amp\Http\Client\Body\StringBody;
 use Amp\Http\Client\Connection\UpgradedSocket;
 use Amp\Http\HttpMessage;
+use Amp\Http\HttpRequest;
 use League\Uri;
 use Psr\Http\Message\UriInterface;
 use function Amp\async;
 
 /**
  * An HTTP request.
+ *
+ * @psalm-import-type HeaderParamValueType from HttpMessage
+ * @psalm-import-type HeaderParamArrayType from HttpMessage
+ * @psalm-type ProtocolVersion = '1.0'|'1.1'|'2'
  */
-final class Request extends HttpMessage
+final class Request extends HttpRequest
 {
     use ForbidSerialization;
 
@@ -38,12 +43,8 @@ final class Request extends HttpMessage
         return \unserialize(\serialize($value), ['allowed_classes' => true]);
     }
 
-    /** @var string[] */
+    /** @var list<ProtocolVersion> */
     private array $protocolVersions = ['1.1', '2'];
-
-    private string $method;
-
-    private UriInterface $uri;
 
     private RequestBody $body;
 
@@ -74,10 +75,13 @@ final class Request extends HttpMessage
     /** @var list<EventListener> */
     private array $eventListeners = [];
 
+    /**
+     * @param non-empty-string $method
+     */
     public function __construct(string|UriInterface $uri, string $method = "GET", RequestBody|string $body = '')
     {
-        $this->setUri($uri);
-        $this->setMethod($method);
+        parent::__construct($method, $uri instanceof UriInterface ? $uri : $this->createUriFromString($uri));
+
         $this->setBody($body);
     }
 
@@ -97,7 +101,7 @@ final class Request extends HttpMessage
     /**
      * Retrieve the request's acceptable HTTP protocol versions.
      *
-     * @return string[]
+     * @return list<ProtocolVersion>
      */
     public function getProtocolVersions(): array
     {
@@ -109,7 +113,7 @@ final class Request extends HttpMessage
      *
      * The HTTP client might choose any of these.
      *
-     * @param string[] $versions
+     * @param array<ProtocolVersion> $versions
      */
     public function setProtocolVersions(array $versions): void
     {
@@ -127,15 +131,7 @@ final class Request extends HttpMessage
             }
         }
 
-        $this->protocolVersions = $versions;
-    }
-
-    /**
-     * Retrieve the request's HTTP method verb.
-     */
-    public function getMethod(): string
-    {
-        return $this->method;
+        $this->protocolVersions = \array_values($versions);
     }
 
     /**
@@ -143,15 +139,7 @@ final class Request extends HttpMessage
      */
     public function setMethod(string $method): void
     {
-        $this->method = $method;
-    }
-
-    /**
-     * Retrieve the request's URI.
-     */
-    public function getUri(): UriInterface
-    {
-        return $this->uri;
+        parent::setMethod($method);
     }
 
     /**
@@ -159,16 +147,16 @@ final class Request extends HttpMessage
      */
     public function setUri(UriInterface|string $uri): void
     {
-        $this->uri = $uri instanceof UriInterface ? $uri : $this->createUriFromString($uri);
+        parent::setUri($uri instanceof UriInterface ? $uri : $this->createUriFromString($uri));
     }
 
     /**
      * Assign a value for the specified header field by replacing any existing values for that field.
      *
      * @param non-empty-string $name Header name.
-     * @param string|string[] $value Header value.
+     * @param HeaderParamValueType $value Header value.
      */
-    public function setHeader(string $name, array|string $value): void
+    public function setHeader(string $name, array|string|int|float $value): void
     {
         if (($name[0] ?? ":") === ":") {
             throw new \Error("Header name cannot be empty or start with a colon (:)");
@@ -181,9 +169,9 @@ final class Request extends HttpMessage
      * Assign a value for the specified header field by adding a header line.
      *
      * @param non-empty-string $name Header name.
-     * @param string|string[] $value Header value.
+     * @param HeaderParamValueType $value Header value.
      */
-    public function addHeader(string $name, array|string $value): void
+    public function addHeader(string $name, array|string|int|float $value): void
     {
         if (($name[0] ?? ":") === ":") {
             throw new \Error("Header name cannot be empty or start with a colon (:)");
@@ -212,6 +200,36 @@ final class Request extends HttpMessage
     public function removeHeader(string $name): void
     {
         parent::removeHeader($name);
+    }
+
+    public function setQueryParameter(string $key, array|string|int|float|null $value): void
+    {
+        parent::setQueryParameter($key, $value);
+    }
+
+    public function addQueryParameter(string $key, array|string|int|float|null $value): void
+    {
+        parent::addQueryParameter($key, $value);
+    }
+
+    public function setQueryParameters(array $parameters): void
+    {
+        parent::setQueryParameters($parameters);
+    }
+
+    public function replaceQueryParameters(array $parameters): void
+    {
+        parent::replaceQueryParameters($parameters);
+    }
+
+    public function removeQueryParameter(string $key): void
+    {
+        parent::removeQueryParameter($key);
+    }
+
+    public function removeQuery(): void
+    {
+        parent::removeQuery();
     }
 
     /**
@@ -503,7 +521,7 @@ final class Request extends HttpMessage
     public function isIdempotent(): bool
     {
         // https://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html
-        return \in_array($this->method, ['GET', 'HEAD', 'PUT', 'DELETE'], true);
+        return \in_array($this->getMethod(), ['GET', 'HEAD', 'PUT', 'DELETE'], true);
     }
 
     private function createUriFromString(string $uri): UriInterface
