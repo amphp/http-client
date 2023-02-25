@@ -8,6 +8,15 @@ final class UnprocessedRequestException extends HttpException
 {
     public function __construct(HttpException $previous)
     {
-        parent::__construct("The request was not processed and can be safely retried", 0, $previous);
+        parent::__construct(
+            \sprintf(
+                'The request was not processed and can be safely retried; '
+                . 'use %s::getPrevious() to get the previous exception object; '
+                . 'Previous exception message: "%s"',
+                self::class,
+                $previous->getMessage(),
+            ),
+            previous: $previous
+        );
     }
 }
