@@ -156,7 +156,7 @@ final class Request extends HttpRequest
      * @param non-empty-string $name Header name.
      * @param HeaderParamValueType $value Header value.
      */
-    public function setHeader(string $name, array|string|int|float $value): void
+    public function setHeader(string $name, array|string $value): void
     {
         if (($name[0] ?? ":") === ":") {
             throw new \Error("Header name cannot be empty or start with a colon (:)");
@@ -171,7 +171,7 @@ final class Request extends HttpRequest
      * @param non-empty-string $name Header name.
      * @param HeaderParamValueType $value Header value.
      */
-    public function addHeader(string $name, array|string|int|float $value): void
+    public function addHeader(string $name, array|string $value): void
     {
         if (($name[0] ?? ":") === ":") {
             throw new \Error("Header name cannot be empty or start with a colon (:)");
@@ -202,12 +202,12 @@ final class Request extends HttpRequest
         parent::removeHeader($name);
     }
 
-    public function setQueryParameter(string $key, array|string|int|float|null $value): void
+    public function setQueryParameter(string $key, array|string|null $value): void
     {
         parent::setQueryParameter($key, $value);
     }
 
-    public function addQueryParameter(string $key, array|string|int|float|null $value): void
+    public function addQueryParameter(string $key, array|string|null $value): void
     {
         parent::addQueryParameter($key, $value);
     }
@@ -243,7 +243,7 @@ final class Request extends HttpRequest
     /**
      * Assign the message entity body.
      */
-    public function setBody(string|int|float|RequestBody $body): void
+    public function setBody(string|RequestBody $body): void
     {
         $this->body = match (true) {
             \is_string($body) => new StringBody($body),
