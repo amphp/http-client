@@ -218,7 +218,7 @@ final class LogHttpArchive implements ApplicationInterceptor
 
                 \assert($fileHandle !== null);
 
-                $fileHandle->seek(-3, \SEEK_CUR);
+                $fileHandle->seek(-3, File\Whence::Current);
             }
 
             $json = \json_encode(self::formatEntry($response));

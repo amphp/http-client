@@ -247,7 +247,6 @@ final class Request extends HttpRequest
     {
         $this->body = match (true) {
             \is_string($body) => new StringBody($body),
-            \is_scalar($body) => new StringBody(\var_export($body, true)),
             $body instanceof RequestBody => $body,
             default => throw new \TypeError("Invalid body type: " . \gettype($body)),
         };
