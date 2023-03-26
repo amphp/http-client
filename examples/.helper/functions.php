@@ -2,7 +2,7 @@
 
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
-use Amp\Http\Rfc7230;
+use Amp\Http\Http1\Rfc7230;
 
 require __DIR__ . '/../../vendor/autoload.php';
 

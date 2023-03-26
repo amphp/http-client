@@ -24,8 +24,8 @@ use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\SocketException;
 use Amp\Http\Client\TimeoutException;
+use Amp\Http\Http1\Rfc7230;
 use Amp\Http\InvalidHeaderException;
-use Amp\Http\Rfc7230;
 use Amp\Pipeline\Queue;
 use Amp\Socket\Socket;
 use Amp\Socket\SocketAddress;
@@ -667,7 +667,7 @@ final class Http1Connection implements Connection
         $header = $method . ' ' . $requestUri . ' HTTP/' . $protocolVersion . "\r\n";
 
         try {
-            $header .= Rfc7230::formatRawHeaders($request->getRawHeaders());
+            $header .= Rfc7230::formatHeaderPairs($request->getHeaderPairs());
         } catch (InvalidHeaderException $e) {
             throw new HttpException($e->getMessage());
         }

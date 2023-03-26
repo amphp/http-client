@@ -8,9 +8,10 @@ use Amp\ForbidSerialization;
 use Amp\Http\Client\ParseException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
+use Amp\Http\Http1\Rfc7230;
 use Amp\Http\HttpStatus;
 use Amp\Http\InvalidHeaderException;
-use Amp\Http\Rfc7230;
+use function Amp\Http\convertHeaderPairsToMap;
 
 /** @internal */
 final class Http1Parser
@@ -288,12 +289,8 @@ final class Http1Parser
         }
 
         try {
-            $headers = Rfc7230::parseRawHeaders($rawHeaders);
-
-            $headerMap = [];
-            foreach ($headers as [$key, $value]) {
-                $headerMap[\strtolower($key)][] = $value;
-            }
+            $headers = Rfc7230::parseHeaderPairs($rawHeaders);
+            $headerMap = convertHeaderPairsToMap($headers);
         } catch (InvalidHeaderException $e) {
             throw new ParseException('Invalid headers', HttpStatus::BAD_REQUEST, $e);
         }
@@ -302,7 +299,7 @@ final class Http1Parser
             $transferEncodings = \explode(',', \strtolower(\implode(',', $headerMap['transfer-encoding'])));
             $transferEncodings = \array_map('trim', $transferEncodings);
             $this->chunkedEncoding = \in_array('chunked', $transferEncodings, true);
-        } elseif (isset($headerMap['content-length'])) {
+        } elseif (!empty($headerMap['content-length'])) {
             if (\count($headerMap['content-length']) > 1) {
                 throw new ParseException('Can\'t determine body length, because multiple content-length headers present in the response', HttpStatus::BAD_REQUEST);
             }
