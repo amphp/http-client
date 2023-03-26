@@ -132,9 +132,6 @@ class RequestTest extends AsyncTestCase
         $request->setBody("foobar");
         $this->assertInstanceOf(StringBody::class, $request->getBody());
 
-        $request->setBody(143);
-        $this->assertInstanceOf(StringBody::class, $request->getBody());
-
         $this->expectException(\TypeError::class);
 
         /** @noinspection PhpParamsInspection */

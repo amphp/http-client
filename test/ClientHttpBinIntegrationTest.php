@@ -20,7 +20,7 @@ use Amp\Http\Client\Interceptor\SetRequestHeaderIfUnset;
 use Amp\Http\Client\Interceptor\TooManyRedirectsException;
 use Amp\Http\Cookie\RequestCookie;
 use Amp\Http\Cookie\ResponseCookie;
-use Amp\Http\Rfc7230;
+use Amp\Http\Http1\Rfc7230;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Pipeline\Pipeline;
 use Amp\Socket;
@@ -187,7 +187,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
             $headers = \explode("\r\n", \trim($buffer));
             \array_shift($headers);
 
-            $buffer = \json_encode(Rfc7230::parseRawHeaders(\implode("\r\n", $headers) . "\r\n"));
+            $buffer = \json_encode(Rfc7230::parseHeaderPairs(\implode("\r\n", $headers) . "\r\n"));
 
             $socket->write("HTTP/1.0 200 OK\r\n\r\n$buffer");
         };
