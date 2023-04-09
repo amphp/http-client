@@ -11,7 +11,7 @@ use Amp\Http\Client\Response;
 use Amp\Http\Http1\Rfc7230;
 use Amp\Http\HttpStatus;
 use Amp\Http\InvalidHeaderException;
-use function Amp\Http\convertHeaderPairsToMap;
+use function Amp\Http\mapHeaderPairs;
 
 /** @internal */
 final class Http1Parser
@@ -290,7 +290,7 @@ final class Http1Parser
 
         try {
             $headers = Rfc7230::parseHeaderPairs($rawHeaders);
-            $headerMap = convertHeaderPairsToMap($headers);
+            $headerMap = mapHeaderPairs($headers);
         } catch (InvalidHeaderException $e) {
             throw new ParseException('Invalid headers', HttpStatus::BAD_REQUEST, $e);
         }

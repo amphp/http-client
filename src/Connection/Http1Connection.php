@@ -297,10 +297,7 @@ final class Http1Connection implements Connection
                 $status = $response->getStatus();
 
                 if ($status === Http\HttpStatus::SWITCHING_PROTOCOLS) {
-                    $connection = Http\createFieldValueComponentMap(Http\parseFieldValueComponents(
-                        $response,
-                        'connection'
-                    ));
+                    $connection = Http\parseMultipleHeaderFields($response, 'connection')[0] ?? null;
 
                     if (!isset($connection['upgrade'])) {
                         throw new HttpException('Switching protocols response missing "Connection: upgrade" header');
@@ -544,7 +541,7 @@ final class Http1Connection implements Connection
             return 0;
         }
 
-        $params = Http\createFieldValueComponentMap(Http\parseFieldValueComponents($response, 'keep-alive'));
+        $params = Http\parseMultipleHeaderFields($response, 'keep-alive')[0] ?? null;
 
         $timeout = (int) ($params['timeout'] ?? $this->priorTimeout);
         if (isset($params['timeout'])) {
