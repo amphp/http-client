@@ -55,7 +55,6 @@
         "amphp/file": "Required for file request bodies and HTTP archive logging"
     },
     "minimum-stability": "dev",
-    "prefer-stable": true,
     "autoload": {
         "psr-4": {
             "Amp\\Http\\Client\\": "src"

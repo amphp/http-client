@@ -5,11 +5,12 @@ namespace Amp\Http\Client\Connection;
 
 use Amp\ByteStream\ReadableIterableStream;
 use Amp\ByteStream\StreamException;
-use Amp\Http\Client\Body\StreamBody;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\Request;
+use Amp\Http\Client\RequestBody;
 use Amp\Http\Client\Response;
+use Amp\Http\Client\StreamBody;
 use Amp\Http\Client\TimeoutException;
 use Amp\NullCancellation;
 use Amp\PHPUnit\AsyncTestCase;
@@ -251,8 +252,8 @@ class Http1ConnectionTest extends AsyncTestCase
         ];
     }
 
-    private function createSlowBody(): StreamBody
+    private function createSlowBody(): RequestBody
     {
-        return new StreamBody(new ReadableIterableStream(Pipeline::fromIterable(\array_fill(0, 100, '.'))->delay(0.1)));
+        return StreamBody::text(new ReadableIterableStream(Pipeline::fromIterable(\array_fill(0, 100, '.'))->delay(0.1)));
     }
 }

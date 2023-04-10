@@ -297,9 +297,8 @@ final class Http1Connection implements Connection
                 $status = $response->getStatus();
 
                 if ($status === Http\HttpStatus::SWITCHING_PROTOCOLS) {
-                    $connection = Http\parseMultipleHeaderFields($response, 'connection')[0] ?? null;
-
-                    if (!isset($connection['upgrade'])) {
+                    $connection = array_map('strtolower', Http\splitHeader($response, 'connection'));
+                    if (!\in_array('upgrade', $connection, true)) {
                         throw new HttpException('Switching protocols response missing "Connection: upgrade" header');
                     }
 
@@ -591,7 +590,6 @@ final class Http1Connection implements Connection
                 return;
             }
 
-            $body = $request->getBody()->createBodyStream();
             $chunking = $request->getHeader("transfer-encoding") === "chunked";
             $remainingBytes = $request->getHeader("content-length");
 
@@ -606,26 +604,29 @@ final class Http1Connection implements Connection
             // We always buffer the last chunk to make sure we don't write $contentLength bytes if the body is too long.
             $buffer = "";
 
-            while (null !== $chunk = $body->read($cancellation)) {
-                if ($chunk === "") {
-                    continue;
-                }
-
-                if ($chunking) {
-                    $chunk = \dechex(\strlen($chunk)) . "\r\n" . $chunk . "\r\n";
-                } elseif ($remainingBytes !== null) {
-                    $remainingBytes -= \strlen($chunk);
-
-                    if ($remainingBytes < 0) {
-                        throw new InvalidRequestException(
-                            $request,
-                            "Body contained more bytes than specified in Content-Length, aborting request"
-                        );
+            if ($request->getBody()) {
+                $body = $request->getBody()->getContent();
+                while (null !== $chunk = $body->read($cancellation)) {
+                    if ($chunk === "") {
+                        continue;
                     }
-                }
 
-                $socket->write($buffer);
-                $buffer = $chunk;
+                    if ($chunking) {
+                        $chunk = \dechex(\strlen($chunk)) . "\r\n" . $chunk . "\r\n";
+                    } elseif ($remainingBytes !== null) {
+                        $remainingBytes -= \strlen($chunk);
+
+                        if ($remainingBytes < 0) {
+                            throw new InvalidRequestException(
+                                $request,
+                                "Body contained more bytes than specified in Content-Length, aborting request"
+                            );
+                        }
+                    }
+
+                    $socket->write($buffer);
+                    $buffer = $chunk;
+                }
             }
 
             $cancellation->throwIfRequested();

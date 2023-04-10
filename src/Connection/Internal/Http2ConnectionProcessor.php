@@ -940,13 +940,12 @@ final class Http2ConnectionProcessor implements Http2Processor
 
             $headers = $this->hpack->encode($this->generateHeaders($request));
 
-            $body = $request->getBody()->createBodyStream();
-
             foreach ($request->getEventListeners() as $eventListener) {
                 $eventListener->startSendingRequest($request, $stream);
             }
 
-            $chunk = $body->read($cancellation);
+            $body = $request->getBody()?->getContent();
+            $chunk = $body?->read($cancellation);
         } catch (\Throwable $exception) {
             $exception = $this->wrapException($exception, "Request initialization failed");
 
@@ -1014,6 +1013,8 @@ final class Http2ConnectionProcessor implements Http2Processor
             if ($chunk === null) {
                 $http2stream->requestBodyCompletion->complete();
             } else {
+                \assert($body !== null);
+
                 $buffer = $chunk;
                 $writeFuture = Future::complete();
                 do {

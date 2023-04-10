@@ -1,30 +1,23 @@
-<?php declare(strict_types=1);
+<?php
 
 namespace Amp\Http\Client;
 
 use Amp\ByteStream\ReadableStream;
 
-/**
- * An interface for generating HTTP message bodies + headers.
- */
 interface RequestBody
 {
     /**
-     * Retrieve a key-value array of headers to add to the outbound request.
-     *
-     * @return array Must be a key-value array mapping header fields to header values.
+     * @throws HttpException
      */
-    public function getHeaders(): array;
+    public function getContent(): ReadableStream;
 
     /**
-     * Create the HTTP message body to be sent.
-     *
-     * Further calls MUST return a new stream to make it possible to resend bodies on redirects.
+     * @throws HttpException
      */
-    public function createBodyStream(): ReadableStream;
+    public function getContentLength(): ?int;
 
     /**
-     * Retrieve the HTTP message body length. If not available, return null.
+     * @throws HttpException
      */
-    public function getBodyLength(): ?int;
+    public function getContentType(): string;
 }
