@@ -8,16 +8,16 @@ use Amp\File\FilesystemException;
 use function Amp\File\getSize;
 use function Amp\File\openFile;
 
-final class StreamBody implements RequestBody
+final class StreamedContent implements Content
 {
-    public static function binary(ReadableStream $content, ?int $contentLength = null, string $contentType = 'application/octet-stream'): StreamBody
+    public static function binary(ReadableStream $content, ?int $contentLength = null, string $contentType = 'application/octet-stream'): StreamedContent
     {
-        return new StreamBody($content, $contentLength, $contentType);
+        return new StreamedContent($content, $contentLength, $contentType);
     }
 
-    public static function text(ReadableStream $content, ?int $contentLength = null, string $contentType = 'text/plain; charset=utf-8'): StreamBody
+    public static function text(ReadableStream $content, ?int $contentLength = null, string $contentType = 'text/plain; charset=utf-8'): StreamedContent
     {
-        return new StreamBody($content, $contentLength, $contentType);
+        return new StreamedContent($content, $contentLength, $contentType);
     }
 
     /**
@@ -26,13 +26,13 @@ final class StreamBody implements RequestBody
     public static function file(
         string $path,
         string $contentType = 'application/octet-stream',
-    ): StreamBody {
+    ): StreamedContent {
         if (!\class_exists(Filesystem::class)) {
             throw new \Error("File request bodies require amphp/file to be installed");
         }
 
         try {
-            return StreamBody::binary(openFile($path, 'r'), getSize($path), $contentType);
+            return StreamedContent::binary(openFile($path, 'r'), getSize($path), $contentType);
         } catch (FilesystemException $filesystemException) {
             throw new HttpException('Failed to open file: ' . $path, 0, $filesystemException);
         }

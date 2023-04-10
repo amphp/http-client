@@ -11,7 +11,7 @@ use Amp\Http\InvalidHeaderException;
 use League\Uri\QueryString;
 use function Amp\ByteStream\buffer;
 
-final class FormBody implements RequestBody
+final class Form implements Content
 {
     /** @var FormField[] */
     private array $fields = [];

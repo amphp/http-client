@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-use Amp\Http\Client\FormBody;
+use Amp\Http\Client\Form;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
@@ -13,7 +13,7 @@ try {
 
     // Here we create a custom request object instead of simply passing an URL to request().
     // We set the method to POST and add a FormBody to submit a form.
-    $body = new FormBody;
+    $body = new Form;
     $body->addField("search", "foobar");
     $body->addField("submit", "ok");
     $body->addFile("foo", __DIR__ . "/small-file.txt");

@@ -128,8 +128,8 @@ class RequestTest extends AsyncTestCase
         $request->setBody(null);
         $this->assertNull($request->getBody());
 
-        $request->setBody(StringBody::text('foobar'));
-        $this->assertInstanceOf(StringBody::class, $request->getBody());
+        $request->setBody(BufferedContent::text('foobar'));
+        $this->assertInstanceOf(BufferedContent::class, $request->getBody());
     }
 
     public function testPushHandler(): void

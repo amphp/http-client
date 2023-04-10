@@ -273,7 +273,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $body = 'zanzibar';
         $request = new Request('http://httpbin.org/post');
         $request->setMethod('POST');
-        $request->setBody(StringBody::text($body));
+        $request->setBody(BufferedContent::text($body));
 
         $response = $this->executeRequest($request);
 
@@ -290,7 +290,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $body = 'zanzibar';
         $request = new Request($uri, "PUT");
-        $request->setBody(StringBody::text($body));
+        $request->setBody(BufferedContent::text($body));
 
         $response = $this->executeRequest($request);
 
@@ -341,7 +341,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->client = $this->builder->followRedirects(0)->build();
 
         $request = new Request('https://http2.pro/api/v1', 'POST');
-        $request->setBody(StringBody::text('foobar'));
+        $request->setBody(BufferedContent::text('foobar'));
         $request->setProtocolVersions(['2']);
         $request->setHeader('te', 'gzip');
 
@@ -396,7 +396,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testFormEncodedBodyRequest(): void
     {
-        $body = new FormBody;
+        $body = new Form;
         $field1 = 'test val';
         $field2 = 'val2';
         $body->add(FormField::text('field1', $field1));
@@ -421,7 +421,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $uri = 'http://httpbin.org/post';
 
         $bodyPath = __DIR__ . '/fixture/answer.txt';
-        $body = StreamBody::file($bodyPath);
+        $body = StreamedContent::file($bodyPath);
 
         $request = new Request($uri, "POST");
         $request->setBody($body);
@@ -443,10 +443,10 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $boundary = 'AaB03x';
 
-        $body = new FormBody($boundary);
+        $body = new Form($boundary);
         $body->add(FormField::text('field1', $field1));
-        $body->add(FormField::stream('file1', \Amp\Http\Client\StreamBody::file($file1), \basename($file1)));
-        $body->add(FormField::stream('file2', \Amp\Http\Client\StreamBody::file($file2), \basename($file2)));
+        $body->add(FormField::stream('file1', \Amp\Http\Client\StreamedContent::file($file1), \basename($file1)));
+        $body->add(FormField::stream('file2', \Amp\Http\Client\StreamedContent::file($file2), \basename($file2)));
 
         $request = new Request('http://httpbin.org/post', "POST");
         $request->setBody($body);
@@ -532,7 +532,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
 
         $request = new Request("http://httpbin.org/post", "POST");
-        $request->setBody(StreamBody::text(new ReadableBuffer("foo"), 1));
+        $request->setBody(StreamedContent::text(new ReadableBuffer("foo"), 1));
 
         $this->executeRequest($request);
     }
@@ -543,7 +543,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
 
         $request = new Request("http://httpbin.org/post", "POST");
-        $request->setBody(StreamBody::text(new ReadableIterableStream(
+        $request->setBody(StreamedContent::text(new ReadableIterableStream(
             Pipeline::fromIterable(["a", "b", "c"])->delay(0.5)
         ), 2));
 
@@ -556,7 +556,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectExceptionMessage("Body contained fewer bytes than specified in Content-Length, aborting request");
 
         $request = new Request("http://httpbin.org/post", "POST");
-        $request->setBody(StreamBody::text(new ReadableBuffer("foo"), 42));
+        $request->setBody(StreamedContent::text(new ReadableBuffer("foo"), 42));
 
         $this->executeRequest($request);
     }
@@ -576,7 +576,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     public function testHttp2SupportBody(): void
     {
         $request = new Request('https://http2.pro/api/v1', 'POST');
-        $request->setBody(StringBody::text('foobar'));
+        $request->setBody(BufferedContent::text('foobar'));
 
         $response = $this->client->request($request);
         $body = $response->getBody()->buffer();
@@ -591,7 +591,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     public function testHttp2SupportLargeBody(): void
     {
         $request = new Request('https://http2.pro/api/v1', 'POST');
-        $request->setBody(StringBody::text(\str_repeat(',', 256 * 1024))); // larger than initial stream window
+        $request->setBody(BufferedContent::text(\str_repeat(',', 256 * 1024))); // larger than initial stream window
 
         $response = $this->client->request($request);
         $body = $response->getBody()->buffer();

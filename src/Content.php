@@ -4,7 +4,7 @@ namespace Amp\Http\Client;
 
 use Amp\ByteStream\ReadableStream;
 
-interface RequestBody
+interface Content
 {
     /**
      * @throws HttpException

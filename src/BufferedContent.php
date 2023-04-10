@@ -8,33 +8,33 @@ use Amp\File\Filesystem;
 use Amp\File\FilesystemException;
 use function Amp\File\read;
 
-final class StringBody implements RequestBody
+final class BufferedContent implements Content
 {
-    public static function binary(string $content, string $contentType = 'application/octet-stream'): StringBody
+    public static function binary(string $content, string $contentType = 'application/octet-stream'): BufferedContent
     {
-        return new StringBody($content, $contentType);
+        return new BufferedContent($content, $contentType);
     }
 
-    public static function text(string $content, string $contentType = 'text/plain; charset=utf-8'): StringBody
+    public static function text(string $content, string $contentType = 'text/plain; charset=utf-8'): BufferedContent
     {
-        return new StringBody($content, $contentType);
+        return new BufferedContent($content, $contentType);
     }
 
-    public static function json(string $content): StringBody
+    public static function json(string $content): BufferedContent
     {
-        return new StringBody($content, 'application/json; charset=utf-8');
+        return new BufferedContent($content, 'application/json; charset=utf-8');
     }
 
     public static function file(
         string $path,
         string $contentType = 'application/octet-stream',
-    ): StringBody {
+    ): BufferedContent {
         if (!\class_exists(Filesystem::class)) {
             throw new \Error("File request bodies require amphp/file to be installed");
         }
 
         try {
-            return StringBody::binary(read($path), $contentType);
+            return BufferedContent::binary(read($path), $contentType);
         } catch (FilesystemException $filesystemException) {
             throw new HttpException('Failed to open file: ' . $path, 0, $filesystemException);
         }

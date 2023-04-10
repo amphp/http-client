@@ -5,14 +5,14 @@ namespace Amp\Http\Client;
 use Amp\ByteStream\ReadableStream;
 use Amp\Http\HttpMessage;
 
-final class FormField extends HttpMessage
+final class FormField extends HttpMessage implements Content
 {
     /**
      * @throws HttpException
      */
     public static function text(string $name, string $content, string $contentType = 'text/plain; charset=utf-8'): self
     {
-        return new self($name, StringBody::text($content, $contentType));
+        return new self($name, BufferedContent::text($content, $contentType));
     }
 
     /**
@@ -20,7 +20,7 @@ final class FormField extends HttpMessage
      *
      * @throws HttpException
      */
-    public static function stream(string $name, RequestBody $content, ?string $filename = null): self
+    public static function stream(string $name, Content $content, ?string $filename = null): self
     {
         return new self($name, $content, $filename);
     }
@@ -30,7 +30,7 @@ final class FormField extends HttpMessage
      */
     private function __construct(
         private readonly string $name,
-        private readonly RequestBody $content,
+        private readonly Content $content,
         private readonly ?string $filename = null,
     ) {
         $contentType = $content->getContentType();
@@ -68,6 +68,11 @@ final class FormField extends HttpMessage
     public function getContentLength(): ?int
     {
         return $this->content->getContentLength();
+    }
+
+    public function getContentType(): string
+    {
+        return $this->content->getContentType();
     }
 
     public function getFilename(): ?string
