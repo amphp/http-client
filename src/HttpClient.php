@@ -23,6 +23,6 @@ final class HttpClient implements DelegateHttpClient
      */
     public function request(Request $request, ?Cancellation $cancellation = null): Response
     {
-        return $this->httpClient->request(clone $request, $cancellation ?? new NullCancellation);
+        return $this->httpClient->request($request, $cancellation ?? new NullCancellation);
     }
 }

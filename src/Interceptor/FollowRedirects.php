@@ -26,7 +26,7 @@ final class FollowRedirects implements ApplicationInterceptor
      */
     public static function resolve(PsrUri $baseUri, PsrUri $locationUri): PsrUri
     {
-        if ((string) $locationUri === '') {
+        if ((string)$locationUri === '') {
             return $baseUri;
         }
 
@@ -126,10 +126,9 @@ final class FollowRedirects implements ApplicationInterceptor
     ): Response {
         // Don't follow redirects on pushes, just store the redirect in cache (if an interceptor is configured)
 
-        $response = $httpClient->request(clone $request, $cancellation);
-        $response = $this->followRedirects($request, $response, $httpClient, $cancellation);
+        $response = $httpClient->request($request, $cancellation);
 
-        return $response;
+        return $this->followRedirects($request, $response, $httpClient, $cancellation);
     }
 
     private function followRedirects(
@@ -147,7 +146,7 @@ final class FollowRedirects implements ApplicationInterceptor
                 return $response;
             }
 
-            $redirectResponse = $client->request(clone $request, $cancellationToken);
+            $redirectResponse = $client->request($request, $cancellationToken);
             $redirectResponse->setPreviousResponse($response);
 
             $response = $redirectResponse;
@@ -170,19 +169,14 @@ final class FollowRedirects implements ApplicationInterceptor
         $originalUri = $response->getRequest()->getUri();
         $isSameHost = $redirectUri->getAuthority() === $originalUri->getAuthority();
 
-        $request = clone $originalRequest;
-        $request->setMethod('GET');
-        $request->setUri($redirectUri);
-        $request->removeHeader('transfer-encoding');
-        $request->removeHeader('content-length');
-        $request->removeHeader('content-type');
-        $request->removeAttributes();
-        $request->setBody('');
-
-        if (!$isSameHost) {
-            // Remove for security reasons, any interceptor headers will be added again,
+        $request = new Request($redirectUri, 'GET');
+        if ($isSameHost) {
+            // Avoid copying headers for security reasons, any interceptor headers will be added again,
             // but application headers will be discarded.
-            $request->setHeaders([]);
+            $request->setHeaders($originalRequest->getHeaders());
+            $request->removeHeader('transfer-encoding');
+            $request->removeHeader('content-length');
+            $request->removeHeader('content-type');
         }
 
         if ($this->autoReferrer) {
@@ -209,7 +203,7 @@ final class FollowRedirects implements ApplicationInterceptor
         $destinationIsEncrypted = $followUri->getScheme() === 'https';
 
         if (!$referrerIsEncrypted || $destinationIsEncrypted) {
-            $request->setHeader('Referer', (string) $referrerUri->withUserInfo('')->withFragment(''));
+            $request->setHeader('Referer', (string)$referrerUri->withUserInfo('')->withFragment(''));
         } else {
             $request->removeHeader('Referer');
         }
