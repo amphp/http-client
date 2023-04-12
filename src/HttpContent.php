@@ -19,5 +19,5 @@ interface HttpContent
     /**
      * @throws HttpException
      */
-    public function getContentType(): string;
+    public function getContentType(): ?string;
 }

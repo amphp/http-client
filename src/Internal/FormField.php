@@ -20,12 +20,12 @@ final class FormField extends HttpMessage implements HttpContent
         if ($this->filename === null) {
             $this->replaceHeaders([
                 'Content-Disposition' => "form-data; name=\"{$name}\"",
-                'Content-Type' => $contentType === '' ? [] : $contentType,
+                'Content-Type' => $contentType === '' || $contentType === null ? [] : $contentType,
             ]);
         } else {
             $this->replaceHeaders([
                 'Content-Disposition' => "form-data; name=\"{$name}\"; filename=\"{$filename}\"",
-                'Content-Type' => $contentType === '' ? [] : $contentType,
+                'Content-Type' => $contentType === '' || $contentType === null ? [] : $contentType,
                 'Content-Transfer-Encoding' => 'binary',
             ]);
         }
@@ -52,7 +52,7 @@ final class FormField extends HttpMessage implements HttpContent
         return $this->content->getContentLength();
     }
 
-    public function getContentType(): string
+    public function getContentType(): ?string
     {
         return $this->content->getContentType();
     }

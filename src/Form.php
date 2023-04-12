@@ -36,7 +36,7 @@ final class Form implements HttpContent
         }
     }
 
-    public function addText(string $name, string $content, string $contentType = 'text/plain; charset=utf-8'): void
+    public function addText(string $name, string $content, ?string $contentType = null): void
     {
         if ($this->content !== null) {
             throw new \Error('Form body is already frozen and can no longer be modified');
@@ -68,7 +68,7 @@ final class Form implements HttpContent
      * @param string $path Local file path. Filename will be provided to the server.
      * @throws HttpException
      */
-    public function addLocalFile(string $name, string $path, string $contentType = 'application/octet-stream'): void
+    public function addLocalFile(string $name, string $path, ?string $contentType = null): void
     {
         $this->addFileContent($name, StreamedContent::fromLocalFile($path, $contentType), \basename($path));
     }

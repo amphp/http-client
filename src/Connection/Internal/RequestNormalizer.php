@@ -34,7 +34,16 @@ final class RequestNormalizer
     private static function normalizeRequestBodyHeaders(Request $request): void
     {
         $body = $request->getBody();
-        $request->setHeader('content-type', $body->getContentType());
+
+        $contentType = $body->getContentType();
+        if ($contentType !== null) {
+            $previousContentType = $request->getHeaderArray('content-type');
+            if ($previousContentType !== [] && $previousContentType !== [$contentType]) {
+                throw new HttpException('Conflicting content type headers in request and request body: ' . \implode(', ', $previousContentType) . ' / ' . $contentType);
+            }
+
+            $request->setHeader('content-type', $contentType);
+        }
 
         if ($request->hasHeader("transfer-encoding")) {
             $request->removeHeader("content-length");

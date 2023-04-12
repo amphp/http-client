@@ -10,14 +10,14 @@ use function Amp\File\read;
 
 final class BufferedContent implements HttpContent
 {
-    public static function fromString(string $content, string $contentType = 'application/octet-stream'): BufferedContent
+    public static function fromString(string $content, ?string $contentType = null): BufferedContent
     {
         return new BufferedContent($content, $contentType);
     }
 
     public static function fromLocalFile(
         string $path,
-        string $contentType = 'application/octet-stream',
+        ?string $contentType = null,
     ): BufferedContent {
         if (!\class_exists(Filesystem::class)) {
             throw new \Error("File request bodies require amphp/file to be installed");
@@ -32,7 +32,7 @@ final class BufferedContent implements HttpContent
 
     private function __construct(
         private readonly string $content,
-        private readonly string $contentType,
+        private readonly ?string $contentType,
     ) {
     }
 
@@ -46,7 +46,7 @@ final class BufferedContent implements HttpContent
         return \strlen($this->content);
     }
 
-    public function getContentType(): string
+    public function getContentType(): ?string
     {
         return $this->contentType;
     }

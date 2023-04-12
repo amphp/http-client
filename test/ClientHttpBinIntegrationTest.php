@@ -402,7 +402,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $body->addText('field1', $field1);
         $body->addText('field2', $field2);
 
-        $request = new Request('http://httpbin.org/post', "POST");
+        $request = new Request('https://httpbin.org/post', "POST");
         $request->setBody($body);
 
         $response = $this->executeRequest($request);
