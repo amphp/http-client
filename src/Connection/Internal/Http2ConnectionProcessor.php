@@ -62,6 +62,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     private int $initialWindowSize = self::DEFAULT_WINDOW_SIZE;
 
+    /** @var int<1, max> */
     private int $frameSizeLimit = self::DEFAULT_MAX_FRAME_SIZE;
 
     /** @var int Previous stream ID. */
@@ -1013,8 +1014,6 @@ final class Http2ConnectionProcessor implements Http2Processor
             if ($chunk === null) {
                 $http2stream->requestBodyCompletion->complete();
             } else {
-                \assert($body !== null);
-
                 $buffer = $chunk;
                 $writeFuture = Future::complete();
                 do {
