@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Amp\Http\Client;
 
@@ -8,7 +8,7 @@ use Amp\File\Filesystem;
 use Amp\File\FilesystemException;
 use function Amp\File\read;
 
-final class BufferedContent implements Content
+final class BufferedContent implements HttpContent
 {
     public static function fromString(string $content, string $contentType = 'application/octet-stream'): BufferedContent
     {

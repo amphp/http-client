@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Amp\Http\Client;
 
@@ -8,7 +8,7 @@ use Amp\File\FilesystemException;
 use function Amp\File\getSize;
 use function Amp\File\openFile;
 
-final class StreamedContent implements Content
+final class StreamedContent implements HttpContent
 {
     public static function fromStream(ReadableStream $content, ?int $contentLength = null, string $contentType = 'application/octet-stream'): StreamedContent
     {

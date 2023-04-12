@@ -46,7 +46,7 @@ final class RequestNormalizer
         if ($contentLength === 0 && \in_array($request->getMethod(), ["CONNECT", "GET", "HEAD", "OPTIONS", "CONNECT", "TRACE"], true)) {
             $request->removeHeader('content-length');
             $request->removeHeader('transfer-encoding');
-        } else if ($contentLength !== null) {
+        } elseif ($contentLength !== null) {
             $request->setHeader('content-length', (string) $contentLength);
             $request->removeHeader('transfer-encoding');
         } else {

@@ -28,7 +28,7 @@ final class Request extends HttpRequest
     /** @var list<ProtocolVersion> */
     private array $protocolVersions = ['1.1', '2'];
 
-    private Content $body;
+    private HttpContent $body;
 
     private float $tcpConnectTimeout = 10;
 
@@ -60,7 +60,7 @@ final class Request extends HttpRequest
     /**
      * @param non-empty-string $method
      */
-    public function __construct(UriInterface|string $uri, string $method = "GET", Content|string $body = '')
+    public function __construct(UriInterface|string $uri, string $method = "GET", HttpContent|string $body = '')
     {
         parent::__construct($method, $uri instanceof UriInterface ? $uri : $this->createUriFromString($uri));
 
@@ -217,7 +217,7 @@ final class Request extends HttpRequest
     /**
      * Retrieve the request body.
      */
-    public function getBody(): Content
+    public function getBody(): HttpContent
     {
         return $this->body;
     }
@@ -225,7 +225,7 @@ final class Request extends HttpRequest
     /**
      * Assign the message entity body.
      */
-    public function setBody(Content|string $body): void
+    public function setBody(HttpContent|string $body): void
     {
         $this->body = \is_string($body) ? BufferedContent::fromString($body) : $body;
     }

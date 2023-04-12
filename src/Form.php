@@ -12,7 +12,7 @@ use Amp\Http\InvalidHeaderException;
 use League\Uri\QueryString;
 use function Amp\ByteStream\buffer;
 
-final class Form implements Content
+final class Form implements HttpContent
 {
     /** @var FormField[] */
     private array $fields = [];
@@ -45,7 +45,7 @@ final class Form implements Content
         $this->fields[] = new FormField($name, BufferedContent::fromString($content, $contentType));
     }
 
-    public function addContent(string $name, Content $content): void
+    public function addContent(string $name, HttpContent $content): void
     {
         if ($this->content !== null) {
             throw new \Error('Form body is already frozen and can no longer be modified');
@@ -54,7 +54,7 @@ final class Form implements Content
         $this->fields[] = new FormField($name, $content);
     }
 
-    public function addFileContent(string $name, Content $content, string $filename): void
+    public function addFileContent(string $name, HttpContent $content, string $filename): void
     {
         if ($this->content !== null) {
             throw new \Error('Form body is already frozen and can no longer be modified');
@@ -162,7 +162,6 @@ final class Form implements Content
 
     /**
      * @param (FormField|string)[] $parts
-     * @return ReadableStream
      * @throws HttpException
      */
     private function generateMultipartStream(array $parts): ReadableStream

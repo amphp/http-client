@@ -2,7 +2,6 @@
 
 namespace Amp\Http\Client;
 
-use Amp\Http\Client\Internal\FormField;
 use PHPUnit\Framework\TestCase;
 use function Amp\ByteStream\buffer;
 
