@@ -944,8 +944,8 @@ final class Http2ConnectionProcessor implements Http2Processor
                 $eventListener->startSendingRequest($request, $stream);
             }
 
-            $body = $request->getBody()?->getContent();
-            $chunk = $body?->read($cancellation);
+            $body = $request->getBody()->getContent();
+            $chunk = $body->read($cancellation);
         } catch (\Throwable $exception) {
             $exception = $this->wrapException($exception, "Request initialization failed");
 

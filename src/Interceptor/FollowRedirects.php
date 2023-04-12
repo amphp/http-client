@@ -177,7 +177,7 @@ final class FollowRedirects implements ApplicationInterceptor
         $request->removeHeader('content-length');
         $request->removeHeader('content-type');
         $request->removeAttributes();
-        $request->setBody(null);
+        $request->setBody('');
 
         if (!$isSameHost) {
             // Remove for security reasons, any interceptor headers will be added again,

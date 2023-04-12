@@ -10,12 +10,7 @@ use function Amp\File\openFile;
 
 final class StreamedContent implements Content
 {
-    public static function binary(ReadableStream $content, ?int $contentLength = null, string $contentType = 'application/octet-stream'): StreamedContent
-    {
-        return new StreamedContent($content, $contentLength, $contentType);
-    }
-
-    public static function text(ReadableStream $content, ?int $contentLength = null, string $contentType = 'text/plain; charset=utf-8'): StreamedContent
+    public static function fromStream(ReadableStream $content, ?int $contentLength = null, string $contentType = 'application/octet-stream'): StreamedContent
     {
         return new StreamedContent($content, $contentLength, $contentType);
     }
@@ -23,7 +18,7 @@ final class StreamedContent implements Content
     /**
      * @throws HttpException
      */
-    public static function file(
+    public static function fromLocalFile(
         string $path,
         string $contentType = 'application/octet-stream',
     ): StreamedContent {
@@ -32,7 +27,7 @@ final class StreamedContent implements Content
         }
 
         try {
-            return StreamedContent::binary(openFile($path, 'r'), getSize($path), $contentType);
+            return StreamedContent::fromStream(openFile($path, 'r'), getSize($path), $contentType);
         } catch (FilesystemException $filesystemException) {
             throw new HttpException('Failed to open file: ' . $path, 0, $filesystemException);
         }

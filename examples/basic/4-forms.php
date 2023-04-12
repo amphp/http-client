@@ -17,7 +17,7 @@ try {
     $body = new Form;
     $body->addText("search", "foobar");
     $body->addText("submit", "ok");
-    $body->addStream("foo", StreamedContent::file(__DIR__ . "/small-file.txt"), 'small-file.txt');
+    $body->addContent("foo", StreamedContent::fromLocalFile(__DIR__ . "/small-file.txt"), 'small-file.txt');
 
     $request = new Request('https://httpbin.org/post', 'POST');
     $request->setBody($body);

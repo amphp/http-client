@@ -29,7 +29,7 @@ class FormBodyTest extends TestCase
         $body->addText('d', 'd');
 
         $file = __DIR__ . '/fixture/lorem.txt';
-        $body->addStream('file', StreamedContent::file($file), 'lorem.txt');
+        $body->addFileContent('file', StreamedContent::fromLocalFile($file), 'lorem.txt');
 
         $content = buffer($body->getContent());
         $this->assertSame(

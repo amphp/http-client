@@ -5,6 +5,7 @@ namespace Amp\Http\Client;
 use Amp\ByteStream\ReadableBuffer;
 use Amp\Future;
 use Amp\PHPUnit\AsyncTestCase;
+use function Amp\ByteStream\buffer;
 
 class RequestTest extends AsyncTestCase
 {
@@ -123,13 +124,15 @@ class RequestTest extends AsyncTestCase
     public function testBody(): void
     {
         $request = new Request("http://127.0.0.1/");
-        $this->assertNull($request->getBody());
+        $this->assertSame('', buffer($request->getBody()->getContent()));
 
-        $request->setBody(null);
-        $this->assertNull($request->getBody());
-
-        $request->setBody(BufferedContent::text('foobar'));
+        $request->setBody('foobar');
         $this->assertInstanceOf(BufferedContent::class, $request->getBody());
+        $this->assertSame('foobar', buffer($request->getBody()->getContent()));
+        $this->assertSame('foobar', buffer($request->getBody()->getContent())); // repeatable
+
+        $request->setBody('');
+        $this->assertSame('', buffer($request->getBody()->getContent()));
     }
 
     public function testPushHandler(): void

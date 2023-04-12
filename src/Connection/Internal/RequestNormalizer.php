@@ -34,12 +34,7 @@ final class RequestNormalizer
     private static function normalizeRequestBodyHeaders(Request $request): void
     {
         $body = $request->getBody();
-
-        if ($body) {
-            $request->setHeader('content-type', $body->getContentType());
-        } else {
-            $request->removeHeader('content-type');
-        }
+        $request->setHeader('content-type', $body->getContentType());
 
         if ($request->hasHeader("transfer-encoding")) {
             $request->removeHeader("content-length");
@@ -47,15 +42,12 @@ final class RequestNormalizer
             return;
         }
 
-        $contentLength = $body?->getContentLength();
-        if ($contentLength !== null) {
-            $request->setHeader('content-length', (string)$contentLength);
-            $request->removeHeader('transfer-encoding');
-        } elseif ($body === null && \in_array($request->getMethod(), ["CONNECT", "GET", "HEAD", "OPTIONS", "CONNECT", "TRACE"], true)) {
+        $contentLength = $body->getContentLength();
+        if ($contentLength === 0 && \in_array($request->getMethod(), ["CONNECT", "GET", "HEAD", "OPTIONS", "CONNECT", "TRACE"], true)) {
             $request->removeHeader('content-length');
             $request->removeHeader('transfer-encoding');
-        } else if ($body === null) {
-            $request->setHeader('content-length', '0');
+        } else if ($contentLength !== null) {
+            $request->setHeader('content-length', (string) $contentLength);
             $request->removeHeader('transfer-encoding');
         } else {
             $request->removeHeader('content-length');

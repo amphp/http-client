@@ -42,23 +42,35 @@ final class Form implements Content
             throw new \Error('Form body is already frozen and can no longer be modified');
         }
 
-        $this->fields[] = new FormField($name, BufferedContent::text($content, $contentType));
+        $this->fields[] = new FormField($name, BufferedContent::fromString($content, $contentType));
     }
 
-    /**
-     * @param string|null $filename Must be provided to make this a file upload.
-     */
-    public function addStream(string $name, Content $content, ?string $filename = null): void
+    public function addContent(string $name, Content $content): void
+    {
+        if ($this->content !== null) {
+            throw new \Error('Form body is already frozen and can no longer be modified');
+        }
+
+        $this->fields[] = new FormField($name, $content);
+    }
+
+    public function addFileContent(string $name, Content $content, string $filename): void
     {
         if ($this->content !== null) {
             throw new \Error('Form body is already frozen and can no longer be modified');
         }
 
         $this->fields[] = new FormField($name, $content, $filename);
+        $this->isMultipart = true;
+    }
 
-        if ($filename !== null) {
-            $this->isMultipart = true;
-        }
+    /**
+     * @param string $path Local file path. Filename will be provided to the server.
+     * @throws HttpException
+     */
+    public function addLocalFile(string $name, string $path, string $contentType = 'application/octet-stream'): void
+    {
+        $this->addFileContent($name, StreamedContent::fromLocalFile($path, $contentType), \basename($path));
     }
 
     public function getContent(): ReadableStream

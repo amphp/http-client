@@ -254,6 +254,6 @@ class Http1ConnectionTest extends AsyncTestCase
 
     private function createSlowBody(): Content
     {
-        return StreamedContent::text(new ReadableIterableStream(Pipeline::fromIterable(\array_fill(0, 100, '.'))->delay(0.1)));
+        return StreamedContent::fromStream(new ReadableIterableStream(Pipeline::fromIterable(\array_fill(0, 100, '.'))->delay(0.1)));
     }
 }

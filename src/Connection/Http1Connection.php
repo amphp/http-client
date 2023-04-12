@@ -604,29 +604,27 @@ final class Http1Connection implements Connection
             // We always buffer the last chunk to make sure we don't write $contentLength bytes if the body is too long.
             $buffer = "";
 
-            if ($request->getBody()) {
-                $body = $request->getBody()->getContent();
-                while (null !== $chunk = $body->read($cancellation)) {
-                    if ($chunk === "") {
-                        continue;
-                    }
-
-                    if ($chunking) {
-                        $chunk = \dechex(\strlen($chunk)) . "\r\n" . $chunk . "\r\n";
-                    } elseif ($remainingBytes !== null) {
-                        $remainingBytes -= \strlen($chunk);
-
-                        if ($remainingBytes < 0) {
-                            throw new InvalidRequestException(
-                                $request,
-                                "Body contained more bytes than specified in Content-Length, aborting request"
-                            );
-                        }
-                    }
-
-                    $socket->write($buffer);
-                    $buffer = $chunk;
+            $body = $request->getBody()->getContent();
+            while (null !== $chunk = $body->read($cancellation)) {
+                if ($chunk === "") {
+                    continue;
                 }
+
+                if ($chunking) {
+                    $chunk = \dechex(\strlen($chunk)) . "\r\n" . $chunk . "\r\n";
+                } elseif ($remainingBytes !== null) {
+                    $remainingBytes -= \strlen($chunk);
+
+                    if ($remainingBytes < 0) {
+                        throw new InvalidRequestException(
+                            $request,
+                            "Body contained more bytes than specified in Content-Length, aborting request"
+                        );
+                    }
+                }
+
+                $socket->write($buffer);
+                $buffer = $chunk;
             }
 
             $cancellation->throwIfRequested();
