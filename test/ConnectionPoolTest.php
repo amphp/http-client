@@ -46,7 +46,7 @@ class ConnectionPoolTest extends AsyncTestCase
 
             $client->close();
 
-            delay(0.1);
+            delay(0.2);
 
             $client = $this->socket->accept();
 
