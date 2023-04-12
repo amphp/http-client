@@ -21,7 +21,11 @@ final class Form implements HttpContent
 
     private bool $isMultipart = false;
 
+    private bool $used = false;
+
     private ?ReadableStream $content = null;
+
+    private ?int $contentLength = null;
 
     /**
      * @param string|null $boundary An optional multipart boundary string
@@ -38,8 +42,8 @@ final class Form implements HttpContent
 
     public function addText(string $name, string $content, ?string $contentType = null): void
     {
-        if ($this->content !== null) {
-            throw new \Error('Form body is already frozen and can no longer be modified');
+        if ($this->used) {
+            throw new \Error('Form body is already used and can no longer be modified');
         }
 
         $this->fields[] = new FormField($name, BufferedContent::fromString($content, $contentType));
@@ -47,8 +51,8 @@ final class Form implements HttpContent
 
     public function addContent(string $name, HttpContent $content): void
     {
-        if ($this->content !== null) {
-            throw new \Error('Form body is already frozen and can no longer be modified');
+        if ($this->used) {
+            throw new \Error('Form body is already used and can no longer be modified');
         }
 
         $this->fields[] = new FormField($name, $content);
@@ -56,8 +60,8 @@ final class Form implements HttpContent
 
     public function addFileContent(string $name, HttpContent $content, string $filename): void
     {
-        if ($this->content !== null) {
-            throw new \Error('Form body is already frozen and can no longer be modified');
+        if ($this->used) {
+            throw new \Error('Form body is already used and can no longer be modified');
         }
 
         $this->fields[] = new FormField($name, $content, $filename);
@@ -75,15 +79,21 @@ final class Form implements HttpContent
 
     public function getContent(): ReadableStream
     {
-        if ($this->content !== null) {
+        $this->used = true;
+
+        if ($this->content === null) {
+            if ($this->isMultipart) {
+                $this->content = $this->generateMultipartStream($this->getMultipartParts());
+            } else {
+                $this->content = new ReadableBuffer($this->generateFormEncodedBody());
+            }
+        }
+
+        try {
             return $this->content;
+        } finally {
+            $this->content = null;
         }
-
-        if ($this->isMultipart) {
-            return $this->content = $this->generateMultipartStream($this->getMultipartParts());
-        }
-
-        return $this->content = new ReadableBuffer($this->generateFormEncodedBody());
     }
 
     public function getContentType(): string
@@ -98,27 +108,34 @@ final class Form implements HttpContent
      */
     public function getContentLength(): ?int
     {
-        if (!$this->isMultipart) {
-            return \strlen($this->generateFormEncodedBody());
+        if ($this->contentLength !== null) {
+            return $this->contentLength;
         }
 
-        $fields = $this->getMultipartParts();
-        $length = 0;
+        if ($this->isMultipart) {
+            $fields = $this->getMultipartParts();
+            $length = 0;
 
-        foreach ($fields as $field) {
-            if (\is_string($field)) {
-                $length += \strlen($field);
-            } else {
-                $contentLength = $field->getContentLength();
-                if ($contentLength === null) {
-                    return null;
+            foreach ($fields as $field) {
+                if (\is_string($field)) {
+                    $length += \strlen($field);
+                } else {
+                    $contentLength = $field->getContentLength();
+                    if ($contentLength === null) {
+                        return null;
+                    }
+
+                    $length += $contentLength;
                 }
-
-                $length += $contentLength;
             }
+
+            return $this->contentLength = $length;
         }
 
-        return $length;
+        $body = $this->generateFormEncodedBody();
+        $this->content = new ReadableBuffer($body);
+
+        return $this->contentLength = \strlen($body);
     }
 
     /**

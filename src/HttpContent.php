@@ -7,6 +7,8 @@ use Amp\ByteStream\ReadableStream;
 interface HttpContent
 {
     /**
+     * Multiple calls should return a new stream every time or throw.
+     *
      * @throws HttpException
      */
     public function getContent(): ReadableStream;

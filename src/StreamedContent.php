@@ -33,16 +33,27 @@ final class StreamedContent implements HttpContent
         }
     }
 
+    private ?ReadableStream $content;
+
     private function __construct(
-        private readonly ReadableStream $content,
+        ReadableStream $content,
         private readonly ?int $contentLength,
         private readonly ?string $contentType,
     ) {
+        $this->content = $content;
     }
 
     public function getContent(): ReadableStream
     {
-        return $this->content;
+        if ($this->content === null) {
+            throw new HttpException('The content has already been streamed and can\'t be streamed again');
+        }
+
+        try {
+            return $this->content;
+        } finally {
+            $this->content = null;
+        }
     }
 
     public function getContentLength(): ?int
