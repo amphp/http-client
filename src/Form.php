@@ -6,6 +6,7 @@ use Amp\ByteStream\BufferException;
 use Amp\ByteStream\ReadableBuffer;
 use Amp\ByteStream\ReadableStream;
 use Amp\ByteStream\ReadableStreamChain;
+use Amp\Http\Client\Internal\FormField;
 use Amp\Http\Http1\Rfc7230;
 use Amp\Http\InvalidHeaderException;
 use League\Uri\QueryString;
@@ -35,20 +36,27 @@ final class Form implements Content
         }
     }
 
-    /**
-     * Add a data field to the form body.
-     *
-     * @throws HttpException
-     */
-    public function add(FormField $field): void
+    public function text(string $name, string $content, string $contentType = 'text/plain; charset=utf-8'): void
     {
         if ($this->content !== null) {
-            throw new HttpException('Form body is already frozen and can no longer be modified');
+            throw new \Error('Form body is already frozen and can no longer be modified');
         }
 
-        $this->fields[] = $field;
+        $this->fields[] = new FormField($name, BufferedContent::text($content, $contentType));
+    }
 
-        if ($field->getFilename() !== null) {
+    /**
+     * @param string|null $filename Must be provided to make this a file upload.
+     */
+    public function stream(string $name, Content $content, ?string $filename = null): void
+    {
+        if ($this->content !== null) {
+            throw new \Error('Form body is already frozen and can no longer be modified');
+        }
+
+        $this->fields[] = new FormField($name, $content, $filename);
+
+        if ($filename !== null) {
             $this->isMultipart = true;
         }
     }

@@ -1,34 +1,16 @@
 <?php
 
-namespace Amp\Http\Client;
+namespace Amp\Http\Client\Internal;
 
 use Amp\ByteStream\ReadableStream;
+use Amp\Http\Client\Content;
+use Amp\Http\Client\HttpException;
 use Amp\Http\HttpMessage;
 
+/** @internal */
 final class FormField extends HttpMessage implements Content
 {
-    /**
-     * @throws HttpException
-     */
-    public static function text(string $name, string $content, string $contentType = 'text/plain; charset=utf-8'): self
-    {
-        return new self($name, BufferedContent::text($content, $contentType));
-    }
-
-    /**
-     * @param string|null $filename Must be provided to make this a file upload.
-     *
-     * @throws HttpException
-     */
-    public static function stream(string $name, Content $content, ?string $filename = null): self
-    {
-        return new self($name, $content, $filename);
-    }
-
-    /**
-     * @throws HttpException
-     */
-    private function __construct(
+    public function __construct(
         private readonly string $name,
         private readonly Content $content,
         private readonly ?string $filename = null,

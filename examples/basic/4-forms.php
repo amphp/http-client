@@ -4,6 +4,7 @@ use Amp\Http\Client\Form;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
+use Amp\Http\Client\StreamedContent;
 
 require __DIR__ . '/../.helper/functions.php';
 
@@ -14,9 +15,9 @@ try {
     // Here we create a custom request object instead of simply passing an URL to request().
     // We set the method to POST and add a FormBody to submit a form.
     $body = new Form;
-    $body->addField("search", "foobar");
-    $body->addField("submit", "ok");
-    $body->addFile("foo", __DIR__ . "/small-file.txt");
+    $body->text("search", "foobar");
+    $body->text("submit", "ok");
+    $body->stream("foo", StreamedContent::file(__DIR__ . "/small-file.txt"), 'small-file.txt');
 
     $request = new Request('https://httpbin.org/post', 'POST');
     $request->setBody($body);

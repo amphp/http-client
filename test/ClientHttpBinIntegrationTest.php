@@ -399,8 +399,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $body = new Form;
         $field1 = 'test val';
         $field2 = 'val2';
-        $body->add(FormField::text('field1', $field1));
-        $body->add(FormField::text('field2', $field2));
+        $body->text('field1', $field1);
+        $body->text('field2', $field2);
 
         $request = new Request('http://httpbin.org/post', "POST");
         $request->setBody($body);
@@ -444,9 +444,9 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $boundary = 'AaB03x';
 
         $body = new Form($boundary);
-        $body->add(FormField::text('field1', $field1));
-        $body->add(FormField::stream('file1', \Amp\Http\Client\StreamedContent::file($file1), \basename($file1)));
-        $body->add(FormField::stream('file2', \Amp\Http\Client\StreamedContent::file($file2), \basename($file2)));
+        $body->text('field1', $field1);
+        $body->stream('file1', StreamedContent::file($file1), \basename($file1));
+        $body->stream('file2', StreamedContent::file($file2), \basename($file2));
 
         $request = new Request('http://httpbin.org/post', "POST");
         $request->setBody($body);

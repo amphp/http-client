@@ -2,6 +2,7 @@
 
 namespace Amp\Http\Client;
 
+use Amp\Http\Client\Internal\FormField;
 use PHPUnit\Framework\TestCase;
 use function Amp\ByteStream\buffer;
 
@@ -10,10 +11,10 @@ class FormBodyTest extends TestCase
     public function testUrlEncoded(): void
     {
         $body = new Form();
-        $body->add(FormField::text('a', 'a', 'application/json'));
-        $body->add(FormField::text('b', 'b', 'application/json'));
-        $body->add(FormField::text('c', 'c', ''));
-        $body->add(FormField::text('d', 'd'));
+        $body->text('a', 'a', 'application/json');
+        $body->text('b', 'b', 'application/json');
+        $body->text('c', 'c', '');
+        $body->text('d', 'd');
 
         $content = buffer($body->getContent());
         $this->assertEquals("a=a&b=b&c=c&d=d", $content);
@@ -22,13 +23,13 @@ class FormBodyTest extends TestCase
     public function testMultiPartFields(): void
     {
         $body = new Form('ea4ba2aa9af22673bc01ae7a64c95440');
-        $body->add(FormField::text('a', 'a', 'application/json'));
-        $body->add(FormField::text('b', 'b', 'application/json'));
-        $body->add(FormField::text('c', 'c', ''));
-        $body->add(FormField::text('d', 'd'));
+        $body->text('a', 'a', 'application/json');
+        $body->text('b', 'b', 'application/json');
+        $body->text('c', 'c', '');
+        $body->text('d', 'd');
 
         $file = __DIR__ . '/fixture/lorem.txt';
-        $body->add(FormField::stream('file', StreamedContent::file($file), 'lorem.txt'));
+        $body->stream('file', StreamedContent::file($file), 'lorem.txt');
 
         $content = buffer($body->getContent());
         $this->assertSame(
