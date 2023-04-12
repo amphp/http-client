@@ -2,6 +2,7 @@
 
 namespace Amp\Http\Client;
 
+use Amp\ForbidCloning;
 use Amp\ForbidSerialization;
 use Amp\Future;
 use Amp\Http\Client\Connection\UpgradedSocket;
@@ -20,6 +21,7 @@ use function Amp\async;
  */
 final class Request extends HttpRequest
 {
+    use ForbidCloning;
     use ForbidSerialization;
 
     public const DEFAULT_HEADER_SIZE_LIMIT = 2 * 8192;
