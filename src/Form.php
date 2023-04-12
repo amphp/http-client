@@ -36,7 +36,7 @@ final class Form implements Content
         }
     }
 
-    public function text(string $name, string $content, string $contentType = 'text/plain; charset=utf-8'): void
+    public function addText(string $name, string $content, string $contentType = 'text/plain; charset=utf-8'): void
     {
         if ($this->content !== null) {
             throw new \Error('Form body is already frozen and can no longer be modified');
@@ -48,7 +48,7 @@ final class Form implements Content
     /**
      * @param string|null $filename Must be provided to make this a file upload.
      */
-    public function stream(string $name, Content $content, ?string $filename = null): void
+    public function addStream(string $name, Content $content, ?string $filename = null): void
     {
         if ($this->content !== null) {
             throw new \Error('Form body is already frozen and can no longer be modified');

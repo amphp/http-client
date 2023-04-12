@@ -11,10 +11,10 @@ class FormBodyTest extends TestCase
     public function testUrlEncoded(): void
     {
         $body = new Form();
-        $body->text('a', 'a', 'application/json');
-        $body->text('b', 'b', 'application/json');
-        $body->text('c', 'c', '');
-        $body->text('d', 'd');
+        $body->addText('a', 'a', 'application/json');
+        $body->addText('b', 'b', 'application/json');
+        $body->addText('c', 'c', '');
+        $body->addText('d', 'd');
 
         $content = buffer($body->getContent());
         $this->assertEquals("a=a&b=b&c=c&d=d", $content);
@@ -23,13 +23,13 @@ class FormBodyTest extends TestCase
     public function testMultiPartFields(): void
     {
         $body = new Form('ea4ba2aa9af22673bc01ae7a64c95440');
-        $body->text('a', 'a', 'application/json');
-        $body->text('b', 'b', 'application/json');
-        $body->text('c', 'c', '');
-        $body->text('d', 'd');
+        $body->addText('a', 'a', 'application/json');
+        $body->addText('b', 'b', 'application/json');
+        $body->addText('c', 'c', '');
+        $body->addText('d', 'd');
 
         $file = __DIR__ . '/fixture/lorem.txt';
-        $body->stream('file', StreamedContent::file($file), 'lorem.txt');
+        $body->addStream('file', StreamedContent::file($file), 'lorem.txt');
 
         $content = buffer($body->getContent());
         $this->assertSame(
