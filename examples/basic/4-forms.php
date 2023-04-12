@@ -4,7 +4,6 @@ use Amp\Http\Client\Form;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
-use Amp\Http\Client\StreamedContent;
 
 require __DIR__ . '/../.helper/functions.php';
 
@@ -17,7 +16,7 @@ try {
     $body = new Form;
     $body->addText("search", "foobar");
     $body->addText("submit", "ok");
-    $body->addContent("foo", StreamedContent::fromLocalFile(__DIR__ . "/small-file.txt"), 'small-file.txt');
+    $body->addLocalFile("foo", __DIR__ . "/small-file.txt");
 
     $request = new Request('https://httpbin.org/post', 'POST');
     $request->setBody($body);
