@@ -44,7 +44,7 @@
         "amphp/phpunit-util": "^3",
         "amphp/php-cs-fixer-config": "^2",
         "phpunit/phpunit": "^9",
-        "amphp/http-server": "^3",
+        "amphp/http-server": "^3-dev",
         "kelunik/link-header-rfc5988": "^1",
         "psalm/phar": "^5.4",
         "laminas/laminas-diactoros": "^2.3"
@@ -54,7 +54,6 @@
         "ext-json": "Required for logging HTTP archives",
         "amphp/file": "Required for file request bodies and HTTP archive logging"
     },
-    "minimum-stability": "dev",
     "autoload": {
         "psr-4": {
             "Amp\\Http\\Client\\": "src"
