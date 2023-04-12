@@ -26,7 +26,7 @@ final class FollowRedirects implements ApplicationInterceptor
      */
     public static function resolve(PsrUri $baseUri, PsrUri $locationUri): PsrUri
     {
-        if ((string)$locationUri === '') {
+        if ((string) $locationUri === '') {
             return $baseUri;
         }
 
@@ -203,7 +203,7 @@ final class FollowRedirects implements ApplicationInterceptor
         $destinationIsEncrypted = $followUri->getScheme() === 'https';
 
         if (!$referrerIsEncrypted || $destinationIsEncrypted) {
-            $request->setHeader('Referer', (string)$referrerUri->withUserInfo('')->withFragment(''));
+            $request->setHeader('Referer', (string) $referrerUri->withUserInfo('')->withFragment(''));
         } else {
             $request->removeHeader('Referer');
         }
