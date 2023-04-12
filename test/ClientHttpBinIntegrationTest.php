@@ -273,7 +273,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $body = 'zanzibar';
         $request = new Request('http://httpbin.org/post');
         $request->setMethod('POST');
-        $request->setBody(BufferedContent::fromString($body));
+        $request->setBody($body);
 
         $response = $this->executeRequest($request);
 
@@ -290,7 +290,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $body = 'zanzibar';
         $request = new Request($uri, "PUT");
-        $request->setBody(BufferedContent::fromString($body));
+        $request->setBody($body);
 
         $response = $this->executeRequest($request);
 
@@ -341,7 +341,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->client = $this->builder->followRedirects(0)->build();
 
         $request = new Request('https://http2.pro/api/v1', 'POST');
-        $request->setBody(BufferedContent::fromString('foobar'));
+        $request->setBody('foobar');
         $request->setProtocolVersions(['2']);
         $request->setHeader('te', 'gzip');
 
@@ -576,7 +576,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     public function testHttp2SupportBody(): void
     {
         $request = new Request('https://http2.pro/api/v1', 'POST');
-        $request->setBody(BufferedContent::fromString('foobar'));
+        $request->setBody('foobar');
 
         $response = $this->client->request($request);
         $body = $response->getBody()->buffer();
@@ -591,7 +591,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     public function testHttp2SupportLargeBody(): void
     {
         $request = new Request('https://http2.pro/api/v1', 'POST');
-        $request->setBody(BufferedContent::fromString(\str_repeat(',', 256 * 1024))); // larger than initial stream window
+        $request->setBody(\str_repeat(',', 256 * 1024)); // larger than initial stream window
 
         $response = $this->client->request($request);
         $body = $response->getBody()->buffer();
