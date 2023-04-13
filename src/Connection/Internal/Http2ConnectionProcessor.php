@@ -939,8 +939,6 @@ final class Http2ConnectionProcessor implements Http2Processor
                 );
             }
 
-            $headers = $this->hpack->encode($this->generateHeaders($request));
-
             foreach ($request->getEventListeners() as $eventListener) {
                 $eventListener->startSendingRequest($request, $stream);
             }
@@ -987,9 +985,10 @@ final class Http2ConnectionProcessor implements Http2Processor
             ->finally(static fn () => $cancellation->unsubscribe($cancellationId))
             ->ignore();
 
-        $flag = Http2Parser::END_HEADERS | ($chunk === null ? Http2Parser::END_STREAM : Http2Parser::NO_FLAG);
-
         try {
+            $headers = $this->hpack->encode($this->generateHeaders($request));
+            $flag = Http2Parser::END_HEADERS | ($chunk === null ? Http2Parser::END_STREAM : Http2Parser::NO_FLAG);
+
             if (\strlen($headers) > $this->frameSizeLimit) {
                 $split = \str_split($headers, $this->frameSizeLimit);
                 \assert($split !== false);
@@ -1045,7 +1044,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         } catch (\Throwable $exception) {
             $cancellation->unsubscribe($cancellationId);
 
-            $exception = $this->wrapException($exception, "Failed to write request (stream {$streamId} to socket");
+            $exception = $this->wrapException($exception, "Failed to write request (stream {$streamId}) to socket");
 
             if (!$http2stream->requestBodyCompletion->isComplete()) {
                 $http2stream->requestBodyCompletion->error($exception);
