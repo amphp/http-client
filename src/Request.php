@@ -2,9 +2,9 @@
 
 namespace Amp\Http\Client;
 
+use Amp\ForbidCloning;
 use Amp\ForbidSerialization;
 use Amp\Future;
-use Amp\Http\Client\Body\StringBody;
 use Amp\Http\Client\Connection\UpgradedSocket;
 use Amp\Http\HttpMessage;
 use Amp\Http\HttpRequest;
@@ -21,32 +21,16 @@ use function Amp\async;
  */
 final class Request extends HttpRequest
 {
+    use ForbidCloning;
     use ForbidSerialization;
 
     public const DEFAULT_HEADER_SIZE_LIMIT = 2 * 8192;
     public const DEFAULT_BODY_SIZE_LIMIT = 10485760;
 
-    /**
-     * @template TValue
-     *
-     * @psalm-param TValue $value
-     *
-     * @psalm-return TValue
-     */
-    private static function clone(mixed $value): mixed
-    {
-        if ($value === null || \is_scalar($value)) {
-            return $value;
-        }
-
-        // force deep cloning
-        return \unserialize(\serialize($value), ['allowed_classes' => true]);
-    }
-
     /** @var list<ProtocolVersion> */
     private array $protocolVersions = ['1.1', '2'];
 
-    private RequestBody $body;
+    private HttpContent $body;
 
     private float $tcpConnectTimeout = 10;
 
@@ -60,7 +44,7 @@ final class Request extends HttpRequest
 
     private int $headerSizeLimit = self::DEFAULT_HEADER_SIZE_LIMIT;
 
-    /** @var null|\Closure(Request, Future): void  */
+    /** @var null|\Closure(Request, Future): void */
     private ?\Closure $onPush = null;
 
     /** @var null|\Closure(UpgradedSocket, Request, Response): void */
@@ -78,7 +62,7 @@ final class Request extends HttpRequest
     /**
      * @param non-empty-string $method
      */
-    public function __construct(string|UriInterface $uri, string $method = "GET", RequestBody|string $body = '')
+    public function __construct(UriInterface|string $uri, string $method = "GET", HttpContent|string $body = '')
     {
         parent::__construct($method, $uri instanceof UriInterface ? $uri : $this->createUriFromString($uri));
 
@@ -233,9 +217,9 @@ final class Request extends HttpRequest
     }
 
     /**
-     * Retrieve the message entity body.
+     * Retrieve the request body.
      */
-    public function getBody(): RequestBody
+    public function getBody(): HttpContent
     {
         return $this->body;
     }
@@ -243,13 +227,9 @@ final class Request extends HttpRequest
     /**
      * Assign the message entity body.
      */
-    public function setBody(string|RequestBody $body): void
+    public function setBody(HttpContent|string $body): void
     {
-        $this->body = match (true) {
-            \is_string($body) => new StringBody($body),
-            $body instanceof RequestBody => $body,
-            default => throw new \TypeError("Invalid body type: " . \gettype($body)),
-        };
+        $this->body = \is_string($body) ? BufferedContent::fromString($body) : $body;
     }
 
     /**
@@ -417,15 +397,12 @@ final class Request extends HttpRequest
     }
 
     /**
-     * Note: This method returns a deep clone of the request's attributes, so you can't modify the request attributes
-     * by modifying the returned value in any way.
-     *
      * @return array<non-empty-string, mixed> An array of all request attributes in the request's local storage,
      *      indexed by name.
      */
     public function getAttributes(): array
     {
-        return self::clone($this->attributes);
+        return $this->attributes;
     }
 
     /**
@@ -450,9 +427,6 @@ final class Request extends HttpRequest
      * Other interceptors which are aware of this data can then access it without the server being tightly coupled to
      * specific implementations.
      *
-     * Note: This method returns a deep clone of the request's attribute, so you can't modify the request attribute
-     * by modifying the returned value in any way.
-     *
      * @param non-empty-string $name Name of the attribute, should be namespaced with a vendor and package namespace
      *      like classes.
      *
@@ -464,7 +438,7 @@ final class Request extends HttpRequest
             throw new MissingAttributeError("The requested attribute '{$name}' does not exist");
         }
 
-        return self::clone($this->attributes[$name]);
+        return $this->attributes[$name];
     }
 
     /**
@@ -473,9 +447,6 @@ final class Request extends HttpRequest
      * Each request has its own local storage to which applications and interceptors may read and write data.
      * Other interceptors which are aware of this data can then access it without the server being tightly coupled to
      * specific implementations.
-     *
-     * Note: This method performs a deep clone of the value via serialization, so you can't modify the given value
-     * after setting it.
      *
      * **Example**
      *
@@ -489,7 +460,7 @@ final class Request extends HttpRequest
      */
     public function setAttribute(string $name, mixed $value): void
     {
-        $this->attributes[$name] = self::clone($value);
+        $this->attributes[$name] = $value;
     }
 
     /**

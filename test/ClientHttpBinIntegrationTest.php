@@ -10,9 +10,6 @@ use Amp\Cancellation;
 use Amp\CancelledException;
 use Amp\DeferredCancellation;
 use Amp\Future;
-use Amp\Http\Client\Body\FileBody;
-use Amp\Http\Client\Body\FormBody;
-use Amp\Http\Client\Body\StreamBody;
 use Amp\Http\Client\Connection\UnprocessedRequestException;
 use Amp\Http\Client\Interceptor\DecompressResponse;
 use Amp\Http\Client\Interceptor\ModifyRequest;
@@ -399,13 +396,13 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testFormEncodedBodyRequest(): void
     {
-        $body = new FormBody;
+        $body = new Form;
         $field1 = 'test val';
         $field2 = 'val2';
-        $body->addField('field1', $field1);
-        $body->addField('field2', $field2);
+        $body->addText('field1', $field1);
+        $body->addText('field2', $field2);
 
-        $request = new Request('http://httpbin.org/post', "POST");
+        $request = new Request('https://httpbin.org/post', "POST");
         $request->setBody($body);
 
         $response = $this->executeRequest($request);
@@ -424,7 +421,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $uri = 'http://httpbin.org/post';
 
         $bodyPath = __DIR__ . '/fixture/answer.txt';
-        $body = new FileBody($bodyPath);
+        $body = StreamedContent::fromLocalFile($bodyPath);
 
         $request = new Request($uri, "POST");
         $request->setBody($body);
@@ -446,9 +443,10 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $boundary = 'AaB03x';
 
-        $body = new FormBody($boundary);
-        $body->addFields(['field1' => $field1]);
-        $body->addFiles(['file1' => $file1, 'file2' => $file2]);
+        $body = new Form($boundary);
+        $body->addText('field1', $field1);
+        $body->addLocalFile('file1', $file1);
+        $body->addLocalFile('file2', $file2);
 
         $request = new Request('http://httpbin.org/post', "POST");
         $request->setBody($body);
@@ -534,7 +532,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
 
         $request = new Request("http://httpbin.org/post", "POST");
-        $request->setBody(new StreamBody(new ReadableBuffer("foo"), [], 1));
+        $request->setBody(StreamedContent::fromStream(new ReadableBuffer("foo"), 1));
 
         $this->executeRequest($request);
     }
@@ -545,9 +543,9 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
 
         $request = new Request("http://httpbin.org/post", "POST");
-        $request->setBody(new StreamBody(new ReadableIterableStream(
+        $request->setBody(StreamedContent::fromStream(new ReadableIterableStream(
             Pipeline::fromIterable(["a", "b", "c"])->delay(0.5)
-        ), [], 2));
+        ), 2));
 
         $this->executeRequest($request);
     }
@@ -558,7 +556,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectExceptionMessage("Body contained fewer bytes than specified in Content-Length, aborting request");
 
         $request = new Request("http://httpbin.org/post", "POST");
-        $request->setBody(new StreamBody(new ReadableBuffer("foo"), [], 42));
+        $request->setBody(StreamedContent::fromStream(new ReadableBuffer("foo"), 42));
 
         $this->executeRequest($request);
     }
@@ -665,7 +663,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testHttp2PriorKnowledgeUnsupported(): void
     {
-        $request = new Request('http://github.com/');
+        $request = new Request('http://stackoverflow.com/');
         $request->setProtocolVersions(['2']);
 
         $this->expectException(SocketException::class);

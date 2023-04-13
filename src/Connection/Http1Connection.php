@@ -297,9 +297,8 @@ final class Http1Connection implements Connection
                 $status = $response->getStatus();
 
                 if ($status === Http\HttpStatus::SWITCHING_PROTOCOLS) {
-                    $connection = Http\parseMultipleHeaderFields($response, 'connection')[0] ?? null;
-
-                    if (!isset($connection['upgrade'])) {
+                    $connection = Http\parseHeaderTokens($response, 'connection');
+                    if ($connection === null || !\in_array('upgrade', $connection, true)) {
                         throw new HttpException('Switching protocols response missing "Connection: upgrade" header');
                     }
 
@@ -591,7 +590,6 @@ final class Http1Connection implements Connection
                 return;
             }
 
-            $body = $request->getBody()->createBodyStream();
             $chunking = $request->getHeader("transfer-encoding") === "chunked";
             $remainingBytes = $request->getHeader("content-length");
 
@@ -606,6 +604,7 @@ final class Http1Connection implements Connection
             // We always buffer the last chunk to make sure we don't write $contentLength bytes if the body is too long.
             $buffer = "";
 
+            $body = $request->getBody()->getContent();
             while (null !== $chunk = $body->read($cancellation)) {
                 if ($chunk === "") {
                     continue;

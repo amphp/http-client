@@ -62,6 +62,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     private int $initialWindowSize = self::DEFAULT_WINDOW_SIZE;
 
+    /** @var int<1, max> */
     private int $frameSizeLimit = self::DEFAULT_MAX_FRAME_SIZE;
 
     /** @var int Previous stream ID. */
@@ -940,12 +941,11 @@ final class Http2ConnectionProcessor implements Http2Processor
 
             $headers = $this->hpack->encode($this->generateHeaders($request));
 
-            $body = $request->getBody()->createBodyStream();
-
             foreach ($request->getEventListeners() as $eventListener) {
                 $eventListener->startSendingRequest($request, $stream);
             }
 
+            $body = $request->getBody()->getContent();
             $chunk = $body->read($cancellation);
         } catch (\Throwable $exception) {
             $exception = $this->wrapException($exception, "Request initialization failed");
@@ -1125,10 +1125,10 @@ final class Http2ConnectionProcessor implements Http2Processor
             return Future::complete();
         }
 
-//        \assert(Http2Parser::logDebugFrame('send', $type, $flags, $stream, \strlen($data)));
+        // \assert(Http2Parser::logDebugFrame('send', $type, $flags, $stream, \strlen($data)));
 
         return $this->frameQueue->pushAsync(Http2Parser::compileFrame($data, $type, $flags, $stream));
-//        return $this->frameQueue->pushAsync(\pack("NcN", (\strlen($data) << 8) | ($type & 0xff), $flags, $stream) . $data);
+        // return $this->frameQueue->pushAsync(\pack("NcN", (\strlen($data) << 8) | ($type & 0xff), $flags, $stream) . $data);
     }
 
     private function applySetting(int $setting, int $value): void

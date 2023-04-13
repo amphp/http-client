@@ -2,18 +2,22 @@
 
 namespace Amp\Http\Client\Connection\Internal;
 
+use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
 
 /** @internal */
 final class RequestNormalizer
 {
+    /**
+     * @throws HttpException
+     */
     public static function normalizeRequest(Request $request): Request
     {
-        $headers = $request->getBody()->getHeaders();
-        foreach ($headers as $name => $header) {
-            if (!$request->hasHeader($name)) {
-                $request->replaceHeaders([$name => $header]);
-            }
+        if (!$request->hasHeader('host')) {
+            // Though servers are supposed to be able to handle standard port names on the end of the
+            // Host header some fail to do this correctly. Thankfully PSR-7 recommends to strip the port
+            // if it is the standard port for the given scheme.
+            $request->setHeader('host', $request->getUri()->withUserInfo('')->getAuthority());
         }
 
         self::normalizeRequestBodyHeaders($request);
@@ -24,13 +28,21 @@ final class RequestNormalizer
         return $request;
     }
 
+    /**
+     * @throws HttpException
+     */
     private static function normalizeRequestBodyHeaders(Request $request): void
     {
-        if (!$request->hasHeader('host')) {
-            // Though servers are supposed to be able to handle standard port names on the end of the
-            // Host header some fail to do this correctly. Thankfully PSR-7 recommends to strip the port
-            // if it is the standard port for the given scheme.
-            $request->setHeader('host', $request->getUri()->withUserInfo('')->getAuthority());
+        $body = $request->getBody();
+
+        $contentType = $body->getContentType();
+        if ($contentType !== null) {
+            $previousContentType = $request->getHeaderArray('content-type');
+            if ($previousContentType !== [] && $previousContentType !== [$contentType]) {
+                throw new HttpException('Conflicting content type headers in request and request body: ' . \implode(', ', $previousContentType) . ' / ' . $contentType);
+            }
+
+            $request->setHeader('content-type', $contentType);
         }
 
         if ($request->hasHeader("transfer-encoding")) {
@@ -39,34 +51,22 @@ final class RequestNormalizer
             return;
         }
 
-        if ($request->hasHeader("content-length")) {
-            return;
-        }
-
-        $body = $request->getBody();
-        $bodyLength = $body->getBodyLength();
-
-        if ($bodyLength === 0) {
-            if (\in_array($request->getMethod(), ['HEAD', 'GET', 'CONNECT'], true)) {
-                $request->removeHeader('content-length');
-            } else {
-                $request->setHeader('content-length', '0');
-            }
-
+        $contentLength = $body->getContentLength();
+        if ($contentLength === 0 && \in_array($request->getMethod(), ["CONNECT", "GET", "HEAD", "OPTIONS", "CONNECT", "TRACE"], true)) {
+            $request->removeHeader('content-length');
             $request->removeHeader('transfer-encoding');
-        } elseif ($bodyLength > 0) {
-            $request->setHeader("content-length", (string) $bodyLength);
-            $request->removeHeader("transfer-encoding");
+        } elseif ($contentLength !== null) {
+            $request->setHeader('content-length', (string) $contentLength);
+            $request->removeHeader('transfer-encoding');
         } else {
+            $request->removeHeader('content-length');
             $request->setHeader("transfer-encoding", "chunked");
         }
     }
 
     private static function normalizeTraceRequest(Request $request): void
     {
-        $method = $request->getMethod();
-
-        if ($method !== 'TRACE') {
+        if ($request->getMethod() !== 'TRACE') {
             return;
         }
 

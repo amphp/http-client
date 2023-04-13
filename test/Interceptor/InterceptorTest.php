@@ -13,12 +13,14 @@ use Amp\Http\Client\Request as ClientRequest;
 use Amp\Http\Client\Response as ClientResponse;
 use Amp\Http\HttpStatus;
 use Amp\Http\Server\DefaultErrorHandler;
+use Amp\Http\Server\Driver\SocketClientFactory;
 use Amp\Http\Server\HttpServer;
 use Amp\Http\Server\RequestHandler\ClosureRequestHandler;
 use Amp\Http\Server\Response;
 use Amp\Http\Server\SocketHttpServer;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Socket\InternetAddress;
+use Amp\Socket\ResourceServerSocketFactory;
 use Amp\Socket\ServerSocket;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\StaticSocketConnector;
@@ -76,7 +78,7 @@ abstract class InterceptorTest extends AsyncTestCase
     {
         parent::setUp();
 
-        $this->server = new SocketHttpServer(new NullLogger);
+        $this->server = new SocketHttpServer(new NullLogger, new ResourceServerSocketFactory(), new SocketClientFactory(new NullLogger()));
         $this->server->expose(new InternetAddress('127.0.0.1', 0));
 
         $this->server->start(new ClosureRequestHandler(static function () {
