@@ -74,6 +74,8 @@ final class Http2ConnectionProcessor implements Http2Processor
     /** @var int Currently open or reserved streams. Initially unlimited. */
     private int $remainingStreams = 2147483647;
 
+    private int $reservedStreams = 0;
+
     private readonly HPack $hpack;
 
     /** @var DeferredFuture<int>|null */
@@ -870,6 +872,11 @@ final class Http2ConnectionProcessor implements Http2Processor
         $this->releaseStream($streamId);
     }
 
+    public function isIdle(): bool
+    {
+        return empty($this->streams) && $this->reservedStreams === 0;
+    }
+
     public function reserveStream(): void
     {
         if ($this->shutdown !== null || $this->hasWriteError || $this->hasTimeout) {
@@ -877,11 +884,13 @@ final class Http2ConnectionProcessor implements Http2Processor
         }
 
         --$this->remainingStreams;
+        ++$this->reservedStreams;
     }
 
     public function unreserveStream(): void
     {
         ++$this->remainingStreams;
+        --$this->reservedStreams;
 
         \assert($this->remainingStreams <= $this->concurrentStreamLimit);
     }

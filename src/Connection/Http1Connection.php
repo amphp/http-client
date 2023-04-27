@@ -116,6 +116,11 @@ final class Http1Connection implements Connection
         return $this->socket?->isClosed() ?? true;
     }
 
+    public function isIdle(): bool
+    {
+        return !$this->busy;
+    }
+
     public function getLocalAddress(): SocketAddress
     {
         return $this->localAddress;

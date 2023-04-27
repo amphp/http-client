@@ -676,6 +676,26 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         }
     }
 
+    public function testNoMemoryLeak(): void
+    {
+        for ($i = 0; $i < 3; $i++) {
+            $client = (new HttpClientBuilder())->build();
+
+            $request = new Request('http://httpbin.org/');
+
+            $response = $client->request($request);
+            $response->getBody()->buffer();
+
+            gc_collect_cycles();
+            gc_mem_caches();
+
+            $initialIdentifierCount ??= \count(EventLoop::getIdentifiers());
+            $identifierCount = \count(EventLoop::getIdentifiers());
+
+            self::assertSame($initialIdentifierCount, $identifierCount);
+        }
+    }
+
     public function tearDown(): void
     {
         parent::tearDown();

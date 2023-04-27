@@ -16,6 +16,8 @@ interface Connection extends Closable
      */
     public function getStream(Request $request): ?Stream;
 
+    public function isIdle(): bool;
+
     /**
      * @return string[] Array of supported protocol versions.
      */

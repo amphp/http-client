@@ -30,6 +30,11 @@ final class Http2Connection implements Connection
         $this->processor = new Http2ConnectionProcessor($socket);
     }
 
+    public function isIdle(): bool
+    {
+        return $this->processor->isIdle();
+    }
+
     public function getProtocolVersions(): array
     {
         return self::PROTOCOL_VERSIONS;

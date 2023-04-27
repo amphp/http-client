@@ -112,9 +112,12 @@ final class ConnectionLimitingPool implements ConnectionPool
         $this->activeRequestCounts[$connectionId] = ($this->activeRequestCounts[$connectionId] ?? 0) + 1;
         unset($this->idleConnections[$connectionId]);
 
+        $poolRef = \WeakReference::create($this);
+
         return HttpStream::fromStream(
             $stream,
             function (Request $request, Cancellation $cancellationToken) use (
+                $poolRef,
                 $connection,
                 $stream,
                 $uri
@@ -126,18 +129,28 @@ final class ConnectionLimitingPool implements ConnectionPool
                     throw $e;
                 }
 
-                async(function () use ($response, $connection, $uri): void {
+                async(static function () use ($poolRef, $response, $connection, $uri): void {
                     try {
                         $response->getTrailers()->await();
                     } finally {
-                        $this->onReadyConnection($connection, $uri);
+                        $pool = $poolRef->get();
+                        if ($pool) {
+                            $pool->onReadyConnection($connection, $uri);
+                        } elseif ($connection->isIdle()) {
+                            $connection->close();
+                        }
                     }
                 })->ignore();
 
                 return $response;
             },
-            function () use ($connection, $uri): void {
-                $this->onReadyConnection($connection, $uri);
+            static function () use ($poolRef, $connection, $uri): void {
+                $pool = $poolRef->get();
+                if ($pool) {
+                    $pool->onReadyConnection($connection, $uri);
+                } elseif ($connection->isIdle()) {
+                    $connection->close();
+                }
             }
         );
     }
@@ -223,12 +236,10 @@ final class ConnectionLimitingPool implements ConnectionPool
             try {
                 /** @var Connection $connection */
                 $connection = $connectionFuture->await();
-            } catch (\Throwable $exception) {
+            } catch (\Throwable) {
                 $this->dropConnection($uri, null, $futureId);
                 return;
             }
-
-            \assert($connection !== null);
 
             $connectionId = \spl_object_id($connection);
             $this->openConnectionCount++;
@@ -237,9 +248,13 @@ final class ConnectionLimitingPool implements ConnectionPool
                 $this->waitForPriorConnection[$uri] = \in_array('2', $connection->getProtocolVersions(), true);
             }
 
-            $connection->onClose(function () use ($uri, $connectionId, $futureId): void {
-                $this->openConnectionCount--;
-                $this->dropConnection($uri, $connectionId, $futureId);
+            $poolRef = \WeakReference::create($this);
+            $connection->onClose(static function () use ($poolRef, $uri, $connectionId, $futureId): void {
+                $pool = $poolRef->get();
+                if ($pool) {
+                    $pool->openConnectionCount--;
+                    $pool->dropConnection($uri, $connectionId, $futureId);
+                }
             });
         });
 
