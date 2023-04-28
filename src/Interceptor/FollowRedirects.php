@@ -170,6 +170,10 @@ final class FollowRedirects implements ApplicationInterceptor
         $isSameHost = $redirectUri->getAuthority() === $originalUri->getAuthority();
 
         $request = new Request($redirectUri, 'GET');
+        $request->setTlsHandshakeTimeout($originalRequest->getTlsHandshakeTimeout());
+        $request->setTransferTimeout($originalRequest->getTransferTimeout());
+        $request->setInactivityTimeout($originalRequest->getInactivityTimeout());
+        $request->setTcpConnectTimeout($originalRequest->getTcpConnectTimeout());
         if ($isSameHost) {
             // Avoid copying headers for security reasons, any interceptor headers will be added again,
             // but application headers will be discarded.
