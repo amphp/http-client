@@ -174,6 +174,7 @@ final class FollowRedirects implements ApplicationInterceptor
         $request->setTransferTimeout($originalRequest->getTransferTimeout());
         $request->setInactivityTimeout($originalRequest->getInactivityTimeout());
         $request->setTcpConnectTimeout($originalRequest->getTcpConnectTimeout());
+        $request->setBodySizeLimit($originalRequest->getBodySizeLimit());
         if ($isSameHost) {
             // Avoid copying headers for security reasons, any interceptor headers will be added again,
             // but application headers will be discarded.
