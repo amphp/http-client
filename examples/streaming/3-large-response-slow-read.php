@@ -80,7 +80,5 @@ try {
 
     print sprintf("%s has a size of %.2fMB\r\n", $path, (float) $size / 1024 / 1024);
 } catch (HttpException $error) {
-    // If something goes wrong Amp will throw the exception where the promise was yielded.
-    // The HttpClient::request() method itself will never throw directly, but returns a promise.
     echo $error;
 }

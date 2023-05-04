@@ -234,7 +234,7 @@ final class Request extends HttpRequest
 
     /**
      * Registers a callback to the request that is invoked when the server pushes an additional resource.
-     * The callback is given two parameters: the Request generated from the pushed resource, and a promise for the
+     * The callback is given two parameters: the Request generated from the pushed resource, and a future for the
      * Response containing the pushed resource. An HttpException, StreamException, or CancelledException can be thrown
      * to refuse the push. If no callback is registered, pushes are automatically rejected.
      *
@@ -244,7 +244,7 @@ final class Request extends HttpRequest
      * function (Request $request, Future $future): void {
      *     $uri = $request->getUri(); // URI of pushed resource.
      *     $response = $future->await(); // Wait for resource to arrive.
-     *     // Use Response object from resolved promise.
+     *     // Use Response object from completed future.
      * }
      *
      * @param null|\Closure(Request, Future): void $onPush

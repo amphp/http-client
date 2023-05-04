@@ -126,18 +126,18 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         // perform some number of requests. because of the delay in creating the connection and the delay in executing
         // the request, the pool will have to open a new connection for each request.
         $numRequests = 66;
-        $promises = [];
+        $futures = [];
         for ($i = 0; $i < $numRequests; $i++) {
-            $promises[] = async(fn () => $client->request($request));
+            $futures[] = async(fn () => $client->request($request));
         }
-        Future\await($promises);
+        Future\await($futures);
 
         // all requests have completed and all connections are now idle. run through the connections again.
-        $promises = [];
+        $futures = [];
         for ($i = 0; $i < $numRequests; $i++) {
-            $promises[] = async(fn () => $client->request($request));
+            $futures[] = async(fn () => $client->request($request));
         }
-        $responses = Future\await($promises);
+        $responses = Future\await($futures);
         foreach ($responses as $response) {
             $data = $response->getBody()->buffer();
             // if $data === 'closed', the connection was closed before the request completed

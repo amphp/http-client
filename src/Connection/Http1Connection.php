@@ -378,7 +378,7 @@ final class Http1Connection implements Connection
                         // Required, otherwise responses without body hang
                         if (!$parser->isComplete()) {
                             // Directly parse again in case we already have the full body but aborted parsing
-                            // to resolve promise with headers.
+                            // to complete future with headers.
                             $chunk = null;
 
                             try {

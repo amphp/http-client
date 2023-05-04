@@ -13,8 +13,7 @@ interface NetworkInterceptor
     /**
      * Intercepts an HTTP request after the connection to the remote server has been established.
      *
-     * The implementation might modify the request and/or modify the response after the promise returned from
-     * `$stream->request(...)` resolved.
+     * The implementation might modify the request and/or modify the response after `$stream->request(...)` returned.
      *
      * A NetworkInterceptor SHOULD NOT short-circuit and SHOULD delegate to the `$stream` passed as third argument
      * exactly once. The only exception to this is throwing an exception, e.g. because the TLS settings used are

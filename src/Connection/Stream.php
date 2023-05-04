@@ -21,7 +21,7 @@ interface Stream extends DelegateHttpClient
      * {@see EventListener::completeSendingRequest()}, {@see EventListener::startReceivingResponse()}, and
      * {@see EventListener::completeReceivingResponse()} event listener methods on all event listeners registered on
      * the given request in the order defined by {@see Request::getEventListeners()}. Before calling the next listener,
-     * the promise returned from the previous one must resolve successfully.
+     * the previous call must return successfully.
      *
      * @throws \Error Thrown if this method is called more than once.
      */

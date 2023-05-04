@@ -120,7 +120,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     /**
      * Returns once the connection has been initialized. A stream cannot be obtained from the
-     * connection until the promise returned by this method resolves.
+     * connection until this method returned.
      */
     public function initialize(Cancellation $cancellation): void
     {

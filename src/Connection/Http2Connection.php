@@ -48,7 +48,7 @@ final class Http2Connection implements Connection
     public function getStream(Request $request): ?Stream
     {
         if (!$this->processor->isInitialized()) {
-            throw new \Error('The promise returned from ' . __CLASS__ . '::initialize() must resolve before using the connection');
+            throw new \Error('The ' . __CLASS__ . '::initialize() invocation must be complete before using the connection');
         }
 
         if ($this->processor->isClosed() || $this->processor->getRemainingStreams() <= 0) {
