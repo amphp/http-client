@@ -14,9 +14,9 @@ try {
     // Here we create a custom request object instead of simply passing an URL to request().
     // We set the method to POST and add a FormBody to submit a form.
     $body = new Form;
-    $body->addText("search", "foobar");
-    $body->addText("submit", "ok");
-    $body->addLocalFile("foo", __DIR__ . "/small-file.txt");
+    $body->addField("search", "foobar");
+    $body->addField("submit", "ok");
+    $body->addFile("foo", __DIR__ . "/small-file.txt");
 
     $request = new Request('https://httpbin.org/post', 'POST');
     $request->setBody($body);

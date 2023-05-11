@@ -10,21 +10,21 @@ use function Amp\File\read;
 
 final class BufferedContent implements HttpContent
 {
-    public static function fromString(string $content, ?string $contentType = null): BufferedContent
+    public static function fromString(string $content, ?string $contentType = null): self
     {
-        return new BufferedContent($content, $contentType);
+        return new self($content, $contentType);
     }
 
-    public static function fromLocalFile(
+    public static function fromFile(
         string $path,
         ?string $contentType = null,
-    ): BufferedContent {
+    ): self {
         if (!\class_exists(Filesystem::class)) {
             throw new \Error("File request bodies require amphp/file to be installed");
         }
 
         try {
-            return BufferedContent::fromString(read($path), $contentType);
+            return self::fromString(read($path), $contentType);
         } catch (FilesystemException $filesystemException) {
             throw new HttpException('Failed to open file: ' . $path, 0, $filesystemException);
         }

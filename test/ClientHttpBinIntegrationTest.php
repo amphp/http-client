@@ -399,8 +399,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $body = new Form;
         $field1 = 'test val';
         $field2 = 'val2';
-        $body->addText('field1', $field1);
-        $body->addText('field2', $field2);
+        $body->addField('field1', $field1);
+        $body->addField('field2', $field2);
 
         $request = new Request('https://httpbin.org/post', "POST");
         $request->setBody($body);
@@ -421,7 +421,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $uri = 'http://httpbin.org/post';
 
         $bodyPath = __DIR__ . '/fixture/answer.txt';
-        $body = StreamedContent::fromLocalFile($bodyPath);
+        $body = StreamedContent::fromFile($bodyPath);
 
         $request = new Request($uri, "POST");
         $request->setBody($body);
@@ -444,9 +444,9 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $boundary = 'AaB03x';
 
         $body = new Form($boundary);
-        $body->addText('field1', $field1);
-        $body->addLocalFile('file1', $file1);
-        $body->addLocalFile('file2', $file2);
+        $body->addField('field1', $field1);
+        $body->addFile('file1', $file1);
+        $body->addFile('file2', $file2);
 
         $request = new Request('http://httpbin.org/post', "POST");
         $request->setBody($body);

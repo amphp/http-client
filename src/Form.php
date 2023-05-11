@@ -40,7 +40,7 @@ final class Form implements HttpContent
         }
     }
 
-    public function addText(string $name, string $content, ?string $contentType = null): void
+    public function addField(string $name, string $content, ?string $contentType = null): void
     {
         if ($this->used) {
             throw new \Error('Form body is already used and can no longer be modified');
@@ -49,32 +49,26 @@ final class Form implements HttpContent
         $this->fields[] = new FormField($name, BufferedContent::fromString($content, $contentType));
     }
 
-    public function addContent(string $name, HttpContent $content): void
-    {
-        if ($this->used) {
-            throw new \Error('Form body is already used and can no longer be modified');
-        }
-
-        $this->fields[] = new FormField($name, $content);
-    }
-
-    public function addFileContent(string $name, HttpContent $content, string $filename): void
+    public function addStream(string $name, HttpContent $content, ?string $filename): void
     {
         if ($this->used) {
             throw new \Error('Form body is already used and can no longer be modified');
         }
 
         $this->fields[] = new FormField($name, $content, $filename);
-        $this->isMultipart = true;
+
+        if ($filename !== null) {
+            $this->isMultipart = true;
+        }
     }
 
     /**
      * @param string $path Local file path. Filename will be provided to the server.
      * @throws HttpException
      */
-    public function addLocalFile(string $name, string $path, ?string $contentType = null): void
+    public function addFile(string $name, string $path, ?string $contentType = null): void
     {
-        $this->addFileContent($name, StreamedContent::fromLocalFile($path, $contentType), \basename($path));
+        $this->addStream($name, StreamedContent::fromFile($path, $contentType), \basename($path));
     }
 
     public function getContent(): ReadableStream

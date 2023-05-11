@@ -10,7 +10,7 @@ use function Amp\File\openFile;
 
 final class StreamedContent implements HttpContent
 {
-    public static function fromStream(ReadableStream $content, ?int $contentLength = null, ?string $contentType = null): StreamedContent
+    public static function fromStream(ReadableStream $content, ?int $contentLength = null, ?string $contentType = null): self
     {
         return new self($content, $contentLength, $contentType);
     }
@@ -18,10 +18,10 @@ final class StreamedContent implements HttpContent
     /**
      * @throws HttpException
      */
-    public static function fromLocalFile(
+    public static function fromFile(
         string $path,
         ?string $contentType = null,
-    ): StreamedContent {
+    ): self {
         if (!\class_exists(Filesystem::class)) {
             throw new \Error("File request bodies require amphp/file to be installed");
         }
