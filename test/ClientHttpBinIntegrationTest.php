@@ -676,12 +676,15 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         }
     }
 
-    public function testNoMemoryLeak(): void
+    /**
+     * @dataProvider provideUriForHttpVersions
+     */
+    public function testNoMemoryLeak($uri): void
     {
         for ($i = 0; $i < 3; $i++) {
             $client = (new HttpClientBuilder())->build();
 
-            $request = new Request('http://httpbin.org/');
+            $request = new Request($uri);
 
             $response = $client->request($request);
             $response->getBody()->buffer();
@@ -694,6 +697,16 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
             self::assertSame($initialIdentifierCount, $identifierCount);
         }
+    }
+
+    public function provideUriForHttpVersions(): array
+    {
+        return [
+            // HTTP 1
+            ['http://httpbin.org'],
+            // HTTP 2
+            ['https://http2.pro/api/v1'],
+        ];
     }
 
     public function tearDown(): void

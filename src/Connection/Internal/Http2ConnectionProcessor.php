@@ -1326,12 +1326,6 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         unset($this->streams[$streamId]);
 
-        if ($streamId & 1) { // Client-initiated stream.
-            $this->remainingStreams++;
-
-            \assert($this->remainingStreams <= $this->concurrentStreamLimit);
-        }
-
         if ($stream->responsePending || $stream->body || $stream->trailers) {
             $exception ??= new SocketException(
                 \sprintf("Stream %d closed unexpectedly", $streamId),
