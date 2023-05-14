@@ -58,6 +58,7 @@
             "Amp\\Http\\Client\\": "src"
         },
         "files": [
+            "src/functions.php",
             "src/Internal/functions.php"
         ]
     },

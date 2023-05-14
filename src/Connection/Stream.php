@@ -4,7 +4,6 @@ namespace Amp\Http\Client\Connection;
 
 use Amp\Cancellation;
 use Amp\Http\Client\DelegateHttpClient;
-use Amp\Http\Client\EventListener;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Socket\SocketAddress;
@@ -17,11 +16,7 @@ interface Stream extends DelegateHttpClient
      *
      * This method may only be invoked once per instance.
      *
-     * The stream must call {@see EventListener::startSendingRequest()},
-     * {@see EventListener::completeSendingRequest()}, {@see EventListener::startReceivingResponse()}, and
-     * {@see EventListener::completeReceivingResponse()} event listener methods on all event listeners registered on
-     * the given request in the order defined by {@see Request::getEventListeners()}. Before calling the next listener,
-     * the previous call must return successfully.
+     * The implementation must ensure that events are called on {@see events()} and may use {@see request()} for that.
      *
      * @throws \Error Thrown if this method is called more than once.
      */

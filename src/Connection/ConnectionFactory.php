@@ -4,18 +4,14 @@ namespace Amp\Http\Client\Connection;
 
 use Amp\Cancellation;
 use Amp\Http\Client\Request;
+use function Amp\Http\Client\events;
 
 interface ConnectionFactory
 {
     /**
-     * During connection establishment, the factory must call the {@see EventListener::startConnectionCreation()},
-     * {@see EventListener::startTlsNegotiation()}, {@see EventListener::completeTlsNegotiation()}, and
-     * {@see EventListener::completeConnectionCreation()} on all event listeners registered on the given request in the
-     * order defined by {@see Request::getEventListeners()} as appropriate (TLS events are only invoked if TLS is
-     * used). Before calling the next listener, the previous call must return successfully.
+     * Creates a new connection.
      *
-     * Additionally, the factory may invoke {@see EventListener::startDnsResolution()} and
-     * {@see EventListener::completeDnsResolution()}, but is not required to implement such granular events.
+     * The implementation should call appropriate event handlers via {@see events()}.
      */
     public function create(Request $request, Cancellation $cancellation): Connection;
 }

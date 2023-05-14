@@ -33,6 +33,8 @@ final class Http2Stream
 
     public ?Queue $body;
 
+    public bool $bodyStarted = false;
+
     public ?DeferredFuture $trailers;
 
     /** @var int Bytes received on the stream. */

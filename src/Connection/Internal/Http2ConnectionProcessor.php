@@ -37,6 +37,7 @@ use Amp\Socket\Socket;
 use League\Uri;
 use Revolt\EventLoop;
 use function Amp\async;
+use function Amp\Http\Client\events;
 use function Amp\Http\Client\Internal\normalizeRequestPathWithQuery;
 
 /** @internal */
@@ -131,9 +132,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         $this->initializeStarted = true;
 
         if ($this->socket->isClosed()) {
-            throw new UnprocessedRequestException(
-                new SocketException('The socket closed before the connection could be initialized')
-            );
+            throw new SocketException('The socket closed before the connection could be initialized');
         }
 
         $this->settings = new DeferredFuture;
@@ -147,7 +146,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         } catch (CancelledException $exception) {
             $exception = new SocketException('Connecting cancelled', 0, $exception);
             $this->shutdown($exception);
-            throw new UnprocessedRequestException($exception);
+            throw $exception;
         }
     }
 
@@ -194,8 +193,8 @@ final class Http2ConnectionProcessor implements Http2Processor
     {
         $message = \sprintf(
             "Received GOAWAY frame on '%s' from '%s' with error code %d and message '%s'",
-            (string) $this->socket->getLocalAddress(),
-            (string) $this->socket->getRemoteAddress(),
+            (string)$this->socket->getLocalAddress(),
+            (string)$this->socket->getRemoteAddress(),
             $error,
             $message,
         );
@@ -315,25 +314,12 @@ final class Http2ConnectionProcessor implements Http2Processor
 
             \assert($trailers !== null);
 
-            EventLoop::queue(function () use ($trailers, $stream, $streamId, $parsedTrailers): void {
-                try {
-                    foreach ($stream->request->getEventListeners() as $eventListener) {
-                        $eventListener->completeReceivingResponse($stream->request, $stream->stream);
-                    }
-
-                    $trailers->complete($parsedTrailers);
-                } catch (\Throwable $e) {
-                    $trailers->error($e);
-                    $this->handleStreamException(new Http2StreamException(
-                        "Event listener error",
-                        $streamId,
-                        Http2Parser::CANCEL
-                    ));
-                }
-            });
+            $trailers->complete($parsedTrailers);
 
             return;
         }
+
+        events()->responseHeaderStart($stream->request, $stream->stream);
 
         $status = $pseudo[":status"] ?? null;
 
@@ -366,7 +352,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             return;
         }
 
-        $status = (int) $status;
+        $status = (int)$status;
 
         if ($status === HttpStatus::SWITCHING_PROTOCOLS) {
             $this->handleConnectionException(new Http2ConnectionException(
@@ -378,6 +364,17 @@ final class Http2ConnectionProcessor implements Http2Processor
         }
 
         if ($status < 200) {
+            $response = new Response(
+                '2',
+                $status,
+                HttpStatus::getReason($status),
+                $headers,
+                new ReadableBuffer(),
+                $stream->request,
+            );
+
+            events()->responseHeaderEnd($stream->request, $stream->stream, $response);
+
             $onInformationalResponse = $stream->request->getInformationalResponseHandler();
             $preResponseResolution = $stream->preResponseResolution;
             if ($onInformationalResponse !== null) {
@@ -385,21 +382,12 @@ final class Http2ConnectionProcessor implements Http2Processor
                     $preResponseResolution,
                     $onInformationalResponse,
                     $streamId,
-                    $stream,
-                    $status,
-                    $headers,
+                    $response
                 ): void {
                     $preResponseResolution?->await();
 
                     try {
-                        $onInformationalResponse(new Response(
-                            '2',
-                            $status,
-                            HttpStatus::getReason($status),
-                            $headers,
-                            new ReadableBuffer(),
-                            $stream->request,
-                        ));
+                        $onInformationalResponse($response);
                     } catch (\Throwable) {
                         $this->handleStreamException(new Http2StreamException(
                             'Informational response handler threw an exception',
@@ -441,21 +429,11 @@ final class Http2ConnectionProcessor implements Http2Processor
             $trailers,
         );
 
+        events()->responseHeaderEnd($stream->request, $stream->stream, $response);
+
         \assert($stream->preResponseResolution === null);
 
-        $stream->preResponseResolution = async(function () use ($stream, $streamId): void {
-            try {
-                foreach ($stream->request->getEventListeners() as $eventListener) {
-                    $eventListener->startReceivingResponse($stream->request, $stream->stream);
-                }
-            } catch (\Throwable $e) {
-                $this->handleStreamException(new Http2StreamException(
-                    "Event listener error: " . $e->getMessage(),
-                    $streamId,
-                    Http2Parser::CANCEL
-                ));
-            }
-        });
+        $stream->preResponseResolution = Future::complete();
 
         \assert($stream->pendingResponse !== null);
 
@@ -499,7 +477,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             }
 
             if ($stream->request->getMethod() !== 'HEAD') {
-                $stream->expectedLength = (int) $contentLength;
+                $stream->expectedLength = (int)$contentLength;
             }
         }
     }
@@ -570,7 +548,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         $address = $this->socket->getRemoteAddress();
 
         $host = $matches[1];
-        $port = isset($matches[2]) ? (int) $matches[2] : match (true) {
+        $port = isset($matches[2]) ? (int)$matches[2] : match (true) {
             $address instanceof InternetAddress => $address->getPort(),
             default => null,
         };
@@ -732,7 +710,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         $exception = new SocketException($exception->getMessage(), $code, $exception);
 
         if ($code === Http2Parser::REFUSED_STREAM) {
-            $exception = new UnprocessedRequestException($exception);
+            $exception = new UnprocessedRequestException($exception); // TODO
         }
 
         if (isset($this->streams[$id])) {
@@ -794,6 +772,15 @@ final class Http2ConnectionProcessor implements Http2Processor
             return;
         }
 
+        \assert($stream->response !== null);
+
+        if (!$stream->bodyStarted) {
+            $stream->bodyStarted = true;
+            events()->responseBodyStart($stream->request, $stream->stream, $stream->response);
+        }
+
+        events()->responseBodyProgress($stream->request, $stream->stream, $stream->response);
+
         $stream->body->pushAsync($data)->map(function () use ($streamId, $length): void {
             $stream = $this->streams[$streamId] ?? null;
             // Stream may have closed while waiting for body data to be consumed.
@@ -847,26 +834,15 @@ final class Http2ConnectionProcessor implements Http2Processor
         $stream->body->complete();
         $stream->body = null;
 
+        \assert($stream->response !== null);
+
+        events()->responseBodyEnd($stream->request, $stream->stream, $stream->response);
+
         // Trailers may have been received in handleHeaders(); if not, resolve with an empty set of trailers.
         if ($stream->trailers !== null) {
             $trailers = $stream->trailers;
             $stream->trailers = null;
-            EventLoop::queue(function () use ($trailers, $stream, $streamId): void {
-                try {
-                    foreach ($stream->request->getEventListeners() as $eventListener) {
-                        $eventListener->completeReceivingResponse($stream->request, $stream->stream);
-                    }
-
-                    $trailers->complete(new Trailers([]));
-                } catch (\Throwable $e) {
-                    $trailers->error($e);
-                    $this->handleStreamException(new Http2StreamException(
-                        "Event listener error",
-                        $streamId,
-                        Http2Parser::CANCEL
-                    ));
-                }
-            });
+            $trailers->complete(new Trailers([]));
         }
 
         $this->releaseStream($streamId);
@@ -908,20 +884,18 @@ final class Http2ConnectionProcessor implements Http2Processor
     {
         try {
             if ($this->shutdown !== null) {
-                throw new UnprocessedRequestException(new SocketException(\sprintf(
+                throw new SocketException(\sprintf(
                     "Connection from '%s' to '%s' has already been shut down",
-                    (string) $this->socket->getLocalAddress(),
-                    (string) $this->socket->getRemoteAddress()
-                )));
+                    $this->socket->getLocalAddress()->toString(),
+                    $this->socket->getRemoteAddress()->toString()
+                ));
             }
 
             if ($this->hasTimeout && !$this->ping()->await()) {
-                throw new UnprocessedRequestException(
-                    new SocketException(\sprintf(
-                        "Socket to '%s' missed responding to PINGs",
-                        (string) $this->socket->getRemoteAddress()
-                    ))
-                );
+                throw new SocketException(\sprintf(
+                    "Socket to '%s' missed responding to PINGs",
+                    $this->socket->getRemoteAddress()->toString()
+                ));
             }
 
             RequestNormalizer::normalizeRequest($request);
@@ -940,28 +914,16 @@ final class Http2ConnectionProcessor implements Http2Processor
             $request->setProtocolVersions(['2']);
 
             if ($this->socket->isClosed()) {
-                throw new UnprocessedRequestException(
-                    new SocketException(\sprintf(
-                        "Socket to '%s' closed before the request could be sent",
-                        (string) $this->socket->getRemoteAddress()
-                    ))
-                );
-            }
-
-            foreach ($request->getEventListeners() as $eventListener) {
-                $eventListener->startSendingRequest($request, $stream);
+                throw new SocketException(\sprintf(
+                    "Socket to '%s' closed before the request could be sent",
+                    $this->socket->getRemoteAddress()->toString()
+                ));
             }
 
             $body = $request->getBody()->getContent();
             $chunk = $body->read($cancellation);
         } catch (\Throwable $exception) {
-            $exception = $this->wrapException($exception, "Request initialization failed");
-
-            foreach ($request->getEventListeners() as $eventListener) {
-                $eventListener->abort($request, $exception);
-            }
-
-            throw $exception;
+            throw $this->wrapException($exception, "Request initialization failed");
         }
 
         if ($this->socket instanceof ResourceStream) {
@@ -995,6 +957,8 @@ final class Http2ConnectionProcessor implements Http2Processor
             ->ignore();
 
         try {
+            events()->requestHeaderStart($request, $stream);
+
             $headers = $this->hpack->encode($this->generateHeaders($request));
             $flag = Http2Parser::END_HEADERS | ($chunk === null ? Http2Parser::END_STREAM : Http2Parser::NO_FLAG);
 
@@ -1016,12 +980,17 @@ final class Http2ConnectionProcessor implements Http2Processor
                 $this->writeFrame(Http2Parser::HEADERS, $flag, $streamId, $headers)->await();
             }
 
+            events()->requestHeaderEnd($request, $stream);
+
             \assert($http2stream->pendingResponse !== null);
             $responseFuture = $http2stream->pendingResponse->getFuture();
+
+            events()->requestBodyStart($request, $stream);
 
             if ($chunk === null) {
                 $http2stream->requestBodyCompletion->complete();
             } else {
+
                 $buffer = $chunk;
                 $writeFuture = Future::complete();
                 do {
@@ -1035,19 +1004,18 @@ final class Http2ConnectionProcessor implements Http2Processor
                     $writeFuture->await($cancellation);
 
                     if ($chunk === null) {
-                        $http2stream->requestBodyCompletion->complete();
+                        $http2stream->requestBodyCompletion->complete(); // TODO Move after loop?
                     }
 
                     $writeFuture = $this->writeData($http2stream, $buffer);
+                    events()->requestBodyProgress($request, $stream);
                     $buffer = $chunk;
                 } while ($buffer !== null);
 
                 $writeFuture->await($cancellation);
             }
 
-            foreach ($request->getEventListeners() as $eventListener) {
-                $eventListener->completeSendingRequest($request, $stream);
-            }
+            events()->requestBodyEnd($request, $stream);
 
             return $responseFuture->await();
         } catch (\Throwable $exception) {
@@ -1356,16 +1324,6 @@ final class Http2ConnectionProcessor implements Http2Processor
                 $streamId,
                 \pack("N", Http2Parser::CANCEL)
             )->ignore();
-
-            $request = $stream->request;
-            $listeners = $request->getEventListeners();
-            if ($listeners) {
-                EventLoop::queue(static function () use ($request, $listeners, $exception): void {
-                    foreach ($listeners as $eventListener) {
-                        $eventListener->abort($request, $exception);
-                    }
-                });
-            }
         }
 
         if (!$this->streams && !$this->socket->isClosed() && $this->socket instanceof ResourceStream) {
@@ -1432,7 +1390,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         if ($this->settings !== null) {
             $message = "Connection closed before HTTP/2 settings could be received";
-            $this->settings->error(new UnprocessedRequestException(new SocketException($message, 0, $reason)));
+            $this->settings->error(new SocketException($message, 0, $reason));
             $this->settings = null;
         }
 
@@ -1441,7 +1399,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             if ($lastId !== null && $id > $lastId) {
                 $exception = $exception instanceof UnprocessedRequestException
                     ? $exception
-                    : new UnprocessedRequestException($reason);
+                    : new UnprocessedRequestException($reason); // TODO
             }
 
             $this->releaseStream($id, $exception);

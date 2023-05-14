@@ -6,6 +6,7 @@ use Amp\ForbidCloning;
 use Amp\ForbidSerialization;
 use Amp\Future;
 use Amp\Http\Client\Connection\UpgradedSocket;
+use Amp\Http\Client\Internal\EventInvoker;
 use Amp\Http\HttpMessage;
 use Amp\Http\HttpRequest;
 use League\Uri;
@@ -80,6 +81,14 @@ final class Request extends HttpRequest
     public function getEventListeners(): array
     {
         return $this->eventListeners;
+    }
+
+    /**
+     * @return Phase Current request / response phase.
+     */
+    public function getPhase(): Phase
+    {
+        return EventInvoker::getPhase($this);
     }
 
     /**

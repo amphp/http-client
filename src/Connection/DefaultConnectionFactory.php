@@ -9,11 +9,11 @@ use Amp\CompositeCancellation;
 use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\SocketException;
-use Amp\Http\Client\TimeoutException;
 use Amp\Socket;
 use Amp\Socket\ClientTlsContext;
 use Amp\Socket\ConnectContext;
 use Amp\TimeoutCancellation;
+use function Amp\Http\Client\events;
 
 final class DefaultConnectionFactory implements ConnectionFactory
 {
@@ -27,13 +27,9 @@ final class DefaultConnectionFactory implements ConnectionFactory
         $this->connectContext = $connectContext;
     }
 
-    public function create(
-        Request $request,
-        Cancellation $cancellation
-    ): Connection {
-        foreach ($request->getEventListeners() as $eventListener) {
-            $eventListener->startConnectionCreation($request);
-        }
+    public function create(Request $request, Cancellation $cancellation): Connection
+    {
+        events()->connectStart($request);
 
         $connector = $this->connector ?? Socket\socketConnector();
         $connectContext = $this->connectContext ?? new ConnectContext;
@@ -106,21 +102,21 @@ final class DefaultConnectionFactory implements ConnectionFactory
                 $cancellation
             );
         } catch (Socket\ConnectException $e) {
-            throw new UnprocessedRequestException(
-                new SocketException(\sprintf("Connection to '%s' failed", $authority), 0, $e)
-            );
-        } catch (CancelledException $e) {
+            throw new SocketException(\sprintf("Connection to '%s' failed", $authority), 0, $e);
+        } catch (CancelledException) {
             // In case of a user cancellation request, throw the expected exception
             $cancellation->throwIfRequested();
 
             // Otherwise we ran into a timeout of our TimeoutCancellation
-            throw new UnprocessedRequestException(new TimeoutException(\sprintf(
+            throw new SocketException(\sprintf(
                 "Connection to '%s' timed out, took longer than " . $request->getTcpConnectTimeout() . ' s',
                 $authority
-            ))); // don't pass $e
+            ));
         }
 
         if ($isHttps) {
+            events()->tlsHandshakeStart($request);
+
             try {
                 $tlsState = $socket->getTlsState();
 
@@ -128,65 +124,53 @@ final class DefaultConnectionFactory implements ConnectionFactory
                 if ($tlsState !== Socket\TlsState::Disabled) {
                     $socket->close();
 
-                    throw new UnprocessedRequestException(
-                        new SocketException('Failed to setup TLS connection, connection was in an unexpected TLS state (' . $tlsState->name . ')')
-                    );
+                    throw new SocketException('Failed to setup TLS connection, connection was in an unexpected TLS state (' . $tlsState->name . ')');
                 }
 
-                foreach ($request->getEventListeners() as $eventListener) {
-                    $eventListener->startTlsNegotiation($request);
-                }
-
-                $tlsCancellation = new CompositeCancellation(
+                $socket->setupTls(new CompositeCancellation(
                     $cancellation,
                     new TimeoutCancellation($request->getTlsHandshakeTimeout())
-                );
-
-                $socket->setupTls($tlsCancellation);
-
-                foreach ($request->getEventListeners() as $eventListener) {
-                    $eventListener->completeTlsNegotiation($request);
-                }
+                ));
             } catch (StreamException $exception) {
                 $socket->close();
 
-                throw new UnprocessedRequestException(new SocketException(\sprintf(
+                throw new SocketException(\sprintf(
                     "Connection to '%s' @ '%s' closed during TLS handshake",
                     $authority,
                     $socket->getRemoteAddress()->toString()
-                ), 0, $exception));
-            } catch (CancelledException $e) {
+                ), 0, $exception);
+            } catch (CancelledException) {
                 $socket->close();
 
                 // In case of a user cancellation request, throw the expected exception
                 $cancellation->throwIfRequested();
 
                 // Otherwise we ran into a timeout of our TimeoutCancellation
-                throw new UnprocessedRequestException(new TimeoutException(\sprintf(
+                throw new SocketException(\sprintf(
                     "TLS handshake with '%s' @ '%s' timed out, took longer than " . $request->getTlsHandshakeTimeout() . ' s',
                     $authority,
                     $socket->getRemoteAddress()->toString()
-                ))); // don't pass $e
+                ));
             }
 
             $tlsInfo = $socket->getTlsInfo();
             if ($tlsInfo === null) {
-                throw new UnprocessedRequestException(
-                    new SocketException(\sprintf(
-                        "Socket closed after TLS handshake with '%s' @ '%s'",
-                        $authority,
-                        $socket->getRemoteAddress()->toString()
-                    ))
-                );
+                $socket->close();
+
+                throw new SocketException(\sprintf(
+                    "Socket closed after TLS handshake with '%s' @ '%s'",
+                    $authority,
+                    $socket->getRemoteAddress()->toString()
+                ));
             }
+
+            events()->tlsHandshakeEnd($request, $tlsInfo);
 
             if ($tlsInfo->getApplicationLayerProtocol() === 'h2') {
                 $http2Connection = new Http2Connection($socket);
                 $http2Connection->initialize($cancellation);
 
-                foreach ($request->getEventListeners() as $eventListener) {
-                    $eventListener->completeConnectionCreation($request);
-                }
+                events()->connectEnd($request, $http2Connection);
 
                 return $http2Connection;
             }
@@ -197,9 +181,7 @@ final class DefaultConnectionFactory implements ConnectionFactory
             $http2Connection = new Http2Connection($socket);
             $http2Connection->initialize($cancellation);
 
-            foreach ($request->getEventListeners() as $eventListener) {
-                $eventListener->completeConnectionCreation($request);
-            }
+            events()->connectEnd($request, $http2Connection);
 
             return $http2Connection;
         }
@@ -207,21 +189,18 @@ final class DefaultConnectionFactory implements ConnectionFactory
         if (!\array_intersect($request->getProtocolVersions(), ['1.0', '1.1'])) {
             $socket->close();
 
-            throw new InvalidRequestException(
-                $request,
-                \sprintf(
-                    "None of the requested protocol versions (%s) are supported by '%s' @ '%s'",
-                    \implode(', ', $protocolVersions),
-                    $authority,
-                    $socket->getRemoteAddress()->toString()
-                )
-            );
+            throw new SocketException(\sprintf(
+                "None of the requested protocol versions (%s) are supported by '%s' @ '%s'",
+                \implode(', ', $protocolVersions),
+                $authority,
+                $socket->getRemoteAddress()->toString()
+            ));
         }
 
-        foreach ($request->getEventListeners() as $eventListener) {
-            $eventListener->completeConnectionCreation($request);
-        }
+        $http1Connection = new Http1Connection($socket);
 
-        return new Http1Connection($socket);
+        events()->connectEnd($request, $http1Connection);
+
+        return $http1Connection;
     }
 }
