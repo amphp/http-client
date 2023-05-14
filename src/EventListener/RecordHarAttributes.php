@@ -11,9 +11,8 @@ use Amp\Http\Client\Internal\HarAttributes;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
-use Amp\Http\Client\SocketException;
 use Amp\Socket\InternetAddress;
-use Amp\Socket\TlsException;
+use Amp\Socket\TlsInfo;
 use function Amp\now;
 
 final class RecordHarAttributes implements EventListener
@@ -30,11 +29,6 @@ final class RecordHarAttributes implements EventListener
     public function connectStart(Request $request): void
     {
         $this->addTiming(HarAttributes::TIME_CONNECT, $request);
-    }
-
-    public function startTlsNegotiation(Request $request): void
-    {
-        $this->addTiming(HarAttributes::TIME_SSL, $request);
     }
 
     public function requestHeaderStart(Request $request, Stream $stream): void
@@ -82,27 +76,17 @@ final class RecordHarAttributes implements EventListener
         // nothing to do
     }
 
-    public function connectFailed(Request $request, SocketException $exception): void
-    {
-        // nothing to do
-    }
-
     public function connectEnd(Request $request, Connection $connection): void
     {
         // nothing to do
     }
 
-    public function tlsHandshakeStart(Request $request, Connection $connection): void
+    public function tlsHandshakeStart(Request $request): void
     {
-        // nothing to do
+        $this->addTiming(HarAttributes::TIME_SSL, $request);
     }
 
-    public function tlsHandshakeFailed(Request $request, Connection $connection, TlsException $exception): void
-    {
-        // nothing to do
-    }
-
-    public function tlsHandshakeEnd(Request $request, Connection $connection): void
+    public function tlsHandshakeEnd(Request $request, TlsInfo $tlsInfo): void
     {
         // nothing to do
     }

@@ -9,6 +9,7 @@ use Amp\CompositeCancellation;
 use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\SocketException;
+use Amp\Http\Client\TimeoutException;
 use Amp\Socket;
 use Amp\Socket\ClientTlsContext;
 use Amp\Socket\ConnectContext;
@@ -146,7 +147,7 @@ final class DefaultConnectionFactory implements ConnectionFactory
                 $cancellation->throwIfRequested();
 
                 // Otherwise we ran into a timeout of our TimeoutCancellation
-                throw new SocketException(\sprintf(
+                throw new TimeoutException(\sprintf(
                     "TLS handshake with '%s' @ '%s' timed out, took longer than " . $request->getTlsHandshakeTimeout() . ' s',
                     $authority,
                     $socket->getRemoteAddress()->toString()

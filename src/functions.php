@@ -27,4 +27,6 @@ function requestEvents(Request $request, \Closure $requestHandler): Response
 
     $response->getTrailers()->map(fn () => events()->requestEnd($request, $response));
     $response->getTrailers()->catch(fn () => events()->requestFailed($request, $response));
+
+    return $response;
 }

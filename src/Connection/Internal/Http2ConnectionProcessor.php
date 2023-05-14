@@ -419,7 +419,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             ->finally(static fn () => $cancellation->unsubscribe($cancellationId))
             ->ignore();
 
-        $response = new Response(
+        $stream->response = $response = new Response(
             '2',
             $status,
             HttpStatus::getReason($status),
@@ -636,6 +636,12 @@ final class Http2ConnectionProcessor implements Http2Processor
             self::DEFAULT_WINDOW_SIZE,
             0,
         );
+
+        events()->requestStart($request);
+        events()->requestHeaderStart($request, $stream->stream);
+        events()->requestHeaderEnd($request, $stream->stream);
+        events()->requestBodyStart($request, $stream->stream);
+        events()->requestBodyEnd($request, $stream->stream);
 
         $stream->dependency = $streamId;
 
