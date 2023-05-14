@@ -2,11 +2,13 @@
 
 namespace Amp\Http\Client\EventListener;
 
+use Amp\Http\Client\ApplicationInterceptor;
 use Amp\Http\Client\Connection\Connection;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\EventListener;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Internal\HarAttributes;
+use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\SocketException;
@@ -136,6 +138,26 @@ final class RecordHarAttributes implements EventListener
     }
 
     public function responseBodyEnd(Request $request, Stream $stream, Response $response): void
+    {
+        // nothing to do
+    }
+
+    public function applicationInterceptorStart(Request $request, ApplicationInterceptor $interceptor): void
+    {
+        // nothing to do
+    }
+
+    public function applicationInterceptorEnd(Request $request, ApplicationInterceptor $interceptor, Response $response): void
+    {
+        // nothing to do
+    }
+
+    public function networkInterceptorStart(Request $request, NetworkInterceptor $interceptor): void
+    {
+        // nothing to do
+    }
+
+    public function networkInterceptorEnd(Request $request, NetworkInterceptor $interceptor, Response $response): void
     {
         // nothing to do
     }
