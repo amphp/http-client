@@ -70,7 +70,7 @@ final class EventInvoker implements EventListener
     public function requestEnd(Request $request, Response $response): void
     {
         $previousPhase = self::getPhase($request);
-        if ($previousPhase !== Phase::ResponseHeaders && $previousPhase !== Phase::ResponseBody) {
+        if ($previousPhase !== Phase::Blocked && $previousPhase !== Phase::ResponseHeaders && $previousPhase !== Phase::ResponseBody) {
             throw new \Error('Invalid request phase transition from ' . $previousPhase->name . ' to Complete');
         }
 
@@ -186,7 +186,7 @@ final class EventInvoker implements EventListener
     public function responseHeaderStart(Request $request, Stream $stream): void
     {
         $previousPhase = self::getPhase($request);
-        if ($previousPhase !== Phase::ServerProcessing) {
+        if ($previousPhase !== Phase::ResponseHeaders && $previousPhase !== Phase::ServerProcessing) {
             throw new \Error('Invalid request phase transition from ' . $previousPhase->name . ' to ResponseHeaders');
         }
 

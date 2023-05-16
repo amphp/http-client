@@ -146,8 +146,8 @@ class TimeoutTest extends AsyncTestCase
             $this->client->request($request);
 
             self::fail('No exception thrown');
-        } catch (UnprocessedRequestException $e) {
-            self::assertStringStartsWith('TLS handshake with \'127.0.0.1:', $e->getPrevious()->getMessage());
+        } catch (TimeoutException $e) {
+            self::assertStringStartsWith('TLS handshake with \'127.0.0.1:', $e->getMessage());
         } finally {
             $server->close();
         }

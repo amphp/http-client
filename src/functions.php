@@ -25,8 +25,8 @@ function requestEvents(Request $request, \Closure $requestHandler): Response
         throw $exception;
     }
 
-    $response->getTrailers()->map(fn () => events()->requestEnd($request, $response));
-    $response->getTrailers()->catch(fn () => events()->requestFailed($request, $response));
+    $response->getTrailers()->map(fn () => events()->requestEnd($request, $response))->ignore();
+    $response->getTrailers()->catch(fn () => events()->requestFailed($request, $response))->ignore();
 
     return $response;
 }
