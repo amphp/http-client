@@ -29,7 +29,9 @@
         "Amp\\File\\FilesystemException",
         "Amp\\File\\Whence",
         "Amp\\File\\Filesystem",
-        "Amp\\File\\filesystem"
+        "Amp\\File\\filesystem",
+        "events",
+        "processRequest"
     ],
     "php-core-extensions": [
         "Core",
