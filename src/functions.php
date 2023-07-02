@@ -9,10 +9,14 @@ function events(): EventListener
     return EventInvoker::get();
 }
 
-function processRequest(Request $request, \Closure $requestHandler): Response
+function processRequest(Request $request, array $eventListeners, \Closure $requestHandler): Response
 {
     if ($request->isStarted()) {
         return $requestHandler($request);
+    }
+
+    foreach ($eventListeners as $eventListener) {
+        $request->addEventListener($eventListener);
     }
 
     events()->requestStart($request);

@@ -36,7 +36,7 @@ final class InterceptedStream implements Stream
      */
     public function request(Request $request, Cancellation $cancellation): Response
     {
-        return processRequest($request, function () use ($request, $cancellation): Response {
+        return processRequest($request, [], function () use ($request, $cancellation): Response {
             if (!$this->interceptor) {
                 throw new \Error(__METHOD__ . ' may only be invoked once per instance. '
                     . 'If you need to implement retries or otherwise issue multiple requests, register an ApplicationInterceptor to do so.');

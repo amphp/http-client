@@ -43,6 +43,9 @@ final class HttpClientBuilder
     /** @var NetworkInterceptor[] */
     private array $networkInterceptors = [];
 
+    /** @var EventListener[] */
+    private array $eventListeners = [];
+
     private ConnectionPool $pool;
 
     public function __construct()
@@ -76,6 +79,10 @@ final class HttpClientBuilder
             $client = $client->intercept($this->defaultCompressionHandler);
         }
 
+        foreach ($this->eventListeners as $eventListener) {
+            $client = $client->listen($eventListener);
+        }
+
         $applicationInterceptors = $this->applicationInterceptors;
 
         if ($this->followRedirectsInterceptor) {
@@ -91,10 +98,10 @@ final class HttpClientBuilder
         }
 
         foreach (\array_reverse($applicationInterceptors) as $applicationInterceptor) {
-            $client = new InterceptedHttpClient($client, $applicationInterceptor);
+            $client = new InterceptedHttpClient($client, $applicationInterceptor, $this->eventListeners);
         }
 
-        return new HttpClient($client);
+        return new HttpClient($client, $this->eventListeners);
     }
 
     /**
@@ -136,6 +143,17 @@ final class HttpClientBuilder
     {
         $builder = clone $this;
         $builder->networkInterceptors[] = $interceptor;
+
+        return $builder;
+    }
+
+    /**
+     * @param EventListener $eventListener This event listener gets added to the request automatically.
+     */
+    public function listen(EventListener $eventListener): self
+    {
+        $builder = clone $this;
+        $builder->eventListeners[] = $eventListener;
 
         return $builder;
     }

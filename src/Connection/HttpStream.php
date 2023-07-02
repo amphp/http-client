@@ -86,7 +86,7 @@ final class HttpStream implements Stream
 
         $this->releaseCallback = null;
 
-        return processRequest($request, fn (): Response => ($this->requestCallback)($request, $cancellation, $this));
+        return processRequest($request, [], fn (): Response => ($this->requestCallback)($request, $cancellation, $this));
     }
 
     public function getLocalAddress(): SocketAddress

@@ -17,15 +17,22 @@ final class InterceptedHttpClient implements DelegateHttpClient
 
     private ApplicationInterceptor $interceptor;
 
-    public function __construct(DelegateHttpClient $httpClient, ApplicationInterceptor $interceptor)
-    {
+    /** @var EventListener[] */
+    private array $eventListeners;
+
+    public function __construct(
+        DelegateHttpClient $httpClient,
+        ApplicationInterceptor $interceptor,
+        array $eventListeners
+    ) {
         $this->httpClient = $httpClient;
         $this->interceptor = $interceptor;
+        $this->eventListeners = $eventListeners;
     }
 
     public function request(Request $request, Cancellation $cancellation): Response
     {
-        return processRequest($request, function () use ($request, $cancellation) {
+        return processRequest($request, $this->eventListeners, function () use ($request, $cancellation) {
             /** @psalm-suppress RedundantPropertyInitializationCheck */
             self::$requestInterceptors ??= new \WeakMap();
             $requestInterceptors = self::$requestInterceptors[$request] ?? [];
