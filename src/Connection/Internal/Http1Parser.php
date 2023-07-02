@@ -152,7 +152,7 @@ final class Http1Parser
 
             if (\preg_match(self::STATUS_LINE_PATTERN, $startLine, $match)) {
                 $protocol = $match['protocol'];
-                $statusCode = (int)$match['status'];
+                $statusCode = (int) $match['status'];
                 $statusReason = \trim($match['reason']);
             } else {
                 throw new ParseException('Invalid status line: ' . $startLine, HttpStatus::BAD_REQUEST);
@@ -350,7 +350,7 @@ final class Http1Parser
                 throw new ParseException('Can\'t determine body length, because the content-length header value is invalid', HttpStatus::BAD_REQUEST);
             }
 
-            $this->remainingBodyBytes = (int)$contentLength;
+            $this->remainingBodyBytes = (int) $contentLength;
         }
 
         return $headers;

@@ -194,8 +194,8 @@ final class Http2ConnectionProcessor implements Http2Processor
     {
         $message = \sprintf(
             "Received GOAWAY frame on '%s' from '%s' with error code %d and message '%s'",
-            (string)$this->socket->getLocalAddress(),
-            (string)$this->socket->getRemoteAddress(),
+            (string) $this->socket->getLocalAddress(),
+            (string) $this->socket->getRemoteAddress(),
             $error,
             $message,
         );
@@ -353,7 +353,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             return;
         }
 
-        $status = (int)$status;
+        $status = (int) $status;
 
         if ($status === HttpStatus::SWITCHING_PROTOCOLS) {
             $this->handleConnectionException(new Http2ConnectionException(
@@ -478,7 +478,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             }
 
             if ($stream->request->getMethod() !== 'HEAD') {
-                $stream->expectedLength = (int)$contentLength;
+                $stream->expectedLength = (int) $contentLength;
             }
         }
     }
@@ -549,7 +549,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         $address = $this->socket->getRemoteAddress();
 
         $host = $matches[1];
-        $port = isset($matches[2]) ? (int)$matches[2] : match (true) {
+        $port = isset($matches[2]) ? (int) $matches[2] : match (true) {
             $address instanceof InternetAddress => $address->getPort(),
             default => null,
         };
@@ -1004,7 +1004,6 @@ final class Http2ConnectionProcessor implements Http2Processor
             if ($chunk === null) {
                 $http2stream->requestBodyCompletion->complete();
             } else {
-
                 $buffer = $chunk;
                 $writeFuture = Future::complete();
                 do {
