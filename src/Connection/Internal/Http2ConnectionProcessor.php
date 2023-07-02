@@ -779,15 +779,15 @@ final class Http2ConnectionProcessor implements Http2Processor
             return;
         }
 
-        $eventInvoker = events();
-        \assert($stream->response !== null);
+        $response = $stream->response;
+        \assert($response !== null);
 
         if (!$stream->bodyStarted) {
             $stream->bodyStarted = true;
-            $eventInvoker->responseBodyStart($stream->request, $stream->stream, $stream->response);
+            events()->responseBodyStart($stream->request, $stream->stream, $response);
         }
 
-        $eventInvoker->responseBodyProgress($stream->request, $stream->stream, $stream->response);
+        events()->responseBodyProgress($stream->request, $stream->stream, $response);
 
         $stream->body?->pushAsync($data)->map(function () use ($streamId, $length): void {
             $stream = $this->streams[$streamId] ?? null;
@@ -842,15 +842,15 @@ final class Http2ConnectionProcessor implements Http2Processor
         $stream->body->complete();
         $stream->body = null;
 
-        $eventInvoker = events();
+        $response = $stream->response;
+        \assert($response !== null);
 
         if (EventInvoker::getPhase($stream->request) === Phase::ResponseHeaders) {
-            \assert($stream->response !== null);
-            $eventInvoker->responseBodyStart($stream->request, $stream->stream, $stream->response);
+            events()->responseBodyStart($stream->request, $stream->stream, $response);
         }
 
         \assert($stream->response !== null);
-        $eventInvoker->responseBodyEnd($stream->request, $stream->stream, $stream->response);
+        events()->responseBodyEnd($stream->request, $stream->stream, $response);
 
         // Trailers may have been received in handleHeaders(); if not, resolve with an empty set of trailers.
         if ($stream->trailers !== null) {

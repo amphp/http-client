@@ -115,10 +115,9 @@ final class Http1Parser
 
         if (!$this->bodyStarted && \in_array($this->state, [self::BODY_CHUNKS, self::BODY_IDENTITY, self::BODY_IDENTITY_EOF], true)) {
             $this->bodyStarted = true;
-
-            $eventInvoker = events();
-            \assert($this->response !== null);
-            $eventInvoker->responseBodyStart($this->request, $this->stream, $this->response);
+            $response = $this->response;
+            \assert($response !== null);
+            events()->responseBodyStart($this->request, $this->stream, $response);
         }
 
         switch ($this->state) {
