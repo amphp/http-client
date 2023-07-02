@@ -211,9 +211,8 @@ final class Response extends HttpResponse
     {
         $this->body = match (true) {
             $body instanceof Payload => $body,
-            $body instanceof ReadableStream => new Payload($body),
-            \is_string($body), $body === null => new Payload((string) $body),
-            default => throw new \TypeError("Invalid body type: " . \get_debug_type($body)),
+            $body instanceof ReadableStream, \is_string($body) => new Payload($body),
+            $body === null => new Payload(''),
         };
     }
 

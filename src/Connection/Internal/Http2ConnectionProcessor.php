@@ -1,5 +1,4 @@
 <?php declare(strict_types=1);
-/** @noinspection PhpUnusedPrivateFieldInspection */
 
 namespace Amp\Http\Client\Connection\Internal;
 
@@ -780,16 +779,17 @@ final class Http2ConnectionProcessor implements Http2Processor
             return;
         }
 
+        $eventInvoker = events();
         \assert($stream->response !== null);
 
         if (!$stream->bodyStarted) {
             $stream->bodyStarted = true;
-            events()->responseBodyStart($stream->request, $stream->stream, $stream->response);
+            $eventInvoker->responseBodyStart($stream->request, $stream->stream, $stream->response);
         }
 
-        events()->responseBodyProgress($stream->request, $stream->stream, $stream->response);
+        $eventInvoker->responseBodyProgress($stream->request, $stream->stream, $stream->response);
 
-        $stream->body->pushAsync($data)->map(function () use ($streamId, $length): void {
+        $stream->body?->pushAsync($data)->map(function () use ($streamId, $length): void {
             $stream = $this->streams[$streamId] ?? null;
             // Stream may have closed while waiting for body data to be consumed.
             if (!$stream) {
@@ -842,13 +842,15 @@ final class Http2ConnectionProcessor implements Http2Processor
         $stream->body->complete();
         $stream->body = null;
 
-        \assert($stream->response !== null);
+        $eventInvoker = events();
 
         if (EventInvoker::getPhase($stream->request) === Phase::ResponseHeaders) {
-            events()->responseBodyStart($stream->request, $stream->stream, $stream->response);
+            \assert($stream->response !== null);
+            $eventInvoker->responseBodyStart($stream->request, $stream->stream, $stream->response);
         }
 
-        events()->responseBodyEnd($stream->request, $stream->stream, $stream->response);
+        \assert($stream->response !== null);
+        $eventInvoker->responseBodyEnd($stream->request, $stream->stream, $stream->response);
 
         // Trailers may have been received in handleHeaders(); if not, resolve with an empty set of trailers.
         if ($stream->trailers !== null) {
