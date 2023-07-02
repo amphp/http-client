@@ -1,26 +1,31 @@
 <?php declare(strict_types=1);
-/** @noinspection ALL */
 
-namespace Amp\Http\Client\Interceptor;
+namespace Amp\Http\Client\EventListener;
 
-use Amp\Cancellation;
-use Amp\File;
+use Amp\File\File;
 use Amp\File\Filesystem;
+use Amp\File\Whence;
 use Amp\ForbidCloning;
 use Amp\ForbidSerialization;
 use Amp\Http\Client\ApplicationInterceptor;
-use Amp\Http\Client\DelegateHttpClient;
+use Amp\Http\Client\Connection\Connection;
+use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\EventListener;
-use Amp\Http\Client\EventListener\RecordHarAttributes;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Internal\HarAttributes;
+use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\HttpMessage;
+use Amp\Socket\InternetAddress;
+use Amp\Socket\TlsInfo;
 use Amp\Sync\LocalMutex;
 use Revolt\EventLoop;
+use function Amp\File\filesystem;
+use function Amp\File\openFile;
+use function Amp\now;
 
-final class LogHttpArchive implements ApplicationInterceptor
+final class LogHttpArchive implements EventListener
 {
     use ForbidCloning;
     use ForbidSerialization;
@@ -139,13 +144,11 @@ final class LogHttpArchive implements ApplicationInterceptor
 
     private Filesystem $filesystem;
 
-    private ?File\File $fileHandle = null;
+    private ?File $fileHandle = null;
 
     private string $filePath;
 
     private ?\Throwable $error = null;
-
-    private EventListener $eventListener;
 
     public function __construct(string $filePath, ?Filesystem $filesystem = null)
     {
@@ -155,26 +158,7 @@ final class LogHttpArchive implements ApplicationInterceptor
 
         $this->filePath = $filePath;
         $this->fileMutex = new LocalMutex;
-        $this->eventListener = new RecordHarAttributes;
-        $this->filesystem = $filesystem ?? File\filesystem();
-    }
-
-    public function request(
-        Request $request,
-        Cancellation $cancellation,
-        DelegateHttpClient $httpClient
-    ): Response {
-        if ($this->error) {
-            throw $this->error;
-        }
-
-        $this->ensureEventListenerIsRegistered($request);
-
-        $response = $httpClient->request($request, $cancellation);
-
-        EventLoop::queue(fn () => $this->writeLog($response));
-
-        return $response;
+        $this->filesystem = $filesystem ?? filesystem();
     }
 
     public function reset(): void
@@ -208,7 +192,7 @@ final class LogHttpArchive implements ApplicationInterceptor
             $firstEntry = $this->fileHandle === null;
 
             if ($firstEntry) {
-                $this->fileHandle = $fileHandle = File\openFile($this->filePath, 'w');
+                $this->fileHandle = $fileHandle = openFile($this->filePath, 'w');
 
                 $header = '{"log":{"version":"1.2","creator":{"name":"amphp/http-client","version":"4.x"},"pages":[],"entries":[';
 
@@ -218,7 +202,7 @@ final class LogHttpArchive implements ApplicationInterceptor
 
                 \assert($fileHandle !== null);
 
-                $fileHandle->seek(-3, File\Whence::Current);
+                $fileHandle->seek(-3, Whence::Current);
             }
 
             $json = \json_encode(self::formatEntry($response));
@@ -233,14 +217,134 @@ final class LogHttpArchive implements ApplicationInterceptor
         }
     }
 
-    private function ensureEventListenerIsRegistered(Request $request): void
+    public function requestStart(Request $request): void
     {
-        foreach ($request->getEventListeners() as $eventListener) {
-            if ($eventListener instanceof RecordHarAttributes) {
-                return; // user added it manually
-            }
+        if (!$request->hasAttribute(HarAttributes::STARTED_DATE_TIME)) {
+            $request->setAttribute(HarAttributes::STARTED_DATE_TIME, new \DateTimeImmutable);
         }
 
-        $request->addEventListener($this->eventListener);
+        $this->addTiming(HarAttributes::TIME_START, $request);
+    }
+
+    public function connectStart(Request $request): void
+    {
+        $this->addTiming(HarAttributes::TIME_CONNECT, $request);
+    }
+
+    public function requestHeaderStart(Request $request, Stream $stream): void
+    {
+        $address = $stream->getRemoteAddress();
+        $host = match (true) {
+            $address instanceof InternetAddress => $address->getAddress(),
+            default => $address->toString(),
+        };
+        if (\strrpos($host, ':')) {
+            $host = '[' . $host . ']';
+        }
+
+        $request->setAttribute(HarAttributes::SERVER_IP_ADDRESS, $host);
+        $this->addTiming(HarAttributes::TIME_SEND, $request);
+    }
+
+    public function requestBodyEnd(Request $request, Stream $stream): void
+    {
+        $this->addTiming(HarAttributes::TIME_WAIT, $request);
+    }
+
+    public function responseHeaderStart(Request $request, Stream $stream): void
+    {
+        $this->addTiming(HarAttributes::TIME_RECEIVE, $request);
+    }
+
+    public function requestEnd(Request $request, Response $response): void
+    {
+        $this->addTiming(HarAttributes::TIME_COMPLETE, $request);
+
+        EventLoop::queue(fn () => $this->writeLog($response));
+    }
+
+    /**
+     * @param non-empty-string $key
+     */
+    private function addTiming(string $key, Request $request): void
+    {
+        if (!$request->hasAttribute($key)) {
+            $request->setAttribute($key, now());
+        }
+    }
+
+    public function requestFailed(Request $request, HttpException $exception): void
+    {
+        // TODO: Log error to archive
+    }
+
+    public function connectEnd(Request $request, Connection $connection): void
+    {
+        // nothing to do
+    }
+
+    public function tlsHandshakeStart(Request $request): void
+    {
+        $this->addTiming(HarAttributes::TIME_SSL, $request);
+    }
+
+    public function tlsHandshakeEnd(Request $request, TlsInfo $tlsInfo): void
+    {
+        // nothing to do
+    }
+
+    public function requestHeaderEnd(Request $request, Stream $stream): void
+    {
+        // nothing to do
+    }
+
+    public function requestBodyStart(Request $request, Stream $stream): void
+    {
+        // nothing to do
+    }
+
+    public function requestBodyProgress(Request $request, Stream $stream): void
+    {
+        // nothing to do
+    }
+
+    public function responseHeaderEnd(Request $request, Stream $stream, Response $response): void
+    {
+        // nothing to do
+    }
+
+    public function responseBodyStart(Request $request, Stream $stream, Response $response): void
+    {
+        // nothing to do
+    }
+
+    public function responseBodyProgress(Request $request, Stream $stream, Response $response): void
+    {
+        // nothing to do
+    }
+
+    public function responseBodyEnd(Request $request, Stream $stream, Response $response): void
+    {
+        // nothing to do
+    }
+
+    public function applicationInterceptorStart(Request $request, ApplicationInterceptor $interceptor): void
+    {
+        // nothing to do
+    }
+
+    public function applicationInterceptorEnd(Request $request, ApplicationInterceptor $interceptor, Response $response): void
+    {
+        // nothing to do
+    }
+
+    public function networkInterceptorStart(Request $request, NetworkInterceptor $interceptor): void
+    {
+        // nothing to do
+    }
+
+    public function networkInterceptorEnd(Request $request, NetworkInterceptor $interceptor, Response $response): void
+    {
+        // nothing to do
     }
 }
