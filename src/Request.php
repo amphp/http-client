@@ -58,7 +58,7 @@ final class Request extends HttpRequest
     /** @var array<non-empty-string, mixed> */
     private array $attributes = [];
 
-    /** @var list<EventListener> */
+    /** @var EventListener[] */
     private array $eventListeners = [];
 
     /**
@@ -73,7 +73,7 @@ final class Request extends HttpRequest
 
     public function addEventListener(EventListener $eventListener): void
     {
-        $this->eventListeners[] = $eventListener;
+        $this->eventListeners[\spl_object_id($eventListener)] = $eventListener;
     }
 
     /**
@@ -81,7 +81,7 @@ final class Request extends HttpRequest
      */
     public function getEventListeners(): array
     {
-        return $this->eventListeners;
+        return \array_values($this->eventListeners);
     }
 
     /**

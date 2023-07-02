@@ -37,8 +37,8 @@ final class EventInvoker implements EventListener
 
     private function invoke(Request $request, \Closure $closure): void
     {
-        foreach ($request->getEventListeners() as $listener) {
-            $closure($listener, $request);
+        foreach ($request->getEventListeners() as $eventListener) {
+            $closure($eventListener, $request);
         }
     }
 
