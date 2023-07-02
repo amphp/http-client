@@ -36,7 +36,8 @@
         "amphp/socket": "^2",
         "amphp/sync": "^2",
         "league/uri": "^6",
-        "psr/http-message": "^1 | ^2"
+        "psr/http-message": "^1 | ^2",
+        "league/uri-components": "^2.4"
     },
     "require-dev": {
         "ext-json": "*",
