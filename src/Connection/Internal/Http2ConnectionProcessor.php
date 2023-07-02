@@ -1328,6 +1328,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         if ($streamId & 1) { // Client-initiated stream.
             $this->remainingStreams++;
+            $this->reservedStreams--;
 
             \assert($this->remainingStreams <= $this->concurrentStreamLimit);
         }
