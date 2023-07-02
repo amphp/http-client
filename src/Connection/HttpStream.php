@@ -10,7 +10,7 @@ use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
-use function Amp\Http\Client\requestEvents;
+use function Amp\Http\Client\processRequest;
 
 final class HttpStream implements Stream
 {
@@ -86,7 +86,7 @@ final class HttpStream implements Stream
 
         $this->releaseCallback = null;
 
-        return requestEvents($request, fn (): Response => ($this->requestCallback)($request, $cancellation, $this));
+        return processRequest($request, fn (): Response => ($this->requestCallback)($request, $cancellation, $this));
     }
 
     public function getLocalAddress(): SocketAddress

@@ -24,7 +24,7 @@ final class PooledHttpClient implements DelegateHttpClient
 
     public function request(Request $request, Cancellation $cancellation): Response
     {
-        return requestEvents($request, function () use ($request, $cancellation) {
+        return processRequest($request, function () use ($request, $cancellation) {
             $stream = $this->connectionPool->getStream($request, $cancellation);
 
             foreach (\array_reverse($this->networkInterceptors) as $interceptor) {

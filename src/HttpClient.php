@@ -25,6 +25,6 @@ final class HttpClient implements DelegateHttpClient
      */
     public function request(Request $request, ?Cancellation $cancellation = null): Response
     {
-        return requestEvents($request, fn () => $this->httpClient->request($request, new NullCancellation()));
+        return processRequest($request, fn () => $this->httpClient->request($request, $cancellation ?? new NullCancellation()));
     }
 }

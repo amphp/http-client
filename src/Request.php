@@ -7,6 +7,7 @@ use Amp\ForbidSerialization;
 use Amp\Future;
 use Amp\Http\Client\Connection\UpgradedSocket;
 use Amp\Http\Client\Internal\EventInvoker;
+use Amp\Http\Client\Internal\Phase;
 use Amp\Http\HttpMessage;
 use Amp\Http\HttpRequest;
 use League\Uri;
@@ -84,11 +85,11 @@ final class Request extends HttpRequest
     }
 
     /**
-     * @return Phase Current request / response phase.
+     * @return bool Whether processing the request has already been started.
      */
-    public function getPhase(): Phase
+    public function isStarted(): bool
     {
-        return EventInvoker::getPhase($this);
+        return EventInvoker::getPhase($this) !== Phase::Unprocessed;
     }
 
     /**

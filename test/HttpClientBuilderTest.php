@@ -18,18 +18,15 @@ class HttpClientBuilderTest extends AsyncTestCase
 
     public function testUserInfoDeprecationAllow(): void
     {
-        $this->markTestSkipped('causes segfaults');
-
         $client = (new HttpClientBuilder)->allowDeprecatedUriUserInfo()->build();
 
         $response = $client->request(new Request('http://foobar@amphp.org/amp'));
 
         $this->assertTrue(true); // no exception
         $this->assertNotNull($response->getPreviousResponse());
-        $this->assertNotNull($response->getPreviousResponse()->getPreviousResponse());
-        $this->assertNotNull($response->getPreviousResponse()->getPreviousResponse()->getPreviousResponse());
-        $this->assertNull($response->getPreviousResponse()->getPreviousResponse()->getPreviousResponse()->getPreviousResponse());
-        $this->assertSame('https://amphp.org/amp/', (string) $response->getRequest()->getUri());
-        $this->assertSame('http://amphp.org/amp', $response->getPreviousResponse()->getPreviousResponse()->getRequest()->getHeader('referer'));
+        $this->assertNull($response->getPreviousResponse()->getPreviousResponse());
+        $this->assertSame('https://amphp.org/amp', (string) $response->getRequest()->getUri());
+        $this->assertSame('http://amphp.org/amp', $response->getRequest()->getHeader('referer'));
+        $this->assertSame('http://foobar@amphp.org/amp', (string) $response->getPreviousResponse()->getRequest()->getUri());
     }
 }

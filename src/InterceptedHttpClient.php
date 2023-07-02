@@ -25,7 +25,7 @@ final class InterceptedHttpClient implements DelegateHttpClient
 
     public function request(Request $request, Cancellation $cancellation): Response
     {
-        return requestEvents($request, function () use ($request, $cancellation) {
+        return processRequest($request, function () use ($request, $cancellation) {
             /** @psalm-suppress RedundantPropertyInitializationCheck */
             self::$requestInterceptors ??= new \WeakMap();
             $requestInterceptors = self::$requestInterceptors[$request] ?? [];

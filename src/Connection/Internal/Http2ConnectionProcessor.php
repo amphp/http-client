@@ -17,9 +17,10 @@ use Amp\Http\Client\Connection\HttpStream;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\Connection\UnprocessedRequestException;
 use Amp\Http\Client\HttpException;
+use Amp\Http\Client\Internal\EventInvoker;
+use Amp\Http\Client\Internal\Phase;
 use Amp\Http\Client\Internal\ResponseBodyStream;
 use Amp\Http\Client\InvalidRequestException;
-use Amp\Http\Client\Phase;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\SocketException;
@@ -843,7 +844,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         \assert($stream->response !== null);
 
-        if ($stream->request->getPhase() === Phase::ResponseHeaders) {
+        if (EventInvoker::getPhase($stream->request) === Phase::ResponseHeaders) {
             events()->responseBodyStart($stream->request, $stream->stream, $stream->response);
         }
 

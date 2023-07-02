@@ -9,9 +9,9 @@ function events(): EventListener
     return EventInvoker::get();
 }
 
-function requestEvents(Request $request, \Closure $requestHandler): Response
+function processRequest(Request $request, \Closure $requestHandler): Response
 {
-    if ($request->getPhase() !== Phase::Unprocessed) {
+    if ($request->isStarted()) {
         return $requestHandler($request);
     }
 

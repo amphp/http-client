@@ -12,7 +12,7 @@ use Amp\Http\Client\Response;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
 use function Amp\Http\Client\events;
-use function Amp\Http\Client\requestEvents;
+use function Amp\Http\Client\processRequest;
 
 final class InterceptedStream implements Stream
 {
@@ -36,7 +36,7 @@ final class InterceptedStream implements Stream
      */
     public function request(Request $request, Cancellation $cancellation): Response
     {
-        return requestEvents($request, function () use ($request, $cancellation): Response {
+        return processRequest($request, function () use ($request, $cancellation): Response {
             if (!$this->interceptor) {
                 throw new \Error(__METHOD__ . ' may only be invoked once per instance. '
                     . 'If you need to implement retries or otherwise issue multiple requests, register an ApplicationInterceptor to do so.');

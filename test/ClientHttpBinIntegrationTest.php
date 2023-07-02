@@ -770,9 +770,9 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         };
     }
 
-    private function executeRequest(Request $request, ?Cancellation $cancellationToken = null): Response
+    private function executeRequest(Request $request, ?Cancellation $cancellation = null): Response
     {
-        return $this->client->request($request, $cancellationToken);
+        return $this->client->request($request, $cancellation);
     }
 
     private function createRequest(): Request

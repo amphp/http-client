@@ -8,7 +8,6 @@ use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\EventListener;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\NetworkInterceptor;
-use Amp\Http\Client\Phase;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Socket\TlsInfo;

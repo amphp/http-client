@@ -1,7 +1,8 @@
 <?php
 
-namespace Amp\Http\Client;
+namespace Amp\Http\Client\Internal;
 
+/** @internal */
 enum Phase
 {
     case Unprocessed;
