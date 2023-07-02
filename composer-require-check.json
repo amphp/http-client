@@ -17,8 +17,6 @@
         "object",
         "mixed",
         "random_bytes",
-        "events",
-        "processRequest",
         "ZLIB_ENCODING_GZIP",
         "ZLIB_ENCODING_DEFLATE",
         "Amp\\File\\Driver",
