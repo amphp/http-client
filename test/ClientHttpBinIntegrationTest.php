@@ -686,8 +686,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
             $response = $client->request($request);
             $response->getBody()->buffer();
 
-            gc_collect_cycles();
-            gc_mem_caches();
+            \gc_collect_cycles();
+            \gc_mem_caches();
 
             $initialIdentifierCount ??= \count(EventLoop::getIdentifiers());
             $identifierCount = \count(EventLoop::getIdentifiers());
