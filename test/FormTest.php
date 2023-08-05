@@ -5,7 +5,7 @@ namespace Amp\Http\Client;
 use PHPUnit\Framework\TestCase;
 use function Amp\ByteStream\buffer;
 
-class FormBodyTest extends TestCase
+class FormTest extends TestCase
 {
     public function testUrlEncoded(): void
     {
