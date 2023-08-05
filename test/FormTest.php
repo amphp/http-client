@@ -14,9 +14,10 @@ class FormTest extends TestCase
         $body->addField('b', 'b', 'application/json');
         $body->addField('c', 'c', '');
         $body->addField('d', 'd');
+        $body->addField('encoding', '1+2');
 
         $content = buffer($body->getContent());
-        $this->assertEquals("a=a&b=b&c=c&d=d", $content);
+        $this->assertEquals("a=a&b=b&c=c&d=d&encoding=1%2B2", $content);
     }
 
     public function testMultiPartFieldsStream(): void

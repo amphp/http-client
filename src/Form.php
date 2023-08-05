@@ -165,7 +165,7 @@ final class Form implements HttpContent
             }
         }
 
-        return QueryString::build($pairs) ?? '';
+        return QueryString::build($pairs, '&', \PHP_QUERY_RFC1738) ?? '';
     }
 
     /**
