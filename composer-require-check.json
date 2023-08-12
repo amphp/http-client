@@ -16,6 +16,7 @@
         "void",
         "object",
         "mixed",
+        "random_bytes",
         "ZLIB_ENCODING_GZIP",
         "ZLIB_ENCODING_DEFLATE",
         "Amp\\File\\Driver",
