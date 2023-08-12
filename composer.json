@@ -35,8 +35,8 @@
         "amphp/pipeline": "^1",
         "amphp/socket": "^2",
         "amphp/sync": "^2",
-        "league/uri": "^6",
-        "league/uri-components": "^2.4",
+        "league/uri": "^6 | ^7",
+        "league/uri-components": "^2.4 | ^7",
         "psr/http-message": "^1 | ^2"
     },
     "require-dev": {
