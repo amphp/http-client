@@ -51,12 +51,12 @@ class Http2ConnectionTest extends AsyncTestCase
         $stream = $connection->getStream($request);
 
         $server->write(self::packFrame($hpack->encode([
-            [":status", HttpStatus::CONTINUE],
+            [":status", (string) HttpStatus::CONTINUE],
             ["date", formatDateHeader()],
         ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS, 1));
 
         $server->write(self::packFrame($hpack->encode([
-            [":status", HttpStatus::NO_CONTENT],
+            [":status", (string) HttpStatus::NO_CONTENT],
             ["date", formatDateHeader()],
         ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS | Http2Parser::END_STREAM, 1));
 
@@ -83,7 +83,7 @@ class Http2ConnectionTest extends AsyncTestCase
         $stream = $connection->getStream($request);
 
         $server->write(self::packFrame($hpack->encode([
-            [":status", HttpStatus::SWITCHING_PROTOCOLS],
+            [":status", (string) HttpStatus::SWITCHING_PROTOCOLS],
             ["date", formatDateHeader()],
         ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS, 1));
 
@@ -113,7 +113,7 @@ class Http2ConnectionTest extends AsyncTestCase
             delay(0.1);
 
             $server->write(self::packFrame($hpack->encode([
-                [":status", HttpStatus::OK],
+                [":status", (string) HttpStatus::OK],
                 ["content-length", "4"],
                 ["trailers", "Foo"],
                 ["date", formatDateHeader()],
@@ -157,7 +157,7 @@ class Http2ConnectionTest extends AsyncTestCase
         $stream = $connection->getStream($request);
 
         $server->write(self::packFrame($hpack->encode([
-            [":status", HttpStatus::OK],
+            [":status", (string) HttpStatus::OK],
             ["content-length", "4"],
             ["date", formatDateHeader()],
         ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS, 1));
@@ -193,7 +193,7 @@ class Http2ConnectionTest extends AsyncTestCase
             delay(0.1);
 
             $server->write(self::packFrame($hpack->encode([
-                [":status", HttpStatus::OK],
+                [":status", (string) HttpStatus::OK],
                 ["content-length", "8"],
                 ["date", formatDateHeader()],
             ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS, 1));
@@ -248,7 +248,7 @@ class Http2ConnectionTest extends AsyncTestCase
             delay(0.1);
 
             $server->write(self::packFrame($hpack->encode([
-                [":status", HttpStatus::OK],
+                [":status", (string) HttpStatus::OK],
                 ["content-length", "8"],
                 ["date", formatDateHeader()],
             ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS, 1));
@@ -307,7 +307,7 @@ class Http2ConnectionTest extends AsyncTestCase
             delay(0.1);
 
             $server->write(self::packFrame($hpack->encode([
-                [":status", HttpStatus::OK],
+                [":status", (string) HttpStatus::OK],
                 ["content-length", "4"],
                 ["date", formatDateHeader()],
             ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS, 1));
@@ -320,7 +320,7 @@ class Http2ConnectionTest extends AsyncTestCase
                 ]), Http2Parser::PUSH_PROMISE, Http2Parser::END_HEADERS, 1));
 
             $server->write(self::packFrame($hpack->encode([
-                [":status", HttpStatus::OK],
+                [":status", (string) HttpStatus::OK],
                 ["content-length", "4"],
                 ["date", formatDateHeader()],
             ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS, 2));
@@ -383,7 +383,7 @@ class Http2ConnectionTest extends AsyncTestCase
             delay(0.1);
 
             $server->write(self::packFrame($hpack->encode([
-                [":status", HttpStatus::OK],
+                [":status", (string) HttpStatus::OK],
                 ["content-length", "8"],
                 ["date", formatDateHeader()],
             ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS, 1));
@@ -455,7 +455,7 @@ class Http2ConnectionTest extends AsyncTestCase
         $future = async(fn () => $stream->request($request, new NullCancellation));
 
         $server->write(self::packFrame($hpack->encode([
-            [":status", HttpStatus::OK],
+            [":status", (string) HttpStatus::OK],
             ["date", formatDateHeader()],
         ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS, 1));
 
