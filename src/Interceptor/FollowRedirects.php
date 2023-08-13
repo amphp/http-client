@@ -143,10 +143,12 @@ final class FollowRedirects implements ApplicationInterceptor
         $requestNr = 2;
 
         do {
-            $request = $this->createRedirectRequest($clonedRequest, $response);
+            $request = $this->updateRequestForRedirect($clonedRequest, $response);
             if ($request === null) {
                 return $response;
             }
+
+            $clonedRequest = $this->cloneRequest($request);
 
             $redirectResponse = $client->request($request, $cancellationToken);
             $redirectResponse->setPreviousResponse($response);
@@ -178,7 +180,7 @@ final class FollowRedirects implements ApplicationInterceptor
         return $request;
     }
 
-    private function createRedirectRequest(Request $clonedRequest, Response $response): ?Request
+    private function updateRequestForRedirect(Request $request, Response $response): ?Request
     {
         $redirectUri = $this->getRedirectUri($response);
         if ($redirectUri === null) {
@@ -188,21 +190,21 @@ final class FollowRedirects implements ApplicationInterceptor
         $originalUri = $response->getRequest()->getUri();
         $isSameHost = $redirectUri->getAuthority() === $originalUri->getAuthority();
 
-        $clonedRequest->setUri($redirectUri);
+        $request->setUri($redirectUri);
 
         if (!$isSameHost) {
             // Avoid copying headers for security reasons, any interceptor headers will be added again,
             // but application headers will be discarded.
-            $clonedRequest->setHeaders([]);
+            $request->setHeaders([]);
         }
 
         if ($this->autoReferrer) {
-            $this->assignRedirectRefererHeader($clonedRequest, $originalUri, $redirectUri);
+            $this->assignRedirectRefererHeader($request, $originalUri, $redirectUri);
         }
 
         $this->discardResponseBody($response);
 
-        return $clonedRequest;
+        return $request;
     }
 
     /**
