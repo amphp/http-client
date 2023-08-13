@@ -75,7 +75,7 @@ final class Http2ConnectionProcessor implements Http2Processor
     /** @var int */
     private $initialWindowSize = self::DEFAULT_WINDOW_SIZE;
 
-    /** @var int */
+    /** @var positive-int */
     private $frameSizeLimit = self::DEFAULT_MAX_FRAME_SIZE;
 
     /** @var int Previous stream ID. */
@@ -1649,6 +1649,7 @@ final class Http2ConnectionProcessor implements Http2Processor
     private function shutdown(HttpException $reason, ?int $lastId = null): Promise
     {
         return call(function () use ($lastId, $reason) {
+            /** @psalm-suppress RedundantCast */
             $code = (int) $reason->getCode();
             $this->shutdown = $code;
 
@@ -1678,6 +1679,8 @@ final class Http2ConnectionProcessor implements Http2Processor
      *
      * @return array
      * @throws InvalidRequestException
+     *
+     * @psalm-return list<list{string, string}>
      */
     private function generateHeaders(Request $request): array
     {

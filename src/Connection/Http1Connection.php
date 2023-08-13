@@ -446,6 +446,7 @@ final class Http1Connection implements Connection
                             $bodyCancellationToken->throwIfRequested();
 
                             // Ignore check if neither content-length nor chunked encoding are given.
+                            /** @psalm-suppress RedundantCondition */
                             if (!$parser->isComplete() && $parser->getState() !== Http1Parser::BODY_IDENTITY_EOF) {
                                 throw new SocketException('Socket disconnected prior to response completion');
                             }

@@ -188,8 +188,10 @@ final class FormBody implements RequestBody
         }
 
         return new IteratorStream(new Producer(static function (callable $emit) use ($fields) {
-            foreach ($fields as $key => $stream) {
-                while (($chunk = yield $stream->read()) !== null) {
+            /** @psalm-var callable(string) $emit */
+            foreach ($fields as $stream) {
+                /** @var InputStream $stream */
+                while (null !== $chunk = yield $stream->read()) {
                     yield $emit($chunk);
                 }
             }

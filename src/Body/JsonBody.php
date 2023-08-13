@@ -18,8 +18,8 @@ final class JsonBody implements RequestBody
      * JsonBody constructor.
      *
      * @param mixed $data
-     * @param int   $options
-     * @param int   $depth
+     * @param int $options
+     * @param int<1, 2147483647> $depth
      *
      * @throws HttpException
      */

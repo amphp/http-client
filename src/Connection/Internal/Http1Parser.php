@@ -347,7 +347,7 @@ final class Http1Parser
     /**
      * Decodes a chunked response body.
      *
-     * @return bool {@code true} if the body is complete, otherwise {@code false}.
+     * @return bool Returns {@code true} if the body is complete, otherwise {@code false}.
      *
      * @throws ParseException
      */
