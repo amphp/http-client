@@ -72,7 +72,7 @@ jobs:
             composer-
 
       - name: Remove psalm
-        run: composer remove vimeo/psalm
+        run: composer remove --dev --no-update vimeo/psalm
         if: matrix.psalm == 'skip'
 
       - name: Install dependencies
