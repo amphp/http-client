@@ -12,10 +12,12 @@ jobs:
           - operating-system: 'ubuntu-latest'
             php-version: '7.2'
             composer-require-checker-version: 2.1.0
+            psalm: skip
 
           - operating-system: 'ubuntu-latest'
             php-version: '7.3'
             composer-require-checker-version: 2.1.0
+            psalm: skip
 
           - operating-system: 'ubuntu-latest'
             php-version: '7.4'
@@ -69,6 +71,10 @@ jobs:
             composer-${{ runner.os }}-
             composer-
 
+      - name: Remove psalm
+        run: composer remove vimeo/psalm
+        if: matrix.psalm == 'skip'
+
       - name: Install dependencies
         uses: nick-invision/retry@v2
         with:
@@ -89,6 +95,7 @@ jobs:
 
       - name: Run static analysis
         run: vendor/bin/psalm
+        if: matrix.psalm != 'skip'
 
       - name: Install composer-require-checker
         run: php -r 'file_put_contents("composer-require-checker.phar", file_get_contents("https://github.com/maglnet/ComposerRequireChecker/releases/download/${{ matrix.composer-require-checker-version }}/composer-require-checker.phar"));'
