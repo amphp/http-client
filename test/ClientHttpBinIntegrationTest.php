@@ -773,7 +773,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testHttp2PriorKnowledgeUnsupported(): \Generator
     {
-        $request = new Request('http://github.com/');
+        $request = new Request('http://example.com/');
         $request->setProtocolVersions(['2']);
 
         $this->expectException(SocketException::class);
