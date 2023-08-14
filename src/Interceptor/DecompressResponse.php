@@ -34,20 +34,11 @@ final class DecompressResponse implements NetworkInterceptor
             return $stream->request($request, $cancellation);
         }
 
-        $this->addAcceptEncodingHeader($request);
-
         $request->interceptPush(function (Request $request, Response $response): Response {
             return $this->decompressResponse($response);
         });
 
         return $this->decompressResponse($stream->request($request, $cancellation));
-    }
-
-    private function addAcceptEncodingHeader(Request $request): void
-    {
-        if ($this->hasZlib) {
-            $request->setHeader('Accept-Encoding', 'gzip, deflate, identity');
-        }
     }
 
     private function decompressResponse(Response $response): Response
