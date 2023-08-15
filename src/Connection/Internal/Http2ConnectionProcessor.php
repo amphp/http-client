@@ -469,6 +469,8 @@ final class Http2ConnectionProcessor implements Http2Processor
             $bodyCancellation->getToken()
         );
 
+        $stream->cancellationToken = $cancellationToken;
+
         $response->setBody(
             new ResponseBodyStream(
                 new IteratorStream($stream->body->iterate()),
