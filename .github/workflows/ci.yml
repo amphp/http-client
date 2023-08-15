@@ -25,7 +25,6 @@ jobs:
 
           - operating-system: 'ubuntu-latest'
             php-version: '8.0'
-            composer-flags: '--ignore-platform-req=php'
             composer-require-checker-version: 3.2.0
 
           - operating-system: 'windows-latest'
