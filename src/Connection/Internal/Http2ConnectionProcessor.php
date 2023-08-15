@@ -1485,6 +1485,8 @@ final class Http2ConnectionProcessor implements Http2Processor
     }
 
     /**
+     * @psalm-return list<list{string, string}>
+     *
      * @throws InvalidRequestException
      */
     private function generateHeaders(Request $request): array
