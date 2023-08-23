@@ -49,17 +49,14 @@ final class Form implements HttpContent
         $this->fields[] = new FormField($name, BufferedContent::fromString($content, $contentType));
     }
 
-    public function addStream(string $name, HttpContent $content, ?string $filename): void
+    public function addStream(string $name, HttpContent $content, ?string $filename = null): void
     {
         if ($this->used) {
             throw new \Error('Form body is already used and can no longer be modified');
         }
 
         $this->fields[] = new FormField($name, $content, $filename);
-
-        if ($filename !== null) {
-            $this->isMultipart = true;
-        }
+        $this->isMultipart = true;
     }
 
     /**
@@ -168,7 +165,7 @@ final class Form implements HttpContent
             }
         }
 
-        return QueryString::build($pairs) ?? '';
+        return QueryString::build($pairs, '&', \PHP_QUERY_RFC1738) ?? '';
     }
 
     /**

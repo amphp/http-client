@@ -126,13 +126,15 @@ final class FollowRedirects implements ApplicationInterceptor
     ): Response {
         // Don't follow redirects on pushes, just store the redirect in cache (if an interceptor is configured)
 
+        $clonedRequest = $this->cloneRequest($request);
+
         $response = $httpClient->request($request, $cancellation);
 
-        return $this->followRedirects($request, $response, $httpClient, $cancellation);
+        return $this->followRedirects($clonedRequest, $response, $httpClient, $cancellation);
     }
 
     private function followRedirects(
-        Request $request,
+        Request $clonedRequest,
         Response $response,
         DelegateHttpClient $client,
         Cancellation $cancellationToken
@@ -141,10 +143,12 @@ final class FollowRedirects implements ApplicationInterceptor
         $requestNr = 2;
 
         do {
-            $request = $this->createRedirectRequest($request, $response);
+            $request = $this->updateRequestForRedirect($clonedRequest, $response);
             if ($request === null) {
                 return $response;
             }
+
+            $clonedRequest = $this->cloneRequest($request);
 
             $redirectResponse = $client->request($request, $cancellationToken);
             $redirectResponse->setPreviousResponse($response);
@@ -159,7 +163,24 @@ final class FollowRedirects implements ApplicationInterceptor
         return $response;
     }
 
-    private function createRedirectRequest(Request $originalRequest, Response $response): ?Request
+    private function cloneRequest(Request $originalRequest): Request
+    {
+        $request = new Request($originalRequest->getUri(), 'GET');
+        $request->setTlsHandshakeTimeout($originalRequest->getTlsHandshakeTimeout());
+        $request->setTransferTimeout($originalRequest->getTransferTimeout());
+        $request->setInactivityTimeout($originalRequest->getInactivityTimeout());
+        $request->setTcpConnectTimeout($originalRequest->getTcpConnectTimeout());
+        $request->setBodySizeLimit($originalRequest->getBodySizeLimit());
+
+        $request->setHeaders($originalRequest->getHeaders());
+        $request->removeHeader('transfer-encoding');
+        $request->removeHeader('content-length');
+        $request->removeHeader('content-type');
+
+        return $request;
+    }
+
+    private function updateRequestForRedirect(Request $request, Response $response): ?Request
     {
         $redirectUri = $this->getRedirectUri($response);
         if ($redirectUri === null) {
@@ -169,19 +190,12 @@ final class FollowRedirects implements ApplicationInterceptor
         $originalUri = $response->getRequest()->getUri();
         $isSameHost = $redirectUri->getAuthority() === $originalUri->getAuthority();
 
-        $request = new Request($redirectUri, 'GET');
-        $request->setTlsHandshakeTimeout($originalRequest->getTlsHandshakeTimeout());
-        $request->setTransferTimeout($originalRequest->getTransferTimeout());
-        $request->setInactivityTimeout($originalRequest->getInactivityTimeout());
-        $request->setTcpConnectTimeout($originalRequest->getTcpConnectTimeout());
-        $request->setBodySizeLimit($originalRequest->getBodySizeLimit());
-        if ($isSameHost) {
+        $request->setUri($redirectUri);
+
+        if (!$isSameHost) {
             // Avoid copying headers for security reasons, any interceptor headers will be added again,
             // but application headers will be discarded.
-            $request->setHeaders($originalRequest->getHeaders());
-            $request->removeHeader('transfer-encoding');
-            $request->removeHeader('content-length');
-            $request->removeHeader('content-type');
+            $request->setHeaders([]);
         }
 
         if ($this->autoReferrer) {
