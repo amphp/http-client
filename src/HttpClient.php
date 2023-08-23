@@ -13,16 +13,26 @@ final class HttpClient implements DelegateHttpClient
 {
     private DelegateHttpClient $httpClient;
 
-    public function __construct(DelegateHttpClient $httpClient)
+    /** @var EventListener[] */
+    private array $eventListeners;
+
+    public function __construct(DelegateHttpClient $httpClient, array $eventListeners)
     {
         $this->httpClient = $httpClient;
+        $this->eventListeners = $eventListeners;
     }
 
     /**
      * Request a specific resource from an HTTP server.
+     *
+     * @throws HttpException
      */
     public function request(Request $request, ?Cancellation $cancellation = null): Response
     {
-        return $this->httpClient->request($request, $cancellation ?? new NullCancellation);
+        return processRequest(
+            $request,
+            $this->eventListeners,
+            fn () => $this->httpClient->request($request, $cancellation ?? new NullCancellation())
+        );
     }
 }

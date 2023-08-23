@@ -2,8 +2,9 @@
 
 namespace Amp\Http\Client;
 
-use Amp\Http\Client\Connection\ConnectionPool;
+use Amp\Http\Client\Connection\Connection;
 use Amp\Http\Client\Connection\Stream;
+use Amp\Socket\TlsInfo;
 
 /**
  * Allows listening to more fine granular events than interceptors are able to achieve.
@@ -14,63 +15,107 @@ use Amp\Http\Client\Connection\Stream;
 interface EventListener
 {
     /**
-     * Called at the very beginning of {@see DelegateHttpClient::request()}.
+     * Called when the request starts being processed by {@see DelegateHttpClient::request()}.
      */
-    public function startRequest(Request $request): void;
+    public function requestStart(Request $request): void;
 
     /**
-     * Optionally called by {@see ConnectionPool::getStream()} before DNS resolution is started.
+     * Called when the request failed due to an exception.
      */
-    public function startDnsResolution(Request $request): void;
+    public function requestFailed(Request $request, HttpException $exception): void;
 
     /**
-     * Optionally called by {@see ConnectionPool::getStream()} after DNS resolution is completed.
+     * Called when the request completed with a complete response.
      */
-    public function completeDnsResolution(Request $request): void;
+    public function requestEnd(Request $request, Response $response): void;
 
     /**
-     * Called by {@see ConnectionPool::getStream()} before a new connection is initiated.
+     * Called before an application interceptor is invoked.
      */
-    public function startConnectionCreation(Request $request): void;
+    public function applicationInterceptorStart(Request $request, ApplicationInterceptor $interceptor): void;
 
     /**
-     * Called by {@see ConnectionPool::getStream()} after a new connection is established and TLS negotiated.
+     * Called after an application interceptor is returned.
      */
-    public function completeConnectionCreation(Request $request): void;
+    public function applicationInterceptorEnd(Request $request, ApplicationInterceptor $interceptor, Response $response): void;
 
     /**
-     * Called by {@see ConnectionPool::getStream()} before TLS negotiation is started (only if HTTPS is used).
+     * Called before a network interceptor is invoked.
      */
-    public function startTlsNegotiation(Request $request): void;
+    public function networkInterceptorStart(Request $request, NetworkInterceptor $interceptor): void;
 
     /**
-     * Called by {@see ConnectionPool::getStream()} after TLS negotiation is successful (only if HTTPS is used).
+     * Called after a network interceptor is returned.
      */
-    public function completeTlsNegotiation(Request $request): void;
+    public function networkInterceptorEnd(Request $request, NetworkInterceptor $interceptor, Response $response): void;
 
     /**
-     * Called by {@see Stream::request()} before the request is sent.
+     * Called before a new connection is initiated.
      */
-    public function startSendingRequest(Request $request, Stream $stream): void;
+    public function connectStart(Request $request): void;
 
     /**
-     * Called by {@see Stream::request()} after the request is sent.
+     * Called when a new connection is established.
      */
-    public function completeSendingRequest(Request $request, Stream $stream): void;
+    public function connectEnd(Request $request, Connection $connection): void;
 
     /**
-     * Called by {@see Stream::request()} after the first response byte is received.
-     *
+     * Called before TLS negotiation is started (HTTPS-only).
      */
-    public function startReceivingResponse(Request $request, Stream $stream): void;
+    public function tlsHandshakeStart(Request $request): void;
 
     /**
-     * Called by {@see Stream::request()} after the request is complete.
+     * Called when TLS negotiation completed (HTTPS-only).
      */
-    public function completeReceivingResponse(Request $request, Stream $stream): void;
+    public function tlsHandshakeEnd(Request $request, TlsInfo $tlsInfo): void;
 
     /**
-     * Called if the request is aborted.
+     * Called before the request headers are sent.
      */
-    public function abort(Request $request, \Throwable $cause): void;
+    public function requestHeaderStart(Request $request, Stream $stream): void;
+
+    /**
+     * Called after the request headers have been sent.
+     */
+    public function requestHeaderEnd(Request $request, Stream $stream): void;
+
+    /**
+     * Called before the request body is sent.
+     */
+    public function requestBodyStart(Request $request, Stream $stream): void;
+
+    /**
+     * Called when a new chunk of the request body has been sent.
+     */
+    public function requestBodyProgress(Request $request, Stream $stream): void;
+
+    /**
+     * Called after the request body has been completely sent.
+     */
+    public function requestBodyEnd(Request $request, Stream $stream): void;
+
+    /**
+     * Called after the first chunk of the response headers has been received.
+     */
+    public function responseHeaderStart(Request $request, Stream $stream): void;
+
+    /**
+     * Called after the response headers have been completely received.
+     */
+    public function responseHeaderEnd(Request $request, Stream $stream, Response $response): void;
+
+    /**
+     * Called after the first chunk of the response body has been received.
+     */
+    public function responseBodyStart(Request $request, Stream $stream, Response $response): void;
+
+    /**
+     * Called after a new chunk of the response body has been received.
+     */
+    public function responseBodyProgress(Request $request, Stream $stream, Response $response): void;
+
+    /**
+     * Called after the response body has been completely received.
+     */
+    public function responseBodyEnd(Request $request, Stream $stream, Response $response): void;
 }

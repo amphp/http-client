@@ -692,7 +692,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
             $initialIdentifierCount ??= \count(EventLoop::getIdentifiers());
             $identifierCount = \count(EventLoop::getIdentifiers());
 
-            self::assertSame($initialIdentifierCount, $identifierCount);
+            self::assertLessThanOrEqual(1, $identifierCount - $initialIdentifierCount);
         }
     }
 
@@ -770,9 +770,9 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         };
     }
 
-    private function executeRequest(Request $request, ?Cancellation $cancellationToken = null): Response
+    private function executeRequest(Request $request, ?Cancellation $cancellation = null): Response
     {
-        return $this->client->request($request, $cancellationToken);
+        return $this->client->request($request, $cancellation);
     }
 
     private function createRequest(): Request

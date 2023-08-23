@@ -11,22 +11,41 @@ final class InterceptedHttpClient implements DelegateHttpClient
     use ForbidCloning;
     use ForbidSerialization;
 
+    private static \WeakMap $requestInterceptors;
+
     private DelegateHttpClient $httpClient;
 
     private ApplicationInterceptor $interceptor;
 
-    public function __construct(DelegateHttpClient $httpClient, ApplicationInterceptor $interceptor)
-    {
+    /** @var EventListener[] */
+    private array $eventListeners;
+
+    public function __construct(
+        DelegateHttpClient $httpClient,
+        ApplicationInterceptor $interceptor,
+        array $eventListeners
+    ) {
         $this->httpClient = $httpClient;
         $this->interceptor = $interceptor;
+        $this->eventListeners = $eventListeners;
     }
 
     public function request(Request $request, Cancellation $cancellation): Response
     {
-        foreach ($request->getEventListeners() as $eventListener) {
-            $eventListener->startRequest($request);
-        }
+        return processRequest($request, $this->eventListeners, function () use ($request, $cancellation) {
+            /** @psalm-suppress RedundantPropertyInitializationCheck */
+            self::$requestInterceptors ??= new \WeakMap();
+            $requestInterceptors = self::$requestInterceptors[$request] ?? [];
+            $requestInterceptors[] = $this->interceptor;
+            self::$requestInterceptors[$request] = $requestInterceptors;
 
-        return $this->interceptor->request($request, $cancellation, $this->httpClient);
+            events()->applicationInterceptorStart($request, $this->interceptor);
+
+            $response = $this->interceptor->request($request, $cancellation, $this->httpClient);
+
+            events()->applicationInterceptorEnd($request, $this->interceptor, $response);
+
+            return $response;
+        });
     }
 }

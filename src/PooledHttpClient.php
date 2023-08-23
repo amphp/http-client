@@ -17,6 +17,8 @@ final class PooledHttpClient implements DelegateHttpClient
     /** @var NetworkInterceptor[] */
     private array $networkInterceptors = [];
 
+    private array $eventListeners = [];
+
     public function __construct(?ConnectionPool $connectionPool = null)
     {
         $this->connectionPool = $connectionPool ?? new UnlimitedConnectionPool;
@@ -24,17 +26,15 @@ final class PooledHttpClient implements DelegateHttpClient
 
     public function request(Request $request, Cancellation $cancellation): Response
     {
-        foreach ($request->getEventListeners() as $eventListener) {
-            $eventListener->startRequest($request);
-        }
+        return processRequest($request, $this->eventListeners, function () use ($request, $cancellation) {
+            $stream = $this->connectionPool->getStream($request, $cancellation);
 
-        $stream = $this->connectionPool->getStream($request, $cancellation);
+            foreach (\array_reverse($this->networkInterceptors) as $interceptor) {
+                $stream = new InterceptedStream($stream, $interceptor);
+            }
 
-        foreach (\array_reverse($this->networkInterceptors) as $interceptor) {
-            $stream = new InterceptedStream($stream, $interceptor);
-        }
-
-        return $stream->request($request, $cancellation);
+            return $stream->request($request, $cancellation);
+        });
     }
 
     /**
@@ -51,6 +51,19 @@ final class PooledHttpClient implements DelegateHttpClient
     {
         $clone = clone $this;
         $clone->networkInterceptors[] = $networkInterceptor;
+
+        return $clone;
+    }
+
+    /**
+     * Adds an event listener.
+     *
+     * Returns a new PooledHttpClient instance with the listener attached.
+     */
+    public function listen(EventListener $eventListener): self
+    {
+        $clone = clone $this;
+        $clone->eventListeners[] = $eventListener;
 
         return $clone;
     }

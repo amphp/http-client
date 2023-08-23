@@ -5,12 +5,14 @@ namespace Amp\Http\Client\Connection\Internal;
 use Amp\ByteStream\ReadableBuffer;
 use Amp\ForbidCloning;
 use Amp\ForbidSerialization;
+use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\ParseException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Http1\Rfc7230;
 use Amp\Http\HttpStatus;
 use Amp\Http\InvalidHeaderException;
+use function Amp\Http\Client\events;
 use function Amp\Http\mapHeaderPairs;
 
 /** @internal */
@@ -34,7 +36,14 @@ final class Http1Parser
 
     private Request $request;
 
+    private Stream $stream;
+
+    private ?Response $response = null;
+
     private int $state = self::AWAITING_HEADERS;
+
+    private bool $headersStarted = false;
+    private bool $bodyStarted = false;
 
     private string $buffer = '';
 
@@ -60,10 +69,12 @@ final class Http1Parser
 
     public function __construct(
         Request $request,
+        Stream $stream,
         callable $bodyDataCallback,
-        callable $trailersCallback
+        callable $trailersCallback,
     ) {
         $this->request = $request;
+        $this->stream = $stream;
         $this->bodyDataCallback = $bodyDataCallback;
         $this->trailersCallback = $trailersCallback;
         $this->maxHeaderBytes = $request->getHeaderSizeLimit();
@@ -90,7 +101,7 @@ final class Http1Parser
      */
     public function parse(string $data = null): ?Response
     {
-        if ($data !== null) {
+        if ($data !== null && $data !== '') {
             $this->buffer .= $data;
         }
 
@@ -100,6 +111,13 @@ final class Http1Parser
 
         if ($this->complete) {
             throw new ParseException('Can\'t continue parsing, response is already complete', HttpStatus::BAD_REQUEST);
+        }
+
+        if (!$this->bodyStarted && \in_array($this->state, [self::BODY_CHUNKS, self::BODY_IDENTITY, self::BODY_IDENTITY_EOF], true)) {
+            $this->bodyStarted = true;
+            $response = $this->response;
+            \assert($response !== null);
+            events()->responseBodyStart($this->request, $this->stream, $response);
         }
 
         switch ($this->state) {
@@ -170,11 +188,17 @@ final class Http1Parser
                 $response->addHeader($key, $value);
             }
 
-            return $response;
+            events()->responseHeaderEnd($this->request, $this->stream, $response);
+
+            return $this->response = $response;
         }
 
         body_identity:
         {
+            if ($data !== null && $data !== '') {
+                events()->responseBodyProgress($this->request, $this->stream, $this->response);
+            }
+
             $bufferDataSize = \strlen($this->buffer);
 
             if ($bufferDataSize <= $this->remainingBodyBytes) {
@@ -200,6 +224,10 @@ final class Http1Parser
 
         body_identity_eof:
         {
+            if ($data !== null && $data !== '') {
+                events()->responseBodyProgress($this->request, $this->stream, $this->response);
+            }
+
             $this->addToBody($this->buffer);
             $this->buffer = '';
             return null;
@@ -207,6 +235,10 @@ final class Http1Parser
 
         body_chunks:
         {
+            if ($data !== null && $data !== '') {
+                events()->responseBodyProgress($this->request, $this->stream, $this->response);
+            }
+
             if ($this->parseChunkedBody()) {
                 $this->state = self::TRAILERS_START;
                 goto trailers_start;
@@ -245,6 +277,8 @@ final class Http1Parser
 
         complete:
         {
+            events()->responseBodyEnd($this->request, $this->stream, $this->response);
+
             $this->complete = true;
 
             return null;
@@ -262,6 +296,11 @@ final class Http1Parser
     private function shiftHeadersFromBuffer(): ?string
     {
         $this->buffer = \ltrim($this->buffer, "\r\n");
+
+        if (!$this->headersStarted && $this->buffer !== '') {
+            $this->headersStarted = true;
+            events()->responseHeaderStart($this->request, $this->stream);
+        }
 
         if ($headersSize = \strpos($this->buffer, "\r\n\r\n")) {
             $headers = \substr($this->buffer, 0, $headersSize + 2);

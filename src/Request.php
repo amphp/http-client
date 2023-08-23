@@ -6,6 +6,8 @@ use Amp\ForbidCloning;
 use Amp\ForbidSerialization;
 use Amp\Future;
 use Amp\Http\Client\Connection\UpgradedSocket;
+use Amp\Http\Client\Internal\EventInvoker;
+use Amp\Http\Client\Internal\Phase;
 use Amp\Http\HttpMessage;
 use Amp\Http\HttpRequest;
 use League\Uri;
@@ -56,7 +58,7 @@ final class Request extends HttpRequest
     /** @var array<non-empty-string, mixed> */
     private array $attributes = [];
 
-    /** @var list<EventListener> */
+    /** @var EventListener[] */
     private array $eventListeners = [];
 
     /**
@@ -71,7 +73,7 @@ final class Request extends HttpRequest
 
     public function addEventListener(EventListener $eventListener): void
     {
-        $this->eventListeners[] = $eventListener;
+        $this->eventListeners[\spl_object_id($eventListener)] = $eventListener;
     }
 
     /**
@@ -79,7 +81,15 @@ final class Request extends HttpRequest
      */
     public function getEventListeners(): array
     {
-        return $this->eventListeners;
+        return \array_values($this->eventListeners);
+    }
+
+    /**
+     * @return bool Whether processing the request has already been started.
+     */
+    public function isStarted(): bool
+    {
+        return EventInvoker::getPhase($this) !== Phase::Unprocessed;
     }
 
     /**

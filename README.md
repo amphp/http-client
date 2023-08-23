@@ -262,7 +262,7 @@ See [`amphp/http-client-cookies`](https://github.com/amphp/http-client-cookies).
 
 ### Logging
 
-The `LogHttpArchive` interceptor allows logging all requests / responses including detailed timing information to an [HTTP archive (HAR)](https://en.wikipedia.org/wiki/HAR_%28file_format%29).
+The `LogHttpArchive` event listener allows logging all requests / responses including detailed timing information to an [HTTP archive (HAR)](https://en.wikipedia.org/wiki/HAR_%28file_format%29).
 
 These log files can then be imported into the browsers developer tools or online tools like [HTTP Archive Viewer](http://www.softwareishard.com/har/viewer/) or [Google's HAR Analyzer](https://toolbox.googleapps.com/apps/har_analyzer/).
 
@@ -271,10 +271,10 @@ These log files can then be imported into the browsers developer tools or online
 
 ```php
 use Amp\Http\Client\HttpClientBuilder;
-use Amp\Http\Client\Interceptor\LogHttpArchive;
+use Amp\Http\Client\EventListener\LogHttpArchive;
 
 $httpClient = (new HttpClientBuilder)
-    ->intercept(new LogHttpArchive('/tmp/http-client.har'))
+    ->listen(new LogHttpArchive('/tmp/http-client.har'))
     ->build();
 
 $httpClient->request(...);

@@ -174,7 +174,7 @@ class TimeoutTest extends AsyncTestCase
 
             $request = new Request($uri);
 
-            $client = new InterceptedHttpClient(new PooledHttpClient, new SetRequestTimeout(10, 10, 1));
+            $client = new InterceptedHttpClient(new PooledHttpClient, new SetRequestTimeout(10, 10, 1), []);
             $response = $client->request($request, new NullCancellation);
 
             $this->expectException(TimeoutException::class);
@@ -203,7 +203,7 @@ class TimeoutTest extends AsyncTestCase
             });
 
         $client = new PooledHttpClient(new UnlimitedConnectionPool(new DefaultConnectionFactory($connector)));
-        $client = new InterceptedHttpClient($client, new SetRequestTimeout(0.001));
+        $client = new InterceptedHttpClient($client, new SetRequestTimeout(0.001), []);
 
         $this->expectException(TimeoutException::class);
 
@@ -239,7 +239,7 @@ class TimeoutTest extends AsyncTestCase
             $request->setTlsHandshakeTimeout(0.1);
 
             $client = new PooledHttpClient();
-            $client = new InterceptedHttpClient($client, new SetRequestTimeout(10, 0.1));
+            $client = new InterceptedHttpClient($client, new SetRequestTimeout(10, 0.1), []);
 
             try {
                 $client->request($request, new NullCancellation);

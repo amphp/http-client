@@ -33,6 +33,7 @@ use Amp\Socket\TlsInfo;
 use Amp\TimeoutCancellation;
 use Revolt\EventLoop;
 use function Amp\async;
+use function Amp\Http\Client\events;
 use function Amp\Http\Client\Internal\normalizeRequestPathWithQuery;
 use function Amp\now;
 
@@ -223,25 +224,13 @@ final class Http1Connection implements Connection
         $id = $combinedCancellation->subscribe($this->close(...));
 
         try {
-            foreach ($request->getEventListeners() as $eventListener) {
-                $eventListener->startSendingRequest($request, $stream);
-            }
-
-            $this->writeRequest($request, $protocolVersion, $combinedCancellation);
-
-            foreach ($request->getEventListeners() as $eventListener) {
-                $eventListener->completeSendingRequest($request, $stream);
-            }
+            $this->writeRequest($request, $stream, $protocolVersion, $combinedCancellation);
 
             return $this->readResponse($request, $cancellation, $combinedCancellation, $stream);
-        } catch (\Throwable $e) {
-            foreach ($request->getEventListeners() as $eventListener) {
-                $eventListener->abort($request, $e);
-            }
-
+        } catch (\Throwable $exception) {
             $this->socket?->close();
 
-            throw $e;
+            throw $exception;
         } finally {
             $combinedCancellation->unsubscribe($id);
             $cancellation->throwIfRequested();
@@ -276,7 +265,7 @@ final class Http1Connection implements Connection
             $trailers = $headers;
         };
 
-        $parser = new Http1Parser($request, $bodyCallback, $trailersCallback);
+        $parser = new Http1Parser($request, $stream, $bodyCallback, $trailersCallback);
 
         $start = now();
         $timeout = $request->getInactivityTimeout();
@@ -311,10 +300,6 @@ final class Http1Connection implements Connection
                         throw new HttpException('Switching protocols response missing "Upgrade" header');
                     }
 
-                    foreach ($request->getEventListeners() as $eventListener) {
-                        $eventListener->completeReceivingResponse($request, $stream);
-                    }
-
                     $trailersDeferred->complete($trailers);
 
                     return $this->handleUpgradeResponse($request, $response, $parser->getBuffer());
@@ -328,19 +313,11 @@ final class Http1Connection implements Connection
                     }
 
                     $chunk = $parser->getBuffer();
-                    $parser = new Http1Parser($request, $bodyCallback, $trailersCallback);
+                    $parser = new Http1Parser($request, $stream, $bodyCallback, $trailersCallback);
                     goto parseChunk;
                 }
 
-                foreach ($request->getEventListeners() as $eventListener) {
-                    $eventListener->startReceivingResponse($request, $stream);
-                }
-
                 if ($status < 300 && $request->getMethod() === 'CONNECT') {
-                    foreach ($request->getEventListeners() as $eventListener) {
-                        $eventListener->completeReceivingResponse($request, $stream);
-                    }
-
                     $trailersDeferred->complete($trailers);
 
                     return $this->handleUpgradeResponse($request, $response, $parser->getBuffer());
@@ -436,23 +413,13 @@ final class Http1Connection implements Connection
 
                         $this->busy = false;
 
-                        foreach ($request->getEventListeners() as $eventListener) {
-                            $eventListener->completeReceivingResponse($request, $stream);
-                        }
-
                         $bodyEmitter->complete();
                         $trailersDeferred->complete($trailers);
                     } catch (\Throwable $e) {
                         $this->close();
 
-                        try {
-                            foreach ($request->getEventListeners() as $eventListener) {
-                                $eventListener->abort($request, $e);
-                            }
-                        } finally {
-                            $bodyEmitter->error($e);
-                            $trailersDeferred->error($e);
-                        }
+                        $bodyEmitter->error($e);
+                        $trailersDeferred->error($e);
                     } finally {
                         $bodyCancellation->unsubscribe($closeId);
                     }
@@ -578,18 +545,20 @@ final class Http1Connection implements Connection
 
     private function writeRequest(
         Request $request,
+        Stream $stream,
         string $protocolVersion,
         Cancellation $cancellation
     ): void {
         try {
-            $rawHeaders = $this->generateRawHeader($request, $protocolVersion);
-
             $socket = $this->socket;
             if ($socket === null) {
                 throw new UnprocessedRequestException(new SocketException('Socket closed before request started'));
             }
 
+            events()->requestHeaderStart($request, $stream);
+            $rawHeaders = $this->generateRawHeader($request, $protocolVersion);
             $socket->write($rawHeaders);
+            events()->requestHeaderEnd($request, $stream);
 
             if ($request->getMethod() === 'CONNECT') {
                 return;
@@ -606,9 +575,10 @@ final class Http1Connection implements Connection
                 throw new InvalidRequestException($request, "Can't send chunked bodies over HTTP/1.0");
             }
 
+            events()->requestBodyStart($request, $stream);
+
             // We always buffer the last chunk to make sure we don't write $contentLength bytes if the body is too long.
             $buffer = "";
-
             $body = $request->getBody()->getContent();
             while (null !== $chunk = $body->read($cancellation)) {
                 if ($chunk === "") {
@@ -629,22 +599,24 @@ final class Http1Connection implements Connection
                 }
 
                 $socket->write($buffer);
+                events()->requestBodyProgress($request, $stream);
                 $buffer = $chunk;
             }
 
             $cancellation->throwIfRequested();
 
             // Flush last buffered chunk.
-            $socket->write($buffer);
+            $socket->write($chunking ? $buffer . "0\r\n\r\n" : $buffer);
+            events()->requestBodyProgress($request, $stream);
 
-            if ($chunking) {
-                $socket->write("0\r\n\r\n");
-            } elseif ($remainingBytes !== null && $remainingBytes > 0) {
+            if (!$chunking && $remainingBytes !== null && $remainingBytes > 0) {
                 throw new InvalidRequestException(
                     $request,
                     "Body contained fewer bytes than specified in Content-Length, aborting request"
                 );
             }
+
+            events()->requestBodyEnd($request, $stream);
         } catch (StreamException $exception) {
             throw new SocketException('Socket disconnected prior to response completion', 0, $exception);
         }

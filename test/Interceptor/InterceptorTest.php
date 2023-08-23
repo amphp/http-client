@@ -6,6 +6,7 @@ namespace Amp\Http\Client\Interceptor;
 use Amp\Http\Client\ApplicationInterceptor;
 use Amp\Http\Client\Connection\DefaultConnectionFactory;
 use Amp\Http\Client\Connection\UnlimitedConnectionPool;
+use Amp\Http\Client\EventListener;
 use Amp\Http\Client\HttpClient;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\NetworkInterceptor;
@@ -44,6 +45,12 @@ abstract class InterceptorTest extends AsyncTestCase
     final public function getServerAddress(): SocketAddress
     {
         return $this->serverSocket->getAddress();
+    }
+
+    final protected function givenEventListener(EventListener $eventListener): void
+    {
+        $this->builder = $this->builder->listen($eventListener);
+        $this->client = $this->builder->build();
     }
 
     final protected function givenApplicationInterceptor(ApplicationInterceptor $interceptor): void
