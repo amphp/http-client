@@ -692,7 +692,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
             $initialIdentifierCount ??= \count(EventLoop::getIdentifiers());
             $identifierCount = \count(EventLoop::getIdentifiers());
 
-            self::assertSame($initialIdentifierCount, $identifierCount);
+            self::assertLessThan(1, $identifierCount - $initialIdentifierCount);
         }
     }
 

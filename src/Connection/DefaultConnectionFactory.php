@@ -103,16 +103,16 @@ final class DefaultConnectionFactory implements ConnectionFactory
                 $cancellation
             );
         } catch (Socket\ConnectException $e) {
-            throw new SocketException(\sprintf("Connection to '%s' failed", $authority), 0, $e);
+            throw new UnprocessedRequestException(new SocketException(\sprintf("Connection to '%s' failed", $authority), 0, $e));
         } catch (CancelledException) {
             // In case of a user cancellation request, throw the expected exception
             $cancellation->throwIfRequested();
 
             // Otherwise we ran into a timeout of our TimeoutCancellation
-            throw new SocketException(\sprintf(
+            throw new UnprocessedRequestException(new SocketException(\sprintf(
                 "Connection to '%s' timed out, took longer than " . $request->getTcpConnectTimeout() . ' s',
                 $authority
-            ));
+            )));
         }
 
         if ($isHttps) {
@@ -125,7 +125,7 @@ final class DefaultConnectionFactory implements ConnectionFactory
                 if ($tlsState !== Socket\TlsState::Disabled) {
                     $socket->close();
 
-                    throw new SocketException('Failed to setup TLS connection, connection was in an unexpected TLS state (' . $tlsState->name . ')');
+                    throw new UnprocessedRequestException(new SocketException('Failed to setup TLS connection, connection was in an unexpected TLS state (' . $tlsState->name . ')'));
                 }
 
                 $socket->setupTls(new CompositeCancellation(
@@ -135,11 +135,11 @@ final class DefaultConnectionFactory implements ConnectionFactory
             } catch (StreamException $exception) {
                 $socket->close();
 
-                throw new SocketException(\sprintf(
+                throw new UnprocessedRequestException(new SocketException(\sprintf(
                     "Connection to '%s' @ '%s' closed during TLS handshake",
                     $authority,
                     $socket->getRemoteAddress()->toString()
-                ), 0, $exception);
+                ), 0, $exception));
             } catch (CancelledException) {
                 $socket->close();
 
@@ -147,22 +147,22 @@ final class DefaultConnectionFactory implements ConnectionFactory
                 $cancellation->throwIfRequested();
 
                 // Otherwise we ran into a timeout of our TimeoutCancellation
-                throw new TimeoutException(\sprintf(
+                throw new UnprocessedRequestException(new TimeoutException(\sprintf(
                     "TLS handshake with '%s' @ '%s' timed out, took longer than " . $request->getTlsHandshakeTimeout() . ' s',
                     $authority,
                     $socket->getRemoteAddress()->toString()
-                ));
+                )));
             }
 
             $tlsInfo = $socket->getTlsInfo();
             if ($tlsInfo === null) {
                 $socket->close();
 
-                throw new SocketException(\sprintf(
+                throw new UnprocessedRequestException(new SocketException(\sprintf(
                     "Socket closed after TLS handshake with '%s' @ '%s'",
                     $authority,
                     $socket->getRemoteAddress()->toString()
-                ));
+                )));
             }
 
             events()->tlsHandshakeEnd($request, $tlsInfo);
@@ -190,12 +190,12 @@ final class DefaultConnectionFactory implements ConnectionFactory
         if (!\array_intersect($request->getProtocolVersions(), ['1.0', '1.1'])) {
             $socket->close();
 
-            throw new SocketException(\sprintf(
+            throw new UnprocessedRequestException(new SocketException(\sprintf(
                 "None of the requested protocol versions (%s) are supported by '%s' @ '%s'",
                 \implode(', ', $protocolVersions),
                 $authority,
                 $socket->getRemoteAddress()->toString()
-            ));
+            )));
         }
 
         $http1Connection = new Http1Connection($socket);

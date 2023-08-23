@@ -133,7 +133,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         $this->initializeStarted = true;
 
         if ($this->socket->isClosed()) {
-            throw new SocketException('The socket closed before the connection could be initialized');
+            throw new UnprocessedRequestException(new SocketException('The socket closed before the connection could be initialized'));
         }
 
         $this->settings = new DeferredFuture;
@@ -145,7 +145,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         try {
             $future->await($cancellation);
         } catch (CancelledException $exception) {
-            $exception = new SocketException('Connecting cancelled', 0, $exception);
+            $exception = new UnprocessedRequestException(new SocketException('Connecting cancelled', 0, $exception));
             $this->shutdown($exception);
             throw $exception;
         }
@@ -717,7 +717,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         $exception = new SocketException($exception->getMessage(), $code, $exception);
 
         if ($code === Http2Parser::REFUSED_STREAM) {
-            $exception = new UnprocessedRequestException($exception); // TODO
+            $exception = new UnprocessedRequestException($exception);
         }
 
         if (isset($this->streams[$id])) {
@@ -898,18 +898,18 @@ final class Http2ConnectionProcessor implements Http2Processor
     {
         try {
             if ($this->shutdown !== null) {
-                throw new SocketException(\sprintf(
+                throw new UnprocessedRequestException(new SocketException(\sprintf(
                     "Connection from '%s' to '%s' has already been shut down",
                     $this->socket->getLocalAddress()->toString(),
                     $this->socket->getRemoteAddress()->toString()
-                ));
+                )));
             }
 
             if ($this->hasTimeout && !$this->ping()->await()) {
-                throw new SocketException(\sprintf(
+                throw new UnprocessedRequestException(new SocketException(\sprintf(
                     "Socket to '%s' missed responding to PINGs",
                     $this->socket->getRemoteAddress()->toString()
-                ));
+                )));
             }
 
             RequestNormalizer::normalizeRequest($request);
@@ -928,10 +928,10 @@ final class Http2ConnectionProcessor implements Http2Processor
             $request->setProtocolVersions(['2']);
 
             if ($this->socket->isClosed()) {
-                throw new SocketException(\sprintf(
+                throw new UnprocessedRequestException(new SocketException(\sprintf(
                     "Socket to '%s' closed before the request could be sent",
                     $this->socket->getRemoteAddress()->toString()
-                ));
+                )));
             }
 
             $body = $request->getBody()->getContent();
@@ -1015,17 +1015,13 @@ final class Http2ConnectionProcessor implements Http2Processor
                     }
 
                     $writeFuture->await($cancellation);
-
-                    if ($chunk === null) {
-                        $http2stream->requestBodyCompletion->complete(); // TODO Move after loop?
-                    }
-
                     $writeFuture = $this->writeData($http2stream, $buffer);
                     events()->requestBodyProgress($request, $stream);
                     $buffer = $chunk;
                 } while ($buffer !== null);
 
                 $writeFuture->await($cancellation);
+                $http2stream->requestBodyCompletion->complete();
             }
 
             events()->requestBodyEnd($request, $stream);
@@ -1404,7 +1400,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         if ($this->settings !== null) {
             $message = "Connection closed before HTTP/2 settings could be received";
-            $this->settings->error(new SocketException($message, 0, $reason));
+            $this->settings->error(new UnprocessedRequestException(new SocketException($message, 0, $reason)));
             $this->settings = null;
         }
 
@@ -1413,7 +1409,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             if ($lastId !== null && $id > $lastId) {
                 $exception = $exception instanceof UnprocessedRequestException
                     ? $exception
-                    : new UnprocessedRequestException($reason); // TODO
+                    : new UnprocessedRequestException($reason);
             }
 
             $this->releaseStream($id, $exception);

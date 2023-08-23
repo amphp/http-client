@@ -81,7 +81,7 @@ final class EventInvoker implements EventListener
     public function connectStart(Request $request): void
     {
         $previousPhase = self::getPhase($request);
-        if ($previousPhase !== Phase::Blocked) {
+        if (!\in_array($previousPhase, [Phase::Blocked, Phase::Connect, Phase::TlsHandshake], true)) {
             throw new \Error('Invalid request phase transition from ' . $previousPhase->name . ' to Connect');
         }
 
