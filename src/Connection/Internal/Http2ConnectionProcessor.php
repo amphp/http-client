@@ -133,7 +133,9 @@ final class Http2ConnectionProcessor implements Http2Processor
         $this->initializeStarted = true;
 
         if ($this->socket->isClosed()) {
-            throw new UnprocessedRequestException(new SocketException('The socket closed before the connection could be initialized'));
+            throw new UnprocessedRequestException(
+                new SocketException('The socket closed before the connection could be initialized')
+            );
         }
 
         $this->settings = new DeferredFuture;
@@ -145,9 +147,9 @@ final class Http2ConnectionProcessor implements Http2Processor
         try {
             $future->await($cancellation);
         } catch (CancelledException $exception) {
-            $exception = new UnprocessedRequestException(new SocketException('Connecting cancelled', 0, $exception));
+            $exception = new SocketException('Connecting cancelled', 0, $exception);
             $this->shutdown($exception);
-            throw $exception;
+            throw new UnprocessedRequestException($exception);
         }
     }
 
@@ -906,10 +908,12 @@ final class Http2ConnectionProcessor implements Http2Processor
             }
 
             if ($this->hasTimeout && !$this->ping()->await()) {
-                throw new UnprocessedRequestException(new SocketException(\sprintf(
-                    "Socket to '%s' missed responding to PINGs",
-                    $this->socket->getRemoteAddress()->toString()
-                )));
+                throw new UnprocessedRequestException(
+                    new SocketException(\sprintf(
+                        "Socket to '%s' missed responding to PINGs",
+                        $this->socket->getRemoteAddress()->toString()
+                    ))
+                );
             }
 
             RequestNormalizer::normalizeRequest($request);
@@ -928,10 +932,12 @@ final class Http2ConnectionProcessor implements Http2Processor
             $request->setProtocolVersions(['2']);
 
             if ($this->socket->isClosed()) {
-                throw new UnprocessedRequestException(new SocketException(\sprintf(
-                    "Socket to '%s' closed before the request could be sent",
-                    $this->socket->getRemoteAddress()->toString()
-                )));
+                throw new UnprocessedRequestException(
+                    new SocketException(\sprintf(
+                        "Socket to '%s' closed before the request could be sent",
+                        $this->socket->getRemoteAddress()->toString()
+                    ))
+                );
             }
 
             $body = $request->getBody()->getContent();

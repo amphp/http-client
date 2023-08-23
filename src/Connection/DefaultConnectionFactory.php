@@ -109,10 +109,9 @@ final class DefaultConnectionFactory implements ConnectionFactory
             $cancellation->throwIfRequested();
 
             // Otherwise we ran into a timeout of our TimeoutCancellation
-            throw new UnprocessedRequestException(new SocketException(\sprintf(
-                "Connection to '%s' timed out, took longer than " . $request->getTcpConnectTimeout() . ' s',
-                $authority
-            )));
+            throw new UnprocessedRequestException(
+                new TimeoutException(\sprintf("Connection to '%s' timed out, took longer than " . $request->getTcpConnectTimeout() . ' s', $authority))
+            );
         }
 
         if ($isHttps) {
@@ -125,7 +124,9 @@ final class DefaultConnectionFactory implements ConnectionFactory
                 if ($tlsState !== Socket\TlsState::Disabled) {
                     $socket->close();
 
-                    throw new UnprocessedRequestException(new SocketException('Failed to setup TLS connection, connection was in an unexpected TLS state (' . $tlsState->name . ')'));
+                    throw new UnprocessedRequestException(
+                        new SocketException('Failed to setup TLS connection, connection was in an unexpected TLS state (' . $tlsState->name . ')')
+                    );
                 }
 
                 $socket->setupTls(new CompositeCancellation(
@@ -158,11 +159,13 @@ final class DefaultConnectionFactory implements ConnectionFactory
             if ($tlsInfo === null) {
                 $socket->close();
 
-                throw new UnprocessedRequestException(new SocketException(\sprintf(
-                    "Socket closed after TLS handshake with '%s' @ '%s'",
-                    $authority,
-                    $socket->getRemoteAddress()->toString()
-                )));
+                throw new UnprocessedRequestException(
+                    new SocketException(\sprintf(
+                        "Socket closed after TLS handshake with '%s' @ '%s'",
+                        $authority,
+                        $socket->getRemoteAddress()->toString()
+                    ))
+                );
             }
 
             events()->tlsHandshakeEnd($request, $tlsInfo);
@@ -190,12 +193,12 @@ final class DefaultConnectionFactory implements ConnectionFactory
         if (!\array_intersect($request->getProtocolVersions(), ['1.0', '1.1'])) {
             $socket->close();
 
-            throw new UnprocessedRequestException(new SocketException(\sprintf(
+            throw new InvalidRequestException($request, \sprintf(
                 "None of the requested protocol versions (%s) are supported by '%s' @ '%s'",
                 \implode(', ', $protocolVersions),
                 $authority,
                 $socket->getRemoteAddress()->toString()
-            )));
+            ));
         }
 
         $http1Connection = new Http1Connection($socket);
