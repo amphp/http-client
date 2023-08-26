@@ -10,6 +10,8 @@ use Amp\Cancellation;
 use Amp\CancelledException;
 use Amp\DeferredCancellation;
 use Amp\Future;
+use Amp\Http\Client\Connection\DefaultConnectionFactory;
+use Amp\Http\Client\Connection\UnlimitedConnectionPool;
 use Amp\Http\Client\Connection\UnprocessedRequestException;
 use Amp\Http\Client\Interceptor\DecompressResponse;
 use Amp\Http\Client\Interceptor\ModifyRequest;
@@ -20,14 +22,21 @@ use Amp\Http\Cookie\ResponseCookie;
 use Amp\Http\Http1\Rfc7230;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Pipeline\Pipeline;
-use Amp\Socket;
+use Amp\Socket\ConnectContext;
+use Amp\Socket\InternetAddress;
+use Amp\Socket\ServerSocket;
+use Amp\Socket\Socket;
+use Amp\Socket\SocketAddress;
+use Amp\Socket\SocketConnector;
 use Revolt\EventLoop;
 use function Amp\async;
 use function Amp\delay;
+use function Amp\Socket\connect;
+use function Amp\Socket\listen;
 
 class ClientHttpBinIntegrationTest extends AsyncTestCase
 {
-    private Socket\ServerSocket $socket;
+    private ServerSocket $socket;
 
     private HttpClient $client;
 
@@ -170,7 +179,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testHeaderCase(): void
     {
-        $this->responseCallback = static function (Socket\Socket $socket): void {
+        $this->responseCallback = static function (Socket $socket): void {
             $buffer = '';
 
             while (null !== $chunk = $socket->read()) {
@@ -510,6 +519,33 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->executeRequest($request);
     }
 
+    public function testConnectShortCircuitIfOtherConnectionBecomesAvailable(): void
+    {
+        $this->setTimeout(1);
+        $this->givenSlowRawServerResponse(0.5, "HTTP/1.1 204 No content\r\n\r\n", "HTTP/1.1 204 No content\r\n\r\n");
+
+        $this->builder = $this->builder->usingPool(new UnlimitedConnectionPool(new DefaultConnectionFactory(new class implements SocketConnector {
+            public function connect(SocketAddress|string $uri, ?ConnectContext $context = null, ?Cancellation $cancellation = null): Socket
+            {
+                static $i = 0;
+
+                if (++$i === 2) {
+                    delay(2);
+                }
+
+                return connect($uri, $context, $cancellation);
+            }
+        })));
+
+        $this->client = $this->builder->build();
+
+        $async1 = async($this->executeRequest(...), $this->createRequest());
+        $async2 = async($this->executeRequest(...), $this->createRequest());
+
+        $async1->await();
+        $async2->await();
+    }
+
     public function testRequestCancellation(): void
     {
         $this->givenSlowRawServerResponse(
@@ -718,7 +754,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->builder = (new HttpClientBuilder)->retry(0);
         $this->client = $this->builder->build();
 
-        $this->socket = Socket\listen(new Socket\InternetAddress('127.0.0.1', 0));
+        $this->socket = listen(new InternetAddress('127.0.0.1', 0));
         $this->socket->unreference();
 
         $this->rawHandler = EventLoop::onReadable($this->socket->getResource(), function () {
@@ -758,11 +794,11 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     private function givenSlowRawServerResponse(float $delay, string ...$chunks): void
     {
-        $this->responseCallback = static function (Socket\Socket $socket) use ($delay, $chunks): void {
+        $this->responseCallback = static function (Socket $socket) use ($delay, $chunks): void {
             try {
                 foreach ($chunks as $chunk) {
-                    $socket->write($chunk);
                     delay($delay);
+                    $socket->write($chunk);
                 }
             } catch (StreamException) {
                 // ignore
