@@ -506,6 +506,7 @@ final class Request extends HttpRequest
 
     private function createUriFromString(string $uri): UriInterface
     {
+        /** @psalm-suppress DeprecatedMethod */
         return Uri\Http::createFromString($uri);
     }
 }

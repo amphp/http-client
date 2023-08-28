@@ -589,6 +589,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         }
 
         try {
+            /** @psalm-suppress DeprecatedMethod */
             $uri = Uri\Http::createFromComponents([
                 "scheme" => $scheme,
                 "host" => $host,

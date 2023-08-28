@@ -9,6 +9,7 @@ final class ResolveBaseUri extends ModifyRequest
 {
     public function __construct(string $baseUri)
     {
+        /** @psalm-suppress DeprecatedMethod */
         parent::__construct(
             fn (Request $request) => $request->setUri(Http::createFromBaseUri($request->getUri(), $baseUri))
         );
