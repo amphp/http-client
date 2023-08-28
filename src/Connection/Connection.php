@@ -28,4 +28,14 @@ interface Connection extends Closable
     public function getRemoteAddress(): SocketAddress;
 
     public function getTlsInfo(): ?TlsInfo;
+
+    /**
+     * @return float|null Returns the TLS handshake duration if applicable in seconds.
+     */
+    public function getTlsHandshakeDuration(): ?float;
+
+    /**
+     * @return float Returns the total connect duration in seconds, including the TLS handshake.
+     */
+    public function getConnectDuration(): float;
 }

@@ -18,7 +18,6 @@ use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\HttpMessage;
 use Amp\Socket\InternetAddress;
-use Amp\Socket\TlsInfo;
 use Amp\Sync\LocalMutex;
 use Revolt\EventLoop;
 use function Amp\File\filesystem;
@@ -29,6 +28,18 @@ final class LogHttpArchive implements EventListener
 {
     use ForbidCloning;
     use ForbidSerialization;
+
+    /**
+     * @param non-empty-string $attributeName
+     */
+    private static function getDuration(Request $request, string $attributeName): float
+    {
+        if (!$request->hasAttribute($attributeName)) {
+            return -1;
+        }
+
+        return $request->getAttribute($attributeName) ?? -1;
+    }
 
     /**
      * @param non-empty-string $start
@@ -69,6 +80,40 @@ final class LogHttpArchive implements EventListener
     {
         $request = $response->getRequest();
 
+        $connectDuration = self::getDuration(
+            $request,
+            HarAttributes::TIME_CONNECT
+        );
+
+        $tlsHandshakeDuration = self::getDuration(
+            $request,
+            HarAttributes::TIME_SSL
+        );
+
+        $sendDuration = self::getTime(
+            $request,
+            HarAttributes::TIME_SEND,
+            HarAttributes::TIME_WAIT
+        );
+
+        $waitDuration = self::getTime(
+            $request,
+            HarAttributes::TIME_WAIT,
+            HarAttributes::TIME_RECEIVE
+        );
+
+        $receiveDuration = self::getTime(
+            $request,
+            HarAttributes::TIME_RECEIVE,
+            HarAttributes::TIME_COMPLETE
+        );
+
+        $blockedDuration = self::getTime(
+            $request,
+            HarAttributes::TIME_START,
+            HarAttributes::TIME_COMPLETE
+        ) - $connectDuration - $sendDuration - $receiveDuration;
+
         $data = [
             'startedDateTime' => $request->getAttribute(HarAttributes::STARTED_DATE_TIME)->format(\DateTimeInterface::RFC3339_EXTENDED),
             'time' => self::getTime($request, HarAttributes::TIME_START, HarAttributes::TIME_COMPLETE),
@@ -98,38 +143,13 @@ final class LogHttpArchive implements EventListener
             ],
             'cache' => [],
             'timings' => [
-                'blocked' => self::getTime(
-                    $request,
-                    HarAttributes::TIME_START,
-                    HarAttributes::TIME_CONNECT,
-                    HarAttributes::TIME_SEND
-                ),
+                'blocked' => $blockedDuration,
                 'dns' => -1,
-                'connect' => self::getTime(
-                    $request,
-                    HarAttributes::TIME_CONNECT,
-                    HarAttributes::TIME_SEND
-                ),
-                'ssl' => self::getTime(
-                    $request,
-                    HarAttributes::TIME_SSL,
-                    HarAttributes::TIME_SEND
-                ),
-                'send' => self::getTime(
-                    $request,
-                    HarAttributes::TIME_SEND,
-                    HarAttributes::TIME_WAIT
-                ),
-                'wait' => self::getTime(
-                    $request,
-                    HarAttributes::TIME_WAIT,
-                    HarAttributes::TIME_RECEIVE
-                ),
-                'receive' => self::getTime(
-                    $request,
-                    HarAttributes::TIME_RECEIVE,
-                    HarAttributes::TIME_COMPLETE
-                ),
+                'connect' => $connectDuration,
+                'ssl' => $tlsHandshakeDuration,
+                'send' => $sendDuration,
+                'wait' => $waitDuration,
+                'receive' => $receiveDuration,
             ],
         ];
 
@@ -226,9 +246,16 @@ final class LogHttpArchive implements EventListener
         $this->addTiming(HarAttributes::TIME_START, $request);
     }
 
-    public function connectStart(Request $request): void
+    public function connectionAcquired(Request $request, Connection $connection): void
     {
-        $this->addTiming(HarAttributes::TIME_CONNECT, $request);
+        $request->setAttribute(HarAttributes::TIME_CONNECT, (int) ($connection->getConnectDuration() * 1000));
+
+        $tlsHandshakeDuration = $connection->getTlsHandshakeDuration();
+        if ($tlsHandshakeDuration !== null) {
+            $request->setAttribute(HarAttributes::TIME_SSL, (int) ($tlsHandshakeDuration * 1000));
+        } else {
+            $request->setAttribute(HarAttributes::TIME_SSL, -1);
+        }
     }
 
     public function requestHeaderStart(Request $request, Stream $stream): void
@@ -276,21 +303,6 @@ final class LogHttpArchive implements EventListener
     public function requestFailed(Request $request, HttpException $exception): void
     {
         // TODO: Log error to archive
-    }
-
-    public function connectEnd(Request $request, Connection $connection): void
-    {
-        // nothing to do
-    }
-
-    public function tlsHandshakeStart(Request $request): void
-    {
-        $this->addTiming(HarAttributes::TIME_SSL, $request);
-    }
-
-    public function tlsHandshakeEnd(Request $request, TlsInfo $tlsInfo): void
-    {
-        // nothing to do
     }
 
     public function requestHeaderEnd(Request $request, Stream $stream): void

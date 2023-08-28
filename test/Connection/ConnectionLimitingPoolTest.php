@@ -74,8 +74,8 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         $this->setTimeout(0.5);
 
         Future\await([
-            async(fn () => $client->request($request)),
-            async(fn () => $client->request($request)),
+            async(fn () => $client->request(new Request('http://localhost'))),
+            async(fn () => $client->request(new Request('http://localhost'))),
         ]);
     }
 
@@ -102,8 +102,8 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         $this->setTimeout(0.75);
 
         Future\await([
-            async(fn () => $client->request($request)),
-            async(fn () => $client->request($request)),
+            async(fn () => $client->request(new Request('http://localhost'))),
+            async(fn () => $client->request(new Request('http://localhost'))),
         ]);
     }
 
@@ -128,14 +128,14 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         $numRequests = 66;
         $futures = [];
         for ($i = 0; $i < $numRequests; $i++) {
-            $futures[] = async(fn () => $client->request($request));
+            $futures[] = async(fn () => $client->request(new Request('http://localhost')));
         }
         Future\await($futures);
 
         // all requests have completed and all connections are now idle. run through the connections again.
         $futures = [];
         for ($i = 0; $i < $numRequests; $i++) {
-            $futures[] = async(fn () => $client->request($request));
+            $futures[] = async(fn () => $client->request(new Request('http://localhost')));
         }
         $responses = Future\await($futures);
         foreach ($responses as $response) {

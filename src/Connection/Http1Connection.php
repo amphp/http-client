@@ -80,8 +80,12 @@ final class Http1Connection implements Connection
 
     private ?Future $idleRead = null;
 
-    public function __construct(Socket $socket, float $timeoutGracePeriod = 2)
-    {
+    public function __construct(
+        Socket $socket,
+        private readonly float $connectDuration,
+        private readonly ?float $tlsHandshakeDuration,
+        float $timeoutGracePeriod = 2
+    ) {
         $this->socket = $socket;
         $this->localAddress = $socket->getLocalAddress();
         $this->remoteAddress = $socket->getRemoteAddress();
@@ -135,6 +139,11 @@ final class Http1Connection implements Connection
     public function getTlsInfo(): ?TlsInfo
     {
         return $this->tlsInfo;
+    }
+
+    public function getTlsHandshakeDuration(): ?float
+    {
+        return $this->tlsHandshakeDuration;
     }
 
     public function getProtocolVersions(): array
@@ -668,5 +677,10 @@ final class Http1Connection implements Connection
 
             return $chunk;
         });
+    }
+
+    public function getConnectDuration(): float
+    {
+        return $this->connectDuration;
     }
 }

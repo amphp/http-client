@@ -14,7 +14,7 @@ use Amp\Socket;
 use Amp\Socket\ClientTlsContext;
 use Amp\Socket\ConnectContext;
 use Amp\TimeoutCancellation;
-use function Amp\Http\Client\events;
+use function Amp\now;
 
 final class DefaultConnectionFactory implements ConnectionFactory
 {
@@ -30,7 +30,7 @@ final class DefaultConnectionFactory implements ConnectionFactory
 
     public function create(Request $request, Cancellation $cancellation): Connection
     {
-        events()->connectStart($request);
+        $connectStart = now();
 
         $connector = $this->connector ?? Socket\socketConnector();
         $connectContext = $this->connectContext ?? new ConnectContext;
@@ -114,8 +114,10 @@ final class DefaultConnectionFactory implements ConnectionFactory
             );
         }
 
+        $tlsHandshakeDuration = null;
+
         if ($isHttps) {
-            events()->tlsHandshakeStart($request);
+            $tlsHandshakeStart = now();
 
             try {
                 $tlsState = $socket->getTlsState();
@@ -168,24 +170,23 @@ final class DefaultConnectionFactory implements ConnectionFactory
                 );
             }
 
-            events()->tlsHandshakeEnd($request, $tlsInfo);
+            $tlsHandshakeDuration = now() - $tlsHandshakeStart;
+            $connectDuration = now() - $connectStart;
 
             if ($tlsInfo->getApplicationLayerProtocol() === 'h2') {
-                $http2Connection = new Http2Connection($socket);
+                $http2Connection = new Http2Connection($socket, $connectDuration, $tlsHandshakeDuration);
                 $http2Connection->initialize($cancellation);
-
-                events()->connectEnd($request, $http2Connection);
 
                 return $http2Connection;
             }
         }
 
+        $connectDuration = now() - $connectStart;
+
         // Treat the presence of only HTTP/2 as prior knowledge, see https://http2.github.io/http2-spec/#known-http
         if ($request->getProtocolVersions() === ['2']) {
-            $http2Connection = new Http2Connection($socket);
+            $http2Connection = new Http2Connection($socket, $connectDuration, $tlsHandshakeDuration);
             $http2Connection->initialize($cancellation);
-
-            events()->connectEnd($request, $http2Connection);
 
             return $http2Connection;
         }
@@ -201,10 +202,6 @@ final class DefaultConnectionFactory implements ConnectionFactory
             ));
         }
 
-        $http1Connection = new Http1Connection($socket);
-
-        events()->connectEnd($request, $http1Connection);
-
-        return $http1Connection;
+        return new Http1Connection($socket, $connectDuration, $tlsHandshakeDuration);
     }
 }

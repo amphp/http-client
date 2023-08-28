@@ -4,7 +4,6 @@ namespace Amp\Http\Client;
 
 use Amp\Http\Client\Connection\Connection;
 use Amp\Http\Client\Connection\Stream;
-use Amp\Socket\TlsInfo;
 
 /**
  * Allows listening to more fine granular events than interceptors are able to achieve.
@@ -50,24 +49,9 @@ interface EventListener
     public function networkInterceptorEnd(Request $request, NetworkInterceptor $interceptor, Response $response): void;
 
     /**
-     * Called before a new connection is initiated.
+     * Called after the connection for the request has been selected.
      */
-    public function connectStart(Request $request): void;
-
-    /**
-     * Called when a new connection is established.
-     */
-    public function connectEnd(Request $request, Connection $connection): void;
-
-    /**
-     * Called before TLS negotiation is started (HTTPS-only).
-     */
-    public function tlsHandshakeStart(Request $request): void;
-
-    /**
-     * Called when TLS negotiation completed (HTTPS-only).
-     */
-    public function tlsHandshakeEnd(Request $request, TlsInfo $tlsInfo): void;
+    public function connectionAcquired(Request $request, Connection $connection): void;
 
     /**
      * Called before the request headers are sent.

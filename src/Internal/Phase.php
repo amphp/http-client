@@ -7,8 +7,7 @@ enum Phase
 {
     case Unprocessed;
     case Blocked;
-    case Connect;
-    case TlsHandshake;
+    case Connected;
     case RequestHeaders;
     case RequestBody;
     case ServerProcessing;

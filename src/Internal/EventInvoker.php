@@ -10,7 +10,6 @@ use Amp\Http\Client\HttpException;
 use Amp\Http\Client\NetworkInterceptor;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
-use Amp\Socket\TlsInfo;
 
 /** @internal */
 final class EventInvoker implements EventListener
@@ -78,58 +77,22 @@ final class EventInvoker implements EventListener
         $this->invoke($request, fn (EventListener $eventListener) => $eventListener->requestEnd($request, $response));
     }
 
-    public function connectStart(Request $request): void
+    public function connectionAcquired(Request $request, Connection $connection): void
     {
         $previousPhase = self::getPhase($request);
-        if (!\in_array($previousPhase, [Phase::Blocked, Phase::Connect, Phase::TlsHandshake], true)) {
-            throw new \Error('Invalid request phase transition from ' . $previousPhase->name . ' to Connect');
+        if ($previousPhase !== Phase::Blocked) {
+            throw new \Error('Invalid request phase transition from ' . $previousPhase->name . ' to Connected');
         }
 
-        $this->requestPhase[$request] = Phase::Connect;
+        $this->requestPhase[$request] = Phase::Connected;
 
-        $this->invoke($request, fn (EventListener $eventListener) => $eventListener->connectStart($request));
-    }
-
-    public function connectEnd(Request $request, Connection $connection): void
-    {
-        $previousPhase = self::getPhase($request);
-        if ($previousPhase !== Phase::Connect) {
-            throw new \Error('Invalid request phase transition from ' . $previousPhase->name . ' to Blocked');
-        }
-
-        $this->requestPhase[$request] = Phase::Blocked;
-
-        $this->invoke($request, fn (EventListener $eventListener) => $eventListener->connectEnd($request, $connection));
-    }
-
-    public function tlsHandshakeStart(Request $request): void
-    {
-        $previousPhase = self::getPhase($request);
-        if ($previousPhase !== Phase::Connect) {
-            throw new \Error('Invalid request phase transition from ' . $previousPhase->name . ' to TlsHandshake');
-        }
-
-        $this->requestPhase[$request] = Phase::TlsHandshake;
-
-        $this->invoke($request, fn (EventListener $eventListener) => $eventListener->tlsHandshakeStart($request));
-    }
-
-    public function tlsHandshakeEnd(Request $request, TlsInfo $tlsInfo): void
-    {
-        $previousPhase = self::getPhase($request);
-        if ($previousPhase !== Phase::TlsHandshake) {
-            throw new \Error('Invalid request phase transition from ' . $previousPhase->name . ' to Connect');
-        }
-
-        $this->requestPhase[$request] = Phase::Connect;
-
-        $this->invoke($request, fn (EventListener $eventListener) => $eventListener->tlsHandshakeEnd($request, $tlsInfo));
+        $this->invoke($request, fn (EventListener $eventListener) => $eventListener->connectionAcquired($request, $connection));
     }
 
     public function requestHeaderStart(Request $request, Stream $stream): void
     {
         $previousPhase = self::getPhase($request);
-        if ($previousPhase !== Phase::Blocked) {
+        if ($previousPhase !== Phase::Connected && $previousPhase !== Phase::Blocked) {
             throw new \Error('Invalid request phase transition from ' . $previousPhase->name . ' to RequestHeaders');
         }
 

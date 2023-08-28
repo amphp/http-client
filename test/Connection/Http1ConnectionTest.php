@@ -28,7 +28,7 @@ class Http1ConnectionTest extends AsyncTestCase
     {
         [$client, $server] = Socket\createSocketPair();
 
-        $connection = new Http1Connection($client, 5);
+        $connection = new Http1Connection($client, 0, null, 5);
 
         $request = new Request('http://localhost');
         $request->setBody($this->createSlowBody());
@@ -44,7 +44,7 @@ class Http1ConnectionTest extends AsyncTestCase
     {
         [$client, $server] = Socket\createSocketPair();
 
-        $connection = new Http1Connection($client, 5);
+        $connection = new Http1Connection($client, 0, null, 5);
 
         $request = new Request('http://localhost');
         $request->setBody($this->createSlowBody());
@@ -59,7 +59,7 @@ class Http1ConnectionTest extends AsyncTestCase
     {
         [$client] = Socket\createSocketPair();
 
-        $connection = new Http1Connection($client, 5);
+        $connection = new Http1Connection($client, 0, null, 5);
 
         $request = new Request('http://localhost');
         $request->setBody($this->createSlowBody());
@@ -77,7 +77,7 @@ class Http1ConnectionTest extends AsyncTestCase
     {
         [$server, $client] = Socket\createSocketPair();
 
-        $connection = new Http1Connection($client, 5);
+        $connection = new Http1Connection($client, 0, null, 5);
 
         $request = new Request('http://httpbin.org/post', 'POST');
         $request->setHeader('expect', '100-continue');
@@ -100,7 +100,7 @@ class Http1ConnectionTest extends AsyncTestCase
     {
         [$server, $client] = Socket\createSocketPair();
 
-        $connection = new Http1Connection($client, 5);
+        $connection = new Http1Connection($client, 0, null, 5);
 
         $socketData = "Data that should be sent after the upgrade response";
 
@@ -139,7 +139,7 @@ class Http1ConnectionTest extends AsyncTestCase
 
         [$server, $client] = Socket\createSocketPair();
 
-        $connection = new Http1Connection($client);
+        $connection = new Http1Connection($client, 0, null);
 
         $request = new Request('http://localhost');
         $request->setTransferTimeout(0.5);
@@ -167,7 +167,7 @@ class Http1ConnectionTest extends AsyncTestCase
 
         [$server, $client] = Socket\createSocketPair();
 
-        $connection = new Http1Connection($client);
+        $connection = new Http1Connection($client, 0, null);
 
         $request = new Request('http://localhost');
         $request->setInactivityTimeout(0.5);
@@ -204,7 +204,7 @@ class Http1ConnectionTest extends AsyncTestCase
     {
         [$client] = Socket\createSocketPair();
 
-        $connection = new Http1Connection($client, 5);
+        $connection = new Http1Connection($client, 0, null, 5);
 
         $request = new Request(new LaminasUri('foo'));
 
@@ -226,7 +226,7 @@ class Http1ConnectionTest extends AsyncTestCase
     ): void {
         [$server, $client] = Socket\createSocketPair();
 
-        $connection = new Http1Connection($client, 5);
+        $connection = new Http1Connection($client, 0, null, 5);
         $uri = Uri\Http::createFromString('http://localhost')->withPath($requestPath);
         $request = new Request($uri);
         $request->setInactivityTimeout(0.5);

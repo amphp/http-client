@@ -25,8 +25,11 @@ final class Http2Connection implements Connection
 
     private int $requestCount = 0;
 
-    public function __construct(private readonly Socket $socket)
-    {
+    public function __construct(
+        private readonly Socket $socket,
+        private readonly float $connectDuration,
+        private readonly ?float $tlsHandshakeDuration
+    ) {
         $this->processor = new Http2ConnectionProcessor($socket);
     }
 
@@ -95,5 +98,15 @@ final class Http2Connection implements Connection
         $this->requestCount++;
 
         return $this->processor->request($request, $token, $applicationStream);
+    }
+
+    public function getTlsHandshakeDuration(): ?float
+    {
+        return $this->tlsHandshakeDuration;
+    }
+
+    public function getConnectDuration(): float
+    {
+        return $this->connectDuration;
     }
 }

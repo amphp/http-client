@@ -40,7 +40,7 @@ class Http2ConnectionTest extends AsyncTestCase
 
         [$server, $client] = Socket\createSocketPair();
 
-        $connection = new Http2Connection($client);
+        $connection = new Http2Connection($client, 0, null);
 
         $server->write(self::packFrame('', Http2Parser::SETTINGS, 0, 0));
 
@@ -71,7 +71,7 @@ class Http2ConnectionTest extends AsyncTestCase
 
         [$server, $client] = Socket\createSocketPair();
 
-        $connection = new Http2Connection($client);
+        $connection = new Http2Connection($client, 0, null);
 
         $server->write(self::packFrame('', Http2Parser::SETTINGS, 0, 0));
 
@@ -99,7 +99,7 @@ class Http2ConnectionTest extends AsyncTestCase
 
         [$server, $client] = Socket\createSocketPair();
 
-        $connection = new Http2Connection($client);
+        $connection = new Http2Connection($client, 0, null);
 
         $server->write(self::packFrame('', Http2Parser::SETTINGS, 0, 0));
 
@@ -146,7 +146,7 @@ class Http2ConnectionTest extends AsyncTestCase
 
         [$server, $client] = Socket\createSocketPair();
 
-        $connection = new Http2Connection($client);
+        $connection = new Http2Connection($client, 0, null);
 
         $server->write(self::packFrame('', Http2Parser::SETTINGS, 0));
 
@@ -179,7 +179,7 @@ class Http2ConnectionTest extends AsyncTestCase
 
         [$server, $client] = Socket\createSocketPair();
 
-        $connection = new Http2Connection($client);
+        $connection = new Http2Connection($client, 0, null);
 
         $server->write(self::packFrame('', Http2Parser::SETTINGS, 0, 0));
 
@@ -233,7 +233,7 @@ class Http2ConnectionTest extends AsyncTestCase
 
         [$server, $client] = Socket\createSocketPair();
 
-        $connection = new Http2Connection($client);
+        $connection = new Http2Connection($client, 0, null);
 
         $server->write(self::packFrame('', Http2Parser::SETTINGS, 0, 0));
 
@@ -288,7 +288,7 @@ class Http2ConnectionTest extends AsyncTestCase
 
         [$server, $client] = Socket\createSocketPair();
 
-        $connection = new Http2Connection($client);
+        $connection = new Http2Connection($client, 0, null);
 
         $server->write(self::packFrame('', Http2Parser::SETTINGS, 0, 0));
 
@@ -368,7 +368,7 @@ class Http2ConnectionTest extends AsyncTestCase
 
         [$server, $client] = Socket\createSocketPair();
 
-        $connection = new Http2Connection($client);
+        $connection = new Http2Connection($client, 0, null);
 
         $server->write(self::packFrame('', Http2Parser::SETTINGS, 0, 0));
 
@@ -421,7 +421,7 @@ class Http2ConnectionTest extends AsyncTestCase
     {
         [$server, $client] = Socket\createSocketPair();
 
-        $connection = new Http2Connection($client);
+        $connection = new Http2Connection($client, 0, null);
         $server->write($frame = self::packFrame('', Http2Parser::SETTINGS, 0, 0));
         $connection->initialize();
 
@@ -442,7 +442,7 @@ class Http2ConnectionTest extends AsyncTestCase
 
         $hpack = new HPack;
 
-        $connection = new Http2Connection($client);
+        $connection = new Http2Connection($client, 0, null);
         $server->write(self::packFrame('', Http2Parser::SETTINGS, 0, 0));
         $connection->initialize();
 
@@ -488,7 +488,7 @@ class Http2ConnectionTest extends AsyncTestCase
     ): void {
         [$server, $client] = Socket\createSocketPair();
 
-        $connection = new Http2Connection($client);
+        $connection = new Http2Connection($client, 0, null);
         $server->write($frame = self::packFrame('', Http2Parser::SETTINGS, 0));
         $connection->initialize();
 

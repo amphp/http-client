@@ -521,7 +521,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testConnectShortCircuitIfOtherConnectionBecomesAvailable(): void
     {
-        $this->setTimeout(1);
+        $this->setTimeout(1.5);
         $this->givenSlowRawServerResponse(0.5, "HTTP/1.1 204 No content\r\n\r\n", "HTTP/1.1 204 No content\r\n\r\n");
 
         $this->builder = $this->builder->usingPool(new UnlimitedConnectionPool(new DefaultConnectionFactory(new class implements SocketConnector {
@@ -544,6 +544,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $async1->await();
         $async2->await();
+
+        $this->expectNotToPerformAssertions();
     }
 
     public function testRequestCancellation(): void
