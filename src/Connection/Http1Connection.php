@@ -563,7 +563,7 @@ final class Http1Connection implements Connection
         try {
             $socket = $this->socket;
             if ($socket === null) {
-                throw new UnprocessedRequestException(new SocketException('Socket closed before request started'));
+                throw new SocketException('Socket closed before request started');
             }
 
             events()->requestHeaderStart($request, $stream);

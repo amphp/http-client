@@ -29,6 +29,11 @@ interface EventListener
     public function requestEnd(Request $request, Response $response): void;
 
     /**
+     * Called when the request is rejected by the server and not yet processed.
+     */
+    public function requestRejected(Request $request): void;
+
+    /**
      * Called before an application interceptor is invoked.
      */
     public function applicationInterceptorStart(Request $request, ApplicationInterceptor $interceptor): void;

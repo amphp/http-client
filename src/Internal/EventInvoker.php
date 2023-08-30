@@ -77,6 +77,18 @@ final class EventInvoker implements EventListener
         $this->invoke($request, fn (EventListener $eventListener) => $eventListener->requestEnd($request, $response));
     }
 
+    public function requestRejected(Request $request): void
+    {
+        $previousPhase = self::getPhase($request);
+        if ($previousPhase === Phase::Complete || $previousPhase === Phase::Failed) {
+            throw new \Error('Invalid request phase transition from ' . $previousPhase->name . ' to Failed');
+        }
+
+        $this->requestPhase[$request] = Phase::Rejected;
+
+        $this->invoke($request, fn (EventListener $eventListener) => $eventListener->requestRejected($request));
+    }
+
     public function connectionAcquired(Request $request, Connection $connection): void
     {
         $previousPhase = self::getPhase($request);
