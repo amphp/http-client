@@ -85,14 +85,6 @@ final class Request extends HttpRequest
     }
 
     /**
-     * @return bool Whether processing the request has already been started.
-     */
-    public function isStarted(): bool
-    {
-        return EventInvoker::getPhase($this) !== Phase::Unprocessed;
-    }
-
-    /**
      * Retrieve the request's acceptable HTTP protocol versions.
      *
      * @return list<ProtocolVersion>
