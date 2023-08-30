@@ -217,13 +217,22 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testHttp2Push(): void
     {
+        $eventListener = $this->createMock(EventListener::class);
+        $eventListener->expects($this->exactly(2))->method('requestStart');
+        $eventListener->expects($this->exactly(2))->method('requestEnd');
+        $eventListener->expects($this->exactly(1))->method('push');
+
+        $this->givenEventListener($eventListener);
+
         $request = new Request('https://http2-server-push-demo.keksi.io/');
         $request->setPushHandler(static function (Request $request, Future $response) use (
             &$path,
             &$contentType,
             &$future,
+            &$pushedRequest
         ): void {
             $future = $response;
+            $pushedRequest = $request;
 
             $path = $request->getUri()->getPath();
             $contentType = $response->await()->getHeader('content-type');
@@ -231,7 +240,9 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
         $this->executeRequest($request);
 
-        $future->await();
+        /** @var Response $pushedResponse */
+        $pushedResponse = $future->await();
+        $pushedResponse->getTrailers()->await();
 
         self::assertSame('/image.jpg', $path);
         self::assertSame('image/jpeg', $contentType);
@@ -818,9 +829,9 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         return new Request('http://' . $this->socket->getAddress());
     }
 
-    private function givenApplicationInterceptor(ApplicationInterceptor $interceptor): void
+    private function givenEventListener(EventListener $eventListener): void
     {
-        $this->builder = $this->builder->intercept($interceptor);
+        $this->builder = $this->builder->listen($eventListener);
         $this->client = $this->builder->build();
     }
 

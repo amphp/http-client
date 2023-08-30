@@ -615,6 +615,10 @@ final class Http2ConnectionProcessor implements Http2Processor
         $request->setInactivityTimeout($parentStream->request->getInactivityTimeout());
         $request->setTransferTimeout($parentStream->request->getTransferTimeout());
 
+        foreach ($parentStream->request->getEventListeners() as $eventListener) {
+            $request->addEventListener($eventListener);
+        }
+
         $deferredCancellation = new DeferredCancellation();
 
         $cancellation = new CompositeCancellation(
@@ -647,6 +651,17 @@ final class Http2ConnectionProcessor implements Http2Processor
         events()->requestHeaderEnd($request, $stream->stream);
         events()->requestBodyStart($request, $stream->stream);
         events()->requestBodyEnd($request, $stream->stream);
+
+        $stream->pendingResponse->getFuture()
+            ->map(function (Response $response) use ($request) {
+                $response->getTrailers()->map(fn () => events()->requestEnd($request, $response))->ignore();
+                $response->getTrailers()->catch(fn (\Throwable $e) => events()->requestFailed(
+                    $request,
+                    $e instanceof HttpException ? $e : new HttpException('Unexpected exception: ' . $e->getMessage(), previous: $e)
+                ))->ignore();
+            })
+            ->catch(fn (\Throwable $e) => events()->requestFailed($request, $e instanceof HttpException ? $e : new HttpException('Unexpected exception: ' . $e->getMessage(), previous: $e)))
+            ->ignore();
 
         $stream->dependency = $streamId;
 
