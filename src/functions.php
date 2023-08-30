@@ -3,6 +3,7 @@
 namespace Amp\Http\Client;
 
 use Amp\Http\Client\Internal\EventInvoker;
+use Amp\Http\Client\Internal\Phase;
 
 function events(): EventListener
 {
@@ -15,7 +16,7 @@ function events(): EventListener
  */
 function processRequest(Request $request, array $eventListeners, \Closure $requestHandler): Response
 {
-    if ($request->isStarted()) {
+    if (EventInvoker::getPhase($request) !== Phase::Unprocessed) {
         return $requestHandler($request);
     }
 
