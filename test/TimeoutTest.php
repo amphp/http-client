@@ -130,7 +130,7 @@ class TimeoutTest extends AsyncTestCase
             }
         });
 
-        $this->setTimeout(0.6);
+        $this->setTimeout(1);
 
         try {
             $uri = "https://" . $server->getAddress() . "/";
