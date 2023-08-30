@@ -11,7 +11,6 @@ use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Revolt\EventLoop;
 use function Amp\async;
-use function Amp\Http\Client\events;
 
 final class ConnectionLimitingPool implements ConnectionPool
 {
