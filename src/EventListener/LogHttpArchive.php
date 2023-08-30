@@ -364,4 +364,9 @@ final class LogHttpArchive implements EventListener
     {
         // nothing to do
     }
+
+    public function requestRejected(Request $request): void
+    {
+        // nothing to do
+    }
 }
