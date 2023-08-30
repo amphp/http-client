@@ -55,8 +55,10 @@ interface EventListener
 
     /**
      * Called after the connection for the request has been selected.
+     *
+     * @param int $streamCount The number of stream objects obtained from that connection so far, initially 1.
      */
-    public function connectionAcquired(Request $request, Connection $connection): void;
+    public function connectionAcquired(Request $request, Connection $connection, int $streamCount): void;
 
     /**
      * Called after the server initiated a push.

@@ -24,6 +24,8 @@ final class Http2Connection implements Connection
 
     private readonly Http2ConnectionProcessor $processor;
 
+    private int $streamCounter = 0;
+
     private int $requestCount = 0;
 
     public function __construct(
@@ -61,7 +63,7 @@ final class Http2Connection implements Connection
 
         $this->processor->reserveStream();
 
-        events()->connectionAcquired($request, $this);
+        events()->connectionAcquired($request, $this, ++$this->streamCounter);
 
         return HttpStream::fromConnection($this, $this->request(...), $this->processor->unreserveStream(...));
     }

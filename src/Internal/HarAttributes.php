@@ -21,4 +21,6 @@ final class HarAttributes
     public const TIME_WAIT = 'amp.http.client.har.timings.wait';
     public const TIME_RECEIVE = 'amp.http.client.har.timings.receive';
     public const TIME_COMPLETE = 'amp.http.client.har.timings.complete';
+
+    public const INCLUDE_CONNECT_TIME = 'amp.http.client.har.timings.connect.include';
 }

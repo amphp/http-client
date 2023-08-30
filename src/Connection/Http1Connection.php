@@ -54,6 +54,9 @@ final class Http1Connection implements Connection
 
     private bool $busy = false;
 
+    /** @var int Number of stream requests made on this connection. */
+    private int $streamCounter = 0;
+
     /** @var int Number of requests made on this connection. */
     private int $requestCounter = 0;
 
@@ -159,7 +162,7 @@ final class Http1Connection implements Connection
 
         $this->busy = true;
 
-        events()->connectionAcquired($request, $this);
+        events()->connectionAcquired($request, $this, ++$this->streamCounter);
 
         return HttpStream::fromConnection($this, $this->request(...), $this->release(...));
     }

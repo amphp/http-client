@@ -89,7 +89,7 @@ final class EventInvoker implements EventListener
         $this->invoke($request, fn (EventListener $eventListener) => $eventListener->requestRejected($request));
     }
 
-    public function connectionAcquired(Request $request, Connection $connection): void
+    public function connectionAcquired(Request $request, Connection $connection, int $streamCount): void
     {
         $previousPhase = self::getPhase($request);
         if ($previousPhase !== Phase::Blocked) {
@@ -98,7 +98,7 @@ final class EventInvoker implements EventListener
 
         $this->requestPhase[$request] = Phase::Connected;
 
-        $this->invoke($request, fn (EventListener $eventListener) => $eventListener->connectionAcquired($request, $connection));
+        $this->invoke($request, fn (EventListener $eventListener) => $eventListener->connectionAcquired($request, $connection, $streamCount));
     }
 
     public function push(Request $request): void

@@ -17,7 +17,7 @@ class ParserTest extends AsyncTestCase
         $request = new Request('/', 'HEAD');
 
         events()->requestStart($request);
-        events()->connectionAcquired($request, $this->createMock(Connection::class));
+        events()->connectionAcquired($request, $this->createMock(Connection::class), 1);
         events()->requestHeaderStart($request, $this->createMock(Stream::class));
         events()->requestHeaderEnd($request, $this->createMock(Stream::class));
         events()->requestBodyStart($request, $this->createMock(Stream::class));
@@ -45,7 +45,7 @@ class ParserTest extends AsyncTestCase
         $request = new Request('/', 'GET');
 
         events()->requestStart($request);
-        events()->connectionAcquired($request, $this->createMock(Connection::class));
+        events()->connectionAcquired($request, $this->createMock(Connection::class), 1);
         events()->requestHeaderStart($request, $this->createMock(Stream::class));
         events()->requestHeaderEnd($request, $this->createMock(Stream::class));
         events()->requestBodyStart($request, $this->createMock(Stream::class));

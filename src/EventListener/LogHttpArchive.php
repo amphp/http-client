@@ -80,15 +80,19 @@ final class LogHttpArchive implements EventListener
     {
         $request = $response->getRequest();
 
-        $connectDuration = self::getDuration(
+        $includeConnectTime = $request->hasAttribute(HarAttributes::INCLUDE_CONNECT_TIME)
+            ? $request->getAttribute(HarAttributes::INCLUDE_CONNECT_TIME)
+            : false;
+
+        $connectDuration = $includeConnectTime ? self::getDuration(
             $request,
             HarAttributes::TIME_CONNECT
-        );
+        ) : -1;
 
-        $tlsHandshakeDuration = self::getDuration(
+        $tlsHandshakeDuration = $includeConnectTime ? self::getDuration(
             $request,
             HarAttributes::TIME_SSL
-        );
+        ) : -1;
 
         $sendDuration = self::getTime(
             $request,
@@ -112,7 +116,7 @@ final class LogHttpArchive implements EventListener
             $request,
             HarAttributes::TIME_START,
             HarAttributes::TIME_COMPLETE
-        ) - $connectDuration - $sendDuration - $receiveDuration;
+        ) - ($includeConnectTime ? $connectDuration : 0) - $sendDuration - $receiveDuration;
 
         $data = [
             'startedDateTime' => $request->getAttribute(HarAttributes::STARTED_DATE_TIME)->format(\DateTimeInterface::RFC3339_EXTENDED),
@@ -246,8 +250,9 @@ final class LogHttpArchive implements EventListener
         $this->addTiming(HarAttributes::TIME_START, $request);
     }
 
-    public function connectionAcquired(Request $request, Connection $connection): void
+    public function connectionAcquired(Request $request, Connection $connection, int $streamCount): void
     {
+        $request->setAttribute(HarAttributes::INCLUDE_CONNECT_TIME, $streamCount === 1);
         $request->setAttribute(HarAttributes::TIME_CONNECT, (int) ($connection->getConnectDuration() * 1000));
 
         $tlsHandshakeDuration = $connection->getTlsHandshakeDuration();
