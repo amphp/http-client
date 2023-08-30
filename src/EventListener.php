@@ -21,7 +21,7 @@ interface EventListener
     /**
      * Called when the request failed due to an exception.
      */
-    public function requestFailed(Request $request, HttpException $exception): void;
+    public function requestFailed(Request $request, \Throwable $exception): void;
 
     /**
      * Called when the request completed with a complete response.

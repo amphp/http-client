@@ -53,7 +53,7 @@ final class EventInvoker implements EventListener
         $this->invoke($request, fn (EventListener $eventListener) => $eventListener->requestStart($request));
     }
 
-    public function requestFailed(Request $request, HttpException $exception): void
+    public function requestFailed(Request $request, \Throwable $exception): void
     {
         $previousPhase = self::getPhase($request);
         if ($previousPhase === Phase::Complete || $previousPhase === Phase::Failed) {

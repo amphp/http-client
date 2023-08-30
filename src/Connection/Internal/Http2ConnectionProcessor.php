@@ -653,13 +653,11 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         $stream->pendingResponse->getFuture()
             ->map(function (Response $response) use ($request) {
-                $response->getTrailers()->map(fn () => events()->requestEnd($request, $response))->ignore();
-                $response->getTrailers()->catch(fn (\Throwable $e) => events()->requestFailed(
-                    $request,
-                    $e instanceof HttpException ? $e : new HttpException('Unexpected exception: ' . $e->getMessage(), previous: $e)
-                ))->ignore();
+                $trailers = $response->getTrailers();
+                $trailers->map(fn () => events()->requestEnd($request, $response))->ignore();
+                $trailers->catch(fn (\Throwable $exception) => events()->requestFailed($request, $exception))->ignore();
             })
-            ->catch(fn (\Throwable $e) => events()->requestFailed($request, $e instanceof HttpException ? $e : new HttpException('Unexpected exception: ' . $e->getMessage(), previous: $e)))
+            ->catch(fn (\Throwable $exception) => events()->requestFailed($request, $exception))
             ->ignore();
 
         $stream->dependency = $streamId;

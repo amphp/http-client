@@ -300,7 +300,7 @@ final class LogHttpArchive implements EventListener
         }
     }
 
-    public function requestFailed(Request $request, HttpException $exception): void
+    public function requestFailed(Request $request, \Throwable $exception): void
     {
         // TODO: Log error to archive
     }
