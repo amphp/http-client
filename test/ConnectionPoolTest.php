@@ -41,10 +41,7 @@ class ConnectionPoolTest extends AsyncTestCase
 
             $client->read();
             $client->write("HTTP/1.1 200 OK\r\nconnection: keep-alive\r\ncontent-length: 5\r\n\r\nhello");
-
-            delay(0.05);
-
-            $client->close();
+            $client->end();
 
             delay(0.2);
 
