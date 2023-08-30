@@ -12,7 +12,6 @@ use Amp\DeferredCancellation;
 use Amp\Future;
 use Amp\Http\Client\Connection\DefaultConnectionFactory;
 use Amp\Http\Client\Connection\UnlimitedConnectionPool;
-use Amp\Http\Client\Connection\UnprocessedRequestException;
 use Amp\Http\Client\Interceptor\DecompressResponse;
 use Amp\Http\Client\Interceptor\ModifyRequest;
 use Amp\Http\Client\Interceptor\SetRequestHeaderIfUnset;
@@ -718,11 +717,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectException(SocketException::class);
         $this->expectExceptionMessage('Connection closed before HTTP/2 settings could be received');
 
-        try {
-            $this->executeRequest($request);
-        } catch (UnprocessedRequestException $e) {
-            throw $e->getPrevious();
-        }
+        $this->executeRequest($request);
     }
 
     public function testNoMemoryLeak(): void

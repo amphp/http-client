@@ -5,7 +5,6 @@ namespace Amp\Http\Client;
 
 use Amp\Http\Client\Connection\DefaultConnectionFactory;
 use Amp\Http\Client\Connection\UnlimitedConnectionPool;
-use Amp\Http\Client\Connection\UnprocessedRequestException;
 use Amp\Http\Client\Interceptor\SetRequestTimeout;
 use Amp\NullCancellation;
 use Amp\PHPUnit\AsyncTestCase;
@@ -110,11 +109,7 @@ class TimeoutTest extends AsyncTestCase
             $request = new Request($uri);
             $request->setTlsHandshakeTimeout(0.1);
 
-            try {
-                $this->client->request($request);
-            } catch (UnprocessedRequestException $e) {
-                throw $e->getPrevious();
-            }
+            $this->client->request($request);
         } finally {
             $server->close();
         }
@@ -146,8 +141,8 @@ class TimeoutTest extends AsyncTestCase
             $this->client->request($request);
 
             self::fail('No exception thrown');
-        } catch (UnprocessedRequestException $e) {
-            self::assertStringStartsWith('TLS handshake with \'127.0.0.1:', $e->getPrevious()->getMessage());
+        } catch (\Throwable $e) {
+            self::assertStringStartsWith('TLS handshake with \'127.0.0.1:', $e->getMessage());
         } finally {
             $server->close();
         }
@@ -241,11 +236,7 @@ class TimeoutTest extends AsyncTestCase
             $client = new PooledHttpClient();
             $client = new InterceptedHttpClient($client, new SetRequestTimeout(10, 0.1), []);
 
-            try {
-                $client->request($request, new NullCancellation);
-            } catch (UnprocessedRequestException $e) {
-                throw $e->getPrevious();
-            }
+            $client->request($request, new NullCancellation);
         } finally {
             $server->close();
         }

@@ -6,11 +6,10 @@ use Amp\Cancellation;
 use Amp\ForbidCloning;
 use Amp\ForbidSerialization;
 use Amp\Http\Client\ApplicationInterceptor;
-use Amp\Http\Client\Connection\UnprocessedRequestException;
 use Amp\Http\Client\DelegateHttpClient;
+use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
-use Amp\Http\Client\SocketException;
 
 final class RetryRequests implements ApplicationInterceptor
 {
@@ -34,14 +33,13 @@ final class RetryRequests implements ApplicationInterceptor
         do {
             try {
                 return $httpClient->request($request, $cancellation);
-            } catch (UnprocessedRequestException $exception) {
-                // Request was deemed retryable by connection, so carry on.
-            } catch (SocketException $exception) {
-                if (!$request->isIdempotent()) {
-                    throw $exception;
+            } catch (HttpException $exception) {
+                if ($request->isIdempotent() || $request->isUnprocessed()) {
+                    // Request was deemed retryable by connection, so carry on.
+                    continue;
                 }
 
-                // Request can safely be retried.
+                throw $exception;
             }
         } while ($attempt++ <= $this->retryLimit);
 

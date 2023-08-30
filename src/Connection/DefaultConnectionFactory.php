@@ -102,16 +102,14 @@ final class DefaultConnectionFactory implements ConnectionFactory
                 $connectContext->withConnectTimeout($request->getTcpConnectTimeout()),
                 $cancellation
             );
-        } catch (Socket\ConnectException $e) {
-            throw new UnprocessedRequestException(new SocketException(\sprintf("Connection to '%s' failed", $authority), 0, $e));
+        } catch (Socket\ConnectException $connectException) {
+            throw new SocketException(\sprintf("Connection to '%s' failed", $authority), 0, $connectException);
         } catch (CancelledException) {
             // In case of a user cancellation request, throw the expected exception
             $cancellation->throwIfRequested();
 
             // Otherwise we ran into a timeout of our TimeoutCancellation
-            throw new UnprocessedRequestException(
-                new TimeoutException(\sprintf("Connection to '%s' timed out, took longer than " . $request->getTcpConnectTimeout() . ' s', $authority))
-            );
+            throw new TimeoutException(\sprintf("Connection to '%s' timed out, took longer than " . $request->getTcpConnectTimeout() . ' s', $authority));
         }
 
         $tlsHandshakeDuration = null;
@@ -126,23 +124,21 @@ final class DefaultConnectionFactory implements ConnectionFactory
                 if ($tlsState !== Socket\TlsState::Disabled) {
                     $socket->close();
 
-                    throw new UnprocessedRequestException(
-                        new SocketException('Failed to setup TLS connection, connection was in an unexpected TLS state (' . $tlsState->name . ')')
-                    );
+                    throw new SocketException('Failed to setup TLS connection, connection was in an unexpected TLS state (' . $tlsState->name . ')');
                 }
 
                 $socket->setupTls(new CompositeCancellation(
                     $cancellation,
                     new TimeoutCancellation($request->getTlsHandshakeTimeout())
                 ));
-            } catch (StreamException $exception) {
+            } catch (StreamException $streamException) {
                 $socket->close();
 
-                throw new UnprocessedRequestException(new SocketException(\sprintf(
+                throw new SocketException(\sprintf(
                     "Connection to '%s' @ '%s' closed during TLS handshake",
                     $authority,
                     $socket->getRemoteAddress()->toString()
-                ), 0, $exception));
+                ), 0, $streamException);
             } catch (CancelledException) {
                 $socket->close();
 
@@ -150,24 +146,22 @@ final class DefaultConnectionFactory implements ConnectionFactory
                 $cancellation->throwIfRequested();
 
                 // Otherwise we ran into a timeout of our TimeoutCancellation
-                throw new UnprocessedRequestException(new TimeoutException(\sprintf(
+                throw new TimeoutException(\sprintf(
                     "TLS handshake with '%s' @ '%s' timed out, took longer than " . $request->getTlsHandshakeTimeout() . ' s',
                     $authority,
                     $socket->getRemoteAddress()->toString()
-                )));
+                ));
             }
 
             $tlsInfo = $socket->getTlsInfo();
             if ($tlsInfo === null) {
                 $socket->close();
 
-                throw new UnprocessedRequestException(
-                    new SocketException(\sprintf(
-                        "Socket closed after TLS handshake with '%s' @ '%s'",
-                        $authority,
-                        $socket->getRemoteAddress()->toString()
-                    ))
-                );
+                throw new SocketException(\sprintf(
+                    "Socket closed after TLS handshake with '%s' @ '%s'",
+                    $authority,
+                    $socket->getRemoteAddress()->toString()
+                ));
             }
 
             $tlsHandshakeDuration = now() - $tlsHandshakeStart;

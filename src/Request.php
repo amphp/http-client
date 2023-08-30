@@ -85,6 +85,14 @@ final class Request extends HttpRequest
     }
 
     /**
+     * @return bool Whether processing the request might have already been started on the server.
+     */
+    public function isUnprocessed(): bool
+    {
+        return \in_array(EventInvoker::getPhase($this), [Phase::Unprocessed, Phase::Blocked, Phase::Connected], true);
+    }
+
+    /**
      * Retrieve the request's acceptable HTTP protocol versions.
      *
      * @return list<ProtocolVersion>

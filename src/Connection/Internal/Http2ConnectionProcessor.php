@@ -14,7 +14,6 @@ use Amp\DeferredFuture;
 use Amp\Future;
 use Amp\Http\Client\Connection\HttpStream;
 use Amp\Http\Client\Connection\Stream;
-use Amp\Http\Client\Connection\UnprocessedRequestException;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Internal\EventInvoker;
 use Amp\Http\Client\Internal\Phase;
@@ -133,9 +132,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         $this->initializeStarted = true;
 
         if ($this->socket->isClosed()) {
-            throw new UnprocessedRequestException(
-                new SocketException('The socket closed before the connection could be initialized')
-            );
+            throw new SocketException('The socket closed before the connection could be initialized');
         }
 
         $this->settings = new DeferredFuture;
@@ -146,10 +143,10 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         try {
             $future->await($cancellation);
-        } catch (CancelledException $exception) {
-            $exception = new SocketException('Connecting cancelled', 0, $exception);
+        } catch (CancelledException $cancelledException) {
+            $exception = new SocketException('Connecting cancelled', 0, $cancelledException);
             $this->shutdown($exception);
-            throw new UnprocessedRequestException($exception);
+            throw $exception;
         }
     }
 
@@ -414,7 +411,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         $cancellationId = $cancellation->subscribe(function (CancelledException $exception) use ($streamId): void {
             if (isset($this->streams[$streamId])) {
-                $this->releaseStream($streamId, $exception);
+                $this->releaseStream($streamId, $exception, false);
             }
         });
 
@@ -685,7 +682,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                 $pushId
             ): void {
                 if (isset($this->streams[$pushId])) {
-                    $this->releaseStream($pushId, $exception);
+                    $this->releaseStream($pushId, $exception, false);
                 }
             });
 
@@ -735,12 +732,8 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         $exception = new SocketException($exception->getMessage(), $code, $exception);
 
-        if ($code === Http2Parser::REFUSED_STREAM) {
-            $exception = new UnprocessedRequestException($exception);
-        }
-
         if (isset($this->streams[$id])) {
-            $this->releaseStream($id, $exception);
+            $this->releaseStream($id, $exception, $code === Http2Parser::REFUSED_STREAM);
         }
     }
 
@@ -878,7 +871,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             $trailers->complete(new Trailers([]));
         }
 
-        $this->releaseStream($streamId);
+        $this->releaseStream($streamId, null, false);
     }
 
     public function isIdle(): bool
@@ -917,20 +910,18 @@ final class Http2ConnectionProcessor implements Http2Processor
     {
         try {
             if ($this->shutdown !== null) {
-                throw new UnprocessedRequestException(new SocketException(\sprintf(
+                throw new SocketException(\sprintf(
                     "Connection from '%s' to '%s' has already been shut down",
                     $this->socket->getLocalAddress()->toString(),
                     $this->socket->getRemoteAddress()->toString()
-                )));
+                ));
             }
 
             if ($this->hasTimeout && !$this->ping()->await()) {
-                throw new UnprocessedRequestException(
-                    new SocketException(\sprintf(
-                        "Socket to '%s' missed responding to PINGs",
-                        $this->socket->getRemoteAddress()->toString()
-                    ))
-                );
+                throw new SocketException(\sprintf(
+                    "Socket to '%s' missed responding to PINGs",
+                    $this->socket->getRemoteAddress()->toString()
+                ));
             }
 
             RequestNormalizer::normalizeRequest($request);
@@ -949,13 +940,13 @@ final class Http2ConnectionProcessor implements Http2Processor
             $request->setProtocolVersions(['2']);
 
             if ($this->socket->isClosed()) {
-                throw new UnprocessedRequestException(
-                    new SocketException(\sprintf(
-                        "Socket to '%s' closed before the request could be sent",
-                        $this->socket->getRemoteAddress()->toString()
-                    ))
-                );
+                throw new SocketException(\sprintf(
+                    "Socket to '%s' closed before the request could be sent",
+                    $this->socket->getRemoteAddress()->toString()
+                ));
             }
+
+            // TODO: Starting here, it's not retryable
 
             $body = $request->getBody()->getContent();
             $chunk = $body->read($cancellation);
@@ -984,7 +975,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         $cancellationId = $cancellation->subscribe(function (CancelledException $exception) use ($streamId): void {
             if (isset($this->streams[$streamId])) {
-                $this->releaseStream($streamId, $exception);
+                $this->releaseStream($streamId, $exception, false);
             }
         });
 
@@ -1060,7 +1051,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             }
 
             if (isset($this->streams[$streamId])) {
-                $this->releaseStream($streamId, $exception);
+                $this->releaseStream($streamId, $exception, false);
             }
 
             throw $exception;
@@ -1318,7 +1309,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         return $stream->windowSizeIncrease->getFuture();
     }
 
-    private function releaseStream(int $streamId, ?\Throwable $exception = null): void
+    private function releaseStream(int $streamId, ?\Throwable $exception, bool $unprocessed): void
     {
         \assert(isset($this->streams[$streamId]));
 
@@ -1357,6 +1348,10 @@ final class Http2ConnectionProcessor implements Http2Processor
                 $streamId,
                 \pack("N", Http2Parser::CANCEL)
             )->ignore();
+
+            if ($unprocessed) {
+                events()->requestRejected($stream->request);
+            }
         }
 
         if (!$this->streams && !$this->socket->isClosed() && $this->socket instanceof ResourceStream) {
@@ -1423,19 +1418,15 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         if ($this->settings !== null) {
             $message = "Connection closed before HTTP/2 settings could be received";
-            $this->settings->error(new UnprocessedRequestException(new SocketException($message, 0, $reason)));
+            $this->settings->error(new SocketException($message, 0, $reason));
             $this->settings = null;
         }
 
         $exception = $reason;
         foreach ($this->streams as $id => $stream) {
-            if ($lastId !== null && $id > $lastId) {
-                $exception = $exception instanceof UnprocessedRequestException
-                    ? $exception
-                    : new UnprocessedRequestException($reason);
-            }
+            $unprocessed = $lastId !== null && $id > $lastId;
 
-            $this->releaseStream($id, $exception);
+            $this->releaseStream($id, $exception, $unprocessed);
         }
 
         $previous = $reason->getPrevious();
@@ -1576,7 +1567,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         $watcher = EventLoop::delay($timeout, function () use ($streamId, $timeout, $message): void {
             \assert(isset($this->streams[$streamId]), 'Stream watcher invoked after stream closed');
-            $this->releaseStream($streamId, new TimeoutException($message));
+            $this->releaseStream($streamId, new TimeoutException($message), false);
         });
 
         EventLoop::unreference($watcher);
