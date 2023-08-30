@@ -46,7 +46,7 @@
         "amphp/phpunit-util": "^3",
         "amphp/php-cs-fixer-config": "^2",
         "phpunit/phpunit": "^9",
-        "amphp/http-server": "^3-dev",
+        "amphp/http-server": "^3",
         "kelunik/link-header-rfc5988": "^1",
         "psalm/phar": "^5.4",
         "laminas/laminas-diactoros": "^2.3"
