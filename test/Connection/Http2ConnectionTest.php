@@ -25,6 +25,7 @@ use League\Uri;
 use Revolt\EventLoop;
 use function Amp\async;
 use function Amp\delay;
+use function Amp\Http\Client\events;
 use function Amp\Http\formatDateHeader;
 
 class Http2ConnectionTest extends AsyncTestCase
@@ -48,6 +49,7 @@ class Http2ConnectionTest extends AsyncTestCase
 
         $request = new Request('http://localhost/');
 
+        events()->requestStart($request);
         $stream = $connection->getStream($request);
 
         $server->write(self::packFrame($hpack->encode([
@@ -79,6 +81,8 @@ class Http2ConnectionTest extends AsyncTestCase
 
         $request = new Request('http://localhost/');
 
+        events()->requestStart($request);
+
         /** @var Stream $stream */
         $stream = $connection->getStream($request);
 
@@ -106,6 +110,8 @@ class Http2ConnectionTest extends AsyncTestCase
         $connection->initialize();
 
         $request = new Request('http://localhost/');
+
+        events()->requestStart($request);
 
         $stream = $connection->getStream($request);
 
@@ -154,6 +160,8 @@ class Http2ConnectionTest extends AsyncTestCase
 
         $request = new Request('http://localhost/');
 
+        events()->requestStart($request);
+
         $stream = $connection->getStream($request);
 
         $server->write(self::packFrame($hpack->encode([
@@ -186,6 +194,8 @@ class Http2ConnectionTest extends AsyncTestCase
         $connection->initialize();
 
         $request = new Request('http://localhost/');
+
+        events()->requestStart($request);
 
         $stream = $connection->getStream($request);
 
@@ -241,6 +251,8 @@ class Http2ConnectionTest extends AsyncTestCase
 
         $request = new Request('http://localhost/');
         $request->setTransferTimeout(0.5);
+
+        events()->requestStart($request);
 
         $stream = $connection->getStream($request);
 
@@ -300,6 +312,8 @@ class Http2ConnectionTest extends AsyncTestCase
             $this->assertSame('/static', $request->getUri()->getPath());
             $pushPromise = $future;
         });
+
+        events()->requestStart($request);
 
         $stream = $connection->getStream($request);
 
@@ -377,6 +391,7 @@ class Http2ConnectionTest extends AsyncTestCase
         $request = new Request('http://localhost/');
         $request->setInactivityTimeout(0.5);
 
+        events()->requestStart($request);
         $stream = $connection->getStream($request);
 
         EventLoop::queue(static function () use ($server, $hpack) {
@@ -428,6 +443,7 @@ class Http2ConnectionTest extends AsyncTestCase
         $request = new Request(new LaminasUri('foo'));
         $request->setInactivityTimeout(0.5);
 
+        events()->requestStart($request);
         $stream = $connection->getStream($request);
 
         $this->expectException(InvalidRequestException::class);
@@ -450,6 +466,7 @@ class Http2ConnectionTest extends AsyncTestCase
         $request->setInactivityTimeout(0.5);
         $request->setPushHandler($this->createCallback(0));
 
+        events()->requestStart($request);
         $stream = $connection->getStream($request);
 
         $future = async(fn () => $stream->request($request, new NullCancellation));
@@ -496,6 +513,7 @@ class Http2ConnectionTest extends AsyncTestCase
         $request = new Request($uri);
         $request->setInactivityTimeout(0.5);
 
+        events()->requestStart($request);
         $stream = $connection->getStream($request);
 
         $future = async(fn () => $stream->request($request, new NullCancellation));

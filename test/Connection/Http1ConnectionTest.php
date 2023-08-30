@@ -21,6 +21,7 @@ use League\Uri;
 use Revolt\EventLoop;
 use function Amp\async;
 use function Amp\delay;
+use function Amp\Http\Client\events;
 
 class Http1ConnectionTest extends AsyncTestCase
 {
@@ -33,7 +34,9 @@ class Http1ConnectionTest extends AsyncTestCase
         $request = new Request('http://localhost');
         $request->setBody($this->createSlowBody());
 
+        events()->requestStart($request);
         $stream = $connection->getStream($request);
+
         async(fn () => $stream->request($request, new NullCancellation))->ignore();
         $stream = null; // gc instance
 
@@ -48,6 +51,8 @@ class Http1ConnectionTest extends AsyncTestCase
 
         $request = new Request('http://localhost');
         $request->setBody($this->createSlowBody());
+
+        events()->requestStart($request);
 
         /** @noinspection PhpUnusedLocalVariableInspection */
         $stream = $connection->getStream($request);
@@ -64,13 +69,17 @@ class Http1ConnectionTest extends AsyncTestCase
         $request = new Request('http://localhost');
         $request->setBody($this->createSlowBody());
 
+        events()->requestStart($request);
+
         /** @noinspection PhpUnusedLocalVariableInspection */
         $stream = $connection->getStream($request);
         unset($stream); // gc instance
 
         delay(0); // required to clear instance in async :-(
 
-        self::assertNotNull($connection->getStream($request));
+        $secondRequest = new Request('http://localhost');
+        events()->requestStart($secondRequest);
+        self::assertNotNull($connection->getStream($secondRequest));
     }
 
     public function test100Continue(): void
@@ -82,6 +91,7 @@ class Http1ConnectionTest extends AsyncTestCase
         $request = new Request('http://httpbin.org/post', 'POST');
         $request->setHeader('expect', '100-continue');
 
+        events()->requestStart($request);
         $stream = $connection->getStream($request);
 
         $server->write("HTTP/1.1 100 Continue\r\nFoo: Bar\r\n\r\nHTTP/1.1 204 Nothing to send\r\n\r\n");
@@ -118,6 +128,7 @@ class Http1ConnectionTest extends AsyncTestCase
         $request->setHeader('connection', 'upgrade');
         $request->setUpgradeHandler($callback);
 
+        events()->requestStart($request);
         $stream = $connection->getStream($request);
 
         $server->write("HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: test\r\n\r\n" . $socketData);
@@ -144,6 +155,7 @@ class Http1ConnectionTest extends AsyncTestCase
         $request = new Request('http://localhost');
         $request->setTransferTimeout(0.5);
 
+        events()->requestStart($request);
         $stream = $connection->getStream($request);
 
         $server->write("HTTP/1.1 200 Continue\r\nConnection: keep-alive\r\nContent-Length: 8\r\n\r\ntest");
@@ -172,6 +184,7 @@ class Http1ConnectionTest extends AsyncTestCase
         $request = new Request('http://localhost');
         $request->setInactivityTimeout(0.5);
 
+        events()->requestStart($request);
         $stream = $connection->getStream($request);
 
         $server->write("HTTP/1.1 200 Continue\r\nConnection: keep-alive\r\nContent-Length: 8\r\n\r\n");
@@ -208,6 +221,7 @@ class Http1ConnectionTest extends AsyncTestCase
 
         $request = new Request(new LaminasUri('foo'));
 
+        events()->requestStart($request);
         $stream = $connection->getStream($request);
 
         $this->expectException(InvalidRequestException::class);
@@ -231,6 +245,7 @@ class Http1ConnectionTest extends AsyncTestCase
         $request = new Request($uri);
         $request->setInactivityTimeout(0.5);
 
+        events()->requestStart($request);
         $stream = $connection->getStream($request);
 
         $future = async(fn () => $stream->request($request, new NullCancellation));

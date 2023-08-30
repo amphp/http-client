@@ -3,6 +3,7 @@
 
 namespace Amp\Http\Client;
 
+use Amp\Http\Client\Connection\Connection;
 use Amp\Http\Client\Connection\Internal\Http1Parser;
 use Amp\Http\Client\Connection\Stream;
 use Amp\PHPUnit\AsyncTestCase;
@@ -16,6 +17,7 @@ class ParserTest extends AsyncTestCase
         $request = new Request('/', 'HEAD');
 
         events()->requestStart($request);
+        events()->connectionAcquired($request, $this->createMock(Connection::class));
         events()->requestHeaderStart($request, $this->createMock(Stream::class));
         events()->requestHeaderEnd($request, $this->createMock(Stream::class));
         events()->requestBodyStart($request, $this->createMock(Stream::class));
@@ -43,6 +45,7 @@ class ParserTest extends AsyncTestCase
         $request = new Request('/', 'GET');
 
         events()->requestStart($request);
+        events()->connectionAcquired($request, $this->createMock(Connection::class));
         events()->requestHeaderStart($request, $this->createMock(Stream::class));
         events()->requestHeaderEnd($request, $this->createMock(Stream::class));
         events()->requestBodyStart($request, $this->createMock(Stream::class));

@@ -195,8 +195,6 @@ final class ConnectionLimitingPool implements ConnectionPool
                     continue; // No stream available for the given request.
                 }
 
-                events()->connectionAcquired($request, $connection);
-
                 return [$connection, $stream];
             }
 
@@ -218,8 +216,6 @@ final class ConnectionLimitingPool implements ConnectionPool
             if ($stream === null) {
                 continue; // Wait for a different connection to become available.
             }
-
-            events()->connectionAcquired($request, $connection);
 
             return [$connection, $stream];
         } while (true);
@@ -288,8 +284,6 @@ final class ConnectionLimitingPool implements ConnectionPool
                 return $this->getStreamFor($uri, $request, $cancellation);
             }
         }
-
-        events()->connectionAcquired($request, $connection);
 
         return [$connection, $stream];
     }

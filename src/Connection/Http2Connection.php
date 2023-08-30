@@ -13,6 +13,7 @@ use Amp\Socket\Socket;
 use Amp\Socket\SocketAddress;
 use Amp\Socket\TlsInfo;
 use Amp\TimeoutCancellation;
+use function Amp\Http\Client\events;
 
 final class Http2Connection implements Connection
 {
@@ -59,6 +60,8 @@ final class Http2Connection implements Connection
         }
 
         $this->processor->reserveStream();
+
+        events()->connectionAcquired($request, $this);
 
         return HttpStream::fromConnection($this, $this->request(...), $this->processor->unreserveStream(...));
     }

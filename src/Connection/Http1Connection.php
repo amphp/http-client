@@ -159,6 +159,8 @@ final class Http1Connection implements Connection
 
         $this->busy = true;
 
+        events()->connectionAcquired($request, $this);
+
         return HttpStream::fromConnection($this, $this->request(...), $this->release(...));
     }
 
