@@ -31,12 +31,14 @@ final class RetryRequests implements ApplicationInterceptor
         $attempt = 1;
 
         do {
+            $clonedRequest = clone $request;
+
             try {
-                // TODO: Clone requests here
                 return $httpClient->request($request, $cancellation);
             } catch (HttpException $exception) {
                 if ($request->isIdempotent() || $request->isUnprocessed()) {
                     // Request was deemed retryable by connection, so carry on.
+                    $request = $clonedRequest;
                     continue;
                 }
 

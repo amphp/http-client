@@ -10,6 +10,7 @@ use Amp\Http\Client\EventListener;
 use Amp\Http\Client\HttpClient;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\NetworkInterceptor;
+use Amp\Http\Client\Request;
 use Amp\Http\Client\Request as ClientRequest;
 use Amp\Http\Client\Response as ClientResponse;
 use Amp\Http\HttpStatus;
@@ -55,6 +56,10 @@ abstract class InterceptorTest extends AsyncTestCase
 
     final protected function givenApplicationInterceptor(ApplicationInterceptor $interceptor): void
     {
+        if ($interceptor instanceof RetryRequests) {
+            $this->builder = $this->builder->retry(0);
+        }
+
         $this->builder = $this->builder->intercept($interceptor);
         $this->client = $this->builder->build();
     }
@@ -97,6 +102,11 @@ abstract class InterceptorTest extends AsyncTestCase
         $staticConnector = new StaticSocketConnector($this->serverSocket->getAddress()->toString(), socketConnector());
         $this->builder = (new HttpClientBuilder)->usingPool(new UnlimitedConnectionPool(new DefaultConnectionFactory($staticConnector)));
         $this->client = $this->builder->build();
+    }
+
+    final protected function getRequest(): Request
+    {
+        return $this->request;
     }
 
     final protected function thenRequestHasHeader(string $field, string ...$values): void

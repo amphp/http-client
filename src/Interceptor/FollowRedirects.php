@@ -165,14 +165,8 @@ final class FollowRedirects implements ApplicationInterceptor
 
     private function cloneRequest(Request $originalRequest): Request
     {
-        $request = new Request($originalRequest->getUri(), 'GET');
-        $request->setTlsHandshakeTimeout($originalRequest->getTlsHandshakeTimeout());
-        $request->setTransferTimeout($originalRequest->getTransferTimeout());
-        $request->setInactivityTimeout($originalRequest->getInactivityTimeout());
-        $request->setTcpConnectTimeout($originalRequest->getTcpConnectTimeout());
-        $request->setBodySizeLimit($originalRequest->getBodySizeLimit());
-
-        $request->setHeaders($originalRequest->getHeaders());
+        $request = clone $originalRequest;
+        $request->setMethod('GET');
         $request->removeHeader('transfer-encoding');
         $request->removeHeader('content-length');
         $request->removeHeader('content-type');
