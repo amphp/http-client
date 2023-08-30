@@ -945,11 +945,6 @@ final class Http2ConnectionProcessor implements Http2Processor
                     $this->socket->getRemoteAddress()->toString()
                 ));
             }
-
-            // TODO: Starting here, it's not retryable
-
-            $body = $request->getBody()->getContent();
-            $chunk = $body->read($cancellation);
         } catch (\Throwable $exception) {
             throw $this->wrapException($exception, "Request initialization failed");
         }
@@ -986,6 +981,9 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         try {
             events()->requestHeaderStart($request, $stream);
+
+            $body = $request->getBody()->getContent();
+            $chunk = $body->read($cancellation);
 
             $headers = $this->hpack->encode($this->generateHeaders($request));
             $flag = Http2Parser::END_HEADERS | ($chunk === null ? Http2Parser::END_STREAM : Http2Parser::NO_FLAG);
