@@ -55,7 +55,7 @@ final class EventInvoker implements EventListener
     public function requestFailed(Request $request, \Throwable $exception): void
     {
         $previousPhase = self::getPhase($request);
-        if ($previousPhase === Phase::Complete || $previousPhase === Phase::Failed) {
+        if (\in_array($previousPhase, [Phase::Complete, Phase::Failed, Phase::Rejected], true)) {
             throw new \Error('Invalid request phase transition from ' . $previousPhase->name . ' to Failed');
         }
 
@@ -79,7 +79,7 @@ final class EventInvoker implements EventListener
     public function requestRejected(Request $request): void
     {
         $previousPhase = self::getPhase($request);
-        if ($previousPhase === Phase::Complete || $previousPhase === Phase::Failed) {
+        if (\in_array($previousPhase, [Phase::Complete, Phase::Failed, Phase::Rejected], true)) {
             throw new \Error('Invalid request phase transition from ' . $previousPhase->name . ' to Failed');
         }
 
