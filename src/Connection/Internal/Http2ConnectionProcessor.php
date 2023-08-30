@@ -649,6 +649,8 @@ final class Http2ConnectionProcessor implements Http2Processor
         events()->requestBodyStart($request, $stream->stream);
         events()->requestBodyEnd($request, $stream->stream);
 
+        \assert($stream->pendingResponse !== null);
+
         $stream->pendingResponse->getFuture()
             ->map(function (Response $response) use ($request) {
                 $response->getTrailers()->map(fn () => events()->requestEnd($request, $response))->ignore();
