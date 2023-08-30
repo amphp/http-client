@@ -89,10 +89,22 @@ final class EventInvoker implements EventListener
         $this->invoke($request, fn (EventListener $eventListener) => $eventListener->connectionAcquired($request, $connection));
     }
 
+    public function push(Request $request): void
+    {
+        $previousPhase = self::getPhase($request);
+        if ($previousPhase !== Phase::Blocked) {
+            throw new \Error('Invalid request phase transition from ' . $previousPhase->name . ' to Push');
+        }
+
+        $this->requestPhase[$request] = Phase::Push;
+
+        $this->invoke($request, fn (EventListener $eventListener) => $eventListener->push($request));
+    }
+
     public function requestHeaderStart(Request $request, Stream $stream): void
     {
         $previousPhase = self::getPhase($request);
-        if ($previousPhase !== Phase::Connected && $previousPhase !== Phase::Blocked) {
+        if ($previousPhase !== Phase::Connected && $previousPhase !== Phase::Push) {
             throw new \Error('Invalid request phase transition from ' . $previousPhase->name . ' to RequestHeaders');
         }
 

@@ -8,6 +8,7 @@ enum Phase
     case Unprocessed;
     case Blocked;
     case Connected;
+    case Push;
     case RequestHeaders;
     case RequestBody;
     case ServerProcessing;

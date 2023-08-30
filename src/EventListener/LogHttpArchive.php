@@ -359,4 +359,9 @@ final class LogHttpArchive implements EventListener
     {
         // nothing to do
     }
+
+    public function push(Request $request): void
+    {
+        // nothing to do
+    }
 }

@@ -54,6 +54,11 @@ interface EventListener
     public function connectionAcquired(Request $request, Connection $connection): void;
 
     /**
+     * Called after the server initiated a push.
+     */
+    public function push(Request $request): void;
+
+    /**
      * Called before the request headers are sent.
      */
     public function requestHeaderStart(Request $request, Stream $stream): void;

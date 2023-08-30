@@ -642,6 +642,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         );
 
         events()->requestStart($request);
+        events()->push($request);
         events()->requestHeaderStart($request, $stream->stream);
         events()->requestHeaderEnd($request, $stream->stream);
         events()->requestBodyStart($request, $stream->stream);
