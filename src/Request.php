@@ -2,7 +2,6 @@
 
 namespace Amp\Http\Client;
 
-use Amp\ForbidCloning;
 use Amp\ForbidSerialization;
 use Amp\Future;
 use Amp\Http\Client\Connection\UpgradedSocket;

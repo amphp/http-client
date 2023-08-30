@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Amp\Http\Client\Interceptor;
 
@@ -17,7 +17,6 @@ class RetryRequestsTest extends InterceptorTest
         $this->givenApplicationInterceptor(new RetryRequests(2));
         $this->givenApplicationInterceptor(new AddRequestHeader('foo', 'after'));
         $this->givenNetworkInterceptor(new class implements NetworkInterceptor {
-
             public function requestViaNetwork(Request $request, Cancellation $cancellation, Stream $stream): Response
             {
                 static $i = 0;
