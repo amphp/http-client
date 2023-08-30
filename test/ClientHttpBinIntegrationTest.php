@@ -531,8 +531,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testConnectShortCircuitIfOtherConnectionBecomesAvailable(): void
     {
-        $this->setTimeout(1.5);
-        $this->givenSlowRawServerResponse(0.5, "HTTP/1.1 204 No content\r\n\r\n", "HTTP/1.1 204 No content\r\n\r\n");
+        $this->setTimeout(3);
+        $this->givenSlowRawServerResponse(1, "HTTP/1.1 204 No content\r\n\r\n", "HTTP/1.1 204 No content\r\n\r\n");
 
         $this->builder = $this->builder->usingPool(new UnlimitedConnectionPool(new DefaultConnectionFactory(new class implements SocketConnector {
             public function connect(SocketAddress|string $uri, ?ConnectContext $context = null, ?Cancellation $cancellation = null): Socket
@@ -540,7 +540,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
                 static $i = 0;
 
                 if (++$i === 2) {
-                    delay(2);
+                    delay(4);
                 }
 
                 return connect($uri, $context, $cancellation);
