@@ -89,7 +89,7 @@ final class Request extends HttpRequest
      */
     public function isUnprocessed(): bool
     {
-        return \in_array(EventInvoker::getPhase($this), [Phase::Unprocessed, Phase::Blocked, Phase::Connected], true);
+        return \in_array(EventInvoker::getPhase($this), [Phase::Unprocessed, Phase::Blocked, Phase::Connected, Phase::Rejected], true);
     }
 
     /**

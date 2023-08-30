@@ -32,6 +32,7 @@ final class RetryRequests implements ApplicationInterceptor
 
         do {
             try {
+                // TODO: Clone requests here
                 return $httpClient->request($request, $cancellation);
             } catch (HttpException $exception) {
                 if ($request->isIdempotent() || $request->isUnprocessed()) {
