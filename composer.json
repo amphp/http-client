@@ -1,7 +1,7 @@
 {
     "name": "amphp/http-client",
-    "homepage": "https://github.com/amphp/http-client",
-    "description": "Non-blocking concurrent HTTP/2 and HTTP/1.1 client based on Amp and Revolt.",
+    "homepage": "https://amphp.org/http-client",
+    "description": "An advanced async HTTP client library for PHP, enabling efficient, non-blocking, and concurrent requests and responses.",
     "keywords": [
         "http",
         "rest",
