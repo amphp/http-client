@@ -1044,6 +1044,11 @@ final class Http2ConnectionProcessor implements Http2Processor
                         return $responseFuture->await();
                     }
 
+                    if ($chunk === null) {
+                        // Don't move this out of the loop, this needs to be set before calling writeData
+                        $http2stream->requestBodyCompletion->complete();
+                    }
+
                     $writeFuture->await($cancellation);
                     $writeFuture = $this->writeData($http2stream, $buffer);
                     events()->requestBodyProgress($request, $stream);
@@ -1051,7 +1056,6 @@ final class Http2ConnectionProcessor implements Http2Processor
                 } while ($buffer !== null);
 
                 $writeFuture->await($cancellation);
-                $http2stream->requestBodyCompletion->complete();
             }
 
             events()->requestBodyEnd($request, $stream);
