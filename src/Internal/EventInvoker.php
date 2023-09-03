@@ -49,13 +49,13 @@ final class EventInvoker implements EventListener
 
     public function requestStart(Request $request): void
     {
+        if (self::isRejected($request)) {
+            throw new \Error('Request has been rejected by the server. Use a new request for retries.');
+        }
+
         $previousPhase = self::getPhase($request);
         if ($previousPhase !== Phase::Unprocessed) {
             throw new \Error('Invalid request phase transition from ' . $previousPhase->name . ' to Blocked');
-        }
-
-        if (self::isRejected($request)) {
-            throw new \Error('Request has been rejected by the server. Use a new request for retries.');
         }
 
         $this->requestPhase[$request] = Phase::Blocked;
@@ -120,13 +120,13 @@ final class EventInvoker implements EventListener
 
     public function requestHeaderStart(Request $request, Stream $stream): void
     {
+        if (self::isRejected($request)) {
+            throw new \Error('Request has been rejected by the server. Use a new request for retries.');
+        }
+
         $previousPhase = self::getPhase($request);
         if ($previousPhase !== Phase::Connected && $previousPhase !== Phase::Push) {
             throw new \Error('Invalid request phase transition from ' . $previousPhase->name . ' to RequestHeaders');
-        }
-
-        if (self::isRejected($request)) {
-            throw new \Error('Request has been rejected by the server. Use a new request for retries.');
         }
 
         $this->requestPhase[$request] = Phase::RequestHeaders;
