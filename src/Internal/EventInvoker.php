@@ -26,11 +26,18 @@ final class EventInvoker implements EventListener
         return self::get()->requestPhase[$request] ?? Phase::Unprocessed;
     }
 
+    public static function isRejected(Request $request): bool
+    {
+        return self::get()->requestRejected[$request] ?? false;
+    }
+
     private \WeakMap $requestPhase;
+    private \WeakMap $requestRejected;
 
     public function __construct()
     {
         $this->requestPhase = new \WeakMap();
+        $this->requestRejected = new \WeakMap();
     }
 
     private function invoke(Request $request, \Closure $closure): void
@@ -47,6 +54,10 @@ final class EventInvoker implements EventListener
             throw new \Error('Invalid request phase transition from ' . $previousPhase->name . ' to Blocked');
         }
 
+        if (self::isRejected($request)) {
+            throw new \Error('Request has been rejected by the server. Use a new request for retries.');
+        }
+
         $this->requestPhase[$request] = Phase::Blocked;
 
         $this->invoke($request, fn (EventListener $eventListener) => $eventListener->requestStart($request));
@@ -55,7 +66,7 @@ final class EventInvoker implements EventListener
     public function requestFailed(Request $request, \Throwable $exception): void
     {
         $previousPhase = self::getPhase($request);
-        if (\in_array($previousPhase, [Phase::Complete, Phase::Failed, Phase::Rejected], true)) {
+        if (\in_array($previousPhase, [Phase::Complete, Phase::Failed], true)) {
             throw new \Error('Invalid request phase transition from ' . $previousPhase->name . ' to Failed');
         }
 
@@ -67,7 +78,7 @@ final class EventInvoker implements EventListener
     public function requestEnd(Request $request, Response $response): void
     {
         $previousPhase = self::getPhase($request);
-        if ($previousPhase !== Phase::Blocked && $previousPhase !== Phase::ResponseHeaders && $previousPhase !== Phase::ResponseBody) {
+        if (!\in_array($previousPhase, [Phase::Blocked, Phase::ResponseHeaders, Phase::ResponseBody], true)) {
             throw new \Error('Invalid request phase transition from ' . $previousPhase->name . ' to Complete');
         }
 
@@ -78,12 +89,7 @@ final class EventInvoker implements EventListener
 
     public function requestRejected(Request $request): void
     {
-        $previousPhase = self::getPhase($request);
-        if (\in_array($previousPhase, [Phase::Complete, Phase::Failed, Phase::Rejected], true)) {
-            throw new \Error('Invalid request phase transition from ' . $previousPhase->name . ' to Failed');
-        }
-
-        $this->requestPhase[$request] = Phase::Rejected;
+        $this->requestRejected[$request] = true;
 
         $this->invoke($request, fn (EventListener $eventListener) => $eventListener->requestRejected($request));
     }
@@ -117,6 +123,10 @@ final class EventInvoker implements EventListener
         $previousPhase = self::getPhase($request);
         if ($previousPhase !== Phase::Connected && $previousPhase !== Phase::Push) {
             throw new \Error('Invalid request phase transition from ' . $previousPhase->name . ' to RequestHeaders');
+        }
+
+        if (self::isRejected($request)) {
+            throw new \Error('Request has been rejected by the server. Use a new request for retries.');
         }
 
         $this->requestPhase[$request] = Phase::RequestHeaders;

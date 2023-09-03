@@ -493,6 +493,36 @@ class Http2ConnectionTest extends AsyncTestCase
         $response->getBody()->buffer();
     }
 
+    public function testServerStreamRefuse(): void
+    {
+        [$server, $client] = Socket\createSocketPair();
+
+        $connection = new Http2Connection($client, 0, null);
+        $server->write(self::packFrame('', Http2Parser::SETTINGS, 0));
+        $connection->initialize();
+
+        $request = new Request('http://localhost/');
+        events()->requestStart($request);
+        $stream = $connection->getStream($request);
+
+        async(static function () use ($server) {
+            delay(0.1);
+
+            $server->write(self::packFrame(\pack("N", Http2Parser::REFUSED_STREAM), Http2Parser::RST_STREAM, Http2Parser::NO_FLAG, 1));
+        });
+
+        try {
+            $stream->request($request, new NullCancellation());
+
+            self::fail('SocketException expected');
+        } catch (SocketException $socketException) {
+            events()->requestFailed($request, $socketException);
+
+            $this->assertSame('Stream closed by server: Stream refused', $socketException->getMessage());
+            $this->assertTrue($request->isUnprocessed());
+        }
+    }
+
     /**
      * @throws Socket\SocketException
      * @throws \Amp\ByteStream\ClosedException

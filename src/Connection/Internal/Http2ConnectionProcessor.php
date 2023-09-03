@@ -722,7 +722,25 @@ final class Http2ConnectionProcessor implements Http2Processor
             return;
         }
 
-        $this->handleStreamException(new Http2StreamException("Stream closed by server", $streamId, $errorCode));
+        $message = match ($errorCode) {
+            Http2Parser::GRACEFUL_SHUTDOWN => 'Graceful shutdown',
+            Http2Parser::PROTOCOL_ERROR => 'Protocol error',
+            Http2Parser::INTERNAL_ERROR => 'Internal error',
+            Http2Parser::FLOW_CONTROL_ERROR => 'Flow control error',
+            Http2Parser::SETTINGS_TIMEOUT => 'Settings timeout',
+            Http2Parser::STREAM_CLOSED => 'Stream closed',
+            Http2Parser::FRAME_SIZE_ERROR => 'Frame size error',
+            Http2Parser::REFUSED_STREAM => 'Stream refused',
+            Http2Parser::CANCEL => 'Stream cancelled',
+            Http2Parser::COMPRESSION_ERROR => 'Compression error',
+            Http2Parser::CONNECT_ERROR => 'Connect error',
+            Http2Parser::ENHANCE_YOUR_CALM => 'Enhance your calm',
+            Http2Parser::INADEQUATE_SECURITY => 'Inadequate security',
+            Http2Parser::HTTP_1_1_REQUIRED => 'HTTP/1.1 required',
+            default => 'Unknown error' . $errorCode
+        };
+
+        $this->handleStreamException(new Http2StreamException("Stream closed by server: $message", $streamId, $errorCode));
     }
 
     public function handleStreamException(Http2StreamException $exception): void
