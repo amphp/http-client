@@ -1,7 +1,7 @@
-<?php
+<?php declare(strict_types=1);
 
-use Amp\Http\Client\HttpClient;
-use Amp\Http\Client\HttpClientBuilder;
+namespace Amp\Http\Client;
+
 use Amp\Http\Client\Request as ClientRequest;
 use Amp\Http\Server\DefaultErrorHandler;
 use Amp\Http\Server\Driver\DefaultHttpDriverFactory;
@@ -27,7 +27,7 @@ class Http2IntegrationTest extends TestCase
 
         $this->httpServer->expose('127.0.0.1:0');
         $this->httpServer->start(new ClosureRequestHandler(function (Request $request): Response {
-            return new Response(200, [], (string)\strlen($request->getBody()->buffer()));
+            return new Response(200, [], (string) \strlen($request->getBody()->buffer()));
         }), new DefaultErrorHandler());
 
         $this->httpClient = (new HttpClientBuilder())->build();
