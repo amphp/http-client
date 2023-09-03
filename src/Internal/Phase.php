@@ -16,5 +16,4 @@ enum Phase
     case ResponseBody;
     case Complete;
     case Failed;
-    case Rejected;
 }

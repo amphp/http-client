@@ -91,7 +91,7 @@ final class Request extends HttpRequest
             return true;
         }
 
-        return \in_array(EventInvoker::getPhase($this), [Phase::Unprocessed, Phase::Blocked, Phase::Connected, Phase::Rejected], true);
+        return \in_array(EventInvoker::getPhase($this), [Phase::Unprocessed, Phase::Blocked, Phase::Connected], true);
     }
 
     /**
