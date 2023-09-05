@@ -575,6 +575,8 @@ final class Http1Connection implements Connection
             events()->requestHeaderEnd($request, $stream);
 
             if ($request->getMethod() === 'CONNECT') {
+                events()->requestBodyStart($request, $stream);
+                events()->requestBodyEnd($request, $stream);
                 return;
             }
 
