@@ -229,8 +229,8 @@ final class Http1Connection implements Connection
         $request->setProtocolVersions([$protocolVersion]);
 
         if ($request->getTransferTimeout() > 0) {
-            $timeoutToken = new TimeoutCancellation($request->getTransferTimeout());
-            $combinedCancellation = new CompositeCancellation($cancellation, $timeoutToken);
+            $timeoutCancellation = new TimeoutCancellation($request->getTransferTimeout());
+            $combinedCancellation = new CompositeCancellation($cancellation, $timeoutCancellation);
         } else {
             $combinedCancellation = $cancellation;
         }

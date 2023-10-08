@@ -116,14 +116,14 @@ final class ConnectionLimitingPool implements ConnectionPool
 
         return HttpStream::fromStream(
             $stream,
-            function (Request $request, Cancellation $cancellationToken) use (
+            function (Request $request, Cancellation $cancellation) use (
                 $poolRef,
                 $connection,
                 $stream,
                 $uri
             ): Response {
                 try {
-                    $response = $stream->request($request, $cancellationToken);
+                    $response = $stream->request($request, $cancellation);
                 } catch (\Throwable $e) {
                     $this->onReadyConnection($connection, $uri);
                     throw $e;

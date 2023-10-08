@@ -137,7 +137,7 @@ final class FollowRedirects implements ApplicationInterceptor
         Request $clonedRequest,
         Response $response,
         DelegateHttpClient $client,
-        Cancellation $cancellationToken
+        Cancellation $cancellation
     ): Response {
         $maxRedirects = $this->maxRedirects;
         $requestNr = 2;
@@ -150,7 +150,7 @@ final class FollowRedirects implements ApplicationInterceptor
 
             $clonedRequest = $this->cloneRequest($request);
 
-            $redirectResponse = $client->request($request, $cancellationToken);
+            $redirectResponse = $client->request($request, $cancellation);
             $redirectResponse->setPreviousResponse($response);
 
             $response = $redirectResponse;

@@ -62,12 +62,12 @@ final class StreamLimitingPool implements ConnectionPool
 
         return HttpStream::fromStream(
             $stream,
-            static function (Request $request, Cancellation $cancellationToken) use (
+            static function (Request $request, Cancellation $cancellation) use (
                 $stream,
                 $lock
             ): Response {
                 try {
-                    $response = $stream->request($request, $cancellationToken);
+                    $response = $stream->request($request, $cancellation);
                 } catch (\Throwable $e) {
                     $lock->release();
                     throw $e;
