@@ -98,11 +98,11 @@ final class Http2Connection implements Connection
         return $this->socket->getTlsInfo();
     }
 
-    private function request(Request $request, Cancellation $token, Stream $applicationStream): Response
+    private function request(Request $request, Cancellation $cancellation, Stream $stream): Response
     {
         $this->requestCount++;
 
-        return $this->processor->request($request, $token, $applicationStream);
+        return $this->processor->request($request, $cancellation, $stream);
     }
 
     public function getTlsHandshakeDuration(): ?float
