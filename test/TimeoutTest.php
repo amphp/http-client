@@ -3,6 +3,7 @@
 
 namespace Amp\Http\Client;
 
+use Amp\ByteStream\StreamException;
 use Amp\Http\Client\Connection\DefaultConnectionFactory;
 use Amp\Http\Client\Connection\UnlimitedConnectionPool;
 use Amp\Http\Client\Interceptor\SetRequestTimeout;
@@ -48,7 +49,7 @@ class TimeoutTest extends AsyncTestCase
 
             $response = $this->client->request($request);
 
-            $this->expectException(TimeoutException::class);
+            $this->expectException(StreamException::class);
             $this->expectExceptionMessage("Allowed transfer timeout exceeded, took longer than 1 s");
 
             $response->getBody()->buffer();
@@ -172,7 +173,7 @@ class TimeoutTest extends AsyncTestCase
             $client = new InterceptedHttpClient(new PooledHttpClient, new SetRequestTimeout(10, 10, 1), []);
             $response = $client->request($request, new NullCancellation);
 
-            $this->expectException(TimeoutException::class);
+            $this->expectException(StreamException::class);
             $this->expectExceptionMessage("Allowed transfer timeout exceeded, took longer than 1 s");
 
             $response->getBody()->buffer();

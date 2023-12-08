@@ -72,7 +72,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     {
         $this->givenRawServerResponse("HTTP/1.0 200 OK\r\nContent-Length: 2\r\n\r\n.");
 
-        $this->expectException(SocketException::class);
+        $this->expectException(StreamException::class);
         $this->expectExceptionMessage("Socket disconnected prior to response completion");
 
         $request = $this->createRequest();
@@ -86,7 +86,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     {
         $this->givenRawServerResponse("HTTP/1.0 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n0\r"); // missing \n
 
-        $this->expectException(SocketException::class);
+        $this->expectException(StreamException::class);
         $this->expectExceptionMessage("Socket disconnected prior to response completion");
 
         $request = $this->createRequest();

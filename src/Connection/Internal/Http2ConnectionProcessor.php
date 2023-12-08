@@ -1356,11 +1356,18 @@ final class Http2ConnectionProcessor implements Http2Processor
             $stream->pendingResponse?->error($exception);
             $stream->pendingResponse = null;
 
-            $stream->body?->error($exception);
-            $stream->body = null;
-
             $stream->trailers?->error($exception);
             $stream->trailers = null;
+
+            if (!$exception instanceof CancelledException) {
+                $exception = new StreamException(
+                    'HTTP response did not complete: ' . $exception->getMessage(),
+                    previous: $exception,
+                );
+            }
+
+            $stream->body?->error($exception);
+            $stream->body = null;
 
             $this->writeFrame(
                 Http2Parser::RST_STREAM,

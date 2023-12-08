@@ -3,6 +3,7 @@
 
 namespace Amp\Http\Client\Connection;
 
+use Amp\ByteStream\StreamException;
 use Amp\CancelledException;
 use Amp\Future;
 use Amp\Http\Client\HttpException;
@@ -281,7 +282,7 @@ class Http2ConnectionTest extends AsyncTestCase
         try {
             $response->getBody()->buffer();
             self::fail("The request body should have been cancelled");
-        } catch (TimeoutException $exception) {
+        } catch (StreamException $exception) {
             delay(0.01); // Allow frame queue to complete writing.
             $buffer = $server->read();
             $expected = \bin2hex(self::packFrame(
@@ -419,7 +420,7 @@ class Http2ConnectionTest extends AsyncTestCase
         try {
             $response->getBody()->buffer();
             self::fail("The request body should have been cancelled");
-        } catch (TimeoutException $exception) {
+        } catch (StreamException $exception) {
             delay(0.01); // Allow frame queue to complete writing.
             $buffer = $server->read();
             $expected = \bin2hex(self::packFrame(
@@ -485,7 +486,7 @@ class Http2ConnectionTest extends AsyncTestCase
                 [":path", '/static'],
             ]), Http2Parser::PUSH_PROMISE, Http2Parser::END_HEADERS, 1));
 
-        $this->expectException(SocketException::class);
+        $this->expectException(StreamException::class);
         $this->expectExceptionMessage('Invalid server initiated stream');
 
         /** @var Response $response */
