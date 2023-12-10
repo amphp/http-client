@@ -49,6 +49,18 @@ final class Form implements HttpContent
         $this->fields[] = new FormField($name, BufferedContent::fromString($content, $contentType));
     }
 
+    /**
+     * Adds each member of the array as an entry for the given key name. Array keys are persevered.
+     *
+     * @param array<string> $fields
+     */
+    public function addFields(string $name, array $fields): void
+    {
+        foreach ($fields as $key => $content) {
+            $this->addField(\sprintf('%s[%s]', $name, $key), $content);
+        }
+    }
+
     public function addStream(string $name, HttpContent $content, ?string $filename = null): void
     {
         if ($this->used) {

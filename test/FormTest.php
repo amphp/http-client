@@ -16,8 +16,11 @@ class FormTest extends TestCase
         $body->addField('d', 'd');
         $body->addField('encoding', '1+2');
 
+        $body->addFields('list', ['one', 'two']);
+        $body->addFields('map', ['one' => 'one', 'two' => 'two']);
+
         $content = buffer($body->getContent());
-        $this->assertEquals("a=a&b=b&c=c&d=d&encoding=1%2B2", $content);
+        $this->assertEquals("a=a&b=b&c=c&d=d&encoding=1%2B2&list%5B0%5D=one&list%5B1%5D=two&map%5Bone%5D=one&map%5Btwo%5D=two", $content);
     }
 
     public function testMultiPartFieldsStream(): void
