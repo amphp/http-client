@@ -432,8 +432,18 @@ final class Http1Connection implements Connection
                     } catch (\Throwable $e) {
                         $this->close();
 
-                        $bodyEmitter->error($e);
+                        $e = $this->wrapException($e);
+
                         $trailersDeferred->error($e);
+
+                        if (!$e instanceof CancelledException) {
+                            $e = new StreamException(
+                                'HTTP response did not complete: ' . $e->getMessage(),
+                                previous: $e,
+                            );
+                        }
+
+                        $bodyEmitter->error($e);
                     } finally {
                         $bodyCancellation->unsubscribe($closeId);
                     }
@@ -689,5 +699,14 @@ final class Http1Connection implements Connection
     public function getConnectDuration(): float
     {
         return $this->connectDuration;
+    }
+
+    private function wrapException(\Throwable $exception): \Throwable
+    {
+        if ($exception instanceof HttpException || $exception instanceof CancelledException) {
+            return $exception;
+        }
+
+        return new HttpException($exception->getMessage(), previous: $exception);
     }
 }

@@ -167,7 +167,7 @@ class Http1ConnectionTest extends AsyncTestCase
         try {
             $response->getBody()->buffer();
             self::fail("The request should have timed out");
-        } catch (TimeoutException $exception) {
+        } catch (StreamException $exception) {
             self::assertStringContainsString('transfer timeout', $exception->getMessage());
         }
     }
@@ -208,7 +208,7 @@ class Http1ConnectionTest extends AsyncTestCase
         try {
             $response->getBody()->buffer();
             self::fail("The request should have timed out");
-        } catch (TimeoutException $exception) {
+        } catch (StreamException $exception) {
             self::assertStringContainsString('Inactivity timeout', $exception->getMessage());
         }
     }
