@@ -11,7 +11,6 @@ use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\SocketException;
-use Amp\Http\Client\TimeoutException;
 use Amp\Http\Client\Trailers;
 use Amp\Http\HPack;
 use Amp\Http\Http2\Http2Parser;

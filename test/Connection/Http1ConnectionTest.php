@@ -11,7 +11,6 @@ use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\StreamedContent;
-use Amp\Http\Client\TimeoutException;
 use Amp\NullCancellation;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Pipeline\Pipeline;
