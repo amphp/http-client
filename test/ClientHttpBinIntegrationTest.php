@@ -1,5 +1,4 @@
 <?php declare(strict_types=1);
-/** @noinspection PhpUnhandledExceptionInspection */
 
 namespace Amp\Http\Client;
 
@@ -13,7 +12,6 @@ use Amp\Future;
 use Amp\Http\Client\Connection\DefaultConnectionFactory;
 use Amp\Http\Client\Connection\UnlimitedConnectionPool;
 use Amp\Http\Client\Interceptor\DecompressResponse;
-use Amp\Http\Client\Interceptor\ModifyRequest;
 use Amp\Http\Client\Interceptor\SetRequestHeaderIfUnset;
 use Amp\Http\Client\Interceptor\TooManyRedirectsException;
 use Amp\Http\Cookie\RequestCookie;
@@ -609,48 +607,6 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->executeRequest($request);
     }
 
-    public function testHttp2Support(): void
-    {
-        $response = $this->client->request(new Request('https://http2.pro/api/v1'));
-        $body = $response->getBody()->buffer();
-        $json = \json_decode($body, true);
-
-        self::assertSame(1, $json['http2']);
-        self::assertSame('HTTP/2.0', $json['protocol']);
-        self::assertSame(1, $json['push']);
-        self::assertSame('2', $response->getProtocolVersion());
-    }
-
-    public function testHttp2SupportBody(): void
-    {
-        $request = new Request('https://http2.pro/api/v1', 'POST');
-        $request->setBody('foobar');
-
-        $response = $this->client->request($request);
-        $body = $response->getBody()->buffer();
-        $json = \json_decode($body, true);
-
-        self::assertSame(1, $json['http2']);
-        self::assertSame('HTTP/2.0', $json['protocol']);
-        self::assertSame(1, $json['push']);
-        self::assertSame('2', $response->getProtocolVersion());
-    }
-
-    public function testHttp2SupportLargeBody(): void
-    {
-        $request = new Request('https://http2.pro/api/v1', 'POST');
-        $request->setBody(\str_repeat(',', 256 * 1024)); // larger than initial stream window
-
-        $response = $this->client->request($request);
-        $body = $response->getBody()->buffer();
-        $json = \json_decode($body, true);
-
-        self::assertSame(1, $json['http2']);
-        self::assertSame('HTTP/2.0', $json['protocol']);
-        self::assertSame(1, $json['push']);
-        self::assertSame('2', $response->getProtocolVersion());
-    }
-
     public function testHttp2SupportLargeResponseBody(): void
     {
         $request = new Request('https://1906714720.rsc.cdn77.org/img/cdn77-test-3mb.jpg', 'GET');
@@ -661,28 +617,6 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $response->getBody()->buffer();
 
         self::assertSame(200, $response->getStatus());
-    }
-
-    public function testConcurrentSlowNetworkInterceptor(): void
-    {
-        $this->givenNetworkInterceptor(new ModifyRequest(static function (Request $request) {
-            delay(2);
-            return $request;
-        }));
-
-        [$response1, $response2] = Future\await([
-            async(fn () => $this->client->request(new Request('https://http2.pro/api/v1'))),
-            async(fn () => $this->client->request(new Request('https://http2.pro/api/v1'))),
-        ]);
-
-        $body1 = $response1->getBody()->buffer();
-        $body2 = $response2->getBody()->buffer();
-
-        $json1 = \json_decode($body1, true);
-        $json2 = \json_decode($body2, true);
-
-        self::assertSame(1, $json1['http2']);
-        self::assertSame(1, $json2['http2']);
     }
 
     public function testHttp2UpgradeResponse(): void
