@@ -38,21 +38,22 @@ final class DefaultConnectionFactory implements ConnectionFactory
         $uri = $request->getUri();
         $scheme = $uri->getScheme();
 
-        if (!\in_array($scheme, ['http', 'https'], true)) {
+        if (!\in_array($scheme, ['http', 'https', 'unix'], true)) {
             throw new InvalidRequestException($request, 'Invalid scheme provided in the request URI: ' . $uri);
         }
-
+        $host = $uri->getHost();
+        $path = $uri->getPath();
+        // Ports
         $isHttps = $scheme === 'https';
         $defaultPort = $isHttps ? 443 : 80;
-
-        $host = $uri->getHost();
         $port = $uri->getPort() ?? $defaultPort;
+        // Main path
+        $authority = $scheme == 'unix' ? $host.$path : $host . ':' . $port;
 
         if ($host === '') {
             throw new InvalidRequestException($request, 'A host must be provided in the request URI: ' . $uri);
         }
 
-        $authority = $host . ':' . $port;
         $protocolVersions = $request->getProtocolVersions();
 
         $isConnect = $request->getMethod() === 'CONNECT';
@@ -97,8 +98,9 @@ final class DefaultConnectionFactory implements ConnectionFactory
         }
 
         try {
+            $address = ($scheme == 'unix' ? 'unix://' : 'tcp://') . $authority;
             $socket = $connector->connect(
-                'tcp://' . $authority,
+                $address,
                 $connectContext->withConnectTimeout($request->getTcpConnectTimeout()),
                 $cancellation
             );
