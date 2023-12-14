@@ -1384,14 +1384,6 @@ final class Http2ConnectionProcessor implements Http2Processor
         if (!$this->streams && !$this->socket->isClosed() && $this->socket instanceof ResourceStream) {
             $this->socket->unreference();
         }
-
-        if ($stream->transferWatcher) {
-            EventLoop::cancel($stream->transferWatcher);
-        }
-
-        if ($stream->inactivityWatcher) {
-            EventLoop::cancel($stream->inactivityWatcher);
-        }
     }
 
     /**
