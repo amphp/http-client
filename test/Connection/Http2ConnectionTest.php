@@ -577,4 +577,49 @@ class Http2ConnectionTest extends AsyncTestCase
             'Absolute path is passed as is' => ['/foo', '/foo'],
         ];
     }
+
+    public function testServerAbruptDisconnect(): void
+    {
+        [$server, $client] = Socket\createSocketPair();
+
+        $connection = new Http2Connection($client, 0, null);
+        $server->write(self::packFrame('', Http2Parser::SETTINGS, 0));
+        $connection->initialize();
+
+        $request = new Request('http://localhost/');
+        events()->requestStart($request);
+        $stream = $connection->getStream($request);
+
+        EventLoop::queue(static function () use ($server): void {
+            $hpack = new HPack();
+
+            delay(0.1);
+
+            $server->write(self::packFrame($hpack->encode([
+                [":status", (string) HttpStatus::OK],
+                ["content-length", "8"],
+                ["date", formatDateHeader()],
+            ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS, 1));
+
+            delay(0.1);
+
+            $server->write(self::packFrame('test', Http2Parser::DATA, Http2Parser::NO_FLAG, 1));
+
+            $server->close();
+        });
+
+        $response = $stream->request($request, new NullCancellation);
+
+        self::assertSame(200, $response->getStatus());
+
+        try {
+            $response->getBody()->buffer();
+        } catch (StreamException $exception) {
+            self::assertStringContainsString('response did not complete', $exception->getMessage());
+
+            $previous = $exception->getPrevious();
+            self::assertInstanceOf(SocketException::class, $previous);
+            self::assertStringContainsString('closed unexpectedly', $previous->getMessage());
+        }
+    }
 }
