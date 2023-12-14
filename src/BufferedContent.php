@@ -10,6 +10,18 @@ use function Amp\File\read;
 
 final class BufferedContent implements HttpContent
 {
+    public static function fromJson(mixed $json): self
+    {
+        try {
+            return self::fromString(\json_encode($json, flags: \JSON_THROW_ON_ERROR), 'application/json');
+        } catch (\JsonException $exception) {
+            throw new HttpException(
+                'Exception thrown encoding JSON content: ' . $exception->getMessage(),
+                previous: $exception,
+            );
+        }
+    }
+
     public static function fromString(string $content, ?string $contentType = null): self
     {
         return new self($content, $contentType);
