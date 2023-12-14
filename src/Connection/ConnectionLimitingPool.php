@@ -49,16 +49,16 @@ final class ConnectionLimitingPool implements ConnectionPool
     /** @var array<string, \ArrayObject<int, Future<Connection>>> */
     private array $connections = [];
 
-    /** @var Connection[] */
+    /** @var array<int, Connection> Idle connections, indexed by connection object ID. */
     private array $idleConnections = [];
 
-    /** @var int[] */
+    /** @var array<int, int> Map of connection object IDs to request counts. */
     private array $activeRequestCounts = [];
 
-    /** @var DeferredFuture[][] */
+    /** @var array<string, array<int, DeferredFuture>> */
     private array $waiting = [];
 
-    /** @var bool[] */
+    /** @var array<string, bool> Map of URIs to flags to wait for potential HTTP/2 connection. */
     private array $waitForPriorConnection = [];
 
     private int $totalConnectionAttempts = 0;
@@ -113,11 +113,19 @@ final class ConnectionLimitingPool implements ConnectionPool
         unset($this->idleConnections[$connectionId]);
 
         $poolRef = \WeakReference::create($this);
+        $releaseCallback = static function () use ($poolRef, $connection, $uri): void {
+            $pool = $poolRef->get();
+            if ($pool) {
+                $pool->onReadyConnection($connection, $uri);
+            } elseif ($connection->isIdle()) {
+                $connection->close();
+            }
+        };
 
         return HttpStream::fromStream(
             $stream,
             function (Request $request, Cancellation $cancellation) use (
-                $poolRef,
+                $releaseCallback,
                 $connection,
                 $stream,
                 $uri
@@ -129,29 +137,11 @@ final class ConnectionLimitingPool implements ConnectionPool
                     throw $e;
                 }
 
-                async(static function () use ($poolRef, $response, $connection, $uri): void {
-                    try {
-                        $response->getTrailers()->await();
-                    } finally {
-                        $pool = $poolRef->get();
-                        if ($pool) {
-                            $pool->onReadyConnection($connection, $uri);
-                        } elseif ($connection->isIdle()) {
-                            $connection->close();
-                        }
-                    }
-                })->ignore();
+                $response->getTrailers()->finally($releaseCallback)->ignore();
 
                 return $response;
             },
-            static function () use ($poolRef, $connection, $uri): void {
-                $pool = $poolRef->get();
-                if ($pool) {
-                    $pool->onReadyConnection($connection, $uri);
-                } elseif ($connection->isIdle()) {
-                    $connection->close();
-                }
-            }
+            $releaseCallback,
         );
     }
 
