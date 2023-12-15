@@ -54,7 +54,7 @@ final class Form implements HttpContent
      *
      * @param array<string> $fields
      */
-    public function addFields(string $name, array $fields): void
+    public function addNestedFields(string $name, array $fields): void
     {
         foreach ($fields as $key => $content) {
             $this->addField(\sprintf('%s[%s]', $name, $key), $content);
