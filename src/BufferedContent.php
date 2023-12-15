@@ -10,6 +10,16 @@ use function Amp\File\read;
 
 final class BufferedContent implements HttpContent
 {
+    public static function fromString(string $content, ?string $contentType = null): self
+    {
+        return new self($content, $contentType);
+    }
+
+    /**
+     * Creates an instance using the given JSON serializable data with the content-type application/json.
+     *
+     * @param mixed $json Data which may be JSON serialized with {@see json_encode()}.
+     */
     public static function fromJson(mixed $json): self
     {
         try {
@@ -20,11 +30,6 @@ final class BufferedContent implements HttpContent
                 previous: $exception,
             );
         }
-    }
-
-    public static function fromString(string $content, ?string $contentType = null): self
-    {
-        return new self($content, $contentType);
     }
 
     public static function fromFile(
