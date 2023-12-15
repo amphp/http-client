@@ -15,6 +15,23 @@ final class BufferedContent implements HttpContent
         return new self($content, $contentType);
     }
 
+    /**
+     * Creates an instance using the given JSON serializable data with the content-type application/json.
+     *
+     * @param mixed $json Data which may be JSON serialized with {@see json_encode()}.
+     */
+    public static function fromJson(mixed $json): self
+    {
+        try {
+            return self::fromString(\json_encode($json, flags: \JSON_THROW_ON_ERROR), 'application/json');
+        } catch (\JsonException $exception) {
+            throw new HttpException(
+                'Exception thrown encoding JSON content: ' . $exception->getMessage(),
+                previous: $exception,
+            );
+        }
+    }
+
     public static function fromFile(
         string $path,
         ?string $contentType = null,
