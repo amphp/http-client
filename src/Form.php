@@ -52,13 +52,34 @@ final class Form implements HttpContent
     /**
      * Adds each member of the array as an entry for the given key name. Array keys are persevered.
      *
-     * @param array<string> $fields
+     * @param array<string|array> $fields
      */
     public function addNestedFields(string $name, array $fields): void
     {
-        foreach ($fields as $key => $content) {
-            $this->addField(\sprintf('%s[%s]', $name, $key), $content);
+        foreach ($this->flattenArray($fields) as $key => $value) {
+            $this->addField($name . $key, $value);
         }
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function flattenArray(array $fields): array
+    {
+        $result = [];
+        foreach ($fields as $outerKey => $value) {
+            $key = "[{$outerKey}]";
+            if (!\is_array($value)) {
+                $result[$key] = (string) $value;
+                continue;
+            }
+
+            foreach ($this->flattenArray($value) as $innerKey => $flattened) {
+                $result[$key . $innerKey] = $flattened;
+            }
+        }
+
+        return $result;
     }
 
     public function addStream(string $name, HttpContent $content, ?string $filename = null): void
