@@ -108,17 +108,17 @@ $request->setBody("foobar");
 
 #### Request Bodies
 
-`Request::setBody($body)` allows changing the request body. Accepted types are `string`, `null`, and `RequestBody`. `string` and `null` are automatically converted to an instance of `RequestBody`.
+`Request::setBody($body)` allows changing the request body. Accepted types are `string`, `null`, and `HttpContent`. `string` and `null` are automatically converted to an instance of `HttpContent`.
 
 > **Note**
-> `RequestBody` is basically a factory for request bodies. We cannot simply accept streams here, because a request body might have to be sent again on a redirect / retry. Additionally, `RequestBody` allows the body to set headers, which can be used to automatically set headers such as `Content-Type: application/json` for a `JsonBody`. Note that headers set via `RequestBody::getHeaders()` are only applied if the `Request` doesn't have such a header. This allows overriding the default body header in a request.
+> `HttpContent` is basically a factory for request bodies. We cannot simply accept streams here, because a request body might have to be sent again on a redirect / retry.
 
 ```php
 $request = new Request("https://httpbin.org/post", "POST");
 $request->setBody("foobar");
 ```
 
-`Request::getBody()` exposes the request body of the given `Request` object and will always return a `RequestBody`.
+`Request::getBody()` exposes the request body of the given `Request` object and will always return a `HttpContent`.
 
 ### Response
 
