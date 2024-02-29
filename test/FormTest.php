@@ -16,8 +16,36 @@ class FormTest extends TestCase
         $body->addField('d', 'd');
         $body->addField('encoding', '1+2');
 
+        $body->addNestedFields('list', ['one', 'two']);
+        $body->addNestedFields('map', ['one' => 'one', 'two' => 'two']);
+
         $content = buffer($body->getContent());
-        $this->assertEquals("a=a&b=b&c=c&d=d&encoding=1%2B2", $content);
+        $this->assertEquals("a=a&b=b&c=c&d=d&encoding=1%2B2&list%5B0%5D=one&list%5B1%5D=two&map%5Bone%5D=one&map%5Btwo%5D=two", $content);
+    }
+
+    public function testNestedArrays(): void
+    {
+        $body = new Form();
+
+        $body->addNestedFields('map', [
+            [
+                'one' => 'one',
+                'two' => 'two',
+            ],
+            [
+                'one' => [1],
+                'two' => [1, 2],
+                'three' => [1, 2, 3],
+            ],
+            [
+                3 => 'three',
+                10 => 'ten',
+                42 => 'forty-two',
+            ],
+        ]);
+
+        $content = buffer($body->getContent());
+        $this->assertEquals("map%5B0%5D%5Bone%5D=one&map%5B0%5D%5Btwo%5D=two&map%5B1%5D%5Bone%5D%5B0%5D=1&map%5B1%5D%5Btwo%5D%5B0%5D=1&map%5B1%5D%5Btwo%5D%5B1%5D=2&map%5B1%5D%5Bthree%5D%5B0%5D=1&map%5B1%5D%5Bthree%5D%5B1%5D=2&map%5B1%5D%5Bthree%5D%5B2%5D=3&map%5B2%5D%5B3%5D=three&map%5B2%5D%5B10%5D=ten&map%5B2%5D%5B42%5D=forty-two", $content);
     }
 
     public function testMultiPartFieldsStream(): void
