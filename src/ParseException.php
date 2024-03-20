@@ -9,7 +9,7 @@ final class ParseException extends HttpException
      * @param int             $code
      * @param \Throwable|null $previousException
      */
-    public function __construct(string $message, int $code, \Throwable $previousException = null)
+    public function __construct(string $message, int $code, ?\Throwable $previousException = null)
     {
         parent::__construct($message, $code, $previousException);
     }

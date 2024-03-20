@@ -30,7 +30,7 @@ final class FormBody implements RequestBody
     /**
      * @param string $boundary An optional multipart boundary string
      */
-    public function __construct(string $boundary = null)
+    public function __construct(?string $boundary = null)
     {
         /** @noinspection PhpUnhandledExceptionInspection */
         $this->boundary = $boundary ?? \bin2hex(\random_bytes(16));
