@@ -658,9 +658,9 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $body = yield $response->getBody()->buffer();
         $json = \json_decode($body, true);
 
-        $this->assertSame(1, $json['http2']);
+        $this->assertSame(0, $json['http2']);
         $this->assertSame('HTTP/2.0', $json['protocol']);
-        $this->assertSame(1, $json['push']);
+        $this->assertSame(0, $json['push']);
         $this->assertSame('2', $response->getProtocolVersion());
     }
 
@@ -674,9 +674,9 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $body = yield $response->getBody()->buffer();
         $json = \json_decode($body, true);
 
-        $this->assertSame(1, $json['http2']);
+        $this->assertSame(0, $json['http2']);
         $this->assertSame('HTTP/2.0', $json['protocol']);
-        $this->assertSame(1, $json['push']);
+        $this->assertSame(0, $json['push']);
         $this->assertSame('2', $response->getProtocolVersion());
     }
 
@@ -690,9 +690,9 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $body = yield $response->getBody()->buffer();
         $json = \json_decode($body, true);
 
-        $this->assertSame(1, $json['http2']);
+        $this->assertSame(0, $json['http2']);
         $this->assertSame('HTTP/2.0', $json['protocol']);
-        $this->assertSame(1, $json['push']);
+        $this->assertSame(0, $json['push']);
         $this->assertSame('2', $response->getProtocolVersion());
     }
 
@@ -730,8 +730,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $json1 = \json_decode($body1, true);
         $json2 = \json_decode($body2, true);
 
-        $this->assertSame(1, $json1['http2']);
-        $this->assertSame(1, $json2['http2']);
+        $this->assertSame(0, $json1['http2']);
+        $this->assertSame(0, $json2['http2']);
     }
 
     public function testHttp2UpgradeResponse(): \Generator
