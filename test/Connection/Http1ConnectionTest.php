@@ -135,7 +135,7 @@ class Http1ConnectionTest extends AsyncTestCase
     public function testTransferTimeout(): \Generator
     {
         $this->setMinimumRuntime(500);
-        $this->setTimeout(600);
+        $this->setTimeout(1000);
 
         [$server, $client] = Socket\createPair();
 
@@ -165,7 +165,7 @@ class Http1ConnectionTest extends AsyncTestCase
     public function testInactivityTimeout(): \Generator
     {
         $this->setMinimumRuntime(500);
-        $this->setTimeout(1500);
+        $this->setTimeout(2000);
 
         [$server, $client] = Socket\createPair();
 

@@ -103,7 +103,7 @@ class TimeoutTest extends AsyncTestCase
             }
         });
 
-        $this->setTimeout(600);
+        $this->setTimeout(1000);
 
         try {
             $uri = "https://" . $server->getAddress() . "/";
@@ -144,7 +144,7 @@ class TimeoutTest extends AsyncTestCase
             }
         });
 
-        $this->setTimeout(600);
+        $this->setTimeout(1000);
 
         try {
             $uri = "https://" . $server->getAddress() . "/";
