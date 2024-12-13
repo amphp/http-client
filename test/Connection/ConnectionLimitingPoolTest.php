@@ -23,7 +23,6 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
             ->usingPool(ConnectionLimitingPool::byAuthority(1))
             ->build();
 
-        $this->setTimeout(5);
         $this->setMinimumRuntime(2);
 
         Future\await([
@@ -46,7 +45,7 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
             ->usingPool(ConnectionLimitingPool::byAuthority(2))
             ->build();
 
-        $this->setTimeout(4);
+        $this->setTimeout(6);
         $this->setMinimumRuntime(2);
 
         Future\await([

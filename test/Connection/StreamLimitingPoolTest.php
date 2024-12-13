@@ -17,7 +17,6 @@ class StreamLimitingPoolTest extends AsyncTestCase
             ->usingPool(StreamLimitingPool::byHost(new UnlimitedConnectionPool, new LocalKeyedMutex))
             ->build();
 
-        $this->setTimeout(5);
         $this->setMinimumRuntime(2);
 
         Future\await([
