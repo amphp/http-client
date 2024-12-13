@@ -462,7 +462,7 @@ class Http2ConnectionTest extends AsyncTestCase
         string $requestPath,
         string $expectedPath
     ): void {
-        $uri = Uri\Http::createFromString('http://localhost')->withPath($requestPath);
+        $uri = Uri\Http::new('http://localhost')->withPath($requestPath);
         $request = new Request($uri);
         $request->setInactivityTimeout(0.5);
 

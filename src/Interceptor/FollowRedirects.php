@@ -248,8 +248,7 @@ final class FollowRedirects implements ApplicationInterceptor
             $header = $response->getHeader('location');
             \assert($header !== null); // see check above
 
-            /** @psalm-suppress DeprecatedMethod */
-            $locationUri = Uri\Http::createFromString($header);
+            $locationUri = Uri\Http::new($header);
         } catch (\Exception $e) {
             return null;
         }

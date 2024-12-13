@@ -240,7 +240,7 @@ class Http1ConnectionTest extends AsyncTestCase
         [$server, $client] = Socket\createSocketPair();
 
         $connection = new Http1Connection($client, 0, null, 5);
-        $uri = Uri\Http::createFromString('http://localhost')->withPath($requestPath);
+        $uri = Uri\Http::new('http://localhost')->withPath($requestPath);
         $request = new Request($uri);
         $request->setInactivityTimeout(0.5);
 
