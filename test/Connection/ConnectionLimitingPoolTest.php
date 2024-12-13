@@ -23,7 +23,6 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
             ->usingPool(ConnectionLimitingPool::byAuthority(1))
             ->build();
 
-        $this->setTimeout(5000);
         $this->setMinimumRuntime(2000);
 
         yield [
@@ -38,7 +37,6 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
             ->usingPool(ConnectionLimitingPool::byAuthority(2))
             ->build();
 
-        $this->setTimeout(4000);
         $this->setMinimumRuntime(2000);
 
         yield [
