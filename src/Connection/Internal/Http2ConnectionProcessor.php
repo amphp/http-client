@@ -647,13 +647,23 @@ final class Http2ConnectionProcessor implements Http2Processor
         }
 
         try {
-            $uri = Uri\Http::createFromComponents([
-                "scheme" => $scheme,
-                "host" => $host,
-                "port" => $port,
-                "path" => $target,
-                "query" => $query,
-            ]);
+            if (\method_exists(Uri\Http::class, 'fromComponents')) {
+                $uri = Uri\Http::fromComponents([
+                    "scheme" => $scheme,
+                    "host" => $host,
+                    "port" => $port,
+                    "path" => $target,
+                    "query" => $query,
+                ]);
+            } else {
+                $uri = Uri\Http::createFromComponents([
+                    "scheme" => $scheme,
+                    "host" => $host,
+                    "port" => $port,
+                    "path" => $target,
+                    "query" => $query,
+                ]);
+            }
         } catch (\Exception $exception) {
             $this->handleConnectionException(new Http2ConnectionException(
                 "Invalid push URI",

@@ -61,7 +61,11 @@ final class MatchOrigin implements ApplicationInterceptor
     private function checkOrigin(string $origin): string
     {
         try {
-            $originUri = Http::createFromString($origin);
+            if (\method_exists(Http::class, 'new')) {
+                $originUri = Http::new($origin);
+            } else {
+                $originUri = Http::createFromString($origin);
+            }
         } catch (\Exception $e) {
             throw new HttpException("Invalid origin provided: parsing failed: " . $origin);
         }

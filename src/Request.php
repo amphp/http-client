@@ -535,6 +535,10 @@ final class Request extends Message
 
     private function createUriFromString(string $uri): UriInterface
     {
+        if (\method_exists(Uri\Http::class, 'new')) {
+            return Uri\Http::new($uri);
+        }
+
         return Uri\Http::createFromString($uri);
     }
 }
