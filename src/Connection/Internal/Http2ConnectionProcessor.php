@@ -1717,6 +1717,8 @@ final class Http2ConnectionProcessor implements Http2Processor
                     continue;
                 }
 
+                \assert(\is_string($field)); // For Psalm.
+
                 $headers[] = [$field, $value];
             }
         }
