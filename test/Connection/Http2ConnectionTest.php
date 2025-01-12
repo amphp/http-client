@@ -591,7 +591,7 @@ class Http2ConnectionTest extends AsyncTestCase
 
     public function testServerEarlyResponse(): void
     {
-        $request = new Request('http://localhost/', 'POST', BufferedContent::fromString(str_repeat('a', 2 ** 10)));
+        $request = new Request('http://localhost/', 'POST', BufferedContent::fromString(\str_repeat('a', 2 ** 10)));
         events()->requestStart($request);
         $stream = $this->connection->getStream($request);
 

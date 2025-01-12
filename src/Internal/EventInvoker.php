@@ -181,7 +181,7 @@ final class EventInvoker implements EventListener
     public function responseHeaderStart(Request $request, Stream $stream): void
     {
         $previousPhase = self::getPhase($request);
-        if (!in_array($previousPhase, [
+        if (!\in_array($previousPhase, [
             Phase::RequestHeaders,
             Phase::RequestBody,
             Phase::ServerProcessing,
