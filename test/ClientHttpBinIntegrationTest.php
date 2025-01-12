@@ -357,6 +357,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testHttp2TeHeader(): void
     {
+        $this->markTestSkipped('3rd-party service no longer available');
+
         $this->client = $this->builder->followRedirects(0)->build();
 
         $request = new Request('https://http2.pro/api/v1', 'POST');
