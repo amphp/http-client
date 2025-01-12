@@ -42,7 +42,7 @@
     },
     "require-dev": {
         "ext-json": "*",
-        "amphp/file": "^3",
+        "amphp/file": "^3 | ^4",
         "amphp/phpunit-util": "^3",
         "amphp/php-cs-fixer-config": "^2",
         "phpunit/phpunit": "^9",
@@ -69,6 +69,9 @@
         "psr-4": {
             "Amp\\Http\\Client\\": "test"
         }
+    },
+    "conflict": {
+        "amphp/file": "<3 | >=5"
     },
     "scripts": {
         "check": [
