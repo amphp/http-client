@@ -1035,12 +1035,16 @@ final class Http2ConnectionProcessor implements Http2Processor
                         return $responseFuture->await();
                     }
 
+                    // Wait for prior write to complete if we've buffered too much of the request body.
+                    if (\strlen($http2stream->requestBodyBuffer) >= self::DEFAULT_MAX_FRAME_SIZE) {
+                        $writeFuture->await($cancellation);
+                    }
+
                     if ($chunk === null) {
                         // Don't move this out of the loop, this needs to be set before calling writeData
                         $http2stream->requestBodyCompletion->complete();
                     }
 
-                    $writeFuture->await($cancellation);
                     $writeFuture = $this->writeData($http2stream, $buffer);
                     events()->requestBodyProgress($request, $stream);
                     $buffer = $chunk;
