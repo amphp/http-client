@@ -155,7 +155,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $body = $response->getBody()->buffer();
         $result = \json_decode($body, true);
 
-        self::assertSame('amphp/http-client @ v5.x', $result['user-agent']);
+        self::assertSame('amphp/http-client/5.x', $result['user-agent']);
     }
 
     public function testDefaultUserAgentCanBeChanged(): void
@@ -206,7 +206,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         self::assertSame([
             ['tEst', 'test'],
             ['accept', '*/*'],
-            ['user-agent', 'amphp/http-client @ v5.x'],
+            ['user-agent', 'amphp/http-client/5.x'],
             ['Accept-Encoding', 'gzip, deflate, identity'],
             ['host', (string) $this->socket->getAddress()],
         ], $result);

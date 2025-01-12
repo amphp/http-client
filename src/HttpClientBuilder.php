@@ -55,7 +55,7 @@ final class HttpClientBuilder
         $this->followRedirectsInterceptor = new FollowRedirects(10);
         $this->retryInterceptor = new RetryRequests(2);
         $this->defaultAcceptInterceptor = new SetRequestHeaderIfUnset('accept', '*/*');
-        $this->defaultUserAgentInterceptor = new SetRequestHeaderIfUnset('user-agent', 'amphp/http-client @ v5.x');
+        $this->defaultUserAgentInterceptor = new SetRequestHeaderIfUnset('user-agent', 'amphp/http-client/5.x');
         $this->defaultCompressionHandler = new DecompressResponse;
     }
 
