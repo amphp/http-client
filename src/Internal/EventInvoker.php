@@ -181,7 +181,12 @@ final class EventInvoker implements EventListener
     public function responseHeaderStart(Request $request, Stream $stream): void
     {
         $previousPhase = self::getPhase($request);
-        if ($previousPhase !== Phase::ResponseHeaders && $previousPhase !== Phase::ServerProcessing) {
+        if (!in_array($previousPhase, [
+            Phase::RequestHeaders,
+            Phase::RequestBody,
+            Phase::ServerProcessing,
+            Phase::ResponseHeaders,
+        ], true)) {
             throw new \Error('Invalid request phase transition from ' . $previousPhase->name . ' to ResponseHeaders');
         }
 
