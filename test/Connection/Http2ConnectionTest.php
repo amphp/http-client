@@ -602,8 +602,6 @@ class Http2ConnectionTest extends AsyncTestCase
                 [":status", (string) HttpStatus::PAYLOAD_TOO_LARGE],
                 ["date", formatDateHeader()],
             ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS | Http2Parser::END_STREAM, 1));
-
-            $this->server->close();
         });
 
         $response = $responseFuture->await();
