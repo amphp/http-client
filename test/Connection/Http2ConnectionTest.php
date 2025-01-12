@@ -5,6 +5,7 @@ namespace Amp\Http\Client\Connection;
 use Amp\ByteStream\StreamException;
 use Amp\CancelledException;
 use Amp\Future;
+use Amp\Http\Client\BufferedContent;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\Request;
@@ -586,5 +587,26 @@ class Http2ConnectionTest extends AsyncTestCase
         } finally {
             $this->connection->close();
         }
+    }
+
+    public function testServerEarlyResponse(): void
+    {
+        $request = new Request('http://localhost/', 'POST', BufferedContent::fromString(str_repeat('a', 2 ** 10)));
+        events()->requestStart($request);
+        $stream = $this->connection->getStream($request);
+
+        $responseFuture = async(fn () => $stream->request($request, new NullCancellation));
+
+        EventLoop::delay(0.1, function (): void {
+            $this->server->write(self::packFrame($this->hpack->encode([
+                [":status", (string) HttpStatus::PAYLOAD_TOO_LARGE],
+                ["date", formatDateHeader()],
+            ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS | Http2Parser::END_STREAM, 1));
+
+            $this->server->close();
+        });
+
+        $response = $responseFuture->await();
+        self::assertSame(HttpStatus::PAYLOAD_TOO_LARGE, $response->getStatus());
     }
 }

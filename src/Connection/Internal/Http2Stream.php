@@ -3,6 +3,8 @@
 namespace Amp\Http\Client\Connection\Internal;
 
 use Amp\Cancellation;
+use Amp\CompositeCancellation;
+use Amp\DeferredCancellation;
 use Amp\DeferredFuture;
 use Amp\ForbidCloning;
 use Amp\ForbidSerialization;
@@ -55,11 +57,15 @@ final class Http2Stream
 
     public ?DeferredFuture $windowSizeIncrease = null;
 
+    private readonly DeferredCancellation $deferredCancellation;
+
+    public readonly Cancellation $cancellation;
+
     public function __construct(
         public readonly int $id,
         public readonly Request $request,
         public readonly Stream $stream,
-        public readonly Cancellation $cancellation,
+        Cancellation $cancellation,
         public readonly ?string $transferWatcher,
         public readonly ?string $inactivityWatcher,
         public int $serverWindow,
@@ -69,9 +75,17 @@ final class Http2Stream
         $this->requestBodyCompletion = new DeferredFuture();
         $this->body = new Queue();
 
+        $this->deferredCancellation = new DeferredCancellation();
+        $this->cancellation = new CompositeCancellation($cancellation, $this->deferredCancellation->getCancellation());
+
         // Trailers future may never be exposed to the user if the request fails, so ignore.
         $this->trailers = new DeferredFuture();
         $this->trailers->getFuture()->ignore();
+    }
+
+    public function cancel(): void
+    {
+        $this->deferredCancellation->cancel();
     }
 
     public function __destruct()
@@ -83,6 +97,8 @@ final class Http2Stream
         if ($this->inactivityWatcher !== null) {
             EventLoop::cancel($this->inactivityWatcher);
         }
+
+        $this->deferredCancellation->cancel();
 
         // Setting these to null due to PHP's random destruct order on shutdown to avoid errors from double completion.
         $this->pendingResponse = null;

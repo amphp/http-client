@@ -981,6 +981,11 @@ final class Http2ConnectionProcessor implements Http2Processor
             fn (CancelledException $exception) => $this->releaseStream($streamId, $exception, false),
         );
 
+        $cancellation = $http2stream->cancellation; // Use CompositeCancellation from Http2Stream.
+
+        \assert($http2stream->pendingResponse !== null);
+        $responseFuture = $http2stream->pendingResponse->getFuture();
+
         \assert($http2stream->trailers !== null);
         $http2stream->trailers->getFuture()
             ->finally(static fn () => $cancellation->unsubscribe($cancellationId))
@@ -1015,9 +1020,6 @@ final class Http2ConnectionProcessor implements Http2Processor
 
             events()->requestHeaderEnd($request, $stream);
 
-            \assert($http2stream->pendingResponse !== null);
-            $responseFuture = $http2stream->pendingResponse->getFuture();
-
             events()->requestBodyStart($request, $stream);
 
             if ($chunk === null) {
@@ -1048,8 +1050,6 @@ final class Http2ConnectionProcessor implements Http2Processor
             }
 
             events()->requestBodyEnd($request, $stream);
-
-            return $responseFuture->await();
         } catch (\Throwable $exception) {
             $cancellation->unsubscribe($cancellationId);
 
@@ -1060,9 +1060,9 @@ final class Http2ConnectionProcessor implements Http2Processor
             }
 
             $this->releaseStream($streamId, $exception, false);
-
-            throw $exception;
         }
+
+        return $responseFuture->await();
     }
 
     public function isClosed(): bool
@@ -1366,6 +1366,8 @@ final class Http2ConnectionProcessor implements Http2Processor
                 events()->requestRejected($stream->request);
             }
         }
+
+        $stream->cancel();
 
         if ($this->streams) {
             return;
