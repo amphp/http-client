@@ -10,7 +10,7 @@ use function Kelunik\LinkHeaderRfc5988\parseLinks;
 
 require __DIR__ . '/../.helper/functions.php';
 
-class GitHubApi
+final class GitHubApi
 {
     private HttpClient $httpClient;
 
@@ -36,7 +36,7 @@ class GitHubApi
             $events = json_decode($json);
             yield $events;
 
-            $links = parseLinks($response->getHeader('link'));
+            $links = parseLinks($response->getHeader('link') ?? '');
             $next = $links->getByRel('next');
 
             if ($next) {

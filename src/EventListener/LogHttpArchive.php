@@ -229,7 +229,7 @@ final class LogHttpArchive implements EventListener
                 $fileHandle->seek(-3, Whence::Current);
             }
 
-            $json = \json_encode(self::formatEntry($response));
+            $json = \json_encode(self::formatEntry($response), flags: JSON_THROW_ON_ERROR);
 
             $fileHandle->write(($firstEntry ? '' : ',') . $json . ']}}');
 

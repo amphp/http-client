@@ -1013,6 +1013,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                     $this->writeFrame(Http2Parser::CONTINUATION, Http2Parser::NO_FLAG, $streamId, $headerChunk)->ignore();
                 }
 
+                \assert($lastChunk !== null);
                 $this->writeFrame(Http2Parser::CONTINUATION, $flag, $streamId, $lastChunk)->await();
             } else {
                 $this->writeFrame(Http2Parser::HEADERS, $flag, $streamId, $headers)->await();

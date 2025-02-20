@@ -322,6 +322,8 @@ final class Http1Parser
             $rawHeaders = \preg_replace("/\r\n[\x20\t]++/", ' ', $rawHeaders);
         }
 
+        \assert($rawHeaders !== null);
+
         try {
             $headers = Rfc7230::parseHeaderPairs($rawHeaders);
             $headerMap = mapHeaderPairs($headers);

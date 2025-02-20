@@ -66,6 +66,7 @@ final class FollowRedirects implements ApplicationInterceptor
         $patternE = ',(/*[^/]*),';
 
         while ($input !== '') {
+            \assert($input !== null);
             if (\preg_match($patternA, $input)) {
                 $input = \preg_replace($patternA, '', $input);
             } elseif (\preg_match($patternB1, $input, $match) || \preg_match($patternB2, $input, $match)) {
@@ -80,6 +81,7 @@ final class FollowRedirects implements ApplicationInterceptor
                 $input = \preg_replace(',^' . \preg_quote($initialSegment, ',') . ',', '', $input, 1);
                 $output .= $initialSegment;
             }
+            \assert($output !== null);
         }
 
         return $output;
