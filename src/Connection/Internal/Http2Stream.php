@@ -47,6 +47,7 @@ final class Http2Stream
     public string $requestBodyBuffer = '';
 
     public readonly DeferredFuture $requestBodyCompletion;
+    public readonly DeferredFuture $requestHeaderCompletion;
 
     /** @var int Integer between 1 and 256 */
     public int $weight = 16;
@@ -72,6 +73,7 @@ final class Http2Stream
         public int $clientWindow,
     ) {
         $this->pendingResponse = new DeferredFuture();
+        $this->requestHeaderCompletion = new DeferredFuture();
         $this->requestBodyCompletion = new DeferredFuture();
         $this->body = new Queue();
 

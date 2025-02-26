@@ -438,7 +438,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         $stream->responsePending = false;
         EventLoop::queue(static function () use ($response, $stream): void {
             try {
-                $stream->requestBodyCompletion->getFuture()->await();
+                $stream->requestHeaderCompletion->getFuture()->await();
                 $stream->preResponseResolution?->await();
                 $stream->pendingResponse?->complete($response);
             } catch (\Throwable $e) {
@@ -1018,42 +1018,42 @@ final class Http2ConnectionProcessor implements Http2Processor
                 $this->writeFrame(Http2Parser::HEADERS, $flag, $streamId, $headers)->await();
             }
 
+            $http2stream->requestHeaderCompletion->complete();
+
             events()->requestHeaderEnd($request, $stream);
 
             events()->requestBodyStart($request, $stream);
 
-            if ($chunk === null) {
-                $http2stream->requestBodyCompletion->complete();
-            } else {
-                $buffer = $chunk;
-                $writeFuture = Future::complete();
-                do {
-                    $chunk = $body->read($cancellation);
-
-                    if (!isset($this->streams[$streamId])) {
-                        // Request stream closed, so this await will throw.
-                        return $responseFuture->await();
-                    }
-
-                    // Wait for prior write to complete if we've buffered too much of the request body.
-                    if (\strlen($http2stream->requestBodyBuffer) >= self::DEFAULT_MAX_FRAME_SIZE) {
-                        $writeFuture->await($cancellation);
-                    }
-
-                    if ($chunk === null) {
-                        // Don't move this out of the loop, this needs to be set before calling writeData
-                        $http2stream->requestBodyCompletion->complete();
-                    }
-
-                    $writeFuture = $this->writeData($http2stream, $buffer);
-                    events()->requestBodyProgress($request, $stream);
+            async(function () use ($chunk, $http2stream, $streamId, $cancellation, $request, $stream, $body) {
+                if ($chunk === null) {
+                    $http2stream->requestBodyCompletion->complete();
+                } else {
                     $buffer = $chunk;
-                } while ($buffer !== null);
+                    $writeFuture = Future::complete();
+                    do {
+                        // Wait for prior write to complete if we've buffered too much of the request body.
+                        if (\strlen($http2stream->requestBodyBuffer) >= self::DEFAULT_MAX_FRAME_SIZE) {
+                            $writeFuture->await($cancellation);
+                        }
 
-                $writeFuture->await($cancellation);
-            }
+                        $writeFuture = $this->writeData($http2stream, $buffer);
+                        events()->requestBodyProgress($request, $stream);
 
-            events()->requestBodyEnd($request, $stream);
+                        $chunk = $body->read($cancellation);
+
+                        if ($chunk === null) {
+                            // Don't move this out of the loop, this needs to be set before calling writeData
+                            $http2stream->requestBodyCompletion->complete();
+                        }
+
+                        $buffer = $chunk;
+                    } while ($buffer !== null);
+
+                    $writeFuture->await($cancellation);
+                }
+
+                events()->requestBodyEnd($request, $stream);
+            });
         } catch (\Throwable $exception) {
             $cancellation->unsubscribe($cancellationId);
 

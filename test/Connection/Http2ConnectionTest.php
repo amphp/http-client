@@ -2,6 +2,7 @@
 
 namespace Amp\Http\Client\Connection;
 
+use Amp\ByteStream\ReadableIterableStream;
 use Amp\ByteStream\StreamException;
 use Amp\CancelledException;
 use Amp\Future;
@@ -11,6 +12,7 @@ use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\SocketException;
+use Amp\Http\Client\StreamedContent;
 use Amp\Http\Client\Trailers;
 use Amp\Http\HPack;
 use Amp\Http\Http2\Http2Parser;
@@ -18,6 +20,7 @@ use Amp\Http\Http2\Http2Processor;
 use Amp\Http\HttpStatus;
 use Amp\NullCancellation;
 use Amp\PHPUnit\AsyncTestCase;
+use Amp\Pipeline\Queue;
 use Amp\Socket;
 use Amp\Socket\ResourceSocket;
 use Amp\TimeoutCancellation;
@@ -606,5 +609,49 @@ class Http2ConnectionTest extends AsyncTestCase
 
         $response = $responseFuture->await();
         self::assertSame(HttpStatus::PAYLOAD_TOO_LARGE, $response->getStatus());
+    }
+
+    public function testResponseIsFullyAsynchronous(): void
+    {
+        $writeStream = new Queue();
+        $writeContent = StreamedContent::fromStream(new ReadableIterableStream($writeStream->iterate()));
+        $request = new Request('http://localhost/', 'POST', $writeContent);
+
+        $writeStream->pushAsync('something');
+
+        events()->requestStart($request);
+
+        $stream = $this->connection->getStream($request);
+
+        $response = async(fn() => $stream->request($request, new NullCancellation));
+
+        EventLoop::queue(function (): void {
+            delay(0.1);
+
+            $this->server->write(self::packFrame($this->hpack->encode([
+                [":status", (string) HttpStatus::OK],
+            ]), Http2Parser::HEADERS, Http2Parser::END_HEADERS, 1));
+
+            delay(0.1);
+
+            $this->server->write(self::packFrame('test', Http2Parser::DATA, 0, 1));
+
+            delay(0.1);
+        });
+
+        $response = $response->await();
+        self::assertSame(200, $response->getStatus());
+
+        $foo = $response->getBody()->read();
+        self::assertSame('test', $foo);
+
+        $writeStream->pushAsync('Some more content to the request');
+
+        $this->server->write(self::packFrame('test2', Http2Parser::DATA, 0, 1));
+
+        $foo = $response->getBody()->read();
+        self::assertSame('test2', $foo);
+
+        $writeStream->complete();
     }
 }
