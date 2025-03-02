@@ -159,7 +159,12 @@ final class EventInvoker implements EventListener
     public function requestBodyProgress(Request $request, Stream $stream): void
     {
         $previousPhase = self::getPhase($request);
-        if (!\in_array($previousPhase, [Phase::RequestBody, Phase::ResponseBody], true)) {
+        if (!\in_array($previousPhase, [
+            Phase::RequestBody,
+            Phase::ServerProcessing,
+            Phase::ResponseHeaders,
+            Phase::ResponseBody,
+        ], true)) {
             throw new \Error('Invalid request phase: ' . $previousPhase->name);
         }
 
@@ -169,11 +174,18 @@ final class EventInvoker implements EventListener
     public function requestBodyEnd(Request $request, Stream $stream): void
     {
         $previousPhase = self::getPhase($request);
-        if (!\in_array($previousPhase, [Phase::RequestBody, Phase::ResponseBody], true)) {
+        if (!\in_array($previousPhase, [
+            Phase::RequestBody,
+            Phase::ServerProcessing,
+            Phase::ResponseHeaders,
+            Phase::ResponseBody,
+        ], true)) {
             throw new \Error('Invalid request phase transition from ' . $previousPhase->name . ' to ServerProcessing');
         }
 
-        $this->requestPhase[$request] = Phase::ServerProcessing;
+        if ($previousPhase === Phase::RequestBody) {
+            $this->requestPhase[$request] = Phase::ServerProcessing;
+        }
 
         $this->invoke($request, fn (EventListener $eventListener) => $eventListener->requestBodyEnd($request, $stream));
     }
