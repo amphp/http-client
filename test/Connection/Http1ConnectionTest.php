@@ -214,7 +214,7 @@ class Http1ConnectionTest extends AsyncTestCase
 
     public function testWritingRequestWithRelativeUriPathFails(): void
     {
-        [$client] = Socket\createSocketPair();
+        [$server, $client] = Socket\createSocketPair();
 
         $connection = new Http1Connection($client, 0, null, 5);
 

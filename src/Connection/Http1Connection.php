@@ -232,20 +232,51 @@ final class Http1Connection implements Connection
             $combinedCancellation = $cancellation;
         }
 
-        $id = $combinedCancellation->subscribe($this->close(...));
+        $cancellationId = $combinedCancellation->subscribe($this->close(...));
 
-        try {
-            $this->writeRequest($request, $stream, $protocolVersion, $combinedCancellation);
+        $responseDeferred = new DeferredFuture();
 
-            return $this->readResponse($request, $cancellation, $combinedCancellation, $stream);
-        } catch (\Throwable $exception) {
-            $this->socket?->close();
+        EventLoop::queue(function () use (
+            $responseDeferred,
+            $request,
+            $stream,
+            $protocolVersion,
+            $combinedCancellation,
+        ): void {
+            try {
+                $this->writeRequest($request, $stream, $protocolVersion, $combinedCancellation);
+            } catch (\Throwable $exception) {
+                if (!$responseDeferred->isComplete()) {
+                    $responseDeferred->error($exception);
+                }
+            }
+        });
 
-            throw $exception;
-        } finally {
-            $combinedCancellation->unsubscribe($id);
-            $cancellation->throwIfRequested();
-        }
+        EventLoop::queue(function () use (
+            $responseDeferred,
+            $request,
+            $stream,
+            $cancellation,
+            $combinedCancellation,
+            $cancellationId,
+        ): void {
+            try {
+                $response = $this->readResponse($request, $cancellation, $combinedCancellation, $stream);
+                if (!$responseDeferred->isComplete()) {
+                    $responseDeferred->complete($response);
+                }
+            } catch (\Throwable $exception) {
+                $this->socket?->close();
+
+                if (!$responseDeferred->isComplete()) {
+                    $responseDeferred->error($exception);
+                }
+            } finally {
+                $combinedCancellation->unsubscribe($cancellationId);
+            }
+        });
+
+        return $responseDeferred->getFuture()->await($cancellation);
     }
 
     private function release(): void
@@ -568,7 +599,7 @@ final class Http1Connection implements Connection
         Request $request,
         Stream $stream,
         string $protocolVersion,
-        Cancellation $cancellation
+        Cancellation $cancellation,
     ): void {
         try {
             $socket = $this->socket;
