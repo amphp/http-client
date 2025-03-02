@@ -623,7 +623,7 @@ class Http2ConnectionTest extends AsyncTestCase
 
         $stream = $this->connection->getStream($request);
 
-        $response = async(fn() => $stream->request($request, new NullCancellation));
+        $response = async(fn () => $stream->request($request, new NullCancellation));
 
         EventLoop::queue(function (): void {
             delay(0.1);
