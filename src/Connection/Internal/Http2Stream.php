@@ -44,10 +44,13 @@ final class Http2Stream
 
     public int $bufferSize = 0;
 
+    public bool $ended = false;
+
     public string $requestBodyBuffer = '';
 
-    public readonly DeferredFuture $requestBodyCompletion;
     public readonly DeferredFuture $requestHeaderCompletion;
+
+    public readonly DeferredFuture $requestBodyCompletion;
 
     /** @var int Integer between 1 and 256 */
     public int $weight = 16;
