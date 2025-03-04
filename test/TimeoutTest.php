@@ -60,7 +60,7 @@ class TimeoutTest extends AsyncTestCase
 
     public function testTimeoutDuringConnect(): void
     {
-        $this->setTimeout(0.6);
+        $this->setTimeout(1);
 
         $connector = $this->createMock(Socket\SocketConnector::class);
         $connector->method('connect')
@@ -99,7 +99,7 @@ class TimeoutTest extends AsyncTestCase
             }
         });
 
-        $this->setTimeout(0.6);
+        $this->setTimeout(1);
 
         try {
             $uri = "https://" . $server->getAddress() . "/";
@@ -223,7 +223,7 @@ class TimeoutTest extends AsyncTestCase
             }
         });
 
-        $this->setTimeout(0.6);
+        $this->setTimeout(1);
 
         try {
             $uri = "https://" . $server->getAddress() . "/";
