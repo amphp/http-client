@@ -275,4 +275,46 @@ class TimeoutTest extends AsyncTestCase
             $server->close();
         }
     }
+
+    public function testTransferTimeoutDuringRequest(): void
+    {
+        $server = listen("tcp://127.0.0.1:0");
+
+        $this->setTimeout(1);
+
+        try {
+            $uri = "http://" . $server->getAddress() . "/";
+
+            $request = new Request($uri);
+            $request->setTransferTimeout(0.1);
+
+            $this->expectException(TimeoutException::class);
+            $this->expectExceptionMessage("Allowed transfer timeout exceeded, took longer than 0.1 s");
+
+            $this->client->request($request);
+        } finally {
+            $server->close();
+        }
+    }
+
+    public function testInactivityTimeoutDuringRequest(): void
+    {
+        $server = listen("tcp://127.0.0.1:0");
+
+        $this->setTimeout(1);
+
+        try {
+            $uri = "http://" . $server->getAddress() . "/";
+
+            $request = new Request($uri);
+            $request->setInactivityTimeout(0.1);
+
+            $this->expectException(TimeoutException::class);
+            $this->expectExceptionMessage("Inactivity timeout exceeded, more than 0.1 seconds elapsed from last data received");
+
+            $this->client->request($request);
+        } finally {
+            $server->close();
+        }
+    }
 }
