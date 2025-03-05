@@ -134,8 +134,8 @@ final class DefaultConnectionFactory implements ConnectionFactory
                 $socket->close();
 
                 $errorMessage = $streamException->getMessage();
-                \preg_match('/error:[0-9a-f]+:[^:]+:[^:]+:(.+)$/i', $errorMessage, $matches);
-                $errorMessage = \trim($matches[1] ?? \explode("():", $errorMessage, 2)[1] ?? $errorMessage);
+                \preg_match('/error:[0-9a-f]*:[^:]*:[^:]*:(.+)$/i', $errorMessage, $matches);
+                $errorMessage = \trim($matches[1] ?? \explode('():', $errorMessage, 2)[1] ?? $errorMessage);
 
                 throw new SocketException(\sprintf(
                     "Connection to '%s' @ '%s' closed during TLS handshake: %s",
