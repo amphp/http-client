@@ -2,6 +2,6 @@
 
 namespace Amp\Http\Client;
 
-final class TlsException extends HttpException
+final class TlsException extends SocketException
 {
 }
