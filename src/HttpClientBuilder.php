@@ -35,7 +35,7 @@ final class HttpClientBuilder
 
     private ?SetRequestHeaderIfUnset $defaultAcceptInterceptor;
 
-    private ?DecompressResponse $defaultCompressionHandler;
+    private bool $compression = true;
 
     /** @var ApplicationInterceptor[] */
     private array $applicationInterceptors = [];
@@ -56,7 +56,6 @@ final class HttpClientBuilder
         $this->retryInterceptor = new RetryRequests(2);
         $this->defaultAcceptInterceptor = new SetRequestHeaderIfUnset('accept', '*/*');
         $this->defaultUserAgentInterceptor = new SetRequestHeaderIfUnset('user-agent', 'amphp/http-client/5.x');
-        $this->defaultCompressionHandler = new DecompressResponse;
     }
 
     public function build(): HttpClient
@@ -75,8 +74,9 @@ final class HttpClientBuilder
             $client = $client->intercept($this->defaultUserAgentInterceptor);
         }
 
-        if ($this->defaultCompressionHandler) {
-            $client = $client->intercept($this->defaultCompressionHandler);
+        if ($this->compression) {
+            $client = $client->intercept(new SetRequestHeaderIfUnset('Accept-Encoding', 'gzip, deflate, identity'));
+            $client = $client->intercept(new DecompressResponse());
         }
 
         foreach ($this->eventListeners as $eventListener) {
@@ -232,7 +232,7 @@ final class HttpClientBuilder
     public function skipAutomaticCompression(): self
     {
         $builder = clone $this;
-        $builder->defaultCompressionHandler = null;
+        $builder->compression = false;
 
         return $builder;
     }

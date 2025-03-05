@@ -29,12 +29,9 @@ final class DecompressResponse implements NetworkInterceptor
         Cancellation $cancellation,
         Stream $stream
     ): Response {
-        // If a header is manually set, we won't interfere
-        if ($request->hasHeader('accept-encoding')) {
+        if (!$this->hasZlib) {
             return $stream->request($request, $cancellation);
         }
-
-        $this->addAcceptEncodingHeader($request);
 
         $request->interceptPush(function (Request $request, Response $response): Response {
             return $this->decompressResponse($response);
@@ -43,16 +40,9 @@ final class DecompressResponse implements NetworkInterceptor
         return $this->decompressResponse($stream->request($request, $cancellation));
     }
 
-    private function addAcceptEncodingHeader(Request $request): void
-    {
-        if ($this->hasZlib) {
-            $request->setHeader('Accept-Encoding', 'gzip, deflate, identity');
-        }
-    }
-
     private function decompressResponse(Response $response): Response
     {
-        if (($encoding = $this->determineCompressionEncoding($response))) {
+        if (0 !== $encoding = $this->determineCompressionEncoding($response)) {
             $stream = new DecompressingReadableStream($response->getBody(), $encoding);
 
             $sizeLimit = $response->getRequest()->getBodySizeLimit();
@@ -69,17 +59,9 @@ final class DecompressResponse implements NetworkInterceptor
 
     private function determineCompressionEncoding(Response $response): int
     {
-        if (!$this->hasZlib) {
+        if (null === $contentEncoding = $response->getHeader('content-encoding')) {
             return 0;
         }
-
-        if (!$response->hasHeader("content-encoding")) {
-            return 0;
-        }
-
-        $contentEncoding = $response->getHeader("content-encoding");
-
-        \assert($contentEncoding !== null);
 
         $contentEncodingHeader = \trim($contentEncoding);
 

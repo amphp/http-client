@@ -515,6 +515,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $result = \json_decode($response->getBody()->buffer(), true);
 
         self::assertTrue($result['deflated']);
+        self::assertFalse($response->hasHeader('content-encoding'));
     }
 
     public function testInfiniteRedirect(): void
