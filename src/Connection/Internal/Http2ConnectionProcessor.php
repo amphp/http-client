@@ -1055,6 +1055,10 @@ final class Http2ConnectionProcessor implements Http2Processor
                 "Failed to write request (stream {$http2stream->id}) to socket",
             );
 
+            if (!$http2stream->requestHeaderCompletion->isComplete()) {
+                $http2stream->requestHeaderCompletion->error($exception);
+            }
+
             if (!$http2stream->requestBodyCompletion->isComplete()) {
                 $http2stream->requestBodyCompletion->error($exception);
             }
