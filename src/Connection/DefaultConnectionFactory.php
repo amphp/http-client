@@ -10,6 +10,7 @@ use Amp\Http\Client\InvalidRequestException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\SocketException;
 use Amp\Http\Client\TimeoutException;
+use Amp\Http\Client\TlsException;
 use Amp\Socket;
 use Amp\Socket\ClientTlsContext;
 use Amp\Socket\ConnectContext;
@@ -123,7 +124,7 @@ final class DefaultConnectionFactory implements ConnectionFactory
                 if ($tlsState !== Socket\TlsState::Disabled) {
                     $socket->close();
 
-                    throw new SocketException('Failed to setup TLS connection, connection was in an unexpected TLS state (' . $tlsState->name . ')');
+                    throw new TlsException('Failed to setup TLS connection, connection was in an unexpected TLS state (' . $tlsState->name . ')');
                 }
 
                 $socket->setupTls(new CompositeCancellation(
@@ -137,7 +138,7 @@ final class DefaultConnectionFactory implements ConnectionFactory
                 \preg_match('/error:[0-9a-f]*:[^:]*:[^:]*:(.+)$/i', $errorMessage, $matches);
                 $errorMessage = \trim($matches[1] ?? \explode('():', $errorMessage, 2)[1] ?? $errorMessage);
 
-                throw new SocketException(\sprintf(
+                throw new TlsException(\sprintf(
                     "Connection to '%s' @ '%s' closed during TLS handshake: %s",
                     $authority,
                     $socket->getRemoteAddress()->toString(),
@@ -161,7 +162,7 @@ final class DefaultConnectionFactory implements ConnectionFactory
             if ($tlsInfo === null) {
                 $socket->close();
 
-                throw new SocketException(\sprintf(
+                throw new TlsException(\sprintf(
                     "Socket closed after TLS handshake with '%s' @ '%s'",
                     $authority,
                     $socket->getRemoteAddress()->toString()

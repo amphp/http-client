@@ -19,7 +19,7 @@ final class ClientBadSslIntegrationTest extends AsyncTestCase
     {
         $request = new Request('https://self-signed.badssl.com/');
 
-        $this->expectException(SocketException::class);
+        $this->expectException(TlsException::class);
         $this->expectExceptionMessageMatches("/^Connection to 'self-signed.badssl.com:443' @ '.+' closed during TLS handshake: certificate verify failed$/");
 
         $this->client->request($request);
@@ -29,7 +29,7 @@ final class ClientBadSslIntegrationTest extends AsyncTestCase
     {
         $request = new Request('https://wrong.host.badssl.com/');
 
-        $this->expectException(SocketException::class);
+        $this->expectException(TlsException::class);
         $this->expectExceptionMessageMatches("/^Connection to 'wrong.host.badssl.com:443' @ '.+' closed during TLS handshake: Peer certificate CN=`\*.badssl.com' did not match expected CN=`wrong.host.badssl.com'$/");
 
         $this->client->request($request);
@@ -39,7 +39,7 @@ final class ClientBadSslIntegrationTest extends AsyncTestCase
     {
         $request = new Request('https://dh512.badssl.com/');
 
-        $this->expectException(SocketException::class);
+        $this->expectException(TlsException::class);
         $this->expectExceptionMessageMatches("/^Connection to 'dh512.badssl.com:443' @ '.+' closed during TLS handshake: dh key too small$/");
 
         $this->client->request($request);
