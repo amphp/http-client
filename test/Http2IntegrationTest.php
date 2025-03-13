@@ -27,7 +27,8 @@ class Http2IntegrationTest extends TestCase
 
         $this->httpServer->expose('127.0.0.1:0');
         $this->httpServer->start(new ClosureRequestHandler(function (Request $request): Response {
-            return new Response(200, [], (string) \strlen($request->getBody()->buffer()));
+            $body = $request->getBody()->buffer();
+            return new Response(200, [], (string) \strlen($body));
         }), new DefaultErrorHandler());
 
         $this->httpClient = (new HttpClientBuilder())->build();

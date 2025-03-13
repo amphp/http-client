@@ -438,7 +438,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         $stream->responsePending = false;
         EventLoop::queue(static function () use ($response, $stream): void {
             try {
-                $stream->requestBodyCompletion->getFuture()->await();
+                $stream->requestHeaderCompletion->getFuture()->await();
                 $stream->preResponseResolution?->await();
                 $stream->pendingResponse?->complete($response);
             } catch (\Throwable $e) {
@@ -967,21 +967,21 @@ final class Http2ConnectionProcessor implements Http2Processor
         $streamId = $this->streamId += 2; // Client streams should be odd-numbered, starting at 1.
 
         $this->streams[$streamId] = $http2stream = new Http2Stream(
-            $streamId,
-            $request,
-            $stream,
-            $cancellation,
-            $this->createStreamTransferWatcher($streamId, $request->getTransferTimeout()),
-            $this->createStreamInactivityWatcher($streamId, $request->getInactivityTimeout()),
-            self::DEFAULT_WINDOW_SIZE,
-            $this->initialWindowSize,
+            id: $streamId,
+            request: $request,
+            stream: $stream,
+            cancellation: $cancellation,
+            transferWatcher: $this->createStreamTransferWatcher($streamId, $request->getTransferTimeout()),
+            inactivityWatcher: $this->createStreamInactivityWatcher($streamId, $request->getInactivityTimeout()),
+            serverWindow: self::DEFAULT_WINDOW_SIZE,
+            clientWindow: $this->initialWindowSize,
         );
+
+        $cancellation = $http2stream->cancellation; // Use CompositeCancellation from Http2Stream.
 
         $cancellationId = $cancellation->subscribe(
             fn (CancelledException $exception) => $this->releaseStream($streamId, $exception, false),
         );
-
-        $cancellation = $http2stream->cancellation; // Use CompositeCancellation from Http2Stream.
 
         \assert($http2stream->pendingResponse !== null);
         $responseFuture = $http2stream->pendingResponse->getFuture();
@@ -991,7 +991,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             ->finally(static fn () => $cancellation->unsubscribe($cancellationId))
             ->ignore();
 
-        try {
+        async(function () use ($request, $stream, $http2stream, $cancellation): void {
             events()->requestHeaderStart($request, $stream);
 
             $body = $request->getBody()->getContent();
@@ -1007,16 +1007,18 @@ final class Http2ConnectionProcessor implements Http2Processor
                 $firstChunk = \array_shift($split);
                 $lastChunk = \array_pop($split);
 
-                $this->writeFrame(Http2Parser::HEADERS, Http2Parser::NO_FLAG, $streamId, $firstChunk)->ignore();
+                $this->writeFrame(Http2Parser::HEADERS, stream: $http2stream->id, data: $firstChunk)->ignore();
 
                 foreach ($split as $headerChunk) {
-                    $this->writeFrame(Http2Parser::CONTINUATION, Http2Parser::NO_FLAG, $streamId, $headerChunk)->ignore();
+                    $this->writeFrame(Http2Parser::CONTINUATION, stream: $http2stream->id, data: $headerChunk)->ignore();
                 }
 
-                $this->writeFrame(Http2Parser::CONTINUATION, $flag, $streamId, $lastChunk)->await();
+                $this->writeFrame(Http2Parser::CONTINUATION, $flag, $http2stream->id, $lastChunk)->await();
             } else {
-                $this->writeFrame(Http2Parser::HEADERS, $flag, $streamId, $headers)->await();
+                $this->writeFrame(Http2Parser::HEADERS, $flag, $http2stream->id, $headers)->await();
             }
+
+            $http2stream->requestHeaderCompletion->complete();
 
             events()->requestHeaderEnd($request, $stream);
 
@@ -1025,46 +1027,44 @@ final class Http2ConnectionProcessor implements Http2Processor
             if ($chunk === null) {
                 $http2stream->requestBodyCompletion->complete();
             } else {
-                $buffer = $chunk;
                 $writeFuture = Future::complete();
                 do {
-                    $chunk = $body->read($cancellation);
-
-                    if (!isset($this->streams[$streamId])) {
-                        // Request stream closed, so this await will throw.
-                        return $responseFuture->await();
-                    }
-
                     // Wait for prior write to complete if we've buffered too much of the request body.
                     if (\strlen($http2stream->requestBodyBuffer) >= self::DEFAULT_MAX_FRAME_SIZE) {
                         $writeFuture->await($cancellation);
                     }
 
-                    if ($chunk === null) {
-                        // Don't move this out of the loop, this needs to be set before calling writeData
-                        $http2stream->requestBodyCompletion->complete();
-                    }
-
-                    $writeFuture = $this->writeData($http2stream, $buffer);
+                    $writeFuture = $this->writeData($http2stream, $chunk);
                     events()->requestBodyProgress($request, $stream);
-                    $buffer = $chunk;
-                } while ($buffer !== null);
+
+                    $chunk = $body->read($cancellation);
+                } while ($chunk !== null);
+
+                $http2stream->requestBodyCompletion->complete();
 
                 $writeFuture->await($cancellation);
+                $this->writeBufferedData($http2stream)->await($cancellation);
             }
 
             events()->requestBodyEnd($request, $stream);
-        } catch (\Throwable $exception) {
+        })->catch(function (\Throwable $exception) use ($http2stream, $cancellation, $cancellationId): void {
             $cancellation->unsubscribe($cancellationId);
 
-            $exception = $this->wrapException($exception, "Failed to write request (stream {$streamId}) to socket");
+            $exception = $this->wrapException(
+                $exception,
+                "Failed to write request (stream {$http2stream->id}) to socket",
+            );
+
+            if (!$http2stream->requestHeaderCompletion->isComplete()) {
+                $http2stream->requestHeaderCompletion->error($exception);
+            }
 
             if (!$http2stream->requestBodyCompletion->isComplete()) {
                 $http2stream->requestBodyCompletion->error($exception);
             }
 
-            $this->releaseStream($streamId, $exception, false);
-        }
+            $this->releaseStream($http2stream->id, $exception, false);
+        });
 
         return $responseFuture->await();
     }
@@ -1229,7 +1229,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     private function writeBufferedData(Http2Stream $stream): Future
     {
-        if ($stream->requestBodyCompletion->isComplete() && $stream->requestBodyBuffer === '') {
+        if ($stream->ended) {
             return Future::complete();
         }
 
@@ -1261,6 +1261,8 @@ final class Http2ConnectionProcessor implements Http2Processor
                     $stream->id,
                     $stream->requestBodyBuffer
                 );
+
+                $stream->ended = true;
             } else {
                 $future = $this->writeFrame(
                     Http2Parser::DATA,
