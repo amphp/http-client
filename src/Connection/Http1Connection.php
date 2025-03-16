@@ -481,6 +481,7 @@ final class Http1Connection implements Connection
             }
 
             $originalCancellation->throwIfRequested();
+            $readingCancellation->throwIfRequested();
 
             throw new SocketException(\sprintf(
                 "Receiving the response headers for '%s' failed, because the socket to '%s' @ '%s' closed early with %d bytes received within %0.3f seconds",
@@ -499,11 +500,11 @@ final class Http1Connection implements Connection
             // Throw original cancellation if it was requested.
             $originalCancellation->throwIfRequested();
 
-            throw new TimeoutException(
-                'Inactivity timeout exceeded, more than ' . $timeout . ' seconds elapsed from last data received',
-                0,
-                $e
-            );
+            if ($readingCancellation->isRequested()) {
+                throw new TimeoutException('Allowed transfer timeout exceeded, took longer than ' . $request->getTransferTimeout() . ' s', 0, $e);
+            }
+
+            throw new TimeoutException('Inactivity timeout exceeded, more than ' . $timeout . ' seconds elapsed from last data received', 0, $e);
         } catch (\Throwable $e) {
             $this->close();
             throw new SocketException('Receiving the response headers failed: ' . $e->getMessage(), 0, $e);
