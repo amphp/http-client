@@ -13,6 +13,8 @@ use Amp\Http\Http1\Rfc7230;
 use Amp\Http\HttpMessage;
 use Amp\Http\HttpStatus;
 use Amp\Http\InvalidHeaderException;
+use WeakReference;
+
 use function Amp\Http\Client\events;
 use function Amp\Http\mapHeaderPairs;
 
@@ -39,7 +41,8 @@ final class Http1Parser
     public const TRAILERS_START = 4;
     public const TRAILERS = 5;
 
-    private ?Response $response = null;
+    /** @var ?WeakReference<Response> */
+    private ?WeakReference $response = null;
 
     private int $state = self::AWAITING_HEADERS;
 
@@ -110,9 +113,11 @@ final class Http1Parser
 
         if (!$this->bodyStarted && \in_array($this->state, [self::BODY_CHUNKS, self::BODY_IDENTITY, self::BODY_IDENTITY_EOF], true)) {
             $this->bodyStarted = true;
-            $response = $this->response;
-            \assert($response !== null);
-            events()->responseBodyStart($this->request, $this->stream, $response);
+            $response = $this->response?->get();
+            if ($response !== null) {
+                events()->responseBodyStart($this->request, $this->stream, $response);
+                unset($response);
+            }
         }
 
         switch ($this->state) {
@@ -185,13 +190,15 @@ final class Http1Parser
 
             events()->responseHeaderEnd($this->request, $this->stream, $response);
 
-            return $this->response = $response;
+            $this->response = WeakReference::create($response);
+            return $response;
         }
 
         body_identity:
         {
-            if ($data !== null && $data !== '') {
-                events()->responseBodyProgress($this->request, $this->stream, $this->response);
+            if ($data !== null && $data !== '' && ($r = $this->response->get())) {
+                events()->responseBodyProgress($this->request, $this->stream, $r);
+                unset($r);
             }
 
             $bufferDataSize = \strlen($this->buffer);
@@ -219,8 +226,9 @@ final class Http1Parser
 
         body_identity_eof:
         {
-            if ($data !== null && $data !== '') {
-                events()->responseBodyProgress($this->request, $this->stream, $this->response);
+            if ($data !== null && $data !== '' && ($r = $this->response->get())) {
+                events()->responseBodyProgress($this->request, $this->stream, $r);
+                unset($r);
             }
 
             $this->addToBody($this->buffer);
@@ -230,8 +238,9 @@ final class Http1Parser
 
         body_chunks:
         {
-            if ($data !== null && $data !== '') {
-                events()->responseBodyProgress($this->request, $this->stream, $this->response);
+            if ($data !== null && $data !== '' && ($r = $this->response->get())) {
+                events()->responseBodyProgress($this->request, $this->stream, $r);
+                unset($r);
             }
 
             if ($this->parseChunkedBody()) {
@@ -272,7 +281,10 @@ final class Http1Parser
 
         complete:
         {
-            events()->responseBodyEnd($this->request, $this->stream, $this->response);
+            if ($r = $this->response->get()) {
+                events()->responseBodyEnd($this->request, $this->stream, $r);
+                unset($r);
+            }
 
             $this->complete = true;
 

@@ -320,6 +320,7 @@ final class Http1Connection implements Connection
             while (null !== $chunk = $this->readChunk($timeout)) {
                 parseChunk:
                 $response = $parser->parse($chunk);
+
                 if ($response === null) {
                     if ($this->socket === null) {
                         throw new SocketException('Socket closed prior to response completion');
@@ -377,17 +378,20 @@ final class Http1Connection implements Connection
                     $bodyDeferredCancellation
                 ));
 
+                [$reqTimeout, $explicitTimeout, $priorTimeout] = $this->determineKeepAliveTimeout($response);
+
                 // Read body async
                 EventLoop::queue(function () use (
                     $parser,
                     $request,
-                    $response,
+                    $reqTimeout,
+                    $explicitTimeout,
+                    $priorTimeout,
                     $bodyEmitter,
                     $trailersDeferred,
                     $originalCancellation,
                     $readingCancellation,
                     $bodyCancellation,
-                    $stream,
                     $timeout,
                     &$trailers
                 ) {
@@ -443,7 +447,14 @@ final class Http1Connection implements Connection
                             }
                         }
 
-                        $timeout = $this->determineKeepAliveTimeout($response);
+                        if ($explicitTimeout) {
+                            $this->explicitTimeout = $explicitTimeout;
+                        }
+                        if ($priorTimeout !== null) {
+                            $this->priorTimeout = $priorTimeout;
+                        }
+
+                        $timeout = $reqTimeout;
 
                         if ($timeout > 0 && $parser->getState() !== Http1Parser::BODY_IDENTITY_EOF) {
                             $this->timeoutWatcher = EventLoop::delay($timeout, $this->close(...));
@@ -546,7 +557,8 @@ final class Http1Connection implements Connection
         return \max(0, $timestamp - now());
     }
 
-    private function determineKeepAliveTimeout(Response $response): int
+    /** @return list{int, bool, ?int} */
+    private function determineKeepAliveTimeout(Response $response): array
     {
         $request = $response->getRequest();
 
@@ -554,25 +566,21 @@ final class Http1Connection implements Connection
         $responseConnHeader = $response->getHeader('connection') ?? '';
 
         if (!\strcasecmp($requestConnHeader, 'close')) {
-            return 0;
+            return [0, false, null];
         }
 
         if ($response->getProtocolVersion() === '1.0') {
-            return 0;
+            return [0, false, null];
         }
 
         if (!\strcasecmp($responseConnHeader, 'close')) {
-            return 0;
+            return [0, false, null];
         }
 
         $params = Http\parseMultipleHeaderFields($response, 'keep-alive')[0] ?? null;
 
         $timeout = (int) ($params['timeout'] ?? $this->priorTimeout);
-        if (isset($params['timeout'])) {
-            $this->explicitTimeout = true;
-        }
-
-        return $this->priorTimeout = \min(\max(0, $timeout), self::MAX_KEEP_ALIVE_TIMEOUT);
+        return [0, isset($params['timeout']), \min(\max(0, $timeout), self::MAX_KEEP_ALIVE_TIMEOUT)];
     }
 
     /**
