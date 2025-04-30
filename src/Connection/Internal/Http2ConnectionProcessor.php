@@ -998,7 +998,12 @@ final class Http2ConnectionProcessor implements Http2Processor
             $chunk = $body->read($cancellation);
 
             $headers = $this->hpack->encode($this->generateHeaders($request));
-            $flag = Http2Parser::END_HEADERS | ($chunk === null ? Http2Parser::END_STREAM : Http2Parser::NO_FLAG);
+
+            $flag = Http2Parser::END_HEADERS;
+            if ($chunk === null) {
+                $http2stream->ended = true;
+                $flag |= Http2Parser::END_STREAM;
+            }
 
             if (\strlen($headers) > $this->frameSizeLimit) {
                 $split = \str_split($headers, $this->frameSizeLimit);
