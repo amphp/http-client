@@ -294,11 +294,9 @@ final class Http1Connection implements Connection
         Request $request,
         Cancellation $originalCancellation,
         Cancellation $readingCancellation,
-        Stream $stream
+        Stream $stream,
     ): Response {
         $bodyEmitter = new Queue();
-        $bodyCallback = static fn (string $data) => $bodyEmitter->push($data);
-
         $trailersDeferred = new DeferredFuture;
         $trailersDeferred->getFuture()->ignore();
 
@@ -307,17 +305,17 @@ final class Http1Connection implements Connection
             $trailers = $headers;
         };
 
-        $parser = new Http1Parser($request, $stream, $bodyCallback, $trailersCallback);
+        $parser = new Http1Parser($request, $stream, $bodyEmitter->pushAsync(...), $trailersCallback);
 
         $start = now();
-        $timeout = $request->getInactivityTimeout();
+        $inactivityTimeout = $request->getInactivityTimeout();
 
         try {
             if ($this->socket === null) {
                 throw new SocketException('Socket closed prior to response completion');
             }
 
-            while (null !== $chunk = $this->readChunk($timeout)) {
+            while (null !== $chunk = $this->readChunk($inactivityTimeout)) {
                 parseChunk:
                 $response = $parser->parse($chunk);
                 if ($response === null) {
@@ -355,7 +353,7 @@ final class Http1Connection implements Connection
                     }
 
                     $chunk = $parser->getBuffer();
-                    $parser = new Http1Parser($request, $stream, $bodyCallback, $trailersCallback);
+                    $parser = new Http1Parser($request, $stream, $bodyEmitter->pushAsync(...), $trailersCallback);
                     goto parseChunk;
                 }
 
@@ -374,22 +372,26 @@ final class Http1Connection implements Connection
                 $response->setTrailers($trailersDeferred->getFuture());
                 $response->setBody(new ResponseBodyStream(
                     new ReadableIterableStream($bodyEmitter->pipe()),
-                    $bodyDeferredCancellation
+                    $bodyDeferredCancellation,
                 ));
+
+                [$requestTimeout, $explicitTimeout, $priorTimeout] = $this->determineKeepAliveTimeout($response);
 
                 // Read body async
                 EventLoop::queue(function () use (
                     $parser,
                     $request,
-                    $response,
+                    $requestTimeout,
+                    $explicitTimeout,
+                    $priorTimeout,
+                    $inactivityTimeout,
                     $bodyEmitter,
                     $trailersDeferred,
                     $originalCancellation,
                     $readingCancellation,
                     $bodyCancellation,
                     $stream,
-                    $timeout,
-                    &$trailers
+                    &$trailers,
                 ) {
                     $closeId = $bodyCancellation->subscribe($this->close(...));
 
@@ -401,31 +403,24 @@ final class Http1Connection implements Connection
                             $chunk = null;
 
                             try {
-                                /** @psalm-suppress PossiblyNullReference */
                                 do {
-                                    /** @noinspection CallableParameterUseCaseInTypeContextInspection */
                                     $parser->parse($chunk);
-                                    /**
-                                     * @noinspection NotOptimalIfConditionsInspection
-                                     * @psalm-suppress TypeDoesNotContainType
-                                     */
                                     if ($parser->isComplete()) {
                                         break;
                                     }
 
-                                    /** @psalm-suppress TypeDoesNotContainNull */
                                     if ($this->socket === null) {
                                         throw new SocketException('Socket closed prior to response completion');
                                     }
-                                } while (null !== $chunk = $this->socket->read($timeout > 0 ? new TimeoutCancellation($timeout) : null));
+                                } while (null !== $chunk = $this->readChunk($inactivityTimeout));
                             } catch (CancelledException $e) {
                                 $this->close();
                                 $originalCancellation->throwIfRequested();
 
                                 throw new TimeoutException(
-                                    'Inactivity timeout exceeded, more than ' . $timeout . ' seconds elapsed from last data received',
-                                    0,
-                                    $e
+                                    'Inactivity timeout exceeded, more than ' . $inactivityTimeout
+                                        . ' seconds elapsed from last data received',
+                                    previous: $e,
                                 );
                             }
 
@@ -443,10 +438,11 @@ final class Http1Connection implements Connection
                             }
                         }
 
-                        $timeout = $this->determineKeepAliveTimeout($response);
+                        $this->explicitTimeout = $explicitTimeout ?: $this->explicitTimeout;
+                        $this->priorTimeout = $priorTimeout ?? $this->priorTimeout;
 
-                        if ($timeout > 0 && $parser->getState() !== Http1Parser::BODY_IDENTITY_EOF) {
-                            $this->timeoutWatcher = EventLoop::delay($timeout, $this->close(...));
+                        if ($requestTimeout > 0 && $parser->getState() !== Http1Parser::BODY_IDENTITY_EOF) {
+                            $this->timeoutWatcher = EventLoop::delay($requestTimeout, $this->close(...));
                             EventLoop::unreference($this->timeoutWatcher);
                             $this->watchIdleConnection();
                         } else {
@@ -504,7 +500,7 @@ final class Http1Connection implements Connection
                 throw new TimeoutException('Allowed transfer timeout exceeded, took longer than ' . $request->getTransferTimeout() . ' s', 0, $e);
             }
 
-            throw new TimeoutException('Inactivity timeout exceeded, more than ' . $timeout . ' seconds elapsed from last data received', 0, $e);
+            throw new TimeoutException('Inactivity timeout exceeded, more than ' . $inactivityTimeout . ' seconds elapsed from last data received', 0, $e);
         } catch (\Throwable $e) {
             $this->close();
             throw new SocketException('Receiving the response headers failed: ' . $e->getMessage(), 0, $e);
@@ -546,7 +542,10 @@ final class Http1Connection implements Connection
         return \max(0, $timestamp - now());
     }
 
-    private function determineKeepAliveTimeout(Response $response): int
+    /**
+     * @return array{int, bool, int|null}
+     */
+    private function determineKeepAliveTimeout(Response $response): array
     {
         $request = $response->getRequest();
 
@@ -554,25 +553,23 @@ final class Http1Connection implements Connection
         $responseConnHeader = $response->getHeader('connection') ?? '';
 
         if (!\strcasecmp($requestConnHeader, 'close')) {
-            return 0;
+            return [0, false, null];
         }
 
         if ($response->getProtocolVersion() === '1.0') {
-            return 0;
+            return [0, false, null];
         }
 
         if (!\strcasecmp($responseConnHeader, 'close')) {
-            return 0;
+            return [0, false, null];
         }
 
         $params = Http\parseMultipleHeaderFields($response, 'keep-alive')[0] ?? null;
 
         $timeout = (int) ($params['timeout'] ?? $this->priorTimeout);
-        if (isset($params['timeout'])) {
-            $this->explicitTimeout = true;
-        }
+        $timeout = \min(\max(0, $timeout), self::MAX_KEEP_ALIVE_TIMEOUT);
 
-        return $this->priorTimeout = \min(\max(0, $timeout), self::MAX_KEEP_ALIVE_TIMEOUT);
+        return [$timeout, isset($params['timeout']), $timeout];
     }
 
     /**

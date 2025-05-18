@@ -5,6 +5,7 @@ namespace Amp\Http\Client\Connection\Internal;
 use Amp\ByteStream\ReadableBuffer;
 use Amp\ForbidCloning;
 use Amp\ForbidSerialization;
+use Amp\Future;
 use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\ParseException;
 use Amp\Http\Client\Request;
@@ -39,7 +40,8 @@ final class Http1Parser
     public const TRAILERS_START = 4;
     public const TRAILERS = 5;
 
-    private ?Response $response = null;
+    /** @var \WeakReference<Response>|null */
+    private ?\WeakReference $responseRef = null;
 
     private int $state = self::AWAITING_HEADERS;
 
@@ -63,7 +65,7 @@ final class Http1Parser
     private readonly int $maxBodyBytes;
 
     /**
-     * @param \Closure(string):void $bodyDataCallback
+     * @param \Closure(string):Future $bodyDataCallback
      * @param \Closure(HeaderMapType):void $trailersCallback
      */
     public function __construct(
@@ -110,9 +112,11 @@ final class Http1Parser
 
         if (!$this->bodyStarted && \in_array($this->state, [self::BODY_CHUNKS, self::BODY_IDENTITY, self::BODY_IDENTITY_EOF], true)) {
             $this->bodyStarted = true;
-            $response = $this->response;
-            \assert($response !== null);
-            events()->responseBodyStart($this->request, $this->stream, $response);
+            $response = $this->responseRef?->get();
+            if ($response) {
+                events()->responseBodyStart($this->request, $this->stream, $response);
+                $response = null;
+            }
         }
 
         switch ($this->state) {
@@ -183,15 +187,21 @@ final class Http1Parser
                 $response->addHeader($key, $value);
             }
 
+            $this->responseRef = \WeakReference::create($response);
+
             events()->responseHeaderEnd($this->request, $this->stream, $response);
 
-            return $this->response = $response;
+            return $response;
         }
 
         body_identity:
         {
             if ($data !== null && $data !== '') {
-                events()->responseBodyProgress($this->request, $this->stream, $this->response);
+                $response = $this->responseRef?->get();
+                if ($response) {
+                    events()->responseBodyProgress($this->request, $this->stream, $response);
+                    $response = null;
+                }
             }
 
             $bufferDataSize = \strlen($this->buffer);
@@ -220,7 +230,11 @@ final class Http1Parser
         body_identity_eof:
         {
             if ($data !== null && $data !== '') {
-                events()->responseBodyProgress($this->request, $this->stream, $this->response);
+                $response = $this->responseRef?->get();
+                if ($response) {
+                    events()->responseBodyProgress($this->request, $this->stream, $response);
+                    $response = null;
+                }
             }
 
             $this->addToBody($this->buffer);
@@ -231,7 +245,11 @@ final class Http1Parser
         body_chunks:
         {
             if ($data !== null && $data !== '') {
-                events()->responseBodyProgress($this->request, $this->stream, $this->response);
+                $response = $this->responseRef?->get();
+                if ($response) {
+                    events()->responseBodyProgress($this->request, $this->stream, $response);
+                    $response = null;
+                }
             }
 
             if ($this->parseChunkedBody()) {
@@ -272,7 +290,11 @@ final class Http1Parser
 
         complete:
         {
-            events()->responseBodyEnd($this->request, $this->stream, $this->response);
+            $response = $this->responseRef?->get();
+            if ($response) {
+                events()->responseBodyEnd($this->request, $this->stream, $response);
+                $response = null;
+            }
 
             $this->complete = true;
 
@@ -438,7 +460,6 @@ final class Http1Parser
     private function addToBody(string $data): void
     {
         $length = \strlen($data);
-
         if (!$length) {
             return;
         }
@@ -449,8 +470,6 @@ final class Http1Parser
             throw new ParseException("Configured body size exceeded: {$this->bodyBytesConsumed} bytes received, while the configured limit is {$this->maxBodyBytes} bytes", HttpStatus::PAYLOAD_TOO_LARGE);
         }
 
-        if ($this->bodyDataCallback) {
-            ($this->bodyDataCallback)($data);
-        }
+        ($this->bodyDataCallback)($data)->ignore();
     }
 }

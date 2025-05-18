@@ -3,6 +3,7 @@
 
 namespace Amp\Http\Client;
 
+use Amp\Future;
 use Amp\Http\Client\Connection\Connection;
 use Amp\Http\Client\Connection\Internal\Http1Parser;
 use Amp\Http\Client\Connection\Stream;
@@ -55,7 +56,7 @@ class ParserTest extends AsyncTestCase
         $parser = new Http1Parser(
             $request,
             $this->createMock(Stream::class),
-            $this->createCallback(1),
+            $this->createCallback(1, fn () => Future::complete()),
             $callback
         );
 

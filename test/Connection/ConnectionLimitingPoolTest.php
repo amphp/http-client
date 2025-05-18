@@ -39,6 +39,44 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         ]);
     }
 
+    public function testSingleConnectionDoNotUseBody(): void
+    {
+        $client = (new HttpClientBuilder)
+            ->usingPool(ConnectionLimitingPool::byAuthority(1))
+            ->build();
+
+        $this->setMinimumRuntime(2);
+
+        $r1 = new Request('https://httpbin.org/delay/1');
+        $r1->setProtocolVersions(['1.1']);
+        $r2 = new Request('https://httpbin.org/delay/1');
+        $r2->setProtocolVersions(['1.1']);
+
+        Future\await([
+            async($client->request(...), $r1),
+            async($client->request(...), $r2),
+        ]);
+    }
+
+    public function testSingleConnectionDoNotUseBodyHttp2(): void
+    {
+        $client = (new HttpClientBuilder)
+            ->usingPool(ConnectionLimitingPool::byAuthority(1))
+            ->build();
+
+        $this->setMinimumRuntime(1);
+
+        $r1 = new Request('https://httpbin.org/delay/1');
+        $r1->setProtocolVersions(['2']);
+        $r2 = new Request('https://httpbin.org/delay/1');
+        $r2->setProtocolVersions(['2']);
+
+        Future\await([
+            async($client->request(...), $r1),
+            async($client->request(...), $r2),
+        ]);
+    }
+
     public function testTwoConnections(): void
     {
         $client = (new HttpClientBuilder)
