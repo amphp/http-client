@@ -305,7 +305,19 @@ final class Http1Connection implements Connection
             $trailers = $headers;
         };
 
-        $parser = new Http1Parser($request, $stream, $bodyEmitter->pushAsync(...), $trailersCallback);
+        $bodyDeferredCancellation = new DeferredCancellation;
+        $bodyCancellation = new CompositeCancellation(
+            $readingCancellation,
+            $bodyDeferredCancellation->getCancellation(),
+        );
+
+        $parser = new Http1Parser(
+            $request,
+            $stream,
+            $bodyEmitter->pushAsync(...),
+            $bodyCancellation,
+            $trailersCallback,
+        );
 
         $start = now();
         $inactivityTimeout = $request->getInactivityTimeout();
@@ -353,7 +365,15 @@ final class Http1Connection implements Connection
                     }
 
                     $chunk = $parser->getBuffer();
-                    $parser = new Http1Parser($request, $stream, $bodyEmitter->pushAsync(...), $trailersCallback);
+
+                    $parser = new Http1Parser(
+                        $request,
+                        $stream,
+                        $bodyEmitter->pushAsync(...),
+                        $bodyCancellation,
+                        $trailersCallback,
+                    );
+
                     goto parseChunk;
                 }
 
@@ -362,12 +382,6 @@ final class Http1Connection implements Connection
 
                     return $this->handleUpgradeResponse($request, $response, $parser->getBuffer());
                 }
-
-                $bodyDeferredCancellation = new DeferredCancellation;
-                $bodyCancellation = new CompositeCancellation(
-                    $readingCancellation,
-                    $bodyDeferredCancellation->getCancellation()
-                );
 
                 $response->setTrailers($trailersDeferred->getFuture());
                 $response->setBody(new ResponseBodyStream(

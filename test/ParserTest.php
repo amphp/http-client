@@ -7,6 +7,7 @@ use Amp\Future;
 use Amp\Http\Client\Connection\Connection;
 use Amp\Http\Client\Connection\Internal\Http1Parser;
 use Amp\Http\Client\Connection\Stream;
+use Amp\NullCancellation;
 use Amp\PHPUnit\AsyncTestCase;
 
 class ParserTest extends AsyncTestCase
@@ -27,7 +28,8 @@ class ParserTest extends AsyncTestCase
         $parser = new Http1Parser(
             $request,
             $this->createMock(Stream::class),
-            $this->createCallback(0),
+            $this->createCallback(0, fn () => Future::complete()),
+            new NullCancellation(),
             $this->createCallback(0)
         );
 
@@ -57,6 +59,7 @@ class ParserTest extends AsyncTestCase
             $request,
             $this->createMock(Stream::class),
             $this->createCallback(1, fn () => Future::complete()),
+            new NullCancellation(),
             $callback
         );
 

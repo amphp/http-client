@@ -35,7 +35,15 @@ function processRequest(Request $request, array $eventListeners, \Closure $reque
     }
 
     $trailers = $response->getTrailers();
-    $trailers->map(fn () => events()->requestEnd($request, $response))->ignore();
+
+    $responseRef = \WeakReference::create($response);
+    $trailers->map(function () use ($request, $responseRef): void {
+        $response = $responseRef->get();
+        if ($response) {
+            events()->requestEnd($request, $response);
+        }
+    })->ignore();
+
     $trailers->catch(fn (\Throwable $exception) => events()->requestFailed($request, $exception))->ignore();
 
     return $response;

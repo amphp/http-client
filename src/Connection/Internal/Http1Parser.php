@@ -3,6 +3,7 @@
 namespace Amp\Http\Client\Connection\Internal;
 
 use Amp\ByteStream\ReadableBuffer;
+use Amp\Cancellation;
 use Amp\ForbidCloning;
 use Amp\ForbidSerialization;
 use Amp\Future;
@@ -72,6 +73,7 @@ final class Http1Parser
         private readonly Request $request,
         private readonly Stream $stream,
         private readonly \Closure $bodyDataCallback,
+        private readonly Cancellation $bodyCancellation,
         private readonly \Closure $trailersCallback,
     ) {
         $this->maxHeaderBytes = $request->getHeaderSizeLimit();
@@ -167,8 +169,11 @@ final class Http1Parser
             }
 
             $requestMethod = $this->request->getMethod();
-            $skipBody = $statusCode < HttpStatus::OK || $statusCode === HttpStatus::NOT_MODIFIED || $statusCode === HttpStatus::NO_CONTENT
-                || $requestMethod === 'HEAD' || $requestMethod === 'CONNECT';
+            $skipBody = $statusCode < HttpStatus::OK
+                || $statusCode === HttpStatus::NOT_MODIFIED
+                || $statusCode === HttpStatus::NO_CONTENT
+                || $requestMethod === 'HEAD'
+                || $requestMethod === 'CONNECT';
 
             if ($skipBody) {
                 $this->complete = true;
@@ -328,7 +333,11 @@ final class Http1Parser
         }
 
         if ($this->maxHeaderBytes > 0 && $headersSize > $this->maxHeaderBytes) {
-            throw new ParseException("Configured header size exceeded: {$headersSize} bytes received, while the configured limit is {$this->maxHeaderBytes} bytes", HttpStatus::REQUEST_HEADER_FIELDS_TOO_LARGE);
+            throw new ParseException(
+                "Configured header size exceeded: {$headersSize} bytes received, while the configured " .
+                "limit is {$this->maxHeaderBytes} bytes",
+                HttpStatus::REQUEST_HEADER_FIELDS_TOO_LARGE,
+            );
         }
 
         return $headers;
@@ -357,13 +366,17 @@ final class Http1Parser
             $this->chunkedEncoding = \in_array('chunked', $transferEncodings, true);
         } elseif (!empty($headerMap['content-length'])) {
             if (\count($headerMap['content-length']) > 1) {
-                throw new ParseException('Can\'t determine body length, because multiple content-length headers present in the response', HttpStatus::BAD_REQUEST);
+                throw new ParseException('Can\'t determine body length, because multiple content-length ' .
+                    'headers present in the response', HttpStatus::BAD_REQUEST);
             }
 
             $contentLength = $headerMap['content-length'][0];
 
             if (!\preg_match('/^(0|[1-9][0-9]*)$/', $contentLength)) {
-                throw new ParseException('Can\'t determine body length, because the content-length header value is invalid', HttpStatus::BAD_REQUEST);
+                throw new ParseException(
+                    'Can\'t determine body length, because the content-length header value is invalid',
+                    HttpStatus::BAD_REQUEST,
+                );
             }
 
             $this->remainingBodyBytes = (int) $contentLength;
@@ -467,9 +480,13 @@ final class Http1Parser
         $this->bodyBytesConsumed += $length;
 
         if ($this->maxBodyBytes > 0 && $this->bodyBytesConsumed > $this->maxBodyBytes) {
-            throw new ParseException("Configured body size exceeded: {$this->bodyBytesConsumed} bytes received, while the configured limit is {$this->maxBodyBytes} bytes", HttpStatus::PAYLOAD_TOO_LARGE);
+            throw new ParseException(
+                "Configured body size exceeded: {$this->bodyBytesConsumed} bytes received," .
+                " while the configured limit is {$this->maxBodyBytes} bytes",
+                HttpStatus::PAYLOAD_TOO_LARGE,
+            );
         }
 
-        ($this->bodyDataCallback)($data)->ignore();
+        ($this->bodyDataCallback)($data)->await($this->bodyCancellation);
     }
 }

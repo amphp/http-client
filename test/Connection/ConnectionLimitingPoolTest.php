@@ -52,10 +52,10 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         $r2 = new Request('https://httpbin.org/delay/1');
         $r2->setProtocolVersions(['1.1']);
 
-        Future\await([
-            async($client->request(...), $r1),
-            async($client->request(...), $r2),
-        ]);
+        $future = async($client->request(...), $r1);
+        async($client->request(...), $r2);
+
+        $future->await();
     }
 
     public function testSingleConnectionDoNotUseBodyHttp2(): void
@@ -71,10 +71,10 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         $r2 = new Request('https://httpbin.org/delay/1');
         $r2->setProtocolVersions(['2']);
 
-        Future\await([
-            async($client->request(...), $r1),
-            async($client->request(...), $r2),
-        ]);
+        $future = async($client->request(...), $r1);
+        async($client->request(...), $r2);
+
+        $future->await();
     }
 
     public function testTwoConnections(): void
