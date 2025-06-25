@@ -82,6 +82,21 @@ final class ConnectionLimitingPool implements ConnectionPool
         $this->openConnectionCount = 0;
     }
 
+    public function __destruct()
+    {
+        foreach ($this->connections as $connectionFutures) {
+            foreach ($connectionFutures as $connectionFuture) {
+                if ($connectionFuture->isComplete()) {
+                    $connectionFuture->await()->close();
+                } else {
+                    $connectionFuture->map(function (Connection $connection): void {
+                        $connection->close();
+                    });
+                }
+            }
+        }
+    }
+
     public function getTotalConnectionAttempts(): int
     {
         return $this->totalConnectionAttempts;
