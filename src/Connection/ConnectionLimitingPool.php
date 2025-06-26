@@ -86,10 +86,10 @@ final class ConnectionLimitingPool implements ConnectionPool
     {
         foreach ($this->connections as $connectionFutures) {
             foreach ($connectionFutures as $connectionFuture) {
-                if ($connectionFuture->isComplete()) {
+                if (PHP_VERSION_ID >= 8_04_00 && $connectionFuture->isComplete()) {
                     $connectionFuture->await()->close();
                 } else {
-                    $connectionFuture->map(function (Connection $connection): void {
+                    $connectionFuture->map(static function (Connection $connection): void {
                         $connection->close();
                     });
                 }
