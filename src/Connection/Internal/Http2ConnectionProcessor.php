@@ -100,6 +100,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
     private ?int $shutdown = null;
 
+    /** @var Queue<string> */
     private readonly Queue $frameQueue;
 
     public function __construct(
@@ -1597,11 +1598,16 @@ final class Http2ConnectionProcessor implements Http2Processor
     private function runWriteFiber(): void
     {
         try {
-            foreach ($this->frameQueue->iterate() as $frame) {
+            $iterator = $this->frameQueue->iterate();
+
+            while ($iterator->continue()) {
                 if (!$this->socket->isWritable()) {
-                    throw new SocketException('Connection has closed');
+                    $this->hasWriteError = true;
+                    $iterator->dispose();
+                    return;
                 }
 
+                $frame = $iterator->getValue();
                 $this->socket->write($frame);
             }
         } catch (\Throwable $exception) {
@@ -1610,7 +1616,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             $this->shutdown(new SocketException(
                 "The HTTP/2 connection closed unexpectedly: " . $exception->getMessage(),
                 Http2Parser::INTERNAL_ERROR,
-                $exception
+                $exception,
             ));
         }
     }
