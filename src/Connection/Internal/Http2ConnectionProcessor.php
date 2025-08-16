@@ -1437,19 +1437,13 @@ final class Http2ConnectionProcessor implements Http2Processor
             return;
         }
 
-        $reason ??= new SocketException(
-            "The HTTP/2 connection from '" . $this->socket->getLocalAddress() . "' to '"
-            . $this->socket->getRemoteAddress() . "' closed unexpectedly",
-            Http2Parser::INTERNAL_ERROR,
-        );
-
         if ($this->settings !== null) {
             $message = "Connection closed before HTTP/2 settings could be received";
             $this->settings->error(new SocketException($message, 0, $reason));
             $this->settings = null;
         }
 
-        $previous = $reason->getPrevious();
+        $previous = $reason?->getPrevious();
         $previous = $previous instanceof Http2ConnectionException ? $previous : null;
 
         $code = $previous?->getCode() ?? Http2Parser::GRACEFUL_SHUTDOWN;
@@ -1470,6 +1464,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             $this->writeFrame(Http2Parser::GOAWAY, data: \pack('NN', 0, $code) . $message)->ignore();
 
             foreach ($this->streams as $id => $stream) {
+                $reason ??= $this->makeDefaultShutdownReason();
                 $this->releaseStream($id, $reason, unprocessed: false);
             }
 
@@ -1481,8 +1476,18 @@ final class Http2ConnectionProcessor implements Http2Processor
                 continue;
             }
 
+            $reason ??= $this->makeDefaultShutdownReason();
             $this->releaseStream($id, $reason, unprocessed: true);
         }
+    }
+
+    private function makeDefaultShutdownReason(): SocketException
+    {
+        return new SocketException(
+            "The HTTP/2 connection from '" . $this->socket->getLocalAddress() . "' to '"
+            . $this->socket->getRemoteAddress() . "' closed unexpectedly",
+            Http2Parser::INTERNAL_ERROR,
+        );
     }
 
     /**
