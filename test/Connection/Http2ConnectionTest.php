@@ -24,7 +24,6 @@ use Amp\Pipeline\Queue;
 use Amp\Socket;
 use Amp\Socket\ResourceSocket;
 use Amp\TimeoutCancellation;
-use Laminas\Diactoros\Uri as LaminasUri;
 use League\Uri;
 use Revolt\EventLoop;
 use function Amp\async;
@@ -381,7 +380,7 @@ class Http2ConnectionTest extends AsyncTestCase
 
     public function testWritingRequestWithRelativeUriPathFails(): void
     {
-        $request = new Request(new LaminasUri('foo'));
+        $request = new Request(Uri\Http::new('foo'));
         $request->setInactivityTimeout(0.5);
 
         events()->requestStart($request);
