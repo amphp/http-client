@@ -40,7 +40,7 @@ final class DefaultConnectionFactory implements ConnectionFactory
         $scheme = $uri->getScheme();
 
         if (!\in_array($scheme, ['http', 'https'], true)) {
-            throw new InvalidRequestException($request, 'Invalid scheme provided in the request URI: ' . $uri);
+            throw new InvalidRequestException($request, 'Invalid scheme provided in the request URI: ' . (string) $uri);
         }
 
         $isHttps = $scheme === 'https';
@@ -50,7 +50,7 @@ final class DefaultConnectionFactory implements ConnectionFactory
         $port = $uri->getPort() ?? $defaultPort;
 
         if ($host === '') {
-            throw new InvalidRequestException($request, 'A host must be provided in the request URI: ' . $uri);
+            throw new InvalidRequestException($request, 'A host must be provided in the request URI: ' . (string) $uri);
         }
 
         $authority = $host . ':' . $port;

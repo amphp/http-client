@@ -222,7 +222,6 @@ final class ConnectionLimitingPool implements ConnectionPool
             $isHttps
         ): void {
             try {
-                /** @var Connection $connection */
                 $connection = $connectionFuture->await();
             } catch (\Throwable) {
                 $this->dropConnection($uri, null, $futureId);
@@ -315,7 +314,6 @@ final class ConnectionLimitingPool implements ConnectionPool
             return;
         }
 
-        /** @var DeferredFuture $deferred */
         $deferred = \reset($this->waiting[$uri]);
         $this->removeWaiting($uri, \spl_object_id($deferred));
         $deferred->complete($connection);

@@ -299,6 +299,8 @@ final class Http1Connection implements Connection
      * @throws HttpException
      * @throws ParseException
      * @throws SocketException
+     *
+     * @psalm-suppress UnusedVariable
      */
     private function readResponse(
         Request $request,
@@ -521,10 +523,12 @@ final class Http1Connection implements Connection
             $originalCancellation->throwIfRequested();
 
             if ($readingCancellation->isRequested()) {
-                throw new TimeoutException('Allowed transfer timeout exceeded, took longer than ' . $request->getTransferTimeout() . ' s', 0, $e);
+                throw new TimeoutException('Allowed transfer timeout exceeded, took longer than ' . $request->getTransferTimeout() . ' s', previous: $e);
             }
 
-            throw new TimeoutException('Inactivity timeout exceeded, more than ' . $inactivityTimeout . ' seconds elapsed from last data received', 0, $e);
+            throw new TimeoutException(
+                'Inactivity timeout exceeded, more than ' . (string) $inactivityTimeout .
+                ' seconds elapsed from last data received', previous: $e);
         } catch (\Throwable $e) {
             $this->close();
             throw new SocketException('Receiving the response headers failed: ' . $e->getMessage(), 0, $e);

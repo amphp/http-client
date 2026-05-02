@@ -47,6 +47,7 @@ try {
     print "\n";
 
     $path = tempnam(sys_get_temp_dir(), "artax-streaming-");
+    assert(is_string($path), "tempnam returned non-string path");
 
     $file = Amp\File\openFile($path, "w");
 

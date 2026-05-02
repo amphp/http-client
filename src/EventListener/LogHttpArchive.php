@@ -21,7 +21,6 @@ use Amp\Socket\InternetAddress;
 use Amp\Sync\LocalMutex;
 use Revolt\EventLoop;
 use function Amp\File\filesystem;
-use function Amp\File\openFile;
 use function Amp\now;
 
 final class LogHttpArchive implements EventListener
@@ -112,6 +111,7 @@ final class LogHttpArchive implements EventListener
             HarAttributes::TIME_COMPLETE
         );
 
+        /** @psalm-suppress InvalidOperand */
         $blockedDuration = self::getTime(
             $request,
             HarAttributes::TIME_START,
@@ -172,6 +172,7 @@ final class LogHttpArchive implements EventListener
 
     private string $filePath;
 
+    /** @psalm-suppress UnusedProperty False-positive. */
     private ?\Throwable $error = null;
 
     public function __construct(string $filePath, ?Filesystem $filesystem = null)
@@ -216,9 +217,9 @@ final class LogHttpArchive implements EventListener
             $firstEntry = $this->fileHandle === null;
 
             if ($firstEntry) {
-                $this->fileHandle = $fileHandle = openFile($this->filePath, 'w');
+                $this->fileHandle = $fileHandle = $this->filesystem->openFile($this->filePath, 'w');
 
-                $header = '{"log":{"version":"1.2","creator":{"name":"amphp/http-client","version":"4.x"},"pages":[],"entries":[';
+                $header = '{"log":{"version":"1.2","creator":{"name":"amphp/http-client","version":"5.x"},"pages":[],"entries":[';
 
                 $fileHandle->write($header);
             } else {
@@ -229,7 +230,7 @@ final class LogHttpArchive implements EventListener
                 $fileHandle->seek(-3, Whence::Current);
             }
 
-            $json = \json_encode(self::formatEntry($response));
+            $json = \json_encode(self::formatEntry($response), flags: \JSON_THROW_ON_ERROR);
 
             $fileHandle->write(($firstEntry ? '' : ',') . $json . ']}}');
 
@@ -237,7 +238,7 @@ final class LogHttpArchive implements EventListener
         } catch (HttpException $e) {
             $this->error = $e;
         } catch (\Throwable $e) {
-            $this->error = new HttpException('Writing HTTP archive log failed', 0, $e);
+            $this->error = new HttpException('Writing HTTP archive log failed', previous: $e);
         }
     }
 

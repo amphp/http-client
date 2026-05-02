@@ -19,6 +19,7 @@ use Revolt\EventLoop;
  * Used in Http2ConnectionProcessor.
  *
  * @internal
+ * @psalm-suppress PossiblyUnusedProperty
  */
 final class Http2Stream
 {

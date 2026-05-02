@@ -259,7 +259,7 @@ final class Http2ConnectionProcessor implements Http2Processor
     #[\Override]
     public function handleHeaders(int $streamId, array $pseudo, array $headers, bool $streamEnded): void
     {
-        foreach ($pseudo as $name => $value) {
+        foreach ($pseudo as $name => $_value) {
             if (!isset(Http2Parser::KNOWN_RESPONSE_PSEUDO_HEADERS[$name])) {
                 $this->handleStreamException(new Http2StreamException(
                     "Invalid pseudo header",
@@ -499,7 +499,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             return;
         }
 
-        foreach ($pseudo as $name => $value) {
+        foreach ($pseudo as $name => $_value) {
             if (!isset(Http2Parser::KNOWN_REQUEST_PSEUDO_HEADERS[$name])) {
                 $this->handleStreamException(new Http2StreamException(
                     "Invalid pseudo header",
@@ -1022,10 +1022,10 @@ final class Http2ConnectionProcessor implements Http2Processor
 
             if (\strlen($headers) > $this->frameSizeLimit) {
                 $split = \str_split($headers, $this->frameSizeLimit);
-                \assert($split !== false);
 
                 $firstChunk = \array_shift($split);
                 $lastChunk = \array_pop($split);
+                \assert($lastChunk !== null); // For Psalm.
 
                 $this->writeFrame(Http2Parser::HEADERS, stream: $http2stream->id, data: $firstChunk)->ignore();
 
@@ -1121,8 +1121,9 @@ final class Http2ConnectionProcessor implements Http2Processor
             }
         } catch (\Throwable $exception) {
             $this->shutdown(new SocketException(
-                "The HTTP/2 connection from '" . $this->socket->getLocalAddress() . "' to '" . $this->socket->getRemoteAddress() .
-                "' closed due to an exception: " . $exception->getMessage(),
+                "The HTTP/2 connection from '" . (string) $this->socket->getLocalAddress() . "' to '" .
+                (string) $this->socket->getRemoteAddress() . "' closed due to an exception: " .
+                $exception->getMessage(),
                 Http2Parser::INTERNAL_ERROR,
                 $exception,
             ));
@@ -1477,7 +1478,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
             $this->writeFrame(Http2Parser::GOAWAY, data: \pack('NN', 0, $code) . $message)->ignore();
 
-            foreach ($this->streams as $id => $stream) {
+            foreach ($this->streams as $id => $_stream) {
                 $reason ??= $this->makeDefaultShutdownReason();
                 $this->releaseStream($id, $reason, unprocessed: false);
             }
@@ -1485,7 +1486,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             return;
         }
 
-        foreach ($this->streams as $id => $stream) {
+        foreach ($this->streams as $id => $_stream) {
             if ($id <= $lastId) {
                 continue;
             }
@@ -1498,8 +1499,8 @@ final class Http2ConnectionProcessor implements Http2Processor
     private function makeDefaultShutdownReason(): SocketException
     {
         return new SocketException(
-            "The HTTP/2 connection from '" . $this->socket->getLocalAddress() . "' to '"
-            . $this->socket->getRemoteAddress() . "' closed unexpectedly",
+            "The HTTP/2 connection from '" . (string) $this->socket->getLocalAddress() . "' to '"
+            . (string) $this->socket->getRemoteAddress() . "' closed unexpectedly",
             Http2Parser::INTERNAL_ERROR,
         );
     }
@@ -1604,7 +1605,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             return null;
         }
 
-        $watcher = EventLoop::delay($timeout, function () use ($streamId, $timeout, $message): void {
+        $watcher = EventLoop::delay($timeout, function () use ($streamId, $message): void {
             \assert(isset($this->streams[$streamId]), 'Stream watcher invoked after stream closed');
             $this->releaseStream($streamId, new TimeoutException($message), false);
         });
