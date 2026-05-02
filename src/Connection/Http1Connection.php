@@ -528,7 +528,9 @@ final class Http1Connection implements Connection
 
             throw new TimeoutException(
                 'Inactivity timeout exceeded, more than ' . (string) $inactivityTimeout .
-                ' seconds elapsed from last data received', previous: $e);
+                ' seconds elapsed from last data received',
+                previous: $e,
+            );
         } catch (\Throwable $e) {
             $this->close();
             throw new SocketException('Receiving the response headers failed: ' . $e->getMessage(), 0, $e);
