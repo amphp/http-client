@@ -135,6 +135,7 @@ final class Request extends HttpRequest
     /**
      * Specify the request's HTTP method verb.
      */
+    #[\Override]
     public function setMethod(string $method): void
     {
         parent::setMethod($method);
@@ -143,6 +144,7 @@ final class Request extends HttpRequest
     /**
      * Specify the request's HTTP URI.
      */
+    #[\Override]
     public function setUri(UriInterface|string $uri): void
     {
         parent::setUri($uri instanceof UriInterface ? $uri : $this->createUriFromString($uri));
@@ -154,6 +156,7 @@ final class Request extends HttpRequest
      * @param non-empty-string $name Header name.
      * @param HeaderParamValueType $value Header value.
      */
+    #[\Override]
     public function setHeader(string $name, array|string $value): void
     {
         if (($name[0] ?? ":") === ":") {
@@ -169,6 +172,7 @@ final class Request extends HttpRequest
      * @param non-empty-string $name Header name.
      * @param HeaderParamValueType $value Header value.
      */
+    #[\Override]
     public function addHeader(string $name, array|string $value): void
     {
         if (($name[0] ?? ":") === ":") {
@@ -178,12 +182,14 @@ final class Request extends HttpRequest
         parent::addHeader($name, $value);
     }
 
+    #[\Override]
     public function setHeaders(array $headers): void
     {
         /** @noinspection PhpUnhandledExceptionInspection */
         parent::setHeaders($headers);
     }
 
+    #[\Override]
     public function replaceHeaders(array $headers): void
     {
         /** @noinspection PhpUnhandledExceptionInspection */
@@ -195,36 +201,43 @@ final class Request extends HttpRequest
      *
      * @param string $name Header name.
      */
+    #[\Override]
     public function removeHeader(string $name): void
     {
         parent::removeHeader($name);
     }
 
+    #[\Override]
     public function setQueryParameter(string $key, array|string|null $value): void
     {
         parent::setQueryParameter($key, $value);
     }
 
+    #[\Override]
     public function addQueryParameter(string $key, array|string|null $value): void
     {
         parent::addQueryParameter($key, $value);
     }
 
+    #[\Override]
     public function setQueryParameters(array $parameters): void
     {
         parent::setQueryParameters($parameters);
     }
 
+    #[\Override]
     public function replaceQueryParameters(array $parameters): void
     {
         parent::replaceQueryParameters($parameters);
     }
 
+    #[\Override]
     public function removeQueryParameter(string $key): void
     {
         parent::removeQueryParameter($key);
     }
 
+    #[\Override]
     public function removeQuery(): void
     {
         parent::removeQuery();
@@ -530,6 +543,7 @@ final class Request extends HttpRequest
         $this->attributes = [];
     }
 
+    #[\Override]
     public function isIdempotent(): bool
     {
         // https://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html

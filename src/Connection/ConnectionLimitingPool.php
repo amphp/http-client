@@ -97,6 +97,7 @@ final class ConnectionLimitingPool implements ConnectionPool
         return $this->openConnectionCount;
     }
 
+    #[\Override]
     public function getStream(Request $request, Cancellation $cancellation): Stream
     {
         $this->totalStreamRequests++;

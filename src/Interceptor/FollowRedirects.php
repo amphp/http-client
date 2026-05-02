@@ -119,6 +119,7 @@ final class FollowRedirects implements ApplicationInterceptor
         $this->autoReferrer = $autoReferrer;
     }
 
+    #[\Override]
     public function request(
         Request $request,
         Cancellation $cancellation,

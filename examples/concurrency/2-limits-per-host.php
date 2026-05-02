@@ -18,6 +18,7 @@ try {
     $pool = ConnectionLimitingPool::byAuthority(1);
 
     $logger = new class implements NetworkInterceptor {
+        #[\Override]
         public function requestViaNetwork(
             Request $request,
             Cancellation $cancellation,

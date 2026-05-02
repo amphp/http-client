@@ -85,6 +85,7 @@ final class HttpStream implements Stream
     /**
      * @throws HttpException
      */
+    #[\Override]
     public function request(Request $request, Cancellation $cancellation): Response
     {
         if ($this->ReleaseCallbackType === null) {
@@ -96,16 +97,19 @@ final class HttpStream implements Stream
         return processRequest($request, [], fn (): Response => ($this->RequestCallbackType)($request, $cancellation, $this));
     }
 
+    #[\Override]
     public function getLocalAddress(): SocketAddress
     {
         return $this->localAddress;
     }
 
+    #[\Override]
     public function getRemoteAddress(): SocketAddress
     {
         return $this->remoteAddress;
     }
 
+    #[\Override]
     public function getTlsInfo(): ?TlsInfo
     {
         return $this->tlsInfo;

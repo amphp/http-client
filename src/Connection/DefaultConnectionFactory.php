@@ -28,6 +28,7 @@ final class DefaultConnectionFactory implements ConnectionFactory
         $this->connectContext = $connectContext ?? new ConnectContext();
     }
 
+    #[\Override]
     public function create(Request $request, Cancellation $cancellation): Connection
     {
         $connectStart = now();

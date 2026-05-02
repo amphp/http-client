@@ -24,6 +24,7 @@ final class PooledHttpClient implements DelegateHttpClient
         $this->connectionPool = $connectionPool ?? new UnlimitedConnectionPool;
     }
 
+    #[\Override]
     public function request(Request $request, Cancellation $cancellation): Response
     {
         return processRequest($request, $this->eventListeners, function () use ($request, $cancellation) {

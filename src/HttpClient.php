@@ -25,6 +25,7 @@ final class HttpClient implements DelegateHttpClient
      *
      * @throws HttpException
      */
+    #[\Override]
     public function request(Request $request, ?Cancellation $cancellation = null): Response
     {
         return processRequest(

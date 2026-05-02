@@ -35,11 +35,13 @@ final class Http2Connection implements Connection
         $this->processor = new Http2ConnectionProcessor($socket);
     }
 
+    #[\Override]
     public function isIdle(): bool
     {
         return $this->processor->isIdle();
     }
 
+    #[\Override]
     public function getProtocolVersions(): array
     {
         return self::PROTOCOL_VERSIONS;
@@ -50,6 +52,7 @@ final class Http2Connection implements Connection
         $this->processor->initialize($cancellation ?? new TimeoutCancellation(5));
     }
 
+    #[\Override]
     public function getStream(Request $request): ?Stream
     {
         if (!$this->processor->isInitialized()) {
@@ -67,31 +70,37 @@ final class Http2Connection implements Connection
         return HttpStream::fromConnection($this, $this->request(...), $this->processor->unreserveStream(...));
     }
 
+    #[\Override]
     public function onClose(\Closure $onClose): void
     {
         $this->processor->onClose($onClose);
     }
 
+    #[\Override]
     public function close(): void
     {
         $this->processor->close();
     }
 
+    #[\Override]
     public function isClosed(): bool
     {
         return $this->processor->isClosed();
     }
 
+    #[\Override]
     public function getLocalAddress(): SocketAddress
     {
         return $this->socket->getLocalAddress();
     }
 
+    #[\Override]
     public function getRemoteAddress(): SocketAddress
     {
         return $this->socket->getRemoteAddress();
     }
 
+    #[\Override]
     public function getTlsInfo(): ?TlsInfo
     {
         return $this->socket->getTlsInfo();
@@ -104,11 +113,13 @@ final class Http2Connection implements Connection
         return $this->processor->request($request, $cancellation, $stream);
     }
 
+    #[\Override]
     public function getTlsHandshakeDuration(): ?float
     {
         return $this->tlsHandshakeDuration;
     }
 
+    #[\Override]
     public function getConnectDuration(): float
     {
         return $this->connectDuration;

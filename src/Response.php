@@ -86,6 +86,7 @@ final class Response extends HttpResponse
         $this->protocolVersion = $protocolVersion;
     }
 
+    #[\Override]
     public function setStatus(int $status, ?string $reason = null): void
     {
         parent::setStatus($status, $reason);
@@ -153,6 +154,7 @@ final class Response extends HttpResponse
      * @param non-empty-string $name Header name.
      * @param HeaderParamValueType $value Header value.
      */
+    #[\Override]
     public function setHeader(string $name, array|string $value): void
     {
         if (($name[0] ?? ":") === ":") {
@@ -168,6 +170,7 @@ final class Response extends HttpResponse
      * @param non-empty-string $name Header name.
      * @param HeaderParamValueType $value Header value.
      */
+    #[\Override]
     public function addHeader(string $name, array|string $value): void
     {
         if (($name[0] ?? ":") === ":") {
@@ -177,12 +180,14 @@ final class Response extends HttpResponse
         parent::addHeader($name, $value);
     }
 
+    #[\Override]
     public function setHeaders(array $headers): void
     {
         /** @noinspection PhpUnhandledExceptionInspection */
         parent::setHeaders($headers);
     }
 
+    #[\Override]
     public function replaceHeaders(array $headers): void
     {
         /** @noinspection PhpUnhandledExceptionInspection */
@@ -194,6 +199,7 @@ final class Response extends HttpResponse
      *
      * @param string $name Header name.
      */
+    #[\Override]
     public function removeHeader(string $name): void
     {
         parent::removeHeader($name);

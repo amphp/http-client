@@ -23,6 +23,7 @@ final class InterceptedHttpClient implements DelegateHttpClient
     ) {
     }
 
+    #[\Override]
     public function request(Request $request, Cancellation $cancellation): Response
     {
         return processRequest($request, $this->eventListeners, function () use ($request, $cancellation) {

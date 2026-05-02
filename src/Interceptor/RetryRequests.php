@@ -20,6 +20,7 @@ final class RetryRequests implements ApplicationInterceptor
     {
     }
 
+    #[\Override]
     public function request(
         Request $request,
         Cancellation $cancellation,

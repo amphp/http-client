@@ -43,6 +43,7 @@ final class StreamedContent implements HttpContent
         $this->content = $content;
     }
 
+    #[\Override]
     public function getContent(): ReadableStream
     {
         if ($this->content === null) {
@@ -56,11 +57,13 @@ final class StreamedContent implements HttpContent
         }
     }
 
+    #[\Override]
     public function getContentLength(): ?int
     {
         return $this->contentLength;
     }
 
+    #[\Override]
     public function getContentType(): ?string
     {
         return $this->contentType;

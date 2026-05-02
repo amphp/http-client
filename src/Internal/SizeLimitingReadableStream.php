@@ -29,6 +29,7 @@ final class SizeLimitingReadableStream implements ReadableStream, \IteratorAggre
     ) {
     }
 
+    #[\Override]
     public function read(?Cancellation $cancellation = null): ?string
     {
         if ($this->exception) {
@@ -51,21 +52,25 @@ final class SizeLimitingReadableStream implements ReadableStream, \IteratorAggre
         return $chunk;
     }
 
+    #[\Override]
     public function isReadable(): bool
     {
         return $this->source->isReadable();
     }
 
+    #[\Override]
     public function close(): void
     {
         $this->source->close();
     }
 
+    #[\Override]
     public function isClosed(): bool
     {
         return $this->source->isClosed();
     }
 
+    #[\Override]
     public function onClose(\Closure $onClose): void
     {
         $this->source->onClose($onClose);

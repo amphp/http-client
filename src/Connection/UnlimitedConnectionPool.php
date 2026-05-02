@@ -37,6 +37,7 @@ final class UnlimitedConnectionPool implements ConnectionPool
         return $this->pool->getOpenConnectionCount();
     }
 
+    #[\Override]
     public function getStream(Request $request, Cancellation $cancellation): Stream
     {
         return $this->pool->getStream($request, $cancellation);

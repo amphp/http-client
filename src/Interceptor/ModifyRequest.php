@@ -24,6 +24,7 @@ class ModifyRequest implements NetworkInterceptor, ApplicationInterceptor
     {
     }
 
+    #[\Override]
     final public function requestViaNetwork(
         Request $request,
         Cancellation $cancellation,
@@ -36,6 +37,7 @@ class ModifyRequest implements NetworkInterceptor, ApplicationInterceptor
         return $stream->request($mappedRequest ?? $request, $cancellation);
     }
 
+    #[\Override]
     public function request(
         Request $request,
         Cancellation $cancellation,

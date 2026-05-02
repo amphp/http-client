@@ -53,16 +53,19 @@ final class BufferedContent implements HttpContent
     ) {
     }
 
+    #[\Override]
     public function getContent(): ReadableStream
     {
         return new ReadableBuffer($this->content);
     }
 
+    #[\Override]
     public function getContentLength(): int
     {
         return \strlen($this->content);
     }
 
+    #[\Override]
     public function getContentType(): ?string
     {
         return $this->contentType;

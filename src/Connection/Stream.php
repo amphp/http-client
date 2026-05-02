@@ -20,6 +20,7 @@ interface Stream extends DelegateHttpClient
      *
      * @throws \Error Thrown if this method is called more than once.
      */
+    #[\Override]
     public function request(Request $request, Cancellation $cancellation): Response;
 
     public function getLocalAddress(): SocketAddress;

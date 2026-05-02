@@ -100,6 +100,7 @@ final class Http1Connection implements Connection
         $this->close();
     }
 
+    #[\Override]
     public function onClose(\Closure $onClose): void
     {
         if (!$this->socket || $this->socket->isClosed()) {
@@ -110,47 +111,56 @@ final class Http1Connection implements Connection
         $this->onClose[] = $onClose;
     }
 
+    #[\Override]
     public function close(): void
     {
         $this->socket?->close();
         $this->free();
     }
 
+    #[\Override]
     public function isClosed(): bool
     {
         return $this->socket?->isClosed() ?? true;
     }
 
+    #[\Override]
     public function isIdle(): bool
     {
         return !$this->busy;
     }
 
+    #[\Override]
     public function getLocalAddress(): SocketAddress
     {
         return $this->localAddress;
     }
 
+    #[\Override]
     public function getRemoteAddress(): SocketAddress
     {
         return $this->remoteAddress;
     }
 
+    #[\Override]
     public function getTlsInfo(): ?TlsInfo
     {
         return $this->tlsInfo;
     }
 
+    #[\Override]
     public function getTlsHandshakeDuration(): ?float
     {
         return $this->tlsHandshakeDuration;
     }
 
+    #[\Override]
     public function getProtocolVersions(): array
     {
         return self::PROTOCOL_VERSIONS;
     }
 
+    #[\Override]
     public function getStream(Request $request): ?Stream
     {
         if ($this->busy || ($this->requestCounter && !$this->hasStreamFor($request))) {
@@ -736,6 +746,7 @@ final class Http1Connection implements Connection
         });
     }
 
+    #[\Override]
     public function getConnectDuration(): float
     {
         return $this->connectDuration;

@@ -241,6 +241,7 @@ final class LogHttpArchive implements EventListener
         }
     }
 
+    #[\Override]
     public function requestStart(Request $request): void
     {
         if (!$request->hasAttribute(HarAttributes::STARTED_DATE_TIME)) {
@@ -250,6 +251,7 @@ final class LogHttpArchive implements EventListener
         $this->addTiming(HarAttributes::TIME_START, $request);
     }
 
+    #[\Override]
     public function connectionAcquired(Request $request, Connection $connection, int $streamCount): void
     {
         $request->setAttribute(HarAttributes::INCLUDE_CONNECT_TIME, $streamCount === 1);
@@ -263,6 +265,7 @@ final class LogHttpArchive implements EventListener
         }
     }
 
+    #[\Override]
     public function requestHeaderStart(Request $request, Stream $stream): void
     {
         $address = $stream->getRemoteAddress();
@@ -278,16 +281,19 @@ final class LogHttpArchive implements EventListener
         $this->addTiming(HarAttributes::TIME_SEND, $request);
     }
 
+    #[\Override]
     public function requestBodyEnd(Request $request, Stream $stream): void
     {
         $this->addTiming(HarAttributes::TIME_WAIT, $request);
     }
 
+    #[\Override]
     public function responseHeaderStart(Request $request, Stream $stream): void
     {
         $this->addTiming(HarAttributes::TIME_RECEIVE, $request);
     }
 
+    #[\Override]
     public function requestEnd(Request $request, Response $response): void
     {
         $this->addTiming(HarAttributes::TIME_COMPLETE, $request);
@@ -305,71 +311,85 @@ final class LogHttpArchive implements EventListener
         }
     }
 
+    #[\Override]
     public function requestFailed(Request $request, \Throwable $exception): void
     {
         // TODO: Log error to archive
     }
 
+    #[\Override]
     public function requestHeaderEnd(Request $request, Stream $stream): void
     {
         // nothing to do
     }
 
+    #[\Override]
     public function requestBodyStart(Request $request, Stream $stream): void
     {
         // nothing to do
     }
 
+    #[\Override]
     public function requestBodyProgress(Request $request, Stream $stream): void
     {
         // nothing to do
     }
 
+    #[\Override]
     public function responseHeaderEnd(Request $request, Stream $stream, Response $response): void
     {
         // nothing to do
     }
 
+    #[\Override]
     public function responseBodyStart(Request $request, Stream $stream, Response $response): void
     {
         // nothing to do
     }
 
+    #[\Override]
     public function responseBodyProgress(Request $request, Stream $stream, Response $response): void
     {
         // nothing to do
     }
 
+    #[\Override]
     public function responseBodyEnd(Request $request, Stream $stream, Response $response): void
     {
         // nothing to do
     }
 
+    #[\Override]
     public function applicationInterceptorStart(Request $request, ApplicationInterceptor $interceptor): void
     {
         // nothing to do
     }
 
+    #[\Override]
     public function applicationInterceptorEnd(Request $request, ApplicationInterceptor $interceptor, Response $response): void
     {
         // nothing to do
     }
 
+    #[\Override]
     public function networkInterceptorStart(Request $request, NetworkInterceptor $interceptor): void
     {
         // nothing to do
     }
 
+    #[\Override]
     public function networkInterceptorEnd(Request $request, NetworkInterceptor $interceptor, Response $response): void
     {
         // nothing to do
     }
 
+    #[\Override]
     public function push(Request $request): void
     {
         // nothing to do
     }
 
+    #[\Override]
     public function requestRejected(Request $request): void
     {
         // nothing to do

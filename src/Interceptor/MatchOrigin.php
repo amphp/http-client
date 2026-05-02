@@ -41,6 +41,7 @@ final class MatchOrigin implements ApplicationInterceptor
         $this->originMap = $validatedMap;
     }
 
+    #[\Override]
     public function request(
         Request $request,
         Cancellation $cancellation,

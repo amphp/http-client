@@ -39,6 +39,7 @@ final class FormField extends HttpMessage implements HttpContent
     /**
      * @throws HttpException
      */
+    #[\Override]
     public function getContent(): ReadableStream
     {
         return $this->content->getContent();
@@ -47,11 +48,13 @@ final class FormField extends HttpMessage implements HttpContent
     /**
      * @throws HttpException
      */
+    #[\Override]
     public function getContentLength(): ?int
     {
         return $this->content->getContentLength();
     }
 
+    #[\Override]
     public function getContentType(): ?string
     {
         return $this->content->getContentType();

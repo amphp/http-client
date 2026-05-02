@@ -179,17 +179,20 @@ final class Http2ConnectionProcessor implements Http2Processor
         $this->shutdown($exception);
     }
 
+    #[\Override]
     public function handlePong(string $data): void
     {
         $this->cancelPongWatcher(true);
         $this->hasTimeout = false;
     }
 
+    #[\Override]
     public function handlePing(string $data): void
     {
         $this->writeFrame(Http2Parser::PING, Http2Parser::ACK, 0, $data)->ignore();
     }
 
+    #[\Override]
     public function handleShutdown(int $lastId, int $error, string $message): void
     {
         $message = \sprintf(
@@ -203,6 +206,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         $this->shutdown(new SocketException($message, $error), $lastId);
     }
 
+    #[\Override]
     public function handleStreamWindowIncrement(int $streamId, int $windowSize): void
     {
         $stream = $this->streams[$streamId] ?? null;
@@ -225,6 +229,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         $this->writeBufferedData($stream)->ignore();
     }
 
+    #[\Override]
     public function handleConnectionWindowIncrement(int $windowSize): void
     {
         if ($this->clientWindow + $windowSize > 2147483647) {
@@ -251,6 +256,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         }
     }
 
+    #[\Override]
     public function handleHeaders(int $streamId, array $pseudo, array $headers, bool $streamEnded): void
     {
         foreach ($pseudo as $name => $value) {
@@ -481,6 +487,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         }
     }
 
+    #[\Override]
     public function handlePushPromise(int $streamId, int $pushId, array $pseudo, array $headers): void
     {
         if ($pushId % 2 === 1) {
@@ -699,6 +706,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         });
     }
 
+    #[\Override]
     public function handlePriority(int $streamId, int $parentId, int $weight): void
     {
         $stream = $this->streams[$streamId] ?? null;
@@ -710,6 +718,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         $stream->weight = $weight;
     }
 
+    #[\Override]
     public function handleStreamReset(int $streamId, int $errorCode): void
     {
         if (!isset($this->streams[$streamId])) {
@@ -737,6 +746,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         $this->handleStreamException(new Http2StreamException("Stream closed by server: $message", $streamId, $errorCode));
     }
 
+    #[\Override]
     public function handleStreamException(Http2StreamException $exception): void
     {
         $id = $exception->getStreamId();
@@ -747,11 +757,13 @@ final class Http2ConnectionProcessor implements Http2Processor
         $this->releaseStream($id, $exception, $code === Http2Parser::REFUSED_STREAM);
     }
 
+    #[\Override]
     public function handleConnectionException(Http2ConnectionException $exception): void
     {
         $this->shutdown(new SocketException($exception->getMessage(), $exception->getCode(), $exception));
     }
 
+    #[\Override]
     public function handleData(int $streamId, string $data): void
     {
         $length = \strlen($data);
@@ -827,6 +839,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         })->ignore();
     }
 
+    #[\Override]
     public function handleSettings(array $settings): void
     {
         foreach ($settings as $setting => $value) {
@@ -842,6 +855,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         }
     }
 
+    #[\Override]
     public function handleStreamEnd(int $streamId): void
     {
         $stream = $this->streams[$streamId] ?? null;
