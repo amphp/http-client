@@ -17,6 +17,7 @@
         "object",
         "mixed",
         "random_bytes",
+        "str_increment",
         "ZLIB_ENCODING_GZIP",
         "ZLIB_ENCODING_DEFLATE",
         "Amp\\File\\Driver",
