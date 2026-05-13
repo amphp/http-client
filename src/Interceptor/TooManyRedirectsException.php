@@ -5,6 +5,9 @@ namespace Amp\Http\Client\Interceptor;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Response;
 
+/**
+ * @psalm-suppress ClassMustBeFinal
+ */
 class TooManyRedirectsException extends HttpException
 {
     private Response $response;

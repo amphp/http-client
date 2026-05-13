@@ -31,6 +31,7 @@ final class InterceptedStream implements Stream
     /**
      * @throws HttpException
      */
+    #[\Override]
     public function request(Request $request, Cancellation $cancellation): Response
     {
         return processRequest($request, [], function () use ($request, $cancellation): Response {
@@ -58,16 +59,19 @@ final class InterceptedStream implements Stream
         });
     }
 
+    #[\Override]
     public function getLocalAddress(): SocketAddress
     {
         return $this->stream->getLocalAddress();
     }
 
+    #[\Override]
     public function getRemoteAddress(): SocketAddress
     {
         return $this->stream->getRemoteAddress();
     }
 
+    #[\Override]
     public function getTlsInfo(): ?TlsInfo
     {
         return $this->stream->getTlsInfo();

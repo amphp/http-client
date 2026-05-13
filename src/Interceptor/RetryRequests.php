@@ -20,6 +20,7 @@ final class RetryRequests implements ApplicationInterceptor
     {
     }
 
+    #[\Override]
     public function request(
         Request $request,
         Cancellation $cancellation,
@@ -43,6 +44,7 @@ final class RetryRequests implements ApplicationInterceptor
             }
         } while ($attempt++ <= $this->retryLimit);
 
+        /** @psalm-suppress PossiblyUndefinedVariable */
         throw $exception;
     }
 }

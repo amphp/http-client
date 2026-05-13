@@ -18,17 +18,18 @@ try {
     $pool = ConnectionLimitingPool::byAuthority(1);
 
     $logger = new class implements NetworkInterceptor {
+        #[\Override]
         public function requestViaNetwork(
             Request $request,
             Cancellation $cancellation,
             Stream $stream
         ): Response {
-            print 'Starting request to ' . $request->getUri() . '...' . PHP_EOL;
+            print 'Starting request to ' . (string) $request->getUri() . '...' . PHP_EOL;
 
             try {
                 return $stream->request($request, $cancellation);
             } finally {
-                print 'Done @ ' . $request->getUri() . ' ' . PHP_EOL;
+                print 'Done @ ' . (string) $request->getUri() . ' ' . PHP_EOL;
             }
         }
     };

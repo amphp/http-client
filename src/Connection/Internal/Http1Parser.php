@@ -97,6 +97,8 @@ final class Http1Parser
 
     /**
      * @throws ParseException
+     *
+     * @psalm-suppress UnevaluatedCode, UnusedVariable, InvalidReturnType
      */
     public function parse(?string $data = null): ?Response
     {
@@ -351,6 +353,7 @@ final class Http1Parser
         // Legacy support for folded headers
         if (\strpos($rawHeaders, "\r\n\x20") || \strpos($rawHeaders, "\r\n\t")) {
             $rawHeaders = \preg_replace("/\r\n[\x20\t]++/", ' ', $rawHeaders);
+            \assert(\is_string($rawHeaders)); // For Psalm.
         }
 
         try {
@@ -391,6 +394,8 @@ final class Http1Parser
      * @return bool Returns {@code true} if the body is complete, otherwise {@code false}.
      *
      * @throws ParseException
+     *
+     * @psalm-suppress InvalidReturnType
      */
     private function parseChunkedBody(): bool
     {

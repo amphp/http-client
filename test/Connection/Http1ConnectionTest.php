@@ -15,7 +15,6 @@ use Amp\NullCancellation;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Pipeline\Pipeline;
 use Amp\Socket;
-use Laminas\Diactoros\Uri as LaminasUri;
 use League\Uri;
 use Revolt\EventLoop;
 use function Amp\async;
@@ -218,7 +217,7 @@ class Http1ConnectionTest extends AsyncTestCase
 
         $connection = new Http1Connection($client, 0, null, 5);
 
-        $request = new Request(new LaminasUri('foo'));
+        $request = new Request(Uri\Http::new('foo'));
 
         events()->requestStart($request);
         $stream = $connection->getStream($request);

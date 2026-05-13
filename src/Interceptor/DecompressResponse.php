@@ -24,6 +24,7 @@ final class DecompressResponse implements NetworkInterceptor
         $this->hasZlib = \extension_loaded('zlib');
     }
 
+    #[\Override]
     public function requestViaNetwork(
         Request $request,
         Cancellation $cancellation,

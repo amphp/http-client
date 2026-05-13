@@ -11,7 +11,7 @@ final class RequestNormalizer
     /**
      * @throws HttpException
      */
-    public static function normalizeRequest(Request $request): Request
+    public static function normalizeRequest(Request $request): void
     {
         if (!$request->hasHeader('host')) {
             // Though servers are supposed to be able to handle standard port names on the end of the
@@ -24,8 +24,6 @@ final class RequestNormalizer
 
         // Always normalize this as last item, because we need to strip sensitive headers
         self::normalizeTraceRequest($request);
-
-        return $request;
     }
 
     /**

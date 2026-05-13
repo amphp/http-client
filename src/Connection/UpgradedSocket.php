@@ -31,6 +31,7 @@ final class UpgradedSocket implements Socket, ResourceStream, \IteratorAggregate
         $this->buffer = $buffer !== '' ? $buffer : null;
     }
 
+    #[\Override]
     public function read(?Cancellation $cancellation = null, ?int $limit = null): ?string
     {
         if ($this->buffer !== null) {
@@ -50,6 +51,7 @@ final class UpgradedSocket implements Socket, ResourceStream, \IteratorAggregate
         return $this->socket->read($cancellation);
     }
 
+    #[\Override]
     public function close(): void
     {
         $this->socket->close();
@@ -60,16 +62,19 @@ final class UpgradedSocket implements Socket, ResourceStream, \IteratorAggregate
         $this->close();
     }
 
+    #[\Override]
     public function write(string $bytes): void
     {
         $this->socket->write($bytes);
     }
 
+    #[\Override]
     public function end(): void
     {
         $this->socket->end();
     }
 
+    #[\Override]
     public function reference(): void
     {
         if ($this->socket instanceof ResourceStream) {
@@ -77,6 +82,7 @@ final class UpgradedSocket implements Socket, ResourceStream, \IteratorAggregate
         }
     }
 
+    #[\Override]
     public function unreference(): void
     {
         if ($this->socket instanceof ResourceStream) {
@@ -84,61 +90,73 @@ final class UpgradedSocket implements Socket, ResourceStream, \IteratorAggregate
         }
     }
 
+    #[\Override]
     public function isClosed(): bool
     {
         return $this->socket->isClosed();
     }
 
+    #[\Override]
     public function onClose(\Closure $onClose): void
     {
         $this->socket->onClose($onClose);
     }
 
+    #[\Override]
     public function getLocalAddress(): SocketAddress
     {
         return $this->socket->getLocalAddress();
     }
 
+    #[\Override]
     public function getRemoteAddress(): SocketAddress
     {
         return $this->socket->getRemoteAddress();
     }
 
+    #[\Override]
     public function setupTls(?Cancellation $cancellation = null): void
     {
         $this->socket->setupTls($cancellation);
     }
 
+    #[\Override]
     public function shutdownTls(?Cancellation $cancellation = null): void
     {
         $this->socket->shutdownTls();
     }
 
+    #[\Override]
     public function isTlsConfigurationAvailable(): bool
     {
         return $this->socket->isTlsConfigurationAvailable();
     }
 
+    #[\Override]
     public function getTlsState(): TlsState
     {
         return $this->socket->getTlsState();
     }
 
+    #[\Override]
     public function getTlsInfo(): ?TlsInfo
     {
         return $this->socket->getTlsInfo();
     }
 
+    #[\Override]
     public function isReadable(): bool
     {
         return $this->socket->isReadable();
     }
 
+    #[\Override]
     public function isWritable(): bool
     {
         return $this->socket->isWritable();
     }
 
+    #[\Override]
     public function getResource()
     {
         return $this->socket instanceof ResourceStream

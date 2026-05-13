@@ -27,6 +27,7 @@ final class ResponseBodyStream implements ReadableStream, \IteratorAggregate
     ) {
     }
 
+    #[\Override]
     public function read(?Cancellation $cancellation = null): ?string
     {
         $chunk = $this->body->read($cancellation);
@@ -38,6 +39,7 @@ final class ResponseBodyStream implements ReadableStream, \IteratorAggregate
         return $chunk;
     }
 
+    #[\Override]
     public function isReadable(): bool
     {
         return $this->body->isReadable();
@@ -50,16 +52,19 @@ final class ResponseBodyStream implements ReadableStream, \IteratorAggregate
         }
     }
 
+    #[\Override]
     public function close(): void
     {
         $this->body->close();
     }
 
+    #[\Override]
     public function isClosed(): bool
     {
         return $this->body->isClosed();
     }
 
+    #[\Override]
     public function onClose(\Closure $onClose): void
     {
         $this->body->onClose($onClose);

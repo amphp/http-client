@@ -47,6 +47,7 @@ final class EventInvoker implements EventListener
         }
     }
 
+    #[\Override]
     public function requestStart(Request $request): void
     {
         if (self::isRejected($request)) {
@@ -63,6 +64,7 @@ final class EventInvoker implements EventListener
         $this->invoke($request, fn (EventListener $eventListener) => $eventListener->requestStart($request));
     }
 
+    #[\Override]
     public function requestFailed(Request $request, \Throwable $exception): void
     {
         $previousPhase = self::getPhase($request);
@@ -75,6 +77,7 @@ final class EventInvoker implements EventListener
         $this->invoke($request, fn (EventListener $eventListener) => $eventListener->requestFailed($request, $exception));
     }
 
+    #[\Override]
     public function requestEnd(Request $request, Response $response): void
     {
         $previousPhase = self::getPhase($request);
@@ -87,6 +90,7 @@ final class EventInvoker implements EventListener
         $this->invoke($request, fn (EventListener $eventListener) => $eventListener->requestEnd($request, $response));
     }
 
+    #[\Override]
     public function requestRejected(Request $request): void
     {
         $this->requestRejected[$request] = true;
@@ -94,6 +98,7 @@ final class EventInvoker implements EventListener
         $this->invoke($request, fn (EventListener $eventListener) => $eventListener->requestRejected($request));
     }
 
+    #[\Override]
     public function connectionAcquired(Request $request, Connection $connection, int $streamCount): void
     {
         $previousPhase = self::getPhase($request);
@@ -106,6 +111,7 @@ final class EventInvoker implements EventListener
         $this->invoke($request, fn (EventListener $eventListener) => $eventListener->connectionAcquired($request, $connection, $streamCount));
     }
 
+    #[\Override]
     public function push(Request $request): void
     {
         $previousPhase = self::getPhase($request);
@@ -118,6 +124,7 @@ final class EventInvoker implements EventListener
         $this->invoke($request, fn (EventListener $eventListener) => $eventListener->push($request));
     }
 
+    #[\Override]
     public function requestHeaderStart(Request $request, Stream $stream): void
     {
         if (self::isRejected($request)) {
@@ -134,6 +141,7 @@ final class EventInvoker implements EventListener
         $this->invoke($request, fn (EventListener $eventListener) => $eventListener->requestHeaderStart($request, $stream));
     }
 
+    #[\Override]
     public function requestHeaderEnd(Request $request, Stream $stream): void
     {
         $previousPhase = self::getPhase($request);
@@ -144,6 +152,7 @@ final class EventInvoker implements EventListener
         $this->invoke($request, fn (EventListener $eventListener) => $eventListener->requestHeaderEnd($request, $stream));
     }
 
+    #[\Override]
     public function requestBodyStart(Request $request, Stream $stream): void
     {
         $previousPhase = self::getPhase($request);
@@ -156,6 +165,7 @@ final class EventInvoker implements EventListener
         $this->invoke($request, fn (EventListener $eventListener) => $eventListener->requestBodyStart($request, $stream));
     }
 
+    #[\Override]
     public function requestBodyProgress(Request $request, Stream $stream): void
     {
         $previousPhase = self::getPhase($request);
@@ -171,6 +181,7 @@ final class EventInvoker implements EventListener
         $this->invoke($request, fn (EventListener $eventListener) => $eventListener->requestBodyProgress($request, $stream));
     }
 
+    #[\Override]
     public function requestBodyEnd(Request $request, Stream $stream): void
     {
         $previousPhase = self::getPhase($request);
@@ -190,6 +201,7 @@ final class EventInvoker implements EventListener
         $this->invoke($request, fn (EventListener $eventListener) => $eventListener->requestBodyEnd($request, $stream));
     }
 
+    #[\Override]
     public function responseHeaderStart(Request $request, Stream $stream): void
     {
         $previousPhase = self::getPhase($request);
@@ -207,6 +219,7 @@ final class EventInvoker implements EventListener
         $this->invoke($request, fn (EventListener $eventListener) => $eventListener->responseHeaderStart($request, $stream));
     }
 
+    #[\Override]
     public function responseHeaderEnd(Request $request, Stream $stream, Response $response): void
     {
         $previousPhase = self::getPhase($request);
@@ -217,6 +230,7 @@ final class EventInvoker implements EventListener
         $this->invoke($request, fn (EventListener $eventListener) => $eventListener->responseHeaderEnd($request, $stream, $response));
     }
 
+    #[\Override]
     public function responseBodyStart(Request $request, Stream $stream, Response $response): void
     {
         $previousPhase = self::getPhase($request);
@@ -229,6 +243,7 @@ final class EventInvoker implements EventListener
         $this->invoke($request, fn (EventListener $eventListener) => $eventListener->responseBodyStart($request, $stream, $response));
     }
 
+    #[\Override]
     public function responseBodyProgress(Request $request, Stream $stream, Response $response): void
     {
         $previousPhase = self::getPhase($request);
@@ -239,6 +254,7 @@ final class EventInvoker implements EventListener
         $this->invoke($request, fn (EventListener $eventListener) => $eventListener->responseBodyProgress($request, $stream, $response));
     }
 
+    #[\Override]
     public function responseBodyEnd(Request $request, Stream $stream, Response $response): void
     {
         $previousPhase = self::getPhase($request);
@@ -249,6 +265,7 @@ final class EventInvoker implements EventListener
         $this->invoke($request, fn (EventListener $eventListener) => $eventListener->responseBodyEnd($request, $stream, $response));
     }
 
+    #[\Override]
     public function applicationInterceptorStart(Request $request, ApplicationInterceptor $interceptor): void
     {
         $previousPhase = self::getPhase($request);
@@ -259,6 +276,7 @@ final class EventInvoker implements EventListener
         $this->invoke($request, fn (EventListener $eventListener) => $eventListener->applicationInterceptorStart($request, $interceptor));
     }
 
+    #[\Override]
     public function applicationInterceptorEnd(Request $request, ApplicationInterceptor $interceptor, Response $response): void
     {
         $previousPhase = self::getPhase($request);
@@ -269,6 +287,7 @@ final class EventInvoker implements EventListener
         $this->invoke($request, fn (EventListener $eventListener) => $eventListener->applicationInterceptorEnd($request, $interceptor, $response));
     }
 
+    #[\Override]
     public function networkInterceptorStart(Request $request, NetworkInterceptor $interceptor): void
     {
         $previousPhase = self::getPhase($request);
@@ -279,6 +298,7 @@ final class EventInvoker implements EventListener
         $this->invoke($request, fn (EventListener $eventListener) => $eventListener->networkInterceptorStart($request, $interceptor));
     }
 
+    #[\Override]
     public function networkInterceptorEnd(Request $request, NetworkInterceptor $interceptor, Response $response): void
     {
         $previousPhase = self::getPhase($request);

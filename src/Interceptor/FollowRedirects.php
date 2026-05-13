@@ -66,6 +66,9 @@ final class FollowRedirects implements ApplicationInterceptor
         $patternE = ',(/*[^/]*),';
 
         while ($input !== '') {
+            \assert(\is_string($input)); // For Psalm.
+            \assert(\is_string($output)); // For Psalm.
+
             if (\preg_match($patternA, $input)) {
                 $input = \preg_replace($patternA, '', $input);
             } elseif (\preg_match($patternB1, $input, $match) || \preg_match($patternB2, $input, $match)) {
@@ -81,6 +84,8 @@ final class FollowRedirects implements ApplicationInterceptor
                 $output .= $initialSegment;
             }
         }
+
+        \assert(\is_string($output)); // For Psalm.
 
         return $output;
     }
@@ -119,6 +124,7 @@ final class FollowRedirects implements ApplicationInterceptor
         $this->autoReferrer = $autoReferrer;
     }
 
+    #[\Override]
     public function request(
         Request $request,
         Cancellation $cancellation,

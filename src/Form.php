@@ -101,6 +101,7 @@ final class Form implements HttpContent
         $this->addStream($name, StreamedContent::fromFile($path, $contentType), \basename($path));
     }
 
+    #[\Override]
     public function getContent(): ReadableStream
     {
         $this->used = true;
@@ -120,6 +121,7 @@ final class Form implements HttpContent
         }
     }
 
+    #[\Override]
     public function getContentType(): string
     {
         return $this->isMultipart
@@ -130,6 +132,7 @@ final class Form implements HttpContent
     /**
      * @throws HttpException
      */
+    #[\Override]
     public function getContentLength(): ?int
     {
         if ($this->contentLength !== null) {

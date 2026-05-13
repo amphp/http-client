@@ -48,8 +48,7 @@
         "phpunit/phpunit": "^9",
         "amphp/http-server": "^3",
         "kelunik/link-header-rfc5988": "^1",
-        "psalm/phar": "~5.23",
-        "laminas/laminas-diactoros": "^2.3"
+        "psalm/phar": "6.16.1"
     },
     "suggest": {
         "ext-zlib": "Allows using compression for response bodies.",
