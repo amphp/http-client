@@ -17,13 +17,6 @@
     </projectFiles>
 
     <issueHandlers>
-        <StringIncrement>
-            <errorLevel type="suppress">
-                <directory name="examples"/>
-                <directory name="src"/>
-            </errorLevel>
-        </StringIncrement>
-
         <DocblockTypeContradiction>
             <errorLevel type="suppress">
                 <directory name="src"/>

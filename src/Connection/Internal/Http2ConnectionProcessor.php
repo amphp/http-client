@@ -1426,7 +1426,11 @@ final class Http2ConnectionProcessor implements Http2Processor
         $this->pongDeferred = $deferred = new DeferredFuture;
         $this->pongWatcher = EventLoop::delay(self::PONG_TIMEOUT, fn () => $this->cancelPongWatcher(false));
 
-        $this->writeFrame(Http2Parser::PING, data: $this->counter++)->ignore();
+        $data = \PHP_VERSION_ID >= 80300
+            ? $this->counter = \str_increment($this->counter)
+            : $this->counter++;
+
+        $this->writeFrame(Http2Parser::PING, data: $data)->ignore();
 
         return $deferred->getFuture();
     }
