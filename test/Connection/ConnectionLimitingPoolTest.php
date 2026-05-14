@@ -5,6 +5,7 @@ namespace Amp\Http\Client\Connection;
 use Amp\ByteStream\ReadableBuffer;
 use Amp\Future;
 use Amp\Http\Client\HttpClientBuilder;
+use Amp\Http\Client\SocketException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\Trailers;
@@ -193,6 +194,34 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
             // if $data === 'closed', the connection was closed before the request completed
             self::assertNotSame('closed', $data);
         }
+    }
+
+    public function testWaitingRequestRemovedIfConnectionAttemptFails(): void
+    {
+        $factory = $this->createMock(ConnectionFactory::class);
+        $factory->expects(self::once())
+            ->method('create')
+            ->willThrowException(new SocketException('Connection failed'));
+
+        $pool = ConnectionLimitingPool::byAuthority(1, $factory);
+
+        $client = (new HttpClientBuilder)
+            ->retry(0)
+            ->usingPool($pool)
+            ->build();
+
+        try {
+            $client->request(new Request('http://localhost'));
+            self::fail('Connection attempt should have failed');
+        } catch (SocketException) {
+            // Expected.
+        }
+
+        delay(0);
+
+        $property = new \ReflectionProperty($pool, 'waiting');
+
+        self::assertSame([], $property->getValue($pool));
     }
 
     private function createMockConnection(Request $request): Connection&MockObject
