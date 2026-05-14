@@ -12,32 +12,26 @@ jobs:
           - operating-system: 'ubuntu-latest'
             php-version: '7.2'
             composer-require-checker-version: 2.1.0
-            psalm: skip
 
           - operating-system: 'ubuntu-latest'
             php-version: '7.3'
             composer-require-checker-version: 2.1.0
-            psalm: skip
 
           - operating-system: 'ubuntu-latest'
             php-version: '7.4'
             composer-require-checker-version: 2.1.0
-            psalm: skip
 
           - operating-system: 'ubuntu-latest'
             php-version: '8.0'
             composer-require-checker-version: 3.2.0
-            psalm: skip
 
           - operating-system: 'ubuntu-latest'
             php-version: '8.1'
             composer-require-checker-version: 3.2.0
-            psalm: skip
 
           - operating-system: 'ubuntu-latest'
             php-version: '8.2'
             composer-require-checker-version: 3.2.0
-            psalm: skip
 
           - operating-system: 'ubuntu-latest'
             php-version: '8.3'
@@ -106,7 +100,6 @@ jobs:
 
       - name: Remove psalm
         run: composer remove --dev --no-update vimeo/psalm
-        if: matrix.psalm == 'skip'
 
       - name: Install dependencies
         run: |
@@ -120,10 +113,6 @@ jobs:
         run: vendor/bin/php-cs-fixer --diff --dry-run -v fix
         env:
           PHP_CS_FIXER_IGNORE_ENV: 1
-
-      - name: Run static analysis
-        run: vendor/bin/psalm
-        if: matrix.psalm != 'skip'
 
       - name: Install composer-require-checker
         run: php -r 'file_put_contents("composer-require-checker.phar", file_get_contents("https://github.com/maglnet/ComposerRequireChecker/releases/download/${{ matrix.composer-require-checker-version }}/composer-require-checker.phar"));'
