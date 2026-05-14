@@ -16,7 +16,6 @@ use Amp\PHPUnit\AsyncTestCase;
 use Amp\Promise;
 use Amp\Socket;
 use Amp\Success;
-use Laminas\Diactoros\Uri as LaminasUri;
 use League\Uri;
 use function Amp\delay;
 
@@ -206,7 +205,7 @@ class Http1ConnectionTest extends AsyncTestCase
 
         $connection = new Http1Connection($client, 5000);
 
-        $request = new Request(new LaminasUri('foo'));
+        $request = new Request(Uri\Http::createFromString('foo'));
 
         /** @var Stream $stream */
         $stream = yield $connection->getStream($request);

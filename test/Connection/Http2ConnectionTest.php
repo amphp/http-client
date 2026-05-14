@@ -17,9 +17,7 @@ use Amp\PHPUnit\AsyncTestCase;
 use Amp\Promise;
 use Amp\Socket;
 use Amp\TimeoutCancellationToken;
-use Laminas\Diactoros\Uri as LaminasUri;
 use League\Uri;
-
 use function Amp\asyncCall;
 use function Amp\delay;
 use function Amp\Http\formatDateHeader;
@@ -427,7 +425,7 @@ class Http2ConnectionTest extends AsyncTestCase
         $server->write($frame = self::packFrame('', Http2Parser::SETTINGS, 0, 0));
         yield $connection->initialize();
 
-        $request = new Request(new LaminasUri('foo'));
+        $request = new Request(Uri\Http::createFromString('foo'));
         $request->setInactivityTimeout(500);
 
         /** @var Stream $stream */
