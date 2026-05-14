@@ -12,14 +12,12 @@ use Amp\Http\Client\TimeoutException;
 use Amp\Iterator;
 use Amp\Loop;
 use Amp\NullCancellationToken;
-use Amp\PHPUnit\AsyncTestCase;
 use Amp\Promise;
 use Amp\Socket;
 use Amp\Success;
-use League\Uri;
 use function Amp\delay;
 
-class Http1ConnectionTest extends AsyncTestCase
+class Http1ConnectionTest extends HttpConnectionTestCase
 {
     public function testConnectionBusyAfterRequestIsIssued(): \Generator
     {
@@ -205,7 +203,7 @@ class Http1ConnectionTest extends AsyncTestCase
 
         $connection = new Http1Connection($client, 5000);
 
-        $request = new Request(Uri\Http::createFromString('foo'));
+        $request = new Request($this->createUriFromString('foo'));
 
         /** @var Stream $stream */
         $stream = yield $connection->getStream($request);
@@ -231,7 +229,7 @@ class Http1ConnectionTest extends AsyncTestCase
         [$server, $client] = Socket\createPair();
 
         $connection = new Http1Connection($client, 5000);
-        $uri = Uri\Http::createFromString('http://localhost')->withPath($requestPath);
+        $uri = $this->createUriFromString('http://localhost')->withPath($requestPath);
         $request = new Request($uri);
         $request->setInactivityTimeout(500);
 

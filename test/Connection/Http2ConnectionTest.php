@@ -13,16 +13,14 @@ use Amp\Http\Http2\Http2Parser;
 use Amp\Http\Http2\Http2Processor;
 use Amp\Http\Status;
 use Amp\NullCancellationToken;
-use Amp\PHPUnit\AsyncTestCase;
 use Amp\Promise;
 use Amp\Socket;
 use Amp\TimeoutCancellationToken;
-use League\Uri;
 use function Amp\asyncCall;
 use function Amp\delay;
 use function Amp\Http\formatDateHeader;
 
-class Http2ConnectionTest extends AsyncTestCase
+class Http2ConnectionTest extends HttpConnectionTestCase
 {
     public static function packFrame(string $data, int $type, int $flags, int $stream = 0): string
     {
@@ -425,7 +423,7 @@ class Http2ConnectionTest extends AsyncTestCase
         $server->write($frame = self::packFrame('', Http2Parser::SETTINGS, 0, 0));
         yield $connection->initialize();
 
-        $request = new Request(Uri\Http::createFromString('foo'));
+        $request = new Request($this->createUriFromString('foo'));
         $request->setInactivityTimeout(500);
 
         /** @var Stream $stream */
@@ -496,7 +494,7 @@ class Http2ConnectionTest extends AsyncTestCase
         $server->write($frame = self::packFrame('', Http2Parser::SETTINGS, 0, 0));
         yield $connection->initialize();
 
-        $uri = Uri\Http::createFromString('http://localhost')->withPath($requestPath);
+        $uri = $this->createUriFromString('http://localhost')->withPath($requestPath);
         $request = new Request($uri);
         $request->setInactivityTimeout(500);
 
