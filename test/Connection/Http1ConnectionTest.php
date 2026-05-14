@@ -80,6 +80,33 @@ class Http1ConnectionTest extends AsyncTestCase
         self::assertNotNull($connection->getStream($secondRequest));
     }
 
+    public function testIdleKeepAliveConnectionCanBeGarbageCollected(): void
+    {
+        [$server, $client] = Socket\createSocketPair();
+
+        $connection = new Http1Connection($client, 0, null, 5);
+        $connectionRef = \WeakReference::create($connection);
+
+        $request = new Request('http://localhost');
+        events()->requestStart($request);
+
+        $stream = $connection->getStream($request);
+        $server->write("HTTP/1.1 204 No Content\r\nConnection: keep-alive\r\nContent-Length: 0\r\n\r\n");
+
+        $response = $stream->request($request, new NullCancellation);
+        $response->getBody()->buffer();
+
+        unset($client, $connection, $request, $response, $stream);
+
+        do {
+            delay(0);
+        } while (gc_collect_cycles());
+
+        self::assertNull($connectionRef->get());
+
+        $server->close();
+    }
+
     public function test100Continue(): void
     {
         [$server, $client] = Socket\createSocketPair();
