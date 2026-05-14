@@ -15,6 +15,7 @@
         "callable",
         "void",
         "object",
+        "str_increment",
         "ZLIB_ENCODING_GZIP",
         "ZLIB_ENCODING_DEFLATE",
         "json_encode",

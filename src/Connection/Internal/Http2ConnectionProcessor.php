@@ -1646,7 +1646,11 @@ final class Http2ConnectionProcessor implements Http2Processor
             $this->shutdown(new HttpException('PONG timeout of ' . self::PONG_TIMEOUT . 'ms reached'), \max(0, $this->streamId));
         });
 
-        $this->writeFrame(Http2Parser::PING, 0, 0, $this->counter++);
+        $data = \PHP_VERSION_ID >= 80300
+            ? $this->counter = \str_increment($this->counter)
+            : $this->counter++;
+
+        $this->writeFrame(Http2Parser::PING, 0, 0, $data);
 
         return $promise;
     }
