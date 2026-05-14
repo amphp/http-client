@@ -100,7 +100,7 @@ class Http1ConnectionTest extends AsyncTestCase
 
         do {
             delay(0);
-        } while (gc_collect_cycles());
+        } while (\gc_collect_cycles());
 
         self::assertNull($connectionRef->get());
 
