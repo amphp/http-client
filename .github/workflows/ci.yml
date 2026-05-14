@@ -22,9 +22,33 @@ jobs:
           - operating-system: 'ubuntu-latest'
             php-version: '7.4'
             composer-require-checker-version: 2.1.0
+            psalm: skip
 
           - operating-system: 'ubuntu-latest'
             php-version: '8.0'
+            composer-require-checker-version: 3.2.0
+            psalm: skip
+
+          - operating-system: 'ubuntu-latest'
+            php-version: '8.1'
+            composer-require-checker-version: 3.2.0
+            psalm: skip
+
+          - operating-system: 'ubuntu-latest'
+            php-version: '8.2'
+            composer-require-checker-version: 3.2.0
+            psalm: skip
+
+          - operating-system: 'ubuntu-latest'
+            php-version: '8.3'
+            composer-require-checker-version: 3.2.0
+
+          - operating-system: 'ubuntu-latest'
+            php-version: '8.4'
+            composer-require-checker-version: 3.2.0
+
+          - operating-system: 'ubuntu-latest'
+            php-version: '8.5'
             composer-require-checker-version: 3.2.0
 
           - operating-system: 'windows-latest'
@@ -32,8 +56,18 @@ jobs:
             composer-require-checker-version: 2.1.0
             job-description: 'on Windows'
 
+          - operating-system: 'windows-latest'
+            php-version: '8.5'
+            composer-require-checker-version: 2.1.0
+            job-description: 'on Windows'
+
           - operating-system: 'macos-latest'
             php-version: '7.4'
+            composer-require-checker-version: 2.1.0
+            job-description: 'on macOS'
+
+          - operating-system: 'macos-latest'
+            php-version: '8.5'
             composer-require-checker-version: 2.1.0
             job-description: 'on macOS'
 
@@ -48,7 +82,7 @@ jobs:
           git config --global core.eol lf
 
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v6
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -60,7 +94,7 @@ jobs:
         run: echo "::set-output name=dir::$(composer config cache-dir)"
 
       - name: Cache dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v5
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: composer-${{ runner.os }}-${{ matrix.php-version }}-${{ hashFiles('**/composer.*') }}-${{ matrix.composer-flags }}
@@ -75,14 +109,9 @@ jobs:
         if: matrix.psalm == 'skip'
 
       - name: Install dependencies
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 5
-          max_attempts: 5
-          retry_wait_seconds: 30
-          command: |
-            composer update --optimize-autoloader --no-interaction --no-progress ${{ matrix.composer-flags }}
-            composer info -D
+        run: |
+          composer update --optimize-autoloader --no-interaction --no-progress ${{ matrix.composer-flags }}
+          composer info -D
 
       - name: Run tests
         run: vendor/bin/phpunit ${{ matrix.phpunit-flags }}
