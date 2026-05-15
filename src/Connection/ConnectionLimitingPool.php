@@ -187,8 +187,9 @@ final class ConnectionLimitingPool implements ConnectionPool
 
             $deferred = new DeferredFuture;
             $futureFromDeferred = $deferred->getFuture();
+            $deferredId = \spl_object_id($deferred);
 
-            $this->waiting[$uri][\spl_object_id($deferred)] = $deferred;
+            $this->waiting[$uri][$deferredId] = $deferred;
 
             if ($this->isAdditionalConnectionAllowed($uri)) {
                 break;
@@ -251,9 +252,9 @@ final class ConnectionLimitingPool implements ConnectionPool
         } catch (CompositeException $exception) {
             [$exception] = $exception->getReasons(); // The first reason is why the connection failed.
             throw $exception;
+        } finally {
+            $this->removeWaiting($uri, $deferredId); // DeferredFuture no longer needed for this request.
         }
-
-        $this->removeWaiting($uri, \spl_object_id($deferred)); // DeferredFuture no longer needed for this request.
 
         \assert($connection instanceof Connection);
 

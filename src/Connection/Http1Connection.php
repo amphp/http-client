@@ -468,7 +468,11 @@ final class Http1Connection implements Connection
                         $this->priorTimeout = $priorTimeout ?? $this->priorTimeout;
 
                         if ($requestTimeout > 0 && $parser->getState() !== Http1Parser::BODY_IDENTITY_EOF) {
-                            $this->timeoutWatcher = EventLoop::delay($requestTimeout, $this->close(...));
+                            $connectionRef = \WeakReference::create($this);
+                            $this->timeoutWatcher = EventLoop::delay(
+                                $requestTimeout,
+                                static fn () => $connectionRef->get()?->close(),
+                            );
                             EventLoop::unreference($this->timeoutWatcher);
                             $this->watchIdleConnection();
                         } else {
@@ -736,16 +740,19 @@ final class Http1Connection implements Connection
             $this->socket->unreference();
         }
 
-        $this->idleRead = async(function (): ?string {
+        $socket = $this->socket;
+        $connectionRef = \WeakReference::create($this);
+
+        $this->idleRead = async(static function () use ($socket, $connectionRef): ?string {
             $chunk = null;
             try {
-                $chunk = $this->socket?->read();
+                $chunk = $socket?->read();
             } catch (\Throwable) {
                 // Close connection below.
             }
 
             if ($chunk === null) {
-                $this->close();
+                $connectionRef->get()?->close();
             }
 
             return $chunk;
