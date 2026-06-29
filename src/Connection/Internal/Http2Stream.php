@@ -77,8 +77,11 @@ final class Http2Stream
         public int $clientWindow,
     ) {
         $this->pendingResponse = new DeferredFuture();
+        // There's no requirement to check for pure completion futures, so ignore failures.
         $this->requestHeaderCompletion = new DeferredFuture();
+        $this->requestHeaderCompletion->getFuture()->ignore();
         $this->requestBodyCompletion = new DeferredFuture();
+        $this->requestBodyCompletion->getFuture()->ignore();
         $this->body = new Queue();
 
         $this->deferredCancellation = new DeferredCancellation();
