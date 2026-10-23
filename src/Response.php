@@ -207,6 +207,8 @@ final class Response extends HttpResponse
 
     /**
      * Retrieve the response body.
+     *
+     * @psalm-taint-source input
      */
     public function getBody(): Payload
     {
