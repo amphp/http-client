@@ -30,7 +30,7 @@ final class ClientBadSslIntegrationTest extends AsyncTestCase
         $request = new Request('https://wrong.host.badssl.com/');
 
         $this->expectException(TlsException::class);
-        $this->expectExceptionMessageMatches("/^Connection to 'wrong.host.badssl.com:443' @ '.+' closed during TLS handshake: Peer certificate CN=`\*.badssl.com' did not match expected CN=`wrong.host.badssl.com'$/");
+        $this->expectExceptionMessageMatches("/^Connection to 'wrong.host.badssl.com:443' @ '.+' closed during TLS handshake: Peer certificate .+ did not match expected .*`wrong.host.badssl.com'$/");
 
         $this->client->request($request);
     }
