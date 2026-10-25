@@ -625,6 +625,8 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testHttp2UpgradeResponse(): void
     {
+        self::markTestSkipped('Returns 502 currently instead of upgrading the connection');
+
         $request = new Request('http://nghttp2.org/');
         $request->setHeader('connection', 'upgrade, http2-settings');
         $request->setHeader('upgrade', 'h2c');
