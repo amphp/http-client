@@ -95,6 +95,8 @@ final class Form implements HttpContent
     /**
      * @param string $path Local file path. Filename will be provided to the server.
      * @throws HttpException
+     *
+     * @psalm-taint-sink file $path
      */
     public function addFile(string $name, string $path, ?string $contentType = null): void
     {
