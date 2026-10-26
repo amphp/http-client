@@ -55,6 +55,14 @@ final class Http1Parser
 
     private int $bodyBytesConsumed = 0;
 
+    /**
+     * chunk-ext = *( BWS ";" BWS chunk-ext-name [ BWS "=" BWS chunk-ext-val ] ), where the name is a token
+     * and the value a token or a quoted-string (RFC 9112, section 7.1.1).
+     */
+    private const CHUNK_EXTENSIONS_REGEX = <<<'REGEX'
+        (^(?:[ \t]*;[ \t]*[!#$%&'*+\-.^_`|~0-9A-Za-z]+(?:[ \t]*=[ \t]*(?:[!#$%&'*+\-.^_`|~0-9A-Za-z]+|"(?:[\t !\x23-\x5B\x5D-\x7E\x80-\xFF]|\\[\t \x21-\x7E\x80-\xFF])*"))?)+\z)
+        REGEX;
+
     private bool $chunkedEncoding = false;
 
     private ?int $chunkLengthRemaining = null;
@@ -414,6 +422,18 @@ final class Http1Parser
             }
 
             $line = \substr($this->buffer, 0, $lineEndPos);
+
+            // chunk = chunk-size [ chunk-ext ] CRLF. Chunk extensions are not used, so they are
+            // ignored once checked against the grammar (RFC 9112, section 7.1.1).
+            $extensionPos = \strpos($line, ';');
+            if ($extensionPos !== false) {
+                if (!\preg_match(self::CHUNK_EXTENSIONS_REGEX, \substr($line, $extensionPos))) {
+                    throw new ParseException('Invalid chunk extension', HttpStatus::BAD_REQUEST);
+                }
+
+                $line = \substr($line, 0, $extensionPos);
+            }
+
             $hex = \strtolower(\trim(\ltrim($line, '0'))) ?: '0';
             $dec = \hexdec($hex);
 
