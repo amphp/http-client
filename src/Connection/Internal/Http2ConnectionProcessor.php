@@ -1480,7 +1480,11 @@ final class Http2ConnectionProcessor implements Http2Processor
                 default => null,
             };
 
-            $this->writeFrame(Http2Parser::GOAWAY, data: \pack('NN', 0, $code) . $message)->ignore();
+            // Without active streams nothing else closes the socket, see releaseStream(). Closing it right away
+            // would discard the GOAWAY frame still waiting in the write queue.
+            $this->writeFrame(Http2Parser::GOAWAY, data: \pack('NN', 0, $code) . $message)
+                ->finally($this->socket->close(...))
+                ->ignore();
 
             foreach ($this->streams as $id => $_stream) {
                 $reason ??= $this->makeDefaultShutdownReason();
