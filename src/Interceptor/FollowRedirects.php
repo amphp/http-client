@@ -192,7 +192,8 @@ final class FollowRedirects implements ApplicationInterceptor
         }
 
         $originalUri = $response->getRequest()->getUri();
-        $isSameHost = $redirectUri->getAuthority() === $originalUri->getAuthority();
+        $isSameHost = $redirectUri->getScheme() === $originalUri->getScheme()
+            && $redirectUri->getAuthority() === $originalUri->getAuthority();
 
         $request = clone $originalRequest;
         $request->setMethod('GET');

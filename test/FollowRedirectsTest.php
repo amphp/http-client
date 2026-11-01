@@ -60,6 +60,63 @@ class FollowRedirectsTest extends AsyncTestCase
         yield $redirect->request($request, new NullCancellationToken, $client);
     }
 
+    /**
+     * @dataProvider provideCredentialRedirects
+     */
+    public function testCredentialHeadersOnRedirect(string $from, string $location, bool $expectCredentials): \Generator
+    {
+        $redirect = new FollowRedirects(10);
+        $request = new Request($from);
+        $request->setHeader('authorization', 'Bearer secret-token');
+        $request->setHeader('cookie', 'session=secret-session');
+
+        $stream1 = $this->createMock(Stream::class);
+        $stream1->method('request')
+            ->willReturn(new Success(new Response(
+                '1.1',
+                Status::FOUND,
+                Status::getReason(Status::FOUND),
+                ['location' => [$location]],
+                new InMemoryStream,
+                $request
+            )));
+
+        $redirected = null;
+        $stream2 = $this->createMock(Stream::class);
+        $stream2->method('request')
+            ->willReturnCallback(function (Request $request) use (&$redirected): Promise {
+                $redirected = $request;
+                return new Success(new Response(
+                    '1.1',
+                    Status::OK,
+                    Status::getReason(Status::OK),
+                    [],
+                    new InMemoryStream,
+                    $request
+                ));
+            });
+
+        $pool = $this->createMock(ConnectionPool::class);
+        $pool->method('getStream')
+            ->willReturnOnConsecutiveCalls(new Success($stream1), new Success($stream2));
+
+        yield $redirect->request($request, new NullCancellationToken, new PooledHttpClient($pool));
+
+        self::assertInstanceOf(Request::class, $redirected);
+        self::assertSame($expectCredentials, $redirected->hasHeader('authorization'));
+        self::assertSame($expectCredentials, $redirected->hasHeader('cookie'));
+    }
+
+    public function provideCredentialRedirects(): array
+    {
+        return [
+            'same origin' => ['https://example.com/a', '/b', true],
+            'other host' => ['https://example.com/a', 'https://example.org/b', false],
+            'https to http, same host' => ['https://example.com/a', 'http://example.com/b', false],
+            'http to https, same host' => ['http://example.com/a', 'https://example.com/b', false],
+        ];
+    }
+
     public function provideResolvables(): array
     {
         return [
