@@ -114,6 +114,11 @@ abstract class InterceptorTest extends AsyncTestCase
         $this->assertSame($values, $this->request->getHeaderArray($field));
     }
 
+    final protected function thenRequestHasScheme(string $scheme): void
+    {
+        $this->assertSame($scheme, $this->response->getRequest()->getUri()->getScheme());
+    }
+
     final protected function thenRequestDoesNotHaveHeader(string $field): void
     {
         $this->assertSame([], $this->request->getHeaderArray($field));

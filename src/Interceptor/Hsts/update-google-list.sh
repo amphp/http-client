@@ -1,0 +1,1 @@
+curl https://chromium.googlesource.com/chromium/src/+/master/net/http/transport_security_state_static.json?format=TEXT|base64 -d|grep -v '^ *//' > transport_security_state_static.json
