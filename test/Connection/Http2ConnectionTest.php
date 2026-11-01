@@ -591,6 +591,22 @@ class Http2ConnectionTest extends AsyncTestCase
         }
     }
 
+    public function testCloseWithoutStreamsClosesSocket(): void
+    {
+        $this->connection->close();
+
+        $received = '';
+        while (null !== $chunk = $this->server->read(new TimeoutCancellation(1))) {
+            $received .= $chunk;
+        }
+
+        self::assertTrue($this->client->isClosed());
+        self::assertStringEndsWith(
+            self::packFrame(\pack('NN', 0, Http2Parser::GRACEFUL_SHUTDOWN), Http2Parser::GOAWAY),
+            $received,
+        );
+    }
+
     public function testServerEarlyResponse(): void
     {
         $request = new Request('http://localhost/', 'POST', BufferedContent::fromString(\str_repeat('a', 2 ** 10)));
