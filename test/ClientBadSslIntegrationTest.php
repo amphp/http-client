@@ -47,6 +47,9 @@ final class ClientBadSslIntegrationTest extends AsyncTestCase
         }
     }
 
+    /**
+     * @requires OSFAMILY Linux
+     */
     public function testDhKeyTooSmall(): void
     {
         $server = $this->listenWithDhCipher();
