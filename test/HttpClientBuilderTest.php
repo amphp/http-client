@@ -2,6 +2,7 @@
 
 namespace Amp\Http\Client;
 
+use Amp\Http\Client\Support\LocalHttpBin;
 use Amp\PHPUnit\AsyncTestCase;
 
 class HttpClientBuilderTest extends AsyncTestCase
@@ -20,13 +21,17 @@ class HttpClientBuilderTest extends AsyncTestCase
     {
         $client = (new HttpClientBuilder)->allowDeprecatedUriUserInfo()->build();
 
-        $response = $client->request(new Request('http://foobar@amphp.org/amp'));
+        $httpBin = LocalHttpBin::http();
+        $authority = $httpBin->authority();
+
+        $response = $client->request(new Request("http://foobar@{$authority}/redirect/status/200"));
+        $httpBin->stop();
 
         $this->assertTrue(true); // no exception
         $this->assertNotNull($response->getPreviousResponse());
         $this->assertNull($response->getPreviousResponse()->getPreviousResponse());
-        $this->assertSame('https://amphp.org/amp', (string) $response->getRequest()->getUri());
-        $this->assertSame('http://amphp.org/amp', $response->getRequest()->getHeader('referer'));
-        $this->assertSame('http://foobar@amphp.org/amp', (string) $response->getPreviousResponse()->getRequest()->getUri());
+        $this->assertSame("http://{$authority}/status/200", (string) $response->getRequest()->getUri());
+        $this->assertSame("http://{$authority}/redirect/status/200", $response->getRequest()->getHeader('referer'));
+        $this->assertSame("http://foobar@{$authority}/redirect/status/200", (string) $response->getPreviousResponse()->getRequest()->getUri());
     }
 }

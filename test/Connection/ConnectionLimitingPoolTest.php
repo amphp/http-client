@@ -8,6 +8,7 @@ use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\SocketException;
+use Amp\Http\Client\Support\LocalHttpBin;
 use Amp\Http\Client\Trailers;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Socket\InternetAddress;
@@ -20,6 +21,7 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
 {
     public function testSingleConnection(): void
     {
+        $httpBin = LocalHttpBin::http();
         $client = (new HttpClientBuilder)
             ->usingPool(ConnectionLimitingPool::byAuthority(1))
             ->build();
@@ -27,59 +29,68 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         $this->setMinimumRuntime(2);
 
         Future\await([
-            async(function () use ($client) {
-                $response = $client->request(new Request('http://httpbin.org/delay/1'));
+            async(function () use ($client, $httpBin) {
+                $response = $client->request(new Request($httpBin->uri('/delay/1')));
                 $response->getBody()->buffer();
                 return $response;
             }),
-            async(function () use ($client) {
-                $response = $client->request(new Request('http://httpbin.org/delay/1'));
+            async(function () use ($client, $httpBin) {
+                $response = $client->request(new Request($httpBin->uri('/delay/1')));
                 $response->getBody()->buffer();
                 return $response;
             }),
         ]);
+
+        $httpBin->stop();
     }
 
     public function testSingleConnectionDoNotUseBody(): void
     {
+        $httpBin = LocalHttpBin::https();
         $client = (new HttpClientBuilder)
-            ->usingPool(ConnectionLimitingPool::byAuthority(1))
+            ->usingPool(ConnectionLimitingPool::byAuthority(1, LocalHttpBin::untrustedConnectionFactory()))
             ->build();
 
         $this->setMinimumRuntime(2);
 
-        $r1 = new Request('https://httpbin.org/delay/1');
+        $r1 = new Request($httpBin->uri('/delay/1'));
         $r1->setProtocolVersions(['1.1']);
-        $r2 = new Request('https://httpbin.org/delay/1');
+        $r2 = new Request($httpBin->uri('/delay/1'));
         $r2->setProtocolVersions(['1.1']);
 
-        $future = async($client->request(...), $r1);
-        async($client->request(...), $r2);
+        Future\await([
+            async($client->request(...), $r1),
+            async($client->request(...), $r2),
+        ]);
 
-        $future->await();
+        $httpBin->stop();
     }
 
     public function testSingleConnectionDoNotUseBodyHttp2(): void
     {
+        $httpBin = LocalHttpBin::https();
         $client = (new HttpClientBuilder)
-            ->usingPool(ConnectionLimitingPool::byAuthority(1))
+            ->usingPool(ConnectionLimitingPool::byAuthority(1, LocalHttpBin::untrustedConnectionFactory()))
             ->build();
 
         $this->setMinimumRuntime(1);
 
-        $r1 = new Request('https://httpbin.org/delay/1');
+        $r1 = new Request($httpBin->uri('/delay/1'));
         $r1->setProtocolVersions(['2']);
-        $r2 = new Request('https://httpbin.org/delay/1');
+        $r2 = new Request($httpBin->uri('/delay/1'));
         $r2->setProtocolVersions(['2']);
 
-        $future = async($client->request(...), $r1);
-        async($client->request(...), $r2);
+        Future\await([
+            async($client->request(...), $r1),
+            async($client->request(...), $r2),
+        ]);
 
-        $future->await();
+        $httpBin->stop();
     }
 
     public function testTwoConnections(): void
     {
+        $httpBin = LocalHttpBin::http();
         $client = (new HttpClientBuilder)
             ->usingPool(ConnectionLimitingPool::byAuthority(2))
             ->build();
@@ -88,9 +99,11 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         $this->setMinimumRuntime(2);
 
         Future\await([
-            async(fn () => $client->request(new Request('http://httpbin.org/delay/2'))),
-            async(fn () => $client->request(new Request('http://httpbin.org/delay/2'))),
+            async(fn () => $client->request(new Request($httpBin->uri('/delay/2')))),
+            async(fn () => $client->request(new Request($httpBin->uri('/delay/2')))),
         ]);
+
+        $httpBin->stop();
     }
 
     public function testWaitForConnectionToBecomeAvailable(): void
