@@ -28,23 +28,24 @@ final class RetryRequests implements ApplicationInterceptor
     ): Response {
         $attempt = 1;
 
-        do {
+        while (true) {
             $clonedRequest = clone $request;
 
             try {
                 return $httpClient->request($request, $cancellation);
             } catch (HttpException $exception) {
-                if ($request->isIdempotent() || $request->isUnprocessed()) {
+                if (($request->isIdempotent() || $request->isUnprocessed()) && $attempt++ <= $this->retryLimit) {
                     // Request was deemed retryable by connection, so carry on.
                     $request = $clonedRequest;
+
+                    // A trace spans every fiber resumed in the same tick: don't hold it during the next attempt.
+                    unset($exception);
+
                     continue;
                 }
 
                 throw $exception;
             }
-        } while ($attempt++ <= $this->retryLimit);
-
-        /** @psalm-suppress PossiblyUndefinedVariable */
-        throw $exception;
+        }
     }
 }
