@@ -224,6 +224,30 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         self::assertSame([], $property->getValue($pool));
     }
 
+    public function testConnectionsAreOnlySharedWithTheSameConnectCallback(): void
+    {
+        $factory = $this->createMock(ConnectionFactory::class);
+        $factory->expects(self::exactly(3))
+            ->method('create')
+            ->willReturnCallback(fn (Request $request) => $this->createMockConnection($request));
+
+        $client = (new HttpClientBuilder)
+            ->usingPool(ConnectionLimitingPool::byAuthority(1, $factory))
+            ->build();
+
+        $callbackA = static function (InternetAddress $address): void {
+        };
+        $callbackB = static function (InternetAddress $address): void {
+        };
+
+        foreach ([null, $callbackA, $callbackA, $callbackB, null] as $callback) {
+            $request = new Request('http://localhost');
+            $request->setConnectCallback($callback);
+
+            $client->request($request);
+        }
+    }
+
     private function createMockConnection(Request $request): Connection&MockObject
     {
         $response = new Response('1.1', 200, null, [], new ReadableBuffer, $request, Future::complete(new Trailers([])));

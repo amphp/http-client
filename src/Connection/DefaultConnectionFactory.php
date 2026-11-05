@@ -97,6 +97,18 @@ final class DefaultConnectionFactory implements ConnectionFactory
             $connectContext = $connectContext->withTlsContext($tlsContext);
         }
 
+        if ($connectCallback = $request->getConnectCallback()) {
+            // The callback of the request must not replace the one of the connect context
+            if ($contextCallback = $connectContext->getConnectCallback()) {
+                $connectCallback = static function (Socket\InternetAddress $address) use ($contextCallback, $connectCallback): void {
+                    $contextCallback($address);
+                    $connectCallback($address);
+                };
+            }
+
+            $connectContext = $connectContext->withConnectCallback($connectCallback);
+        }
+
         try {
             $socket = $connector->connect(
                 'tcp://' . $authority,

@@ -65,6 +65,11 @@ final class ConnectionLimitingPool implements ConnectionPool
 
     private int $openConnectionCount = 0;
 
+    /** Unlike spl_object_id(), these ids are not reused when a callback is destroyed. */
+    private \WeakMap $connectCallbackIds;
+
+    private int $lastConnectCallbackId = 0;
+
     private function __construct(private readonly int $connectionLimit, ?ConnectionFactory $connectionFactory = null)
     {
         if ($connectionLimit < 1) {
@@ -72,6 +77,7 @@ final class ConnectionLimitingPool implements ConnectionPool
         }
 
         $this->connectionFactory = $connectionFactory ?? new DefaultConnectionFactory();
+        $this->connectCallbackIds = new \WeakMap();
     }
 
     public function __clone()
@@ -80,6 +86,7 @@ final class ConnectionLimitingPool implements ConnectionPool
         $this->totalConnectionAttempts = 0;
         $this->totalStreamRequests = 0;
         $this->openConnectionCount = 0;
+        $this->connectCallbackIds = new \WeakMap();
     }
 
     public function getTotalConnectionAttempts(): int
@@ -103,6 +110,10 @@ final class ConnectionLimitingPool implements ConnectionPool
         $this->totalStreamRequests++;
 
         $uri = self::formatUri($request);
+
+        if ($connectCallback = $request->getConnectCallback()) {
+            $uri .= ' @ ' . ($this->connectCallbackIds[$connectCallback] ??= ++$this->lastConnectCallbackId);
+        }
 
         [$connection, $stream] = $this->getStreamFor($uri, $request, $cancellation);
 

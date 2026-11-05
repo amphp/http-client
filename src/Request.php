@@ -9,6 +9,8 @@ use Amp\Http\Client\Internal\EventInvoker;
 use Amp\Http\Client\Internal\Phase;
 use Amp\Http\HttpMessage;
 use Amp\Http\HttpRequest;
+use Amp\Socket\ConnectException;
+use Amp\Socket\InternetAddress;
 use League\Uri;
 use Psr\Http\Message\UriInterface;
 use function Amp\async;
@@ -33,6 +35,9 @@ final class Request extends HttpRequest
     private HttpContent $body;
 
     private float $tcpConnectTimeout = 10;
+
+    /** @var null|\Closure(InternetAddress): void */
+    private ?\Closure $connectCallback = null;
 
     private float $tlsHandshakeTimeout = 10;
 
@@ -365,6 +370,27 @@ final class Request extends HttpRequest
     public function setTcpConnectTimeout(float $tcpConnectTimeout): void
     {
         $this->tcpConnectTimeout = \max(0, $tcpConnectTimeout);
+    }
+
+    /**
+     * @return null|\Closure(InternetAddress): void
+     */
+    public function getConnectCallback(): ?\Closure
+    {
+        return $this->connectCallback;
+    }
+
+    /**
+     * Registers a callback invoked with the IP address of each connection attempt, before the connection is opened.
+     *
+     * The callback can throw a {@see ConnectException} to skip the address. Any other exception aborts the request.
+     * Pooled connections are only shared between requests that use the same callback.
+     *
+     * @param null|\Closure(InternetAddress): void $connectCallback
+     */
+    public function setConnectCallback(?\Closure $connectCallback): void
+    {
+        $this->connectCallback = $connectCallback;
     }
 
     /**

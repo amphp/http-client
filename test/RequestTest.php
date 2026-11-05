@@ -5,6 +5,7 @@ namespace Amp\Http\Client;
 use Amp\ByteStream\ReadableBuffer;
 use Amp\Future;
 use Amp\PHPUnit\AsyncTestCase;
+use Amp\Socket\InternetAddress;
 use function Amp\ByteStream\buffer;
 
 class RequestTest extends AsyncTestCase
@@ -257,6 +258,24 @@ class RequestTest extends AsyncTestCase
         $request->setBodySizeLimit(100);
 
         $this->assertSame(100, $request->getBodySizeLimit());
+    }
+
+    public function testConnectCallback(): void
+    {
+        $request = new Request('https://amphp.org/');
+
+        $this->assertNull($request->getConnectCallback());
+
+        $callback = static function (InternetAddress $address): void {
+        };
+        $request->setConnectCallback($callback);
+
+        $this->assertSame($callback, $request->getConnectCallback());
+        $this->assertSame($callback, (clone $request)->getConnectCallback());
+
+        $request->setConnectCallback(null);
+
+        $this->assertNull($request->getConnectCallback());
     }
 
     public function testIdempotent(): void
