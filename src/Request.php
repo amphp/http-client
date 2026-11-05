@@ -54,6 +54,9 @@ final class Request extends Message
     /** @var int */
     private $tcpConnectTimeout = 10000;
 
+    /** @var callable|null */
+    private $connectCallback;
+
     /** @var int */
     private $tlsHandshakeTimeout = 10000;
 
@@ -366,6 +369,28 @@ final class Request extends Message
     public function setTcpConnectTimeout(int $tcpConnectTimeout): void
     {
         $this->tcpConnectTimeout = $tcpConnectTimeout;
+    }
+
+    /**
+     * Registers a callback invoked with the IP address of each connection attempt, before the connection is opened.
+     *
+     * The callback can throw a {@see \Amp\Socket\ConnectException} to skip the address. Any other exception aborts the
+     * request. The callback can also return a promise.
+     * Pooled connections are only shared between requests that use the same callback.
+     *
+     * @param callable|null $connectCallback Receives a {@see \Amp\Socket\SocketAddress}.
+     */
+    public function setConnectCallback(?callable $connectCallback): void
+    {
+        $this->connectCallback = $connectCallback;
+    }
+
+    /**
+     * @return callable|null
+     */
+    public function getConnectCallback(): ?callable
+    {
+        return $this->connectCallback;
     }
 
     /**

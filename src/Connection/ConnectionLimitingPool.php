@@ -47,6 +47,19 @@ final class ConnectionLimitingPool implements ConnectionPool
         return $scheme . '://' . $authority;
     }
 
+    private static function hashCallable(callable $callable): string
+    {
+        if (\is_object($callable)) {
+            return (string) \spl_object_id($callable);
+        }
+
+        if (\is_array($callable)) {
+            return (\is_object($callable[0]) ? \spl_object_id($callable[0]) : $callable[0]) . '::' . $callable[1];
+        }
+
+        return $callable;
+    }
+
     /** @var int */
     private $connectionLimit;
 
@@ -67,6 +80,9 @@ final class ConnectionLimitingPool implements ConnectionPool
 
     /** @var bool[] */
     private $waitForPriorConnection = [];
+
+    /** @var array<string, callable|null> */
+    private $connectCallbacks = [];
 
     /** @var int */
     private $totalConnectionAttempts = 0;
@@ -90,6 +106,7 @@ final class ConnectionLimitingPool implements ConnectionPool
     public function __clone()
     {
         $this->connections = [];
+        $this->connectCallbacks = [];
         $this->totalConnectionAttempts = 0;
         $this->totalStreamRequests = 0;
         $this->openConnectionCount = 0;
@@ -116,6 +133,11 @@ final class ConnectionLimitingPool implements ConnectionPool
             $this->totalStreamRequests++;
 
             $uri = self::formatUri($request);
+
+            if ($connectCallback = $request->getConnectCallback()) {
+                // Requests that don't have the same connect callback must not share connections
+                $uri .= ' @ ' . self::hashCallable($connectCallback);
+            }
 
             // Using new Coroutine avoids a bug on PHP < 7.4, see #265
 
@@ -231,6 +253,8 @@ final class ConnectionLimitingPool implements ConnectionPool
         $promiseId = \spl_object_id($connectionPromise);
         $this->connections[$uri] = $this->connections[$uri] ?? new \ArrayObject;
         $this->connections[$uri][$promiseId] = $connectionPromise;
+        // Keeps the callback alive so that its id in the key cannot be reused by another callback
+        $this->connectCallbacks[$uri] = $request->getConnectCallback();
 
         $connectionPromise->onResolve(function (?\Throwable $exception, ?Connection $connection) use (
             &$deferred,
@@ -360,7 +384,7 @@ final class ConnectionLimitingPool implements ConnectionPool
         }
 
         if ($this->connections[$uri]->count() === 0) {
-            unset($this->connections[$uri], $this->waitForPriorConnection[$uri]);
+            unset($this->connections[$uri], $this->waitForPriorConnection[$uri], $this->connectCallbacks[$uri]);
         }
     }
 }

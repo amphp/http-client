@@ -572,6 +572,77 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         yield $response->getBody()->buffer();
     }
 
+    public function testConnectCallback(): \Generator
+    {
+        $this->givenServer(static function () {
+            return new ServerResponse(200);
+        });
+
+        $addresses = [];
+        $request = $this->createRequest();
+        $request->setConnectCallback(static function (Socket\SocketAddress $address) use (&$addresses) {
+            $addresses[] = $address->toString();
+        });
+
+        /** @var Response $response */
+        $response = yield $this->executeRequest($request);
+
+        $this->assertSame(200, $response->getStatus());
+        $this->assertSame([$this->socket->getAddress()->toString()], $addresses);
+    }
+
+    public function testConnectCallbackCanRejectAnAddress(): \Generator
+    {
+        $exception = new Socket\ConnectException('Forbidden address');
+
+        $request = $this->createRequest();
+        $request->setConnectCallback(static function () use ($exception) {
+            throw $exception;
+        });
+
+        try {
+            yield $this->executeRequest($request);
+            $this->fail(UnprocessedRequestException::class . ' expected');
+        } catch (UnprocessedRequestException $e) {
+            $this->assertSame($exception, $e->getPrevious()->getPrevious());
+        }
+    }
+
+    public function testConnectionsOfAFreedConnectCallbackAreNotReused(): \Generator
+    {
+        $this->givenServer(static function () {
+            return new ServerResponse(200);
+        });
+
+        $callback = static function () {
+        };
+
+        $request = $this->createRequest();
+        $request->setConnectCallback($callback);
+
+        /** @var Response $response */
+        $response = yield $this->executeRequest($request);
+        yield $response->getBody()->buffer();
+
+        yield delay(0);
+        \gc_collect_cycles();
+
+        // A new closure gets the object id of the previous one if that one has been freed
+        unset($request, $response, $callback);
+        $calls = 0;
+        $callback = static function () use (&$calls) {
+            ++$calls;
+        };
+
+        $request = $this->createRequest();
+        $request->setConnectCallback($callback);
+
+        $response = yield $this->executeRequest($request);
+        yield $response->getBody()->buffer();
+
+        $this->assertSame(1, $calls);
+    }
+
     public function testContentLengthBodyMismatchWithTooManyBytesSimple(): \Generator
     {
         $this->expectException(InvalidRequestException::class);

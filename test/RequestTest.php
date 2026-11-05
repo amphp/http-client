@@ -270,6 +270,24 @@ class RequestTest extends AsyncTestCase
         $this->assertSame(100, $request->getBodySizeLimit());
     }
 
+    public function testConnectCallback(): void
+    {
+        $request = new Request('https://amphp.org/');
+
+        $this->assertNull($request->getConnectCallback());
+
+        $callback = static function () {
+        };
+        $request->setConnectCallback($callback);
+
+        $this->assertSame($callback, $request->getConnectCallback());
+        $this->assertSame($callback, (clone $request)->getConnectCallback());
+
+        $request->setConnectCallback(null);
+
+        $this->assertNull($request->getConnectCallback());
+    }
+
     public function testIdempotent(): void
     {
         $this->assertTrue((new Request('https://localhost/', 'GET'))->isIdempotent());

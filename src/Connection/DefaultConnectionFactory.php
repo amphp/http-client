@@ -16,6 +16,7 @@ use Amp\Socket\ClientTlsContext;
 use Amp\Socket\ConnectContext;
 use Amp\Socket\Connector;
 use Amp\Socket\EncryptableSocket;
+use Amp\Socket\SocketAddress;
 use Amp\TimeoutCancellationToken;
 use function Amp\call;
 use function Amp\Socket\connector;
@@ -104,6 +105,18 @@ final class DefaultConnectionFactory implements ConnectionFactory
                 }
 
                 $connectContext = $connectContext->withTlsContext($tlsContext);
+            }
+
+            if ($connectCallback = $request->getConnectCallback()) {
+                // The callback of the request must not replace the one of the connect context
+                if ($contextCallback = $connectContext->getConnectCallback()) {
+                    $connectCallback = static function (SocketAddress $address) use ($contextCallback, $connectCallback): \Generator {
+                        yield call($contextCallback, $address);
+                        yield call($connectCallback, $address);
+                    };
+                }
+
+                $connectContext = $connectContext->withConnectCallback($connectCallback);
             }
 
             try {

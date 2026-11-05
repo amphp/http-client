@@ -112,6 +112,32 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         yield [$client->request($request), $client->request($request)];
     }
 
+    public function testConnectionsAreOnlySharedWithTheSameConnectCallback(): \Generator
+    {
+        $factory = $this->createMock(ConnectionFactory::class);
+        $factory->expects($this->exactly(3))
+            ->method('create')
+            ->willReturnCallback(function (Request $request): Promise {
+                return new Success($this->createMockConnection($request));
+            });
+
+        $client = (new HttpClientBuilder)
+            ->usingPool(ConnectionLimitingPool::byAuthority(1, $factory))
+            ->build();
+
+        $callbackA = static function () {
+        };
+        $callbackB = static function () {
+        };
+
+        foreach ([null, $callbackA, $callbackA, $callbackB, null] as $callback) {
+            $request = new Request('http://localhost');
+            $request->setConnectCallback($callback);
+
+            yield $client->request($request);
+        }
+    }
+
     private function createMockClosableConnection(Request $request): Promise
     {
         $content = 'open';
