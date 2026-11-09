@@ -669,6 +669,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         $this->streams[$pushId] = $stream;
 
+        $stream->requestHeaderCompletion->complete();
         $stream->requestBodyCompletion->complete();
 
         if ($parentStream->request->getPushHandler() === null) {

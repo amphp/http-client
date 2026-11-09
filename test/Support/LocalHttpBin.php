@@ -77,9 +77,19 @@ final class LocalHttpBin implements RequestHandler
             'gzip' => $this->makeGZippedResponse('{"gzipped":true}'),
             'deflate' => $this->makeDeflateResponse('{"deflated":true}'),
             'gzip-bomb' => $this->makeGZippedResponse(\str_repeat("\0", 11534336)), // 11 MiB
+            'push' => $this->makeResponseWithPushPromise(),
+            'text.txt' => new Response(200, ['content-type' => 'text/plain'], 'Hello, World!'),
             'redirect' => new Response(302, ['location' => $this->getServerUri('/' . $argument)]),
             default => new Response(200),
         };
+    }
+
+    private function makeResponseWithPushPromise(): Response
+    {
+        $response = new Response(200);
+        $response->push($this->getServerUri('/text.txt'));
+
+        return $response;
     }
 
     private static function startServer(string $scheme, BindContext $bindContext): self

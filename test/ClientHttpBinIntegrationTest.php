@@ -215,16 +215,17 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testHttp2Push(): void
     {
-        $this->markTestSkipped('3rd-party service no longer available');
-
         $eventListener = $this->createMock(EventListener::class);
         $eventListener->expects($this->exactly(2))->method('requestStart');
         $eventListener->expects($this->exactly(2))->method('requestEnd');
         $eventListener->expects($this->exactly(1))->method('push');
 
+        $this->builder = $this->builder->usingPool(new UnlimitedConnectionPool(LocalHttpBin::untrustedConnectionFactory()));
         $this->givenEventListener($eventListener);
 
-        $request = new Request('https://http2-server-push-demo.keksi.io/');
+        $httpsBin = LocalHttpBin::startSecureServer();
+
+        $request = new Request($httpsBin->getServerUri('/push'));
         $request->setPushHandler(static function (Request $request, Future $response) use (
             &$path,
             &$contentType,
@@ -238,14 +239,19 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
             $contentType = $response->await()->getHeader('content-type');
         });
 
-        $this->executeRequest($request);
+        try {
+            $response = $this->executeRequest($request);
+            $response->getBody()->buffer();
 
-        /** @var Response $pushedResponse */
-        $pushedResponse = $future->await();
-        $pushedResponse->getTrailers()->await();
+            /** @var Response $pushedResponse */
+            $pushedResponse = $future->await();
+            $pushedResponse->getTrailers()->await();
+        } finally {
+            $httpsBin->stopServer();
+        }
 
-        self::assertSame('/image.jpg', $path);
-        self::assertSame('image/jpeg', $contentType);
+        self::assertSame('/text.txt', $path);
+        self::assertSame('text/plain', $contentType);
     }
 
     public function testGzipBomb(): void
