@@ -1142,10 +1142,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                 }
             }
 
-            if (!$this->frameQueue->isComplete()) {
-                $this->frameQueue->complete();
-            }
-
+            $this->completeFrameQueue();
             $this->shutdown();
         }
     }
@@ -1404,10 +1401,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         }
 
         if ($this->shutdown !== null) {
-            if (!$this->frameQueue->isComplete()) {
-                $this->frameQueue->complete();
-            }
-
+            $this->completeFrameQueue();
             return;
         }
 
@@ -1489,11 +1483,7 @@ final class Http2ConnectionProcessor implements Http2Processor
             // Without active streams nothing else closes the socket, see releaseStream(). Closing it right away
             // would discard the GOAWAY frame still waiting in the write queue.
             $this->writeFrame(Http2Parser::GOAWAY, data: \pack('NN', 0, $code) . $message)
-                ->finally(function (): void {
-                    if (!$this->frameQueue->isComplete()) {
-                        $this->frameQueue->complete();
-                    }
-                })
+                ->finally($this->completeFrameQueue(...))
                 ->ignore();
 
             foreach ($this->streams as $id => $_stream) {
@@ -1658,6 +1648,13 @@ final class Http2ConnectionProcessor implements Http2Processor
             ));
         } finally {
             $this->socket->close();
+        }
+    }
+
+    private function completeFrameQueue(): void
+    {
+        if (!$this->frameQueue->isComplete()) {
+            $this->frameQueue->complete();
         }
     }
 
