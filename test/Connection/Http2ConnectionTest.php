@@ -607,6 +607,37 @@ class Http2ConnectionTest extends AsyncTestCase
         );
     }
 
+    public function testWriteErrorWithActiveStreamClosesSocket(): void
+    {
+        $request = new Request('http://localhost/');
+
+        events()->requestStart($request);
+
+        $stream = $this->connection->getStream($request);
+
+        $future = async(fn () => $stream->request($request, new NullCancellation));
+
+        delay(0.1);
+
+        // Fail writes from the client while leaving its read side open.
+        \stream_socket_shutdown($this->client->getResource(), \STREAM_SHUT_WR);
+
+        // Writing the PING ACK fails.
+        $this->server->write(self::packFrame('12345678', Http2Parser::PING));
+
+        try {
+            $future->await(new TimeoutCancellation(1));
+            self::fail('The request should have failed');
+        } catch (SocketException) {
+            // Expected
+        }
+
+        delay(0.1);
+
+        self::assertTrue($this->connection->isClosed());
+        self::assertTrue($this->client->isClosed());
+    }
+
     public function testServerEarlyResponse(): void
     {
         $request = new Request('http://localhost/', 'POST', BufferedContent::fromString(\str_repeat('a', 2 ** 10)));
