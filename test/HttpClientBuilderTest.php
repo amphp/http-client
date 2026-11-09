@@ -24,8 +24,11 @@ class HttpClientBuilderTest extends AsyncTestCase
         $httpBin = LocalHttpBin::startInsecureServer();
         $authority = $httpBin->getServerAuthority();
 
-        $response = $client->request(new Request("http://foobar@{$authority}/redirect/status/200"));
-        $httpBin->stopServer();
+        try {
+            $response = $client->request(new Request("http://foobar@{$authority}/redirect/status/200"));
+        } finally {
+            $httpBin->stopServer();
+        }
 
         $this->assertTrue(true); // no exception
         $this->assertNotNull($response->getPreviousResponse());

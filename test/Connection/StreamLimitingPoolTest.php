@@ -23,11 +23,13 @@ class StreamLimitingPoolTest extends AsyncTestCase
 
         $this->setMinimumRuntime(2);
 
-        Future\await([
-            async(fn () => $client->request(new Request($httpBin->getServerUri('/delay/1')))),
-            async(fn () => $client->request(new Request($httpBin->getServerUri('/delay/1')))),
-        ]);
-
-        $httpBin->stopServer();
+        try {
+            Future\await([
+                async(fn () => $client->request(new Request($httpBin->getServerUri('/delay/1')))),
+                async(fn () => $client->request(new Request($httpBin->getServerUri('/delay/1')))),
+            ]);
+        } finally {
+            $httpBin->stopServer();
+        }
     }
 }

@@ -612,9 +612,12 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $request->setTransferTimeout(100);
         $request->setBodySizeLimit(10000000000);
 
-        $response = $this->client->request($request);
-        $body = $response->getBody()->buffer();
-        $httpsBin->stopServer();
+        try {
+            $response = $this->client->request($request);
+            $body = $response->getBody()->buffer();
+        } finally {
+            $httpsBin->stopServer();
+        }
 
         self::assertSame(200, $response->getStatus());
         self::assertSame('2', $response->getProtocolVersion());

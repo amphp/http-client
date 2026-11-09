@@ -28,20 +28,22 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
 
         $this->setMinimumRuntime(2);
 
-        Future\await([
-            async(function () use ($client, $httpBin) {
-                $response = $client->request(new Request($httpBin->getServerUri('/delay/1')));
-                $response->getBody()->buffer();
-                return $response;
-            }),
-            async(function () use ($client, $httpBin) {
-                $response = $client->request(new Request($httpBin->getServerUri('/delay/1')));
-                $response->getBody()->buffer();
-                return $response;
-            }),
-        ]);
-
-        $httpBin->stopServer();
+        try {
+            Future\await([
+                async(function () use ($client, $httpBin) {
+                    $response = $client->request(new Request($httpBin->getServerUri('/delay/1')));
+                    $response->getBody()->buffer();
+                    return $response;
+                }),
+                async(function () use ($client, $httpBin) {
+                    $response = $client->request(new Request($httpBin->getServerUri('/delay/1')));
+                    $response->getBody()->buffer();
+                    return $response;
+                }),
+            ]);
+        } finally {
+            $httpBin->stopServer();
+        }
     }
 
     public function testSingleConnectionDoNotUseBody(): void
@@ -58,12 +60,14 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         $r2 = new Request($httpBin->getServerUri('/delay/1'));
         $r2->setProtocolVersions(['1.1']);
 
-        Future\await([
-            async($client->request(...), $r1),
-            async($client->request(...), $r2),
-        ]);
-
-        $httpBin->stopServer();
+        try {
+            Future\await([
+                async($client->request(...), $r1),
+                async($client->request(...), $r2),
+            ]);
+        } finally {
+            $httpBin->stopServer();
+        }
     }
 
     public function testSingleConnectionDoNotUseBodyHttp2(): void
@@ -80,12 +84,14 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         $r2 = new Request($httpBin->getServerUri('/delay/1'));
         $r2->setProtocolVersions(['2']);
 
-        Future\await([
-            async($client->request(...), $r1),
-            async($client->request(...), $r2),
-        ]);
-
-        $httpBin->stopServer();
+        try {
+            Future\await([
+                async($client->request(...), $r1),
+                async($client->request(...), $r2),
+            ]);
+        } finally {
+            $httpBin->stopServer();
+        }
     }
 
     public function testTwoConnections(): void
@@ -98,12 +104,14 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         $this->setTimeout(6);
         $this->setMinimumRuntime(2);
 
-        Future\await([
-            async(fn () => $client->request(new Request($httpBin->getServerUri('/delay/2')))),
-            async(fn () => $client->request(new Request($httpBin->getServerUri('/delay/2')))),
-        ]);
-
-        $httpBin->stopServer();
+        try {
+            Future\await([
+                async(fn () => $client->request(new Request($httpBin->getServerUri('/delay/2')))),
+                async(fn () => $client->request(new Request($httpBin->getServerUri('/delay/2')))),
+            ]);
+        } finally {
+            $httpBin->stopServer();
+        }
     }
 
     public function testWaitForConnectionToBecomeAvailable(): void
