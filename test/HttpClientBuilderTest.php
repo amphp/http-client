@@ -21,11 +21,11 @@ class HttpClientBuilderTest extends AsyncTestCase
     {
         $client = (new HttpClientBuilder)->allowDeprecatedUriUserInfo()->build();
 
-        $httpBin = LocalHttpBin::http();
-        $authority = $httpBin->authority();
+        $httpBin = LocalHttpBin::startInsecureServer();
+        $authority = $httpBin->getServerAuthority();
 
         $response = $client->request(new Request("http://foobar@{$authority}/redirect/status/200"));
-        $httpBin->stop();
+        $httpBin->stopServer();
 
         $this->assertTrue(true); // no exception
         $this->assertNotNull($response->getPreviousResponse());

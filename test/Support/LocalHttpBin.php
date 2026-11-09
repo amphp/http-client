@@ -22,43 +22,43 @@ use function Amp\delay;
 final class LocalHttpBin implements RequestHandler
 {
     private function __construct(
-        private SocketHttpServer $server,
-        private string $scheme,
+        private readonly SocketHttpServer $server,
+        private readonly string $scheme,
     ) {
     }
 
-    public static function http(): self
+    public static function startInsecureServer(): self
     {
-        return self::start('http', new BindContext);
+        return self::startServer('http', new BindContext());
     }
 
-    public static function https(): self
+    public static function startSecureServer(): self
     {
         $certificate = new Certificate(__DIR__ . '/../tls/amphp.org.pem');
-        $tlsContext = (new ServerTlsContext)->withDefaultCertificate($certificate);
+        $tlsContext = (new ServerTlsContext())->withDefaultCertificate($certificate);
 
-        return self::start('https', (new BindContext)->withTlsContext($tlsContext));
+        return self::startServer('https', (new BindContext())->withTlsContext($tlsContext));
     }
 
     public static function untrustedConnectionFactory(): ConnectionFactory
     {
         $tlsContext = (new ClientTlsContext(''))->withoutPeerVerification()->withoutPeerNameVerification();
-        $connectContext = (new ConnectContext)->withTlsContext($tlsContext);
+        $connectContext = (new ConnectContext())->withTlsContext($tlsContext);
 
         return new DefaultConnectionFactory(connectContext: $connectContext);
     }
 
-    public function uri(string $path = '/'): string
+    public function getServerUri(string $path = '/'): string
     {
-        return $this->scheme . '://' . $this->authority() . $path;
+        return $this->scheme . '://' . $this->getServerAuthority() . $path;
     }
 
-    public function authority(): string
+    public function getServerAuthority(): string
     {
         return $this->server->getServers()[0]->getAddress()->toString();
     }
 
-    public function stop(): void
+    public function stopServer(): void
     {
         $this->server->stop();
     }
@@ -69,22 +69,22 @@ final class LocalHttpBin implements RequestHandler
         [$route, $argument] = \explode('/', $path, 2) + [1 => ''];
 
         return match ($route) {
-            'user-agent' => $this->json(['user-agent' => $request->getHeader('user-agent')]),
-            'post', 'put' => $this->echoed($request),
+            'user-agent' => $this->makeJsonResponse(['user-agent' => $request->getHeader('user-agent')]),
+            'post', 'put' => $this->echoRequestToResponse($request),
             'status' => new Response((int) $argument),
-            'delay' => $this->delayed((int) $argument),
+            'delay' => $this->delayedResponse((int) $argument),
             'bytes' => new Response(body: \str_repeat('.', (int) $argument)),
-            'gzip' => $this->gzip('{"gzipped":true}'),
-            'deflate' => $this->deflate('{"deflated":true}'),
-            'gzip-bomb' => $this->gzip(\str_repeat("\0", 11534336)), // 11 MiB
-            'redirect' => new Response(302, ['location' => $this->uri('/' . $argument)]),
+            'gzip' => $this->makeGZippedResponse('{"gzipped":true}'),
+            'deflate' => $this->makeDeflateResponse('{"deflated":true}'),
+            'gzip-bomb' => $this->makeGZippedResponse(\str_repeat("\0", 11534336)), // 11 MiB
+            'redirect' => new Response(302, ['location' => $this->getServerUri('/' . $argument)]),
             default => new Response(200),
         };
     }
 
-    private static function start(string $scheme, BindContext $bindContext): self
+    private static function startServer(string $scheme, BindContext $bindContext): self
     {
-        $logger = new NullLogger;
+        $logger = new NullLogger();
         $httpDriverFactory = new DefaultHttpDriverFactory($logger, allowHttp2Upgrade: true);
         $server = SocketHttpServer::createForDirectAccess(
             $logger,
@@ -94,42 +94,42 @@ final class LocalHttpBin implements RequestHandler
         $server->expose('127.0.0.1:0', $bindContext);
 
         $httpBin = new self($server, $scheme);
-        $server->start($httpBin, new DefaultErrorHandler);
+        $server->start($httpBin, new DefaultErrorHandler());
 
         return $httpBin;
     }
 
-    private function json(array $data): Response
+    private function makeJsonResponse(array $data): Response
     {
         $body = \json_encode($data, \JSON_THROW_ON_ERROR);
 
         return new Response(200, ['content-type' => 'application/json'], $body);
     }
 
-    private function gzip(string $content): Response
+    private function makeGZippedResponse(string $content): Response
     {
         $body = \gzencode($content);
 
         return new Response(200, ['content-encoding' => 'gzip'], $body);
     }
 
-    private function deflate(string $content): Response
+    private function makeDeflateResponse(string $content): Response
     {
         $body = \gzcompress($content);
 
         return new Response(200, ['content-encoding' => 'deflate'], $body);
     }
 
-    private function echoed(Request $request): Response
+    private function echoRequestToResponse(Request $request): Response
     {
         try {
-            return $this->json($this->echoRequest($request));
+            return $this->makeJsonResponse($this->echoRequest($request));
         } catch (ClientException) {
             return new Response(400);
         }
     }
 
-    private function delayed(int $seconds): Response
+    private function delayedResponse(int $seconds): Response
     {
         delay($seconds, reference: false);
 

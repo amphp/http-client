@@ -14,7 +14,7 @@ class StreamLimitingPoolTest extends AsyncTestCase
 {
     public function testByHost(): void
     {
-        $httpBin = LocalHttpBin::https();
+        $httpBin = LocalHttpBin::startSecureServer();
         $connectionPool = new UnlimitedConnectionPool(LocalHttpBin::untrustedConnectionFactory());
 
         $client = (new HttpClientBuilder)
@@ -24,10 +24,10 @@ class StreamLimitingPoolTest extends AsyncTestCase
         $this->setMinimumRuntime(2);
 
         Future\await([
-            async(fn () => $client->request(new Request($httpBin->uri('/delay/1')))),
-            async(fn () => $client->request(new Request($httpBin->uri('/delay/1')))),
+            async(fn () => $client->request(new Request($httpBin->getServerUri('/delay/1')))),
+            async(fn () => $client->request(new Request($httpBin->getServerUri('/delay/1')))),
         ]);
 
-        $httpBin->stop();
+        $httpBin->stopServer();
     }
 }

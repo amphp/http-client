@@ -147,7 +147,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testDefaultUserAgentSent(): void
     {
-        $uri = $this->httpBin->uri('/user-agent');
+        $uri = $this->httpBin->getServerUri('/user-agent');
 
         $response = $this->executeRequest(new Request($uri));
 
@@ -161,7 +161,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testDefaultUserAgentCanBeChanged(): void
     {
-        $uri = $this->httpBin->uri('/user-agent');
+        $uri = $this->httpBin->getServerUri('/user-agent');
 
         $this->givenNetworkInterceptor(new SetRequestHeaderIfUnset('user-agent', 'amphp/http-client'));
 
@@ -250,7 +250,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testGzipBomb(): void
     {
-        $response = $this->client->request(new Request($this->httpBin->uri('/gzip-bomb')));
+        $response = $this->client->request(new Request($this->httpBin->getServerUri('/gzip-bomb')));
 
         $this->expectException(StreamException::class);
 
@@ -261,7 +261,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testCustomUserAgentSentIfAssigned(): void
     {
-        $uri = $this->httpBin->uri('/user-agent');
+        $uri = $this->httpBin->getServerUri('/user-agent');
         $customUserAgent = 'test-user-agent';
 
         $request = new Request($uri);
@@ -281,7 +281,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     public function testPostStringBody(): void
     {
         $body = 'zanzibar';
-        $request = new Request($this->httpBin->uri('/post'));
+        $request = new Request($this->httpBin->getServerUri('/post'));
         $request->setMethod('POST');
         $request->setBody($body);
 
@@ -296,7 +296,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testPutStringBody(): void
     {
-        $uri = $this->httpBin->uri('/put');
+        $uri = $this->httpBin->getServerUri('/put');
 
         $body = 'zanzibar';
         $request = new Request($uri, "PUT");
@@ -318,7 +318,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
      */
     public function testStatusCodeResponses($statusCode): void
     {
-        $response = $this->executeRequest(new Request($this->httpBin->uri("/status/{$statusCode}")));
+        $response = $this->executeRequest(new Request($this->httpBin->getServerUri("/status/{$statusCode}")));
 
         self::assertInstanceOf(Response::class, $response);
         self::assertEquals($statusCode, $response->getStatus());
@@ -352,7 +352,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     {
         $this->client = $this->builder->followRedirects(0)->build();
 
-        $request = new Request($this->httpBin->uri('/post'), 'POST');
+        $request = new Request($this->httpBin->getServerUri('/post'), 'POST');
         $request->setBody('foobar');
         $request->setProtocolVersions(['2']);
         $request->setHeader('te', 'gzip');
@@ -380,7 +380,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     {
         $this->client = $this->builder->followRedirects()->build();
 
-        $this->givenRawServerResponse("HTTP/1.1 302 OK\r\nLocation: {$this->httpBin->uri('/')}\r\n\r\n.");
+        $this->givenRawServerResponse("HTTP/1.1 302 OK\r\nLocation: {$this->httpBin->getServerUri('/')}\r\n\r\n.");
 
         $response = $this->executeRequest($this->createRequest());
 
@@ -391,7 +391,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testClientAddsZeroContentLengthHeaderForEmptyBodiesOnPost(): void
     {
-        $uri = $this->httpBin->uri('/post');
+        $uri = $this->httpBin->getServerUri('/post');
 
         $request = new Request($uri);
         $request->setMethod('POST');
@@ -414,7 +414,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $body->addField('field1', $field1);
         $body->addField('field2', $field2);
 
-        $request = new Request($this->httpBin->uri('/post'), "POST");
+        $request = new Request($this->httpBin->getServerUri('/post'), "POST");
         $request->setBody($body);
 
         $response = $this->executeRequest($request);
@@ -430,7 +430,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testFileBodyRequest(): void
     {
-        $uri = $this->httpBin->uri('/post');
+        $uri = $this->httpBin->getServerUri('/post');
 
         $bodyPath = __DIR__ . '/fixture/answer.txt';
         $body = StreamedContent::fromFile($bodyPath);
@@ -460,7 +460,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $body->addFile('file1', $file1);
         $body->addFile('file2', $file2);
 
-        $request = new Request($this->httpBin->uri('/post'), "POST");
+        $request = new Request($this->httpBin->getServerUri('/post'), "POST");
         $request->setBody($body);
 
         $response = $this->executeRequest($request);
@@ -482,7 +482,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     {
         $this->givenNetworkInterceptor(new DecompressResponse);
 
-        $response = $this->executeRequest(new Request($this->httpBin->uri('/gzip')));
+        $response = $this->executeRequest(new Request($this->httpBin->getServerUri('/gzip')));
 
         self::assertEquals(200, $response->getStatus());
 
@@ -499,7 +499,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     {
         $this->givenNetworkInterceptor(new DecompressResponse);
 
-        $response = $this->executeRequest(new Request($this->httpBin->uri('/deflate')));
+        $response = $this->executeRequest(new Request($this->httpBin->getServerUri('/deflate')));
 
         self::assertEquals(200, $response->getStatus());
 
@@ -572,7 +572,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectException(InvalidRequestException::class);
         $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
 
-        $request = new Request($this->httpBin->uri('/post'), "POST");
+        $request = new Request($this->httpBin->getServerUri('/post'), "POST");
         $request->setBody(StreamedContent::fromStream(new ReadableBuffer("foo"), 1));
 
         $this->executeRequest($request);
@@ -583,7 +583,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectException(InvalidRequestException::class);
         $this->expectExceptionMessage("Body contained more bytes than specified in Content-Length, aborting request");
 
-        $request = new Request($this->httpBin->uri('/post'), "POST");
+        $request = new Request($this->httpBin->getServerUri('/post'), "POST");
         $request->setBody(StreamedContent::fromStream(new ReadableIterableStream(
             Pipeline::fromIterable(["a", "b", "c"])->delay(0.5)
         ), 2));
@@ -596,7 +596,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->expectException(InvalidRequestException::class);
         $this->expectExceptionMessage("Body contained fewer bytes than specified in Content-Length, aborting request");
 
-        $request = new Request($this->httpBin->uri('/post'), "POST");
+        $request = new Request($this->httpBin->getServerUri('/post'), "POST");
         $request->setBody(StreamedContent::fromStream(new ReadableBuffer("foo"), 42));
 
         $this->executeRequest($request);
@@ -606,15 +606,15 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     {
         $this->client = $this->builder->usingPool(new UnlimitedConnectionPool(LocalHttpBin::untrustedConnectionFactory()))->build();
 
-        $httpsBin = LocalHttpBin::https();
+        $httpsBin = LocalHttpBin::startSecureServer();
 
-        $request = new Request($httpsBin->uri('/bytes/3000000'), 'GET');
+        $request = new Request($httpsBin->getServerUri('/bytes/3000000'), 'GET');
         $request->setTransferTimeout(100);
         $request->setBodySizeLimit(10000000000);
 
         $response = $this->client->request($request);
         $body = $response->getBody()->buffer();
-        $httpsBin->stop();
+        $httpsBin->stopServer();
 
         self::assertSame(200, $response->getStatus());
         self::assertSame('2', $response->getProtocolVersion());
@@ -623,7 +623,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testHttp2UpgradeResponse(): void
     {
-        $request = new Request($this->httpBin->uri('/'));
+        $request = new Request($this->httpBin->getServerUri('/'));
         $request->setHeader('connection', 'upgrade, http2-settings');
         $request->setHeader('upgrade', 'h2c');
         $request->setHeader('http2-settings', 'AAMAAABkAARAAAAAAAIAAAAA');
@@ -636,7 +636,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
 
     public function testHttp2PriorKnowledge(): void
     {
-        $request = new Request($this->httpBin->uri('/'));
+        $request = new Request($this->httpBin->getServerUri('/'));
         $request->setProtocolVersions(['2']);
 
         $response = $this->executeRequest($request);
@@ -663,7 +663,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         for ($i = 0; $i < 3; $i++) {
             $client = (new HttpClientBuilder())->build();
 
-            $request = new Request($this->httpBin->uri('/'));
+            $request = new Request($this->httpBin->getServerUri('/'));
 
             $response = $client->request($request);
             $response->getBody()->buffer();
@@ -682,7 +682,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
     {
         parent::tearDown();
 
-        $this->httpBin->stop();
+        $this->httpBin->stopServer();
 
         if (isset($this->rawHandler)) {
             EventLoop::cancel($this->rawHandler);
@@ -696,7 +696,7 @@ class ClientHttpBinIntegrationTest extends AsyncTestCase
         $this->builder = (new HttpClientBuilder)->retry(0);
         $this->client = $this->builder->build();
 
-        $this->httpBin = LocalHttpBin::http();
+        $this->httpBin = LocalHttpBin::startInsecureServer();
 
         $this->socket = listen(new InternetAddress('127.0.0.1', 0));
         $this->socket->unreference();

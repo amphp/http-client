@@ -18,22 +18,22 @@ final class ClientBadSslIntegrationTest extends AsyncTestCase
 {
     public function testSelfSignedCertificate(): void
     {
-        $httpBin = LocalHttpBin::https();
+        $httpBin = LocalHttpBin::startSecureServer();
         $client = (new HttpClientBuilder)->retry(0)->build();
 
         $this->expectException(TlsException::class);
         $this->expectExceptionMessageMatches("/^Connection to '127.0.0.1:\d+' @ '.+' closed during TLS handshake: certificate verify failed$/");
 
         try {
-            $client->request(new Request($httpBin->uri()));
+            $client->request(new Request($httpBin->getServerUri()));
         } finally {
-            $httpBin->stop();
+            $httpBin->stopServer();
         }
     }
 
     public function testWrongHostCertificate(): void
     {
-        $httpBin = LocalHttpBin::https();
+        $httpBin = LocalHttpBin::startSecureServer();
         $tlsContext = (new ClientTlsContext(''))->withoutPeerVerification()->withPeerNameVerification();
         $client = $this->buildClient($tlsContext);
 
@@ -41,9 +41,9 @@ final class ClientBadSslIntegrationTest extends AsyncTestCase
         $this->expectExceptionMessageMatches("/^Connection to '127.0.0.1:\d+' @ '.+' closed during TLS handshake: Peer certificate .+ did not match expected .*`127.0.0.1'$/");
 
         try {
-            $client->request(new Request($httpBin->uri()));
+            $client->request(new Request($httpBin->getServerUri()));
         } finally {
-            $httpBin->stop();
+            $httpBin->stopServer();
         }
     }
 
