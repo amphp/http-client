@@ -11,18 +11,14 @@ use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\ParseException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
+use Amp\Http\Client\Trailers;
 use Amp\Http\Http1\Rfc7230;
-use Amp\Http\HttpMessage;
 use Amp\Http\HttpStatus;
 use Amp\Http\InvalidHeaderException;
 use function Amp\Http\Client\events;
 use function Amp\Http\mapHeaderPairs;
 
-/**
- * @internal
- *
- * @psalm-import-type HeaderMapType from HttpMessage
- */
+/** @internal */
 final class Http1Parser
 {
     use ForbidSerialization;
@@ -98,7 +94,7 @@ final class Http1Parser
 
     /**
      * @param \Closure(string):Future $bodyDataCallback
-     * @param \Closure(HeaderMapType):void $trailersCallback
+     * @param \Closure(Trailers):void $trailersCallback
      */
     public function __construct(
         private readonly Request $request,
@@ -502,7 +498,8 @@ final class Http1Parser
     private function parseTrailers(string $trailers): void
     {
         try {
-            $trailers = Rfc7230::parseHeaders($trailers);
+            // Constructor checks for any disallowed fields
+            $trailers = new Trailers(Rfc7230::parseHeaders($trailers));
         } catch (InvalidHeaderException $e) {
             throw new ParseException('Invalid trailers', HttpStatus::BAD_REQUEST, $e);
         }
