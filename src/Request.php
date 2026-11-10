@@ -63,6 +63,8 @@ final class Request extends HttpRequest
 
     /**
      * @param non-empty-string $method
+     *
+     * @psalm-taint-sink ssrf $uri
      */
     public function __construct(UriInterface|string $uri, string $method = "GET", HttpContent|string $body = '')
     {
@@ -143,6 +145,8 @@ final class Request extends HttpRequest
 
     /**
      * Specify the request's HTTP URI.
+     *
+     * @psalm-taint-sink ssrf $uri
      */
     #[\Override]
     public function setUri(UriInterface|string $uri): void

@@ -11,18 +11,14 @@ use Amp\Http\Client\Connection\Stream;
 use Amp\Http\Client\ParseException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
+use Amp\Http\Client\Trailers;
 use Amp\Http\Http1\Rfc7230;
-use Amp\Http\HttpMessage;
 use Amp\Http\HttpStatus;
 use Amp\Http\InvalidHeaderException;
 use function Amp\Http\Client\events;
 use function Amp\Http\mapHeaderPairs;
 
-/**
- * @internal
- *
- * @psalm-import-type HeaderMapType from HttpMessage
- */
+/** @internal */
 final class Http1Parser
 {
     use ForbidSerialization;
@@ -55,6 +51,37 @@ final class Http1Parser
 
     private int $bodyBytesConsumed = 0;
 
+    /**
+     * chunk-size [ chunk-ext ], where chunk-size = 1*HEXDIG (captured) and
+     * chunk-ext = *( BWS ";" BWS chunk-ext-name [ BWS "=" BWS chunk-ext-val ] ), the name being a token
+     * and the value a token or a quoted-string (RFC 9112, section 7.1.1).
+     */
+    private const CHUNK_SIZE_LINE_REGEX = /* @lang RegExp */ <<<'REGEX'
+        (
+            (?(DEFINE)
+                (?<bws>[ \t]*)
+                (?<token>[!#$%&'*+\-.^_`|~0-9A-Za-z]+)
+                # quoted-string = DQUOTE *( qdtext / quoted-pair ) DQUOTE
+                (?<quoted_string>"(?:[\t !\x23-\x5B\x5D-\x7E\x80-\xFF]|\\[\t \x21-\x7E\x80-\xFF])*")
+            )
+
+            ^
+            # chunk-size = 1*HEXDIG
+            (?<size>[0-9A-Fa-f]+)
+            (?:
+                # chunk-ext = *( BWS ";" BWS chunk-ext-name [ BWS "=" BWS chunk-ext-val ] )
+                (?:
+                    (?&bws);(?&bws)(?&token)
+                    (?:(?&bws)=(?&bws)(?:(?&token)|(?&quoted_string)))?
+                )+
+                |
+                # Trailing whitespace without chunk extensions.
+                (?&bws)
+            )
+            \z
+        )x
+        REGEX;
+
     private bool $chunkedEncoding = false;
 
     private ?int $chunkLengthRemaining = null;
@@ -67,7 +94,7 @@ final class Http1Parser
 
     /**
      * @param \Closure(string):Future $bodyDataCallback
-     * @param \Closure(HeaderMapType):void $trailersCallback
+     * @param \Closure(Trailers):void $trailersCallback
      */
     public function __construct(
         private readonly Request $request,
@@ -414,7 +441,14 @@ final class Http1Parser
             }
 
             $line = \substr($this->buffer, 0, $lineEndPos);
-            $hex = \strtolower(\trim(\ltrim($line, '0'))) ?: '0';
+
+            // chunk = chunk-size [ chunk-ext ] CRLF. Chunk extensions are not used, so they are
+            // ignored once checked against the grammar (RFC 9112, section 7.1.1).
+            if (!\preg_match(self::CHUNK_SIZE_LINE_REGEX, $line, $matches)) {
+                throw new ParseException('Invalid chunk size line', HttpStatus::BAD_REQUEST);
+            }
+
+            $hex = \strtolower(\ltrim($matches['size'], '0')) ?: '0';
             $dec = \hexdec($hex);
 
             if ($hex !== \dechex($dec)) {
@@ -464,7 +498,8 @@ final class Http1Parser
     private function parseTrailers(string $trailers): void
     {
         try {
-            $trailers = Rfc7230::parseHeaders($trailers);
+            // Constructor checks for any disallowed fields
+            $trailers = new Trailers(Rfc7230::parseHeaders($trailers));
         } catch (InvalidHeaderException $e) {
             throw new ParseException('Invalid trailers', HttpStatus::BAD_REQUEST, $e);
         }

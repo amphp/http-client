@@ -669,6 +669,7 @@ final class Http2ConnectionProcessor implements Http2Processor
 
         $this->streams[$pushId] = $stream;
 
+        $stream->requestHeaderCompletion->complete();
         $stream->requestBodyCompletion->complete();
 
         if ($parentStream->request->getPushHandler() === null) {
@@ -1141,8 +1142,7 @@ final class Http2ConnectionProcessor implements Http2Processor
                 }
             }
 
-            $this->frameQueue->complete();
-
+            $this->completeFrameQueue();
             $this->shutdown();
         }
     }
@@ -1401,7 +1401,7 @@ final class Http2ConnectionProcessor implements Http2Processor
         }
 
         if ($this->shutdown !== null) {
-            $this->socket->close();
+            $this->completeFrameQueue();
             return;
         }
 
@@ -1480,7 +1480,11 @@ final class Http2ConnectionProcessor implements Http2Processor
                 default => null,
             };
 
-            $this->writeFrame(Http2Parser::GOAWAY, data: \pack('NN', 0, $code) . $message)->ignore();
+            // Without active streams nothing else closes the socket, see releaseStream(). Closing it right away
+            // would discard the GOAWAY frame still waiting in the write queue.
+            $this->writeFrame(Http2Parser::GOAWAY, data: \pack('NN', 0, $code) . $message)
+                ->finally($this->completeFrameQueue(...))
+                ->ignore();
 
             foreach ($this->streams as $id => $_stream) {
                 $reason ??= $this->makeDefaultShutdownReason();
@@ -1642,6 +1646,15 @@ final class Http2ConnectionProcessor implements Http2Processor
                 Http2Parser::INTERNAL_ERROR,
                 $exception,
             ));
+        } finally {
+            $this->socket->close();
+        }
+    }
+
+    private function completeFrameQueue(): void
+    {
+        if (!$this->frameQueue->isComplete()) {
+            $this->frameQueue->complete();
         }
     }
 

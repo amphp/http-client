@@ -8,6 +8,7 @@ use Amp\ByteStream\StreamException;
 use Amp\Http\Client\HttpContent;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\InvalidRequestException;
+use Amp\Http\Client\ParseException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\StreamedContent;
@@ -292,8 +293,120 @@ class Http1ConnectionTest extends AsyncTestCase
         ];
     }
 
+    public function testHeadResponseWithContentLengthHasNoBody(): void
+    {
+        $response = $this->receiveResponse(
+            new Request('http://localhost', 'HEAD'),
+            "HTTP/1.1 200 OK\r\nContent-Length: 42\r\n\r\n",
+        );
+
+        self::assertSame(200, $response->getStatus());
+        self::assertSame('', $response->getBody()->buffer());
+    }
+
+    public function testResponseWithTrailers(): void
+    {
+        $response = $this->receiveResponse(
+            new Request('http://localhost'),
+            "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nTrailers: Expires\r\n\r\n"
+            . "d\r\nHello, World!\r\n0\r\nExpires: date\r\n\r\n",
+        );
+
+        self::assertSame(200, $response->getStatus());
+        self::assertSame('Expires', $response->getHeader('trailers'));
+        self::assertSame('Hello, World!', $response->getBody()->buffer());
+        self::assertSame('date', $response->getTrailers()->await()->getHeader('expires'));
+    }
+
+    public function testDisallowedTrailerIsRejected(): void
+    {
+        $response = $this->receiveResponse(
+            new Request('http://localhost'),
+            "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n"
+            . "d\r\nHello, World!\r\n0\r\nContent-Length: 13\r\n\r\n",
+        );
+
+        try {
+            $response->getBody()->buffer();
+            self::fail('The response body should have failed to parse');
+        } catch (StreamException $exception) {
+            self::assertSame('HTTP response did not complete: Invalid trailers', $exception->getMessage());
+        }
+
+        $this->expectException(ParseException::class);
+        $this->expectExceptionMessage('Invalid trailers');
+
+        $response->getTrailers()->await();
+    }
+
+    public function testChunkExtensionsAreIgnored(): void
+    {
+        $response = $this->receiveResponse(
+            new Request('http://localhost'),
+            "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n"
+            . "7;name=value\r\nHello, \r\n"
+            . "6 ; flag ; q=\"a;\\\"b\"\r\nWorld!\r\n"
+            . "0;last\r\n\r\n",
+        );
+
+        self::assertSame(200, $response->getStatus());
+        self::assertSame('Hello, World!', $response->getBody()->buffer());
+    }
+
+    /**
+     * @dataProvider provideInvalidChunkSizeLines
+     */
+    public function testInvalidChunkSizeLineIsRejected(string $sizeLine): void
+    {
+        $response = $this->receiveResponse(
+            new Request('http://localhost'),
+            "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n{$sizeLine}hello\r\n0\r\n\r\n",
+        );
+
+        try {
+            $response->getBody()->buffer();
+            self::fail('The response body should have failed to parse');
+        } catch (StreamException $exception) {
+            self::assertSame('HTTP response did not complete: Invalid chunk size line', $exception->getMessage());
+            self::assertInstanceOf(ParseException::class, $exception->getPrevious());
+        }
+    }
+
+    public function provideInvalidChunkSizeLines(): array
+    {
+        return [
+            'empty extension' => ["5;\r\n"],
+            'missing extension name' => ["5;=v\r\n"],
+            'unterminated quoted-string' => ["5;n=\"v\r\n"],
+            'space in token value' => ["5;n=a b\r\n"],
+            'control character in extension' => ["5;n\x01\r\n"],
+            'bare LF in extension' => ["5;n\n\r\n"],
+            'whitespace only' => [" \r\n"],
+            'extension without size' => [";x\r\n"],
+            'whitespace and extension without size' => [" ;x\r\n"],
+            'leading whitespace' => [" 5\r\n"],
+            'bare LF before extension' => ["5\n;x\r\n"],
+            'vertical tab after size' => ["5\x0b\r\n"],
+            'non-hex size' => ["g\r\n"],
+        ];
+    }
+
     private function createSlowBody(): HttpContent
     {
         return StreamedContent::fromStream(new ReadableIterableStream(Pipeline::fromIterable(\array_fill(0, 100, '.'))->delay(0.1)));
+    }
+
+    private function receiveResponse(Request $request, string $response): Response
+    {
+        [$server, $client] = Socket\createSocketPair();
+
+        $connection = new Http1Connection($client, 0, null, 5);
+
+        events()->requestStart($request);
+        $stream = $connection->getStream($request);
+
+        $server->write($response);
+
+        return $stream->request($request, new NullCancellation);
     }
 }
