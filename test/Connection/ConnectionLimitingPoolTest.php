@@ -3,6 +3,9 @@
 namespace Amp\Http\Client\Connection;
 
 use Amp\ByteStream\ReadableBuffer;
+use Amp\Cancellation;
+use Amp\CancelledException;
+use Amp\DeferredFuture;
 use Amp\Future;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\Request;
@@ -10,8 +13,10 @@ use Amp\Http\Client\Response;
 use Amp\Http\Client\SocketException;
 use Amp\Http\Client\Support\LocalHttpBin;
 use Amp\Http\Client\Trailers;
+use Amp\NullCancellation;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Socket\InternetAddress;
+use Amp\TimeoutCancellation;
 use PHPUnit\Framework\MockObject\MockObject;
 use Revolt\EventLoop;
 use function Amp\async;
@@ -19,6 +24,61 @@ use function Amp\delay;
 
 class ConnectionLimitingPoolTest extends AsyncTestCase
 {
+    public function testCancellationWhileWaitingForConnectionOfAnotherRequest(): void
+    {
+        $this->setTimeout(1);
+
+        $deferred = new DeferredFuture();
+
+        $factory = new class($deferred) implements ConnectionFactory {
+            public function __construct(private readonly DeferredFuture $deferred)
+            {
+            }
+
+            public function create(Request $request, Cancellation $cancellation): Connection
+            {
+                return $this->deferred->getFuture()->await();
+            }
+        };
+
+        $pool = ConnectionLimitingPool::byAuthority(\PHP_INT_MAX, $factory);
+
+        $first = async($pool->getStream(...), new Request('https://example.com/'), new NullCancellation());
+        $first->ignore();
+
+        delay(0);
+
+        $keepLoopAlive = EventLoop::delay(0.5, static fn () => null);
+
+        try {
+            $this->expectException(CancelledException::class);
+
+            $pool->getStream(new Request('https://example.com/'), new TimeoutCancellation(0.05));
+        } finally {
+            EventLoop::cancel($keepLoopAlive);
+            $deferred->error(new SocketException('Connection failed'));
+        }
+    }
+
+    public function testEstablishedConnectionIsCountedAsOpen(): void
+    {
+        $request = new Request('http://localhost');
+
+        $factory = $this->createMock(ConnectionFactory::class);
+        $factory->expects(self::once())
+            ->method('create')
+            ->willReturn($this->createMockConnection($request));
+
+        $pool = ConnectionLimitingPool::byAuthority(1, $factory);
+
+        $pool->getStream($request, new NullCancellation());
+
+        delay(0);
+
+        self::assertSame(1, $pool->getTotalConnectionAttempts());
+        self::assertSame(1, $pool->getOpenConnectionCount());
+    }
+
     public function testSingleConnection(): void
     {
         $httpBin = LocalHttpBin::startInsecureServer();

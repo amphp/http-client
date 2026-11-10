@@ -159,13 +159,15 @@ final class ConnectionLimitingPool implements ConnectionPool
                 try {
                     if ($isHttps && ($this->waitForPriorConnection[$uri] ?? true)) {
                         // Wait for first successful connection if using a secure connection (maybe we can use HTTP/2).
-                        $connection = $connectionFuture->await();
+                        $connection = $connectionFuture->await($cancellation);
                     } elseif ($connectionFuture->isComplete()) {
-                        $connection = $connectionFuture->await();
+                        $connection = $connectionFuture->await($cancellation);
                     } else {
                         continue;
                     }
                 } catch (\Exception $exception) {
+                    $cancellation->throwIfRequested();
+
                     continue; // Ignore cancellations and errors of other requests.
                 }
 
@@ -195,7 +197,7 @@ final class ConnectionLimitingPool implements ConnectionPool
                 break;
             }
 
-            $connection = $futureFromDeferred->await();
+            $connection = $futureFromDeferred->await($cancellation);
 
             \assert($connection instanceof Connection);
 
@@ -248,7 +250,7 @@ final class ConnectionLimitingPool implements ConnectionPool
 
         try {
             // Await both new connection future and deferred to reuse an existing connection.
-            $connection = Future\awaitFirst([$connectionFuture, $futureFromDeferred]);
+            $connection = Future\awaitFirst([$connectionFuture, $futureFromDeferred], $cancellation);
         } catch (CompositeException $exception) {
             [$exception] = $exception->getReasons(); // The first reason is why the connection failed.
             throw $exception;
@@ -262,7 +264,7 @@ final class ConnectionLimitingPool implements ConnectionPool
 
         if ($stream === null) {
             // Potentially reused connection did not have an available stream for the given request.
-            $connection = $connectionFuture->await(); // Wait for new connection request instead.
+            $connection = $connectionFuture->await($cancellation); // Wait for new connection request instead.
 
             $stream = $this->getStreamFromConnection($connection, $request);
 
