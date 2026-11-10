@@ -85,16 +85,34 @@ class ParserTest extends AsyncTestCase
         $this->assertSame('Hello, World!', $body);
     }
 
-    public function testInvalidChunkExtensionIsRejected(): void
+    /**
+     * @dataProvider provideInvalidChunkSizeLines
+     */
+    public function testInvalidChunkSizeLineIsRejected(string $sizeLine): void
     {
-        foreach (["5;\r\n", "5;=v\r\n", "5;n=\"v\r\n", "5;n=a b\r\n", "5;n\x01\r\n", "5;n\n\r\n"] as $sizeLine) {
-            try {
-                $this->parseChunked("HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n{$sizeLine}hello\r\n0\r\n\r\n");
-                $this->fail('Expected a ParseException for ' . \json_encode($sizeLine));
-            } catch (ParseException $exception) {
-                $this->assertSame('Invalid chunk extension', $exception->getMessage());
-            }
-        }
+        $this->expectException(ParseException::class);
+        $this->expectExceptionMessage('Invalid chunk size line');
+
+        $this->parseChunked("HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n{$sizeLine}hello\r\n0\r\n\r\n");
+    }
+
+    public function provideInvalidChunkSizeLines(): array
+    {
+        return [
+            'empty extension' => ["5;\r\n"],
+            'missing extension name' => ["5;=v\r\n"],
+            'unterminated quoted-string' => ["5;n=\"v\r\n"],
+            'space in token value' => ["5;n=a b\r\n"],
+            'control character in extension' => ["5;n\x01\r\n"],
+            'bare LF in extension' => ["5;n\n\r\n"],
+            'whitespace only' => [" \r\n"],
+            'extension without size' => [";x\r\n"],
+            'whitespace and extension without size' => [" ;x\r\n"],
+            'leading whitespace' => [" 5\r\n"],
+            'bare LF before extension' => ["5\n;x\r\n"],
+            'vertical tab after size' => ["5\x0b\r\n"],
+            'non-hex size' => ["g\r\n"],
+        ];
     }
 
     /**
