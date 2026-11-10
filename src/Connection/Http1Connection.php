@@ -24,6 +24,7 @@ use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Amp\Http\Client\SocketException;
 use Amp\Http\Client\TimeoutException;
+use Amp\Http\Client\Trailers;
 use Amp\Http\Http1\Rfc7230;
 use Amp\Http\InvalidHeaderException;
 use Amp\Pipeline\Queue;
@@ -312,8 +313,8 @@ final class Http1Connection implements Connection
         $trailersDeferred = new DeferredFuture;
         $trailersDeferred->getFuture()->ignore();
 
-        $trailers = [];
-        $trailersCallback = static function (array $headers) use (&$trailers): void {
+        $trailers = new Trailers([]);
+        $trailersCallback = static function (Trailers $headers) use (&$trailers): void {
             $trailers = $headers;
         };
 
