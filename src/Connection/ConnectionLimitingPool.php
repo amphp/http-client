@@ -197,7 +197,11 @@ final class ConnectionLimitingPool implements ConnectionPool
                 break;
             }
 
-            $connection = $futureFromDeferred->await($cancellation);
+            try {
+                $connection = $futureFromDeferred->await($cancellation);
+            } finally {
+                $this->removeWaiting($uri, $deferredId); // No-op if removed by onReadyConnection().
+            }
 
             \assert($connection instanceof Connection);
 

@@ -60,6 +60,57 @@ class ConnectionLimitingPoolTest extends AsyncTestCase
         }
     }
 
+    public function testCancelledWaiterDoesNotReceiveReleasedConnection(): void
+    {
+        $this->setTimeout(1);
+
+        $busy = false;
+        $stream = $this->createMock(Stream::class);
+
+        $connection = $this->createMock(Connection::class);
+        $connection->method('getProtocolVersions')
+            ->willReturn(['1.1', '1.0']);
+        $connection->method('getStream')
+            ->willReturnCallback(static function () use (&$busy, $stream): ?Stream {
+                if ($busy) {
+                    return null;
+                }
+
+                $busy = true;
+                return $stream;
+            });
+
+        $factory = $this->createMock(ConnectionFactory::class);
+        $factory->expects(self::once())
+            ->method('create')
+            ->willReturn($connection);
+
+        $pool = ConnectionLimitingPool::byAuthority(1, $factory);
+
+        $first = $pool->getStream(new Request('http://localhost'), new NullCancellation());
+
+        // TimeoutCancellation does not keep the event loop running on its own.
+        $keepLoopAlive = EventLoop::delay(0.5, static fn () => null);
+
+        try {
+            $pool->getStream(new Request('http://localhost'), new TimeoutCancellation(0.05));
+            self::fail('Expected the request to be cancelled while waiting for a connection');
+        } catch (CancelledException) {
+            // Expected.
+        } finally {
+            EventLoop::cancel($keepLoopAlive);
+        }
+
+        $third = async($pool->getStream(...), new Request('http://localhost'), new NullCancellation());
+
+        delay(0); // Enter async call above so a future is waiting for the stream to be released.
+
+        $busy = false;
+        unset($first); // Releases the connection back to the pool.
+
+        self::assertInstanceOf(Stream::class, $third->await());
+    }
+
     public function testEstablishedConnectionIsCountedAsOpen(): void
     {
         $request = new Request('http://localhost');
