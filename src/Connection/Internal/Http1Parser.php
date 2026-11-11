@@ -24,39 +24,18 @@ final class Http1Parser
     use ForbidSerialization;
     use ForbidCloning;
 
-    private const STATUS_LINE_PATTERN = "#^
+    private const STATUS_LINE_PATTERN = /* @lang RegExp */ "(^
         HTTP/(?P<protocol>\d+\.\d+)[\x20\x09]+
         (?P<status>[1-9]\d\d)[\x20\x09]*
         (?P<reason>[^\x01-\x08\x10-\x19]*)
-    $#ix";
-
-    public const AWAITING_HEADERS = 0;
-    public const BODY_IDENTITY = 1;
-    public const BODY_IDENTITY_EOF = 2;
-    public const BODY_CHUNKS = 3;
-    public const TRAILERS_START = 4;
-    public const TRAILERS = 5;
-
-    /** @var \WeakReference<Response>|null */
-    private ?\WeakReference $responseRef = null;
-
-    private int $state = self::AWAITING_HEADERS;
-
-    private bool $headersStarted = false;
-    private bool $bodyStarted = false;
-
-    private string $buffer = '';
-
-    private ?int $remainingBodyBytes = null;
-
-    private int $bodyBytesConsumed = 0;
+    $)ix";
 
     /**
      * chunk-size [ chunk-ext ], where chunk-size = 1*HEXDIG (captured) and
      * chunk-ext = *( BWS ";" BWS chunk-ext-name [ BWS "=" BWS chunk-ext-val ] ), the name being a token
      * and the value a token or a quoted-string (RFC 9112, section 7.1.1).
      */
-    private const CHUNK_SIZE_LINE_REGEX = /* @lang RegExp */ <<<'REGEX'
+    private const CHUNK_SIZE_LINE_PATTERN = /* @lang RegExp */ <<<'REGEX'
         (
             (?(DEFINE)
                 (?<bws>[ \t]*)
@@ -81,6 +60,27 @@ final class Http1Parser
             \z
         )x
         REGEX;
+
+    public const AWAITING_HEADERS = 0;
+    public const BODY_IDENTITY = 1;
+    public const BODY_IDENTITY_EOF = 2;
+    public const BODY_CHUNKS = 3;
+    public const TRAILERS_START = 4;
+    public const TRAILERS = 5;
+
+    /** @var \WeakReference<Response>|null */
+    private ?\WeakReference $responseRef = null;
+
+    private int $state = self::AWAITING_HEADERS;
+
+    private bool $headersStarted = false;
+    private bool $bodyStarted = false;
+
+    private string $buffer = '';
+
+    private ?int $remainingBodyBytes = null;
+
+    private int $bodyBytesConsumed = 0;
 
     private bool $chunkedEncoding = false;
 
@@ -444,7 +444,7 @@ final class Http1Parser
 
             // chunk = chunk-size [ chunk-ext ] CRLF. Chunk extensions are not used, so they are
             // ignored once checked against the grammar (RFC 9112, section 7.1.1).
-            if (!\preg_match(self::CHUNK_SIZE_LINE_REGEX, $line, $matches)) {
+            if (!\preg_match(self::CHUNK_SIZE_LINE_PATTERN, $line, $matches)) {
                 throw new ParseException('Invalid chunk size line', HttpStatus::BAD_REQUEST);
             }
 
