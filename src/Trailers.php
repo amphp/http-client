@@ -41,8 +41,11 @@ final class Trailers extends HttpMessage
             $this->setHeaders($headers);
         }
 
-        if (\array_intersect_key($this->getHeaders(), self::DISALLOWED_TRAILERS)) {
-            throw new InvalidHeaderException('Disallowed field in trailers');
+        $disallowedHeaders = \array_intersect_key($this->getHeaders(), self::DISALLOWED_TRAILERS);
+        if ($disallowedHeaders) {
+            throw new InvalidHeaderException(
+                'Disallowed field(s) in trailers: ' . \implode(', ', \array_keys($disallowedHeaders)),
+            );
         }
     }
 }
